@@ -1,22 +1,12 @@
-# live-build build artifacts
-binary/
-binary.log
-build.log
-cache/
-chroot/
-chroot.files
-chroot.packages.install
-chroot.packages.live
+.lock
 .build/
-
-# ISO output
+chroot/
+binary/
+cache/
 *.iso
-*.img
-
-# GPG keys (fetched by auto/config, not stored in git)
-config/archives/*.gpg
-
-# Misc
-*.tmp
-*~
-.DS_Store
+build.log
+config/bootstrap
+config/binary
+config/chroot
+config/common
+config/source
