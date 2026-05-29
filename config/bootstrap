@@ -4,7 +4,7 @@
 LB_ARCHITECTURE="amd64"
 
 # Select distribution to use
-LB_DISTRIBUTION="forky"
+LB_DISTRIBUTION="sid"
 
 # Select parent distribution to use
 LB_PARENT_DISTRIBUTION=""

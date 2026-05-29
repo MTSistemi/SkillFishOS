@@ -1,0 +1,9 @@
+NAME="SkillFishOS"
+PRETTY_NAME="SkillFishOS (Debian sid, BC-250)"
+ID=skillfishos
+ID_LIKE=debian
+VERSION_CODENAME=sid
+ANSI_COLOR="0;36"
+HOME_URL="https://github.com/MTSistemi/AMD-BC-250"
+SUPPORT_URL="https://github.com/MTSistemi/AMD-BC-250"
+BUG_REPORT_URL="https://github.com/MTSistemi/AMD-BC-250/issues"

@@ -1,42 +1,20 @@
 #!/bin/bash
 set -e
-
-# Install the custom linux-tkg 7.0.10 (BORE + znver2 + BC-250 patches) kernel
-# from the GitHub release on MTSistemi/AMD-BC-250.
-#
-# Override the release tag at build time with: export SKILLFISH_KERNEL_TAG=...
-KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.0.10-bc250}"
+# Install the custom linux-tkg 7.0.10 (BORE/znver2/BC-250) kernel named
+# 7.0.10-skillfishos, from the GitHub release on MTSistemi/AMD-BC-250.
+KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.0.10-skillfishos}"
 REPO="MTSistemi/AMD-BC-250"
-BASE_URL="https://github.com/${REPO}/releases/download/${KERNEL_TAG}"
-
-log() { echo "[tkg-kernel] $*"; }
+log(){ echo "[tkg-kernel] $*"; }
 log "Fetching kernel .deb assets for tag ${KERNEL_TAG}"
-
-WORK=$(mktemp -d)
-cd "$WORK"
-
-# Pull the asset list from the GitHub API to get exact filenames
+WORK=$(mktemp -d); cd "$WORK"
 API="https://api.github.com/repos/${REPO}/releases/tags/${KERNEL_TAG}"
 ASSETS=$(curl -fsSL "$API" 2>/dev/null | grep -oP '"browser_download_url":\s*"\K[^"]+\.deb' || true)
-
 if [ -z "$ASSETS" ]; then
-    log "ERROR: no .deb assets found at release ${KERNEL_TAG}."
-    log "       Build the kernel and publish it first (see scripts/publish-kernel.sh)."
-    log "       Falling back to leaving NO kernel — the ISO will be unbootable until fixed."
-    rm -rf "$WORK"
-    exit 1
+    log "ERROR: no .deb assets at release ${KERNEL_TAG}. Publish the kernel first."
+    cd /; rm -rf "$WORK"; exit 1
 fi
-
-for url in $ASSETS; do
-    log "Downloading $(basename "$url")"
-    curl -fsSL "$url" -O
-done
-
+for url in $ASSETS; do log "Downloading $(basename "$url")"; curl -fsSL "$url" -O; done
 log "Installing kernel packages..."
 dpkg -i linux-image-*.deb linux-headers-*.deb || apt-get -f install -y
-
-cd /
-rm -rf "$WORK"
-
-log "Installed kernel packages:"
+cd /; rm -rf "$WORK"
 dpkg -l 'linux-image-*' 'linux-headers-*' | grep '^ii' || true

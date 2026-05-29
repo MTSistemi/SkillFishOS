@@ -8,4 +8,27 @@ if [ ! -s config/archives/chrome.key.chroot ]; then
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub -o config/archives/chrome.key.chroot
 fi
 
-lb config noauto     --distribution forky     --debian-installer none     --archive-areas "main contrib non-free non-free-firmware"     --apt-recommends false     --apt-indices false     --binary-images iso-hybrid     --bootloaders "grub-efi,syslinux"     --uefi-secure-boot disable     --linux-packages none     --linux-flavours none     --memtest none     --firmware-chroot true     --firmware-binary true     --mirror-bootstrap "http://deb.debian.org/debian/"     --mirror-chroot "http://deb.debian.org/debian/"     --mirror-binary "http://deb.debian.org/debian/"     --security true     --updates true     --backports false     --image-name "skillfish-os"     "${@}"
+# Base: Debian sid (unstable). NOTE: sid has NO -security / -updates pockets,
+# so --security false --updates false are REQUIRED (else apt sources fail).
+lb config noauto \
+    --distribution sid \
+    --debian-installer none \
+    --archive-areas "main contrib non-free non-free-firmware" \
+    --apt-recommends false \
+    --apt-indices false \
+    --binary-images iso-hybrid \
+    --bootloaders "grub-efi,syslinux" \
+    --uefi-secure-boot disable \
+    --linux-packages none \
+    --linux-flavours none \
+    --memtest none \
+    --firmware-chroot true \
+    --firmware-binary true \
+    --mirror-bootstrap "http://deb.debian.org/debian/" \
+    --mirror-chroot "http://deb.debian.org/debian/" \
+    --mirror-binary "http://deb.debian.org/debian/" \
+    --security false \
+    --updates false \
+    --backports false \
+    --image-name "SkillFishOS" \
+    "${@}"
