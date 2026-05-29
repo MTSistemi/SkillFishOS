@@ -2,33 +2,10 @@
 set -e
 cd "$(dirname "$0")/.."
 
-# Fetch Google Chrome signing key (ASCII-armored) for the chrome.list.chroot repo.
-# live-build installs *.key.chroot into the chroot's /etc/apt/trusted.gpg.d/.
+# Fetch Google Chrome signing key (ASCII-armored) for chrome.list.chroot.
 if [ ! -s config/archives/chrome.key.chroot ]; then
     echo "Fetching Google Chrome signing key..."
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub -o config/archives/chrome.key.chroot
 fi
 
-lb config noauto \
-    --distribution forky \
-    --debian-installer false \
-    --archive-areas "main contrib non-free non-free-firmware" \
-    --apt-recommends false \
-    --apt-indices false \
-    --binary-images iso-hybrid \
-    --bootloaders "grub-efi,syslinux" \
-    --uefi-secure-boot disable \
-    --linux-packages none \
-    --linux-flavours none \
-    --memtest none \
-    --firmware-chroot true \
-    --firmware-binary true \
-    --mirror-bootstrap "http://deb.debian.org/debian/" \
-    --mirror-chroot "http://deb.debian.org/debian/" \
-    --mirror-binary "http://deb.debian.org/debian/" \
-    --security true \
-    --updates true \
-    --backports false \
-    --hostname "skillfish" \
-    --image-name "skillfish-os" \
-    "${@}"
+lb config noauto     --distribution forky     --debian-installer none     --archive-areas "main contrib non-free non-free-firmware"     --apt-recommends false     --apt-indices false     --binary-images iso-hybrid     --bootloaders "grub-efi,syslinux"     --uefi-secure-boot disable     --linux-packages none     --linux-flavours none     --memtest none     --firmware-chroot true     --firmware-binary true     --mirror-bootstrap "http://deb.debian.org/debian/"     --mirror-chroot "http://deb.debian.org/debian/"     --mirror-binary "http://deb.debian.org/debian/"     --security true     --updates true     --backports false     --image-name "skillfish-os"     "${@}"
