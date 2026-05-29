@@ -19,7 +19,7 @@ UPLOADS="https://uploads.github.com"
 AUTH=(-H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
 
 echo ">>> Kernel .deb files to publish:"
-mapfile -t DEBS < <(find "$DEBS_DIR" -maxdepth 1 -name '*.deb' | sort)
+mapfile -t DEBS < <(find "$DEBS_DIR" -maxdepth 1 -name '*.deb' ! -name '*-dbg_*' ! -name 'linux-libc-dev*' | sort)
 if [ ${#DEBS[@]} -eq 0 ]; then
     echo "ERROR: no .deb files in $DEBS_DIR" >&2
     exit 1
