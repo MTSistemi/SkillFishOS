@@ -30,5 +30,5 @@ lb config noauto \
     --security false \
     --updates false \
     --backports false \
-    --image-name "SkillFishOS" \
+    --bootappend-live "boot=live components mitigations=off" \n    --image-name "SkillFishOS" \
     "${@}"

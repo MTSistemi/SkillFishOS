@@ -1,7 +1,9 @@
 d binary
 d binary/live
 f binary/live/filesystem.squashfs
+f binary/live/filesystem.packages
 f binary/live/filesystem.packages-remove
+f binary/live/initrd.img-7.0.10-skillfishos
 d binary/boot
 d binary/boot/grub
 d binary/boot/grub/live-theme

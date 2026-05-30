@@ -65,3 +65,5 @@ xdg-desktop-portal
 
 # --- SSH (debug access) ---
 openssh-server
+user-setup
+sudo
