@@ -1,9 +1,15 @@
 d binary
 d binary/live
+f binary/live/filesystem.squashfs
+f binary/live/filesystem.packages-remove
 d binary/boot
 d binary/boot/grub
 d binary/boot/grub/live-theme
 f binary/boot/grub/live-theme/theme.txt
+f binary/boot/grub/config.cfg
+f binary/boot/grub/grub.cfg
+f binary/boot/grub/theme.cfg
+f binary/boot/grub/loopback.cfg
 d binary/boot/grub/x86_64-efi
 f binary/boot/grub/x86_64-efi/grub.cfg
 f binary/boot/grub/efi.img

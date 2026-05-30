@@ -20,7 +20,7 @@ lb config noauto \
     --bootloaders "grub-efi,syslinux" \
     --uefi-secure-boot disable \
     --linux-packages none \
-    --linux-flavours none \
+    --linux-flavours "7.0.10-skillfishos" \
     --memtest none \
     --firmware-chroot true \
     --firmware-binary true \

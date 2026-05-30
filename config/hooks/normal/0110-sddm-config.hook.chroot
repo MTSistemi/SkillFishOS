@@ -7,8 +7,6 @@ mkdir -p /etc/sddm.conf.d
 
 cat > /etc/sddm.conf.d/00-skillfish.conf << 'SDDM'
 [Theme]
-Current=breeze
-CursorTheme=breeze_cursors
 CursorSize=24
 
 [General]

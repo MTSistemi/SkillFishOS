@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+# DEBUG: SSH with root login for live diagnosis (remove for release)
+mkdir -p /etc/ssh/sshd_config.d
+printf 'PermitRootLogin yes
+PasswordAuthentication yes
+' > /etc/ssh/sshd_config.d/99-skillfish-debug.conf
+echo 'root:skillfish' | chpasswd
+systemctl enable ssh 2>/dev/null || true
+cat > /etc/systemd/system/skillfish-ssh-debug.service <<'UNIT'
+[Unit]
+Description=SkillFish SSH debug
+After=live-config.service systemd-user-sessions.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo root:skillfish | chpasswd; systemctl restart ssh'
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl enable skillfish-ssh-debug.service 2>/dev/null || true
