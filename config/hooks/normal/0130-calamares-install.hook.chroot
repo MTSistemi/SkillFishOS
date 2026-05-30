@@ -4,7 +4,7 @@ set -e
 # Install Calamares installer into the live image
 # Config is placed via includes.chroot at /etc/calamares/
 
-apt-get install -y calamares calamares-data 2>/dev/null ||     apt-get install -y calamares
+apt-get install -y --install-recommends calamares calamares-data 2>/dev/null ||     apt-get install -y calamares
 
 # Create desktop launcher for Calamares
 mkdir -p /usr/share/applications
