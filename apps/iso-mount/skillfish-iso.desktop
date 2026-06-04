@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-MimeType=application/x-cd-image;application/x-iso9660-image;application/vnd.efi.iso;
+MimeType=application/x-cd-image;application/x-udf-image;application/x-iso9660-image;application/vnd.efi.iso;
 Actions=skfMount;skfUnmount;
 X-KDE-Priority=TopLevel
 
