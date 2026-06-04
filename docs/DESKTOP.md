@@ -35,9 +35,19 @@ A translucent, always‑on overlay (top‑right) built with **Conky** on the X11
 
 Sensor reads go through a small helper that locates hwmon devices **by name** (k10temp / amdgpu / nct6686), so it survives the hwmon index shuffling across boots.
 
+## Mounting ISO images
+
+Disc images mount the **KDE‑native** way through **udisks2** (no `gnome-disk-image-mounter`):
+**double‑click** an `.iso` in Dolphin to mount it, or **right‑click → Mount / Unmount ISO image**.
+Mounts are read‑only, single, and idempotent (re‑opening reuses the loop device).
+
+Shipped in this repo under [`apps/iso-mount/`](../apps/iso-mount/) — wrapper, Dolphin
+service menu, double‑click handler and a polkit rule, with the install notes and gotchas.
+
 ## SkillFishOS Tuner
 
-A native **GTK4 / libadwaita** app (themed brass) to control the hardware with no terminal:
+A native **PyQt6 / Qt** app — themed automatically by Kvantum, with native KWin window
+controls — to control the hardware with no terminal:
 
 - **CPU** overclock/undervolt (via the SMU OC tool).
 - **GPU** safe‑point (rewrites the governor config).
@@ -50,7 +60,7 @@ A polkit policy lets the active local user run the privileged helper (a personal
 
 ## Local AI panel
 
-A matching brass GTK4 panel to turn the on‑device LLM stack on and off with one click — it frees the GPU/RAM when you want to game. See [AI.md](AI.md).
+A matching brass PyQt6 panel to turn the on‑device LLM stack on and off with one click — it frees the GPU/RAM when you want to game. See [AI.md](AI.md).
 
 ## Other niceties
 

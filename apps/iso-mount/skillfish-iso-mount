@@ -1,0 +1,47 @@
+#!/bin/sh
+# SkillFishOS — monta/smonta immagini ISO con udisks2 (KDE-nativo, no GNOME).
+# Gestisce nomi con spazi e l'auto-mount di udisks (no doppio-mount).
+# Uso: skillfish-iso-mount FILE.iso   |   skillfish-iso-mount -u FILE.iso
+notify() {
+  if command -v kdialog >/dev/null 2>&1; then kdialog --title "Immagini ISO" --passivepopup "$1" 5 >/dev/null 2>&1 &
+  elif command -v notify-send >/dev/null 2>&1; then notify-send "Immagini ISO" "$1"; fi
+}
+loopdev_of() { losetup -nO NAME -j "$1" 2>/dev/null | head -1; }
+# mountpoint del device, con gli spazi de-escapati (findmnt li stampa come \x20)
+mp_of() { findmnt -nro TARGET "$1" 2>/dev/null | head -1 | sed 's/\\x20/ /g'; }
+
+if [ "$1" = "-u" ]; then
+  ISO="$2"; DEV="$(loopdev_of "$ISO")"
+  [ -z "$DEV" ] && { notify "Questa immagine non risulta montata."; exit 0; }
+  for d in "$DEV" "${DEV}p1" "${DEV}p2"; do
+    [ -n "$(mp_of "$d")" ] && udisksctl unmount -b "$d" >/dev/null 2>&1
+  done
+  udisksctl loop-delete -b "$DEV" >/dev/null 2>&1
+  notify "Immagine smontata."
+  exit 0
+fi
+
+ISO="$1"
+[ -f "$ISO" ] || { notify "File non trovato."; exit 1; }
+DEV="$(loopdev_of "$ISO")"
+if [ -z "$DEV" ]; then
+  OUT="$(udisksctl loop-setup -r -f "$ISO" 2>&1)"
+  DEV="$(printf '%s' "$OUT" | grep -oE '/dev/loop[0-9]+')"
+  [ -z "$DEV" ] && { notify "Errore: $OUT"; exit 1; }
+fi
+udevadm settle 2>/dev/null
+# udisks auto-monta in sessione grafica attiva: attendo l'auto-mount (max ~3s),
+# poi monto io solo se non e' successo (contesti non-attivi). Evita il doppio-mount.
+i=0; MNT="$(mp_of "$DEV")"
+while [ -z "$MNT" ] && [ "$i" -lt 8 ]; do sleep 0.4; i=$((i+1)); MNT="$(mp_of "$DEV")"; done
+if [ -z "$MNT" ]; then udisksctl mount -b "$DEV" >/dev/null 2>&1; sleep 1; MNT="$(mp_of "$DEV")"; fi
+if [ -z "$MNT" ] && [ -b "${DEV}p1" ]; then   # ISO ibrida: prima partizione
+  udisksctl mount -b "${DEV}p1" >/dev/null 2>&1; MNT="$(mp_of "${DEV}p1")"
+fi
+if [ -n "$MNT" ]; then
+  notify "Montata in: $MNT"
+  if command -v dolphin >/dev/null 2>&1; then setsid dolphin "$MNT" >/dev/null 2>&1 &
+  else xdg-open "$MNT" >/dev/null 2>&1 & fi
+else
+  notify "Mount non riuscito."
+fi

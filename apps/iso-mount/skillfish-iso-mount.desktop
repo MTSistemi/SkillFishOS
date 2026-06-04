@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Monta immagine ISO
+Comment=Monta una immagine ISO con udisks2
+Exec=/usr/local/bin/skillfish-iso-mount %f
+Icon=media-optical
+NoDisplay=true
+MimeType=application/x-cd-image;application/x-iso9660-image;
+Terminal=false

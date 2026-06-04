@@ -2,3 +2,4 @@
 *.sh text eol=lf
 customization.cfg text eol=lf
 *.hook.chroot text eol=lf
+apps/iso-mount/** text eol=lf
