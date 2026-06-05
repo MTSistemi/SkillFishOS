@@ -28,24 +28,24 @@
       "name": "Turbo",
       "name_it": "Turbo",
       "name_en": "Turbo",
-      "desc": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Ventola al 75%.",
-      "desc_it": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Ventola al 75%.",
-      "desc_en": "High boost. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Fan at 75%.",
+      "desc": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Ventola auto.",
+      "desc_it": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Ventola auto.",
+      "desc_en": "High boost. CPU 3900 MHz ~1199 mV (undervolt), GPU 2230 MHz. Auto fan.",
       "cpu": {"frequency": 3900, "scale": -24, "max_temperature": 85},
       "gpu": {"min_mhz": 350, "min_mv": 700, "max_mhz": 2230, "max_mv": 1000},
-      "fan": {"mode": "manual", "pct": 75},
+      "fan": {"mode": "auto", "pct": 65},
       "thermal_guard": 85
     },
     {
       "name": "Crazy",
       "name_it": "Crazy",
       "name_en": "Crazy",
-      "desc": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, ventola 100%. ~83 C in stress sulla BC-250 di riferimento.",
-      "desc_it": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, ventola 100%. ~83 C in stress sulla BC-250 di riferimento.",
-      "desc_en": "Validated maximum. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, fan 100%. ~83 C under stress on the reference BC-250.",
+      "desc": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, ventola auto. ~83 C in stress sulla BC-250 di riferimento.",
+      "desc_it": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, ventola auto. ~83 C in stress sulla BC-250 di riferimento.",
+      "desc_en": "Validated maximum. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2230 MHz, auto fan. ~83 C under stress on the reference BC-250.",
       "cpu": {"frequency": 4000, "scale": -36, "max_temperature": 85},
       "gpu": {"min_mhz": 350, "min_mv": 700, "max_mhz": 2230, "max_mv": 1000},
-      "fan": {"mode": "manual", "pct": 100},
+      "fan": {"mode": "auto", "pct": 70},
       "thermal_guard": 85
     }
   ]
