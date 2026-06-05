@@ -10,8 +10,9 @@ export const languages: Record<Lang, string> = { it: 'Italiano', en: 'English' }
 export const SITE = {
   github: 'https://github.com/MTSistemi/SkillFishOS',
   domain: 'skillfishos.com',
-  // Placeholder until the ISO host (R2 / dl.skillfishos.com) is finalized.
-  isoUrl: '',
+  // Masked download URL: skillfishos.com/dl/... → 302 to Dropbox (see public/.htaccess).
+  // Currently a fully-functional preview ISO hosted on Dropbox.
+  isoUrl: '/dl/skillfishos-preview.iso',
   isoSizeGb: '5.78',
   repoUrl: 'http://192.168.5.22',
 };
@@ -90,10 +91,14 @@ export const strings: Record<string, Entry> = {
   'dl.eye': { it: "Download", en: "Download" },
   'dl.h2': { it: "Scarica SkillFish<span class=\"gold-text\">Os</span>", en: "Download SkillFish<span class=\"gold-text\">Os</span>" },
   'dl.sub': { it: "La ISO installabile, brandizzata e pronta all'uso per l'AMD BC-250.", en: "The installable, branded, ready-to-use ISO for the AMD BC-250." },
-  'dl.notice': { it: "🚧 La ISO non è ancora pubblicata. La pagina di download verrà attivata al rilascio — torna presto.", en: "🚧 The ISO isn't published yet. The download will go live at release — check back soon." },
+  'dl.badge': { it: "Preview", en: "Preview" },
+  'dl.notice': { it: "Questa è una <strong>preview completamente funzionante</strong> di SkillFishOs: la installi e la usi davvero sulla tua BC-250.", en: "This is a <strong>fully-functional preview</strong> of SkillFishOs: you can really install and use it on your BC-250." },
   'dl.btnsoon': { it: "🚀 ISO in arrivo", en: "🚀 ISO coming soon" },
-  'dl.btn': { it: "⬇ Scarica la ISO", en: "⬇ Download the ISO" },
-  'dl.size': { it: "amd64 · ~{size} GB · btrfs + KDE Plasma", en: "amd64 · ~{size} GB · btrfs + KDE Plasma" },
+  'dl.btn': { it: "⬇ Scarica la ISO (Preview)", en: "⬇ Download the ISO (Preview)" },
+  'dl.size': { it: "amd64 · ~{size} GB · btrfs + KDE Plasma · preview", en: "amd64 · ~{size} GB · btrfs + KDE Plasma · preview" },
+  'dl.bugs.h': { it: "Hai trovato un problema?", en: "Found a problem?" },
+  'dl.bugs.d': { it: "La preview è in continuo miglioramento. Per segnalare bug o problemi apri una <em>issue</em> su GitHub. (Presto aggiungeremo anche un indirizzo email.)", en: "The preview is continuously improving. To report bugs or problems, open an <em>issue</em> on GitHub. (We'll add an email address soon.)" },
+  'dl.bugs.btn': { it: "🐛 Segnala su GitHub", en: "🐛 Report on GitHub" },
 
   'dl.req.h': { it: "Requisiti", en: "Requirements" },
   'dl.req.d': { it: "Una scheda <strong>AMD BC-250</strong> (APU Zen&nbsp;2 + RDNA&nbsp;2, 16&nbsp;GB GDDR6), un SSD/NVMe, un monitor <strong>DisplayPort</strong> e una chiavetta USB da almeno 8&nbsp;GB per l'installer.", en: "An <strong>AMD BC-250</strong> board (Zen&nbsp;2 + RDNA&nbsp;2 APU, 16&nbsp;GB GDDR6), an SSD/NVMe, a <strong>DisplayPort</strong> monitor and an 8&nbsp;GB+ USB stick for the installer." },

@@ -4,10 +4,11 @@ interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const hasIso = SITE.isoUrl !== '';
 const sizeLine = t('dl.size', lang).replace('{size}', SITE.isoSizeGb);
+const issues = `${SITE.github}/issues`;
 ---
 <section class="hero" style="padding-bottom:30px">
   <div class="wrap">
-    <div class="soon"><span class="dot"></span><span>{t('dl.eye', lang)}</span></div>
+    <div class="soon"><span class="dot"></span><span>{t('dl.badge', lang)}</span></div>
     <h1 style="font-size:clamp(2.2rem,6vw,4rem)" set:html={t('dl.h2', lang)} />
     <p class="sub" style="margin-bottom:30px">{t('dl.sub', lang)}</p>
     <div class="hero-btns">
@@ -18,9 +19,7 @@ const sizeLine = t('dl.size', lang).replace('{size}', SITE.isoSizeGb);
       )}
     </div>
     <div class="pill" style="margin-top:24px">{sizeLine}</div>
-    {!hasIso && (
-      <p class="sub" style="margin-top:34px;color:var(--gold-lt)">{t('dl.notice', lang)}</p>
-    )}
+    <p class="sub" style="margin-top:34px;color:var(--gold-lt)" set:html={t('dl.notice', lang)} />
   </div>
 </section>
 
@@ -30,6 +29,17 @@ const sizeLine = t('dl.size', lang).replace('{size}', SITE.isoSizeGb);
       <div class="card"><span class="ico">🖥️</span><h3>{t('dl.req.h', lang)}</h3><p set:html={t('dl.req.d', lang)} /></div>
       <div class="card"><span class="ico">📦</span><h3>{t('dl.inc.h', lang)}</h3><p set:html={t('dl.inc.d', lang)} /></div>
       <div class="card"><span class="ico">🔄</span><h3>{t('dl.repo.h', lang)}</h3><p set:html={t('dl.repo.d', lang)} /></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta" style="padding-top:10px">
+  <div class="wrap">
+    <div class="cta-box">
+      <div class="eyebrow">{t('dl.badge', lang)}</div>
+      <h2>{t('dl.bugs.h', lang)}</h2>
+      <p set:html={t('dl.bugs.d', lang)} />
+      <a class="btn btn-primary" href={issues} target="_blank" rel="noopener" set:html={t('dl.bugs.btn', lang)} />
     </div>
   </div>
 </section>
