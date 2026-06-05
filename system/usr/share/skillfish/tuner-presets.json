@@ -1,0 +1,40 @@
+{
+  "presets": [
+    {
+      "name": "Stock",
+      "name_it": "Stock",
+      "name_en": "Stock",
+      "desc": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz. Fresco e silenzioso.",
+      "desc_it": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz. Fresco e silenzioso.",
+      "desc_en": "Safe baseline values. CPU 3500 MHz, GPU 1500 MHz. Cool and quiet.",
+      "cpu": {"frequency": 3500, "scale": 0, "max_temperature": 85},
+      "gpu": {"min_mhz": 350, "min_mv": 700, "max_mhz": 1500, "max_mv": 900},
+      "fan": {"mode": "auto", "pct": 45},
+      "thermal_guard": 85
+    },
+    {
+      "name": "Performance",
+      "name_it": "Performance",
+      "name_en": "Performance",
+      "desc": "Spinta equilibrata. CPU 3700 MHz, GPU 2000 MHz. Downscale automatico sopra 85 C.",
+      "desc_it": "Spinta equilibrata. CPU 3700 MHz, GPU 2000 MHz. Downscale automatico sopra 85 C.",
+      "desc_en": "Balanced boost. CPU 3700 MHz, GPU 2000 MHz. Auto downscale above 85 C.",
+      "cpu": {"frequency": 3700, "scale": 0, "max_temperature": 85},
+      "gpu": {"min_mhz": 350, "min_mv": 700, "max_mhz": 2000, "max_mv": 1000},
+      "fan": {"mode": "manual", "pct": 65},
+      "thermal_guard": 85
+    },
+    {
+      "name": "Crazy",
+      "name_it": "Crazy",
+      "name_en": "Crazy",
+      "desc": "Massima potenza. CPU 3900 MHz, GPU 2230 MHz. Scala giu' automaticamente oltre 85 C.",
+      "desc_it": "Massima potenza. CPU 3900 MHz, GPU 2230 MHz. Scala giu' automaticamente oltre 85 C.",
+      "desc_en": "Maximum power. CPU 3900 MHz, GPU 2230 MHz. Auto downscales above 85 C.",
+      "cpu": {"frequency": 3900, "scale": -6, "max_temperature": 90},
+      "gpu": {"min_mhz": 700, "min_mv": 850, "max_mhz": 2230, "max_mv": 1100},
+      "fan": {"mode": "manual", "pct": 90},
+      "thermal_guard": 85
+    }
+  ]
+}

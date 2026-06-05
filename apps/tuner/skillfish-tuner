@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-# SkillFishOS Tuner — KDE-nativo (PyQt6/Qt Widgets). Tematizzato da Kvantum/Breeze.
-# La GUI parla col daemon-root skillfish-tuner-helper (pkexec, 1 sola auth all'avvio).
-import sys, json, subprocess
+# SkillFishOS Tuner — KDE-native (PyQt6/Qt Widgets). Themed by Kvantum/Breeze.
+# The GUI talks to the root daemon skillfish-tuner-helper (pkexec, one auth at start).
+# Bilingual UI (IT/EN), auto-detected from the LANG/LC_* environment.
+import sys, os, json, subprocess
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -12,28 +13,52 @@ HELPER  = "/usr/local/bin/skillfish-tuner-helper"
 PRESETS = "/usr/share/skillfish/tuner-presets.json"
 ICON    = "/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png"
 
+
+# ---------- i18n ----------
+def _detect_lang():
+    # Standard locale precedence: LC_ALL overrides LC_MESSAGES overrides LANG.
+    # LANGUAGE (gettext colon-list) is the last fallback. First non-empty wins.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if val.lower().startswith("it") else "en"
+
+LANG = _detect_lang()
+
+def L(it, en):
+    """Return the IT or EN string depending on the detected locale."""
+    return it if LANG == "it" else en
+
+
 HELP = {
- "cpu_freq": ("Frequenza massima CPU",
-   "Limite di boost della CPU in MHz.\n\n• 3500 = base sicura\n• 3700 = stabile verificato su questo chip\n• 3800-3900 = oltre i limiti, possibile throttling termico\n\nIl voltaggio (Vid) resta sempre sotto 1.325 V per sicurezza."),
- "cpu_scale": ("Undervolt (scale)",
-   "Riduce il voltaggio della CPU rispetto alla curva di fabbrica.\n\n• 0 = nessun undervolt (default)\n• valori negativi (-1, -2 ...) = meno voltaggio\n\nUn undervolt fa scendere temperature e consumi, ma se eccessivo rende il sistema instabile. Usa «Test» per verificare."),
- "cpu_temp": ("Limite temperatura CPU",
-   "Soglia termica oltre la quale l'SMU limita la frequenza.\n\nConsigliato 85 °C. Oltre, il sistema riduce automaticamente il clock per proteggere l'hardware."),
- "gpu_freq": ("Frequenza massima GPU",
-   "Clock massimo della GPU (governor SMU).\n\n• 1500 = risparmio\n• 2000 = bilanciato\n• 2230 = massimo supportato\n\nLa GPU sale a questa frequenza solo sotto carico, poi torna a 350 MHz a riposo."),
- "gpu_volt": ("Voltaggio massimo GPU",
-   "Voltaggio associato alla frequenza massima GPU (mV).\n\nPiù alto = più stabile ad alte frequenze ma più caldo. Range 700-1129 mV."),
- "fan": ("Ventola",
-   "Controllo manuale: imposti tu la velocità in %.\nAutomatico: la curva del chip gestisce la velocità in base alla temperatura.\n\nUsa «Test» per sentire la ventola alla velocità scelta per qualche secondo."),
- "vram": ("VRAM (memoria grafica)",
-   "Quantità di RAM di sistema riservata alla GPU (UMA).\n\n⚠ Scrive nel CMOS del BIOS e richiede un RIAVVIO per applicare. Reversibile azzerando il CMOS (jumper sulla scheda).\n\nNon superare valori che lascino troppo poca RAM al sistema."),
- "cu": ("Compute Unit (CU)",
-   "Le CU sono i core di calcolo della GPU.\n\n• 24 CU = configurazione di default della BC-250\n• 40 CU = sblocco completo (più potenza grafica)\n\nLo sblocco aggiunge un parametro di avvio del kernel e richiede un RIAVVIO. Più CU = più prestazioni ma anche più calore e consumo."),
+ "cpu_freq": (L("Frequenza massima CPU", "Max CPU frequency"),
+   L("Limite di boost della CPU in MHz.\n\n• 3500 = base sicura\n• 3700 = stabile verificato su questo chip\n• 3800-3900 = oltre i limiti, possibile throttling termico\n\nIl voltaggio (Vid) resta sempre sotto 1.325 V per sicurezza.",
+     "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.")),
+ "cpu_scale": (L("Undervolt (scale)", "Undervolt (scale)"),
+   L("Riduce il voltaggio della CPU rispetto alla curva di fabbrica.\n\n• 0 = nessun undervolt (default)\n• valori negativi (-1, -2 ...) = meno voltaggio\n\nUn undervolt fa scendere temperature e consumi, ma se eccessivo rende il sistema instabile. Usa «Test» per verificare.",
+     "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.")),
+ "cpu_temp": (L("Limite temperatura CPU", "CPU temperature limit"),
+   L("Soglia termica oltre la quale l'SMU limita la frequenza.\n\nConsigliato 85 °C. Oltre, il sistema riduce automaticamente il clock per proteggere l'hardware.",
+     "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.")),
+ "gpu_freq": (L("Frequenza massima GPU", "Max GPU frequency"),
+   L("Clock massimo della GPU (governor SMU).\n\n• 1500 = risparmio\n• 2000 = bilanciato\n• 2230 = massimo supportato\n\nLa GPU sale a questa frequenza solo sotto carico, poi torna a 350 MHz a riposo.",
+     "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced\n• 2230 = maximum supported\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle.")),
+ "gpu_volt": (L("Voltaggio massimo GPU", "Max GPU voltage"),
+   L("Voltaggio associato alla frequenza massima GPU (mV).\n\nPiù alto = più stabile ad alte frequenze ma più caldo. Range 700-1129 mV.",
+     "Voltage tied to the max GPU frequency (mV).\n\nHigher = more stable at high frequency but hotter. Range 700-1129 mV.")),
+ "fan": (L("Ventola", "Fan"),
+   L("Controllo manuale: imposti tu la velocità in %.\nAutomatico: la curva del chip gestisce la velocità in base alla temperatura.\n\nUsa «Test» per sentire la ventola alla velocità scelta per qualche secondo.",
+     "Manual control: you set the speed in %.\nAutomatic: the chip's curve manages the speed based on temperature.\n\nUse «Test» to hear the fan at the chosen speed for a few seconds.")),
+ "vram": (L("VRAM (memoria grafica)", "VRAM (graphics memory)"),
+   L("Quantità di RAM di sistema riservata alla GPU (UMA).\n\n⚠ Scrive nel CMOS del BIOS e richiede un RIAVVIO per applicare. Reversibile azzerando il CMOS (jumper sulla scheda).\n\nNon superare valori che lascino troppo poca RAM al sistema.",
+     "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.")),
+ "cu": (L("Compute Unit (CU)", "Compute Units (CU)"),
+   L("Le CU sono i core di calcolo della GPU.\n\n• 24 CU = configurazione di default della BC-250\n• 40 CU = sblocco completo (più potenza grafica)\n\nLo sblocco aggiunge un parametro di avvio del kernel e richiede un RIAVVIO. Più CU = più prestazioni ma anche più calore e consumo.",
+     "CUs are the GPU's compute cores.\n\n• 24 CU = BC-250 default configuration\n• 40 CU = full unlock (more graphics power)\n\nThe unlock adds a kernel boot parameter and requires a REBOOT. More CU = more performance but also more heat and power consumption.")),
 }
 
 
 class Daemon:
-    """Helper root persistente via pkexec: 1 sola autenticazione all'avvio."""
+    """Persistent root helper via pkexec: a single authentication at startup."""
     def __init__(self):
         self.proc = None
     def start(self):
@@ -42,14 +67,14 @@ class Daemon:
                                          stdout=subprocess.PIPE, text=True, bufsize=1)
         except Exception:
             return False
-        line = self.proc.stdout.readline()      # riga "ready" (dopo l'auth)
+        line = self.proc.stdout.readline()      # "ready" line (after auth)
         try:
             return json.loads(line).get("ready", False)
         except Exception:
             return False
     def cmd(self, **kw):
         if not self.proc or self.proc.poll() is not None:
-            return {"ok": False, "err": "daemon non attivo"}
+            return {"ok": False, "err": L("daemon non attivo", "daemon not running")}
         try:
             self.proc.stdin.write(json.dumps(kw) + "\n"); self.proc.stdin.flush()
             return json.loads(self.proc.stdout.readline())
@@ -64,7 +89,7 @@ class Daemon:
 
 
 class CmdThread(QThread):
-    """Esegue una funzione bloccante (benchmark) fuori dal thread UI."""
+    """Runs a blocking function (benchmark) off the UI thread."""
     done = pyqtSignal(object)
     def __init__(self, fn):
         super().__init__(); self.fn = fn
@@ -73,7 +98,7 @@ class CmdThread(QThread):
 
 
 class Stepper(QWidget):
-    """[-] [slider] [+] [valore] — incremento fine ±1 sui pulsanti."""
+    """[-] [slider] [+] [value] — fine ±1 increment on the buttons."""
     def __init__(self, lo, hi, val, unit):
         super().__init__()
         self.lo, self.hi, self.unit = lo, hi, unit
@@ -119,14 +144,14 @@ class TunerWindow(QMainWindow):
         self.box.addWidget(self._vram())
         self.box.addStretch(1)
 
-    # ---------- helpers UI ----------
+    # ---------- UI helpers ----------
     def toast(self, msg, secs=4):
         self.statusBar().showMessage(msg, secs * 1000)
 
     def _help_btn(self, key):
-        b = QToolButton(); b.setText("?"); b.setToolTip("Aiuto")
+        b = QToolButton(); b.setText("?"); b.setToolTip(L("Aiuto", "Help"))
         def show():
-            title, body = HELP.get(key, ("Aiuto", ""))
+            title, body = HELP.get(key, (L("Aiuto", "Help"), ""))
             QMessageBox.information(self, title, body)
         b.clicked.connect(show); return b
 
@@ -162,7 +187,7 @@ class TunerWindow(QMainWindow):
 
     # ---------- PRESET ----------
     def _presets(self):
-        g, v = self._section("Preset")
+        g, v = self._section(L("Preset", "Presets"))
         try:
             data = json.load(open(PRESETS))["presets"]
         except Exception:
@@ -170,13 +195,19 @@ class TunerWindow(QMainWindow):
         for p in data:
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0)
             col = QVBoxLayout(); col.setSpacing(0)
-            name = QLabel(p["name"]); name.setStyleSheet("font-weight:bold;")
-            desc = QLabel(p.get("desc", "")); desc.setStyleSheet("color:#b9a07a;font-size:11px;")
+            name = QLabel(self._pname(p)); name.setStyleSheet("font-weight:bold;")
+            desc = QLabel(self._pdesc(p)); desc.setStyleSheet("color:#b9a07a;font-size:11px;")
             col.addWidget(name); col.addWidget(desc)
             h.addLayout(col); h.addStretch(1)
-            b = QPushButton("Applica"); b.clicked.connect(lambda _=False, pr=p: self._apply_preset(pr))
+            b = QPushButton(L("Applica", "Apply")); b.clicked.connect(lambda _=False, pr=p: self._apply_preset(pr))
             h.addWidget(b); v.addWidget(w)
         return g
+
+    def _pname(self, p):
+        return p.get("name_" + LANG) or p.get("name", "")
+
+    def _pdesc(self, p):
+        return p.get("desc_" + LANG) or p.get("desc", "")
 
     def _apply_preset(self, p):
         c = p["cpu"]; self.d.cmd(cmd="apply-cpu", mhz=c["frequency"], scale=c["scale"], temp=c["max_temperature"])
@@ -184,7 +215,7 @@ class TunerWindow(QMainWindow):
         f = p["fan"]; self.d.cmd(cmd="apply-fan", mode=f["mode"], pct=f.get("pct", 50))
         if p.get("thermal_guard"):
             self.d.cmd(cmd="thermal-guard", limit=p["thermal_guard"])
-        self.toast(f"Preset «{p['name']}» applicato")
+        self.toast(L(f"Preset «{self._pname(p)}» applicato", f"Preset «{self._pname(p)}» applied"))
 
     # ---------- CPU ----------
     def _cpu(self):
@@ -192,109 +223,125 @@ class TunerWindow(QMainWindow):
         self.cf = Stepper(3500, 4500, cpu.get("frequency", 3700), "MHz")
         self.cs = Stepper(-50, 0, cpu.get("scale", 0), "")
         self.ct = Stepper(60, 95, cpu.get("max_temperature", 85), "°C")
-        v.addWidget(self._row("Frequenza massima", self.cf, "cpu_freq"))
-        v.addWidget(self._row("Undervolt", self.cs, "cpu_scale"))
-        v.addWidget(self._row("Limite temperatura", self.ct, "cpu_temp"))
+        v.addWidget(self._row(L("Frequenza massima", "Max frequency"), self.cf, "cpu_freq"))
+        v.addWidget(self._row(L("Undervolt", "Undervolt"), self.cs, "cpu_scale"))
+        v.addWidget(self._row(L("Limite temperatura", "Temperature limit"), self.ct, "cpu_temp"))
         vals = lambda: (self.cf.value(), self.cs.value(), self.ct.value())
         v.addWidget(self._btns(
-            ("Suggerisci UV", lambda: self._suggest_uv(self.cf.value()), False),
-            ("Test (benchmark)", lambda: self._test_cpu(*vals()), False),
-            ("Applica", lambda: (self.d.cmd(cmd="apply-cpu", mhz=vals()[0], scale=vals()[1], temp=vals()[2]), self.toast("CPU applicata")), True),
-            ("Salva al boot", lambda: (self.d.cmd(cmd="persist-cpu", mhz=vals()[0], scale=vals()[1], temp=vals()[2]), self.toast("CPU salvata al boot")), False),
+            (L("Suggerisci UV", "Suggest UV"), lambda: self._suggest_uv(self.cf.value()), False),
+            (L("Test (benchmark)", "Test (benchmark)"), lambda: self._test_cpu(*vals()), False),
+            (L("Applica", "Apply"), lambda: (self.d.cmd(cmd="apply-cpu", mhz=vals()[0], scale=vals()[1], temp=vals()[2]), self.toast(L("CPU applicata", "CPU applied"))), True),
+            (L("Salva al boot", "Save at boot"), lambda: (self.d.cmd(cmd="persist-cpu", mhz=vals()[0], scale=vals()[1], temp=vals()[2]), self.toast(L("CPU salvata al boot", "CPU saved at boot"))), False),
         ))
         return g
 
     def _suggest_uv(self, mhz):
         self._run_async(lambda: self.d.cmd(cmd="suggest-uv", mhz=mhz), self._uv_done,
-                        f"Cerco l'undervolt ottimale per {mhz} MHz (può durare ~1 min)…")
+                        L(f"Cerco l'undervolt ottimale per {mhz} MHz (può durare ~1 min)…",
+                          f"Searching the optimal undervolt for {mhz} MHz (may take ~1 min)…"))
     def _uv_done(self, r):
         s = r.get("suggested_scale", 0); self.cs.s.setValue(s)
-        self.toast(f"Undervolt suggerito per {r.get('mhz',0)} MHz: scale {s} (impostato, premi Applica)", 6)
+        self.toast(L(f"Undervolt suggerito per {r.get('mhz',0)} MHz: scale {s} (impostato, premi Applica)",
+                     f"Suggested undervolt for {r.get('mhz',0)} MHz: scale {s} (set, press Apply)"), 6)
     def _test_cpu(self, mhz, scale, tmp):
         self._run_async(lambda: self.d.cmd(cmd="test-cpu", mhz=mhz, scale=scale, temp=tmp),
-                        self._cpu_done, "Test CPU: applico e benchmark 60s (per temp realistica)…")
+                        self._cpu_done, L("Test CPU: applico e benchmark 60s (per temp realistica)…",
+                                          "CPU test: applying and benchmarking 60s (for a realistic temp)…"))
     def _cpu_done(self, r):
         if r.get("ok"):
-            b = r["bench"]; self.toast(f"✓ CPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C", 6)
+            b = r["bench"]; self.toast(L(f"✓ CPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C",
+                                         f"✓ CPU OK and applied — {b['score']} {b['unit']}, {b['temp']}°C"), 6)
         else:
-            self.toast(f"✗ {r.get('err','test fallito')}", 7)
+            self.toast(f"✗ {r.get('err', L('test fallito', 'test failed'))}", 7)
 
     # ---------- GPU ----------
     def _gpu(self):
         g, v = self._section("GPU"); gp = self.cfg.get("gpu", {})
         self.gf = Stepper(350, 2230, gp.get("max_mhz", 2230), "MHz")
         self.gv = Stepper(700, 1129, gp.get("max_mv", 1000), "mV")
-        v.addWidget(self._row("Frequenza massima", self.gf, "gpu_freq"))
-        v.addWidget(self._row("Voltaggio massimo", self.gv, "gpu_volt"))
+        v.addWidget(self._row(L("Frequenza massima", "Max frequency"), self.gf, "gpu_freq"))
+        v.addWidget(self._row(L("Voltaggio massimo", "Max voltage"), self.gv, "gpu_volt"))
         vals = lambda: (self.gf.value(), self.gv.value())
         v.addWidget(self._btns(
-            ("Test (benchmark)", lambda: self._test_gpu(*vals()), False),
-            ("Applica", lambda: (self.d.cmd(cmd="apply-gpu", minmhz=350, minmv=700, maxmhz=vals()[0], maxmv=vals()[1]), self.toast("GPU applicata")), True),
+            (L("Test (benchmark)", "Test (benchmark)"), lambda: self._test_gpu(*vals()), False),
+            (L("Applica", "Apply"), lambda: (self.d.cmd(cmd="apply-gpu", minmhz=350, minmv=700, maxmhz=vals()[0], maxmv=vals()[1]), self.toast(L("GPU applicata", "GPU applied"))), True),
         ))
         return g
 
     def _test_gpu(self, maxf, maxv):
         self._run_async(lambda: self.d.cmd(cmd="test-gpu", minmhz=350, minmv=700, maxmhz=maxf, maxmv=maxv),
-                        self._gpu_done, "Test GPU: applico e avvio vkpeak…")
+                        self._gpu_done, L("Test GPU: applico e avvio vkpeak…", "GPU test: applying and running vkpeak…"))
     def _gpu_done(self, r):
         if r.get("ok"):
-            b = r["bench"]; self.toast(f"✓ GPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C", 6)
+            b = r["bench"]; self.toast(L(f"✓ GPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C",
+                                         f"✓ GPU OK and applied — {b['score']} {b['unit']}, {b['temp']}°C"), 6)
         else:
-            self.toast(f"✗ {r.get('err','test fallito')}", 7)
+            self.toast(f"✗ {r.get('err', L('test fallito', 'test failed'))}", 7)
 
     # ---------- COMPUTE UNIT ----------
     def _cu(self):
-        g, v = self._section("Compute Unit (CU)")
+        g, v = self._section(L("Compute Unit (CU)", "Compute Units (CU)"))
         cu = self.cfg.get("cu", {}); active = cu.get("active", 0)
-        sub = (f"Attive ora: {active} CU — il cambio richiede il riavvio" if active
-               else "40 CU sbloccate (24 di default) — il cambio richiede il riavvio")
-        self.cu_switch = QCheckBox("Sblocca 40 CU"); self.cu_switch.setChecked(bool(cu.get("unlocked")))
+        sub = (L(f"Attive ora: {active} CU — il cambio richiede il riavvio",
+                 f"Active now: {active} CU — the change requires a reboot") if active
+               else L("40 CU sbloccate (24 di default) — il cambio richiede il riavvio",
+                      "40 CU unlocked (24 by default) — the change requires a reboot"))
+        self.cu_switch = QCheckBox(L("Sblocca 40 CU", "Unlock 40 CU")); self.cu_switch.setChecked(bool(cu.get("unlocked")))
         v.addWidget(self._row("", self.cu_switch, "cu"))
         sl = QLabel(sub); sl.setStyleSheet("color:#b9a07a;font-size:11px;"); v.addWidget(sl)
-        v.addWidget(self._btns(("Applica (riavvio)", self._set_cu, True)))
+        v.addWidget(self._btns((L("Applica (riavvio)", "Apply (reboot)"), self._set_cu, True)))
         return g
 
     def _set_cu(self):
         unlock = self.cu_switch.isChecked()
-        heading = "Sbloccare 40 CU?" if unlock else "Tornare a 24 CU?"
-        body = (("Attiva tutte le 40 Compute Unit della GPU (più potenza, più calore e consumo). " if unlock
-                 else "Disattiva lo sblocco: la GPU userà 24 CU (default). ")
-                + "Modifica il parametro di avvio (GRUB) e richiede un RIAVVIO per avere effetto.")
+        heading = L("Sbloccare 40 CU?", "Unlock 40 CU?") if unlock else L("Tornare a 24 CU?", "Back to 24 CU?")
+        body = ((L("Attiva tutte le 40 Compute Unit della GPU (più potenza, più calore e consumo). ",
+                   "Enables all 40 GPU Compute Units (more power, more heat and consumption). ") if unlock
+                 else L("Disattiva lo sblocco: la GPU userà 24 CU (default). ",
+                        "Disables the unlock: the GPU will use 24 CU (default). "))
+                + L("Modifica il parametro di avvio (GRUB) e richiede un RIAVVIO per avere effetto.",
+                    "It changes the boot parameter (GRUB) and requires a REBOOT to take effect."))
         if QMessageBox.question(self, heading, body) != QMessageBox.StandardButton.Yes:
             return
         res = self.d.cmd(cmd="set-cu", unlock=unlock)
         if res.get("ok"):
-            self.toast(("40 CU sbloccate" if unlock else "24 CU ripristinate") + " — riavvia per applicare", 6)
+            self.toast((L("40 CU sbloccate", "40 CU unlocked") if unlock else L("24 CU ripristinate", "24 CU restored"))
+                       + L(" — riavvia per applicare", " — reboot to apply"), 6)
         else:
-            self.toast(f"Errore: {res.get('err','update-grub fallito')}", 7)
+            self.toast(L(f"Errore: {res.get('err', 'update-grub fallito')}",
+                         f"Error: {res.get('err', 'update-grub failed')}"), 7)
 
-    # ---------- VENTOLA ----------
+    # ---------- FAN ----------
     def _fan(self):
-        g, v = self._section("Ventola"); fan = self.cfg.get("fan", {})
-        self.fan_manual = QCheckBox("Controllo manuale (off = curva automatica)")
+        g, v = self._section(L("Ventola", "Fan")); fan = self.cfg.get("fan", {})
+        self.fan_manual = QCheckBox(L("Controllo manuale (off = curva automatica)",
+                                      "Manual control (off = automatic curve)"))
         self.fan_manual.setChecked(fan.get("mode") == "manual")
         v.addWidget(self.fan_manual)
         self.fp = Stepper(20, 100, fan.get("pct", 50), "%")
-        v.addWidget(self._row("Velocità", self.fp, "fan"))
+        v.addWidget(self._row(L("Velocità", "Speed"), self.fp, "fan"))
         v.addWidget(self._btns(
-            ("Test", lambda: self._test_fan(self.fp.value()), False),
-            ("Applica", self._apply_fan, True),
+            (L("Test", "Test"), lambda: self._test_fan(self.fp.value()), False),
+            (L("Applica", "Apply"), self._apply_fan, True),
         ))
         return g
 
     def _apply_fan(self):
         mode = "manual" if self.fan_manual.isChecked() else "auto"
         r = self.d.cmd(cmd="apply-fan", mode=mode, pct=self.fp.value())
-        self.toast(f"Ventola: {r.get('rpm',0)} RPM" if r.get("ok") else "Errore ventola")
+        self.toast(L(f"Ventola: {r.get('rpm',0)} RPM", f"Fan: {r.get('rpm',0)} RPM") if r.get("ok")
+                   else L("Errore ventola", "Fan error"))
     def _test_fan(self, pct):
         self._run_async(lambda: self.d.cmd(cmd="apply-fan", mode="manual", pct=pct),
-                        lambda r: self.toast(f"Ventola al {pct}%: {r.get('rpm',0)} RPM"),
-                        f"Test ventola al {pct}%…")
+                        lambda r: self.toast(L(f"Ventola al {pct}%: {r.get('rpm',0)} RPM",
+                                               f"Fan at {pct}%: {r.get('rpm',0)} RPM")),
+                        L(f"Test ventola al {pct}%…", f"Fan test at {pct}%…"))
 
     # ---------- VRAM ----------
     def _vram(self):
         g, v = self._section("VRAM"); cur = self.cfg.get("vram", {}).get("uma_mb", 0)
-        info = QLabel(f"Allocazione attuale: {cur} MB ({cur/1024.0:.1f} GB)")
+        info = QLabel(L(f"Allocazione attuale: {cur} MB ({cur/1024.0:.1f} GB)",
+                        f"Current allocation: {cur} MB ({cur/1024.0:.1f} GB)"))
         info.setStyleSheet("color:#d8a849;font-weight:bold;")
         hh = QHBoxLayout(); hw = QWidget(); hw.setLayout(hh); hh.setContentsMargins(0, 0, 0, 0)
         hh.addWidget(info); hh.addWidget(self._help_btn("vram")); hh.addStretch(1)
@@ -307,16 +354,17 @@ class TunerWindow(QMainWindow):
             self.vram_combo.setCurrentIndex(self.vv.index(cur))
         except Exception:
             self.vram_combo.setCurrentIndex(4)
-        v.addWidget(self._row("Nuova allocazione", self.vram_combo))
-        v.addWidget(self._btns(("Imposta (riavvio)", self._set_vram, False)))
+        v.addWidget(self._row(L("Nuova allocazione", "New allocation"), self.vram_combo))
+        v.addWidget(self._btns((L("Imposta (riavvio)", "Set (reboot)"), self._set_vram, False)))
         return g
 
     def _set_vram(self):
         mb = self.vv[self.vram_combo.currentIndex()]
-        if QMessageBox.question(self, f"VRAM a {mb} MB?",
-                                "Scrive nel CMOS del BIOS. Serve un riavvio per applicare.") != QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, L(f"VRAM a {mb} MB?", f"VRAM to {mb} MB?"),
+                                L("Scrive nel CMOS del BIOS. Serve un riavvio per applicare.",
+                                  "Writes to the BIOS CMOS. A reboot is needed to apply.")) != QMessageBox.StandardButton.Yes:
             return
-        self.d.cmd(cmd="set-vram", mb=mb); self.toast(f"VRAM {mb} MB — riavvia")
+        self.d.cmd(cmd="set-vram", mb=mb); self.toast(L(f"VRAM {mb} MB — riavvia", f"VRAM {mb} MB — reboot"))
 
     def closeEvent(self, e):
         self.d.stop(); e.accept()
@@ -330,8 +378,10 @@ def main():
     daemon = Daemon()
     if not daemon.start():
         QMessageBox.critical(None, "SkillFishOS Tuner",
-                             "Autenticazione annullata o helper non avviato.\n"
-                             "Riavvia il programma e autorizza l'operazione.")
+                             L("Autenticazione annullata o helper non avviato.\n"
+                               "Riavvia il programma e autorizza l'operazione.",
+                               "Authentication cancelled or helper not started.\n"
+                               "Restart the program and authorize the operation."))
         sys.exit(1)
     w = TunerWindow(daemon); w.show()
     sys.exit(app.exec())

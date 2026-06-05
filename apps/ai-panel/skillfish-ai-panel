@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# SkillFish AI — pannello KDE-nativo (PyQt6/Qt Widgets) per accendere/spegnere il
-# motore LLM locale (Ollama + Vulkan). Tematizzato in automatico da Kvantum/Breeze.
-# L'utente skillfish e' nel gruppo docker => i comandi docker girano senza root.
-import sys, subprocess
+# SkillFish AI — KDE-native panel (PyQt6/Qt Widgets) to start/stop the local LLM
+# engine (Ollama + Vulkan). Auto-themed by Kvantum/Breeze.
+# The skillfish user is in the docker group => docker commands run without root.
+# Bilingual UI (IT/EN), auto-detected from the LANG/LC_* environment.
+import sys, os, subprocess
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -10,10 +11,25 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 
 STACK_DIR = "/opt/stacks/skillfish-ai"
 CONTAINER = "skillfish-ollama"
-MODEL     = "qwen3:14b"          # il modello chat (gli altri sono stati potati)
+MODEL     = "qwen3:14b"          # the chat model (the others were pruned)
 DOCKGE_URL= "http://localhost:5001"
 WEBUI_URL = "http://localhost:8080"
 ICON      = "/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png"
+
+
+# ---------- i18n ----------
+def _detect_lang():
+    # Standard locale precedence: LC_ALL overrides LC_MESSAGES overrides LANG.
+    # LANGUAGE (gettext colon-list) is the last fallback. First non-empty wins.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if val.lower().startswith("it") else "en"
+
+LANG = _detect_lang()
+
+def L(it, en):
+    """Return the IT or EN string depending on the detected locale."""
+    return it if LANG == "it" else en
 
 
 def sh(cmd, t=60):
@@ -25,7 +41,7 @@ def sh(cmd, t=60):
 
 
 class Toggler(QThread):
-    """Accende/spegne lo stack docker in un thread (non blocca la UI)."""
+    """Starts/stops the docker stack in a thread (keeps the UI responsive)."""
     done = pyqtSignal(bool)
     def __init__(self, state):
         super().__init__(); self.state = state
@@ -49,7 +65,7 @@ class Panel(QMainWindow):
         w = QWidget(); self.setCentralWidget(w)
         v = QVBoxLayout(w); v.setContentsMargins(22, 18, 22, 18); v.setSpacing(14)
 
-        # --- header con pesce + titolo ---
+        # --- header with fish + title ---
         h = QHBoxLayout()
         img = QLabel(); pm = QPixmap(ICON)
         if not pm.isNull():
@@ -58,37 +74,41 @@ class Panel(QMainWindow):
         h.addWidget(img)
         tcol = QVBoxLayout(); tcol.setSpacing(0)
         title = QLabel("SkillFish AI"); title.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
-        sub = QLabel("Motore LLM locale — Qwen3 14B su GPU (Vulkan)")
+        sub = QLabel(L("Motore LLM locale — Qwen3 14B su GPU (Vulkan)",
+                       "Local LLM engine — Qwen3 14B on GPU (Vulkan)"))
         sub.setStyleSheet("color:#b9a07a;")
         tcol.addWidget(title); tcol.addWidget(sub)
         h.addLayout(tcol); h.addStretch(1)
         v.addLayout(h)
 
-        # --- interruttore principale ---
-        g = QGroupBox("Motore AI (LLM)")
+        # --- main switch ---
+        g = QGroupBox(L("Motore AI (LLM)", "AI Engine (LLM)"))
         gv = QVBoxLayout(g)
-        self.cb = QCheckBox("Acceso  —  accende/spegne Ollama. Spegnilo prima di giocare.")
+        self.cb = QCheckBox(L("Acceso  —  accende/spegne Ollama. Spegnilo prima di giocare.",
+                              "On  —  starts/stops Ollama. Turn it off before gaming."))
         self.cb.toggled.connect(self.on_toggle)
         gv.addWidget(self.cb)
         v.addWidget(g)
 
-        # --- stato ---
+        # --- status ---
         self.status = QLabel("…"); self.status.setWordWrap(True)
         v.addWidget(self.status)
 
-        # --- avviso gaming ---
-        warn = QLabel("⚠️  AI e giochi/Android non possono girare insieme: usano la stessa "
-                      "GPU e memoria. Spegni il motore AI prima di giocare.")
+        # --- gaming warning ---
+        warn = QLabel(L("⚠️  AI e giochi/Android non possono girare insieme: usano la stessa "
+                        "GPU e memoria. Spegni il motore AI prima di giocare.",
+                        "⚠️  AI and games/Android can't run together: they share the same "
+                        "GPU and memory. Turn the AI engine off before gaming."))
         warn.setWordWrap(True); warn.setStyleSheet("color:#b9a07a;")
         v.addWidget(warn)
         v.addStretch(1)
 
-        # --- pulsanti ---
+        # --- buttons ---
         b = QHBoxLayout()
-        bw = QPushButton("Apri Chat AI (web)"); bw.clicked.connect(lambda: sh(f"xdg-open {WEBUI_URL} &"))
-        bd = QPushButton("Apri Dockge");        bd.clicked.connect(lambda: sh(f"xdg-open {DOCKGE_URL} &"))
-        bt = QPushButton("Chat in terminale (OpenCode)"); bt.clicked.connect(self.opencode)
-        br = QPushButton("Aggiorna");            br.clicked.connect(self.refresh)
+        bw = QPushButton(L("Apri Chat AI (web)", "Open AI Chat (web)")); bw.clicked.connect(lambda: sh(f"xdg-open {WEBUI_URL} &"))
+        bd = QPushButton(L("Apri Dockge", "Open Dockge"));               bd.clicked.connect(lambda: sh(f"xdg-open {DOCKGE_URL} &"))
+        bt = QPushButton(L("Chat in terminale (OpenCode)", "Terminal chat (OpenCode)")); bt.clicked.connect(self.opencode)
+        br = QPushButton(L("Aggiorna", "Refresh"));                      br.clicked.connect(self.refresh)
         for x in (bw, bd, bt, br):
             b.addWidget(x)
         v.addLayout(b)
@@ -114,12 +134,16 @@ class Panel(QMainWindow):
         self.cb.blockSignals(True); self.cb.setChecked(run); self.cb.blockSignals(False)
         if run:
             loaded = self.model_loaded()
-            t = ("● Motore ACCESO — modello in VRAM (pronto)" if loaded
-                 else "● Motore ACCESO — pronto (il modello si carica alla 1ª richiesta)")
-            self.status.setText(t + f"\nAPI: http://localhost:11434   ·   modello: {MODEL}")
+            t = (L("● Motore ACCESO — modello in VRAM (pronto)",
+                   "● Engine ON — model in VRAM (ready)") if loaded
+                 else L("● Motore ACCESO — pronto (il modello si carica alla 1ª richiesta)",
+                        "● Engine ON — ready (model loads on the 1st request)"))
+            self.status.setText(t + L(f"\nAPI: http://localhost:11434   ·   modello: {MODEL}",
+                                      f"\nAPI: http://localhost:11434   ·   model: {MODEL}"))
             self.status.setStyleSheet("color:#9ccf6a;font-weight:600;")
         else:
-            self.status.setText("○ Motore SPENTO — GPU/memoria libere per giochi e Android")
+            self.status.setText(L("○ Motore SPENTO — GPU/memoria libere per giochi e Android",
+                                  "○ Engine OFF — GPU/memory free for games and Android"))
             self.status.setStyleSheet("color:#cf8a6a;font-weight:600;")
 
     def on_toggle(self, state):
@@ -127,7 +151,7 @@ class Panel(QMainWindow):
             return
         self.busy = True
         self.cb.setEnabled(False)
-        self.status.setText("… operazione in corso …")
+        self.status.setText(L("… operazione in corso …", "… working …"))
         self.status.setStyleSheet("color:#d8a849;font-weight:600;")
         self._t = Toggler(state); self._t.done.connect(self._done); self._t.start()
 
@@ -135,17 +159,18 @@ class Panel(QMainWindow):
         self.busy = False
         self.cb.setEnabled(True)
         self.refresh()
-        self.statusBar().showMessage("Motore AI acceso" if state else "Motore AI spento", 2500)
+        self.statusBar().showMessage(L("Motore AI acceso", "AI engine on") if state
+                                     else L("Motore AI spento", "AI engine off"), 2500)
 
     def opencode(self):
         sh("setsid alacritty -e opencode >/dev/null 2>&1 &")
-        self.statusBar().showMessage("Apro OpenCode nel terminale", 2500)
+        self.statusBar().showMessage(L("Apro OpenCode nel terminale", "Opening OpenCode in terminal"), 2500)
 
 
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("SkillFish AI")
-    app.setDesktopFileName("os.skillfish.ai")   # associa la finestra al .desktop (icona corretta)
+    app.setDesktopFileName("os.skillfish.ai")   # binds window to the .desktop (correct icon)
     app.setWindowIcon(QIcon(ICON))
     p = Panel(); p.show()
     sys.exit(app.exec())
