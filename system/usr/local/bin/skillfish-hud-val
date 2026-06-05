@@ -4,6 +4,7 @@ hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$
 case "$1" in
   cpu_temp) awk '{printf "%.0f",$1/1000}' "$(hw k10temp)/temp1_input" 2>/dev/null ;;
   gpu_freq) awk '/\*/{print $2}' /sys/class/drm/card0/device/pp_dpm_sclk 2>/dev/null ;;
+  gpu_util) cat /run/skillfish-gpu-util 2>/dev/null || echo 0 ;;
   gpu_temp) awk '{printf "%.0f",$1/1000}' "$GHW/temp1_input" 2>/dev/null ;;
   gpu_power) awk '{printf "%.0f",$1/1000000}' "$GHW/power1_average" 2>/dev/null ;;
   gpu_mv) cat "$GHW/in0_input" 2>/dev/null ;;
