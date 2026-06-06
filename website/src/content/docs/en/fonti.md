@@ -2,7 +2,7 @@
 title: Sources and references
 description: All the sources, upstream projects and tools SkillFishOS is built on.
 group: Reference
-order: 2
+order: 6
 ---
 
 SkillFishOS is an integration effort: it brings together the work of many open source communities and projects. This page collects the sources cited in the documentation and the projects the system is built on.
