@@ -19,6 +19,16 @@ SkillFishOS is an integration effort: it brings together the work of many open s
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — unlocking the 40 Compute Units.
 - **[bc250_memcfg (fanoush)](https://github.com/fanoush/bc250_memcfg)** — memory configuration.
 
+## Cooling and 3D-printable cases (free STL)
+
+- **[Console Style Case (Arthrimus)](https://www.thingiverse.com/thing:7172528)** — case + PSU, 120 mm shroud.
+- **[ASRock BC-250 Shell Case (onemorecap)](https://www.printables.com/model/1228207-asrock-amd-bc-250-shell-case)** — snap-on shell.
+- **[Yet Another BC-250 Fan Shroud (ViRazY)](https://www.printables.com/model/1339540-yet-another-bc-250-fan-shroud)** — 140 + 120 mm.
+- **[Case ATX PSU & Fan Duct (ZMASLO)](https://www.printables.com/model/1616167-amd-bc-250-case-atx-psu-fan-duct)** — duct + ATX PSU.
+- **[ATX PSU case (CatSiewDai)](https://www.thingiverse.com/thing:7269520)** — full case.
+- **[OC vRAM Fan Kit (marccyberwiz)](https://www.thingiverse.com/thing:7271946)** — VRAM-dedicated fan.
+- **[Cooling Solutions — amd-bc250-docs](https://elektricm.github.io/amd-bc250-docs/hardware/cooling/)** · **[mothenjoyer69/bc250-documentation](https://github.com/mothenjoyer69/bc250-documentation)** — cooling guides.
+
 ## System base
 
 - **[Debian](https://www.debian.org/)** — the base distribution (*sid* branch).

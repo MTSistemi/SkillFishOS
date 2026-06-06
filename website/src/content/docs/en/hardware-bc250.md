@@ -11,7 +11,7 @@ The **AMD BC-250** is a compact board based on a **semi-custom APU** codenamed *
 
 | Component | Detail |
 |---|---|
-| **CPU** | 6 cores / 12 threads **Zen 2** ("Oberon"), up to ~3.7 GHz overclocked |
+| **CPU** | 6 cores / 12 threads **Zen 2** ("Oberon"), up to **3.9 GHz** (Turbo), 4.0 GHz validated |
 | **GPU** | **RDNA 2** "Cyan Skillfish" (`gfx1013`), up to **40 Compute Units** unlockable |
 | **Memory** | **16 GB GDDR6** shared (UMA) between CPU and GPU |
 | **Compute** | ~**11.3 TFLOPS** FP32 at 40 CU / 2000 MHz (measured with vkpeak) |
@@ -46,10 +46,34 @@ The IOMMU on the BC-250 is unstable: it **must never be enabled**. The system al
 
 Only the GPU *edge* temperature sensor is available; **there is no VRAM temperature sensor**. The stock cooling is marginal, so back-to-back benchmark comparisons are invalid (*heat-soak* effect): let the board cool down for a few minutes between runs.
 
+## Cooling, 3D-printable cases and fans
+
+The BC-250 arrives **bare**, designed for mining racks with five 80 mm *screamer* fans driven by the power-distribution connector. Desktop use needs dedicated cooling. **Two things must be cooled**: the APU heatsink **and** the **GDDR6** chips, which run very hot and have no temperature sensor (see [GPU/overclock](/en/docs/gpu-overclock)).
+
+**What works (community advice):**
+
+- **2× 120 mm static-pressure fans** aimed at the heatsink are the most common desktop setup; with no case you can lay them directly on top of the heatsink (zip-ties through the fins).
+- A **dedicated VRAM fan** is strongly recommended if you overclock: the GDDR6 modules are the hottest spot.
+- The fan connects to the board's **4-pin PWM** header — SkillFishOS drives it via `nct6686` (sensors) and keeps it on **auto**.
+
+**Cases and ducts (free STL, 3D-printable):**
+
+| Model | Author | Notes |
+|---|---|---|
+| [Console Style Case](https://www.thingiverse.com/thing:7172528) | Arthrimus | "Console" case + PSU bay, shroud for **1× 120 mm** |
+| [ASRock BC-250 Shell Case](https://www.printables.com/model/1228207-asrock-amd-bc-250-shell-case) | onemorecap | Snap-on shell, quick single-fan mount |
+| [Yet Another BC-250 Fan Shroud](https://www.printables.com/model/1339540-yet-another-bc-250-fan-shroud) | ViRazY | **140 mm** intake + **120 mm** exhaust |
+| [Case ATX PSU & Fan Duct](https://www.printables.com/model/1616167-amd-bc-250-case-atx-psu-fan-duct) | ZMASLO | Uses a standard ATX PSU, duct that won't damage the cooler |
+| [Standard ATX PSU case](https://www.thingiverse.com/thing:7269520) | CatSiewDai | Full case for ATX power supplies |
+| [OC vRAM Fan Kit (remix)](https://www.thingiverse.com/thing:7271946) | marccyberwiz | Fan kit **dedicated to the VRAM** for overclocking |
+
+> Reference cooling guide: [Cooling Solutions — amd-bc250-docs](https://elektricm.github.io/amd-bc250-docs/hardware/cooling/).
+
 ## Sources
 
 - [bc250.info](https://bc250.info) — community wiki
-- [elektricm.github.io/amd-bc250-docs](https://elektricm.github.io/amd-bc250-docs) — technical documentation
+- [elektricm.github.io/amd-bc250-docs](https://elektricm.github.io/amd-bc250-docs) — technical documentation (incl. [cooling](https://elektricm.github.io/amd-bc250-docs/hardware/cooling/))
+- [mothenjoyer69/bc250-documentation](https://github.com/mothenjoyer69/bc250-documentation) — hardware & cooling notes
 - [bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock) — Compute Unit unlock
 - [bc250_memcfg (fanoush)](https://github.com/fanoush/bc250_memcfg) — memory configuration
 - Linux `amdgpu` kernel driver — [docs.kernel.org/gpu/amdgpu](https://docs.kernel.org/gpu/amdgpu/)
