@@ -82,10 +82,10 @@ export const strings: Record<string, Entry> = {
   'hw.c4': { it: "GDDR6 condivisa", en: "shared GDDR6" },
 
   'cta.h2': { it: 'Accendi. <span class="gold-text">Gioca.</span> Impara.', en: 'Power on. <span class="gold-text">Play.</span> Learn.' },
-  'cta.p': { it: "Un sistema operativo che rende una scheda essenziale una vera console-PC. Presto disponibili: la ISO installabile e gli aggiornamenti dedicati.", en: "An operating system that turns a bare board into a real console-PC. Coming soon: the installable ISO and dedicated updates." },
+  'cta.p': { it: "Un sistema operativo open-source che rende una scheda essenziale una vera console-PC. Questa release è dedicata alla AMD BC-250; una versione per PC x86-64 arriverà in seguito.", en: "An open-source operating system that turns a bare board into a real console-PC. This release targets the AMD BC-250; a generic x86-64 PC version will follow." },
   'cta.btn': { it: "🚀 Presto disponibile", en: "🚀 Coming soon" },
 
-  'foot.based': { it: "Basato su Debian · KDE Plasma · © 2026 SkillFishOS", en: "Based on Debian · KDE Plasma · © 2026 SkillFishOS" },
+  'foot.based': { it: "Open-source · Basato su Debian · KDE Plasma · © 2026 SkillFishOS", en: "Open-source · Based on Debian · KDE Plasma · © 2026 SkillFishOS" },
 
   // --- Download page ---
   'dl.title': { it: "Download — SkillFishOS", en: "Download — SkillFishOS" },
@@ -93,7 +93,7 @@ export const strings: Record<string, Entry> = {
   'dl.h2': { it: "Scarica SkillFish<span class=\"gold-text\">OS</span>", en: "Download SkillFish<span class=\"gold-text\">OS</span>" },
   'dl.sub': { it: "La ISO installabile, brandizzata e pronta all'uso per l'AMD BC-250.", en: "The installable, branded, ready-to-use ISO for the AMD BC-250." },
   'dl.badge': { it: "Preview", en: "Preview" },
-  'dl.notice': { it: "Questa è una <strong>preview completamente funzionante</strong> di SkillFishOS: la installi e la usi davvero sulla tua BC-250.", en: "This is a <strong>fully-functional preview</strong> of SkillFishOS: you can really install and use it on your BC-250." },
+  'dl.notice': { it: "Questa è una <strong>preview completamente funzionante</strong> di SkillFishOS, dedicata alla scheda <strong>AMD BC-250</strong>: la installi e la usi davvero. Una versione per PC <strong>x86-64</strong> generico arriverà in seguito. Progetto <strong>open-source</strong>.", en: "This is a <strong>fully-functional preview</strong> of SkillFishOS, built for the <strong>AMD BC-250</strong> board: you can really install and use it. A generic <strong>x86-64</strong> PC version will follow later. <strong>Open-source</strong> project." },
   'dl.btnsoon': { it: "🚀 ISO in arrivo", en: "🚀 ISO coming soon" },
   'dl.btn': { it: "⬇ Scarica la ISO (Preview)", en: "⬇ Download the ISO (Preview)" },
   'dl.size': { it: "amd64 · ~{size} GB · btrfs + KDE Plasma · preview", en: "amd64 · ~{size} GB · btrfs + KDE Plasma · preview" },
@@ -204,7 +204,7 @@ export const strings: Record<string, Entry> = {
   'cmp.gpu.b1': { it: "SkillFishOS — BC-250 (~50 €)", en: "SkillFishOS — BC-250 (~€50)" },
   'cmp.gpu.b2': { it: "Radeon RX 6600 / 6600 XT", en: "Radeon RX 6600 / 6600 XT" },
   'cmp.gpu.b3': { it: "Radeon RX 6700 / 6750 XT", en: "Radeon RX 6700 / 6750 XT" },
-  'cmp.gpu.note': { it: "Compute grezzo da RX&nbsp;6700 (~11,3 TFLOPS), prestazioni di gioco da RX&nbsp;6600/6600&nbsp;XT — su una scheda da ~50&nbsp;€. È letteralmente il <strong>silicio della PlayStation&nbsp;5</strong> (RDNA&nbsp;2, die «Oberon»).", en: "Raw compute of an RX&nbsp;6700 (~11.3 TFLOPS), gaming performance of an RX&nbsp;6600/6600&nbsp;XT — on a ~€50 board. It is literally <strong>PlayStation&nbsp;5 silicon</strong> (RDNA&nbsp;2, “Oberon” die)." },
+  'cmp.gpu.note': { it: "Compute grezzo da RX&nbsp;6700 (~11,3 TFLOPS), prestazioni di gioco da RX&nbsp;6600/6600&nbsp;XT — su una scheda da ~50&nbsp;€. Un die <strong>RDNA&nbsp;2 semi-custom di classe console</strong> («Oberon», gfx1013), liberato su Linux.", en: "Raw compute of an RX&nbsp;6700 (~11.3 TFLOPS), gaming performance of an RX&nbsp;6600/6600&nbsp;XT — on a ~€50 board. A <strong>semi-custom, console-class RDNA&nbsp;2 die</strong> (“Oberon”, gfx1013), unleashed on Linux." },
   'cmp.axis': { it: "Score Superposition", en: "Superposition score" },
 
   // --- Contact page ---
