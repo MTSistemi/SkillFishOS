@@ -10,7 +10,7 @@ a working download, and reviews submissions manually — so do SourceForge first
 |---|---|
 | **Distribution name** | SkillFishOS |
 | **Home page** | https://skillfishos.com |
-| **Download (ISO)** | *(SourceForge direct URL — fill after upload)* |
+| **Download (ISO)** | https://skillfishos.com/dl/SkillFishOS-26.06-Aetherium-BC250-amd64.iso (5.6 GB, 302 → direct download) |
 | **Based on** | Debian (unstable / sid) |
 | **Origin** | Italy |
 | **Architecture** | x86_64 (amd64) — current release targets the AMD BC-250 board |
