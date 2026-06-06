@@ -31,7 +31,7 @@ Rectangle {
         }
     }
 
-    // SkillFishOs mechanical fish (cut-out, transparent bg), above the clock
+    // SkillFishOS mechanical fish (cut-out, transparent bg), above the clock
     Image {
         id: fish
         source: "fish.png"
@@ -74,7 +74,7 @@ Rectangle {
             spacing: 16
 
             Text {
-                text: "SkillFishOs"
+                text: "SkillFishOS"
                 color: cream
                 font.pixelSize: 22; font.bold: true
                 Layout.alignment: Qt.AlignHCenter

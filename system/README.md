@@ -21,7 +21,7 @@ no VNC password — VNC is `-nopw` LAN-only, autologin has no stored password).
 | `etc/default/grub` | kernel cmdline (mitigations=off, 40-CU, gttsize, ttm, video=DP-1:e) |
 | `etc/sddm.conf.d/` | autologin skillfish → `plasmax11`, Relogin, brass theme |
 | `etc/NetworkManager/NetworkManager.conf` | `[ifupdown] managed=true` (enp4s0 visible in GUI) |
-| `etc/xdg/kcm-about-distrorc`, `etc/os-release`, `usr/lib/os-release`, `etc/issue` | branding (SkillFishOs, skillfishos.com) |
+| `etc/xdg/kcm-about-distrorc`, `etc/os-release`, `usr/lib/os-release`, `etc/issue` | branding (SkillFishOS, skillfishos.com) |
 | `usr/share/libdrm/amdgpu.ids` | GPU name "AMD Cyan SkillFish (APU)" (device 13FE) |
 | `etc/polkit-1/`, `usr/share/polkit-1/actions/` | iso-mount rule + Tuner policy (all-yes, no password on a personal box) |
 | `usr/share/{sddm,plymouth}/themes/`, `boot/grub/themes/skillfish/` | brass boot→login branding |

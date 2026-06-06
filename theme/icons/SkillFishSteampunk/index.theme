@@ -1,6 +1,6 @@
 [Icon Theme]
 Name=SkillFish Steampunk
-Comment=Brass & copper steampunk icon theme matching the SkillFishOs wallpaper
+Comment=Brass & copper steampunk icon theme matching the SkillFishOS wallpaper
 Inherits=breeze-dark,Adwaita,hicolor
 Directories=scalable/emblems,scalable/status,scalable/places,scalable/apps,scalable/categories,scalable/mimetypes,scalable/actions
 

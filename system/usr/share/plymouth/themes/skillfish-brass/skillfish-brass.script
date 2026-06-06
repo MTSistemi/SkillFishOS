@@ -1,4 +1,4 @@
-// SkillFishOs - Brass boot splash: ONLY the image + progress bar, NO text.
+// SkillFishOS - Brass boot splash: ONLY the image + progress bar, NO text.
 Window.SetBackgroundTopColor(0.043, 0.063, 0.043);     // dark green-black ~ #0b100b
 Window.SetBackgroundBottomColor(0.020, 0.031, 0.020);
 
@@ -18,7 +18,7 @@ bg.sprite.SetX((screen_w - img_w * scale) / 2);
 bg.sprite.SetY((screen_h - img_h * scale) / 2);
 bg.sprite.SetZ(0);
 
-// progress bar (brass) BETWEEN the fish (top) and the SkillFishOs plate (bottom)
+// progress bar (brass) BETWEEN the fish (top) and the SkillFishOS plate (bottom)
 bar.w = 460;
 bar.h = 6;
 bar.x = screen_w / 2 - bar.w / 2;

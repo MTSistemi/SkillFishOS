@@ -5,7 +5,7 @@
 session_start();
 
 const RECIPIENT = 'info@skillfishos.com';
-const FROM      = 'SkillFishOs <noreply@skillfishos.com>';
+const FROM      = 'SkillFishOS <noreply@skillfishos.com>';
 
 // --- resolve a safe local return path (prevents open redirects) ---
 $ret = $_POST['ret'] ?? '/contact';
@@ -56,7 +56,7 @@ $tlabel = $types[$type] ?? 'Richiesta';
 $safeName  = str_replace(["\r", "\n"], ' ', $name);
 $safeEmail = str_replace(["\r", "\n"], '', $email);
 
-$subject = "[SkillFishOs] $tlabel - $safeName";
+$subject = "[SkillFishOS] $tlabel - $safeName";
 $body  = "Tipo richiesta: $tlabel\n";
 $body .= "Nome: $safeName\n";
 $body .= "Email: $safeEmail\n";

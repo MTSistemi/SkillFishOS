@@ -5,7 +5,7 @@
 
 GRUB_DEFAULT="gnulinux-7.0.10-skillfishos-advanced-d4d471cc-b9f5-4298-907d-5de8b10ee2e2"
 GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR="SkillFishOs"
+GRUB_DISTRIBUTOR="SkillFishOS"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0 udev.log_priority=3 mitigations=off split_lock_detect=off amdgpu.bc250_cc_write_mode=3 ttm.pages_limit=4194304 ttm.page_pool_size=4194304 amdgpu.gttsize=6144"
 GRUB_CMDLINE_LINUX=""
 
