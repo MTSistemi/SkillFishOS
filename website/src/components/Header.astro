@@ -8,6 +8,8 @@ const active = (p: string) => (page === p || (p === '/docs' && page.startsWith('
 <header>
   <div class="wrap nav">
     <a class="logo" href={home}><img src="/img/logo.png" alt="SkillFishOS"/><span class="brandfont">SkillFish<span class="gold-text">OS</span></span></a>
+    <input type="checkbox" id="navtoggle" class="nav-toggle" />
+    <label for="navtoggle" class="nav-burger" aria-label="Menu" title="Menu"><span></span><span></span><span></span></label>
     <nav class="navlinks">
       <a href={`${home}#funzioni`}>{t('nav.feat', lang)}</a>
       <a href={localePath('/gallery', lang)} class={active('/gallery')}>{t('nav.gallery', lang)}</a>

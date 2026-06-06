@@ -20,6 +20,12 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rg
 .navlinks a{transition:color .2s}
 .navlinks a:hover{color:var(--gold-lt)}
 .navlinks a.active{color:var(--gold-lt)}
+.nav-toggle{display:none}
+.nav-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:32px;height:32px;margin-left:auto;cursor:pointer}
+.nav-burger span{display:block;height:2px;width:24px;background:var(--gold-lt);border-radius:2px;transition:transform .25s,opacity .2s}
+.nav-toggle:checked ~ .nav-burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.nav-toggle:checked ~ .nav-burger span:nth-child(2){opacity:0}
+.nav-toggle:checked ~ .nav-burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .lang-btn{background:none;border:none;color:var(--muted);padding:7px 12px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.2s;display:inline-block}
 .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
@@ -93,10 +99,27 @@ footer{border-top:1px solid var(--line);padding:46px 0;background:#0a0805}
 .based{font-size:.84rem;color:var(--muted);opacity:.85}
 
 @media(max-width:860px){
-  .navlinks{display:none}
+  .nav-burger{display:flex}
+  .navlinks{position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:0;margin-left:0;display:none;
+    background:rgba(12,10,6,.98);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .nav-toggle:checked ~ .navlinks{display:flex}
+  .navlinks a{padding:15px 24px;font-size:1rem;border-top:1px solid var(--line)}
   .intro-grid,.shot,.shot:nth-child(even){grid-template-columns:1fr}
   .shot:nth-child(even) .shot-txt{order:0}
   .foot{flex-direction:column;text-align:center}
+  section{padding:56px 0}
+  .hero{padding:46px 0 52px}
+  .cta-box{padding:42px 22px}
+  .sec-head{margin-bottom:40px}
+}
+@media(max-width:480px){
+  .wrap{padding:0 16px}
+  .chip{min-width:0;flex:1 1 140px;padding:18px 14px}
+  .chip .big{font-size:1.25rem}
+  .card{padding:24px 20px}
+  .cta-box{padding:34px 18px}
+  section{padding:48px 0}
+  .shots{gap:44px}
 }
 
 /* ===== Gallery ===== */
