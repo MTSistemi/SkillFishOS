@@ -22,7 +22,7 @@ Memory is **unified**: the GDDR6 is shared between system and graphics. By defau
 
 ## Unlocking the 40 CUs
 
-By default the GPU exposes a reduced number of Compute Units. With a kernel parameter (`amdgpu.bc250_cc_write_mode=3`) it is possible to **unlock 40 CUs**, nearly doubling floating-point performance. The reverse-engineering work that made this unlock possible is documented by the [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock) project.
+The GPU has 40 CUs but the driver enables only **24** by default. SkillFishOS **routes them up to 40 live** (no reboot): it boots at the driver baseline and a service brings it to 40 at startup, adjustable from the [Tuner](/en/docs/app-native). The reverse-engineering of the unlock is documented by [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); the runtime control via `umr` is inspired by [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (clean-room reimplementation).
 
 > With 40 CUs active, SkillFishOS measures **11385 GFLOPS** FP32 (vkpeak) from cold, versus ~6141 for a baseline 24-CU configuration: about **+85%**.
 

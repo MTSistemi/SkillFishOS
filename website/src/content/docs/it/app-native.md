@@ -15,11 +15,21 @@ Il **Tuner** è il pannello di controllo dell'hardware. Permette di regolare:
 - **safe-point della GPU** (tramite il governor SMU, vedi [GPU e overclock](/docs/gpu-overclock));
 - la **ventola** (controllo PWM);
 - la **VRAM UMA** (richiede riavvio);
-- l'attivazione delle **40 Compute Unit** (richiede riavvio).
+- le **Compute Unit a caldo** — vedi sotto.
 
-La caratteristica più importante è il flusso **"Test"**: applica una modifica → esegue un benchmark (sysbench per la CPU, vkpeak per la GPU) → **verifica** la stabilità e, se qualcosa non va, fa il **rollback** automatico. Così si può spingere l'hardware in sicurezza.
+### Compute Unit a caldo (griglia)
 
-Architettura: una GUI utente più un piccolo **daemon di root** che esegue le operazioni privilegiate. Su un PC personale è configurato per non richiedere password a ogni operazione.
+Il Tuner mostra le CU della GPU come una **griglia di quadratini** (4 file SE/SH × 5 WGP): **verde = attiva, rosso = spenta**. Le puoi accendere/spegnere **a caldo, senza riavvio** — con un clic sulle coppie (1 WGP = 2 CU) o con i **preset 24 / 32 / 40 CU** — poi *Applica a caldo*. Le prime 24 CU sono il minimo del driver e restano sempre attive (vedi [GPU e overclock](/docs/gpu-overclock)).
+
+### Test CU (lotteria del silicio)
+
+Il pulsante **«Test CU»** verifica la salute delle CU extra: attiva ogni coppia da sola, la mette sotto sforzo con **vkpeak** e controlla **errori/blocchi della GPU**, più uno stress finale a 40 CU. Serve a scovare **CU difettose** su esemplari "discarto", così sai se la tua APU regge le 40 CU piene.
+
+### Flusso "Test" e monitor live
+
+Il flusso **"Test"** (CPU, GPU, CU, ventola): applica una modifica → esegue un benchmark → **verifica** la stabilità e, se qualcosa non va, fa il **rollback** automatico. All'avvio di ogni test si apre una **finestra Monitor** con i grafici in tempo reale di **temperatura, frequenza, voltaggio e ventola** (chiudibile a piacere).
+
+Architettura: una GUI utente più un piccolo **daemon di root** che esegue le operazioni privilegiate. Su un PC personale è configurato per non richiedere password a ogni operazione. L'HUD del desktop mostra anche le **CU attive** in tempo reale.
 
 ## SkillFishOS AI
 

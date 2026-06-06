@@ -45,9 +45,13 @@ L'**undervolt** non serve a "spingere" ma a fare lo stesso lavoro con **meno cal
 
 CPU e GPU condividono lo **stesso die** e lo **stesso budget di potenza**. Sotto carico **misto** (gioco impegnativo: CPU + GPU insieme) l'APU si autoprotegge e la CPU scende spontaneamente a ~**3450 MHz** per stare nel budget e sotto gli 85 °C. **Non è un difetto**: è il chip che si protegge cedendo i clock meno utili. Per lo stesso motivo un undervolt sulla CPU lascia più "spazio" termico alla GPU, e viceversa.
 
-## Le 40 Compute Unit
+## Le 40 Compute Unit — a caldo
 
-Con le 40 CU attive (vedi [kernel](/docs/kernel)) la GPU misura **11385 GFLOPS** FP32 (vkpeak) da freddo, contro i ~**6141** di una baseline a 24 CU: **+85%**. Sotto stress prolungato (a caldo) si assesta intorno a **10214 GFLOPS**. La banda di memoria misurata (clpeak) è **~350–367 GB/s**.
+La BC-250 ha **40 CU** (20 WGP, 1 WGP = 2 CU), ma il driver ne attiva di default **24**. SkillFishOS le instrada fino a 40 **a runtime, senza riavvio**: il sistema parte alla baseline driver (24 CU) e un servizio porta a 40 all'avvio; dal [Tuner](/docs/app-native) regoli la quantità **a caldo** con una griglia di quadratini e i preset 24/32/40. Le prime 24 CU sono bloccate dal driver e restano sempre attive.
+
+Con le 40 CU attive la GPU misura **11385 GFLOPS** FP32 (vkpeak) da freddo, contro i ~**6141** di una baseline a 24 CU: **+85%**. Sotto stress prolungato (a caldo) si assesta intorno a **10214 GFLOPS**. La banda di memoria misurata (clpeak) è **~350–367 GB/s**.
+
+> 🔬 **Lotteria del silicio.** Su esemplari "discarto" qualche CU può essere marginale. Il [Tuner](/docs/app-native) ha un **«Test CU»** che mette sotto sforzo ogni coppia e segnala errori/blocchi GPU, così verifichi che il tuo chip regga le 40 CU. (Meccanismo via `umr`, scrittura delle mask WGP — credito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementato clean-room.)
 
 ## Protezione termica — il cap a 85 °C
 

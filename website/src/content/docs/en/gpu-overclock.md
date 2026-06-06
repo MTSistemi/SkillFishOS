@@ -45,9 +45,13 @@ What we measured pushing **our** card:
 
 CPU and GPU share the **same die** and the **same power budget**. Under **mixed** load (a demanding game: CPU + GPU together) the APU self-protects and the CPU spontaneously drops to ~**3450 MHz** to stay within budget and under 85 °C. **This is not a defect**: it's the chip protecting itself by shedding the least-useful clocks. For the same reason, a CPU undervolt leaves more thermal "room" for the GPU, and vice-versa.
 
-## The 40 Compute Units
+## The 40 Compute Units — live
 
-With all 40 CUs enabled (see [kernel](/docs/kernel)) the GPU measures **11385 GFLOPS** FP32 (vkpeak) cold, versus ~**6141** for a 24-CU baseline: **+85%**. Under sustained stress (hot) it settles around **10214 GFLOPS**. Measured memory bandwidth (clpeak) is **~350–367 GB/s**.
+The BC-250 has **40 CUs** (20 WGP, 1 WGP = 2 CU), but the driver enables **24** by default. SkillFishOS routes them up to 40 **at runtime, no reboot**: the system boots at the driver baseline (24 CU) and a service brings it to 40 at startup; from the [Tuner](/en/docs/app-native) you adjust the count **live** with a grid of squares and 24/32/40 presets. The first 24 CUs are driver-locked and always on.
+
+With all 40 CUs enabled the GPU measures **11385 GFLOPS** FP32 (vkpeak) cold, versus ~**6141** for a 24-CU baseline: **+85%**. Under sustained stress (hot) it settles around **10214 GFLOPS**. Measured memory bandwidth (clpeak) is **~350–367 GB/s**.
+
+> 🔬 **Silicon lottery.** On salvaged/"discard" chips some CUs may be marginal. The [Tuner](/en/docs/app-native) has a **"CU test"** that stresses each pair and flags GPU faults/hangs, so you can confirm your chip sustains all 40 CUs. (Mechanism via `umr`, writing the WGP masks — credit to [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), clean-room reimplementation.)
 
 ## Thermal protection — the 85 °C cap
 

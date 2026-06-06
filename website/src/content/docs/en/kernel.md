@@ -23,8 +23,7 @@ The kernel command line is configured as follows, and every parameter has a prec
 
 ```
 mitigations=off
-amdgpu.bc250_cc_write_mode=3
-amdgpu.gttsize=5120
+amdgpu.gttsize=6144
 ttm.pages_limit=4194304
 ttm.page_pool_size=4194304
 video=DP-1:e
@@ -33,10 +32,11 @@ video=DP-1:e
 | Parameter | What it does |
 |---|---|
 | `mitigations=off` | disables Spectre/Meltdown mitigations to maximize performance (an acceptable choice on a home console) |
-| `amdgpu.bc250_cc_write_mode=3` | **enables the GPU's 40 Compute Units** |
-| `amdgpu.gttsize=5120` | extends the GTT to 5 GB → Vulkan sees ~13 GiB of memory (useful for AI) |
+| `amdgpu.gttsize=6144` | extends the GTT → Vulkan sees ~13 GiB of memory (useful for AI) |
 | `ttm.pages_limit` / `ttm.page_pool_size` | raise the TTM memory manager limits consistently with the enlarged GTT |
 | `video=DP-1:e` | **force-enables** the DisplayPort connector (HPD is broken, see [hardware](/en/docs/hardware-bc250)) |
+
+> **Live Compute Units.** SkillFishOS no longer uses the `amdgpu.bc250_cc_write_mode=3` parameter (which locked 40 CU at boot and blocked runtime changes). The system now boots at the driver baseline (24 CU) and a service routes the **40 CUs live** at startup; you can change them without a reboot from the [Tuner](/en/docs/app-native). See [GPU and overclock](/en/docs/gpu-overclock).
 
 ## Kernels to avoid
 

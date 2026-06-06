@@ -41,13 +41,18 @@ lscpu | grep MHz                        # frequenze correnti dei core
 sensors                                 # temperature/tensioni (nct6686, k10temp)
 ```
 
-## Verifica 40 Compute Unit
+## Compute Unit a caldo (skillfish-cu)
 
 ```bash
-# le 40 CU dipendono dal parametro kernel amdgpu.bc250_cc_write_mode=3
-grep bc250_cc_write_mode /proc/cmdline
+skillfish-cu get          # stato JSON: CU attive + mask per fila (SE/SH)
+sudo skillfish-cu max     # instrada tutte le CU (40)
+sudo skillfish-cu stock   # torna a 24 (baseline driver)
+sudo skillfish-cu set 0x1f   # mask WGP per tutte le file (0x07=24 .. 0x1f=40)
+cat /run/skillfish/cu_active # "40/40" (lo legge anche l'HUD)
 vulkaninfo | grep -i "deviceName\|driverName"   # GPU vista da Vulkan (RADV)
 ```
+
+Le CU si gestiscono comodamente dalla **griglia** del [Tuner](/docs/app-native) (clic + preset, con «Test CU»). Le prime 24 sono bloccate dal driver e sempre attive.
 
 Benchmark rapido (gli stessi usati dal Tuner):
 
