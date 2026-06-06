@@ -1,5 +1,0 @@
-# Never commit the built repo (large .deb blobs) or any private key material.
-public/
-*-private.asc
-*-private.gpg
-secret*.gpg

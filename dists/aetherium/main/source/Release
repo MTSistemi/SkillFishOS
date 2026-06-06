@@ -1,0 +1,7 @@
+Archive: aetherium
+Version: 26.06
+Component: main
+Origin: SkillFishOS
+Label: SkillFishOS
+Architecture: source
+Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)

@@ -1,9 +1,0 @@
-Origin: SkillFishOS
-Label: SkillFishOS
-Suite: stable
-Codename: skillfishos
-Version: 1.0
-Architectures: amd64
-Components: main
-Description: SkillFishOS update repository (AMD BC-250)
-SignWith: FD061357FED9E7A5A67A75C4C74AE764562980CF

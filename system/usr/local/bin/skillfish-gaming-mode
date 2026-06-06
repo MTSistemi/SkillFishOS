@@ -1,4 +1,0 @@
-#!/bin/bash
-# SkillFishOS - Gaming/console mode: Steam Big Picture via gamescope on the BC-250
-W="${GAMESCOPE_W:-1280}"; H="${GAMESCOPE_H:-1024}"
-exec gamescope --steam -f -W "$W" -H "$H" -r 60 --     flatpak run com.valvesoftware.Steam -gamepadui -steamos3 -steampal 2>/dev/null ||     flatpak run com.valvesoftware.Steam -gamepadui

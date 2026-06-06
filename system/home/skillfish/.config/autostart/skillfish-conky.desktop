@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=SkillFish HUD
-Exec=env LANG=it_IT.UTF-8 LC_TIME=it_IT.UTF-8 conky -c /home/skillfish/.config/conky/skillfish.conf
-X-KDE-autostart-phase=2

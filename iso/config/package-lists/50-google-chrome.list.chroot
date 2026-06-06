@@ -1,2 +1,0 @@
-# Google Chrome is installed via hook 0085-chrome-install (direct .deb).
-# The apt repo (config/archives/chrome.*) is retained for runtime updates.

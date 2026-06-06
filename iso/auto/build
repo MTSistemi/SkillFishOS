@@ -1,4 +1,0 @@
-#!/bin/bash
-set -e
-cd "$(dirname "$0")/.."
-lb build noauto "${@}" 2>&1 | tee build.log

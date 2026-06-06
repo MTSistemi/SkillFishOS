@@ -1,7 +1,0 @@
-[Unit]
-Description=SkillFishOS thermal guard
-[Service]
-ExecStart=/usr/local/bin/skillfish-thermal-guard.sh
-Restart=always
-[Install]
-WantedBy=multi-user.target

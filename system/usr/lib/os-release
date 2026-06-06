@@ -1,9 +1,0 @@
-PRETTY_NAME="SkillFishOs"
-NAME="SkillFishOs"
-ID=skillfishos
-ID_LIKE=debian
-VERSION_CODENAME=forky
-HOME_URL="https://skillfishos.com"
-SUPPORT_URL="https://skillfishos.com"
-BUG_REPORT_URL="https://skillfishos.com"
-LOGO=skillfishos

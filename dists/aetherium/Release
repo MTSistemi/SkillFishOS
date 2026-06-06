@@ -1,0 +1,30 @@
+Origin: SkillFishOS
+Label: SkillFishOS
+Suite: aetherium
+Codename: aetherium
+Version: 26.06
+Date: Sat, 06 Jun 2026 10:51:49 UTC
+Architectures: amd64
+Components: main
+Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)
+MD5Sum:
+ c7e2db22e82503952cf0e460bec6e837 801 main/binary-amd64/Packages
+ 8c8d00ca68b85de59edece0721134847 511 main/binary-amd64/Packages.gz
+ 740eb052c2564f892119e2e400f417bc 197 main/binary-amd64/Release
+ d41d8cd98f00b204e9800998ecf8427e 0 main/source/Sources
+ 7029066c27ac6f5ef18d660d5741979a 20 main/source/Sources.gz
+ e315bceffc180850e3f7028e2875cb20 198 main/source/Release
+SHA1:
+ 09d66eeb8f334b9abc8e31054bf52f25a26dc8cc 801 main/binary-amd64/Packages
+ 1a9d6912ad37275d8165bf9357a8e7f1c2efb9fa 511 main/binary-amd64/Packages.gz
+ 6339eeeb288e039c50df9dc7e2f2a8aeef88761a 197 main/binary-amd64/Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/source/Sources
+ 46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/source/Sources.gz
+ 7c8139b19f1a6b8b305960a978f57520f47b0715 198 main/source/Release
+SHA256:
+ f4d758e9cb56d0d712a3e5bfcf8c9bd488ba0ca36218b5af8b41667a2dca746c 801 main/binary-amd64/Packages
+ c04494002449bf80182c5ecd798a21bbf3913c4539c78ca20c30eeb57c4082d1 511 main/binary-amd64/Packages.gz
+ 0f10e06632ff5383d4a8b021720ff02d1cacc0bad500d3849087add7f4e5b222 197 main/binary-amd64/Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/source/Sources
+ 59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/source/Sources.gz
+ a890d0a22cbb0a75c70b268b37cf132f51e32262580a87906d2f4cbc53a47580 198 main/source/Release

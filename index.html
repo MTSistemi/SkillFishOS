@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SkillFishOS APT repository</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:60px auto;padding:0 20px;color:#222;line-height:1.6}code,pre{background:#f4f1ea;padding:2px 6px;border-radius:6px}pre{padding:14px;overflow:auto}</style></head>
+<body><h1>SkillFishOS APT repository</h1>
+<p>Suite <code>aetherium</code> (SkillFishOS 26.06, BC-250). Add it with:</p>
+<pre>sudo curl -fsSL https://mtsistemi.github.io/SkillFishOS/skillfishos-archive-keyring.gpg \
+  -o /usr/share/keyrings/skillfishos-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/skillfishos-archive-keyring.gpg] \
+https://mtsistemi.github.io/SkillFishOS aetherium main" \
+  | sudo tee /etc/apt/sources.list.d/skillfishos.list
+sudo apt update
+sudo apt install skillfishos-kernel</pre>
+<p>Docs: <a href="https://github.com/MTSistemi/SkillFishOS/tree/main/distribution/apt">distribution/apt</a> · Site: <a href="https://skillfishos.com">skillfishos.com</a></p></body></html>

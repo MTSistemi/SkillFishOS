@@ -1,7 +1,0 @@
-#!/bin/bash
-set -e
-echo "[winetricks] installing latest from upstream"
-curl -fsSL -o /usr/local/bin/winetricks \
-    https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
-chmod +x /usr/local/bin/winetricks
-echo "[winetricks] $(/usr/local/bin/winetricks --version 2>/dev/null | head -1 || echo installed)"

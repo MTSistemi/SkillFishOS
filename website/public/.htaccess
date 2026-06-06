@@ -1,7 +1,0 @@
-# SkillFishOS — Apache config (OVH shared hosting)
-
-RewriteEngine On
-
-# Masked ISO download: skillfishos.com/dl/skillfishos-preview.iso -> Dropbox (direct)
-# Keeps the public-facing URL on our own domain; QSD discards any incoming query string.
-RewriteRule ^dl/skillfishos-preview\.iso$ https://www.dropbox.com/scl/fi/ppnob3ia0x5gnbbuw3o29/SkillFishOs-Preview.iso?rlkey=29nckgkils1pp0p703mthx6z5&dl=1 [R=302,L,QSD]

@@ -1,6 +1,0 @@
-SkillFishOS-amd64.hybrid.iso
-Built: 2026-05-30 08:38 (Debian sid)
-Kernel: 7.0.10-skillfishos
-Size: 2.3G
-SHA256: deff8b6cb66287e8f1990216309b18400e28b2084f811518a8f19814cc9e4f62
-Boot: hybrid BIOS(isolinux)+UEFI(efi.img)
