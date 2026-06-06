@@ -5,7 +5,7 @@ Subject: [PATCH] drm/amdgpu/gfx10: BC-250 40 CU unlock via CC + SPI register
  writes
 
 Re-enable all 40 harvested CUs on the AMD BC-250 (gfx1013 / Cyan
-Skillfish / salvaged PS5 APU) by writing two hardware registers during
+Skillfish / salvaged console-class APU) by writing two hardware registers during
 CU enumeration in gfx_v10_0_get_cu_info():
 
 1. CC_GC_SHADER_ARRAY_CONFIG — clears the harvest enumeration mask so
