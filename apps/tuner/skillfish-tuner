@@ -52,8 +52,8 @@ HELP = {
    L("Quantità di RAM di sistema riservata alla GPU (UMA).\n\n⚠ Scrive nel CMOS del BIOS e richiede un RIAVVIO per applicare. Reversibile azzerando il CMOS (jumper sulla scheda).\n\nNon superare valori che lascino troppo poca RAM al sistema.",
      "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.")),
  "cu": (L("Compute Unit (CU)", "Compute Units (CU)"),
-   L("Le CU sono i core di calcolo della GPU.\n\n• 24 CU = configurazione di default della BC-250\n• 40 CU = sblocco completo (più potenza grafica)\n\nLo sblocco aggiunge un parametro di avvio del kernel e richiede un RIAVVIO. Più CU = più prestazioni ma anche più calore e consumo.",
-     "CUs are the GPU's compute cores.\n\n• 24 CU = BC-250 default configuration\n• 40 CU = full unlock (more graphics power)\n\nThe unlock adds a kernel boot parameter and requires a REBOOT. More CU = more performance but also more heat and power consumption.")),
+   L("Le CU sono i core di calcolo della GPU. Qui le attivi/disattivi A CALDO, senza riavvio.\n\n• Ogni quadratino = 1 CU: VERDE = attiva, ROSSO = spenta.\n• CLIC su una coppia per accenderla/spegnerla manualmente (le coppie si gestiscono a 2 CU per volta = 1 WGP).\n• Oppure usa i PRESET (24 / 32 / 40 CU).\n• Le prime 3 coppie per fila (24 CU) sono il minimo del driver e restano sempre attive.\n• Premi «Applica a caldo» per rendere effettiva la scelta.\n\nPiù CU = più potenza grafica ma anche più calore e consumo.\n\nUsa «Test CU» per verificare che le CU attive siano stabili e senza difetti (lotteria del silicio).",
+     "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).")),
 }
 
 
@@ -151,7 +151,7 @@ class TunerWindow(QMainWindow):
         self.d = daemon
         self.setWindowTitle("SkillFishOS Tuner")
         self.setWindowIcon(QIcon(ICON))
-        self.resize(640, 820)
+        self.resize(780, 1000)
         self.cfg = (self.d.cmd(cmd="get").get("data")) or {}
         self._threads = []
 
@@ -164,9 +164,9 @@ class TunerWindow(QMainWindow):
         self.box.addWidget(self._presets())
         self.box.addWidget(self._cpu())
         self.box.addWidget(self._gpu())
+        self.box.addWidget(self._vram())
         self.box.addWidget(self._cu())
         self.box.addWidget(self._fan())
-        self.box.addWidget(self._vram())
         self.box.addStretch(1)
 
     # ---------- UI helpers ----------
@@ -314,7 +314,9 @@ class TunerWindow(QMainWindow):
         info = QLabel(L("Ogni quadratino = 1 CU · verde = attiva, rosso = spenta. Le prime 3 coppie (24 CU) sono sempre attive; accendi/spegni le CU extra (WGP3-4) e premi «Applica a caldo». Nessun riavvio.",
                         "Each square = 1 CU · green = active, red = off. The first 3 pairs (24 CU) are always on; toggle the extra CUs (WGP3-4) then hit «Apply live». No reboot."))
         info.setWordWrap(True); info.setStyleSheet("color:#b9a07a;font-size:11px;")
-        v.addWidget(info)
+        hdr = QHBoxLayout(); hdr.setContentsMargins(0, 0, 0, 0); hdr.addWidget(info, 1)
+        hdr.addWidget(self._help_btn("cu"), 0, Qt.AlignmentFlag.AlignTop)
+        hw0 = QWidget(); hw0.setLayout(hdr); v.addWidget(hw0)
         grid = QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(5)
         for c in range(5):
             h = QLabel("WGP%d" % c); h.setStyleSheet("color:#8f7c52;font-size:10px;"); grid.addWidget(h, 0, c + 1)
@@ -335,7 +337,9 @@ class TunerWindow(QMainWindow):
         for lbl, mk in (("24 CU", 0x07), ("32 CU", 0x0f), (L("40 CU (max)", "40 CU (max)"), 0x1f)):
             b = QPushButton(lbl); b.clicked.connect(lambda _=False, m=mk: self._cu_preset(m)); pr.addWidget(b)
         pr.addStretch(1); pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
-        v.addWidget(self._btns((L("Applica a caldo", "Apply live"), self._apply_cu, True)))
+        v.addWidget(self._btns(
+            (L("Test CU", "Test CU"), self._test_cu, False),
+            (L("Applica a caldo", "Apply live"), self._apply_cu, True)))
         return g
 
     def _cu_toggle(self, rk, wgp, on):
@@ -367,6 +371,36 @@ class TunerWindow(QMainWindow):
             self.toast(L("CU applicate: %s/40 (a caldo)", "CUs applied: %s/40 (live)") % res.get("active", "?"), 5)
         else:
             self.toast(L("Errore CU: %s", "CU error: %s") % res.get("err", "apply failed"), 7)
+
+    def _test_cu(self):
+        if QMessageBox.question(self, L("Test CU", "CU test"),
+            L("Verifica una a una le CU extra (WGP3-4) per scovare difetti (lotteria del silicio): attiva ogni coppia da sola, la mette sotto sforzo con vkpeak e controlla errori/blocchi della GPU.\n\nDura ~2-3 minuti e la GPU sarà sotto carico. Procedere?",
+              "Tests the extra CUs (WGP3-4) one by one to catch defects (silicon lottery): enables each pair alone, stresses it with vkpeak and checks for GPU errors/hangs.\n\nTakes ~2-3 minutes and the GPU will be under load. Proceed?")) != QMessageBox.StandardButton.Yes:
+            return
+        self._run_async(lambda: self.d.cmd(cmd="cu-test"), self._cu_test_done,
+                        L("Test CU in corso (~2-3 min)…", "CU test running (~2-3 min)…"))
+
+    def _cu_test_done(self, res):
+        if not res.get("ok"):
+            self.toast(L("Test CU fallito: %s", "CU test failed: %s") % res.get("err", "?"), 7); return
+        sym = {"OK": "✓ OK", "WARN": "⚠ WARN", "FAIL": "✗ FAIL", "N/A": "— n/d"}
+        lines = [L("Baseline 24 CU: %s GFLOPS", "Baseline 24 CU: %s GFLOPS") % res.get("baseline", "?"), ""]
+        for r in res.get("results", []):
+            lines.append("SE%s.SH%s  WGP%d (CU %s):  %-7s  %s GFLOPS%s" % (
+                r["row"][0], r["row"][2], r["wgp"], r["cu"], sym.get(r["verdict"], r["verdict"]),
+                r["gflops"], (" · %d err" % r["errors"]) if r["errors"] else ""))
+        bad = res.get("bad", 0); warn = res.get("warn", 0)
+        lines.append("")
+        if bad:
+            lines.append(L("⚠ %d coppia/e di CU DIFETTOSA/E (FAIL) — consigliato non abilitarle." % bad,
+                           "⚠ %d CU pair(s) DEFECTIVE (FAIL) — better not to enable them." % bad))
+        elif warn:
+            lines.append(L("Tutte stabili; %d coppia/e senza guadagno prestazionale (WARN)." % warn,
+                           "All stable; %d pair(s) with no performance gain (WARN)." % warn))
+        else:
+            lines.append(L("✓ Tutte le CU extra sane, stabili e prestanti.",
+                           "✓ All extra CUs healthy, stable and performing."))
+        QMessageBox.information(self, L("Risultato Test CU", "CU test result"), "\n".join(lines))
 
     # ---------- FAN ----------
     def _fan(self):

@@ -118,6 +118,50 @@ def set_vram(mb):
     if not os.path.exists(MEMCFG): return False
     return sh("%s UMA_SIZE %d"%(MEMCFG,max(256,int(mb)))).returncode==0
 
+def cu_test():
+    """Health-test each extra CU pair (WGP3-4 on every SE/SH) for the silicon
+    lottery: enable the 24-CU floor + one extra WGP at a time, stress it with
+    vkpeak, and flag GPU faults/hangs or a WGP that adds no performance.
+    Restores the previous CU config at the end. ~2-3 min."""
+    import time
+    if not VKPEAK: return {"ok":False,"err":"vkpeak assente"}
+    vdir=os.path.dirname(VKPEAK)
+    def vk():
+        # stdbuf -> line-buffered so the early fp32-scalar line survives the timeout kill
+        r=sh("cd %s && stdbuf -oL -eL timeout 22 ./vkpeak"%vdir, t=35)
+        m=re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
+        return (float(m.group(1)) if m else 0.0), r.returncode
+    def alive():
+        return "BC-250" in sh("timeout 12 vulkaninfo --summary 2>/dev/null | grep -m1 deviceName", t=20).stdout
+    def errs():
+        s=sh("dmesg --since '16 seconds ago' 2>/dev/null | grep -ciE 'amdgpu.*(fault|timeout|reset|hang|recover|failed)'").stdout.strip()
+        return int(s) if s.isdigit() else 0
+    try: cur=json.loads(sh("/usr/local/bin/skillfish-cu get").stdout).get("rows",{})
+    except Exception: cur={}
+    order=["0.0","0.1","1.0","1.1"]
+    res=[]
+    sh("/usr/local/bin/skillfish-cu set-rows 7 7 7 7"); time.sleep(1)
+    base,_=vk()
+    for rk in order:
+        for wgp in (3,4):
+            rows={k:7 for k in order}; rows[rk]=7|(1<<wgp)
+            sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d"%(rows["0.0"],rows["0.1"],rows["1.0"],rows["1.1"]))
+            time.sleep(1)
+            g,rc=vk(); e=errs(); al=alive()
+            # a real defect = GPU fault/hang; rc is ignored (timeout always kills vkpeak)
+            if not al or e>0:      verdict="FAIL"
+            elif g<=0:             verdict="N/A"
+            elif base>0 and g>=base*1.01: verdict="OK"
+            else:                  verdict="WARN"
+            res.append({"row":rk,"wgp":wgp,"cu":"%d-%d"%(wgp*2,wgp*2+1),
+                        "gflops":round(g),"errors":e,"verdict":verdict})
+            time.sleep(1.5)
+    g0=lambda k: int(cur.get(k,31))
+    sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d"%(g0("0.0"),g0("0.1"),g0("1.0"),g0("1.1")))
+    bad=sum(1 for x in res if x["verdict"]=="FAIL")
+    warn=sum(1 for x in res if x["verdict"]=="WARN")
+    return {"ok":True,"baseline":round(base),"results":res,"bad":bad,"warn":warn}
+
 def cu_apply(rows):
     """Apply live per-row WGP masks (24..40 CU) via skillfish-cu. No reboot."""
     try:
@@ -240,6 +284,7 @@ def handle(req):
     if c=="set-vram": return {"ok":set_vram(req["mb"]),"reboot":True}
     if c=="set-cu": return {"ok":set_cu(req["unlock"]),"reboot":True}
     if c=="cu-apply": return cu_apply(req.get("rows",[]))
+    if c=="cu-test": return cu_test()
     if c=="thermal-guard": return {"ok":thermal_guard(req["limit"])}
     if c=="test-cpu": return test_cpu(req["mhz"],req["scale"],req["temp"])
     if c=="test-gpu": return test_gpu(req["minmhz"],req["minmv"],req["maxmhz"],req["maxmv"])
