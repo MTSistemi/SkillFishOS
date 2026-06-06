@@ -1,0 +1,72 @@
+#!/bin/bash
+# SkillFishOS — live Compute Unit (WGP) manager for the AMD BC-250.
+# Routes GPU Compute Units at runtime by writing the SPI/CC/RLC WGP masks via umr.
+# 1 WGP = 2 CU; 5 WGP per shader array x 4 arrays (2 SE x 2 SH) = 40 CU.
+# Driver floor = WGP0-2 (24 CU) are locked on at boot and always kept.
+# Clean-room implementation. Mechanism credit: WinnieLV/bc250-cu-live-manager.
+set -u
+UMR=/usr/local/bin/umr
+INST=0
+ASIC=cyan_skillfish.gfx1013
+CC=mmCC_GC_SHADER_ARRAY_CONFIG
+SPI=mmSPI_PG_ENABLE_STATIC_WGP_MASK
+RLC=mmRLC_PG_ALWAYS_ON_WGP_MASK
+ROWS=(0:0 0:1 1:0 1:1)
+FLOOR=0x07            # WGP0,1,2 — driver-locked, never disabled
+FULL=0x1f            # all 5 WGP
+RUN=/run/skillfish
+STATE=$RUN/cu_active
+
+popcount2(){ local m=$1 c=0 i; for i in 0 1 2 3 4; do (( (m>>i)&1 )) && c=$((c+2)); done; echo "$c"; }
+
+read_row(){ # se sh -> decimal mask (low 5 bits)
+  local v
+  v=$($UMR -i $INST -r "cyan_skillfish.*.$SPI" -b "$1" "$2" 0xffffffff 2>/dev/null | grep -o '0x[0-9a-fA-F]\{8\}' | head -1)
+  echo $(( ${v:-0} & 0x1f ))
+}
+
+read_total(){ local t=0 r se sh; for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}; t=$((t + $(popcount2 $(read_row "$se" "$sh")))); done; echo "$t"; }
+
+cmd_get(){ # JSON: per-row masks + active CU total
+  local r se sh m parts=()
+  for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}; m=$(read_row "$se" "$sh"); parts+=("\"$se.$sh\":$m"); done
+  printf '{"active_cu":%s,"max_cu":40,"floor":%d,"rows":{%s}}\n' "$(read_total)" $((FLOOR)) "$(IFS=,; echo "${parts[*]}")"
+}
+
+write_row(){ # se sh mask(decimal)
+  local m=$(( ($3 | FLOOR) & 0x1f ))
+  $UMR -i $INST -w "$ASIC.$CC" 0x0 -b "$1" "$2" 0xffffffff >/dev/null 2>&1
+  $UMR -i $INST -w "$ASIC.$SPI" "$(printf '0x%x' $m)" -b "$1" "$2" 0xffffffff >/dev/null 2>&1
+}
+
+apply_rows(){ # m00 m01 m10 m11 (decimal/hex)
+  local maxbits=0 r se sh idx=1
+  $UMR -i $INST -w "$ASIC.$CC" 0x0 >/dev/null 2>&1
+  for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}
+    local m=$(( (${!idx} | FLOOR) & 0x1f )); write_row "$se" "$sh" "$m"
+    (( m > maxbits )) && maxbits=$m; idx=$((idx+1))
+  done
+  $UMR -i $INST -w "$ASIC.$RLC" "$(printf '0x%x' $maxbits)" >/dev/null 2>&1
+  update_state
+}
+
+apply_uniform(){ local m=$1; apply_rows "$m" "$m" "$m" "$m"; }
+
+update_state(){
+  mkdir -p "$RUN" 2>/dev/null
+  cmd_get > "$STATE.json" 2>/dev/null
+  echo "$(read_total)/40" > "$STATE" 2>/dev/null
+  chmod 644 "$STATE" "$STATE.json" 2>/dev/null
+}
+
+need_root(){ [ "$(id -u)" = 0 ] || { echo "skillfish-cu: needs root" >&2; exit 1; }; }
+
+case "${1:-}" in
+  get)              cmd_get ;;
+  max|enable-all)   need_root; apply_uniform $FULL;  echo "$(read_total)/40" ;;
+  stock|disable-extra) need_root; apply_uniform $FLOOR; echo "$(read_total)/40" ;;
+  set)              need_root; apply_uniform "${2:?mask}"; echo "$(read_total)/40" ;;     # 0x07..0x1f, all rows
+  set-rows)         need_root; apply_rows "${2:?}" "${3:?}" "${4:?}" "${5:?}"; echo "$(read_total)/40" ;;
+  state)            need_root; update_state; cat "$STATE" ;;
+  *) echo "usage: skillfish-cu {get|max|stock|set <0x07..0x1f>|set-rows m00 m01 m10 m11|state}"; exit 1 ;;
+esac
