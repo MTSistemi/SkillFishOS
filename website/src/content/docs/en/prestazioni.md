@@ -9,6 +9,19 @@ This page collects the **real performance data**, all **measured on our BC-250**
 
 > ⚠️ The numbers are obtained with the 40 CUs unlocked and adequate cooling. The stock cooler is marginal: "back-to-back" comparisons without pauses are skewed by *heat-soak* — let the card cool down a few minutes between runs.
 
+## Screenshots from our own hardware
+
+Screen captures taken **during the benchmarks**, on **our own** BC-250 running SkillFishOS — no renders, no mockups.
+
+![Black Myth: Wukong — 112 FPS average at 1080p on the AMD BC-250](/img/benchmarks/wukong-112fps.jpg)
+*Black Myth: Wukong — **112 FPS** average at 1080p (max 128, 1% low 101). AMD BC-250 APU, RADV gfx1013 GPU.*
+
+![Unigine Heaven 4.0 — 113.7 FPS, score 2865](/img/benchmarks/heaven-113fps.jpg)
+*Unigine Heaven 4.0 — **113.7 FPS**, score **2865** (1080p Ultra, 8× AA, Extreme tessellation). Kernel 7.0.10-skillfishos.*
+
+![Unigine Heaven — scene rendered in real time on the BC-250](/img/benchmarks/heaven-scene.jpg)
+*Unigine Heaven — the scene rendered in real time on the BC-250 during the run.*
+
 ## GPU — FP32 compute (vkpeak)
 
 | Configuration | FP32 | Notes |
