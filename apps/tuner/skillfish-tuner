@@ -2,9 +2,9 @@
 # SkillFishOS Tuner — KDE-native (PyQt6/Qt Widgets). Themed by Kvantum/Breeze.
 # The GUI talks to the root daemon skillfish-tuner-helper (pkexec, one auth at start).
 # Bilingual UI (IT/EN), auto-detected from the LANG/LC_* environment.
-import sys, os, json, subprocess
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon
+import sys, os, json, subprocess, re, collections
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QPointF
+from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QSlider, QPushButton, QToolButton, QCheckBox,
                              QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout)
@@ -145,13 +145,115 @@ class CuWgp(QFrame):
         self.on = not self.on; self._paint(); self.on_toggle(self.on)
 
 
+class Chart(QWidget):
+    """A live, custom-painted line chart panel (brass / steampunk look)."""
+    def __init__(self, title, unit, series):
+        super().__init__()
+        self.title = title; self.unit = unit; self.series = series
+        self.data = [collections.deque(maxlen=180) for _ in series]
+        self.setMinimumSize(400, 190)
+
+    def push(self, vals):
+        for d, v in zip(self.data, vals):
+            d.append(float(v) if v is not None else (d[-1] if d else 0.0))
+        self.update()
+
+    def paintEvent(self, _e):
+        p = QPainter(self); p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+        p.setPen(QPen(QColor(216, 168, 73, 80), 1)); p.setBrush(QColor(18, 15, 9, 240))
+        p.drawRoundedRect(1, 1, w - 2, h - 2, 14, 14)
+        gx0, gy0, gx1, gy1 = 14, 34, w - 14, h - 16
+        gw, gh = gx1 - gx0, gy1 - gy0
+        f = QFont("Inter"); f.setBold(True); f.setPointSize(10); p.setFont(f)
+        p.setPen(QColor(216, 168, 73)); p.drawText(14, 22, self.title)
+        allv = [v for d in self.data for v in d]
+        if not allv: p.end(); return
+        lo, hi = min(allv), max(allv)
+        if hi - lo < 1e-6: hi = lo + 1.0
+        m = (hi - lo) * 0.14; lo -= m; hi += m
+        p.setPen(QPen(QColor(216, 168, 73, 26), 1))
+        for i in range(4):
+            yy = int(gy0 + gh * i / 3); p.drawLine(gx0, yy, gx1, yy)
+        fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
+        lx = gx1
+        for si, (label, col) in enumerate(self.series):
+            d = self.data[si]; n = len(d); color = QColor(col)
+            if n >= 2:
+                line = QPainterPath(); fill = QPainterPath()
+                for i, v in enumerate(d):
+                    x = gx0 + gw * (i / (n - 1)); y = gy1 - gh * ((v - lo) / (hi - lo))
+                    if i == 0: line.moveTo(x, y); fill.moveTo(x, gy1); fill.lineTo(x, y)
+                    else: line.lineTo(x, y); fill.lineTo(x, y)
+                fill.lineTo(gx1, gy1); fill.closeSubpath()
+                grad = QLinearGradient(0, gy0, 0, gy1)
+                c0 = QColor(color); c0.setAlpha(75); c1 = QColor(color); c1.setAlpha(0)
+                grad.setColorAt(0, c0); grad.setColorAt(1, c1)
+                p.setPen(Qt.PenStyle.NoPen); p.setBrush(QBrush(grad)); p.drawPath(fill)
+                glow = QColor(color); glow.setAlpha(55)
+                p.setBrush(Qt.BrushStyle.NoBrush); p.setPen(QPen(glow, 5)); p.drawPath(line)
+                p.setPen(QPen(color, 2)); p.drawPath(line)
+            cur = d[-1] if n else 0.0
+            txt = "%s %s" % (label, ("%d" % round(cur)) if abs(cur) >= 10 else ("%.2f" % cur))
+            p.setFont(fv); p.setPen(color)
+            tw = p.fontMetrics().horizontalAdvance(txt)
+            lx -= tw + 14; p.drawText(int(lx), 22, txt)
+        p.end()
+
+
+class MonitorWindow(QWidget):
+    """Live sensor dashboard that pops up during a Tuner test. Closable by the user."""
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SkillFishOS — Monitor")
+        self.setWindowFlag(Qt.WindowType.Window, True)
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(900, 560)
+        self.setStyleSheet("QWidget{background:#0d0b06;}")
+        grid = QGridLayout(self); grid.setContentsMargins(14, 12, 14, 12); grid.setSpacing(12)
+        hdr = QLabel(L("◉  MONITOR LIVE", "◉  LIVE MONITOR"))
+        hdr.setStyleSheet("color:#d8a849;font-weight:bold;font-size:13px;letter-spacing:3px;")
+        grid.addWidget(hdr, 0, 0, 1, 2)
+        self.ch_temp = Chart(L("Temperatura (°C)", "Temperature (°C)"), "°C", [("CPU", "#e8c878"), ("GPU", "#e07b39")])
+        self.ch_freq = Chart(L("Frequenza (MHz)", "Frequency (MHz)"), "MHz", [("CPU", "#5fd24f"), ("GPU", "#49b6e0")])
+        self.ch_volt = Chart(L("Voltaggio GPU (mV)", "GPU voltage (mV)"), "mV", [("GPU", "#c98be0")])
+        self.ch_fan = Chart(L("Ventola (RPM)", "Fan (RPM)"), "RPM", [("FAN", "#d8a849")])
+        grid.addWidget(self.ch_temp, 1, 0); grid.addWidget(self.ch_freq, 1, 1)
+        grid.addWidget(self.ch_volt, 2, 0); grid.addWidget(self.ch_fan, 2, 1)
+        self.timer = QTimer(self); self.timer.setInterval(700); self.timer.timeout.connect(self._tick)
+
+    def start(self):
+        if not self.timer.isActive(): self.timer.start()
+
+    def closeEvent(self, e):
+        self.timer.stop(); super().closeEvent(e)
+
+    def _rd(self, key):
+        try:
+            out = subprocess.run(["skillfish-hud-val", key], capture_output=True, text=True, timeout=0.6).stdout
+            m = re.search(r'-?\d+(?:\.\d+)?', out)
+            return float(m.group()) if m else None
+        except Exception:
+            return None
+
+    def _tick(self):
+        self.ch_temp.push([self._rd("cpu_temp"), self._rd("gpu_temp")])
+        self.ch_freq.push([self._rd("cpu_mhz"), self._rd("gpu_freq")])
+        self.ch_volt.push([self._rd("gpu_mv")])
+        self.ch_fan.push([self._rd("fan")])
+
+
 class TunerWindow(QMainWindow):
     def __init__(self, daemon):
         super().__init__()
         self.d = daemon
         self.setWindowTitle("SkillFishOS Tuner")
         self.setWindowIcon(QIcon(ICON))
-        self.resize(780, 1000)
+        self._geomfile = os.path.expanduser("~/.config/skillfishos/tuner-geom.json")
+        try:
+            gj = json.load(open(self._geomfile)); self.resize(int(gj["w"]), int(gj["h"]))
+        except Exception:
+            self.resize(982, 1000)
         self.cfg = (self.d.cmd(cmd="get").get("data")) or {}
         self._threads = []
 
@@ -172,6 +274,22 @@ class TunerWindow(QMainWindow):
     # ---------- UI helpers ----------
     def toast(self, msg, secs=4):
         self.statusBar().showMessage(msg, secs * 1000)
+
+    def _open_monitor(self, label):
+        if getattr(self, "_mon", None) is None:
+            self._mon = MonitorWindow()
+        self._mon.setWindowTitle(L("SkillFishOS — Monitor · %s", "SkillFishOS — Monitor · %s") % label)
+        self._mon.start(); self._mon.show(); self._mon.raise_(); self._mon.activateWindow()
+
+    def closeEvent(self, e):
+        try:
+            os.makedirs(os.path.dirname(self._geomfile), exist_ok=True)
+            json.dump({"w": self.width(), "h": self.height()}, open(self._geomfile, "w"))
+        except Exception:
+            pass
+        if getattr(self, "_mon", None) is not None:
+            self._mon.close()
+        super().closeEvent(e)
 
     def _help_btn(self, key):
         b = QToolButton(); b.setText("?"); b.setToolTip(L("Aiuto", "Help"))
@@ -206,6 +324,7 @@ class TunerWindow(QMainWindow):
 
     def _run_async(self, fn, on_done, busy_msg):
         self.toast(busy_msg, 60)
+        self._open_monitor(busy_msg)
         t = CmdThread(fn)
         t.done.connect(lambda res, th=t: (on_done(res), self._threads.remove(th) if th in self._threads else None))
         self._threads.append(t); t.start()
@@ -311,11 +430,8 @@ class TunerWindow(QMainWindow):
         self.cu_order = ["0.0", "0.1", "1.0", "1.1"]
         rows = cu.get("rows") or {k: 7 for k in self.cu_order}
         self.cu_rows = {k: int(rows.get(k, 7)) | self.cu_floor for k in self.cu_order}
-        info = QLabel(L("Ogni quadratino = 1 CU · verde = attiva, rosso = spenta. Le prime 3 coppie (24 CU) sono sempre attive; accendi/spegni le CU extra (WGP3-4) e premi «Applica a caldo». Nessun riavvio.",
-                        "Each square = 1 CU · green = active, red = off. The first 3 pairs (24 CU) are always on; toggle the extra CUs (WGP3-4) then hit «Apply live». No reboot."))
-        info.setWordWrap(True); info.setStyleSheet("color:#b9a07a;font-size:11px;")
-        hdr = QHBoxLayout(); hdr.setContentsMargins(0, 0, 0, 0); hdr.addWidget(info, 1)
-        hdr.addWidget(self._help_btn("cu"), 0, Qt.AlignmentFlag.AlignTop)
+        hdr = QHBoxLayout(); hdr.setContentsMargins(0, 0, 0, 0); hdr.addStretch(1)
+        hdr.addWidget(self._help_btn("cu"))
         hw0 = QWidget(); hw0.setLayout(hdr); v.addWidget(hw0)
         grid = QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(5)
         for c in range(5):

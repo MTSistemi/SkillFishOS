@@ -15,4 +15,5 @@ case "$1" in
   vram) awk '{printf "%.0f",$1/1048576}' /sys/class/drm/card0/device/mem_info_vram_used 2>/dev/null ;;
   fan) cat "$(hw nct6686)/fan2_input" 2>/dev/null ;;
   cu) cat /run/skillfish/cu_active 2>/dev/null || echo "?" ;;
+  cpu_mhz) awk -F: '/cpu MHz/{printf "%d",$2; exit}' /proc/cpuinfo 2>/dev/null ;;
 esac
