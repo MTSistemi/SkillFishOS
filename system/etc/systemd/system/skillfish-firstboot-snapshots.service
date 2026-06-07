@@ -1,0 +1,15 @@
+[Unit]
+Description=SkillFishOS first-boot snapper + grub-btrfs setup (installed system only)
+Documentation=https://skillfishos.com
+ConditionPathExists=!/var/lib/skillfish/.snapshots-setup-done
+DefaultDependencies=no
+After=local-fs.target
+Before=display-manager.service multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-firstboot-snapshots.sh
+
+[Install]
+WantedBy=multi-user.target
