@@ -430,9 +430,6 @@ class TunerWindow(QMainWindow):
         self.cu_order = ["0.0", "0.1", "1.0", "1.1"]
         rows = cu.get("rows") or {k: 7 for k in self.cu_order}
         self.cu_rows = {k: int(rows.get(k, 7)) | self.cu_floor for k in self.cu_order}
-        hdr = QHBoxLayout(); hdr.setContentsMargins(0, 0, 0, 0); hdr.addStretch(1)
-        hdr.addWidget(self._help_btn("cu"))
-        hw0 = QWidget(); hw0.setLayout(hdr); v.addWidget(hw0)
         grid = QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(5)
         for c in range(5):
             h = QLabel("WGP%d" % c); h.setStyleSheet("color:#8f7c52;font-size:10px;"); grid.addWidget(h, 0, c + 1)
@@ -452,6 +449,7 @@ class TunerWindow(QMainWindow):
         pr = QHBoxLayout()
         for lbl, mk in (("24 CU", 0x07), ("32 CU", 0x0f), (L("40 CU (max)", "40 CU (max)"), 0x1f)):
             b = QPushButton(lbl); b.clicked.connect(lambda _=False, m=mk: self._cu_preset(m)); pr.addWidget(b)
+        pr.addWidget(self._help_btn("cu"))
         pr.addStretch(1); pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
         v.addWidget(self._btns(
             (L("Test CU", "Test CU"), self._test_cu, False),
