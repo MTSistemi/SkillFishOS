@@ -16,6 +16,21 @@ Description: SkillFish AI - on-device LLM control panel
  PyQt6 panel: first-run setup wizard, model manager (38 models <=14B), live
  hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
 
+Package: skillfish-hub
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, polkitd | policykit-1
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06_all.deb
+Size: 4624
+SHA256: f6f721c776b257d86aa80978022d591b965dcc77b9e1b597c3aa5fd68724d053
+SHA1: d5305d60998d6711d4b0a8d027e0737b84af66d4
+MD5sum: e85da561e33848781c13fcf422cac407
+Description: SkillFishOS Hub - install and update SkillFishOS software from our repo
+
 Package: skillfish-iso-mount
 Version: 26.06
 Architecture: all
@@ -33,6 +48,36 @@ Description: SkillFishOS native ISO mounting for KDE
  Mount and unmount disk images from the KDE/Dolphin context menu through
  udisks2 (loop devices), with a polkit rule that lets administrators mount
  without a password prompt. No GNOME dependencies.
+
+Package: skillfish-kernel-switch
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, polkitd | policykit-1, grub2-common
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06_all.deb
+Size: 4168
+SHA256: 758f81ed51ffdb05c1c4e6fa0e453cc29331efb1e606eaa6b581fd78f03aabe9
+SHA1: c7d56ed2d4e31b4fce0c5b9de2598f172e9db59b
+MD5sum: e16749a3895d4aeda5e7d7eb0e681f6e
+Description: SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)
+
+Package: skillfish-monitor
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, skillfish-tuner
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06_all.deb
+Size: 3808
+SHA256: f76780072a93d11129d1135809363fde3998987a0f6338c8102ee9fedf091740
+SHA1: aa2d4d10c92670155e95956205327756fc0e4269
+MD5sum: 9a09314bdd8d0d6e4bc5795d1f3eabe5
+Description: SkillFishOS Monitor - live temperature/frequency/voltage/fan charts
 
 Package: skillfish-tuner
 Version: 26.06
