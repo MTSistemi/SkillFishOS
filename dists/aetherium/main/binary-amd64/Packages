@@ -19,15 +19,15 @@ Homepage: https://skillfishos.com
 Package: skillfish-hub
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.2
+Version: 26.06.3
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.2_all.deb
-Size: 4624
-SHA256: 2e337da5a8f28456a25de20ac21c58fc24c0de273a020b309fd2e0d589ba7b74
-SHA1: 6c379fcbb0c27b734e2f50bf7a17178e2309a98f
-MD5sum: 13bc5dab97df99b737484ded2063b87e
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.3_all.deb
+Size: 4708
+SHA256: 59466b79a212f71ac4c920acc30641f7aea430d5443d7e9e17fdd7450b662f35
+SHA1: 6a925f52bca0b03b269c12a2761cd0ad51b65e2f
+MD5sum: ee33eb10f944e4ae85299a3759d7622f
 Description: SkillFishOS Hub - install and update SkillFishOS software from our repo
 Homepage: https://skillfishos.com
 
@@ -52,15 +52,15 @@ Description: SkillFishOS native ISO mounting for KDE
 Package: skillfish-kernel-switch
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.2
+Version: 26.06.3
 Depends: python3, python3-pyqt6, polkitd | policykit-1, grub2-common
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06.2_all.deb
-Size: 4172
-SHA256: db42b1e1cfb89573e533008c3e700890182476762a4e4dfc3622e5720b0f2f73
-SHA1: 182e0faaa7a20bb11d5146978573c50eef4bc8a0
-MD5sum: 3d696dd08a219dc96d94e5ff590eaeee
+Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06.3_all.deb
+Size: 4252
+SHA256: 68b7c95417b082dd7dbb932d692ef46a14c48a3a88e4db89eb64a55948a16e98
+SHA1: 526caa4bad16a5adf65ce66f7562a6eca5b22f45
+MD5sum: c8b0801e94ae46119bfdf2c64b7d4390
 Description: SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)
 Homepage: https://skillfishos.com
 
