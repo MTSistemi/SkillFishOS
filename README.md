@@ -8,7 +8,7 @@
 
 **Release 26.06 "Aetherium"** — BC-250 edition · boots in English, language chosen at install · a generic x86-64 build will follow
 
-![SkillFishOS desktop](screenshots/desktop.jpg)
+![SkillFishOS desktop](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/desktop.jpg)
 
 </div>
 
@@ -57,11 +57,11 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 | About this system | SkillFishOS Tuner |
 |---|---|
-| ![About](screenshots/about.jpg) | ![Tuner](screenshots/tuner.jpg) |
+| ![About](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/about.jpg) | ![Tuner](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/tuner.jpg) |
 
 | Local AI panel | EmuDeck — easy emulation |
 |---|---|
-| ![AI panel](screenshots/ai-panel.jpg) | ![EmuDeck](screenshots/emudeck.jpg) |
+| ![AI panel](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/ai-panel.jpg) | ![EmuDeck](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/emudeck.jpg) |
 
 ---
 
@@ -80,11 +80,11 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 | Black Myth: Wukong — 112 FPS | Unigine Superposition — 12938 (High) |
 |---|---|
-| ![Wukong 112 FPS](screenshots/benchmarks/wukong-112fps.jpg) | ![Superposition High 12938](screenshots/benchmarks/superposition-high.jpg) |
+| ![Wukong 112 FPS](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/benchmarks/wukong-112fps.jpg) | ![Superposition High 12938](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/benchmarks/superposition-high.jpg) |
 
 | Unigine Superposition — 5513 (Extreme) | Unigine Heaven 4.0 — 113.7 FPS / 2865 |
 |---|---|
-| ![Superposition Extreme 5513](screenshots/benchmarks/superposition-extreme.jpg) | ![Heaven 113.7 FPS](screenshots/benchmarks/heaven-113fps.jpg) |
+| ![Superposition Extreme 5513](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/benchmarks/superposition-extreme.jpg) | ![Heaven 113.7 FPS](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/benchmarks/heaven-113fps.jpg) |
 
 ### Synthetic compute — `vkpeak` fp32-scalar (GFLOPS)
 
