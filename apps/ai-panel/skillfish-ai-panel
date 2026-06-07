@@ -30,17 +30,48 @@ CFG_FILE   = os.path.join(CFG_DIR, "ai.json")
 # Custom names are accepted too. (Ollama has no stable public library API, so we
 # pair this curated catalogue with a live query of what is already installed.)
 CATALOG = [
-    ("qwen3:14b",        "~9 GB  · default, strong reasoning"),
-    ("qwen2.5:7b",       "~4.7 GB · fast all-rounder"),
-    ("llama3.1:8b",      "~4.9 GB · Meta, general purpose"),
-    ("llama3.2:3b",      "~2 GB  · light & quick"),
-    ("gemma2:9b",        "~5.4 GB · Google"),
-    ("phi3.5:3.8b",      "~2.2 GB · tiny, sharp"),
-    ("mistral:7b",       "~4.1 GB · classic"),
-    ("deepseek-r1:14b",  "~9 GB  · reasoning (R1)"),
-    ("deepseek-r1:7b",   "~4.7 GB · reasoning (R1)"),
-    ("codellama:7b",     "~3.8 GB · coding"),
-    ("llava:7b",         "~4.7 GB · vision (images)"),
+    # --- reasoning / general chat (<= 14B, all fit the BC-250's shared memory) ---
+    ("qwen3:14b",            "~9 GB  · default, strong reasoning"),
+    ("qwen3:8b",             "~5.2 GB · reasoning, lighter"),
+    ("qwen3:4b",             "~2.6 GB · fast reasoning"),
+    ("qwen3:1.7b",           "~1.4 GB · tiny reasoning"),
+    ("qwen2.5:14b",          "~9 GB  · all-rounder"),
+    ("qwen2.5:7b",           "~4.7 GB · fast all-rounder"),
+    ("qwen2.5:3b",           "~1.9 GB · light"),
+    ("qwen2.5:1.5b",         "~1 GB  · very light"),
+    ("llama3.1:8b",          "~4.9 GB · Meta, general"),
+    ("llama3.2:3b",          "~2 GB  · light & quick"),
+    ("llama3.2:1b",          "~1.3 GB · ultra light"),
+    ("gemma2:9b",            "~5.4 GB · Google"),
+    ("gemma2:2b",            "~1.6 GB · Google, light"),
+    ("gemma3:12b",           "~8 GB  · Google, multimodal"),
+    ("gemma3:4b",            "~3.3 GB · Google, multimodal"),
+    ("phi4:14b",             "~9 GB  · Microsoft, sharp"),
+    ("phi3.5:3.8b",          "~2.2 GB · tiny, sharp"),
+    ("mistral:7b",           "~4.1 GB · classic"),
+    ("mistral-nemo:12b",     "~7 GB  · 128k context"),
+    ("deepseek-r1:14b",      "~9 GB  · reasoning (R1)"),
+    ("deepseek-r1:8b",       "~5 GB  · reasoning (R1)"),
+    ("deepseek-r1:7b",       "~4.7 GB · reasoning (R1)"),
+    ("deepseek-r1:1.5b",     "~1.1 GB · reasoning, tiny"),
+    ("granite3.1-dense:8b",  "~4.9 GB · IBM, business"),
+    ("olmo2:13b",            "~8 GB  · open, AllenAI"),
+    ("smollm2:1.7b",         "~1 GB  · very small"),
+    # --- coding ---
+    ("qwen2.5-coder:14b",    "~9 GB  · coding (best)"),
+    ("qwen2.5-coder:7b",     "~4.7 GB · coding"),
+    ("qwen2.5-coder:3b",     "~1.9 GB · coding, light"),
+    ("codellama:13b",        "~7.4 GB · coding"),
+    ("codellama:7b",         "~3.8 GB · coding"),
+    ("starcoder2:7b",        "~4 GB  · coding"),
+    ("starcoder2:3b",        "~1.7 GB · coding, light"),
+    # --- vision (image input) ---
+    ("llama3.2-vision:11b",  "~7.8 GB · vision"),
+    ("llava:13b",            "~8 GB  · vision"),
+    ("llava:7b",             "~4.7 GB · vision"),
+    ("minicpm-v:8b",         "~5.5 GB · vision, OCR"),
+    # --- embeddings (for RAG / web search) ---
+    ("nomic-embed-text",     "~0.3 GB · embeddings"),
 ]
 
 def _detect_lang():
@@ -169,10 +200,22 @@ def installed_models():
         if line.strip(): names.append(line.split()[0])
     return sorted(names)
 
+def docker_image_present():
+    rc, out, _ = sh("docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null", 10)
+    return any(k in out for k in ("ollama", "skillfish-ollama"))
+
+def container_exists():
+    rc, out, _ = sh("docker ps -a --format '{{.Names}}' 2>/dev/null", 8)
+    return CONTAINER in out.split()
+
+def stack_installed():
+    """True when the stack is really installed (compose + docker + image/container).
+    The first-run wizard is shown ONLY when this is False."""
+    return stack_present() and docker_ok() and (docker_image_present() or container_exists())
+
 def is_configured():
-    """The wizard has run and the stack exists with at least one model."""
-    cfg = load_cfg()
-    return cfg.get("setup_done") and stack_present()
+    # wizard appears only if the stack is NOT already installed
+    return stack_installed()
 
 DEFAULT_COMPOSE = """services:
   ollama:
@@ -395,18 +438,24 @@ class Panel(QMainWindow):
         hv.addWidget(QLabel("RAM:"), 3, 0); hv.addWidget(self.l_ram, 3, 1)
         v.addWidget(gh)
 
-        # GTT slider
-        gg = QGroupBox(L("Memoria GPU per l'AI (GTT)", "GPU memory for AI (GTT)")); ggv = QVBoxLayout(gg)
-        self.gtt_lbl = QLabel("—"); ggv.addWidget(self.gtt_lbl)
+        # Shared memory for the model (GTT)
+        gg = QGroupBox(L("Memoria condivisa per il modello", "Shared memory for the model")); ggv = QVBoxLayout(gg)
+        self.gtt_lbl = QLabel("—"); self.gtt_lbl.setWordWrap(True); ggv.addWidget(self.gtt_lbl)
         sr = QHBoxLayout()
         self.gtt = QSlider(Qt.Orientation.Horizontal); self.gtt.setMinimum(2); self.gtt.setMaximum(14); self.gtt.setSingleStep(1)
         self.gtt.valueChanged.connect(lambda x: self.gtt_val.setText(f"{x} GB"))
         self.gtt_val = QLabel("— GB"); self.gtt_val.setMinimumWidth(56)
         sr.addWidget(self.gtt); sr.addWidget(self.gtt_val); ggv.addLayout(sr)
-        self.gtt_apply = QPushButton(L("Applica GTT (richiede riavvio)", "Apply GTT (needs reboot)"))
+        self.gtt_apply = QPushButton(L("Applica e riavvia", "Apply and reboot"))
         self.gtt_apply.clicked.connect(self.apply_gtt); ggv.addWidget(self.gtt_apply)
-        hint = QLabel(L("Più GTT = modelli più grandi caricabili sulla GPU (usa la RAM di sistema).",
-                        "More GTT = larger models can load on the GPU (uses system RAM)."))
+        hint = QLabel(L("Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
+                        "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
+                        "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
+                        "possibile su questo hardware, verificato).",
+                        "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
+                        "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
+                        "parameter → a reboot is required (a live change is not possible on this "
+                        "hardware, verified)."))
         hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
         v.addWidget(gg)
 
@@ -448,12 +497,18 @@ class Panel(QMainWindow):
             self.l_vram.setText(L("n/d (GPU non-AMD o VRAM condivisa)", "n/a (non-AMD GPU or shared VRAM)"))
         rt, ra = ram_info(); self.l_ram.setText(f"{gb(ra)} {L('libera','free')} / {gb(rt)}")
         gt, gu, cur = gtt_info()
+        rt2, _ = ram_info(); vr2 = vram_info()
+        # GTT draws on system RAM -> cap the slider at total RAM minus headroom for the OS
+        ram_gb = int(rt2 / 1e9) if rt2 else 14
+        smax = max(4, min(60, ram_gb - 1)); self.gtt.setMaximum(smax)
+        budget = (vr2[0] + gt) if (vr2 and gt is not None) else None
         parts = []
-        if gt is not None: parts.append(f"{gb(gt)} {L('totale','total')}")
+        if budget is not None: parts.append(L(f"budget modello ≈ {gb(budget)}", f"model budget ≈ {gb(budget)}"))
+        if gt is not None: parts.append(f"GTT {gb(gt)}")
         if cur is not None: parts.append(f"amdgpu.gttsize={cur} MB")
-        self.gtt_lbl.setText("  ·  ".join(parts) if parts else L("GTT non disponibile su questa GPU", "GTT not available on this GPU"))
+        self.gtt_lbl.setText("  ·  ".join(parts) if parts else L("non disponibile su questa GPU", "not available on this GPU"))
         if cur is not None:
-            self.gtt.blockSignals(True); self.gtt.setValue(max(2, min(14, round(cur/1024)))); self.gtt.blockSignals(False)
+            self.gtt.blockSignals(True); self.gtt.setValue(max(2, min(smax, round(cur/1024)))); self.gtt.blockSignals(False)
             self.gtt_val.setText(f"{self.gtt.value()} GB")
             self.gtt.setEnabled(True); self.gtt_apply.setEnabled(True)
         else:
@@ -514,8 +569,10 @@ class Panel(QMainWindow):
             return
         rc, out, err = sh(f"pkexec skillfish-gtt {mb}", 60)
         if rc == 0:
-            QMessageBox.information(self, "SkillFish AI", L(f"GTT impostata a {self.gtt.value()} GB.\nRiavvia per applicare.",
-                                                           f"GTT set to {self.gtt.value()} GB.\nReboot to apply."))
+            if QMessageBox.question(self, "SkillFish AI",
+                    L(f"Memoria impostata a {self.gtt.value()} GB. Riavviare ora per applicarla?",
+                      f"Memory set to {self.gtt.value()} GB. Reboot now to apply it?")) == QMessageBox.StandardButton.Yes:
+                sh("pkexec systemctl reboot")
         else:
             QMessageBox.warning(self, "SkillFish AI", (out or err or L("operazione annullata", "operation cancelled")))
 
