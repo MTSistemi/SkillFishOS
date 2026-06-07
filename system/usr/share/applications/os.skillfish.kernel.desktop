@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Kernel Switch
+GenericName=Kernel Switcher
+Comment=Choose which installed kernel boots (default or once)
+Comment[it]=Scegli quale kernel installato avviare (predefinito o una volta)
+Exec=skillfish-kernel-switch
+Icon=skillfishos
+Terminal=false
+Categories=System;Settings;
+Keywords=kernel;grub;boot;skillfish;
+StartupNotify=true
+X-KDE-StartupNotify=true

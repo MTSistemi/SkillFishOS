@@ -1,0 +1,35 @@
+#!/bin/bash
+# skillfish-grub-helper — set the default GRUB kernel, or boot one once, by
+# kernel version. Run as root (the Kernel Switch app calls it via pkexec).
+#   skillfish-grub-helper default <kver>   # permanent default
+#   skillfish-grub-helper once    <kver>   # boot it just next time
+set -euo pipefail
+ACTION="${1:-}"; KV="${2:-}"
+GCFG=/boot/grub/grub.cfg
+case "$KV" in (''|*/*) echo "bad kernel version"; exit 2;; esac
+[ -e "/boot/vmlinuz-${KV}" ] || { echo "no such kernel: ${KV}"; exit 2; }
+
+# the per-kernel entries live inside the "Advanced options" submenu:
+SUBID=$(grep -oP "submenu '[^']*Advanced[^']*' .*menuentry_id_option '\K[^']+" "$GCFG" | head -1)
+ENTID=$(grep -oP "menuentry '[^']*with Linux ${KV}' .*menuentry_id_option '\K[^']+" "$GCFG" | head -1)
+[ -n "${ENTID:-}" ] || { echo "no GRUB entry for ${KV}"; exit 3; }
+if [ -n "${SUBID:-}" ]; then TARGET="${SUBID}>${ENTID}"; else TARGET="${ENTID}"; fi
+
+case "$ACTION" in
+  default)
+    G=/etc/default/grub
+    cp -f "$G" "${G}.skf-kernel.bak"
+    if grep -q '^GRUB_DEFAULT=' "$G"; then
+      sed -i "s|^GRUB_DEFAULT=.*|GRUB_DEFAULT=\"${TARGET}\"|" "$G"
+    else
+      printf 'GRUB_DEFAULT="%s"\n' "$TARGET" >> "$G"
+    fi
+    if command -v update-grub >/dev/null 2>&1; then update-grub; else grub-mkconfig -o "$GCFG"; fi
+    echo "OK default=${KV}"
+    ;;
+  once)
+    grub-reboot "${TARGET}"
+    echo "OK boot-once=${KV}"
+    ;;
+  *) echo "usage: skillfish-grub-helper default|once <kernelversion>"; exit 2 ;;
+esac

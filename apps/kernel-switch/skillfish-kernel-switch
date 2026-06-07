@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+# SkillFishOS Kernel Switch - pick which installed kernel boots (default or once).
+# KDE-native PyQt6, Kvantum/brass themed. Bilingual (IT/EN).
+import sys, os, glob, subprocess
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QGroupBox, QPushButton, QRadioButton,
+                             QButtonGroup, QMessageBox, QFrame)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+HELPER = "/usr/local/bin/skillfish-grub-helper"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+def sh(cmd, t=30):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+        return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+def running_kernel():
+    return os.uname().release
+
+def flavor(kv):
+    if kv.endswith("-generic"):
+        return L("Generic · x86-64 · PC e macchine virtuali", "Generic · x86-64 · PCs & virtual machines")
+    if kv.endswith("-slim"):
+        return L("Slim · BC-250 · kernel minimale", "Slim · BC-250 · ultra-lean kernel")
+    return L("BC-250 · znver2 · ottimizzato", "BC-250 · znver2 · optimized")
+
+def installed_kernels():
+    ks = []
+    for p in sorted(glob.glob("/boot/vmlinuz-*skillfishos*")):
+        ks.append(os.path.basename(p).replace("vmlinuz-", ""))
+    # newest first
+    return sorted(set(ks), reverse=True)
+
+
+class KernelSwitch(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS — Kernel", "SkillFishOS — Kernel"))
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(640, 520)
+        w = QWidget(); self.setCentralWidget(w)
+        v = QVBoxLayout(w); v.setContentsMargins(22, 18, 22, 18); v.setSpacing(14)
+
+        # header
+        h = QHBoxLayout()
+        img = QLabel(); pm = QPixmap(ICON)
+        if not pm.isNull():
+            img.setPixmap(pm.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        h.addWidget(img)
+        tcol = QVBoxLayout(); tcol.setSpacing(0)
+        title = QLabel(L("Cambio kernel", "Kernel Switch")); title.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
+        sub = QLabel(L("Scegli quale kernel avviare", "Choose which kernel boots")); sub.setStyleSheet("color:#b9a07a;")
+        tcol.addWidget(title); tcol.addWidget(sub)
+        h.addLayout(tcol); h.addStretch(1); v.addLayout(h)
+
+        self.run = running_kernel()
+        g = QGroupBox(L("Kernel installati", "Installed kernels")); gv = QVBoxLayout(g)
+        self.grp = QButtonGroup(self)
+        ks = installed_kernels()
+        for i, kv in enumerate(ks):
+            row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(6, 4, 6, 4)
+            rb = QRadioButton(); rb.setProperty("kver", kv); self.grp.addButton(rb, i)
+            col = QVBoxLayout(); col.setSpacing(0)
+            nm = QLabel(kv + ("   ● " + L("in esecuzione", "running") if kv == self.run else ""))
+            nm.setStyleSheet("font-weight:700;color:%s" % ("#9ccf6a" if kv == self.run else "#f1e3c6"))
+            fl = QLabel(flavor(kv)); fl.setStyleSheet("color:#b9a07a;")
+            col.addWidget(nm); col.addWidget(fl)
+            rl.addWidget(rb); rl.addLayout(col); rl.addStretch(1)
+            gv.addWidget(row)
+            if kv == self.run:
+                rb.setChecked(True)
+        v.addWidget(g)
+
+        self.status = QLabel(""); self.status.setWordWrap(True); self.status.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.status)
+        v.addStretch(1)
+
+        b = QHBoxLayout()
+        self.bdef = QPushButton(L("Imposta come predefinito", "Set as default")); self.bdef.clicked.connect(self.set_default)
+        self.bonce = QPushButton(L("Avvia una volta", "Boot once")); self.bonce.clicked.connect(self.boot_once)
+        self.breb = QPushButton(L("Riavvia ora", "Reboot now")); self.breb.clicked.connect(self.reboot)
+        b.addStretch(1)
+        for x in (self.bdef, self.bonce, self.breb): b.addWidget(x)
+        v.addLayout(b)
+        self.statusBar()
+
+    def _selected(self):
+        btn = self.grp.checkedButton()
+        return btn.property("kver") if btn else None
+
+    def set_default(self):
+        kv = self._selected()
+        if not kv: return
+        rc, out, err = sh(f"pkexec {HELPER} default {kv}", 90)
+        if rc == 0:
+            self.status.setText(L(f"✓ Predefinito impostato a {kv}. Sarà attivo al prossimo riavvio.",
+                                  f"✓ Default set to {kv}. Active on next reboot."))
+            self.status.setStyleSheet("color:#9ccf6a;font-weight:600;")
+        else:
+            self.status.setText((out or err or L("operazione annullata", "operation cancelled")))
+            self.status.setStyleSheet("color:#cf8a6a;")
+
+    def boot_once(self):
+        kv = self._selected()
+        if not kv: return
+        rc, out, err = sh(f"pkexec {HELPER} once {kv}", 60)
+        if rc == 0:
+            if QMessageBox.question(self, "SkillFishOS",
+                    L(f"{kv} verrà avviato al prossimo riavvio (solo una volta). Riavviare ora?",
+                      f"{kv} will boot next time (once only). Reboot now?")) == QMessageBox.StandardButton.Yes:
+                sh("pkexec systemctl reboot")
+        else:
+            self.status.setText((out or err or L("operazione annullata", "operation cancelled")))
+            self.status.setStyleSheet("color:#cf8a6a;")
+
+    def reboot(self):
+        if QMessageBox.question(self, "SkillFishOS", L("Riavviare ora?", "Reboot now?")) == QMessageBox.StandardButton.Yes:
+            sh("pkexec systemctl reboot")
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Kernel Switch")
+    app.setDesktopFileName("os.skillfish.kernel")
+    app.setWindowIcon(QIcon(ICON))
+    KernelSwitch().show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
