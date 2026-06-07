@@ -1,5 +1,5 @@
 Package: skillfish-ai-panel
-Version: 26.06
+Version: 26.06.1
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
@@ -7,15 +7,14 @@ Recommends: docker.io | docker-ce, ollama
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06_all.deb
-Size: 158432
-SHA256: 970f95b2f95029cd769c095e1fe2620cc197468ae9ef4bd22322d154f82c6a7d
-SHA1: 8ce2fd562636cf85204ad22a53075ac6034b9b6f
-MD5sum: 71707fab7b12d69b6b3743537dac62bb
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06.1_all.deb
+Size: 158400
+SHA256: 148e421f34a0c38a20da63b7ffe25b84c8c1bf8ef8bb4dc46721387f9ae8f839
+SHA1: 58e8dcec9a8fe888a0695321e5dc2eea3e49a9bf
+MD5sum: fa68feace8f9218ea817473c8eb4e2d9
 Description: SkillFish AI - on-device LLM control panel
- PyQt6 panel to start/stop the local LLM stack (Ollama + Vulkan) on the AMD
- BC-250 integrated GPU with one click, freeing GPU memory and RAM for gaming
- when the assistant is not in use.
+ PyQt6 panel: first-run setup wizard, model manager (38 models <=14B), live
+ hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
 
 Package: skillfish-iso-mount
 Version: 26.06

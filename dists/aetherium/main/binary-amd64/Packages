@@ -1,5 +1,5 @@
 Package: skillfish-ai-panel
-Version: 26.06
+Version: 26.06.1
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
@@ -7,15 +7,14 @@ Recommends: docker.io | docker-ce, ollama
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06_all.deb
-Size: 158432
-SHA256: 970f95b2f95029cd769c095e1fe2620cc197468ae9ef4bd22322d154f82c6a7d
-SHA1: 8ce2fd562636cf85204ad22a53075ac6034b9b6f
-MD5sum: 71707fab7b12d69b6b3743537dac62bb
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06.1_all.deb
+Size: 158400
+SHA256: 148e421f34a0c38a20da63b7ffe25b84c8c1bf8ef8bb4dc46721387f9ae8f839
+SHA1: 58e8dcec9a8fe888a0695321e5dc2eea3e49a9bf
+MD5sum: fa68feace8f9218ea817473c8eb4e2d9
 Description: SkillFish AI - on-device LLM control panel
- PyQt6 panel to start/stop the local LLM stack (Ollama + Vulkan) on the AMD
- BC-250 integrated GPU with one click, freeing GPU memory and RAM for gaming
- when the assistant is not in use.
+ PyQt6 panel: first-run setup wizard, model manager (38 models <=14B), live
+ hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
 
 Package: skillfish-iso-mount
 Version: 26.06
@@ -57,20 +56,21 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  a single polkit authentication.
 
 Package: skillfishos-kernel
-Version: 7.0.11-1
+Version: 7.0.11-2
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
-Depends: curl | wget, initramfs-tools
+Depends: curl | wget, initramfs-tools, psmisc
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.0.11-1_amd64.deb
-Size: 1332
-SHA256: 566ae4e9aaf32a67b3d362609ac2c13aefe54301724428db6d2e8dd423428daa
-SHA1: 7762ce650218b25d55138f6918be11f5df95e02a
-MD5sum: 6dff015a06253659ddddff2171d69986
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.0.11-2_amd64.deb
+Size: 2100
+SHA256: df9aa4589cdef0a87c72490f00a554aa71a5968debb4c183376abfbda3dc091e
+SHA1: 9bfcaf64514307c0a503ab338c82a7bd408dc852
+MD5sum: 6b1630a17b9e6f86b98006f534748545
 Description: SkillFishOS BC-250 kernel (linux-tkg 7.0.11-skillfishos)
- Meta-package that downloads and installs the prebuilt linux-tkg 7.0.11-skillfishos kernel
+ Meta-package that fetches and installs the prebuilt linux-tkg 7.0.11-skillfishos kernel
  (image + headers) for the AMD BC-250 from the SkillFishOS GitHub release. The
- ~150 MB kernel image is hosted as a release asset because GitHub's 100 MB/file
- limit prevents shipping it in the APT pool.
+ ~150 MB kernel image is a release asset because GitHub's 100 MB/file limit
+ prevents shipping it in the APT pool. The download + install runs out-of-band
+ (after the apt transaction releases its lock).
 
