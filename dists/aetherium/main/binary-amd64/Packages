@@ -1,18 +1,76 @@
+Package: skillfish-ai-panel
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, polkitd | policykit-1
+Recommends: docker.io | docker-ce, ollama
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06_all.deb
+Size: 158432
+SHA256: 970f95b2f95029cd769c095e1fe2620cc197468ae9ef4bd22322d154f82c6a7d
+SHA1: 8ce2fd562636cf85204ad22a53075ac6034b9b6f
+MD5sum: 71707fab7b12d69b6b3743537dac62bb
+Description: SkillFish AI - on-device LLM control panel
+ PyQt6 panel to start/stop the local LLM stack (Ollama + Vulkan) on the AMD
+ BC-250 integrated GPU with one click, freeing GPU memory and RAM for gaming
+ when the assistant is not in use.
+
+Package: skillfish-iso-mount
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: udisks2, polkitd | policykit-1
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-iso-mount/skillfish-iso-mount_26.06_all.deb
+Size: 2560
+SHA256: 0e1e299b986e3cc767f9690255daef651126ab4230378bccf3648d7c62c2cc5c
+SHA1: 8daa4ae9b0cb27b47f5acfc7bab1201257c62765
+MD5sum: 6d44303c119c00ff824eee9734fa14c6
+Description: SkillFishOS native ISO mounting for KDE
+ Mount and unmount disk images from the KDE/Dolphin context menu through
+ udisks2 (loop devices), with a polkit rule that lets administrators mount
+ without a password prompt. No GNOME dependencies.
+
+Package: skillfish-tuner
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, polkitd | policykit-1
+Recommends: umr
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06_all.deb
+Size: 196252
+SHA256: ce6c2bedeef1d9d3783897440c47d654e1e46c6acdcdf0fa58a0af833207d651
+SHA1: 80e3ffbd08e056ee5be184a443ff44c01550a426
+MD5sum: db24a5daa29c9325c6ffcf6d1f8f0ead
+Description: SkillFishOS Tuner - BC-250 hardware control GUI
+ PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
+ overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
+ live 40 Compute Unit control with per-WGP health tests and a live monitor
+ (temperature, frequency, voltage, fan). Talks to a privileged JSON helper via
+ a single polkit authentication.
+
 Package: skillfishos-kernel
-Version: 7.0.10-1
+Version: 7.0.11-1
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
 Depends: curl | wget, initramfs-tools
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.0.10-1_amd64.deb
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.0.11-1_amd64.deb
 Size: 1332
-SHA256: f3883b08fd487a0493ff4bb8de7e3b89ddb56a66166c15ce3bb7517910cc8439
-SHA1: e454d6cbaca3fe06ee7435987421fab5aaffefc7
-MD5sum: e55ffb1a7981462dccf6ab6172c562da
-Description: SkillFishOS BC-250 kernel (linux-tkg 7.0.10-skillfishos)
- Meta-package that downloads and installs the prebuilt linux-tkg
- 7.0.10-skillfishos kernel (image + headers) for the AMD BC-250 from the
- SkillFishOS GitHub release. The 152 MB kernel image is hosted as a release
- asset because GitHub's 100 MB/file limit prevents shipping it in the APT pool.
+SHA256: 566ae4e9aaf32a67b3d362609ac2c13aefe54301724428db6d2e8dd423428daa
+SHA1: 7762ce650218b25d55138f6918be11f5df95e02a
+MD5sum: 6dff015a06253659ddddff2171d69986
+Description: SkillFishOS BC-250 kernel (linux-tkg 7.0.11-skillfishos)
+ Meta-package that downloads and installs the prebuilt linux-tkg 7.0.11-skillfishos kernel
+ (image + headers) for the AMD BC-250 from the SkillFishOS GitHub release. The
+ ~150 MB kernel image is hosted as a release asset because GitHub's 100 MB/file
+ limit prevents shipping it in the APT pool.
 
