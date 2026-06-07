@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+# SkillFishOS Monitor - standalone live sensor dashboard (temperature, frequency,
+# GPU voltage, fan). Extracted from the Tuner's monitor; to grow with more panels.
+# KDE-native PyQt6, brass/steampunk look. Bilingual (IT/EN). Sensors via skillfish-hud-val.
+import sys, os, re, subprocess, collections
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont)
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QGridLayout, QLabel, QComboBox)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+
+class Chart(QWidget):
+    """A live, custom-painted line chart panel (brass / steampunk look)."""
+    def __init__(self, title, unit, series):
+        super().__init__()
+        self.title = title; self.unit = unit; self.series = series
+        self.data = [collections.deque(maxlen=180) for _ in series]
+        self.setMinimumSize(400, 190)
+
+    def push(self, vals):
+        for d, v in zip(self.data, vals):
+            d.append(float(v) if v is not None else (d[-1] if d else 0.0))
+        self.update()
+
+    def paintEvent(self, _e):
+        p = QPainter(self); p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+        p.setPen(QPen(QColor(216, 168, 73, 80), 1)); p.setBrush(QColor(18, 15, 9, 240))
+        p.drawRoundedRect(1, 1, w - 2, h - 2, 14, 14)
+        gx0, gy0, gx1, gy1 = 14, 34, w - 14, h - 16
+        gw, gh = gx1 - gx0, gy1 - gy0
+        f = QFont("Inter"); f.setBold(True); f.setPointSize(10); p.setFont(f)
+        p.setPen(QColor(216, 168, 73)); p.drawText(14, 22, self.title)
+        allv = [v for d in self.data for v in d]
+        if not allv: p.end(); return
+        lo, hi = min(allv), max(allv)
+        if hi - lo < 1e-6: hi = lo + 1.0
+        m = (hi - lo) * 0.14; lo -= m; hi += m
+        p.setPen(QPen(QColor(216, 168, 73, 26), 1))
+        for i in range(4):
+            yy = int(gy0 + gh * i / 3); p.drawLine(gx0, yy, gx1, yy)
+        fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
+        lx = gx1
+        for si, (label, col) in enumerate(self.series):
+            d = self.data[si]; n = len(d); color = QColor(col)
+            if n >= 2:
+                line = QPainterPath(); fill = QPainterPath()
+                for i, v in enumerate(d):
+                    x = gx0 + gw * (i / (n - 1)); y = gy1 - gh * ((v - lo) / (hi - lo))
+                    if i == 0: line.moveTo(x, y); fill.moveTo(x, gy1); fill.lineTo(x, y)
+                    else: line.lineTo(x, y); fill.lineTo(x, y)
+                fill.lineTo(gx1, gy1); fill.closeSubpath()
+                grad = QLinearGradient(0, gy0, 0, gy1)
+                c0 = QColor(color); c0.setAlpha(75); c1 = QColor(color); c1.setAlpha(0)
+                grad.setColorAt(0, c0); grad.setColorAt(1, c1)
+                p.setPen(Qt.PenStyle.NoPen); p.setBrush(QBrush(grad)); p.drawPath(fill)
+                glow = QColor(color); glow.setAlpha(55)
+                p.setBrush(Qt.BrushStyle.NoBrush); p.setPen(QPen(glow, 5)); p.drawPath(line)
+                p.setPen(QPen(color, 2)); p.drawPath(line)
+            cur = d[-1] if n else 0.0
+            txt = "%s %s" % (label, ("%d" % round(cur)) if abs(cur) >= 10 else ("%.2f" % cur))
+            p.setFont(fv); p.setPen(color)
+            tw = p.fontMetrics().horizontalAdvance(txt)
+            lx -= tw + 14; p.drawText(int(lx), 22, txt)
+        p.end()
+
+
+def rd(key):
+    try:
+        out = subprocess.run(["skillfish-hud-val", key], capture_output=True, text=True, timeout=0.6).stdout
+        m = re.search(r'-?\d+(?:\.\d+)?', out)
+        return float(m.group()) if m else None
+    except Exception:
+        return None
+
+
+class Monitor(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS — Monitor", "SkillFishOS — Monitor"))
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(920, 600)
+        w = QWidget(); self.setCentralWidget(w)
+        w.setStyleSheet("QWidget{background:#0d0b06;}")
+        v = QVBoxLayout(w); v.setContentsMargins(14, 12, 14, 12); v.setSpacing(10)
+
+        top = QHBoxLayout()
+        hdr = QLabel(L("◉  MONITOR LIVE", "◉  LIVE MONITOR"))
+        hdr.setStyleSheet("color:#d8a849;font-weight:bold;font-size:14px;letter-spacing:3px;")
+        top.addWidget(hdr); top.addStretch(1)
+        top.addWidget(QLabel(L("Aggiornamento:", "Refresh:")))
+        self.iv = QComboBox()
+        for ms, lab in [(300, "0.3 s"), (700, "0.7 s"), (1000, "1 s"), (2000, "2 s")]:
+            self.iv.addItem(lab, ms)
+        self.iv.setCurrentIndex(1)
+        self.iv.currentIndexChanged.connect(lambda: self.timer.setInterval(self.iv.currentData()))
+        top.addWidget(self.iv)
+        v.addLayout(top)
+
+        grid = QGridLayout(); grid.setSpacing(12)
+        self.ch_temp = Chart(L("Temperatura (°C)", "Temperature (°C)"), "°C", [("CPU", "#e8c878"), ("GPU", "#e07b39")])
+        self.ch_freq = Chart(L("Frequenza (MHz)", "Frequency (MHz)"), "MHz", [("CPU", "#5fd24f"), ("GPU", "#49b6e0")])
+        self.ch_volt = Chart(L("Voltaggio GPU (mV)", "GPU voltage (mV)"), "mV", [("GPU", "#c98be0")])
+        self.ch_fan = Chart(L("Ventola (RPM)", "Fan (RPM)"), "RPM", [("FAN", "#d8a849")])
+        grid.addWidget(self.ch_temp, 0, 0); grid.addWidget(self.ch_freq, 0, 1)
+        grid.addWidget(self.ch_volt, 1, 0); grid.addWidget(self.ch_fan, 1, 1)
+        v.addLayout(grid)
+
+        self.timer = QTimer(self); self.timer.setInterval(700)
+        self.timer.timeout.connect(self._tick); self.timer.start()
+        self._tick()
+
+    def _tick(self):
+        self.ch_temp.push([rd("cpu_temp"), rd("gpu_temp")])
+        self.ch_freq.push([rd("cpu_mhz"), rd("gpu_freq")])
+        self.ch_volt.push([rd("gpu_mv")])
+        self.ch_fan.push([rd("fan")])
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Monitor")
+    app.setDesktopFileName("os.skillfish.monitor")
+    app.setWindowIcon(QIcon(ICON))
+    Monitor().show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

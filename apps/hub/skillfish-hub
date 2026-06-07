@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+# SkillFishOS Hub - our own software centre for the SkillFishOS packages served
+# by the signed 'aetherium' APT repo (apps + kernel). Install / update / remove,
+# check for updates, update everything. KDE-native PyQt6, brass theme. IT/EN.
+import sys, os, glob, subprocess
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QPushButton, QScrollArea, QFrame, QMessageBox)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+# friendly names/descriptions for our packages (fallback to repo Description)
+PRETTY = {
+    "skillfish-tuner":      (L("Tuner", "Tuner"), L("Controllo hardware BC-250: CPU/GPU/CU/ventola", "BC-250 hardware control: CPU/GPU/CU/fan")),
+    "skillfish-ai-panel":   (L("SkillFish AI", "SkillFish AI"), L("Motore LLM locale + wizard + modelli", "Local LLM engine + wizard + models")),
+    "skillfish-iso-mount":  (L("ISO Mount", "ISO Mount"), L("Montaggio ISO nativo per KDE", "Native KDE ISO mounting")),
+    "skillfish-kernel-switch": (L("Kernel Switch", "Kernel Switch"), L("Scegli quale kernel avviare", "Choose which kernel boots")),
+    "skillfish-monitor":    (L("Monitor", "Monitor"), L("Grafici live di sensori", "Live sensor charts")),
+    "skillfishos-kernel":   (L("Kernel BC-250", "BC-250 kernel"), L("Kernel skillfish-tkg (aggiornamenti)", "skillfish-tkg kernel (updates)")),
+}
+
+def sh(cmd, t=60):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+        return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+def installed_version(pkg):
+    rc, out, _ = sh(f"dpkg-query -W -f='${{Version}}' {pkg} 2>/dev/null")
+    return out if (rc == 0 and out) else None
+
+def catalog():
+    """SkillFishOS packages offered by the aetherium repo (parsed from apt lists)."""
+    pkgs = {}
+    files = glob.glob("/var/lib/apt/lists/*aetherium*Packages")
+    files = [f for f in files if "binary-amd64" in f or "amd64" in f] or files
+    for f in files:
+        name = ver = None; desc = ""
+        try:
+            for line in open(f, errors="replace"):
+                if line.startswith("Package: "): name = line[9:].strip()
+                elif line.startswith("Version: "): ver = line[9:].strip()
+                elif line.startswith("Description: ") and name:
+                    desc = line[13:].strip()
+                    if name not in pkgs or ver > pkgs[name]["avail"]:
+                        pkgs[name] = {"avail": ver, "desc": desc}
+                    name = ver = None; desc = ""
+        except Exception:
+            pass
+    for n in pkgs:
+        pkgs[n]["installed"] = installed_version(n)
+    return dict(sorted(pkgs.items()))
+
+
+class Worker(QThread):
+    line = pyqtSignal(str); done = pyqtSignal(int)
+    def __init__(self, cmd, t=1800): super().__init__(); self.cmd = cmd; self.t = t
+    def run(self):
+        try:
+            p = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, text=True, bufsize=1)
+            for ln in iter(p.stdout.readline, ""):
+                if ln: self.line.emit(ln.rstrip())
+            p.wait(self.t); self.done.emit(p.returncode)
+        except Exception as e:
+            self.line.emit(str(e)); self.done.emit(1)
+
+
+class Hub(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SkillFishOS Hub"); self.setWindowIcon(QIcon(ICON))
+        self.resize(720, 640); self._w = None
+        w = QWidget(); self.setCentralWidget(w)
+        v = QVBoxLayout(w); v.setContentsMargins(20, 16, 20, 16); v.setSpacing(12)
+
+        h = QHBoxLayout()
+        img = QLabel(); pm = QPixmap(ICON)
+        if not pm.isNull():
+            img.setPixmap(pm.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        h.addWidget(img)
+        tcol = QVBoxLayout(); tcol.setSpacing(0)
+        title = QLabel("SkillFishOS Hub"); title.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
+        sub = QLabel(L("Software e aggiornamenti SkillFishOS", "SkillFishOS software & updates")); sub.setStyleSheet("color:#b9a07a;")
+        tcol.addWidget(title); tcol.addWidget(sub); h.addLayout(tcol); h.addStretch(1)
+        self.bref = QPushButton(L("Controlla aggiornamenti", "Check for updates")); self.bref.clicked.connect(self.refresh_repo)
+        self.ball = QPushButton(L("Aggiorna tutto", "Update all")); self.ball.clicked.connect(self.update_all)
+        h.addWidget(self.bref); h.addWidget(self.ball)
+        v.addLayout(h)
+
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True)
+        self.inner = QWidget(); self.iv = QVBoxLayout(self.inner); self.iv.setSpacing(8); self.iv.addStretch(1)
+        self.scroll.setWidget(self.inner); v.addWidget(self.scroll, 1)
+
+        self.status = QLabel(""); self.status.setWordWrap(True); self.status.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.status)
+        self.reload()
+
+    def reload(self):
+        # clear
+        while self.iv.count() > 1:
+            it = self.iv.takeAt(0)
+            if it.widget(): it.widget().deleteLater()
+        cat = catalog()
+        if not cat:
+            self.status.setText(L("Nessun pacchetto SkillFishOS trovato. Premi «Controlla aggiornamenti».",
+                                  "No SkillFishOS packages found. Press “Check for updates”.")); return
+        upd = 0
+        for name, info in cat.items():
+            pretty, pdesc = PRETTY.get(name, (name, info["desc"]))
+            inst, avail = info["installed"], info["avail"]
+            card = QFrame(); card.setStyleSheet("QFrame{background:#16100a;border:1px solid #3a2c18;border-radius:10px;}")
+            cl = QHBoxLayout(card); cl.setContentsMargins(12, 8, 12, 8)
+            col = QVBoxLayout(); col.setSpacing(1)
+            nm = QLabel(pretty); nm.setStyleSheet("font-weight:700;color:#f1e3c6;font-size:14px;")
+            ds = QLabel(pdesc); ds.setStyleSheet("color:#b9a07a;"); ds.setWordWrap(True)
+            ver = QLabel((L("installato ", "installed ") + inst) if inst else L("non installato", "not installed"))
+            if inst and avail and avail != inst:
+                ver.setText(L(f"aggiornamento: {inst} → {avail}", f"update: {inst} → {avail}")); ver.setStyleSheet("color:#e8c878;")
+            else:
+                ver.setStyleSheet("color:#7c6b4a;")
+            col.addWidget(nm); col.addWidget(ds); col.addWidget(ver)
+            cl.addLayout(col, 1)
+            if not inst:
+                btn = QPushButton(L("Installa", "Install")); btn.clicked.connect(lambda _, n=name: self.act("install", n))
+            elif avail and avail != inst:
+                btn = QPushButton(L("Aggiorna", "Update")); btn.setStyleSheet("font-weight:700;"); btn.clicked.connect(lambda _, n=name: self.act("install", n)); upd += 1
+            else:
+                btn = QPushButton(L("Rimuovi", "Remove")); btn.clicked.connect(lambda _, n=name: self.act("remove", n))
+            cl.addWidget(btn)
+            self.iv.insertWidget(self.iv.count() - 1, card)
+        self.status.setText(L(f"{len(cat)} pacchetti · {upd} aggiornamenti disponibili",
+                              f"{len(cat)} packages · {upd} updates available"))
+
+    def _run(self, cmd, msg):
+        self.bref.setEnabled(False); self.ball.setEnabled(False)
+        self.status.setText(msg); self.status.setStyleSheet("color:#d8a849;")
+        self._w = Worker(cmd); self._w.line.connect(lambda s: self.statusBar().showMessage(s, 2000))
+        self._w.done.connect(self._after); self._w.start()
+    def _after(self, rc):
+        self.bref.setEnabled(True); self.ball.setEnabled(True)
+        self.status.setStyleSheet("color:#9ccf6a;" if rc == 0 else "color:#cf8a6a;")
+        self.reload()
+
+    def refresh_repo(self):
+        self._run("pkexec apt-get update", L("Aggiorno l'elenco dal repo SkillFishOS…", "Refreshing from the SkillFishOS repo…"))
+    def update_all(self):
+        self._run("pkexec sh -c 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --only-upgrade $(dpkg-query -W -f=\"${Package}\\n\" \"skillfish*\" \"skillfishos*\" 2>/dev/null)'",
+                  L("Aggiorno tutti i pacchetti SkillFishOS…", "Updating all SkillFishOS packages…"))
+    def act(self, what, pkg):
+        if what == "remove" and QMessageBox.question(self, "SkillFishOS Hub",
+                L(f"Rimuovere {pkg}?", f"Remove {pkg}?")) != QMessageBox.StandardButton.Yes:
+            return
+        verb = "install -y" if what == "install" else "remove -y"
+        self._run(f"pkexec env DEBIAN_FRONTEND=noninteractive apt-get {verb} {pkg}",
+                  L(f"{'Installo' if what=='install' else 'Rimuovo'} {pkg}…", f"{'Installing' if what=='install' else 'Removing'} {pkg}…"))
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Hub")
+    app.setDesktopFileName("os.skillfish.hub")
+    app.setWindowIcon(QIcon(ICON))
+    Hub().show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

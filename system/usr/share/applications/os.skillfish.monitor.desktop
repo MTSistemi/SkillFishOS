@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Monitor
+GenericName=System Monitor
+Comment=Live temperature, frequency, GPU voltage and fan charts
+Comment[it]=Grafici live di temperatura, frequenza, voltaggio GPU e ventola
+Exec=skillfish-monitor
+Icon=skillfishos
+Terminal=false
+Categories=System;Monitor;
+Keywords=monitor;sensors;temperature;fan;skillfish;
+StartupNotify=true
+X-KDE-StartupNotify=true

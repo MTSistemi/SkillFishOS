@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Hub
+GenericName=Software Center
+Comment=Install and update SkillFishOS software from our repository
+Comment[it]=Installa e aggiorna il software SkillFishOS dal nostro repository
+Exec=skillfish-hub
+Icon=skillfishos
+Terminal=false
+Categories=System;PackageManager;Settings;
+Keywords=software;store;updates;packages;skillfish;hub;
+StartupNotify=true
+X-KDE-StartupNotify=true
