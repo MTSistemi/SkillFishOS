@@ -1,35 +1,35 @@
 Package: skillfish-ai-panel
-Version: 26.06.1
-Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
+Architecture: all
+Version: 26.06.2
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: docker.io | docker-ce, ollama
-Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06.1_all.deb
-Size: 158400
-SHA256: 148e421f34a0c38a20da63b7ffe25b84c8c1bf8ef8bb4dc46721387f9ae8f839
-SHA1: 58e8dcec9a8fe888a0695321e5dc2eea3e49a9bf
-MD5sum: fa68feace8f9218ea817473c8eb4e2d9
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06.2_all.deb
+Size: 158392
+SHA256: f5a212867f8f2cbd8ef6a5ffaa02bdb73e0347123d3a0e5ebd5c773062632dbf
+SHA1: c7e0b72b3e3d22715614d857160df641fec2de51
+MD5sum: 402c24baac892cfd31b988abf211d1c5
 Description: SkillFish AI - on-device LLM control panel
  PyQt6 panel: first-run setup wizard, model manager (38 models <=14B), live
  hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
+Homepage: https://skillfishos.com
 
 Package: skillfish-hub
-Version: 26.06
-Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
+Architecture: all
+Version: 26.06.1
 Depends: python3, python3-pyqt6, polkitd | policykit-1
-Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06_all.deb
-Size: 4624
-SHA256: f6f721c776b257d86aa80978022d591b965dcc77b9e1b597c3aa5fd68724d053
-SHA1: d5305d60998d6711d4b0a8d027e0737b84af66d4
-MD5sum: e85da561e33848781c13fcf422cac407
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.1_all.deb
+Size: 4628
+SHA256: 2fe95c3612ac8dcf9235a5afb9e1ff4d2ebd0b2fc1bd83a3b7d787844edc79da
+SHA1: 75fbfc7545b005ab3092c949db5815ab58ec965b
+MD5sum: 06c2ea9bb7f1d07454f03a5fc1387d45
 Description: SkillFishOS Hub - install and update SkillFishOS software from our repo
+Homepage: https://skillfishos.com
 
 Package: skillfish-iso-mount
 Version: 26.06
@@ -50,55 +50,72 @@ Description: SkillFishOS native ISO mounting for KDE
  without a password prompt. No GNOME dependencies.
 
 Package: skillfish-kernel-switch
+Maintainer: SkillFishOS <info@skillfishos.com>
+Architecture: all
+Version: 26.06.1
+Depends: python3, python3-pyqt6, polkitd | policykit-1, grub2-common
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06.1_all.deb
+Size: 4168
+SHA256: d16c39725d1ff15fd41a5d52c00ecff2b8e47a0675f96cdf591fbef96e9f3ebe
+SHA1: 9ecbd83670bcda8e3ac8cc5af57bb1d7f5c3c25f
+MD5sum: 2550c7a7d19a4626f0a72f1a5b265211
+Description: SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)
+Homepage: https://skillfishos.com
+
+Package: skillfish-menu
 Version: 26.06
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: python3, python3-pyqt6, polkitd | policykit-1, grub2-common
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06_all.deb
-Size: 4168
-SHA256: 758f81ed51ffdb05c1c4e6fa0e453cc29331efb1e606eaa6b581fd78f03aabe9
-SHA1: c7d56ed2d4e31b4fce0c5b9de2598f172e9db59b
-MD5sum: e16749a3895d4aeda5e7d7eb0e681f6e
-Description: SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)
+Filename: pool/main/s/skillfish-menu/skillfish-menu_26.06_all.deb
+Size: 1452
+SHA256: fd23a437884364cc8154a8e2e96f2c753648bebbc9e3a34de4efb1274cce5488
+SHA1: 42cd4be836da0f48c9b9b17191f376ae209d906a
+MD5sum: 5e0d9461659f6e68457908d8b44de6ae
+Description: SkillFishOS application menu group
+ Adds a dedicated "SkillFishOS" submenu to the application launcher that groups
+ all SkillFishOS tools (Kernel Switch, Monitor, Tuner, AI, Software Hub) via the
+ X-SkillFishOS desktop category, so they are easy to find in one place.
 
 Package: skillfish-monitor
-Version: 26.06
-Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
+Architecture: all
+Version: 26.06.1
 Depends: python3, python3-pyqt6, skillfish-tuner
-Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06_all.deb
-Size: 3808
-SHA256: f76780072a93d11129d1135809363fde3998987a0f6338c8102ee9fedf091740
-SHA1: aa2d4d10c92670155e95956205327756fc0e4269
-MD5sum: 9a09314bdd8d0d6e4bc5795d1f3eabe5
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06.1_all.deb
+Size: 4624
+SHA256: e2a5d3d6cdcbf621d0ee2880f65746379c2f8c02a27f5b48df0be6c45ee480d4
+SHA1: dd99c1684ac4c1d79fd07ab6583c6c77e9f9d320
+MD5sum: c3be8fbba8cb578dd1631a386d63615b
 Description: SkillFishOS Monitor - live temperature/frequency/voltage/fan charts
+Homepage: https://skillfishos.com
 
 Package: skillfish-tuner
-Version: 26.06
-Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
+Architecture: all
+Version: 26.06.1
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: umr
-Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06_all.deb
-Size: 196252
-SHA256: ce6c2bedeef1d9d3783897440c47d654e1e46c6acdcdf0fa58a0af833207d651
-SHA1: 80e3ffbd08e056ee5be184a443ff44c01550a426
-MD5sum: db24a5daa29c9325c6ffcf6d1f8f0ead
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.1_all.deb
+Size: 196264
+SHA256: d9aea5816ee0ddfcfe7728d81846cc083d75e3702b157ce971349127b5b8ac6a
+SHA1: 960d2759b3469924f5be9b95c9444144ce2e0f36
+MD5sum: bf20654bac51ff427ae07a915b7d3cfb
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
  overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
  live 40 Compute Unit control with per-WGP health tests and a live monitor
  (temperature, frequency, voltage, fan). Talks to a privileged JSON helper via
  a single polkit authentication.
+Homepage: https://skillfishos.com
 
 Package: skillfishos-kernel
 Version: 7.0.11-2
