@@ -6,14 +6,17 @@ Label: SkillFishOS
 Suite: aetherium
 Codename: aetherium
 Version: 26.06
-Date: Sun, 07 Jun 2026 14:17:37 UTC
-Architectures: amd64
+Date: Sun, 07 Jun 2026 14:33:20 UTC
+Architectures: amd64 i386
 Components: main
 Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)
 MD5Sum:
  c1a28fef8889be5c04277e962f895e4d 3165 main/binary-amd64/Packages
  c7782d7f2a30e054707ab7af7f0d326c 1484 main/binary-amd64/Packages.gz
  740eb052c2564f892119e2e400f417bc 197 main/binary-amd64/Release
+ 5e65b0ed31031687293aba90e05b4357 2363 main/binary-i386/Packages
+ fe98a094b8078ff34865b24691d64316 1144 main/binary-i386/Packages.gz
+ 3a63174ed4e59b1213cd3300fe6705d2 196 main/binary-i386/Release
  d41d8cd98f00b204e9800998ecf8427e 0 main/source/Sources
  7029066c27ac6f5ef18d660d5741979a 20 main/source/Sources.gz
  e315bceffc180850e3f7028e2875cb20 198 main/source/Release
@@ -21,6 +24,9 @@ SHA1:
  9324f7e5463aa935f73efbda16e73aa7cf9acd1c 3165 main/binary-amd64/Packages
  f8890059f751b34c87dffd3a33bf50d2fd051e69 1484 main/binary-amd64/Packages.gz
  6339eeeb288e039c50df9dc7e2f2a8aeef88761a 197 main/binary-amd64/Release
+ c8079502839ba5cbcb4915ab84a588430b2cd364 2363 main/binary-i386/Packages
+ cee8086cad82880f40722a97e8679284ae7e29c8 1144 main/binary-i386/Packages.gz
+ f85b4a9bfbcdc831ea39e52aaf0341b6ef5ad0f9 196 main/binary-i386/Release
  da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/source/Sources
  46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/source/Sources.gz
  7c8139b19f1a6b8b305960a978f57520f47b0715 198 main/source/Release
@@ -28,13 +34,16 @@ SHA256:
  217cd36c143c5ef2910f31956a8b8c6bcfb437f6e700eccd203c665ed920fcea 3165 main/binary-amd64/Packages
  e5334094812d1371c5d0d64aad7e2d46b1a827f1fd285b04987ebec0eb6f3e6c 1484 main/binary-amd64/Packages.gz
  0f10e06632ff5383d4a8b021720ff02d1cacc0bad500d3849087add7f4e5b222 197 main/binary-amd64/Release
+ 0c7aeaf449dd1d0d2411cb9c30ab21dada2540ad6360f3850b864843382a23c8 2363 main/binary-i386/Packages
+ b671777a35797dbd22b2170267fd360eb31f7cf0cd92395b6c3b5ee0a84cff71 1144 main/binary-i386/Packages.gz
+ 4d03faff90f2fb9f265f7374814bafe6af541bca9db23075e7a3c62cb49447d5 196 main/binary-i386/Release
  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/source/Sources
  59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/source/Sources.gz
  a890d0a22cbb0a75c70b268b37cf132f51e32262580a87906d2f4cbc53a47580 198 main/source/Release
 -----BEGIN PGP SIGNATURE-----
 
-iHUEARYKAB0WIQStG/WR5N9IFk2Tv4pWdoUJms8MlAUCaiV9gQAKCRBWdoUJms8M
-lHXcAP0dWVHuviq0ty3lbTNUcKoMJZh4SV5YqfUanJRashAWBAD/eVvsa5RNX24E
-HvqTYgfU5DjTjD5d6i4+ASK7DLa79wA=
-=Ya4x
+iHUEARYKAB0WIQStG/WR5N9IFk2Tv4pWdoUJms8MlAUCaiWBMAAKCRBWdoUJms8M
+lEnBAP4zI6tsExbK3jBuildGRhyyh4Ko2lHwFBW7sPUneeD7gQEAmpWWp7vs1jtD
+T8/D02azzt4eCnWfHzA24wyPABAXSQ0=
+=YeJp
 -----END PGP SIGNATURE-----
