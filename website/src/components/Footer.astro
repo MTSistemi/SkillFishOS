@@ -7,6 +7,6 @@ const { lang } = Astro.props;
   <div class="wrap foot">
     <div class="logo"><img src="/img/logo.png" style="width:30px;height:30px" alt=""/><span class="brandfont">SkillFish<span class="gold-text">OS</span></span></div>
     <div class="based">{t('foot.based', lang)}</div>
-    <div><a href={localePath('/contact', lang)}>{t('nav.contact', lang)}</a> · <a href={SITE.github} target="_blank" rel="noopener">GitHub</a> · <a href={`https://${SITE.domain}`}>{SITE.domain}</a></div>
+    <div><a href={localePath('/contact', lang)}>{t('nav.contact', lang)}</a> · <a href={SITE.github} target="_blank" rel="noopener">GitHub</a> · <a href="https://sourceforge.net/projects/skillfishos/" target="_blank" rel="noopener">SourceForge</a> · <a href={`https://${SITE.domain}`}>{SITE.domain}</a></div>
   </div>
 </footer>
