@@ -49,6 +49,7 @@ Poiché la sessione predefinita è X11, l'accesso remoto è semplice: SkillFishO
 - **Rete**: l'ethernet è gestita da **NetworkManager**, quindi visibile e configurabile dalla GUI di Plasma.
 - **Audio**: stack **[PipeWire](https://pipewire.org/)** completo (con supporto Bluetooth). Nota: gli adattatori DP→HDMI *attivi* possono rompere l'audio — vedi [Risoluzione problemi](/docs/risoluzione-problemi).
 - **Applicazioni di base**: file manager Dolphin, terminale Konsole, PDF Okular, immagini Gwenview, archivi Ark, screenshot Spectacle, store Discover (con flatpak), browser **Google Chrome**, office **OnlyOffice**.
+- **App native SkillFishOS** (raggruppate nel menu **"SkillFishOS"**, ognuna installabile/aggiornabile come `.deb` dal repo firmato): **Tuner** (overclock/undervolt/ventola/CU della BC-250), **AI** (LLM locale on-demand sulla GPU integrata), **Monitor** (grafici live di temperatura/frequenza/tensione/ventola), **Kernel Manager** (scegli il kernel di avvio e disinstalla quelli vecchi), **ISO Mount** e **Hub** — il centro software in stile Discover (APT + Flatpak + Snap) con pagine app, carosello di screenshot e gestione delle sorgenti.
 - **Display**: un demone (`skillfish-dp-hotswap`) gestisce il rilevamento del monitor, necessario perché l'HPD del DisplayPort è guasto.
 
 ## Fonti

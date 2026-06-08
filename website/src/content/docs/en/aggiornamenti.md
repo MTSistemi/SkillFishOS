@@ -38,7 +38,7 @@ Like any Debian system, from the terminal:
 sudo apt update && sudo apt full-upgrade
 ```
 
-…or from the **Discover** graphical app. Thanks to the [Snapper](/en/docs/storage-snapshot) hooks, a Btrfs snapshot is created **before and after** every update: if something goes wrong, the rollback from the GRUB menu restores the previous state.
+…or from the **Discover** graphical app, or from the **SkillFishOS Hub** — our Discover-style software centre that installs, removes and updates in one place across **APT, Flatpak and Snap**, with category browsing, app pages with a screenshot carousel and a one-click "Update all". Thanks to the [Snapper](/en/docs/storage-snapshot) hooks, a Btrfs snapshot is created **before and after** every update: if something goes wrong, the rollback from the GRUB menu restores the previous state.
 
 > In short: **we** give you a tested kernel, apps and themes; **Debian** gives you the rest of the updated software; **pinning** prevents surprises; **Btrfs** is the safety net. Three layers of protection, so updating isn't scary.
 

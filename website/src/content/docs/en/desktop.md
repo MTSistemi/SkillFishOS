@@ -49,6 +49,7 @@ Because the default session is X11, remote access is simple: SkillFishOS starts 
 - **Network**: ethernet is managed by **NetworkManager**, so it's visible and configurable from the Plasma GUI.
 - **Audio**: a full **[PipeWire](https://pipewire.org/)** stack (with Bluetooth support). Note: *active* DP→HDMI adapters can break the audio — see [Troubleshooting](/en/docs/risoluzione-problemi).
 - **Base apps**: Dolphin file manager, Konsole terminal, Okular PDF viewer, Gwenview image viewer, Ark archiver, Spectacle screenshots, Discover store (with flatpak), **Google Chrome** browser, **OnlyOffice**.
+- **Native SkillFishOS apps** (grouped under the **"SkillFishOS"** menu, each installable/updatable as a `.deb` from the signed repo): **Tuner** (BC-250 overclock/undervolt/fan/CU control), **AI** (on-demand local LLM on the integrated GPU), **Monitor** (live temperature/frequency/voltage/fan charts), **Kernel Manager** (pick the boot kernel and uninstall old ones), **ISO Mount** and **Hub** — the Discover-style software centre (APT + Flatpak + Snap) with app pages, a screenshot carousel and software-source management.
 - **Display**: a daemon (`skillfish-dp-hotswap`) handles monitor detection, needed because the DisplayPort HPD is broken.
 
 ## Sources
