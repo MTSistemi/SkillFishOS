@@ -49,20 +49,27 @@ Description: SkillFishOS native ISO mounting for KDE
  udisks2 (loop devices), with a polkit rule that lets administrators mount
  without a password prompt. No GNOME dependencies.
 
-Package: skillfish-kernel-switch
-Maintainer: SkillFishOS <info@skillfishos.com>
+Package: skillfish-kernel-manager
+Version: 26.06
 Architecture: all
-Version: 26.06.3
+Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, grub2-common
+Replaces: skillfish-kernel-switch
+Conflicts: skillfish-kernel-switch
+Provides: skillfish-kernel-switch
+Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-kernel-switch/skillfish-kernel-switch_26.06.3_all.deb
-Size: 4252
-SHA256: 68b7c95417b082dd7dbb932d692ef46a14c48a3a88e4db89eb64a55948a16e98
-SHA1: 526caa4bad16a5adf65ce66f7562a6eca5b22f45
-MD5sum: c8b0801e94ae46119bfdf2c64b7d4390
-Description: SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)
-Homepage: https://skillfishos.com
+Filename: pool/main/s/skillfish-kernel-manager/skillfish-kernel-manager_26.06_all.deb
+Size: 6708
+SHA256: 518e34ad8dd85042a9b230004bce5aa45ceb64deac39eda7ab46ce3574cecb1c
+SHA1: 3cac8d4b5222a5fe9a90d6bad50dd3dcba235f7e
+MD5sum: c0b6d0bd4107427603f87f743b3c2628
+Description: SkillFishOS Kernel Manager
+ List installed kernels, choose the boot kernel (permanent default or
+ boot-once), and completely uninstall kernels you no longer need so they
+ don't pile up. Themed PyQt6 GUI; privileged actions run via a pkexec helper
+ with guardrails (never removes the running or the last kernel).
 
 Package: skillfish-menu
 Version: 26.06
