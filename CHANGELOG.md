@@ -2,6 +2,14 @@
 
 All notable changes to SkillFishOS. Dates are ISO-8601.
 
+## [Unreleased]
+
+### Changed
+- **Kernel Switch → Kernel Manager** (`skillfish-kernel-manager`, replaces `skillfish-kernel-switch`): besides choosing the boot kernel (default / boot-once), it now lists every installed kernel with flavour, size and running/default badges, and can **completely uninstall** a kernel (`apt purge` image + headers + modules) so kernels don't pile up. Guardrails: never removes the running kernel or the last remaining one, and moves the GRUB default off a kernel before removing it; a confirmation dialog shows the packages removed and the space freed.
+
+### Fixed
+- Cleared all CodeQL code-scanning alerts (file-not-closed, empty-except, unused-import, a duplicate `closeEvent`, and two overly-permissive `chmod`s) across the native apps.
+
 ## [26.06 "Aetherium"] — 2026-06-07
 
 ### Kernel
