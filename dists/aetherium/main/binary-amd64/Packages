@@ -17,19 +17,25 @@ Description: SkillFish AI - on-device LLM control panel
 Homepage: https://skillfishos.com
 
 Package: skillfish-hub
-Maintainer: SkillFishOS <info@skillfishos.com>
+Version: 26.06.5
 Architecture: all
-Version: 26.06.4
-Depends: python3, python3-pyqt6, polkitd | policykit-1
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, polkitd | policykit-1
+Recommends: flatpak, snapd
+Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.4_all.deb
-Size: 4756
-SHA256: ec5cae7ee2fc02165805fc86bcc251680d0c196515cacab98e72614307418d3d
-SHA1: ec2ef9afc637c923ca77a44ea28ed110b27bf2fa
-MD5sum: 93cb440c6f9b2550cb8cd47d14e54d2d
-Description: SkillFishOS Hub - install and update SkillFishOS software from our repo
-Homepage: https://skillfishos.com
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.5_all.deb
+Size: 12820
+SHA256: b833eb54b11152b22915c25c73b288b33902ed08b516f9dd916eacb1f1655442
+SHA1: 0e2e39f4fac8e3a816c1bd256ef3ff89769f7995
+MD5sum: 60bd9403c1909156397076a945bd6d84
+Description: SkillFishOS Hub - Discover-style software centre
+ Browse software by category, search, and read app pages with screenshots,
+ then install, remove and update across APT, Flatpak and Snap. Manage software
+ sources (add/remove/enable APT repositories and Flatpak remotes) and apply all
+ system updates in one place. Themed PyQt6 GUI; privileged APT/repository
+ operations run through a pkexec helper.
 
 Package: skillfish-iso-mount
 Version: 26.06
