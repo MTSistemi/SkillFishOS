@@ -1,0 +1,58 @@
+#!/bin/bash
+# skillfish-hub-helper — privileged APT + repository operations for SkillFishOS Hub
+# (invoked via pkexec). Streams apt output on stdout so the GUI can show progress.
+#   apt-update
+#   apt-upgrade
+#   apt-install <pkg>...
+#   apt-remove  <pkg>...
+#   repo-add    <name> <base64-deb822>
+#   repo-remove <name>
+#   repo-enable <name> <0|1>
+#   key-add     <name> <base64-armored-key>
+set -uo pipefail
+export DEBIAN_FRONTEND=noninteractive
+SRCDIR=/etc/apt/sources.list.d
+KEYDIR=/usr/share/keyrings
+ACTION="${1:-}"; shift || true
+
+safe_name() { case "$1" in (''|*/*|*..*) echo "bad name" >&2; exit 2;; esac; }
+
+case "$ACTION" in
+  apt-update)   apt-get update ;;
+  apt-upgrade)  apt-get update && apt-get -y full-upgrade ;;
+  apt-install)  [ $# -ge 1 ] || { echo "no package"; exit 2; }; apt-get update; apt-get install -y "$@" ;;
+  apt-remove)   [ $# -ge 1 ] || { echo "no package"; exit 2; }; apt-get purge -y "$@"; apt-get autoremove -y ;;
+
+  repo-add)
+    NAME="${1:-}"; B64="${2:-}"; safe_name "$NAME"
+    printf '%s' "$B64" | base64 -d > "${SRCDIR}/${NAME}.sources"
+    chmod 0644 "${SRCDIR}/${NAME}.sources"
+    apt-get update
+    echo "OK repo-add ${NAME}"
+    ;;
+  repo-remove)
+    NAME="${1:-}"; safe_name "$NAME"
+    rm -f "${SRCDIR}/${NAME}.sources" "${SRCDIR}/${NAME}.list"
+    apt-get update || true
+    echo "OK repo-remove ${NAME}"
+    ;;
+  repo-enable)
+    NAME="${1:-}"; EN="${2:-1}"; safe_name "$NAME"
+    F="${SRCDIR}/${NAME}.sources"
+    [ -f "$F" ] || { echo "no such repo: ${NAME}"; exit 2; }
+    if grep -qi '^Enabled:' "$F"; then
+      sed -i "s/^[Ee]nabled:.*/Enabled: $([ "$EN" = 1 ] && echo yes || echo no)/" "$F"
+    else
+      printf 'Enabled: %s\n' "$([ "$EN" = 1 ] && echo yes || echo no)" >> "$F"
+    fi
+    apt-get update || true
+    echo "OK repo-enable ${NAME}=${EN}"
+    ;;
+  key-add)
+    NAME="${1:-}"; B64="${2:-}"; safe_name "$NAME"
+    printf '%s' "$B64" | base64 -d | gpg --dearmor > "${KEYDIR}/${NAME}.gpg"
+    chmod 0644 "${KEYDIR}/${NAME}.gpg"
+    echo "OK key-add ${NAME}"
+    ;;
+  *) echo "usage: skillfish-hub-helper apt-update|apt-upgrade|apt-install|apt-remove|repo-add|repo-remove|repo-enable|key-add ..."; exit 2 ;;
+esac

@@ -2,12 +2,12 @@
 Type=Application
 Name=SkillFishOS Hub
 GenericName=Software Center
-Comment=Install and update SkillFishOS software from our repository
-Comment[it]=Installa e aggiorna il software SkillFishOS dal nostro repository
+Comment=Browse, install and update software — APT, Flatpak and Snap
+Comment[it]=Sfoglia, installa e aggiorna software — APT, Flatpak e Snap
 Exec=/usr/local/bin/skillfish-hub
 Icon=skillfishos
 Terminal=false
 Categories=System;PackageManager;X-SkillFishOS;
-Keywords=software;store;updates;packages;skillfish;hub;
+Keywords=software;store;updates;packages;apt;flatpak;snap;skillfish;hub;discover;
 StartupNotify=true
 X-KDE-StartupNotify=true
