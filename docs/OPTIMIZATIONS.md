@@ -24,10 +24,16 @@ Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BU
 
 ## 2. GPU clock control — the governor
 
-⚠️ The standard amdgpu sysfs (`power_dpm_force_performance_level`) **does not control the BC‑250** — only the SMU does. SkillFishOS uses the [`cyan-skillfish-governor`](https://github.com/Magnap/cyan-skillfish-governor) (Rust), installed as a systemd service with safe‑points in `/etc/cyan-skillfish-governor/config.toml`:
+⚠️ The standard amdgpu sysfs (`power_dpm_force_performance_level`) **does not control the BC‑250** — only the SMU does, through the OD voltage curve. SkillFishOS uses the [`cyan-skillfish-governor`](https://github.com/Magnap/cyan-skillfish-governor) (Rust), installed as a systemd service with safe‑points in `/etc/cyan-skillfish-governor/config.toml`.
 
-- Idle **350 MHz**, ramp to a **2000 MHz** safe‑point under load.
-- **Why 2000 and not 2230?** In real games (benchmarked with *Black Myth: Wukong*), 2000 and 2230 MHz produce the **same FPS** while 2000 runs cooler with better frame‑time minimums — the GPU clock is **not** the bottleneck (the engine is CPU/draw‑call bound). 2230 is reserved for pure compute (vkpeak/LLM), where it does help.
+It is **load‑based**: it settles on the *lowest* frequency that keeps GPU utilisation inside the `[load-target]` band, idling to **350 MHz** when the GPU is unused. Two profiles, switchable from the **SkillFishOS Tuner** (GPU → *Governor mode*):
+
+- **Balanced** (default, band `0.70–0.95`): raises the clock only as much as the workload needs — cooler and quieter.
+- **Performance** (band `0.08–0.20` + snappier ramp): holds the **top safe‑point under any gaming load**, for the best FPS in GPU‑bound titles. Still idles to 350 MHz on the desktop.
+
+**Measured (Black Myth: Wukong Benchmark Tool, 1080p):** Balanced ≈ **100 FPS** avg / 92 FPS 5%‑low; Performance ≈ **111 FPS** avg / 102 FPS 5%‑low — **+11%**. (An earlier note claimed 2000 ≈ 2230 MHz gave identical FPS; that held for *gameplay*, which is more CPU/draw‑call bound. The benchmark **flythrough** is heavier and *is* GPU‑bound, so holding a high clock clearly helps there.)
+
+⚠️ **The voltage curve must be a smooth multi‑point ladder — `350/700, 1500/900, 2000/1000, 2200/1000`.** On the BC‑250, **1000 mV is the practical stable ceiling at ~2150–2200 MHz**; **2230 MHz @ 1000 mV is undervolted**, and an abrupt clock transition there can **hard‑freeze the whole machine** (reproduced: a 2‑point `350/700 → 2230/1000` curve hung the box on the load→idle transition, with nothing in the logs). The Tuner therefore caps the max at **2200 MHz** and inserts the mid‑points so transitions are gentle; governor reloads stop → settle → start to avoid the abrupt SMU jump. 2230 needs 1000–1060 mV and the silicon lottery.
 
 Memory bandwidth was *measured* (clpeak/OpenCL) at **~350–367 GB/s** — healthy, not a bottleneck. The `Memory Clock 450 MHz` the driver reports is a reporting convention, not a 1/4 clock. Memory clock is **not** adjustable on the BC‑250.
 

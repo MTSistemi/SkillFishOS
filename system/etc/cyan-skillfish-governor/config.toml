@@ -1,12 +1,27 @@
+# SkillFishOS default cyan-skillfish-governor config (Balanced).
+# Switch to Performance from the SkillFishOS Tuner (GPU section -> Governor mode):
+# Performance lowers the load-target so the GPU holds its top safe-point under any
+# gaming load (best FPS in GPU-bound titles), while still idling to 350 MHz.
+#
+# The voltage curve is a SMOOTH multi-point ladder. Do NOT use a 2-point line or a
+# 2230 MHz / 1000 mV top point: on the BC-250 (Cyan Skillfish) 1000 mV is the
+# practical stable ceiling at ~2150-2200 MHz; 2230 @ 1000 mV is undervolted and an
+# abrupt clock transition there can hard-freeze the machine. 2200 @ 1000 mV is the
+# validated safe maximum on stock cooling.
+
+# us
 [timing.intervals]
 sample = 2000
 adjust = 20_000
 finetune = 1_000_000_000
+# MHz/ms
 [timing.ramp-rates]
 normal = 1
 burst = 200
+# number of samples
 [timing]
 burst-samples = 48
+# MHz
 [frequency-thresholds]
 adjust = 100
 finetune = 10
@@ -17,5 +32,11 @@ lower = 0.7
 frequency = 350
 voltage = 700
 [[safe-points]]
+frequency = 1500
+voltage = 900
+[[safe-points]]
 frequency = 2000
+voltage = 1000
+[[safe-points]]
+frequency = 2200
 voltage = 1000
