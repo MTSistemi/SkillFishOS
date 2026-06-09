@@ -114,16 +114,16 @@ Homepage: https://skillfishos.com
 Package: skillfish-tuner
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.4
+Version: 26.06.5
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: umr
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.4_all.deb
-Size: 389672
-SHA256: 93156542f890fc51c0c3c19b5a1c66339df07de7dc242b22f4c6b93c28449f2d
-SHA1: 57e6f3f61b1503fdc0bde69031bcf17a33fb6466
-MD5sum: 35d9e385163d576dfb38eee302f2b43c
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.5_all.deb
+Size: 391432
+SHA256: 6b54d7940694e47ce42e857366c206da0bbd78b2174e3482925815665b08263c
+SHA1: 9fa56647e0037fd56d1253af83640cc43231127e
+MD5sum: a76a2cfefc7f84d34b3852e64b04d7d6
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
  overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
