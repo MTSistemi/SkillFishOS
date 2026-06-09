@@ -99,31 +99,31 @@ Description: SkillFishOS application menu group
 Package: skillfish-monitor
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.4
+Version: 26.06.5
 Depends: python3, python3-pyqt6, skillfish-tuner
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06.4_all.deb
-Size: 55732
-SHA256: 7456d0d9174c2675a4435331ad5d3af14aba72c302056f5a5ebf01c7b880edfe
-SHA1: 222c06df1341c2ecfb059fa75b89eb560426695e
-MD5sum: 027e8d9fc198a8195a8b67da09d24f95
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06.5_all.deb
+Size: 56752
+SHA256: 828a6479f4ccdc0780ed9bd55ad8cd180e9a86bfbbe5165039f5ef937c6a18dd
+SHA1: 37d504e9561322120400264af1061f3a0caf1f91
+MD5sum: 921ed71aeeeae9344859210a86be498d
 Description: SkillFishOS Monitor - live temperature/frequency/voltage/fan charts
 Homepage: https://skillfishos.com
 
 Package: skillfish-tuner
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.5
+Version: 26.06.6
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: umr
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.5_all.deb
-Size: 391432
-SHA256: 6b54d7940694e47ce42e857366c206da0bbd78b2174e3482925815665b08263c
-SHA1: 9fa56647e0037fd56d1253af83640cc43231127e
-MD5sum: a76a2cfefc7f84d34b3852e64b04d7d6
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.6_all.deb
+Size: 392452
+SHA256: 2c9ea48dab2ddae2570f75050a134d3a8bdad3479645b0d8fe878b8720d23a99
+SHA1: df76ac1949b9137e7337f21d94a98181fbbf4970
+MD5sum: f0799ac4ae155d79594bef5d111dcc43
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
  overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
