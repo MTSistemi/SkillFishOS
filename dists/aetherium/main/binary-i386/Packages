@@ -17,7 +17,7 @@ Description: SkillFish AI - on-device LLM control panel
 Homepage: https://skillfishos.com
 
 Package: skillfish-hub
-Version: 26.06.7
+Version: 26.06.8
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1
@@ -25,11 +25,11 @@ Recommends: flatpak, snapd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.7_all.deb
-Size: 113860
-SHA256: cfa6c8d39d9ce02c97f969b56ff072bee4b1c46edddab3c1198206c4ba221fee
-SHA1: 206dd95fbb98f7f7c83d6e872490db049ae26a01
-MD5sum: cbc1dde5422ca0013ffa94a235e20d53
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.8_all.deb
+Size: 113984
+SHA256: 51ce1350d75681f138cd48f80b3844064cb5dda538792fd7ad7e5e615a981024
+SHA1: 590fe658686c05b2a4fd0ee341c3cd6a110956d3
+MD5sum: f69d2ee84ecfc547de86927a7c22123a
 Description: SkillFishOS Hub - Discover-style software centre
  Browse software by category (APT, Flatpak and Snap) with AppStream icons and
  descriptions, ODRS star ratings and reviews, and app pages with a screenshot
