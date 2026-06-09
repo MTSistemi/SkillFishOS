@@ -71,6 +71,7 @@ def get():
             gpu["min_mhz"],gpu["min_mv"]=int(pts[0][0]),int(pts[0][1])
             gpu["max_mhz"],gpu["max_mv"]=int(pts[-1][0]),int(pts[-1][1])
     except Exception: pass  # best-effort: governor conf may be missing -> keep defaults
+    gpu["gov_mode"]=current_gov_mode()
     out["gpu"]=gpu
     vram={"uma_mb":0}
     if os.path.exists(MEMCFG):
@@ -105,12 +106,74 @@ def apply_cpu(mhz,scale,tmp):
 def persist_cpu():
     sh("python3 %s/bc250_apply.py --install %s"%(OC_DIR,OC_CONF)); sh("systemctl enable bc250-smu-oc.service")
 
+def _gpu_curve(minmhz,minmv,maxmhz,maxmv):
+    # Build a SMOOTH multi-point voltage curve (gentle clock/voltage transitions).
+    # The BC-250 SMU can hard-hang on abrupt jumps, so insert validated mid-points
+    # (1500/900, 2000/1000) between idle and the requested max instead of a 2-point line.
+    pts=[(int(minmhz),int(minmv))]
+    for f,v in ((1500,900),(2000,1000)):
+        if minmhz < f < maxmhz: pts.append((f,v))
+    pts.append((int(maxmhz),int(maxmv)))
+    # de-dup by frequency, keep ascending
+    seen=set(); out=[]
+    for f,v in pts:
+        if f in seen: continue
+        seen.add(f); out.append((f,v))
+    return out
+
 def apply_gpu(minmhz,minmv,maxmhz,maxmv):
     txt=_rd(GOV_CONF)
-    txt=re.sub(r'(\[\[safe-points\]\]\s*\nfrequency\s*=\s*\d+\s*\nvoltage\s*=\s*\d+\s*\n?)+','',txt)
-    txt=txt.rstrip()+"\n[[safe-points]]\nfrequency = %d\nvoltage = %d\n[[safe-points]]\nfrequency = %d\nvoltage = %d\n"%(minmhz,minmv,maxmhz,maxmv)
+    txt=re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+','',txt)
+    txt=txt.rstrip()+"\n"
+    for f,v in _gpu_curve(minmhz,minmv,maxmhz,maxmv):
+        txt+="[[safe-points]]\nfrequency = %d\nvoltage = %d\n"%(f,v)
     _wr(GOV_CONF,txt)
-    return sh("systemctl restart cyan-skillfish-governor").returncode==0
+    # gentle reload (stop, settle, start) — avoids SMU hard-hang on abrupt transition
+    sh("systemctl stop cyan-skillfish-governor"); sh("sleep 2")
+    return sh("systemctl start cyan-skillfish-governor").returncode==0
+
+# ---------- GPU governor mode (balanced / performance) ----------
+# Balanced = upstream load-target (cooler, only clocks up as needed).
+# Performance = low load-target band + snappier ramp -> holds the top safe-point
+# under any real gaming load (best FPS in GPU-bound titles); still idles to 350.
+GOV_BAL  = {"sample":2000,"adjust":20000,"normal":1,"burst":200,"bsamples":48,"fadj":100,"upper":"0.95","lower":"0.7"}
+GOV_PERF = {"sample":1000,"adjust":10000,"normal":6,"burst":250,"bsamples":16,"fadj":50, "upper":"0.20","lower":"0.08"}
+
+def _gov_safepoints():
+    try:
+        pts=re.findall(r'frequency\s*=\s*(\d+)[^\n]*\n\s*voltage\s*=\s*(\d+)', _rd(GOV_CONF))
+        if len(pts)>=2:
+            d={}
+            for f,v in pts: d[int(f)]=int(v)   # de-dup by frequency
+            return sorted(d.items())           # ascending
+    except Exception: pass  # best-effort: keep safe defaults
+    return [(350,700),(1500,900),(2000,1000),(2200,1000)]
+
+def current_gov_mode():
+    try:
+        m=re.search(r'\[load-target\][^\[]*?upper\s*=\s*([0-9.]+)', _rd(GOV_CONF), re.S)
+        if m and float(m.group(1))<=0.5: return "performance"
+    except Exception: pass  # best-effort
+    return "balanced"
+
+def gov_mode(mode):
+    p = GOV_PERF if mode=="performance" else GOV_BAL
+    sp = _gov_safepoints()  # preserve the user's max-freq/voltage safe-points
+    txt = ("# SkillFishOS Tuner - cyan-skillfish-governor (mode: %s). Managed via the Tuner.\n"
+           "[timing.intervals]\nsample = %d\nadjust = %d\nfinetune = 1000000000\n\n"
+           "[timing.ramp-rates]\nnormal = %d\nburst = %d\n\n"
+           "[timing]\nburst-samples = %d\n\n"
+           "[frequency-thresholds]\nadjust = %d\nfinetune = 10\n\n"
+           "[load-target]\nupper = %s\nlower = %s\n"
+          ) % (mode, p["sample"], p["adjust"], p["normal"], p["burst"], p["bsamples"], p["fadj"], p["upper"], p["lower"])
+    for f,v in sp:
+        txt += "\n[[safe-points]]\nfrequency = %d\nvoltage = %d\n" % (f,v)
+    _wr(GOV_CONF, txt)
+    # Gentle reload: the BC-250 SMU can hard-hang on an abrupt clock transition,
+    # so stop the governor, let the GPU settle to idle, then start with the new config.
+    sh("systemctl stop cyan-skillfish-governor")
+    sh("sleep 2")
+    return sh("systemctl start cyan-skillfish-governor").returncode==0
 
 def fan_set(mode,pct):
     nd=nct_dir()
@@ -295,6 +358,7 @@ def handle(req):
     if c=="apply-cpu": return {"ok":apply_cpu(req["mhz"],req["scale"],req["temp"])}
     if c=="persist-cpu": apply_cpu(req["mhz"],req["scale"],req["temp"]); persist_cpu(); return {"ok":True}
     if c=="apply-gpu": return {"ok":apply_gpu(req["minmhz"],req["minmv"],req["maxmhz"],req["maxmv"])}
+    if c=="gov-mode": return {"ok":gov_mode(req["mode"]),"mode":current_gov_mode()}
     if c=="apply-fan":
         ok,rpm=fan_set(req["mode"],req.get("pct",50)); return {"ok":ok,"rpm":rpm}
     if c=="set-vram": return {"ok":set_vram(req["mb"]),"reboot":True}

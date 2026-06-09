@@ -5,9 +5,8 @@
 # repository/source management and per-backend on/off switches. PyQt6, brass.
 import sys, os, re, json, subprocess, html, hashlib, urllib.request, urllib.parse
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer, QObject, QRect, QPoint
-from PyQt6.QtGui import QIcon, QPixmap, QFont, QPainter, QColor, QBrush, QPen, QPolygonF
-from PyQt6.QtCore import QPointF, QRectF
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer, QRect, QPoint, QRectF
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QGridLayout, QLabel, QPushButton, QLineEdit, QScrollArea,
                              QStackedWidget, QFrame, QToolButton, QButtonGroup, QMessageBox,
@@ -147,12 +146,12 @@ class Catalog:
         pool = AS.Pool()
         try:
             pool.set_flags(AS.PoolFlags.LOAD_OS_CATALOG | AS.PoolFlags.LOAD_OS_METAINFO | AS.PoolFlags.LOAD_FLATPAK)
-        except Exception:
-            pass
+        except Exception as e:
+            print("appstream: set_flags fallback to defaults:", e, file=sys.stderr)
         try:
             pool.load()
-        except Exception:
-            pass
+        except Exception as e:
+            print("appstream: pool load failed (catalogue will be empty):", e, file=sys.stderr)
         # installed flatpak refs
         fp_inst = {}
         if have("flatpak"):
@@ -1078,6 +1077,7 @@ class Hub(QMainWindow):
                 dev = re.search(r'devices=([^\n]+)', out); fs = re.search(r'filesystems=([^\n]+)', out)
                 bits = []
                 if share: bits.append(L("rete/ipc: ", "network/ipc: ") + share.group(1).strip())
+                if sock: bits.append(L("socket: ", "sockets: ") + sock.group(1).strip())
                 if dev: bits.append(L("dispositivi: ", "devices: ") + dev.group(1).strip())
                 if fs: bits.append(L("filesystem: ", "filesystem: ") + fs.group(1).strip()[:120])
                 return "  ·  ".join(bits)
@@ -1120,6 +1120,8 @@ class Hub(QMainWindow):
             argv = self._install_cmd(app); verb = L("Installazione", "Installing")
         else:
             argv = self._remove_cmd(app); verb = L("Rimozione", "Removing")
+        if not argv:
+            self.statusBar().showMessage(L("Backend non supportato: ", "Unsupported backend: ") + app.backend, 5000); return
         self._run_op(argv, "%s %s…" % (verb, app.name))
     def _install_cmd(self, app):
         if app.backend == "apt": return ["pkexec", HELPER, "apt-install", app.pkgid]
@@ -1127,10 +1129,12 @@ class Hub(QMainWindow):
         if app.backend == "snap":
             ch = getattr(self, "_snap_channel", None)
             return ["pkexec", "snap", "install", app.pkgid] + (["--channel", ch] if ch else [])
+        return None
     def _remove_cmd(self, app):
         if app.backend == "apt": return ["pkexec", HELPER, "apt-remove", app.pkgid]
         if app.backend == "flatpak": return ["flatpak", "uninstall", "-y", "--noninteractive", app.pkgid]
         if app.backend == "snap": return ["pkexec", "snap", "remove", app.pkgid]
+        return None
 
     def _run_op(self, argv, title):
         dlg = QDialog(self); dlg.setWindowTitle("SkillFishOS Hub"); dlg.resize(660, 440)

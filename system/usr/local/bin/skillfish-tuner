@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QSlider, QPushButton, QToolButton, QCheckBox,
-                             QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout)
+                             QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout, QButtonGroup)
 
 HELPER  = "/usr/local/bin/skillfish-tuner-helper"
 PRESETS = "/usr/share/skillfish/tuner-presets.json"
@@ -40,11 +40,14 @@ HELP = {
    L("Soglia termica oltre la quale l'SMU limita la frequenza.\n\nConsigliato 85 °C. Oltre, il sistema riduce automaticamente il clock per proteggere l'hardware.",
      "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.")),
  "gpu_freq": (L("Frequenza massima GPU", "Max GPU frequency"),
-   L("Clock massimo della GPU (governor SMU).\n\n• 1500 = risparmio\n• 2000 = bilanciato\n• 2230 = massimo supportato\n\nLa GPU sale a questa frequenza solo sotto carico, poi torna a 350 MHz a riposo.",
-     "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced\n• 2230 = maximum supported\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle.")),
+   L("Clock massimo della GPU (governor SMU).\n\n• 1500 = risparmio\n• 2000 = bilanciato (sicuro su tutte le schede)\n• 2200 = massimo stabile a 1000 mV su raffreddamento stock\n\nLa GPU sale a questa frequenza solo sotto carico, poi torna a 350 MHz a riposo. Oltre i 2200 MHz a 1000 mV il BC-250 può bloccarsi: serve più voltaggio e la lotteria del silicio.",
+     "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced (safe on every board)\n• 2200 = max stable at 1000 mV on stock cooling\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle. Above 2200 MHz at 1000 mV the BC-250 can hard-freeze: it needs more voltage and depends on the silicon lottery.")),
  "gpu_volt": (L("Voltaggio massimo GPU", "Max GPU voltage"),
    L("Voltaggio associato alla frequenza massima GPU (mV).\n\nPiù alto = più stabile ad alte frequenze ma più caldo. Range 700-1129 mV.",
      "Voltage tied to the max GPU frequency (mV).\n\nHigher = more stable at high frequency but hotter. Range 700-1129 mV.")),
+ "gov_mode": (L("Modalità governor GPU", "GPU governor mode"),
+   L("Come il governor sceglie il clock GPU sotto carico:\n\n• Bilanciato: alza il clock solo quanto serve — più fresco e silenzioso (default).\n• Performance: tiene la GPU al clock massimo sotto qualsiasi carico di gioco (massimi FPS nei giochi GPU-bound, più calore e consumo). A riposo torna comunque a 350 MHz.\n\nNel benchmark di Black Myth: Wukong, Performance dà circa +12% di FPS medi e +13% sui frame più lenti, senza scendere a compromessi sulla stabilità (usa la via SMU sicura del governor).",
+     "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nIn the Black Myth: Wukong benchmark, Performance gives about +12% average FPS and +13% on the slowest frames, with no stability trade-off (it uses the governor's safe SMU path).")),
  "fan": (L("Ventola", "Fan"),
    L("Controllo manuale: imposti tu la velocità in %.\nAutomatico: la curva del chip gestisce la velocità in base alla temperatura.\n\nUsa «Test» per sentire la ventola alla velocità scelta per qualche secondo.",
      "Manual control: you set the speed in %.\nAutomatic: the chip's curve manages the speed based on temperature.\n\nUse «Test» to hear the fan at the chosen speed for a few seconds.")),
@@ -411,10 +414,24 @@ class TunerWindow(QMainWindow):
     # ---------- GPU ----------
     def _gpu(self):
         g, v = self._section("GPU"); gp = self.cfg.get("gpu", {})
-        self.gf = Stepper(350, 2230, gp.get("max_mhz", 2230), "MHz")
+        self.gf = Stepper(350, 2200, min(gp.get("max_mhz", 2200), 2200), "MHz")
         self.gv = Stepper(700, 1129, gp.get("max_mv", 1000), "mV")
         v.addWidget(self._row(L("Frequenza massima", "Max frequency"), self.gf, "gpu_freq"))
         v.addWidget(self._row(L("Voltaggio massimo", "Max voltage"), self.gv, "gpu_volt"))
+        # governor mode: Balanced (default) / Performance
+        self.gov_bal  = QPushButton(L("Bilanciato", "Balanced"))
+        self.gov_perf = QPushButton(L("Performance", "Performance"))
+        _gmg = QButtonGroup(self); _gmg.setExclusive(True)
+        for _b in (self.gov_bal, self.gov_perf):
+            _b.setCheckable(True); _b.setCursor(Qt.CursorShape.PointingHandCursor); _gmg.addButton(_b)
+        (self.gov_perf if gp.get("gov_mode") == "performance" else self.gov_bal).setChecked(True)
+        self.gov_bal.clicked.connect(lambda: (self.d.cmd(cmd="gov-mode", mode="balanced"),
+            self.toast(L("Governor: Bilanciato", "Governor: Balanced"))))
+        self.gov_perf.clicked.connect(lambda: (self.d.cmd(cmd="gov-mode", mode="performance"),
+            self.toast(L("Governor: Performance — 2230 MHz sotto carico", "Governor: Performance — 2230 MHz under load"))))
+        _gmw = QWidget(); _gmh = QHBoxLayout(_gmw); _gmh.setContentsMargins(0, 0, 0, 0); _gmh.setSpacing(6)
+        _gmh.addWidget(self.gov_bal); _gmh.addWidget(self.gov_perf)
+        v.addWidget(self._row(L("Modalità governor", "Governor mode"), _gmw, "gov_mode"))
         vals = lambda: (self.gf.value(), self.gv.value())
         v.addWidget(self._btns(
             (L("Test (benchmark)", "Test (benchmark)"), lambda: self._test_gpu(*vals()), False),
