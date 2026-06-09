@@ -55,7 +55,18 @@ Valide per **tutti** i benchmark sotto, salvo dove indicato diversamente.
 | VRAM | ~1.9 GB (menu) → ~4.4 GB (in gioco) |
 | Ventola | ~2950–3140 RPM |
 
-> Lezione: su un titolo *draw-call bound* come Wukong gli FPS **non** dipendono dalla risoluzione né dal clock GPU. Conta la **stabilità della CPU** sotto carico e un buon raffreddamento.
+> Lezione: in *gameplay* su un titolo draw-call bound come Wukong contano soprattutto la **stabilità della CPU** sotto carico e il raffreddamento.
+
+### Governor Bilanciato vs Performance (benchmark tool)
+
+Il *flythrough* del benchmark tool è invece **GPU-bound**: lì il clock conta. Attivando la modalità **Performance** del governor dal Tuner (tiene la GPU al safe-point massimo sotto carico, a riposo torna a 350 MHz):
+
+| Modalità governor | Media | 5% più bassi |
+|---|---|---|
+| **Bilanciato** (default) | 100 FPS | 92 FPS |
+| **Performance** | **111 FPS** | **102 FPS** |
+
+**+11%** di media e sui frame lenti, solo tenendo alto il clock. Per sicurezza il Tuner limita la GPU a **2200 MHz @ 1000 mV** con curva di voltaggio multi-punto: 2230 MHz a 1000 mV è sotto-voltato e può bloccare la macchina.
 
 ---
 

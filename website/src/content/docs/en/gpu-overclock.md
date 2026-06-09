@@ -68,7 +68,9 @@ Things to know about the stock cooler (see also [BC-250 hardware](/docs/hardware
 
 ## A real case: CPU-bound games
 
-Some titles — like *Black Myth: Wukong* — are **CPU/draw-call bound**: FPS do **not** depend on resolution or GPU clock. In those cases you don't need GPU Turbo: **CPU** overclocking and good cooling help instead. For upscaling, FSR 4 is **not available** (it's RDNA 4 hardware); use gamescope (FSR1/NIS) or per-game [OptiScaler](https://github.com/optiscaler/OptiScaler).
+Some titles — like *Black Myth: Wukong* in **gameplay** — are **CPU/draw-call bound**: FPS barely depend on resolution or GPU clock. There, **CPU** overclocking and good cooling help instead. For upscaling, FSR 4 is **not available** (it's RDNA 4 hardware); use gamescope (FSR1/NIS) or per-game [OptiScaler](https://github.com/optiscaler/OptiScaler).
+
+When the workload **is** GPU-bound (e.g. the Wukong benchmark *flythrough*), the clock matters: in the **Tuner** you can switch the **governor to "Performance"**, which holds the GPU at its top safe-point under load (it still idles to 350 MHz). Measured on the Wukong benchmark: **100 → 111 FPS average (+11%)**, 92 → 102 on the slowest frames. For safety the Tuner caps the GPU at **2200 MHz @ 1000 mV** (the stable maximum on stock cooling) with a multi-point voltage curve — pushing 2230 MHz at 1000 mV is undervolted and can hard-freeze the machine.
 
 ## All of this, without a terminal
 

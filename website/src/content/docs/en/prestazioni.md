@@ -55,7 +55,18 @@ Apply to **all** benchmarks below unless stated otherwise.
 | VRAM | ~1.9 GB (menu) → ~4.4 GB (in game) |
 | Fan | ~2950–3140 RPM |
 
-> Lesson: on a *draw-call bound* title like Wukong, FPS do **not** depend on resolution or GPU clock. What matters is **CPU stability** under load and good cooling.
+> Lesson: in *gameplay* on a draw-call bound title like Wukong, what matters most is **CPU stability** under load and good cooling.
+
+### Governor Balanced vs Performance (benchmark tool)
+
+The benchmark tool's *flythrough* is **GPU-bound**, so there the clock matters. Switching the governor to **Performance** in the Tuner (it holds the GPU at its top safe-point under load, idling to 350 MHz):
+
+| Governor mode | Average | 5%-low |
+|---|---|---|
+| **Balanced** (default) | 100 FPS | 92 FPS |
+| **Performance** | **111 FPS** | **102 FPS** |
+
+**+11%** on the average and on the slowest frames, just from holding the clock high. For safety the Tuner caps the GPU at **2200 MHz @ 1000 mV** with a multi-point voltage curve: 2230 MHz at 1000 mV is undervolted and can hard-freeze the machine.
 
 ---
 

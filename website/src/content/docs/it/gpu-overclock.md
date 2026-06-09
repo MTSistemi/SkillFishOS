@@ -68,7 +68,9 @@ Cose da sapere sul raffreddamento di serie (vedi anche [hardware BC-250](/docs/h
 
 ## Un caso pratico: giochi CPU-bound
 
-Alcuni titoli — come *Black Myth: Wukong* — sono **CPU/draw-call bound**: gli FPS **non** dipendono dalla risoluzione né dal clock della GPU. In questi casi non serve alzare la GPU a Turbo: aiutano l'overclock **CPU** e un buon raffreddamento. Per l'upscaling, FSR 4 **non è disponibile** (è hardware RDNA 4); si usano gamescope (FSR1/NIS) o [OptiScaler](https://github.com/optiscaler/OptiScaler) per-gioco.
+Alcuni titoli — come *Black Myth: Wukong* in **gameplay** — sono **CPU/draw-call bound**: gli FPS dipendono poco dalla risoluzione e dal clock della GPU. Lì aiutano l'overclock **CPU** e un buon raffreddamento. Per l'upscaling, FSR 4 **non è disponibile** (è hardware RDNA 4); si usano gamescope (FSR1/NIS) o [OptiScaler](https://github.com/optiscaler/OptiScaler) per-gioco.
+
+Quando invece il carico **è** GPU-bound (es. il *flythrough* del benchmark di Wukong), il clock conta: nel **Tuner** puoi attivare la **modalità governor "Performance"**, che tiene la GPU al suo safe-point massimo sotto carico (a riposo torna comunque a 350 MHz). Misurato nel benchmark di Wukong: **100 → 111 FPS di media (+11%)**, 92 → 102 sui frame più lenti. Per sicurezza il Tuner limita la GPU a **2200 MHz @ 1000 mV** (massimo stabile su raffreddamento stock) con una curva di voltaggio multi-punto — spingere a 2230 MHz a 1000 mV è sotto-voltato e può bloccare la macchina.
 
 ## Tutto questo, senza terminale
 
