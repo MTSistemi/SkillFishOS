@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QGridLayout, QLabel, QPushButton, QLineEdit, QScrollArea,
                              QStackedWidget, QFrame, QToolButton, QButtonGroup, QMessageBox,
                              QDialog, QFormLayout, QComboBox, QCheckBox, QPlainTextEdit,
-                             QSizePolicy, QProgressBar, QAbstractButton, QLayout, QStyle)
+                             QSizePolicy, QProgressBar, QAbstractButton, QLayout)
 
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 HELPER = "/usr/local/bin/skillfish-hub-helper"
