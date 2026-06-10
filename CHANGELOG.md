@@ -4,6 +4,19 @@ All notable changes to SkillFishOS. Dates are ISO-8601.
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [26.06.1 "Aetherium" — media respin] — 2026-06-10
+
+### ISOs
+Three refreshed installable editions — **BC-250**, **Generic x86-64** and **Slim (BC-250)** — published on SourceForge as `SkillFishOS-26.06.1-Aetherium-<Edition>-amd64.iso` (with SHA-256 checksums). Same kernel family (`7.0.11-skillfishos` ×3 flavours) as 26.06; the respin exists because the original media shipped the old Tuner whose **Turbo/Crazy presets pointed the GPU at 2230 MHz @ 1000 mV**, an undervolted combination that can hard-freeze the board. Out of the box the new media include:
+- the **safe GPU presets and multi-point voltage curve** (max 2200 MHz @ 1000 mV) and the safe **Stock CPU profile** (3500 MHz);
+- **`skillfish-base`**: the SP5100 **hardware watchdog** (auto-reboot on hard hangs) and the boot-time **freeze detector** with desktop notification;
+- **`skillfish-console`**: the SteamOS-style **"SkillFishOS Console (Big Picture)"** login session (and the PATH fix that made the old session bounce back to login);
+- the full updated app suite: Tuner 26.06.8 (🎰 find-my-max wizards CPU+GPU, "My silicon" panel), Hub 26.06.9, Monitor 26.06.5 (REC), Kernel Manager 26.06.1, AI 26.06.4 — each with its MetaInfo app page.
+
+Existing 26.06 installations get everything via `apt full-upgrade` — no reinstall needed.
+
 ### Added
 - **`skillfish-base` 26.06 (new package)** — the safety net: enables the AMD SP5100 **hardware watchdog** (the board reboots itself on a hard hang instead of needing a physical power-cycle) and a boot-time **freeze detector** that logs an unclean previous shutdown and notifies the desktop user that their overclock/undervolt profile may be unstable.
 - **`skillfish-console` 26.06 (new package)** — a SteamOS-style **"SkillFishOS Console (Big Picture)"** session on the SDDM login screen: boots straight into Steam's gamepad UI inside gamescope; quitting Steam returns to the login screen. (Also fixes the pre-existing session, which called a bare `gamescope` not on SDDM's PATH and silently bounced back to login.)
