@@ -17,7 +17,7 @@ Description: SkillFish AI - on-device LLM control panel
 Homepage: https://skillfishos.com
 
 Package: skillfish-hub
-Version: 26.06.8
+Version: 26.06.9
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1
@@ -25,11 +25,11 @@ Recommends: flatpak, snapd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.8_all.deb
-Size: 113984
-SHA256: 51ce1350d75681f138cd48f80b3844064cb5dda538792fd7ad7e5e615a981024
-SHA1: 590fe658686c05b2a4fd0ee341c3cd6a110956d3
-MD5sum: f69d2ee84ecfc547de86927a7c22123a
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.06.9_all.deb
+Size: 114308
+SHA256: c035431e698f5471b9ec26fe3681567a67e6e0e9d824daa5f70b257c1d9694df
+SHA1: 0d259e69242fa5d111feef7789b934d57b7140fc
+MD5sum: 1a97f025d88f96a6cf271f8f8947ebb1
 Description: SkillFishOS Hub - Discover-style software centre
  Browse software by category (APT, Flatpak and Snap) with AppStream icons and
  descriptions, ODRS star ratings and reviews, and app pages with a screenshot
@@ -114,16 +114,16 @@ Homepage: https://skillfishos.com
 Package: skillfish-tuner
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.6
+Version: 26.06.7
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: umr
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.6_all.deb
-Size: 392452
-SHA256: 2c9ea48dab2ddae2570f75050a134d3a8bdad3479645b0d8fe878b8720d23a99
-SHA1: df76ac1949b9137e7337f21d94a98181fbbf4970
-MD5sum: f0799ac4ae155d79594bef5d111dcc43
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.7_all.deb
+Size: 393996
+SHA256: 369c5061411b49d79cc974f1395cb0ee951c2e16fa7ca2df26bd9e5a0d310842
+SHA1: f882598a9a51fadc10f73f2c4d720ee71fd1c6ab
+MD5sum: dcc9186e371b339cad300a97727523f7
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
  overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
