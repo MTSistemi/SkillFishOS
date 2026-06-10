@@ -271,13 +271,10 @@ const RENDER = {
     refresh();
   },
   rules(card) {
-    card.classList.add("span2");
     card.innerHTML = "<h3>⚙️ " + (LANG === "it" ? "Regole auto" : "Auto rules") + '</h3><div id="ru">…</div>';
     const refresh = async () => { let s; try { s = await (await api("/api/rules")).json(); } catch (e) { return; }
       $("#ru", card).innerHTML = '<div class="rows"><div class="r"><span>' + T("ru_throttle") + "</span><span>" + (s.enabled ? T("ru_on") : T("ru_off")) + '</span></div><div class="r"><span>' + T("ru_thresh") + "</span><span>" + s.temp_limit + " °C</span></div>" + (s.last_action ? '<div class="r"><span>' + T("ru_last") + "</span><span>" + s.last_action + "</span></div>" : "") + "</div>" +
-        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="rtog">' + (s.enabled ? T("ru_disable") : T("ru_enable")) + '</button><input id="rlim" class="dsel" type="number" min="70" max="100" value="' + s.temp_limit + '" style="width:64px"> °C <button class="dbtn" id="rset">' + T("ru_set") + "</button></div>" +
-        '<div class="gl" style="margin-top:12px">' + T("ru_frame") + (s.snap_age != null ? " (" + s.snap_age + "s)" : "") + "</div>" +
-        (s.has_frame ? '<img src="/api/rules/frame?t=' + Date.now() + '" style="width:100%;border-radius:10px;border:1px solid var(--line);margin-top:6px">' : '<div class="stub">' + T("ru_noframe") + "</div>");
+        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="rtog">' + (s.enabled ? T("ru_disable") : T("ru_enable")) + '</button><input id="rlim" class="dsel" type="number" min="70" max="100" value="' + s.temp_limit + '" style="width:64px"> °C <button class="dbtn" id="rset">' + T("ru_set") + "</button></div>";
       $("#rtog", card).onclick = async () => { await action("/api/rules", { enabled: !s.enabled }, T("ru_updated")); setTimeout(refresh, 500); };
       $("#rset", card).onclick = async () => { await action("/api/rules", { temp_limit: +$("#rlim", card).value }, T("ru_setdone")); setTimeout(refresh, 500); };
     };

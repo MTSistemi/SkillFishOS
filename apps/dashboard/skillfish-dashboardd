@@ -570,8 +570,7 @@ def power_schedule(action, minutes):
 # ---------------- auto rules + screen snapshot ----------------
 import urllib.request
 RULES_DEFAULT = {"enabled": True, "temp_limit": 92, "samples": 6}
-LASTFRAME = "/tmp/skillfish-lastframe.jpg"  # captured as the desktop user, so must be user-writable
-_RULES = {"hot": 0, "last_action": "", "snap_ts": 0}
+_RULES = {"hot": 0, "last_action": ""}
 
 
 def save_conf():
@@ -606,31 +605,6 @@ def rules_loop():
         except Exception:
             pass
         time.sleep(2)
-
-
-def snapshot_loop():
-    u = CONFIG.get("user", "skillfish")
-    # keep the screen awake so the "last frame" is the real desktop, not a blanked one
-    for args in (["xset", "s", "off"], ["xset", "-dpms"]):
-        try:
-            subprocess.run(["sudo", "-u", u, "env", "DISPLAY=:0"] + args,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
-        except Exception:
-            pass
-    while True:
-        try:
-            if CONFIG.get("modules", {}).get("rules"):
-                subprocess.run(["sudo", "-u", u, "env", "DISPLAY=:0",
-                                "import", "-window", "root", "-resize", "960x", LASTFRAME],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=12)
-                try:
-                    os.chmod(LASTFRAME, 0o644)
-                except Exception:
-                    pass
-                _RULES["snap_ts"] = int(time.time())
-        except Exception:
-            pass
-        time.sleep(20)
 
 
 # ---------------- AI-Ops (local LLM log diagnosis) ----------------
@@ -907,16 +881,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             c = rules_cfg()
             c["last_action"] = _RULES["last_action"]
-            c["snap_age"] = int(time.time()) - _RULES["snap_ts"] if _RULES["snap_ts"] else None
-            c["has_frame"] = os.path.isfile(LASTFRAME)
             return self._json(200, c)
-        if path == "/api/rules/frame":
-            if not self._guard("rules"):
-                return
-            if os.path.isfile(LASTFRAME):
-                with open(LASTFRAME, "rb") as f:
-                    return self._send(200, f.read(), "image/jpeg")
-            return self._json(404, {"error": "no frame"})
         if path == "/api/zerotier":
             if not self._guard("zerotier"):
                 return
@@ -1141,7 +1106,6 @@ def main():
     sys.stderr.write("SkillFish Remote on https://%s:%d (PAM=%s)\n" % (bind, port, _PAM_OK))
     sys.stderr.flush()
     threading.Thread(target=rules_loop, daemon=True).start()
-    threading.Thread(target=snapshot_loop, daemon=True).start()
     httpd.serve_forever()
 
 
