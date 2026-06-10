@@ -30,12 +30,12 @@ CHARTS = [
     (L("Carico", "Load"), "%", [("CPU", "#5fd24f", "cpu_load"), ("GPU", "#49b6e0", "gpu_util")]),
     (L("Frequenza", "Frequency"), "MHz", [("CPU", "#9bd24f", "cpu_mhz"), ("GPU", "#49b6e0", "gpu_freq")]),
     (L("Potenza", "Power"), "W", [("GPU", "#e0d24f", "gpu_power")]),
-    (L("Voltaggio GPU", "GPU voltage"), "mV", [("GPU", "#c98be0", "gpu_mv")]),
+    (L("Voltaggio", "Voltage"), "mV", [("GPU", "#c98be0", "gpu_mv"), ("CPU", "#e8a878", "cpu_mv")]),
     (L("Ventola", "Fan"), "RPM", [("FAN", "#d8a849", "fan")]),
 ]
 # recording column order (besides the leading t_sec)
 REC_KEYS = ["cpu_temp", "gpu_temp", "cpu_load", "gpu_util", "cpu_mhz", "gpu_freq",
-            "gpu_power", "gpu_mv", "fan", "vram"]
+            "gpu_power", "gpu_mv", "cpu_mv", "fan", "vram"]
 
 
 def _num(s):
@@ -305,7 +305,8 @@ class Monitor(QMainWindow):
             dur = rows[-1][0]
             names = {"cpu_temp": "CPU °C", "gpu_temp": "GPU °C", "cpu_load": "CPU %",
                      "gpu_util": "GPU %", "cpu_mhz": "CPU MHz", "gpu_freq": "GPU MHz",
-                     "gpu_power": "GPU W", "gpu_mv": "GPU mV", "fan": "Fan RPM", "vram": "VRAM MB"}
+                     "gpu_power": "GPU W", "gpu_mv": "GPU mV", "cpu_mv": "CPU mV",
+                     "fan": "Fan RPM", "vram": "VRAM MB"}
             lines = [L("Registrazione: %.0f s, %d campioni" % (dur, len(rows)),
                        "Recording: %.0f s, %d samples" % (dur, len(rows))), ""]
             for i, k in enumerate(REC_KEYS, start=1):
