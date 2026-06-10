@@ -16,6 +16,21 @@ async function action(p, body, okmsg) {
   try { const j = await (await post(p, body)).json(); toast(j.ok === false ? (j.error || "errore") : (okmsg || "fatto"), j.ok !== false); return j; }
   catch (e) { toast("errore di rete", false); }
 }
+// small reusable "click to copy" widget
+function copyable(value) {
+  return '<span class="cpw"><b style="user-select:all">' + value +
+    '</b> <button class="cpy" type="button" data-cp="' + String(value).replace(/"/g, "&quot;") + '" title="Copia">📋</button></span>';
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".cpy");
+  if (!b) return;
+  const v = b.dataset.cp;
+  (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject())
+    .then(() => toast("Copiato")).catch(() => {
+      const t = document.createElement("textarea"); t.value = v; document.body.appendChild(t);
+      t.select(); try { document.execCommand("copy"); toast("Copiato"); } catch (_) {} t.remove();
+    });
+});
 
 // ---- canvas sparkline chart (multi-series, rolling) ----
 class Mini {
@@ -174,13 +189,14 @@ const RENDER = {
   },
   kvm(card) {
     card.innerHTML = '<h3>🖥️ Desktop (KVM)</h3><div class="brow"><button class="dbtn" id="kvmgo">▶ Apri desktop remoto</button></div>' +
-      '<div class="stub" style="margin-top:8px">Schermo, tastiera e mouse della scheda — stessa sessione, nessuna password in più.</div>';
+      '<div class="stub" id="kvmi" style="margin-top:8px">Schermo, tastiera e mouse della scheda — stessa sessione, nessuna password in più.</div>';
     $("#kvmgo", card).onclick = async () => {
       const j = await action("/api/kvm/start", {}, "Desktop pronto");
       if (j && j.password != null) {
         const url = "/kvm/vnc.html?autoconnect=1&resize=scale&reconnect=1&path=" +
           encodeURIComponent("kvm/websockify") + "&password=" + encodeURIComponent(j.password);
         window.open(url, "_blank");
+        $("#kvmi", card).innerHTML = "Aperto. Password VNC (se richiesta): " + copyable(j.password);
       }
     };
   },
