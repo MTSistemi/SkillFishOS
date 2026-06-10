@@ -20,6 +20,8 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rg
 .navlinks a{transition:color .2s}
 .navlinks a:hover{color:var(--gold-lt)}
 .navlinks a.active{color:var(--gold-lt)}
+.navlinks a.donate-link{color:var(--gold-lt);border:1px solid rgba(216,168,73,.5);border-radius:999px;padding:6px 14px;background:rgba(216,168,73,.08);transition:background .2s,box-shadow .2s,transform .15s}
+.navlinks a.donate-link:hover{background:rgba(216,168,73,.2);box-shadow:0 4px 14px rgba(216,168,73,.3);transform:translateY(-1px)}
 .nav-toggle{display:none}
 .nav-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:32px;height:32px;margin-left:auto;cursor:pointer}
 .nav-burger span{display:block;height:2px;width:24px;background:var(--gold-lt);border-radius:2px;transition:transform .25s,opacity .2s}

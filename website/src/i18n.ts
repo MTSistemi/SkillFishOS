@@ -10,13 +10,25 @@ export const languages: Record<Lang, string> = { it: 'Italiano', en: 'English' }
 export const SITE = {
   github: 'https://github.com/MTSistemi/SkillFishOS',
   domain: 'skillfishos.com',
-  // 26.06 "Aetherium" release ISOs — three editions, hosted on SourceForge (reliable mirror + stats).
-  isoUrl: 'https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-BC250-amd64.iso/download',
-  isoUrlGeneric: 'https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-Generic-amd64.iso/download',
-  isoUrlSlim: 'https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-Slim-BC250-amd64.iso/download',
-  isoFilesUrl: 'https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/',
-  isoSizeGb: '6.2',
+  // 26.06.1 "Aetherium" media respin — three editions, hosted on SourceForge (reliable mirror + stats).
+  isoUrl: 'https://sourceforge.net/projects/skillfishos/files/26.06.1-Aetherium/SkillFishOS-26.06.1-Aetherium-BC250-amd64.iso/download',
+  isoUrlGeneric: 'https://sourceforge.net/projects/skillfishos/files/26.06.1-Aetherium/SkillFishOS-26.06.1-Aetherium-Generic-amd64.iso/download',
+  isoUrlSlim: 'https://sourceforge.net/projects/skillfishos/files/26.06.1-Aetherium/SkillFishOS-26.06.1-Aetherium-Slim-BC250-amd64.iso/download',
+  isoFilesUrl: 'https://sourceforge.net/projects/skillfishos/files/26.06.1-Aetherium/',
+  isoSizeGb: '6.6',
   repoUrl: 'https://mtsistemi.github.io/SkillFishOS',
+  // Donations — PayPal personal QR for Mattia Tadini (scan-to-pay). The "managed QR"
+  // URL only works when scanned by a phone camera, so the QR image is the primary path.
+  // donateUrl stays empty until a clickable PayPal.Me handle / email is provided.
+  donateName: 'Mattia Tadini',
+  donateQr: '/img/donate-qr.png',
+  // PayPal.Me — clickable, works in any browser; append /<n>EUR for a preset amount.
+  donateUrl: 'https://www.paypal.com/paypalme/MattiaTadini81',
+  donateAmounts: ['1', '2', '5', '10'],
+  // Free ways to help: star, review, suggest features.
+  ghStar: 'https://github.com/MTSistemi/SkillFishOS',
+  reviews: 'https://sourceforge.net/projects/skillfishos/reviews/new',
+  discussions: 'https://github.com/MTSistemi/SkillFishOS/discussions',
 };
 
 type Entry = Record<Lang, string>;
@@ -35,6 +47,7 @@ export const strings: Record<string, Entry> = {
   'nav.docs': { it: "Documentazione", en: "Docs" },
   'nav.gallery': { it: "Galleria", en: "Gallery" },
   'nav.contact': { it: "Contatti", en: "Contact" },
+  'nav.donate': { it: "Sostieni", en: "Donate" },
 
   'hero.soon': { it: "Release 26.06 «Aetherium»", en: "Release 26.06 “Aetherium”" },
   'hero.tag': { it: "Il sistema operativo gaming forgiato per l'<b>AMD BC-250</b>.", en: "The gaming operating system forged for the <b>AMD BC-250</b>." },
@@ -249,6 +262,48 @@ export const strings: Record<string, Entry> = {
   'oc.cap.v': { it: "85 °C", en: "85 °C" },
   'oc.cap.l': { it: "Cap termico CPU+GPU: throttla il clock, non si spacca mai", en: "CPU+GPU thermal cap: throttles the clock, never breaks" },
   'oc.note': { it: "Per ogni frequenza abbiamo trovato il <strong>voltaggio minimo stabile</strong> leggendo il VID reale dall'SMU e validando con stress di 120s. I preset <strong>Stock · Performance · Turbo · Crazy</strong> applicano questi profili in un clic; un thermal-guard tiene tutto entro 85 °C. Dettagli completi nella documentazione.", en: "For every frequency we found the <strong>lowest stable voltage</strong> by reading the real VID from the SMU and validating with 120s stress. The <strong>Stock · Performance · Turbo · Crazy</strong> presets apply these profiles in one click; a thermal-guard keeps everything within 85 °C. Full details in the docs." },
+
+  // --- Donate / Support page ---
+  'don.title': { it: "Sostieni SkillFishOS — Offrimi un caffè", en: "Support SkillFishOS — Buy me a coffee" },
+  'don.eye': { it: "Sostieni il progetto", en: "Support the project" },
+  'don.h2': { it: "Aiutaci a forgiare il <span class=\"gold-text\">futuro</span> di SkillFishOS", en: "Help forge the <span class=\"gold-text\">future</span> of SkillFishOS" },
+  'don.sub': { it: "SkillFishOS è e resterà <strong>gratuito e open-source</strong>. Ma dietro c'è un <strong>piccolo team</strong> e una sola scheda: con un piccolo contributo lo sviluppo va più veloce e non si ferma.", en: "SkillFishOS is and will stay <strong>free and open-source</strong>. But behind it there's a <strong>small team</strong> and a single board: a small contribution keeps development fast — and alive." },
+
+  'don.why.h': { it: "Un piccolo team. Una sola scheda.", en: "A small team. One board." },
+  'don.why.p1': { it: "Dietro SkillFishOS c'è un <strong>piccolo team</strong>, che sviluppa, testa e mantiene tutto — kernel, app, tema, repository e sito — nel tempo libero e <strong>interamente a proprie spese</strong>. Il sistema operativo è e resterà gratuito e open-source: nessun paywall, nessuna pubblicità.", en: "Behind SkillFishOS there's a <strong>small team</strong> developing, testing and maintaining everything — kernel, apps, theme, repository and website — in our spare time and <strong>entirely out of our own pocket</strong>. The OS is and will remain free and open-source: no paywall, no ads." },
+  'don.why.p2': { it: "Oggi abbiamo <strong>una sola BC-250</strong>. Ogni patch al kernel, al governor o all'overclock va provata sull'unica scheda che abbiamo: se si blocca durante un test, lo sviluppo si ferma. Niente test in parallelo, niente confronto tra esemplari diversi (la «lotteria del silicio»), nessun margine per sperimentare in sicurezza. <strong>Con il tuo aiuto tutto questo cambia.</strong>", en: "Today we have <strong>just one BC-250</strong>. Every kernel, governor or overclock patch has to be tested on the only board we own: if it freezes mid-test, development stops. No parallel testing, no comparison between different chips (the “silicon lottery”), no room to experiment safely. <strong>Your help changes all of this.</strong>" },
+
+  'don.use.h': { it: "Dove vanno le donazioni", en: "Where the money goes" },
+  'don.use.sub': { it: "Trasparenza totale: ogni euro serve a sviluppare più in fretta e meglio.", en: "Full transparency: every euro goes into faster, better development." },
+  'don.u1.t': { it: "Altre schede BC-250", en: "More BC-250 boards" },
+  'don.u1.d': { it: "Più schede = sviluppo più veloce e sicuro: test in parallelo, confronto del silicio e una scheda di scorta se una si guasta.", en: "More boards = faster, safer development: parallel testing, silicon comparison and a spare if one dies." },
+  'don.u2.t': { it: "Case e dissipatori", en: "Cases & heatsinks" },
+  'don.u2.d': { it: "Raffreddamento migliore per spingere overclock e stabilità — e per validare soluzioni termiche da consigliarti.", en: "Better cooling to push overclock and stability — and to validate thermal solutions worth recommending to you." },
+  'don.u3.t': { it: "Infrastruttura", en: "Infrastructure" },
+  'don.u3.d': { it: "Dominio, hosting, mirror e CI: i costi che tengono online sito, repository APT e download — oggi tutti a carico nostro.", en: "Domain, hosting, mirrors and CI: the costs that keep the website, APT repository and downloads online — all on us today." },
+  'don.u4.t': { it: "Tempo di sviluppo", en: "Development time" },
+  'don.u4.d': { it: "Ogni contributo ci permette di dedicare più ore a nuove funzioni, fix e supporto, invece che ad altro.", en: "Every contribution lets us put more hours into new features, fixes and support, instead of elsewhere." },
+
+  'don.give.h': { it: "Offrimi un caffè ☕", en: "Buy me a coffee ☕" },
+  'don.give.p': { it: "Scegli un importo: si apre PayPal con la cifra già pronta. Anche solo <strong>1, 2 o 5 €</strong> fanno una differenza enorme.", en: "Pick an amount: PayPal opens with the sum ready to go. Even just <strong>€1, €2 or €5</strong> makes a huge difference." },
+  'don.give.custom': { it: "Importo libero", en: "Any amount" },
+  'don.give.or': { it: "oppure inquadra il QR con il telefono", en: "or scan the QR with your phone" },
+  'don.give.scan': { it: "Inquadra per donare", en: "Scan to donate" },
+  'don.give.note': { it: "Donazione una tantum tramite <strong>PayPal</strong>: nessun obbligo, nessun abbonamento. SkillFishOS resta gratuito e open-source per sempre.", en: "One-off donation via <strong>PayPal</strong>: no obligation, no subscription. SkillFishOS stays free and open-source forever." },
+  'don.thanks': { it: "Grazie di cuore — ogni contributo accende un altro pezzo di questa console. 🔧", en: "Thank you, truly — every contribution lights up another piece of this console. 🔧" },
+
+  // --- Community / free ways to help (donate page + download page) ---
+  'comm.h': { it: "Non puoi donare? Aiutaci lo stesso — è gratis", en: "Can't donate? Help anyway — it's free" },
+  'comm.sub': { it: "Tre gesti da un minuto che fanno crescere il progetto tanto quanto una donazione.", en: "Three one-minute gestures that grow the project as much as a donation." },
+  'comm.star.t': { it: "⭐ Metti una stella su GitHub", en: "⭐ Star us on GitHub" },
+  'comm.star.d': { it: "Più stelle = più visibilità = più persone che scoprono SkillFishOS e contribuiscono. È il modo più veloce per darci una mano.", en: "More stars = more visibility = more people discovering SkillFishOS and contributing. It's the fastest way to help." },
+  'comm.star.btn': { it: "Metti una stella ↗", en: "Star the repo ↗" },
+  'comm.review.t': { it: "★ Lascia una recensione", en: "★ Leave a review" },
+  'comm.review.d': { it: "Hai provato SkillFishOS? Racconta com'è andata su SourceForge: le recensioni convincono altri a provarlo e ci dicono cosa migliorare.", en: "Tried SkillFishOS? Tell others how it went on SourceForge: reviews convince newcomers to try it and tell us what to improve." },
+  'comm.review.btn': { it: "Recensisci su SourceForge ↗", en: "Review on SourceForge ↗" },
+  'comm.idea.t': { it: "💡 Proponi un'idea", en: "💡 Suggest an idea" },
+  'comm.idea.d': { it: "Quale funzione ti renderebbe la vita più facile? Apri una discussione: le idee degli utenti guidano le prossime versioni di SkillFishOS.", en: "Which feature would make your life easier? Start a discussion: user ideas drive the next SkillFishOS releases." },
+  'comm.idea.btn': { it: "Proponi una funzione ↗", en: "Suggest a feature ↗" },
 
   // --- Contact page ---
   'ct.title': { it: "Contatti — SkillFishOS", en: "Contact — SkillFishOS" },

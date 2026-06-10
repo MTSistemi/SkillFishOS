@@ -1,10 +1,16 @@
 ---
-import { t, SITE, type Lang } from '../i18n';
+import { t, localePath, SITE, type Lang } from '../i18n';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const hasIso = SITE.isoUrl !== '';
 const sizeLine = t('dl.size', lang).replace('{size}', SITE.isoSizeGb);
 const issues = `${SITE.github}/issues`;
+const donatePage = localePath('/donate', lang);
+const comm = [
+  { i: '⭐', t: 'comm.star.t', d: 'comm.star.d', btn: 'comm.star.btn', href: SITE.ghStar },
+  { i: '★', t: 'comm.review.t', d: 'comm.review.d', btn: 'comm.review.btn', href: SITE.reviews },
+  { i: '💡', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
+];
 ---
 <section class="hero" style="padding-bottom:30px">
   <div class="wrap">
@@ -62,3 +68,67 @@ const issues = `${SITE.github}/issues`;
     </div>
   </div>
 </section>
+
+<!-- Support strip: persuasive, right under the downloads -->
+<section class="features" style="padding-top:30px">
+  <div class="wrap">
+    <div class="dl-donate">
+      <div class="dl-donate-txt">
+        <div class="eyebrow">{t('don.eye', lang)}</div>
+        <h2 style="font-size:clamp(1.5rem,3.5vw,2.1rem)">{t('don.give.h', lang)}</h2>
+        <p class="muted" set:html={t('don.sub', lang)} />
+        <div class="amounts">
+          {SITE.donateAmounts.map((a) => (
+            <a class="amt" href={`${SITE.donateUrl}/${a}EUR`} target="_blank" rel="noopener">
+              <span class="amt-eur">€{a}</span>
+            </a>
+          ))}
+          <a class="amt amt-more" href={donatePage}>♾️</a>
+        </div>
+        <p class="muted" style="font-size:.86rem;margin-top:14px" set:html={t('don.give.note', lang)} />
+      </div>
+      <a class="dl-qr" href={donatePage} aria-label={t('nav.donate', lang)}>
+        <img src={SITE.donateQr} alt={`PayPal — ${SITE.donateName}`} width="180" height="200" loading="lazy" />
+        <span>{t('don.give.scan', lang)} →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Free ways to help -->
+<section class="showcase" style="padding:50px 0 70px">
+  <div class="wrap">
+    <div class="sec-head"><h2>{t('comm.h', lang)}</h2><p>{t('comm.sub', lang)}</p></div>
+    <div class="grid">
+      {comm.map((c) => (
+        <div class="card comm-card">
+          <span class="ico">{c.i}</span>
+          <h3>{t(c.t, lang)}</h3>
+          <p>{t(c.d, lang)}</p>
+          <a class="btn btn-ghost" href={c.href} target="_blank" rel="noopener">{t(c.btn, lang)}</a>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .dl-donate{display:grid;grid-template-columns:1.4fr .7fr;gap:clamp(20px,4vw,42px);align-items:center;
+    background:linear-gradient(135deg,rgba(216,168,73,.13),rgba(185,114,47,.06));border:1px solid rgba(216,168,73,.38);
+    border-radius:24px;padding:clamp(26px,4vw,44px)}
+  .dl-donate .muted{color:var(--muted);margin:10px 0 18px;max-width:60ch}
+  .dl-donate .amounts{display:flex;gap:12px;flex-wrap:wrap}
+  .dl-donate .amt{padding:12px 22px;border-radius:13px;background:linear-gradient(160deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);transition:transform .15s,border-color .25s,box-shadow .25s}
+  .dl-donate .amt:hover{transform:translateY(-3px);border-color:rgba(216,168,73,.6);box-shadow:0 12px 28px rgba(0,0,0,.4)}
+  .dl-donate .amt-eur{font-family:'Sora','Inter',sans-serif;font-weight:800;font-size:1.35rem;color:var(--gold-lt)}
+  .dl-donate .amt-more{display:grid;place-items:center;font-size:1.2rem}
+  .dl-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:var(--muted);font-size:.86rem}
+  .dl-qr img{width:170px;max-width:60vw;border-radius:14px;background:#fff;padding:8px;border:1px solid rgba(216,168,73,.3);
+    box-shadow:0 12px 30px rgba(0,0,0,.4);transition:transform .2s}
+  .dl-qr:hover img{transform:scale(1.04)}
+  .dl-qr span{color:var(--gold-lt)}
+  .comm-card{display:flex;flex-direction:column;align-items:flex-start}
+  .comm-card p{flex:1;margin-bottom:18px;color:var(--muted)}
+  @media(max-width:760px){.dl-donate{grid-template-columns:1fr;text-align:center}.dl-donate .muted{margin-left:auto;margin-right:auto}.dl-donate .amounts{justify-content:center}.dl-qr{order:-1}}
+</style>
