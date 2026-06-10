@@ -35,6 +35,24 @@ Description: SkillFishOS base - hardware watchdog + freeze detector
  previous shutdown at boot, logging it and notifying the desktop user that
  their overclock/undervolt profile may be unstable.
 
+Package: skillfish-console
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: gamescope, flatpak
+Homepage: https://skillfishos.com
+Priority: optional
+Section: games
+Filename: pool/main/s/skillfish-console/skillfish-console_26.06_all.deb
+Size: 1628
+SHA256: 04b35fd17872cd2cfa06af4e25713ee88b35eca55dc1b70bd4e5aa56efd37c75
+SHA1: f76873319b75a0db8ff59db28c38ff51920b4750
+MD5sum: 8ef209044c862f885cc48e0615464e2d
+Description: SkillFishOS Console - SteamOS-style Big Picture session
+ Adds a "SkillFishOS Console (Big Picture)" entry to the SDDM login screen
+ that boots straight into Steam's gamepad UI inside gamescope, console-style.
+ Quitting Steam returns to the login screen.
+
 Package: skillfish-hub
 Version: 26.06.9
 Architecture: all
