@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+# SkillFishOS Remote Manager - native control panel for the SkillFish Remote dashboard.
+# Master toggle (persistent via systemd) + per-module checkboxes + access URL.
+# Reads status unprivileged; privileged changes go through `pkexec skillfish-remote-ctl`.
+import sys, os, json, subprocess, webbrowser
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QGridLayout, QLabel, QPushButton, QCheckBox, QFrame, QMessageBox)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+CTL = "/usr/local/bin/skillfish-remote-ctl"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LANG") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+# id, icon, name, ready?  (not-ready modules need external tools still to be wired)
+MODULES = [
+    ("telemetry", "📊", L("Telemetria", "Telemetry"), True),
+    ("status", "🧊", L("Stato sistema", "System status"), True),
+    ("tuner", "🎛️", L("Controlli", "Controls"), True),
+    ("power", "🔌", L("Alimentazione", "Power"), True),
+    ("recording", "⏺️", L("Registrazioni", "Recordings"), True),
+    ("logs", "📜", "Log", True),
+    ("launcher", "🚀", L("Avvio app", "Launcher"), True),
+    ("kvm", "🖥️", L("Desktop (KVM)", "Desktop (KVM)"), False),
+    ("terminal", "⌨️", L("Terminale", "Terminal"), False),
+    ("ai", "🧠", "AI / OpenWebUI", False),
+    ("gamestream", "🎮", "Game streaming", False),
+    ("aiops", "🩺", "AI-Ops", False),
+    ("rules", "⚙️", L("Regole auto", "Auto rules"), False),
+    ("wol", "🔋", L("Power schedule", "Power schedule"), False),
+]
+
+CSS = """
+QWidget{background:#0d0b06;color:#cbb98f;font-size:13px}
+QLabel#brand{font-size:20px;font-weight:800}
+QLabel#sub{color:#a9967a}
+QLabel.gl{color:#a9967a;font-size:11px;letter-spacing:1px}
+QFrame.card{background:#1a140b;border:1px solid rgba(216,168,73,.18);border-radius:14px}
+QPushButton{background:#241b10;border:1px solid rgba(216,168,73,.25);border-radius:9px;color:#e8c878;
+            padding:7px 14px;font-weight:600}
+QPushButton:hover{border-color:#d8a849;background:rgba(216,168,73,.16)}
+QPushButton#master{font-size:15px;padding:11px 22px}
+QPushButton#master[on="1"]{background:#2f5d2f;border-color:#5fd24f;color:#dfffd6}
+QPushButton#master[on="0"]{background:#5a2018;border-color:#e0553c;color:#f6d0c4}
+QCheckBox{padding:5px}
+QCheckBox::indicator{width:18px;height:18px}
+QLabel#url{color:#e8c878;font-family:'DejaVu Sans Mono';font-weight:700}
+"""
+
+
+def ctl(args, privileged=False):
+    cmd = (["pkexec", CTL] if privileged else [CTL]) + args
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return p.returncode == 0, (p.stdout or p.stderr).strip()
+    except Exception as e:
+        return False, str(e)
+
+
+class Manager(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS — Remote Manager", "SkillFishOS — Remote Manager"))
+        self.setWindowIcon(QIcon(ICON))
+        self.setStyleSheet(CSS)
+        self.resize(560, 640)
+        w = QWidget(); self.setCentralWidget(w)
+        v = QVBoxLayout(w); v.setContentsMargins(20, 18, 20, 18); v.setSpacing(14)
+
+        head = QVBoxLayout()
+        b = QLabel("Remote Manager"); b.setObjectName("brand"); head.addWidget(b)
+        s = QLabel(L("Pannello di controllo remoto · SkillFishOS",
+                     "Remote control panel · SkillFishOS")); s.setObjectName("sub"); head.addWidget(s)
+        v.addLayout(head)
+
+        # master toggle card
+        mc = QFrame(); mc.setProperty("class", "card"); ml = QHBoxLayout(mc); ml.setContentsMargins(16, 14, 16, 14)
+        self.state_lbl = QLabel("…"); self.state_lbl.setStyleSheet("font-weight:600")
+        self.master = QPushButton("…"); self.master.setObjectName("master")
+        self.master.clicked.connect(self._toggle_master)
+        ml.addWidget(self.state_lbl); ml.addStretch(1); ml.addWidget(self.master)
+        v.addWidget(mc)
+
+        # access card
+        ac = QFrame(); ac.setProperty("class", "card"); al = QVBoxLayout(ac); al.setContentsMargins(16, 12, 16, 12)
+        gl = QLabel(L("ACCESSO", "ACCESS")); gl.setProperty("class", "gl"); al.addWidget(gl)
+        self.url = QLabel("…"); self.url.setObjectName("url"); self.url.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse); al.addWidget(self.url)
+        self.hint = QLabel("…"); self.hint.setObjectName("sub"); al.addWidget(self.hint)
+        ob = QPushButton(L("Apri nel browser", "Open in browser")); ob.clicked.connect(self._open)
+        row = QHBoxLayout(); row.addWidget(ob); row.addStretch(1); al.addLayout(row)
+        v.addWidget(ac)
+
+        # modules card
+        modc = QFrame(); modc.setProperty("class", "card"); mvl = QVBoxLayout(modc); mvl.setContentsMargins(16, 12, 16, 14)
+        gl2 = QLabel(L("MODULI ESPOSTI", "EXPOSED MODULES")); gl2.setProperty("class", "gl"); mvl.addWidget(gl2)
+        grid = QGridLayout(); grid.setHorizontalSpacing(18); self.checks = {}
+        for i, (mid, icon, name, ready) in enumerate(MODULES):
+            cb = QCheckBox("%s %s%s" % (icon, name, "" if ready else L("  (in arrivo)", "  (coming)")))
+            cb.setEnabled(ready)
+            cb.toggled.connect(lambda on, m=mid: self._set_module(m, on))
+            self.checks[mid] = cb
+            grid.addWidget(cb, i // 2, i % 2)
+        mvl.addLayout(grid)
+        v.addWidget(modc)
+        v.addStretch(1)
+
+        self._loading = False
+        self.refresh()
+
+    def refresh(self):
+        ok, out = ctl(["status"])
+        try:
+            st = json.loads(out)
+        except Exception:
+            self.state_lbl.setText(L("servizio non disponibile", "service unavailable")); return
+        self._loading = True
+        active = st.get("active") == "active"
+        self.master.setText(L("Disattiva", "Turn off") if active else L("Attiva", "Turn on"))
+        self.master.setProperty("on", "1" if active else "0")
+        self.master.style().unpolish(self.master); self.master.style().polish(self.master)
+        en = st.get("enabled", "")
+        self.state_lbl.setText((L("● Attiva", "● On") if active else L("○ Spenta", "○ Off")) +
+                               L("  · all'avvio: ", "  · at boot: ") + en)
+        host, ip, port = st.get("host", ""), st.get("ip", ""), st.get("port", 8443)
+        self.url.setText("https://%s.local:%s    https://%s:%s" % (host.lower(), port, ip, port))
+        self._url = "https://%s:%s" % (ip or "localhost", port)
+        self.hint.setText(L("Accedi con la password dell'utente «%s».", "Log in with user “%s” password.")
+                          % st.get("user", "skillfish"))
+        mods = st.get("modules", {})
+        for mid, cb in self.checks.items():
+            cb.blockSignals(True); cb.setChecked(bool(mods.get(mid))); cb.blockSignals(False)
+        self._loading = False
+
+    def _toggle_master(self):
+        ok, out = ctl(["status"]); active = False
+        try: active = json.loads(out).get("active") == "active"
+        except Exception: pass
+        ok, out = ctl(["disable" if active else "enable"], privileged=True)
+        if not ok and out:
+            QMessageBox.warning(self, "Remote Manager", out)
+        self.refresh()
+
+    def _set_module(self, mid, on):
+        if self._loading:
+            return
+        ok, out = ctl(["set", mid, "1" if on else "0"], privileged=True)
+        if not ok and out:
+            QMessageBox.warning(self, "Remote Manager", out)
+        self.refresh()
+
+    def _open(self):
+        try: webbrowser.open(getattr(self, "_url", "https://localhost:8443"))
+        except Exception: pass
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Remote Manager")
+    app.setDesktopFileName("os.skillfish.remote-manager")
+    app.setWindowIcon(QIcon(ICON))
+    win = Manager(); win.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

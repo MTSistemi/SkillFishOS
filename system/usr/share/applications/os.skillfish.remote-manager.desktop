@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Remote Manager
+GenericName=Remote dashboard control
+Comment=Enable the LAN remote dashboard and choose which modules to expose
+Comment[it]=Attiva la dashboard remota LAN e scegli quali moduli esporre
+Exec=/usr/local/bin/skillfish-remote-manager
+Icon=skillfishos
+Terminal=false
+Categories=System;Settings;Network;X-SkillFishOS;
+Keywords=remote;dashboard;vnc;kvm;control;skillfish;
+StartupNotify=true
+X-KDE-StartupNotify=true

@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+# Privileged control helper for the SkillFish Remote dashboard.
+#   status | get                 -> read-only (any user)
+#   enable | disable             -> systemctl enable/disable --now the service (root)
+#   set <module> <0|1>           -> toggle a module in the config + restart if active (root)
+#   port <n>                     -> set the listen port + restart if active (root)
+# Reads are unprivileged; writes are meant to be run via pkexec.
+import sys, json, os, subprocess
+
+CONF = "/etc/skillfish/dashboard.json"
+SVC = "skillfish-dashboard.service"
+
+
+def load():
+    try:
+        with open(CONF) as f:
+            return json.load(f)
+    except Exception:
+        return {"bind": "0.0.0.0", "port": 8443, "user": "skillfish", "modules": {}}
+
+
+def save(c):
+    os.makedirs("/etc/skillfish", exist_ok=True)
+    with open(CONF, "w") as f:
+        json.dump(c, f, indent=2)
+
+
+def sysctl(*args):
+    return subprocess.run(["systemctl", *args], capture_output=True, text=True).stdout.strip()
+
+
+def restart_if_active():
+    if sysctl("is-active", SVC) == "active":
+        subprocess.run(["systemctl", "restart", SVC])
+
+
+def main():
+    a = sys.argv[1:] or ["status"]
+    cmd = a[0]
+    if cmd in ("status", "get"):
+        c = load()
+        if cmd == "get":
+            print(json.dumps(c)); return
+        ip = subprocess.run(["hostname", "-I"], capture_output=True, text=True).stdout.split()
+        host = subprocess.run(["hostname"], capture_output=True, text=True).stdout.strip()
+        print(json.dumps({"active": sysctl("is-active", SVC), "enabled": sysctl("is-enabled", SVC),
+                          "port": c.get("port", 8443), "user": c.get("user", "skillfish"),
+                          "host": host, "ip": ip[0] if ip else "", "modules": c.get("modules", {})}))
+    elif cmd == "enable":
+        subprocess.run(["systemctl", "enable", "--now", SVC]); print("ok")
+    elif cmd == "disable":
+        subprocess.run(["systemctl", "disable", "--now", SVC]); print("ok")
+    elif cmd == "set" and len(a) >= 3:
+        c = load(); c.setdefault("modules", {})[a[1]] = a[2] in ("1", "true", "on", "yes")
+        save(c); restart_if_active(); print("ok")
+    elif cmd == "port" and len(a) >= 2:
+        c = load(); c["port"] = int(a[1]); save(c); restart_if_active(); print("ok")
+    else:
+        sys.stderr.write("usage: status|get|enable|disable|set <module> <0|1>|port <n>\n"); sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
