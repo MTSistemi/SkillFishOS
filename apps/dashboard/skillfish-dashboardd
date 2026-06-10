@@ -375,6 +375,77 @@ def rec_list():
     return out
 
 
+# ---------------- interactive services (KVM / Terminal) ----------------
+import secrets
+SVC_PROC = {}                       # name -> Popen
+VNC_PASS = secrets.token_hex(4)     # 8 hex chars, regenerated each daemon start
+TTYD_TOKEN = secrets.token_urlsafe(12)
+KVM_PORT, TTYD_PORT = 6080, 7681
+
+
+def _alive(name):
+    p = SVC_PROC.get(name)
+    return p is not None and p.poll() is None
+
+
+def _spawn(name, argv, as_user=False, kill_pat=None):
+    if _alive(name):
+        return
+    # a previous run may have left an orphan squatting the port → clear it first
+    if kill_pat:
+        subprocess.run(["pkill", "-f", kill_pat], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.3)
+    if as_user:
+        u = CONFIG.get("user", "skillfish")
+        argv = ["sudo", "-u", u, "env"] + ["%s=%s" % (k, v) for k, v in user_env().items()] + argv
+    SVC_PROC[name] = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def kvm_start():
+    # our own x11vnc on a dedicated port (5901), bound to localhost + password, so it never
+    # clashes with a user-run skillfish-x11vnc and is never exposed unencrypted on the LAN;
+    # websockify bridges it to noVNC over TLS on KVM_PORT.
+    _spawn("x11vnc", ["x11vnc", "-display", ":0", "-rfbport", "5901", "-localhost",
+                      "-passwd", VNC_PASS, "-forever", "-shared", "-noxdamage", "-repeat", "-quiet"],
+           as_user=True, kill_pat="x11vnc -display :0 -rfbport 5901")
+    time.sleep(1.0)
+    _spawn("websockify", ["websockify", "--cert", CERT_F, "--key", KEY_F,
+                          "--web", "/usr/share/novnc", str(KVM_PORT), "localhost:5901"],
+           kill_pat="websockify --cert")
+    time.sleep(0.8)
+    ip = sysinfo().get("ip", "")
+    return {"ok": True, "url": "https://%s:%d/vnc.html?autoconnect=1&resize=scale&password=%s"
+            % (ip, KVM_PORT, VNC_PASS), "password": VNC_PASS}
+
+
+def kvm_stop():
+    for n in ("websockify", "x11vnc"):
+        p = SVC_PROC.pop(n, None)
+        if p and p.poll() is None:
+            p.terminate()
+    return {"ok": True}
+
+
+def terminal_start():
+    u = CONFIG.get("user", "skillfish")
+    # ttyd runs as root (to read the TLS key) and drops to the user's login shell via `su -`.
+    # ttyd's getopt permutes, so it would eat shell flags (e.g. -i) from the command — pass
+    # the command after `--`. ttyd binds all interfaces by default.
+    _spawn("ttyd", ["ttyd", "--ssl", "--ssl-cert", CERT_F, "--ssl-key", KEY_F, "-p", str(TTYD_PORT),
+                    "-c", "skillfish:" + TTYD_TOKEN, "-W", "-t", "fontSize=14", "--", "su", "-", u],
+           kill_pat="ttyd --ssl")
+    time.sleep(0.8)
+    ip = sysinfo().get("ip", "")
+    return {"ok": True, "url": "https://%s:%d" % (ip, TTYD_PORT), "user": "skillfish", "token": TTYD_TOKEN}
+
+
+def terminal_stop():
+    p = SVC_PROC.pop("ttyd", None)
+    if p and p.poll() is None:
+        p.terminate()
+    return {"ok": True}
+
+
 # ---------------- HTTP ----------------
 CONFIG = load_conf()
 _login_fails = {}  # ip -> (count, first_ts)
@@ -533,6 +604,22 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("recording"):
                 return
             return self._json(200, rec_stop())
+        if path == "/api/kvm/start":
+            if not self._guard("kvm"):
+                return
+            return self._json(200, kvm_start())
+        if path == "/api/kvm/stop":
+            if not self._guard("kvm"):
+                return
+            return self._json(200, kvm_stop())
+        if path == "/api/terminal/start":
+            if not self._guard("terminal"):
+                return
+            return self._json(200, terminal_start())
+        if path == "/api/terminal/stop":
+            if not self._guard("terminal"):
+                return
+            return self._json(200, terminal_stop())
         return self._json(404, {"error": "not found"})
 
     def _login(self):

@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/skillfish-dashboardd
+ExecStopPost=/bin/sh -c 'pkill -f "ttyd --ssl"; pkill -f "websockify --cert"; pkill -f "x11vnc -display :0 -rfbport 5901"; true'
 Restart=on-failure
 RestartSec=3
 # LAN control panel: needs PAM auth and system actions, so it runs as root.

@@ -172,6 +172,22 @@ const RENDER = {
     };
     refresh(); card._iv = setInterval(refresh, 4000);
   },
+  kvm(card) {
+    card.innerHTML = '<h3>🖥️ Desktop (KVM)</h3><div class="brow"><button class="dbtn" id="kvmgo">▶ Avvia desktop remoto</button></div>' +
+      '<div class="stub" id="kvmi" style="margin-top:8px">Schermo, tastiera e mouse della scheda nel browser.</div>';
+    $("#kvmgo", card).onclick = async () => {
+      const j = await action("/api/kvm/start", {}, "Desktop pronto");
+      if (j && j.url) { window.open(j.url, "_blank"); $("#kvmi", card).innerHTML = "Aperto in nuova scheda. Password VNC: <b>" + j.password + "</b>"; }
+    };
+  },
+  terminal(card) {
+    card.innerHTML = '<h3>⌨️ Terminale</h3><div class="brow"><button class="dbtn" id="tgo">▶ Apri terminale</button></div>' +
+      '<div class="stub" id="ti" style="margin-top:8px">Shell della scheda nel browser.</div>';
+    $("#tgo", card).onclick = async () => {
+      const j = await action("/api/terminal/start", {}, "Terminale pronto");
+      if (j && j.url) { window.open(j.url, "_blank"); $("#ti", card).innerHTML = "Aperto. Login: utente <b>" + j.user + "</b> · token <b>" + j.token + "</b>"; }
+    };
+  },
   _stub(card, mod) {
     card.innerHTML = `<h3>${mod.icon} ${mod.name}</h3><div class="stub">Modulo attivo — interfaccia in arrivo.</div>`;
   },
