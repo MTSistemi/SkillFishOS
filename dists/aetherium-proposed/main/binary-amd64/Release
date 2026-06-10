@@ -1,0 +1,6 @@
+Archive: proposed
+Component: main
+Origin: SkillFishOS
+Label: SkillFishOS
+Architecture: amd64
+Description: SkillFishOS staging - pre-release packages (48h soak before aetherium)

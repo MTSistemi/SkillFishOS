@@ -16,6 +16,25 @@ Description: SkillFish AI - on-device LLM control panel
  hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
 Homepage: https://skillfishos.com
 
+Package: skillfish-base
+Version: 26.06
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: systemd, libnotify-bin
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-base/skillfish-base_26.06_all.deb
+Size: 2888
+SHA256: ca58d2e4b769682f433465024596f3cd031bcd0dbc7c047544f84e902758d956
+SHA1: 08f68d97b816f094db6ad1934a5281b8cbcf28e2
+MD5sum: 692055f4ba5507731e6f79bc8e131858
+Description: SkillFishOS base - hardware watchdog + freeze detector
+ Enables the AMD SP5100 hardware watchdog (the board reboots itself on a hard
+ hang instead of needing a physical power-cycle) and detects an unclean
+ previous shutdown at boot, logging it and notifying the desktop user that
+ their overclock/undervolt profile may be unstable.
+
 Package: skillfish-hub
 Version: 26.06.9
 Architecture: all
@@ -114,16 +133,16 @@ Homepage: https://skillfishos.com
 Package: skillfish-tuner
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
-Version: 26.06.7
+Version: 26.06.8
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Recommends: umr
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.7_all.deb
-Size: 393996
-SHA256: 369c5061411b49d79cc974f1395cb0ee951c2e16fa7ca2df26bd9e5a0d310842
-SHA1: f882598a9a51fadc10f73f2c4d720ee71fd1c6ab
-MD5sum: dcc9186e371b339cad300a97727523f7
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.8_all.deb
+Size: 394400
+SHA256: 1aa4740a947d4f0954e18a5161017f8a5acaf86f9f7aa4b060f2dca6dd6568a7
+SHA1: a4d9b587223e7615d8ada7402dbc09b84d9e588d
+MD5sum: 229504e8546ef9c77a09599439716315
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
  overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
