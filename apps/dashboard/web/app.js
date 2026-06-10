@@ -96,7 +96,7 @@ const RENDER = {
         const s = await (await api("/api/status")).json();
         const row = (a, b) => `<div class="r"><span>${a}</span><span>${b || "–"}</span></div>`;
         $("#srows", card).innerHTML =
-          row("Host", s.host) + row("IP", s.ip) + row("Kernel", s.kernel) +
+          row("Sei connesso a", s.you) + row("Host", s.host) + row("IP (rotta)", s.ip) + row("Kernel", s.kernel) +
           row("Uptime", s.uptime) + row("CU attive", s.cu) +
           row("RAM", s.ram_used_mb ? `${s.ram_used_mb} / ${s.ram_total_mb} MB` : "") +
           row("Disco /", s.disk_used ? `${s.disk_used} / ${s.disk_total} (${s.disk_pct})` : "") +
@@ -177,7 +177,11 @@ const RENDER = {
       '<div class="stub" id="kvmi" style="margin-top:8px">Schermo, tastiera e mouse della scheda nel browser.</div>';
     $("#kvmgo", card).onclick = async () => {
       const j = await action("/api/kvm/start", {}, "Desktop pronto");
-      if (j && j.url) { window.open(j.url, "_blank"); $("#kvmi", card).innerHTML = "Aperto in nuova scheda. Password VNC: <b>" + j.password + "</b>"; }
+      if (j && j.port) {
+        const url = `https://${location.hostname}:${j.port}/vnc.html?autoconnect=1&resize=scale&password=${encodeURIComponent(j.password)}`;
+        window.open(url, "_blank");
+        $("#kvmi", card).innerHTML = 'Aperto in nuova scheda. Se appare un avviso certificato, accettalo (porta ' + j.port + ').';
+      }
     };
   },
   terminal(card) {
@@ -185,7 +189,13 @@ const RENDER = {
       '<div class="stub" id="ti" style="margin-top:8px">Shell della scheda nel browser.</div>';
     $("#tgo", card).onclick = async () => {
       const j = await action("/api/terminal/start", {}, "Terminale pronto");
-      if (j && j.url) { window.open(j.url, "_blank"); $("#ti", card).innerHTML = "Aperto. Login: utente <b>" + j.user + "</b> · token <b>" + j.token + "</b>"; }
+      if (j && j.port) {
+        const url = `https://${location.hostname}:${j.port}`;
+        window.open(url, "_blank");
+        $("#ti", card).innerHTML = 'Aperto su <b>' + location.hostname + ':' + j.port + '</b>.<br>' +
+          'Accetta l\'eventuale avviso certificato, poi nel login inserisci:<br>' +
+          'utente <b>' + j.user + '</b> · password <b style="user-select:all">' + j.token + '</b>';
+      }
     };
   },
   _stub(card, mod) {

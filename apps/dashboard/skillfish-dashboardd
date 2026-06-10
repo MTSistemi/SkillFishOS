@@ -191,7 +191,10 @@ def sysinfo():
             return ""
     info = {}
     info["host"] = sh("hostname")
-    info["ip"] = sh("hostname -I").split()[0] if sh("hostname -I") else ""
+    # primary LAN IP = source address of the default route (not just the first of
+    # `hostname -I`, which can be a secondary/stale or docker/lxc address).
+    info["ip"] = (sh(r"ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'")
+                  or (sh("hostname -I").split()[0] if sh("hostname -I") else ""))
     info["kernel"] = sh("uname -r")
     try:
         with open("/proc/uptime") as f:
@@ -413,9 +416,9 @@ def kvm_start():
                           "--web", "/usr/share/novnc", str(KVM_PORT), "localhost:5901"],
            kill_pat="websockify --cert")
     time.sleep(0.8)
-    ip = sysinfo().get("ip", "")
-    return {"ok": True, "url": "https://%s:%d/vnc.html?autoconnect=1&resize=scale&password=%s"
-            % (ip, KVM_PORT, VNC_PASS), "password": VNC_PASS}
+    # the frontend builds the URL from the host the browser is already using, so we
+    # never advertise a wrong/secondary IP — just hand back the port + password.
+    return {"ok": True, "port": KVM_PORT, "password": VNC_PASS}
 
 
 def kvm_stop():
@@ -435,8 +438,7 @@ def terminal_start():
                     "-c", "skillfish:" + TTYD_TOKEN, "-W", "-t", "fontSize=14", "--", "su", "-", u],
            kill_pat="ttyd --ssl")
     time.sleep(0.8)
-    ip = sysinfo().get("ip", "")
-    return {"ok": True, "url": "https://%s:%d" % (ip, TTYD_PORT), "user": "skillfish", "token": TTYD_TOKEN}
+    return {"ok": True, "port": TTYD_PORT, "user": "skillfish", "token": TTYD_TOKEN}
 
 
 def terminal_stop():
@@ -518,7 +520,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             if not self._user():
                 return self._json(401, {"error": "auth"})
-            return self._json(200, sysinfo())
+            s = sysinfo()
+            s["you"] = (self.headers.get("Host", "") or "").split(":")[0]  # host you actually reached us on
+            return self._json(200, s)
         if path == "/api/telemetry":
             if not self._guard("telemetry"):
                 return
