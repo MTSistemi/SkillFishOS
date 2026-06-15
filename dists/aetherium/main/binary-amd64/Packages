@@ -53,6 +53,28 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  that boots straight into Steam's gamepad UI inside gamescope, console-style.
  Quitting Steam returns to the login screen.
 
+Package: skillfish-dashboard
+Version: 26.06.1
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
+Recommends: ttyd, novnc, websockify, x11vnc, ethtool, wakeonlan, flatpak, snapd
+Suggests: zerotier-one, docker.io
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.06.1_all.deb
+Size: 46212
+SHA256: 32aa7081635600cc1b23ab0876399fb05abaec1d9a693fb6da5f06f173ec3442
+SHA1: 88dfdb20bf543f61f7b153ba0a54fc75443f9e34
+MD5sum: ba9d120a45eda5767a7e033b0b3a359c
+Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
+ A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
+ board remotely: telemetry, software KVM (noVNC), web terminal (ttyd), the
+ Tuner (CPU/GPU/compute-unit control), a full Hub app store, AI/OpenWebUI,
+ logs, Wake-on-LAN and ZeroTier. Ships the always-available daemon plus the
+ native Remote Manager toggle app.
+
 Package: skillfish-hub
 Version: 26.06.9
 Architecture: all
