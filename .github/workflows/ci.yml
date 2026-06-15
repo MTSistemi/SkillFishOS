@@ -86,7 +86,7 @@ jobs:
           lintian --no-tag-display-limit /tmp/sfx-debs/out/*.deb || true
 
       - name: Upload .deb artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: skillfish-debs
           path: /tmp/sfx-debs/out/*.deb
