@@ -226,6 +226,13 @@ DEFAULT_COMPOSE = """services:
     image: ollama/ollama:rocm
     container_name: skillfish-ollama
     restart: unless-stopped
+    environment:
+      # BC-250 (gfx1013): use the Vulkan backend and allow the integrated GPU,
+      # otherwise Ollama silently falls back to slow CPU inference.
+      - OLLAMA_VULKAN=1
+      - OLLAMA_IGPU_ENABLE=1
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KEEP_ALIVE=30m
     devices:
       - /dev/kfd
       - /dev/dri
@@ -326,19 +333,27 @@ class InstallPage(QWizardPage):
     def _append(self, s): self.log.append(s)
     def run(self):
         self.btn.setEnabled(False); self.bar.show()
+        user = os.environ.get("USER") or os.environ.get("LOGNAME") or "skillfish"
         steps = []
         if not docker_ok():
             steps.append("pkexec sh -c 'apt-get update && apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker'")
+        # add the desktop user to the docker group so `docker` works without sudo (needs re-login)
+        steps.append(f"pkexec usermod -aG docker {user}")
         steps.append(f"pkexec mkdir -p {STACK_DIR}" if not os.access(os.path.dirname(STACK_DIR), os.W_OK) else f"mkdir -p {STACK_DIR}")
         if not stack_present():
             # write a default compose if the SkillFishOS one is absent (needs root for /opt)
             tgt = os.path.join(STACK_DIR, "compose.yaml")
             steps.append("pkexec sh -c " + repr(f"cat > {tgt} <<'EOF'\n{DEFAULT_COMPOSE}EOF\n"))
-        steps.append(f"sh -c 'cd {STACK_DIR} && docker compose up -d'")
+        # run compose as root: the docker group membership above only applies after re-login,
+        # so the very first start must not rely on it (this is the fix for the perm-denied bug)
+        steps.append(f"pkexec sh -c 'cd {STACK_DIR} && docker compose up -d'")
         self._queue = steps; self._next()
     def _next(self):
         if not self._queue:
-            self._append(L("\n✓ Stack avviato.", "\n✓ Stack started."))
+            self._append(L("\n✓ Stack avviato. Esci e rientra nella sessione perché l'accesso "
+                           "a Docker senza sudo diventi effettivo.",
+                           "\n✓ Stack started. Log out and back in so passwordless Docker "
+                           "access takes effect."))
             self.bar.hide(); self.ok = True; self.completeChanged.emit(); return
         cmd = self._queue.pop(0)
         self._append("$ " + (cmd[:90] + ("…" if len(cmd) > 90 else "")))
