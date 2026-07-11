@@ -6,8 +6,13 @@ RewriteEngine On
 # Keeps the public-facing URL on our own domain; QSD discards any incoming query string.
 # (Full proxy-masking of a 5.6 GB file isn't feasible on shared hosting, so this is a 302.)
 
-# 26.06 "Aetherium" (BC-250) — current release, hosted on SourceForge
-RewriteRule ^dl/SkillFishOS-26\.06-Aetherium-BC250-amd64\.iso$ https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-BC250-amd64.iso/download [R=302,L,QSD]
+# 26.06.2 "Aetherium" — current release (3 editions), hosted on SourceForge
+RewriteRule ^dl/SkillFishOS-26\.06\.2-Aetherium-BC250-amd64\.iso$ https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-BC250-amd64.iso/download [R=302,L,QSD]
+RewriteRule ^dl/SkillFishOS-26\.06\.2-Aetherium-Generic-amd64\.iso$ https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Generic-amd64.iso/download [R=302,L,QSD]
+RewriteRule ^dl/SkillFishOS-26\.06\.2-Aetherium-Slim-BC250-amd64\.iso$ https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Slim-BC250-amd64.iso/download [R=302,L,QSD]
+
+# back-compat: bare BC-250 short link keeps working, now points at 26.06.2
+RewriteRule ^dl/SkillFishOS-26\.06-Aetherium-BC250-amd64\.iso$ https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-BC250-amd64.iso/download [R=302,L,QSD]
 
 # stable alias (always points at the latest SourceForge default download)
 RewriteRule ^dl/skillfishos-latest\.iso$ https://sourceforge.net/projects/skillfishos/files/latest/download [R=302,L,QSD]
