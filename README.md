@@ -125,11 +125,11 @@ Each live ISO (~6.2 GB) is captured from the real system with [penguins-eggs](ht
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-BC250-amd64.iso/download) | `7.0.11-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-Generic-amd64.iso/download) | `7.0.11-skillfishos-generic` | any x86-64 PC / VM |
-| [**Slim**](https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-Slim-BC250-amd64.iso/download) | `7.0.11-skillfishos-slim` | BC-250, ultra-lean |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-BC250-amd64.iso/download) | `7.0.11-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Generic-amd64.iso/download) | `7.0.11-skillfishos-generic` | any x86-64 PC / VM |
+| [**Slim**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Slim-BC250-amd64.iso/download) | `7.0.11-skillfishos-slim` | BC-250, ultra-lean |
 
-Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
+Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 
 > The signed **APT repo is live** at <https://mtsistemi.github.io/SkillFishOS/>. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
 

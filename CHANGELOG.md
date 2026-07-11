@@ -6,6 +6,21 @@ All notable changes to SkillFishOS. Dates are ISO-8601.
 
 _Nothing yet._
 
+## [26.06.2 "Aetherium" — media respin] — 2026-07-11
+
+A maintenance respin of the 26.06 "Aetherium" media, fixing four community-reported bugs (thanks to **@SwiatLinuksa**). Same three editions and kernel family (`7.0.11-skillfishos` ×3 flavours). Existing installs get the app fixes via `apt full-upgrade` — no reinstall needed; the ISO fixes (locale, installer) only matter for fresh installs.
+
+### Fixed
+- **Language no longer stuck on Italian** (#11) — a hardcoded locale in `/etc/environment` overrode the language chosen at install / in KDE, leaving the SkillFishOS apps and game launchers in Italian on English (and other) systems. The installed system now honours the chosen language; the language is set solely by `/etc/default/locale`.
+- **On-device AI uses the GPU out of the box** (#14) — the AI setup wizard's generated `compose.yaml` was missing the GPU flags, so Ollama fell back to slow CPU inference. It now sets `OLLAMA_VULKAN=1` + `OLLAMA_IGPU_ENABLE=1` (plus flash-attention and a 30-minute keep-alive). Shipped as `skillfish-ai-panel` 26.06.5.
+- **SkillFish AI starts on the first try** (#13) — the setup wizard now adds the user to the `docker` group and runs the first stack start as root (`pkexec`), so it no longer fails with a Docker permission error before the user re-logs in.
+
+### Hardening
+- **Sturdier install/boot** (for #12) — the installer now also writes the removable EFI fallback bootloader (`\EFI\BOOT\BOOTX64.EFI`), which the BC-250's firmware often boots from, and uses an explicit GRUB-safe Btrfs subvolume layout (`@`, `@home`, `@cache`, `@log`).
+
+### Also updated
+- The media capture the latest **SkillFishOS Remote Manager** web dashboard, the web **Tuner** (temperature→fan% curve editor, named CU/WGP profiles, CPU core map, GPU/CPU "find my max" wizards) and the full web **Hub** app store with a featured "App SkillFishOS" section.
+
 ## [26.06.1 "Aetherium" — media respin] — 2026-06-10
 
 ### ISOs
