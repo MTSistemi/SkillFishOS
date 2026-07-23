@@ -15,6 +15,13 @@ put() { # put <pkg> <mode> <src> <dest-rel>
 opt() { # like put, but optional
   [ -f "$3" ] && install -D -m "$2" "$3" "$OUT/$1/$4" || echo "  (optional, skipped: $3)"
 }
+putdir() { # putdir <pkg> <src-dir> <dest-rel-dir>: install a whole tree (0644)
+  [ -d "$2" ] || { echo "FATAL: missing source dir $2" >&2; exit 1; }
+  local f
+  while IFS= read -r f; do
+    install -D -m 0644 "$2/$f" "$OUT/$1/$3/$f"
+  done < <(cd "$2" && find . -type f ! -name 'icon-theme.cache' -printf '%P\n')
+}
 ctrl() { # ctrl <pkg> <depends> <desc-first-line>
   mkdir -p "$OUT/$1/DEBIAN"
   printf 'Package: %s\nVersion: %s\nArchitecture: all\nMaintainer: SkillFishOS <info@skillfishos.com>\nDepends: %s\nSection: utils\nPriority: optional\nHomepage: https://skillfishos.com\nDescription: %s\n built from git by CI.\n' \
@@ -130,8 +137,26 @@ printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboar
 printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then systemctl disable --now skillfish-dashboard.service 2>/dev/null || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
+P=skillfish-theme
+# The steampunk look used to be baked into the ISO filesystem only (no package
+# owned it), so a fix could not reach installed systems through apt. It ships
+# as a package now — same paths, so it simply takes ownership of the files.
+putdir $P theme/icons/SkillFishSteampunk              usr/share/icons/SkillFishSteampunk
+putdir $P theme/cursors/SkillFish-Steampunk-Cursors   usr/share/icons/SkillFish-Steampunk-Cursors
+putdir $P theme/plasma-theme/SkillFishSteampunk       usr/share/plasma/desktoptheme/SkillFishSteampunk
+putdir $P theme/look-and-feel/org.skillfish.steampunk usr/share/plasma/look-and-feel/org.skillfish.steampunk
+putdir $P theme/Kvantum/SkillFishSteampunk            usr/share/Kvantum/SkillFishSteampunk
+put $P 0644 theme/color-scheme/SkillFishSteampunk.colors usr/share/color-schemes/SkillFishSteampunk.colors
+for a in theme/avatars/steampunk-*.png; do
+  put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
+done
+ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours"
+# refresh the icon cache of our own themes (and drop any stale one we replaced)
+printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  [ -d "/usr/share/icons/$t" ] || continue\n  gtk-update-icon-cache -q -f "/usr/share/icons/$t" 2>/dev/null || rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
 echo "== building =="
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard; do
+for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   dpkg-deb --root-owner-group --build "$OUT/$P" "$OUT/out/${P}_${VER}_all.deb" >/dev/null
 done
@@ -151,4 +176,8 @@ check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor  
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
+check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampunk/index.theme        SkillFish
+# guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
+# renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)
+check skillfish-theme_${VER}_all.deb ./usr/share/icons/SkillFishSteampunk/scalable/actions/document-open.svg document_open_copper
 echo "ALL DEBS VERIFIED"

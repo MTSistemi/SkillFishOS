@@ -63,3 +63,9 @@ print("\n".join(report[:40]))
 if len(report) > 40:
     print(f"  ... e altre {len(report)-40} righe")
 print(f"\n=== {'APPLICATO' if APPLY else 'DRY-RUN'}: {files_changed} file, {changed} riferimenti riscritti, {skipped} saltati ===")
+
+# Uscita non-zero se restano riferimenti rotti: in dry-run e' la guardia CI
+# (qtsvg >= 6.10.2-9 non dipinge gli elementi con paint irrisolvibile ->
+# icone vuote nel menu), in --apply segnala i casi che non ha saputo riparare.
+if skipped or (files_changed and not APPLY):
+    sys.exit(1)

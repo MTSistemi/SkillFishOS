@@ -7,6 +7,7 @@ on:
       - 'apps/**'
       - 'system/usr/**'
       - 'system/etc/**'
+      - 'theme/**'
       - 'tests/**'
       - 'scripts/build-debs-ci.sh'
       - '.github/workflows/ci.yml'
@@ -66,6 +67,13 @@ jobs:
             fi
           done
           echo "mirror in sync"
+
+      - name: Icon theme — no dangling gradient references
+        run: |
+          # qtsvg >= 6.10.2-9 refuses to paint an element whose fill points at a
+          # missing gradient id, so a cross-icon reference renders as an EMPTY
+          # icon in the Plasma menu. Dry-run exits non-zero if any are left.
+          python scripts/fix-icon-gradient-refs.py theme/icons/SkillFishSteampunk
 
       - name: Unit tests (governor config logic)
         run: |
