@@ -1,0 +1,37 @@
+name: "✨ Feature request"
+description: Suggest an improvement for SkillFishOS
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to do, and what's missing or painful today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - "Kernel / hardware enablement"
+        - "Tuner"
+        - "AI panel"
+        - "ISO / installer"
+        - "Theme / desktop"
+        - "Updates / APT repo"
+        - "Gaming / emulation"
+        - "Docs / website"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

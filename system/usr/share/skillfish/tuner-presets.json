@@ -1,0 +1,100 @@
+{
+  "presets": [
+    {
+      "name": "Stock",
+      "name_it": "Stock",
+      "name_en": "Stock",
+      "desc": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz.",
+      "desc_it": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz.",
+      "desc_en": "Safe baseline. CPU 3500 MHz, GPU 1500 MHz.",
+      "cpu": {
+        "frequency": 3500,
+        "scale": 0,
+        "max_temperature": 85
+      },
+      "gpu": {
+        "min_mhz": 350,
+        "min_mv": 700,
+        "max_mhz": 1500,
+        "max_mv": 900
+      },
+      "fan": {
+        "mode": "auto",
+        "pct": 45
+      },
+      "thermal_guard": 85
+    },
+    {
+      "name": "Performance",
+      "name_it": "Performance",
+      "name_en": "Performance",
+      "desc": "Equilibrato e undervoltato. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "desc_it": "Equilibrato e undervoltato. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "desc_en": "Balanced + undervolted. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "cpu": {
+        "frequency": 3700,
+        "scale": -16,
+        "max_temperature": 85
+      },
+      "gpu": {
+        "min_mhz": 350,
+        "min_mv": 700,
+        "max_mhz": 2000,
+        "max_mv": 1000
+      },
+      "fan": {
+        "mode": "auto",
+        "pct": 55
+      },
+      "thermal_guard": 85
+    },
+    {
+      "name": "Turbo",
+      "name_it": "Turbo",
+      "name_en": "Turbo",
+      "desc": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "desc_it": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "desc_en": "High boost. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "cpu": {
+        "frequency": 3900,
+        "scale": -24,
+        "max_temperature": 85
+      },
+      "gpu": {
+        "min_mhz": 350,
+        "min_mv": 700,
+        "max_mhz": 2200,
+        "max_mv": 1000
+      },
+      "fan": {
+        "mode": "auto",
+        "pct": 65
+      },
+      "thermal_guard": 85
+    },
+    {
+      "name": "Crazy",
+      "name_it": "Crazy",
+      "name_en": "Crazy",
+      "desc": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
+      "desc_it": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
+      "desc_en": "Validated maximum. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
+      "cpu": {
+        "frequency": 4000,
+        "scale": -36,
+        "max_temperature": 85
+      },
+      "gpu": {
+        "min_mhz": 350,
+        "min_mv": 700,
+        "max_mhz": 2200,
+        "max_mv": 1000
+      },
+      "fan": {
+        "mode": "auto",
+        "pct": 70
+      },
+      "thermal_guard": 85
+    }
+  ]
+}

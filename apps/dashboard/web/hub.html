@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SkillFishOS Hub</title>
+<style>
+  :root{--bg:#0b0905;--panel:#171206;--panel2:#1a140b;--side:#0f0c07;--gold:#d8a849;--gold-lt:#e8c878;
+        --copper:#b9722f;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.18);
+        --green:#9ccf6a;--red:#e0876a}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  a{color:var(--gold-lt)}
+  .top{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--side);border-bottom:1px solid var(--line)}
+  .top b{color:var(--gold-lt);font-size:1.05rem}
+  .top input{flex:1;max-width:420px;background:#0d0b06;border:1px solid var(--line);color:var(--cream);border-radius:9px;padding:8px 12px;font-size:.92rem}
+  .top input:focus{outline:none;border-color:var(--gold)}
+  .sp{flex:1}
+  .gbtn{background:rgba(216,168,73,.08);border:1px solid var(--line);color:var(--gold-lt);border-radius:9px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:.85rem}
+  .gbtn:hover{background:rgba(216,168,73,.18)}
+  .body{flex:1;display:flex;min-height:0}
+  .side{width:210px;background:var(--side);border-right:1px solid var(--line);overflow:auto;padding:10px 8px;flex-shrink:0}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+  .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--cream);font-size:.9rem}
+  .ni:hover{background:rgba(216,168,73,.1)} .ni.on{background:rgba(216,168,73,.2);color:var(--gold-lt);font-weight:600}
+  .ni .c{margin-left:auto;color:var(--muted);font-size:.76rem}
+  .slabel{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;margin:8px 10px 4px}
+  .main{flex:1;overflow:auto;padding:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .card{display:flex;gap:12px;background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;transition:.12s}
+  .card:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .card .ic{width:48px;height:48px;border-radius:10px;background:#0d0b06;display:grid;place-items:center;font-size:1.5rem;flex-shrink:0;overflow:hidden}
+  .card .ic img{width:100%;height:100%;object-fit:contain}
+  .card .nm{font-weight:600;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .sm{color:var(--muted);font-size:.8rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .card .meta{display:flex;align-items:center;gap:8px;margin-top:5px}
+  .stars{color:var(--gold);font-size:.8rem;letter-spacing:1px}
+  .badge{font-size:.66rem;border-radius:999px;padding:1px 7px;border:1px solid var(--line);color:var(--muted)}
+  .badge.apt{color:#cf9}.badge.flatpak{color:#9cf}.badge.snap{color:#fc9}
+  .badge.inst{color:#1a130a;background:var(--green);border:0}
+  .badge.ours{color:#1a130a;background:linear-gradient(135deg,#f3dca0,#d8a849);border:0;font-weight:700}
+  .feat{background:linear-gradient(160deg,#1f1708,#171206);border:1px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:18px}
+  .feat h2{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .feat .card{background:#120d06}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{background:#171206;border:1px solid var(--line);color:var(--gold-lt);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.82rem}
+  .chip.on{background:rgba(216,168,73,.2);border-color:var(--gold)}
+  h2{color:var(--gold-lt);font-size:1.1rem;margin-bottom:12px}
+  .stub{color:var(--muted);padding:14px 4px}
+  .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.85rem}
+  .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
+  .btn.green{background:linear-gradient(135deg,#bfe08a,#9ccf6a 60%,#6e9e44)}
+  .btn.red{background:linear-gradient(160deg,#2a160e,#1a140b);color:#f0b8a0;border:1px solid rgba(224,123,90,.5)}
+  /* detail */
+  .hero{display:flex;gap:18px;margin-bottom:16px}
+  .hero .ic{width:96px;height:96px;border-radius:18px;background:#0d0b06;display:grid;place-items:center;font-size:3rem;overflow:hidden;flex-shrink:0}
+  .hero .ic img{width:100%;height:100%;object-fit:contain}
+  .hero h1{font-size:1.5rem;color:var(--cream)}
+  .hero .dev{color:var(--muted);font-size:.9rem;margin:2px 0 6px}
+  .hero .sum{color:var(--cream);margin-bottom:10px}
+  .shots{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px}
+  .shots img{height:200px;border-radius:10px;border:1px solid var(--line)}
+  .sec{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .sec h3{color:var(--gold-lt);font-size:.98rem;margin-bottom:8px}
+  .desc{color:#d8c8a8;line-height:1.55;font-size:.92rem}
+  .desc p{margin:6px 0}
+  .rev{border-bottom:1px solid rgba(216,168,73,.1);padding:8px 0}
+  .rev .rh{display:flex;gap:8px;align-items:center}.rev .ru{color:var(--muted);font-size:.82rem}
+  .metarow{display:flex;flex-wrap:wrap;gap:7px 18px;color:var(--muted);font-size:.84rem;margin-bottom:12px}
+  .metarow b{color:var(--gold-lt)}
+  #job{position:fixed;left:0;right:0;bottom:0;background:#100c07;border-top:1px solid var(--gold);padding:9px 14px;transform:translateY(100%);transition:.25s;z-index:50}
+  #job.show{transform:translateY(0)}
+  #job .jh{display:flex;align-items:center;gap:10px;margin-bottom:6px}#job .jt{color:var(--gold-lt);font-weight:700}
+  pre#joblog{background:#08060350;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:monospace;font-size:.72rem;color:#bda874;max-height:150px;overflow:auto;white-space:pre-wrap;margin:0}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media(max-width:680px){.side{width:64px}.ni span.l,.slabel{display:none}.ni .c{display:none}}
+</style></head>
+<body>
+<div class="top"><b>📦 SkillFishOS Hub</b>
+  <input id="q" placeholder="Cerca app e pacchetti…">
+  <span class="sp"></span>
+  <span class="badge" id="updbadge"></span>
+  <button class="gbtn" id="refresh" title="Ricostruisci catalogo">⟳</button>
+</div>
+<div class="body">
+  <div class="side">
+    <div class="nav" id="nav"></div>
+    <div class="slabel">Categorie</div>
+    <div class="nav" id="cats"></div>
+  </div>
+  <div class="main" id="main"><div class="stub">Carico il catalogo…</div></div>
+</div>
+<div id="job"><div class="jh"><span class="spin" id="jspin"></span><span class="jt" id="jtitle"></span><span class="sp"></span>
+  <button class="gbtn" id="jclose" style="display:none">Chiudi</button></div><pre id="joblog"></pre></div>
+
+<script>
+const $=s=>document.querySelector(s), ce=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
+let ST={view:"home",cat:null,sub:null,sort:"rating",backend:null,page:0,q:""},jobPoll=null;
+const CATS=[["Game","🎮","Giochi"],["Development","🛠️","Sviluppo"],["Graphics","🎨","Grafica"],
+  ["AudioVideo","🎬","Multimedia"],["Network","🌐","Internet"],["Office","📝","Produttività"],
+  ["Education","📚","Istruzione"],["System","⚙️","Sistema"],["Utility","🧰","Utilità"]];
+const SUBCATS={Game:[["ActionGame","Azione"],["AdventureGame","Avventura"],["ArcadeGame","Arcade"],["StrategyGame","Strategia"],["Simulation","Simulazione"],["RolePlaying","Ruolo"],["BoardGame","Tavolo"],["Shooter","Sparatutto"]],
+  Development:[["IDE","IDE"],["Building","Build"],["Debugger","Debug"],["WebDevelopment","Web"],["Database","Database"]],
+  Graphics:[["2DGraphics","2D"],["3DGraphics","3D"],["VectorGraphics","Vettoriale"],["Photography","Foto"],["Viewer","Visualizzatori"]],
+  AudioVideo:[["Audio","Audio"],["Video","Video"],["Player","Player"],["AudioVideoEditing","Editing"],["Music","Musica"]],
+  Network:[["WebBrowser","Browser"],["Email","Email"],["Chat","Chat"],["InstantMessaging","Messaggi"],["FileTransfer","Trasferimento"]],
+  Office:[["WordProcessor","Testi"],["Spreadsheet","Fogli"],["Presentation","Presentazioni"],["Finance","Finanza"]],
+  Education:[["Math","Matematica"],["Physics","Fisica"],["Chemistry","Chimica"],["Languages","Lingue"],["Astronomy","Astronomia"]],
+  System:[["Monitor","Monitor"],["Security","Sicurezza"],["Filesystem","Filesystem"],["TerminalEmulator","Terminale"]],
+  Utility:[["TextEditor","Editor"],["Archiving","Archivi"],["Calculator","Calcolatrice"],["FileManager","File manager"]]};
+
+async function api(path,body){const o={credentials:"same-origin"};
+  if(body){o.method="POST";o.headers={"Content-Type":"application/json"};o.body=JSON.stringify(body);}return (await fetch(path,o)).json();}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function iconUrl(a){return a.icon?a.icon:(a.iloc?"/api/hub/icon?key="+encodeURIComponent(a.key):"");}
+function stars(r){r=r||0;let f=Math.round(r);return "★".repeat(f)+"☆".repeat(5-f);}
+function backendBadge(b){return '<span class="badge '+b+'">'+b+'</span>';}
+
+// ---- job ----
+function startJob(t){$("#jtitle").textContent=t;$("#joblog").textContent="";$("#jspin").style.display="inline-block";
+  $("#jclose").style.display="none";$("#job").classList.add("show");clearInterval(jobPoll);jobPoll=setInterval(pollJob,1300);pollJob();}
+async function pollJob(){const j=await api("/api/hub/log");$("#joblog").textContent=j.log||"";$("#joblog").scrollTop=9e9;
+  if(!j.running&&j.done){clearInterval(jobPoll);$("#jspin").style.display="none";$("#jclose").style.display="inline-block";
+    $("#jtitle").textContent+=(j.rc===0?"  ✓":"  ⚠ "+j.rc);refreshBadge();render();}}
+$("#jclose").onclick=()=>$("#job").classList.remove("show");
+async function doOp(op,backend,pkg,title){const r=await api("/api/hub/op",{op,backend,pkg});if(r.ok)startJob(title);else alert(r.error||"errore");}
+
+function card(a){
+  const ic=iconUrl(a);
+  const d=ce("div","card");
+  d.innerHTML='<div class="ic">'+(ic?'<img loading="lazy" src="'+esc(ic)+'" onerror="this.style.display=\'none\';this.parentNode.textContent=\'📦\'">':'📦')+'</div>'+
+    '<div style="min-width:0;flex:1"><div class="nm">'+esc(a.name)+'</div><div class="sm">'+esc(a.summary)+'</div>'+
+    '<div class="meta">'+(a.ours?'<span class="badge ours">✦ SkillFishOS</span>':'')+
+    (a.rating_n?'<span class="stars">'+stars(a.rating)+'</span><span class="badge">'+a.rating_n+'</span>':'')+
+    backendBadge(a.backend)+(a.installed?'<span class="badge inst">installata</span>':'')+'</div></div>';
+  d.onclick=()=>openApp(a.key);
+  return d;
+}
+
+function setNav(){
+  const nav=$("#nav");nav.innerHTML="";
+  [["home","✦","Esplora"],["installed","✓","Installate"],["updates","⟳","Aggiornamenti"],["sources","⚙","Sorgenti"]].forEach(([k,e,l])=>{
+    const d=ce("div","ni"+(ST.view===k?" on":""));d.innerHTML='<span>'+e+'</span><span class="l">'+l+'</span>';
+    d.onclick=()=>{ST.view=k;ST.cat=null;ST.sub=null;ST.q="";$("#q").value="";render();};nav.appendChild(d);});
+  const cv=$("#cats");cv.innerHTML="";
+  CATS.forEach(([k,e,l])=>{const d=ce("div","ni"+(ST.view==="cat"&&ST.cat===k?" on":""));
+    d.innerHTML='<span>'+e+'</span><span class="l">'+l+'</span><span class="c" data-cc="'+k+'"></span>';
+    d.onclick=()=>{ST.view="cat";ST.cat=k;ST.sub=null;ST.page=0;ST.q="";$("#q").value="";render();};cv.appendChild(d);});
+  api("/api/hub/categories").then(r=>{for(const[k,n]of Object.entries(r.counts||{})){const el=document.querySelector('[data-cc="'+k+'"]');if(el)el.textContent=n;}});
+}
+
+async function refreshBadge(){try{const u=await api("/api/hub/updates");$("#updbadge").textContent=(u.count||0)+" agg.";}catch(e){}}
+
+// ---- views ----
+async function viewGrid(opts,title,toolbar){
+  const m=$("#main");m.innerHTML=(toolbar||"")+'<h2>'+esc(title)+'</h2><div class="grid" id="g"></div><div id="more"></div>';
+  const qs=new URLSearchParams(opts).toString();
+  const r=await api("/api/hub/catalog?"+qs);
+  if(!r.ready){m.querySelector("#g").outerHTML='<div class="stub"><span class="spin"></span> Sto costruendo il catalogo… (qualche secondo)</div>';
+    setTimeout(render,2500);return;}
+  const g=m.querySelector("#g");
+  if(!r.apps.length){g.innerHTML='<div class="stub">Nessuna app.</div>';return;}
+  r.apps.forEach(a=>g.appendChild(card(a)));
+  const shown=(r.page+1)*r.per;
+  if(shown<r.total){const b=ce("button","btn");b.style.marginTop="14px";b.textContent="Carica altri ("+(r.total-shown)+")";
+    b.onclick=async()=>{ST.page++;const rr=await api("/api/hub/catalog?"+new URLSearchParams(Object.assign({},opts,{page:ST.page})));
+      rr.apps.forEach(a=>g.appendChild(card(a)));if((rr.page+1)*rr.per>=rr.total)b.remove();else b.textContent="Carica altri ("+(rr.total-(rr.page+1)*rr.per)+")";};
+    m.querySelector("#more").appendChild(b);}
+}
+
+function sortToolbar(){
+  return '<div class="toolbar">'+
+    '<span class="chip'+(ST.sort==="rating"?" on":"")+'" data-sort="rating">Più popolari</span>'+
+    '<span class="chip'+(ST.sort==="name"?" on":"")+'" data-sort="name">Nome</span>'+
+    '<span style="width:10px"></span>'+
+    ['',"apt","flatpak","snap"].map(b=>'<span class="chip'+(ST.backend===(b||null)?" on":"")+'" data-bk="'+b+'">'+(b||"Tutte")+'</span>').join("")+
+    '</div>';
+}
+function bindToolbar(){
+  document.querySelectorAll("[data-sort]").forEach(c=>c.onclick=()=>{ST.sort=c.dataset.sort;ST.page=0;render();});
+  document.querySelectorAll("[data-bk]").forEach(c=>c.onclick=()=>{ST.backend=c.dataset.bk||null;ST.page=0;render();});
+  document.querySelectorAll("[data-sub]").forEach(c=>c.onclick=()=>{ST.sub=c.dataset.sub||null;ST.page=0;render();});
+}
+
+async function viewUpdates(){
+  const m=$("#main");m.innerHTML='<div class="stub">Controllo aggiornamenti…</div>';
+  const u=await api("/api/hub/updates");const ups=u.updates||[];
+  let h='<div class="toolbar"><h2 style="margin:0">'+(ups.length?ups.length+" aggiornamenti":"Tutto aggiornato ✓")+'</h2><span class="sp" style="flex:1"></span>'+
+    '<button class="btn green" id="ua"'+(ups.length?"":" disabled")+'>Aggiorna tutto</button></div>';
+  ups.forEach(p=>h+='<div class="card" style="cursor:default"><div class="ic">📦</div><div style="flex:1"><div class="nm">'+esc(p.pkg)+'</div>'+
+    '<div class="sm">'+backendBadge(p.backend)+' '+esc(p.old?p.old+" → ":"")+esc(p.new)+'</div></div></div>');
+  m.innerHTML=h||'<div class="stub">Tutto aggiornato.</div>';
+  if($("#ua"))$("#ua").onclick=()=>doOp("upgrade","","","Aggiornamento di tutti i pacchetti");
+}
+
+async function viewSources(){
+  const m=$("#main");m.innerHTML='<div class="stub">Carico le sorgenti…</div>';
+  const r=await api("/api/hub/sources");
+  let h='<h2>Sorgenti APT</h2>';
+  (r.sources||[]).forEach(s=>h+='<div class="card" style="cursor:default"><div class="ic">📚</div><div style="flex:1"><div class="nm">'+esc(s.name)+
+    '</div><div class="sm">'+esc(s.uri)+'</div></div><label style="display:flex;align-items:center;gap:6px;color:var(--muted)"><input type="checkbox" data-s="'+esc(s.name)+'"'+(s.enabled?" checked":"")+'>attivo</label></div>');
+  h+='<h2 style="margin-top:18px">Remote Flatpak</h2>';
+  (r.flatpak_remotes||[]).forEach(s=>h+='<div class="card" style="cursor:default"><div class="ic">🗂️</div><div style="flex:1"><div class="nm">'+esc(s.name)+'</div><div class="sm">'+esc(s.uri)+'</div></div></div>');
+  if(!(r.flatpak_remotes||[]).length)h+='<div class="stub">Nessun remote flatpak.</div>';
+  m.innerHTML=h;
+  m.querySelectorAll("[data-s]").forEach(c=>c.onchange=async()=>{const x=await api("/api/hub/source",{name:c.dataset.s,enable:c.checked});
+    if(!x.ok){alert(x.error||"errore");c.checked=!c.checked;}else doOp("update","","","Aggiorno l'elenco dopo modifica sorgenti");});
+}
+
+async function openApp(key){
+  const m=$("#main");m.innerHTML='<div class="stub"><span class="spin"></span> Carico…</div>';
+  const r=await api("/api/hub/app?key="+encodeURIComponent(key));
+  if(!r.ok){m.innerHTML='<div class="stub">'+esc(r.error||"errore")+'</div>';return;}
+  const a=r.app;const ic=iconUrl(a);
+  let h='<button class="gbtn" onclick="history.back?render():0" id="back">← Indietro</button>';
+  h+='<div class="hero" style="margin-top:12px"><div class="ic">'+(ic?'<img src="'+esc(ic)+'" onerror="this.style.display=\'none\';this.parentNode.textContent=\'📦\'">':'📦')+'</div>'+
+    '<div style="flex:1"><h1>'+esc(a.name)+'</h1><div class="dev">'+esc(a.developer||"")+' · '+backendBadge(a.backend)+'</div>'+
+    '<div class="sum">'+esc(a.summary)+'</div>'+
+    (a.rating_n?'<div class="stars">'+stars(a.rating)+' <span class="badge">'+a.rating+' · '+a.rating_n+' recensioni</span></div>':'')+
+    '<div style="margin-top:10px">'+(a.installed?'<button class="btn red" id="act">Rimuovi</button>':'<button class="btn green" id="act">Installa</button>')+'</div>'+
+    '</div></div>';
+  h+='<div class="metarow">'+(a.ver?'<span>versione <b>'+esc(a.ver)+'</b></span>':'')+
+    (a.license?'<span>licenza <b>'+esc(a.license)+'</b></span>':'')+
+    (a.size?'<span>dimensione <b>'+(Math.round(a.size/1024))+' MB</b></span>':'')+
+    (a.homepage?'<span><a href="'+esc(a.homepage)+'" target="_blank" rel="noreferrer noopener">sito web ↗</a></span>':'')+'</div>';
+  if((a.screens||[]).length)h+='<div class="shots">'+a.screens.map(s=>'<img loading="lazy" src="'+esc(s)+'" onerror="this.remove()">').join("")+'</div>';
+  if(a.desc)h+='<div class="sec"><h3>Descrizione</h3><div class="desc">'+sanitize(a.desc)+'</div></div>';
+  if((a.releases||[]).length)h+='<div class="sec"><h3>Novità</h3>'+a.releases.map(r=>'<div style="margin:6px 0"><b style="color:var(--gold-lt)">'+esc(r[0])+'</b><div class="desc">'+sanitize(r[1])+'</div></div>').join("")+'</div>';
+  if((a.reviews||[]).length)h+='<div class="sec"><h3>Recensioni</h3>'+a.reviews.map(rv=>'<div class="rev"><div class="rh"><span class="stars">'+stars(Math.round((rv.rating||0)/20))+'</span><span class="ru">'+esc(rv.user)+'</span></div><div style="font-weight:600">'+esc(rv.summary)+'</div><div class="desc">'+esc(rv.description)+'</div></div>').join("")+'</div>';
+  m.innerHTML=h;
+  $("#back").onclick=render;
+  $("#act").onclick=()=>{const inst=a.installed;
+    if(inst&&!confirm("Rimuovere "+a.name+"?"))return;
+    doOp(inst?"remove":"install",a.backend,a.pkgid,(inst?"Rimuovo ":"Installo ")+a.name);};
+}
+function sanitize(html){const d=ce("div");d.innerHTML=html||"";d.querySelectorAll("script,style").forEach(e=>e.remove());
+  d.querySelectorAll("*").forEach(e=>{[...e.attributes].forEach(at=>{if(/^on/i.test(at.name)||at.name==="href"&&/javascript:/i.test(at.value))e.removeAttribute(at.name);});});return d.innerHTML;}
+
+async function installedView(){const m=$("#main");m.innerHTML='<div class="stub">Carico…</div>';
+  const r=await api("/api/hub/installed");const g=ce("div","grid");
+  m.innerHTML='<h2>App installate ('+(r.count||0)+')</h2>';m.appendChild(g);
+  (r.installed||[]).forEach(a=>g.appendChild(card(a)));if(!(r.installed||[]).length)g.innerHTML='<div class="stub">Nessuna.</div>';}
+async function searchView(){const m=$("#main");m.innerHTML='<div class="stub"><span class="spin"></span> Cerco…</div>';
+  const r=await api("/api/hub/search?q="+encodeURIComponent(ST.q));const g=ce("div","grid");
+  m.innerHTML='<h2>Risultati per "'+esc(ST.q)+'"</h2>';m.appendChild(g);
+  (r.results||[]).forEach(a=>g.appendChild(card(a)));if(!(r.results||[]).length)g.innerHTML='<div class="stub">Nessun risultato.</div>';}
+async function homeView(){
+  const m=$("#main");m.innerHTML='<div class="stub"><span class="spin"></span> Carico…</div>';
+  const fr=await api("/api/hub/catalog?ours=1&sort=name");
+  if(!fr.ready){m.innerHTML='<div class="stub"><span class="spin"></span> Sto costruendo il catalogo… (qualche secondo)</div>';setTimeout(render,2500);return;}
+  let h="";
+  if((fr.apps||[]).length)h+='<div class="feat"><h2>✦ App SkillFishOS <span class="badge ours">le nostre</span></h2><div class="grid" id="fg"></div></div>';
+  h+=sortToolbar()+'<h2>In evidenza</h2><div class="grid" id="g"></div>';
+  m.innerHTML=h;
+  if((fr.apps||[]).length){const fg=m.querySelector("#fg");fr.apps.forEach(a=>fg.appendChild(card(a)));}
+  const r=await api("/api/hub/catalog?sort="+(ST.sort||"rating")+(ST.backend?"&backend="+ST.backend:""));
+  const g=m.querySelector("#g");(r.apps||[]).forEach(a=>g.appendChild(card(a)));
+  if(!(r.apps||[]).length)g.innerHTML='<div class="stub">—</div>';
+  bindToolbar();
+}
+
+// fix render dispatch (clean)
+render=async function(){
+  setNav();
+  if(ST.view==="updates")return viewUpdates();
+  if(ST.view==="sources")return viewSources();
+  if(ST.view==="installed")return installedView();
+  if(ST.view==="search")return searchView();
+  if(ST.view==="home")return homeView();
+  if(ST.view==="cat"){
+    const subs=(SUBCATS[ST.cat]||[]);
+    const tb=sortToolbar()+'<div class="toolbar"><span class="chip'+(!ST.sub?" on":"")+'" data-sub="">Tutte</span>'+
+      subs.map(([k,l])=>'<span class="chip'+(ST.sub===k?" on":"")+'" data-sub="'+k+'">'+esc(l)+'</span>').join("")+'</div>';
+    const cn=(CATS.find(c=>c[0]===ST.cat)||[])[2]||ST.cat;
+    await viewGrid({cat:ST.cat,sub:ST.sub||"",sort:ST.sort,backend:ST.backend||"",page:0},cn,tb);bindToolbar();return;
+  }
+};
+
+let qt;$("#q").addEventListener("input",e=>{clearTimeout(qt);const v=e.target.value.trim();
+  qt=setTimeout(()=>{if(v.length>=2){ST.view="search";ST.q=v;render();}else if(!v){ST.view="home";render();}},350);});
+$("#refresh").onclick=async()=>{await api("/api/hub/refresh",{});$("#main").innerHTML='<div class="stub"><span class="spin"></span> Ricostruisco il catalogo…</div>';setTimeout(render,3000);};
+render();refreshBadge();
+</script>
+</body></html>

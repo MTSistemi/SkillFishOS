@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=SkillFishOS Console (Big Picture)
+Name[it]=SkillFishOS Console (Big Picture)
+Comment=Boot straight into the Steam Big Picture console experience (gamescope)
+Comment[it]=Avvia direttamente l'esperienza console Steam Big Picture (gamescope)
+Exec=/usr/local/bin/skillfish-gaming-mode
+Type=Application
+DesktopNames=gamescope

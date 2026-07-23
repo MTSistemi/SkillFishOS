@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+# SkillFishOS Kernel Manager — list every installed kernel, choose the boot
+# kernel (permanent default / boot-once), and COMPLETELY uninstall kernels so
+# they don't pile up. KDE-native PyQt6, brass/steampunk themed. Bilingual IT/EN.
+import sys, os, glob, subprocess
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QGroupBox, QPushButton, QRadioButton,
+                             QButtonGroup, QMessageBox, QFrame, QScrollArea)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+HELPER = "/usr/local/bin/skillfish-kernel-helper"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+def sh(cmd, t=30):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+        return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+def running_kernel():
+    return os.uname().release
+
+def grub_default_raw():
+    try:
+        with open("/etc/default/grub") as f:
+            for line in f:
+                if line.startswith("GRUB_DEFAULT="):
+                    return line.split("=", 1)[1].strip().strip('"')
+    except Exception:
+        pass  # best-effort: grub config may be unreadable
+    return ""
+
+def flavor(kv):
+    if kv.endswith("-generic"):
+        return L("Generic · x86-64 · PC e macchine virtuali", "Generic · x86-64 · PCs & virtual machines")
+    if kv.endswith("-slim"):
+        return L("Slim · BC-250 · kernel minimale", "Slim · BC-250 · ultra-lean kernel")
+    if "skillfishos" in kv:
+        return L("BC-250 · znver2 · ottimizzato", "BC-250 · znver2 · optimized")
+    return L("kernel esterno (non SkillFishOS)", "external kernel (non-SkillFishOS)")
+
+def is_skillfish(kv):
+    return "skillfishos" in kv
+
+def kernel_pkg(kv):
+    rc, out, _ = sh("dpkg-query -S /boot/vmlinuz-%s 2>/dev/null" % kv)
+    if rc == 0 and ":" in out:
+        return out.split(":", 1)[0].split(",")[0].strip()
+    return None
+
+def kernel_size_mb(kv):
+    total = 0
+    for p in ("/boot/vmlinuz-%s" % kv, "/boot/initrd.img-%s" % kv,
+              "/boot/System.map-%s" % kv, "/boot/config-%s" % kv):
+        try:
+            total += os.path.getsize(p)
+        except OSError:
+            pass  # best-effort: some files may be absent
+    md = "/usr/lib/modules/%s" % kv
+    if not os.path.isdir(md):
+        md = "/lib/modules/%s" % kv
+    rc, out, _ = sh("du -sb %s 2>/dev/null" % md)
+    try:
+        total += int(out.split()[0])
+    except (ValueError, IndexError):
+        pass  # best-effort: modules dir may be missing
+    return total / 1e6
+
+def installed_kernels():
+    ks = []
+    for p in glob.glob("/boot/vmlinuz-*"):
+        kv = os.path.basename(p).replace("vmlinuz-", "")
+        if kv.endswith((".dpkg-tmp", ".old")):
+            continue
+        ks.append(kv)
+    return sorted(set(ks), reverse=True)
+
+
+class KernelManager(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS — Gestore Kernel", "SkillFishOS — Kernel Manager"))
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(680, 600)
+        w = QWidget(); self.setCentralWidget(w)
+        v = QVBoxLayout(w); v.setContentsMargins(22, 18, 22, 18); v.setSpacing(14)
+
+        # header
+        h = QHBoxLayout()
+        img = QLabel(); pm = QPixmap(ICON)
+        if not pm.isNull():
+            img.setPixmap(pm.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        h.addWidget(img)
+        tcol = QVBoxLayout(); tcol.setSpacing(0)
+        title = QLabel(L("Gestore Kernel", "Kernel Manager")); title.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
+        sub = QLabel(L("Scegli il kernel di avvio o rimuovi quelli che non servono",
+                       "Choose the boot kernel or remove the ones you don't need"))
+        sub.setStyleSheet("color:#b9a07a;")
+        tcol.addWidget(title); tcol.addWidget(sub)
+        h.addLayout(tcol); h.addStretch(1); v.addLayout(h)
+
+        # scrollable kernel list
+        self.box = QGroupBox(L("Kernel installati", "Installed kernels"))
+        bv = QVBoxLayout(self.box); bv.setSpacing(6)
+        self.listhost = QWidget(); self.listlay = QVBoxLayout(self.listhost)
+        self.listlay.setContentsMargins(0, 0, 0, 0); self.listlay.setSpacing(6)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(self.listhost); bv.addWidget(scroll)
+        v.addWidget(self.box, 1)
+
+        self.status = QLabel(""); self.status.setWordWrap(True); self.status.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.status)
+
+        b = QHBoxLayout()
+        self.bdef = QPushButton(L("Imposta come predefinito", "Set as default")); self.bdef.clicked.connect(self.set_default)
+        self.bonce = QPushButton(L("Avvia una volta", "Boot once")); self.bonce.clicked.connect(self.boot_once)
+        self.bdel = QPushButton(L("Disinstalla", "Uninstall")); self.bdel.clicked.connect(self.uninstall)
+        self.bdel.setStyleSheet("QPushButton{color:#e0b0a0;} QPushButton:hover{color:#ff9a7a;}")
+        self.breb = QPushButton(L("Riavvia ora", "Reboot now")); self.breb.clicked.connect(self.reboot)
+        b.addWidget(self.bdel); b.addStretch(1)
+        for x in (self.bdef, self.bonce, self.breb): b.addWidget(x)
+        v.addLayout(b)
+        self.statusBar()
+
+        self.grp = QButtonGroup(self)
+        self.reload()
+
+    # ---- build / refresh the kernel rows ----
+    def reload(self):
+        # clear old rows
+        for btn in list(self.grp.buttons()):
+            self.grp.removeButton(btn)
+        while self.listlay.count():
+            it = self.listlay.takeAt(0)
+            wdg = it.widget()
+            if wdg is not None:
+                wdg.setParent(None)
+
+        self.run = running_kernel()
+        self.default_raw = grub_default_raw()
+        self.kernels = installed_kernels()
+        for i, kv in enumerate(self.kernels):
+            row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(6, 4, 6, 4)
+            rb = QRadioButton(); rb.setProperty("kver", kv); self.grp.addButton(rb, i)
+            col = QVBoxLayout(); col.setSpacing(0)
+            tags = []
+            if kv == self.run: tags.append("● " + L("in esecuzione", "running"))
+            if kv and kv in self.default_raw: tags.append("★ " + L("predefinito", "default"))
+            nm = QLabel(kv + (("   " + "  ·  ".join(tags)) if tags else ""))
+            running_or_default = (kv == self.run)
+            nm.setStyleSheet("font-weight:700;color:%s" % ("#9ccf6a" if running_or_default else "#f1e3c6"))
+            meta = QLabel("%s   ·   ~%.0f MB%s" % (
+                flavor(kv), kernel_size_mb(kv),
+                "" if is_skillfish(kv) else "   ·   ⚠"))
+            meta.setStyleSheet("color:#b9a07a;")
+            col.addWidget(nm); col.addWidget(meta)
+            rl.addWidget(rb); rl.addLayout(col); rl.addStretch(1)
+            self.listlay.addWidget(row)
+            if kv == self.run:
+                rb.setChecked(True)
+        self.listlay.addStretch(1)
+        n = len(self.kernels)
+        self.status.setText(L("%d kernel installati. Il kernel in esecuzione non è rimovibile." % n,
+                              "%d installed kernels. The running kernel cannot be removed." % n))
+        self.status.setStyleSheet("color:#b9a07a;")
+        # uninstall is only possible when there is more than one kernel
+        self.bdel.setEnabled(n > 1)
+
+    def _selected(self):
+        btn = self.grp.checkedButton()
+        return btn.property("kver") if btn else None
+
+    # ---- actions ----
+    def set_default(self):
+        kv = self._selected()
+        if not kv: return
+        rc, out, err = sh(f"pkexec {HELPER} default {kv}", 120)
+        if rc == 0:
+            self._ok(L(f"✓ Predefinito impostato a {kv}. Attivo al prossimo riavvio.",
+                       f"✓ Default set to {kv}. Active on next reboot."))
+            self.reload()
+        else:
+            self._err(out or err)
+
+    def boot_once(self):
+        kv = self._selected()
+        if not kv: return
+        rc, out, err = sh(f"pkexec {HELPER} once {kv}", 90)
+        if rc == 0:
+            if QMessageBox.question(self, "SkillFishOS",
+                    L(f"{kv} verrà avviato al prossimo riavvio (solo una volta). Riavviare ora?",
+                      f"{kv} will boot next time (once only). Reboot now?")) == QMessageBox.StandardButton.Yes:
+                sh("pkexec systemctl reboot")
+        else:
+            self._err(out or err)
+
+    def uninstall(self):
+        kv = self._selected()
+        if not kv: return
+        if kv == self.run:
+            QMessageBox.warning(self, "SkillFishOS",
+                L("Non puoi disinstallare il kernel in esecuzione. Avvia un altro kernel e riprova.",
+                  "You can't uninstall the running kernel. Boot another kernel and try again."))
+            return
+        if len(self.kernels) <= 1:
+            QMessageBox.warning(self, "SkillFishOS",
+                L("È l'unico kernel installato: non può essere rimosso.",
+                  "It's the only installed kernel: it can't be removed."))
+            return
+        pkg = kernel_pkg(kv); size = kernel_size_mb(kv)
+        is_def = kv in self.default_raw
+        lines = [L(f"Disinstallare COMPLETAMENTE il kernel:\n  {kv}",
+                   f"COMPLETELY uninstall the kernel:\n  {kv}"), ""]
+        if pkg:
+            lines.append(L(f"Pacchetti rimossi: {pkg} (+ headers/dbg se presenti)",
+                           f"Packages removed: {pkg} (+ headers/dbg if present)"))
+        else:
+            lines.append(L("Verranno rimossi vmlinuz, initrd e i moduli (non gestito da dpkg).",
+                           "vmlinuz, initrd and the modules will be removed (not dpkg-managed)."))
+        lines.append(L(f"Spazio liberato: ~{size:.0f} MB", f"Freed space: ~{size:.0f} MB"))
+        if is_def:
+            lines.append(L("\n⚠ È il kernel predefinito: il default tornerà a quello in esecuzione.",
+                           "\n⚠ It's the default kernel: the default will move to the running one."))
+        lines.append(L("\nL'operazione è irreversibile. Continuare?",
+                       "\nThis cannot be undone. Continue?"))
+        m = QMessageBox(self); m.setIcon(QMessageBox.Icon.Warning)
+        m.setWindowTitle("SkillFishOS"); m.setText("\n".join(lines))
+        m.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        m.setDefaultButton(QMessageBox.StandardButton.No)
+        if m.exec() != QMessageBox.StandardButton.Yes:
+            return
+        self.bdel.setEnabled(False); self.status.setText(L("Disinstallazione in corso…", "Uninstalling…"))
+        QApplication.processEvents()
+        rc, out, err = sh(f"pkexec {HELPER} uninstall {kv}", 600)
+        if rc == 0:
+            self._ok(L(f"✓ Kernel {kv} disinstallato (~{size:.0f} MB liberati).",
+                       f"✓ Kernel {kv} uninstalled (~{size:.0f} MB freed)."))
+        else:
+            self._err(out or err or L("operazione annullata", "operation cancelled"))
+        self.reload()
+
+    def reboot(self):
+        if QMessageBox.question(self, "SkillFishOS", L("Riavviare ora?", "Reboot now?")) == QMessageBox.StandardButton.Yes:
+            sh("pkexec systemctl reboot")
+
+    def _ok(self, msg):
+        self.status.setText(msg); self.status.setStyleSheet("color:#9ccf6a;font-weight:600;")
+
+    def _err(self, msg):
+        self.status.setText(msg or L("operazione fallita", "operation failed"))
+        self.status.setStyleSheet("color:#cf8a6a;")
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Kernel Manager")
+    app.setDesktopFileName("os.skillfish.kernel")
+    app.setWindowIcon(QIcon(ICON))
+    w = KernelManager()
+    w.show(); w.raise_(); w.activateWindow()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,82 @@
+#!/bin/bash
+# skillfish-kernel-helper — privileged kernel operations for the SkillFishOS
+# Kernel Manager app (invoked via pkexec). Actions:
+#   default   <kver>   set the permanent GRUB default
+#   once      <kver>   boot <kver> just next time
+#   uninstall <kver>   COMPLETELY remove a kernel (purge image+headers+modules)
+set -euo pipefail
+ACTION="${1:-}"; KV="${2:-}"
+GCFG=/boot/grub/grub.cfg
+G=/etc/default/grub
+case "$KV" in (''|*/*) echo "bad kernel version"; exit 2;; esac
+
+grub_target() {  # echo the "SUBID>ENTID" (or ENTID) for a kernel version, or fail
+  local kv="$1" sub ent
+  sub=$(grep -oP "submenu '[^']*Advanced[^']*' .*menuentry_id_option '\K[^']+" "$GCFG" 2>/dev/null | head -1 || true)
+  ent=$(grep -oP "menuentry '[^']*with Linux ${kv}' .*menuentry_id_option '\K[^']+" "$GCFG" 2>/dev/null | head -1 || true)
+  [ -n "$ent" ] || return 1
+  if [ -n "$sub" ]; then echo "${sub}>${ent}"; else echo "$ent"; fi
+}
+regen_grub() { if command -v update-grub >/dev/null 2>&1; then update-grub; else grub-mkconfig -o "$GCFG"; fi; }
+
+case "$ACTION" in
+  default)
+    [ -e "/boot/vmlinuz-${KV}" ] || { echo "no such kernel: ${KV}"; exit 2; }
+    TARGET=$(grub_target "$KV") || { echo "no GRUB entry for ${KV}"; exit 3; }
+    cp -f "$G" "${G}.skf-kernel.bak"
+    if grep -q '^GRUB_DEFAULT=' "$G"; then
+      sed -i "s|^GRUB_DEFAULT=.*|GRUB_DEFAULT=\"${TARGET}\"|" "$G"
+    else
+      printf 'GRUB_DEFAULT="%s"\n' "$TARGET" >> "$G"
+    fi
+    regen_grub
+    echo "OK default=${KV}"
+    ;;
+
+  once)
+    [ -e "/boot/vmlinuz-${KV}" ] || { echo "no such kernel: ${KV}"; exit 2; }
+    TARGET=$(grub_target "$KV") || { echo "no GRUB entry for ${KV}"; exit 3; }
+    grub-reboot "${TARGET}"
+    echo "OK boot-once=${KV}"
+    ;;
+
+  uninstall)
+    # ---------- safety guardrails ----------
+    if [ "$KV" = "$(uname -r)" ]; then echo "REFUSED: ${KV} is the running kernel"; exit 4; fi
+    NK=$(ls /boot/vmlinuz-* 2>/dev/null | wc -l)
+    if [ "$NK" -le 1 ]; then echo "REFUSED: ${KV} is the only installed kernel"; exit 5; fi
+    [ -e "/boot/vmlinuz-${KV}" ] || { echo "no such kernel: ${KV}"; exit 2; }
+
+    # If it is the current GRUB default, move the default to the running kernel first.
+    if grep -qE "^GRUB_DEFAULT=.*${KV}" "$G" 2>/dev/null; then
+      RK="$(uname -r)"; RT=$(grub_target "$RK" || echo "0")
+      cp -f "$G" "${G}.skf-kernel.bak"
+      sed -i "s|^GRUB_DEFAULT=.*|GRUB_DEFAULT=\"${RT}\"|" "$G"
+      echo "note: default moved to running kernel ${RK}"
+    fi
+
+    # Collect dpkg packages that own this kernel version.
+    PKGS=""
+    for p in "linux-image-${KV}" "linux-headers-${KV}" "linux-image-${KV}-dbg" "linux-headers-${KV}-dbg"; do
+      if dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed"; then
+        PKGS="$PKGS $p"
+      fi
+    done
+
+    if [ -n "$PKGS" ]; then
+      echo "purging:${PKGS}"
+      # un-hold first so purge isn't blocked, then purge
+      apt-mark unhold $PKGS >/dev/null 2>&1 || true
+      DEBIAN_FRONTEND=noninteractive apt-get purge -y $PKGS
+      apt-get autoremove -y >/dev/null 2>&1 || true
+    else
+      echo "not dpkg-managed; removing files for ${KV}"
+      rm -f "/boot/vmlinuz-${KV}" "/boot/initrd.img-${KV}" "/boot/System.map-${KV}" "/boot/config-${KV}"
+      rm -rf "/usr/lib/modules/${KV}" "/lib/modules/${KV}"
+    fi
+    regen_grub
+    echo "OK uninstalled=${KV}"
+    ;;
+
+  *) echo "usage: skillfish-kernel-helper default|once|uninstall <kernelversion>"; exit 2 ;;
+esac

@@ -1,0 +1,9 @@
+# --- Installer (Calamares) runtime tools - REQUIRED (apt-recommends is off) ---
+gdisk
+dosfstools
+squashfs-tools
+rsync
+parted
+e2fsprogs
+dracut-core
+# btrfs-progs already in base; calamares + calamares-data installed via hook 0130

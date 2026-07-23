@@ -1,0 +1,30 @@
+#!/bin/bash
+# skillfish-gtt — set the amdgpu GTT size (system RAM the GPU/LLM can use) in the
+# GRUB kernel command line and regenerate GRUB. Boot-time setting: needs a reboot.
+# Run as root (the AI panel calls it via pkexec).
+set -euo pipefail
+MB="${1:-}"
+case "$MB" in (''|*[!0-9]*) echo "usage: skillfish-gtt <megabytes>"; exit 2;; esac
+if [ "$MB" -lt 512 ] || [ "$MB" -gt 61440 ]; then
+  echo "refusing gttsize=${MB} (out of 512..61440 MB range)"; exit 2
+fi
+G=/etc/default/grub
+cp -f "$G" "${G}.skf-gtt.bak"
+# amdgpu.gttsize
+if grep -q 'amdgpu.gttsize=' "$G"; then
+  sed -i -E "s/amdgpu\.gttsize=[0-9]+/amdgpu.gttsize=${MB}/" "$G"
+else
+  sed -i -E "s/(GRUB_CMDLINE_LINUX_DEFAULT=\")/\1amdgpu.gttsize=${MB} /" "$G"
+fi
+# keep ttm.pages_limit (4K pages) >= gttsize so the GTT is actually usable
+PAGES=$(( MB * 256 ))
+for key in ttm.pages_limit ttm.page_pool_size; do
+  if grep -q "${key}=" "$G"; then
+    CUR=$(grep -oE "${key}=[0-9]+" "$G" | head -1 | cut -d= -f2)
+    if [ "$CUR" -lt "$PAGES" ]; then sed -i -E "s/${key}=[0-9]+/${key}=${PAGES}/" "$G"; fi
+  else
+    sed -i -E "s/(GRUB_CMDLINE_LINUX_DEFAULT=\")/\1${key}=${PAGES} /" "$G"
+  fi
+done
+if command -v update-grub >/dev/null 2>&1; then update-grub; else grub-mkconfig -o /boot/grub/grub.cfg; fi
+echo "OK amdgpu.gttsize=${MB}MB (reboot to apply)"

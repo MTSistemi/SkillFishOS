@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>SkillFishOS Remote Manager</title>
+<style>
+  :root{--bg:#0c0a06;--bg2:#14100a;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;
+        --gold-lt:#e8c878;--copper:#b9722f;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.18);}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);
+       min-height:100vh;-webkit-font-smoothing:antialiased}
+  a{color:var(--gold-lt)}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px}
+  /* login */
+  #login{min-height:100vh;display:grid;place-items:center;padding:20px}
+  .card{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);
+        border-radius:18px;padding:26px}
+  .lbox{width:min(380px,92vw);text-align:center}
+  .brand{font-weight:800;font-size:1.5rem;letter-spacing:-.02em;margin-bottom:4px}
+  .brand .g{background:linear-gradient(100deg,#f3dca0,#d8a849 50%,#b9722f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+  input{width:100%;background:#0d0b06;border:1px solid var(--line);border-radius:10px;
+        color:var(--cream);padding:11px 14px;margin:7px 0;font-size:1rem}
+  input:focus{outline:none;border-color:var(--gold)}
+  .btn{display:inline-block;width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;cursor:pointer;
+       font-weight:700;font-size:.95rem;background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a}
+  .btn:hover{filter:brightness(1.06)}
+  .err{color:#e07b5a;font-size:.85rem;min-height:1.2em;margin-top:8px}
+  /* top bar */
+  header{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(12,10,6,.8);
+         border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;gap:12px;height:58px}
+  .nav .brand{font-size:1.1rem;margin:0}
+  .nav .host{color:var(--muted);font-size:.85rem}
+  .nav .sp{flex:1}
+  .ghost{background:rgba(216,168,73,.08);border:1px solid var(--line);color:var(--gold-lt);
+         border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:.85rem}
+  .ghost:hover{background:rgba(216,168,73,.18)}
+  .ghost.pwr{color:#f0b8a0;border-color:rgba(224,123,90,.5)}
+  .ghost.pwr:hover{background:rgba(224,90,60,.22);border-color:#e0553c}
+  /* module grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:16px}
+  .mod{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);
+       border-radius:16px;padding:18px;min-height:120px}
+  .mod h3{font-size:1.05rem;color:var(--gold-lt);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .mod.span2{grid-column:span 2}
+  @media(max-width:720px){.mod.span2{grid-column:span 1}}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chart{background:#0d0b06;border:1px solid var(--line);border-radius:10px;padding:8px}
+  .chart .lab{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);margin-bottom:2px}
+  .chart .val{color:var(--gold-lt);font-family:'DejaVu Sans Mono',monospace;font-weight:700}
+  canvas{width:100%;height:54px;display:block}
+  .rows{font-size:.9rem}
+  .rows .r{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(216,168,73,.08)}
+  .rows .r span:first-child{color:var(--muted)}
+  .stub{color:var(--muted);font-size:.9rem}
+  .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;
+        padding:2px 10px;font-size:.75rem;color:var(--gold-lt)}
+  .grp{margin-bottom:12px}
+  .gl{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .brow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .dbtn{background:linear-gradient(160deg,#241b10,#1a140b);border:1px solid var(--line);color:var(--gold-lt);
+        border-radius:9px;padding:8px 13px;cursor:pointer;font-weight:600;font-size:.85rem;transition:.15s}
+  .dbtn:hover{border-color:var(--gold);background:rgba(216,168,73,.16);transform:translateY(-1px)}
+  .dbtn.danger{color:#f0b8a0;border-color:rgba(224,123,90,.5)}
+  .dbtn.danger:hover{background:rgba(224,90,60,.25);border-color:#e0553c}
+  .dsel{background:#0d0b06;border:1px solid var(--line);color:var(--gold-lt);border-radius:7px;padding:3px 8px;font-size:.82rem}
+  .logbox{background:#08060350;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:6px;
+          font-family:'DejaVu Sans Mono',monospace;font-size:.74rem;color:#bda874;max-height:300px;overflow:auto;white-space:pre-wrap}
+  input[type=range]{accent-color:var(--gold)}
+  .cpw{display:inline-flex;align-items:center;gap:6px}
+  .cpw b{color:var(--gold-lt);font-family:'DejaVu Sans Mono',monospace}
+  .cpy{background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:7px;cursor:pointer;
+       padding:1px 7px;font-size:.85rem;line-height:1.4}
+  .cpy:hover{background:rgba(216,168,73,.25)}
+  /* module group headers */
+  .grouphdr{grid-column:1/-1;color:var(--gold);font-weight:700;font-size:.78rem;letter-spacing:.14em;
+            text-transform:uppercase;margin:18px 2px 2px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .grouphdr:first-child{margin-top:4px}
+  /* language toggle */
+  .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .lang-btn{background:none;border:none;color:var(--muted);padding:6px 11px;font-size:.8rem;font-weight:700;cursor:pointer}
+  .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
+  #login .lang{margin:16px auto 0;width:max-content}
+  /* card tools: move handle, collapse, close */
+  .mod{position:relative}
+  .mod h3{padding-right:78px}
+  .mod-tools{position:absolute;top:12px;right:12px;display:flex;gap:4px;opacity:.5;transition:opacity .15s;z-index:2}
+  .mod:hover .mod-tools{opacity:1}
+  .mt{background:rgba(216,168,73,.1);border:1px solid var(--line);color:var(--gold-lt);border-radius:6px;
+      cursor:pointer;width:24px;height:24px;font-size:.78rem;line-height:1;padding:0;display:grid;place-items:center}
+  .mt:hover{background:rgba(216,168,73,.28)}
+  .mt.drag-h{cursor:grab}
+  .mod.collapsed{grid-column:span 1!important;padding-bottom:16px}
+  .mod.collapsed>*:not(h3):not(.mod-tools){display:none}
+  .mod.dragging{opacity:.35;outline:2px dashed var(--gold);outline-offset:-2px}
+  /* centered app frame + settings modal */
+  #frame,.overlay{position:fixed;inset:0;z-index:1000;background:rgba(8,6,4,.85);backdrop-filter:blur(4px);
+                  display:none;align-items:center;justify-content:center;padding:clamp(6px,3vw,40px)}
+  .fr-box{width:min(1200px,97vw);height:min(820px,93vh);background:var(--panel);border:1px solid var(--gold);
+          border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+  .fr-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1a140b;border-bottom:1px solid var(--line)}
+  .fr-title{color:var(--gold-lt);font-weight:700} .fr-sp{flex:1}
+  .fr-btn{background:rgba(216,168,73,.1);border:1px solid var(--line);color:var(--gold-lt);border-radius:8px;cursor:pointer;padding:4px 11px;font-size:.95rem}
+  .fr-btn:hover{background:rgba(216,168,73,.25)}
+  .fr-if{flex:1;border:0;background:#0d0b06;width:100%}
+  .setbox{width:min(540px,95vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--gold);border-radius:14px}
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:16px}
+  .setrow{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:9px;background:#1a140b;border:1px solid var(--line);cursor:pointer;font-size:.9rem;color:var(--cream)}
+  .setrow input{accent-color:var(--gold);width:16px;height:16px}
+  @media(max-width:560px){
+    .wrap{padding:0 12px}
+    .grid{grid-template-columns:1fr;gap:12px}
+    .mod.span2{grid-column:span 1}
+    .nav{height:54px;gap:8px}
+    .nav .brand{font-size:.95rem}
+    .nav .host{display:none}
+    .charts{grid-template-columns:1fr}
+    .brow{gap:6px}
+    .setgrid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="card lbox">
+    <div class="brand">SkillFish<span class="g">OS</span> Remote Manager</div>
+    <div class="sub" id="lsub">SkillFishOS · accedi con le credenziali di sistema</div>
+    <form id="lform">
+      <input id="u" placeholder="Utente" autocomplete="username"/>
+      <input id="p" type="password" placeholder="Password" autocomplete="current-password"/>
+      <button class="btn" type="submit" id="lbtn">Entra</button>
+      <div class="err" id="lerr"></div>
+    </form>
+    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header><div class="wrap nav">
+    <span class="brand">SkillFish<span class="g">OS</span> Remote Manager</span>
+    <span class="host" id="host"></span>
+    <span class="sp"></span>
+    <button class="ghost pwr" id="reboot-top" title="Riavvia">🔄</button>
+    <button class="ghost pwr" id="off-top" title="Spegni">⏻</button>
+    <span id="hidden-wrap"></span>
+    <button class="ghost" id="save-btn" title="Salva disposizione">💾</button>
+    <button class="ghost" id="reset-btn" title="Ripristina disposizione">↺</button>
+    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button></div>
+    <button class="ghost" id="settings-btn" title="Moduli">⚙️</button>
+    <button class="ghost" id="logout">Esci</button>
+  </div></header>
+  <div class="wrap"><div class="grid" id="grid"></div></div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

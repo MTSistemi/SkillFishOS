@@ -1,0 +1,79 @@
+name: "🐛 Bug report"
+description: Report a problem with SkillFishOS (kernel, apps, ISO/installer, theme, repo)
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve SkillFishOS! For **security vulnerabilities** do **not** use
+        this form — see [SECURITY.md](../../SECURITY.md) and report privately.
+  - type: input
+    id: version
+    attributes:
+      label: SkillFishOS version
+      description: "From the About app or `cat /etc/os-release` (VERSION / VERSION_CODENAME)."
+      placeholder: "26.06 Aetherium"
+    validations:
+      required: true
+  - type: dropdown
+    id: hardware
+    attributes:
+      label: Hardware
+      options:
+        - "AMD BC-250"
+        - "Generic PC (Intel/AMD)"
+        - "Virtual machine (KVM/QEMU/VirtualBox)"
+        - "Other"
+    validations:
+      required: true
+  - type: dropdown
+    id: kernel
+    attributes:
+      label: Kernel flavor
+      description: "`uname -r`"
+      options:
+        - "7.0.11-skillfishos (BC-250 main)"
+        - "7.0.11-skillfishos-generic"
+        - "7.0.11-skillfishos-slim"
+        - "7.0.10-skillfishos"
+        - "Other / not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - "Kernel / boot"
+        - "Tuner (CPU/GPU/CU/fan)"
+        - "AI panel / Ollama"
+        - "ISO / Calamares installer"
+        - "Snapshots / GRUB / btrfs"
+        - "Theme / KDE desktop"
+        - "APT repository / updates"
+        - "Gaming / EmuDeck / ES-DE"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: "Relevant output — e.g. `journalctl -b -p err`, `dmesg`, app stderr. Redact secrets."
+      render: shell

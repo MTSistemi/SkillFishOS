@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS freeze notifier
+Name[it]=Notifica blocchi SkillFishOS
+Exec=/usr/local/bin/skillfish-freeze-notify.sh
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+NoDisplay=true

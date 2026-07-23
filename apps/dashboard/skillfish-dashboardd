@@ -1,0 +1,1752 @@
+#!/usr/bin/env python3
+# SkillFish Remote - dashboard backend daemon (Python standard library only).
+# HTTPS (self-signed) + PAM login + signed session cookies. The web UI composes
+# itself from the modules enabled in /etc/skillfish/dashboard.json. Runs as a
+# systemd service (root) so it can authenticate via PAM and drive system actions.
+# LAN-only by design; never expose to the internet without a real reverse proxy.
+import os, sys, json, ssl, hmac, hashlib, base64, time, subprocess, threading, urllib.parse, re, socket, select
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+CONF = "/etc/skillfish/dashboard.json"
+STATE = "/etc/skillfish"
+SECRET_F = os.path.join(STATE, "dashboard.secret")
+CERT_F = os.path.join(STATE, "dashboard-cert.pem")
+KEY_F = os.path.join(STATE, "dashboard-key.pem")
+WEB = "/usr/share/skillfish/dashboard"
+HUD = "/usr/local/bin/skillfish-hud-val"
+SESSION_TTL = 8 * 3600
+
+DEFAULT_CONF = {"bind": "0.0.0.0", "port": 8443, "user": "skillfish",
+                "modules": {"telemetry": True, "status": True}}
+
+# Human-facing module catalogue (id -> label/icon). The frontend renders cards
+# only for modules that are BOTH known here AND enabled in the config.
+MODULE_META = {
+    "telemetry":  {"icon": "📊", "name": "Telemetria",     "name_en": "Telemetry"},
+    "status":     {"icon": "🧊", "name": "Stato sistema",   "name_en": "System status"},
+    "tuner":      {"icon": "🎛️", "name": "Controlli",       "name_en": "Controls"},
+    "hub":        {"icon": "📦", "name": "App e pacchetti", "name_en": "Apps & packages"},
+    "logs":       {"icon": "📜", "name": "Log",             "name_en": "Logs"},
+    "launcher":   {"icon": "🚀", "name": "Avvio app",       "name_en": "Launcher"},
+    "kvm":        {"icon": "🖥️", "name": "Desktop (KVM)",   "name_en": "Desktop (KVM)"},
+    "terminal":   {"icon": "⌨️", "name": "Terminale",       "name_en": "Terminal"},
+    "ai":         {"icon": "🧠", "name": "AI / OpenWebUI",  "name_en": "AI / OpenWebUI"},
+    "gamestream": {"icon": "🎮", "name": "Game streaming",  "name_en": "Game streaming"},
+    "aiops":      {"icon": "🩺", "name": "AI-Ops",          "name_en": "AI-Ops"},
+    "rules":      {"icon": "⚙️", "name": "Regole auto",     "name_en": "Auto rules"},
+    "wol":        {"icon": "🔋", "name": "Power schedule",  "name_en": "Power schedule"},
+    "zerotier":   {"icon": "🌐", "name": "ZeroTier",        "name_en": "ZeroTier"},
+}
+
+
+def load_conf():
+    try:
+        with open(CONF) as f:
+            c = json.load(f)
+        for k, v in DEFAULT_CONF.items():
+            c.setdefault(k, v)
+        return c
+    except Exception:
+        return dict(DEFAULT_CONF)
+
+
+def get_secret():
+    try:
+        with open(SECRET_F, "rb") as f:
+            return f.read()
+    except Exception:
+        s = os.urandom(32)
+        try:
+            os.makedirs(STATE, exist_ok=True)
+            fd = os.open(SECRET_F, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            os.write(fd, s); os.close(fd)
+        except Exception:
+            pass
+        return s
+
+
+SECRET = get_secret()
+
+
+# ---------------- PAM auth (ctypes, no external deps) ----------------
+import ctypes, ctypes.util
+
+class _PamMessage(ctypes.Structure):
+    _fields_ = [("msg_style", ctypes.c_int), ("msg", ctypes.c_char_p)]
+
+class _PamResponse(ctypes.Structure):
+    _fields_ = [("resp", ctypes.c_char_p), ("resp_retcode", ctypes.c_int)]
+
+_CONV = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int,
+                         ctypes.POINTER(ctypes.POINTER(_PamMessage)),
+                         ctypes.POINTER(ctypes.POINTER(_PamResponse)), ctypes.c_void_p)
+
+class _PamConv(ctypes.Structure):
+    _fields_ = [("conv", _CONV), ("appdata_ptr", ctypes.c_void_p)]
+
+try:
+    _libpam = ctypes.CDLL(ctypes.util.find_library("pam"))
+    _libc = ctypes.CDLL(ctypes.util.find_library("c"))
+    _libc.calloc.restype = ctypes.c_void_p
+    _libc.calloc.argtypes = [ctypes.c_size_t, ctypes.c_size_t]
+    _libpam.pam_start.restype = ctypes.c_int
+    _libpam.pam_start.argtypes = [ctypes.c_char_p, ctypes.c_char_p,
+                                  ctypes.POINTER(_PamConv), ctypes.POINTER(ctypes.c_void_p)]
+    _libpam.pam_authenticate.restype = ctypes.c_int
+    _libpam.pam_authenticate.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _libpam.pam_acct_mgmt.restype = ctypes.c_int
+    _libpam.pam_acct_mgmt.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _libpam.pam_end.restype = ctypes.c_int
+    _libpam.pam_end.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _PAM_OK = True
+except Exception:
+    _PAM_OK = False
+
+
+def pam_check(username, password, service="login"):
+    if not _PAM_OK:
+        return False
+
+    @_CONV
+    def conv(n_messages, messages, p_response, app_data):
+        addr = _libc.calloc(n_messages, ctypes.sizeof(_PamResponse))
+        p_response[0] = ctypes.cast(addr, ctypes.POINTER(_PamResponse))
+        for i in range(n_messages):
+            if messages[i].contents.msg_style == 1:  # PAM_PROMPT_ECHO_OFF
+                pw = password.encode() + b"\x00"
+                dst = _libc.calloc(len(pw), 1)
+                ctypes.memmove(dst, pw, len(pw))
+                p_response[0][i].resp = ctypes.cast(dst, ctypes.c_char_p)
+                p_response[0][i].resp_retcode = 0
+        return 0
+
+    handle = ctypes.c_void_p()
+    conv_struct = _PamConv(conv, None)
+    try:
+        rc = _libpam.pam_start(service.encode(), username.encode(),
+                               ctypes.byref(conv_struct), ctypes.byref(handle))
+        if rc != 0:
+            return False
+        rc = _libpam.pam_authenticate(handle, 0)
+        if rc == 0:
+            # also verify the account itself is valid (not expired/locked/disabled)
+            rc = _libpam.pam_acct_mgmt(handle, 0)
+        _libpam.pam_end(handle, rc)
+        return rc == 0
+    except Exception:
+        return False
+
+
+# ---------------- sessions ----------------
+def make_token(user):
+    payload = "%s|%d" % (user, int(time.time()) + SESSION_TTL)
+    sig = hmac.new(SECRET, payload.encode(), hashlib.sha256).hexdigest()[:32]
+    return base64.urlsafe_b64encode(("%s|%s" % (payload, sig)).encode()).decode()
+
+
+def check_token(tok):
+    try:
+        raw = base64.urlsafe_b64decode(tok.encode()).decode()
+        user, exp, sig = raw.rsplit("|", 2)
+        payload = "%s|%s" % (user, exp)
+        good = hmac.new(SECRET, payload.encode(), hashlib.sha256).hexdigest()[:32]
+        if not hmac.compare_digest(sig, good):
+            return None
+        if int(exp) < time.time():
+            return None
+        return user
+    except Exception:
+        return None
+
+
+# ---------------- telemetry / status ----------------
+def read_all():
+    out = {}
+    try:
+        txt = subprocess.run([HUD, "all"], capture_output=True, text=True, timeout=1.5).stdout
+        for line in txt.splitlines():
+            p = line.split(None, 1)
+            if len(p) == 2:
+                m = re.search(r"-?\d+(?:\.\d+)?", p[1])
+                out[p[0]] = float(m.group()) if m else None
+    except Exception:
+        pass
+    return out
+
+
+def cpu_load(state):
+    try:
+        with open("/proc/stat") as fh:
+            v = [int(x) for x in fh.readline().split()[1:]]
+        idle = v[3] + (v[4] if len(v) > 4 else 0); total = sum(v)
+        prev = state[0]; state[0] = (total, idle)
+        if prev is None:
+            return None
+        dt = total - prev[0]; di = idle - prev[1]
+        return round(max(0.0, min(100.0, 100.0 * (dt - di) / dt)), 1) if dt > 0 else None
+    except Exception:
+        return None
+
+
+def sysinfo():
+    def sh(c):
+        try:
+            return subprocess.run(c, shell=True, capture_output=True, text=True, timeout=2).stdout.strip()
+        except Exception:
+            return ""
+    info = {}
+    info["host"] = sh("hostname")
+    # primary LAN IP = source address of the default route (not just the first of
+    # `hostname -I`, which can be a secondary/stale or docker/lxc address).
+    info["ip"] = (sh(r"ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'")
+                  or (sh("hostname -I").split()[0] if sh("hostname -I") else ""))
+    info["kernel"] = sh("uname -r")
+    try:
+        with open("/proc/uptime") as f:
+            up = int(float(f.read().split()[0]))
+        info["uptime"] = "%dd %dh %dm" % (up // 86400, (up % 86400) // 3600, (up % 3600) // 60)
+    except Exception:
+        info["uptime"] = ""
+    try:
+        with open("/proc/meminfo") as f:
+            mi = {ln.split(":")[0]: int(ln.split()[1]) for ln in f if ":" in ln}
+        info["ram_used_mb"] = (mi.get("MemTotal", 0) - mi.get("MemAvailable", 0)) // 1024
+        info["ram_total_mb"] = mi.get("MemTotal", 0) // 1024
+    except Exception:
+        pass
+    du = sh("df -h / | tail -1").split()
+    if len(du) >= 5:
+        info["disk_used"] = du[2]; info["disk_total"] = du[1]; info["disk_pct"] = du[4]
+    info["cu"] = sh("cat /run/skillfish/cu_active 2>/dev/null")
+    try:
+        with open("/var/log/skillfish-freeze.log") as f:
+            info["freezes"] = sum(1 for _ in f)
+    except Exception:
+        info["freezes"] = 0
+    return info
+
+
+# ---------------- module backends ----------------
+TUNER_HELPER = "/usr/local/bin/skillfish-tuner-helper"
+PRESETS_F = "/usr/share/skillfish/tuner-presets.json"
+REC_DIR_USER = None  # resolved at first use to the desktop user's home
+
+
+def tuner_cmd(reqs, timeout=40):
+    """Pipe one or more JSON command lines to the tuner helper; return last reply."""
+    try:
+        inp = "".join(json.dumps(r) + "\n" for r in reqs)
+        p = subprocess.run([TUNER_HELPER], input=inp, capture_output=True, text=True, timeout=timeout)
+        last = {"ok": False}
+        for line in p.stdout.splitlines():
+            try:
+                last = json.loads(line)
+            except Exception:
+                pass
+        return last
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def list_presets():
+    try:
+        with open(PRESETS_F) as f:
+            return json.load(f).get("presets", [])
+    except Exception:
+        return []
+
+
+def apply_preset(name):
+    pr = next((p for p in list_presets() if p.get("name", "").lower() == (name or "").lower()), None)
+    if not pr:
+        return {"ok": False, "error": "preset sconosciuto"}
+    c, g, fan = pr.get("cpu", {}), pr.get("gpu", {}), pr.get("fan", {})
+    cmds = [
+        {"cmd": "apply-cpu", "mhz": c.get("frequency"), "scale": c.get("scale"), "temp": c.get("max_temperature", 85)},
+        {"cmd": "apply-gpu", "minmhz": g.get("min_mhz"), "minmv": g.get("min_mv"),
+         "maxmhz": g.get("max_mhz"), "maxmv": g.get("max_mv")},
+        {"cmd": "apply-fan", "mode": fan.get("mode", "auto"), "pct": fan.get("pct", 45)},
+        {"cmd": "thermal-guard", "limit": pr.get("thermal_guard", 85)},
+    ]
+    tuner_cmd(cmds)
+    return {"ok": True, "preset": pr.get("name")}
+
+
+# ---- named Compute-Unit (WGP) profiles, shared by the web and native Tuner ----
+CU_PROFILES_F = "/etc/skillfish/cu-profiles.json"
+
+
+def cu_profiles_load():
+    try:
+        with open(CU_PROFILES_F) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def cu_profile_op(action, name, rows):
+    name = (name or "").strip()[:40]
+    profs = cu_profiles_load()
+    if action == "save":
+        if not name:
+            return {"ok": False, "error": "nome mancante"}
+        try:
+            r = [int(x) & 0x1f for x in (rows or [])][:4]
+        except Exception:
+            r = []
+        while len(r) < 4:
+            r.append(0x1f)
+        profs[name] = r
+    elif action == "delete":
+        profs.pop(name, None)
+    elif action == "apply":
+        r = profs.get(name)
+        if not r:
+            return {"ok": False, "error": "profilo sconosciuto"}
+        res = tuner_cmd([{"cmd": "cu-apply", "rows": r}])
+        res["profiles"] = profs
+        return res
+    else:
+        return {"ok": False, "error": "azione sconosciuta"}
+    try:
+        os.makedirs(os.path.dirname(CU_PROFILES_F), exist_ok=True)
+        with open(CU_PROFILES_F, "w") as f:
+            json.dump(profs, f, indent=2)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "profiles": profs}
+
+
+# ---- temperature -> fan% curve (#3) ----
+FAN_CURVE_F = "/etc/skillfish/fan-curve.json"
+FAN_CURVE_DEFAULT = {"enabled": False, "source": "max",
+                     "points": [[40, 20], [55, 35], [70, 55], [80, 80], [90, 100]]}
+_FAN = {"last_pct": None, "was_enabled": False}
+
+
+def fan_curve_load():
+    try:
+        with open(FAN_CURVE_F) as f:
+            d = json.load(f)
+        out = dict(FAN_CURVE_DEFAULT)
+        out.update({k: d[k] for k in ("enabled", "source", "points") if k in d})
+        return out
+    except Exception:
+        return dict(FAN_CURVE_DEFAULT)
+
+
+def fan_curve_save(d):
+    cur = fan_curve_load()
+    if "enabled" in d:
+        cur["enabled"] = bool(d["enabled"])
+    if d.get("source") in ("max", "gpu", "cpu"):
+        cur["source"] = d["source"]
+    if isinstance(d.get("points"), list):
+        pts = []
+        for p in d["points"]:
+            try:
+                pts.append([max(0, min(110, int(p[0]))), max(0, min(100, int(p[1])))])
+            except Exception:
+                pass
+        if pts:
+            cur["points"] = sorted(pts)
+    try:
+        os.makedirs(os.path.dirname(FAN_CURVE_F), exist_ok=True)
+        with open(FAN_CURVE_F, "w") as f:
+            json.dump(cur, f, indent=2)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "curve": cur, "preview": fan_curve_pct(cur)}
+
+
+def fan_curve_pct(cur=None):
+    """Interpolate the target fan % for the current temperature."""
+    cur = cur or fan_curve_load()
+    v = read_all()
+    g = v.get("gpu_temp") if isinstance(v.get("gpu_temp"), (int, float)) else 0
+    c = v.get("cpu_temp") if isinstance(v.get("cpu_temp"), (int, float)) else 0
+    t = {"gpu": g, "cpu": c}.get(cur["source"], max(g, c))
+    pts = sorted(cur["points"])
+    if not pts:
+        return None
+    if t <= pts[0][0]:
+        return pts[0][1]
+    if t >= pts[-1][0]:
+        return pts[-1][1]
+    for i in range(1, len(pts)):
+        t0, p0 = pts[i - 1]
+        t1, p1 = pts[i]
+        if t0 <= t <= t1:
+            return round(p0 + (p1 - p0) * (t - t0) / (t1 - t0)) if t1 != t0 else p1
+    return pts[-1][1]
+
+
+def fan_curve_loop():
+    while True:
+        try:
+            cur = fan_curve_load()
+            if cur["enabled"]:
+                pct = fan_curve_pct(cur)
+                if pct is not None and (_FAN["last_pct"] is None or abs(pct - _FAN["last_pct"]) >= 3):
+                    tuner_cmd([{"cmd": "apply-fan", "mode": "manual", "pct": int(pct)}])
+                    _FAN["last_pct"] = pct
+                _FAN["was_enabled"] = True
+            elif _FAN["was_enabled"]:
+                tuner_cmd([{"cmd": "apply-fan", "mode": "auto"}])  # hand the fan back to firmware
+                _FAN["was_enabled"] = False
+                _FAN["last_pct"] = None
+        except Exception:
+            pass
+        time.sleep(3)
+
+
+def cpu_coremap():
+    """Physical CPU core layout + live per-core MHz (for affinity / pinning)."""
+    base = "/sys/devices/system/cpu"
+
+    def rd(p):
+        try:
+            with open(p) as f:
+                return f.read().strip()
+        except Exception:
+            return ""
+    # live MHz per logical CPU from /proc/cpuinfo
+    mhz = {}
+    try:
+        cur = None
+        with open("/proc/cpuinfo") as f:
+            for ln in f:
+                if ln.startswith("processor"):
+                    cur = int(ln.split(":")[1])
+                elif ln.lower().startswith("cpu mhz") and cur is not None:
+                    mhz[cur] = round(float(ln.split(":")[1]))
+    except Exception:
+        pass
+    out = []
+    try:
+        cpus = sorted(int(d[3:]) for d in os.listdir(base) if re.match(r"cpu\d+$", d))
+    except Exception:
+        cpus = []
+    for c in cpus:
+        t = "%s/cpu%d/topology" % (base, c)
+        out.append({"cpu": c, "core": rd(t + "/core_id"),
+                    "pkg": rd(t + "/physical_package_id"),
+                    "siblings": rd(t + "/thread_siblings_list"),
+                    "mhz": mhz.get(c, "")})
+    return {"ok": True, "cpus": out, "n": len(out)}
+
+
+def user_home():
+    global REC_DIR_USER
+    if REC_DIR_USER:
+        return REC_DIR_USER
+    u = CONFIG.get("user", "skillfish")
+    try:
+        import pwd
+        REC_DIR_USER = pwd.getpwnam(u).pw_dir
+    except Exception:
+        REC_DIR_USER = "/home/" + u
+    return REC_DIR_USER
+
+
+def user_env():
+    """Env to launch GUI apps on the desktop user's session."""
+    return {"DISPLAY": ":0", "XDG_RUNTIME_DIR": "/run/user/1000",
+            "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+            "PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": user_home()}
+
+
+def launch_app(cmd):
+    u = CONFIG.get("user", "skillfish")
+    try:
+        subprocess.Popen(["sudo", "-u", u, "env"] + ["%s=%s" % (k, v) for k, v in user_env().items()]
+                         + ["setsid", "nohup"] + cmd,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# ---------------- Hub (full app store: apt + flatpak + snap) ----------------
+_HUBJOB = {"running": False, "title": "", "log": [], "done": True, "rc": 0}
+_HUBLOCK = threading.Lock()
+_PKG_RE = re.compile(r"^[a-z0-9][a-z0-9.+-]{0,80}$")          # apt
+_FLAT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$")  # flatpak app id
+_SNAP_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")           # snap name
+HUB_CATALOG = "/usr/local/bin/skillfish-hub-catalog"
+_ICON_ROOTS = ["/usr/share/app-info/icons", "/var/lib/app-info/icons", "/usr/share/icons",
+               "/usr/share/pixmaps", "/var/lib/flatpak"]
+# In-memory app catalogue, built in the background from skillfish-hub-catalog.
+HUBCAT = {"apps": [], "by_key": {}, "ready": False, "building": False, "ts": 0}
+_CARD = ("key", "backend", "id", "pkgid", "name", "summary", "icon",
+         "top", "rating", "rating_n", "installed", "ver", "developer", "ours")
+
+
+def _apt_env():
+    e = dict(os.environ); e["DEBIAN_FRONTEND"] = "noninteractive"; return e
+
+
+def _card(a):
+    c = {k: a.get(k) for k in _CARD}
+    c["iloc"] = bool(a.get("icon_local"))
+    return c
+
+
+def _cat_build():
+    if HUBCAT["building"]:
+        return
+    HUBCAT["building"] = True
+    try:
+        p = subprocess.run([HUB_CATALOG, "build"], capture_output=True, text=True, timeout=180)
+        apps = json.loads(p.stdout).get("apps", [])
+        HUBCAT["apps"] = apps
+        HUBCAT["by_key"] = {a["key"]: a for a in apps}
+        HUBCAT["ready"] = True
+        HUBCAT["ts"] = int(time.time())
+    except Exception as e:
+        sys.stderr.write("hub catalog build failed: %s\n" % e)
+    finally:
+        HUBCAT["building"] = False
+
+
+def cat_build_async():
+    threading.Thread(target=_cat_build, daemon=True).start()
+
+
+def hub_status():
+    return {"ok": True, "ready": HUBCAT["ready"], "building": HUBCAT["building"],
+            "count": len(HUBCAT["apps"]), "ts": HUBCAT["ts"]}
+
+
+def hub_catalog(p):
+    if not HUBCAT["ready"]:
+        if not HUBCAT["building"]:
+            cat_build_async()
+        return {"ok": True, "ready": False, "apps": [], "total": 0}
+    cat = p.get("cat"); sub = p.get("sub"); bk = p.get("backend")
+    q = (p.get("q") or "").lower().strip(); sort = p.get("sort", "name")
+    ours_only = p.get("ours") in ("1", "true", "yes")
+    try:
+        page = max(0, int(p.get("page", 0)))
+    except Exception:
+        page = 0
+    per = 60
+    res = []
+    for a in HUBCAT["apps"]:
+        if ours_only and not a.get("ours"):
+            continue
+        if cat and a.get("top") != cat:
+            continue
+        if sub and sub not in (a.get("cats") or []):
+            continue
+        if bk and a.get("backend") != bk:
+            continue
+        if q and q not in a.get("name", "").lower() and q not in (a.get("summary") or "").lower():
+            continue
+        res.append(a)
+    if sort == "rating":
+        res.sort(key=lambda a: (a.get("rating_n", 0), a.get("rating", 0)), reverse=True)
+    elif sort == "installed":
+        res.sort(key=lambda a: (not a.get("installed"), a.get("name", "").lower()))
+    else:
+        res.sort(key=lambda a: a.get("name", "").lower())
+    total = len(res)
+    cards = [_card(a) for a in res[page * per:(page + 1) * per]]
+    return {"ok": True, "ready": True, "total": total, "page": page, "per": per, "apps": cards}
+
+
+def hub_categories():
+    counts = {}
+    for a in HUBCAT["apps"]:
+        counts[a.get("top")] = counts.get(a.get("top"), 0) + 1
+    return {"ok": True, "ready": HUBCAT["ready"], "counts": counts, "total": len(HUBCAT["apps"])}
+
+
+def hub_app(key):
+    a = HUBCAT["by_key"].get(key)
+    if not a:
+        return {"ok": False, "error": "app non trovata"}
+    a = dict(a)
+    a["iloc"] = bool(a.get("icon_local"))
+    try:
+        p = subprocess.run([HUB_CATALOG, "reviews", a.get("id", ""), a.get("ver", "")],
+                           capture_output=True, text=True, timeout=20)
+        a["reviews"] = json.loads(p.stdout)
+    except Exception:
+        a["reviews"] = []
+    return {"ok": True, "app": a}
+
+
+def hub_icon_path(key):
+    a = HUBCAT["by_key"].get(key)
+    if not a:
+        return None
+    p = a.get("icon_local")
+    if not p:
+        return None
+    rp = os.path.realpath(p)
+    if not any(rp == os.path.realpath(r) or rp.startswith(os.path.realpath(r) + os.sep) for r in _ICON_ROOTS):
+        return None
+    return rp if os.path.isfile(rp) else None
+
+
+def hub_search(q):
+    q = (q or "").strip()
+    if len(q) < 2:
+        return {"ok": True, "results": []}
+    ql = q.lower()
+    res = [a for a in HUBCAT["apps"] if a.get("backend") in ("apt", "flatpak")
+           and (ql in a.get("name", "").lower() or ql in (a.get("summary") or "").lower()
+                or ql in a.get("pkgid", "").lower())][:80]
+    snaps = []
+    try:
+        p = subprocess.run([HUB_CATALOG, "snap-find", q], capture_output=True, text=True, timeout=25)
+        snaps = json.loads(p.stdout)
+    except Exception:
+        snaps = []
+    return {"ok": True, "results": [_card(a) for a in res] + [_card(s) for s in snaps]}
+
+
+def hub_installed():
+    res = [_card(a) for a in HUBCAT["apps"] if a.get("installed")]
+    res.sort(key=lambda a: a.get("name", "").lower())
+    return {"ok": True, "installed": res, "count": len(res)}
+
+
+def hub_updates():
+    ups = []
+    try:
+        out = subprocess.run(["apt-get", "-s", "full-upgrade"], capture_output=True,
+                             text=True, timeout=60, env=_apt_env()).stdout
+        for ln in out.splitlines():
+            m = re.match(r"Inst (\S+) \[([^\]]*)\] \(([^ ]+)", ln)
+            if m:
+                ups.append({"backend": "apt", "pkg": m.group(1), "old": m.group(2), "new": m.group(3)})
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(["flatpak", "remote-ls", "--updates", "--columns=application,version"],
+                             capture_output=True, text=True, timeout=40).stdout
+        for ln in out.splitlines():
+            f = ln.split("\t")
+            if f and f[0] and f[0] != "Application ID":
+                ups.append({"backend": "flatpak", "pkg": f[0], "old": "", "new": f[1] if len(f) > 1 else ""})
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(["snap", "refresh", "--list"], capture_output=True, text=True, timeout=40).stdout
+        for ln in out.splitlines()[1:]:
+            f = ln.split()
+            if f:
+                ups.append({"backend": "snap", "pkg": f[0], "old": "", "new": f[1] if len(f) > 1 else ""})
+    except Exception:
+        pass
+    return {"ok": True, "updates": ups, "count": len(ups)}
+
+
+def hub_sources():
+    d = "/etc/apt/sources.list.d"
+    out = []
+    try:
+        for fn in sorted(os.listdir(d)):
+            if not fn.endswith(".sources"):
+                continue
+            with open(os.path.join(d, fn)) as f:
+                txt = f.read()
+            en = not re.search(r"(?im)^Enabled:\s*no", txt)
+            mu = re.search(r"(?im)^URIs:\s*(\S+)", txt)
+            out.append({"name": fn[:-8], "enabled": en, "uri": mu.group(1) if mu else ""})
+    except Exception:
+        pass
+    remotes = []
+    try:
+        o = subprocess.run(["flatpak", "remotes", "--columns=name,url"],
+                           capture_output=True, text=True, timeout=15).stdout
+        for ln in o.splitlines():
+            f = ln.split("\t")
+            if f and f[0]:
+                remotes.append({"name": f[0].strip(), "uri": f[1].strip() if len(f) > 1 else ""})
+    except Exception:
+        pass
+    return {"ok": True, "sources": out, "flatpak_remotes": remotes}
+
+
+def _hub_run(title, cmds, stop_on_error=True):
+    """Run a list of argv commands sequentially in a background thread; refresh catalogue after."""
+    with _HUBLOCK:
+        if _HUBJOB["running"]:
+            return False
+        _HUBJOB.update(running=True, title=title, log=[], done=False, rc=None)
+
+    def worker():
+        rc = 0
+        try:
+            for argv in cmds:
+                p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     text=True, env=_apt_env())
+                for line in p.stdout:
+                    _HUBJOB["log"].append(line.rstrip())
+                    if len(_HUBJOB["log"]) > 600:
+                        del _HUBJOB["log"][:150]
+                p.wait()
+                if p.returncode != 0:
+                    rc = p.returncode
+                    if stop_on_error:
+                        break
+        except Exception as e:
+            _HUBJOB["log"].append("errore: %s" % e); rc = 1
+        finally:
+            _HUBJOB["rc"] = rc; _HUBJOB["running"] = False; _HUBJOB["done"] = True
+            cat_build_async()  # refresh installed state
+
+    threading.Thread(target=worker, daemon=True).start()
+    return True
+
+
+def hub_op(op, backend, pkg):
+    pkg = (pkg or "").strip()
+    if op == "update":
+        cmds = [["apt-get", "update"]]
+    elif op == "upgrade":
+        cmds = [["apt-get", "update"], ["apt-get", "-y", "full-upgrade"],
+                ["flatpak", "update", "--system", "-y", "--noninteractive"], ["snap", "refresh"]]
+        return _hub_start("aggiorno tutto", cmds, stop_on_error=False)
+    elif op in ("install", "remove"):
+        if backend == "apt":
+            if not _PKG_RE.match(pkg):
+                return {"ok": False, "error": "nome pacchetto non valido"}
+            cmds = ([["apt-get", "update"], ["apt-get", "install", "-y", pkg]] if op == "install"
+                    else [["apt-get", "purge", "-y", pkg], ["apt-get", "autoremove", "-y"]])
+        elif backend == "flatpak":
+            if not _FLAT_RE.match(pkg):
+                return {"ok": False, "error": "id flatpak non valido"}
+            cmds = ([["flatpak", "install", "--system", "-y", "--noninteractive", "flathub", pkg]] if op == "install"
+                    else [["flatpak", "uninstall", "--system", "-y", "--noninteractive", pkg]])
+        elif backend == "snap":
+            if not _SNAP_RE.match(pkg):
+                return {"ok": False, "error": "nome snap non valido"}
+            cmds = [["snap", "install", pkg]] if op == "install" else [["snap", "remove", pkg]]
+        else:
+            return {"ok": False, "error": "backend sconosciuto"}
+    else:
+        return {"ok": False, "error": "operazione sconosciuta"}
+    return _hub_start(op + ((" " + pkg) if pkg else ""), cmds)
+
+
+def _hub_start(title, cmds, stop_on_error=True):
+    if not _hub_run(title, cmds, stop_on_error):
+        return {"ok": False, "error": "operazione già in corso"}
+    return {"ok": True, "started": True}
+
+
+def hub_source_toggle(name, enable):
+    if not re.match(r"^[A-Za-z0-9_-]+$", name or ""):  # no dots/slashes -> no traversal
+        return {"ok": False, "error": "nome non valido"}
+    root = "/etc/apt/sources.list.d"
+    f = os.path.realpath(os.path.join(root, name + ".sources"))
+    if os.path.dirname(f) != os.path.realpath(root):
+        return {"ok": False, "error": "percorso non valido"}
+    val = "yes" if enable else "no"
+    try:
+        with open(f) as fh:
+            txt = fh.read()
+        if re.search(r"(?im)^Enabled:", txt):
+            txt = re.sub(r"(?im)^Enabled:.*$", "Enabled: " + val, txt)
+        else:
+            txt = txt.rstrip() + "\nEnabled: " + val + "\n"
+        with open(f, "w") as fh:
+            fh.write(txt)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def read_log(which, n=200):
+    n = max(1, min(2000, int(n)))
+    if which == "freeze":
+        try:
+            with open("/var/log/skillfish-freeze.log") as f:
+                return f.read().splitlines()[-n:]
+        except Exception:
+            return []
+    cmd = ["journalctl", "-n", str(n), "--no-pager", "-o", "short-iso"]
+    if which == "kernel":
+        cmd.append("-k")
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout.splitlines()
+    except Exception:
+        return []
+
+
+# (server-side benchmark recorder removed — recording lives in the native Telemetry app)
+
+
+# ---------------- interactive services (KVM / Terminal) ----------------
+import secrets
+SVC_PROC = {}                       # name -> Popen
+VNC_PASS = secrets.token_hex(4)     # 8 hex chars, regenerated each daemon start
+TTYD_TOKEN = secrets.token_urlsafe(12)
+KVM_PORT, TTYD_PORT = 6080, 7681
+
+
+def _alive(name):
+    p = SVC_PROC.get(name)
+    return p is not None and p.poll() is None
+
+
+def _spawn(name, argv, as_user=False, kill_pat=None):
+    if _alive(name):
+        return
+    # a previous run may have left an orphan squatting the port → clear it first
+    if kill_pat:
+        subprocess.run(["pkill", "-f", kill_pat], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.3)
+    if as_user:
+        u = CONFIG.get("user", "skillfish")
+        argv = ["sudo", "-u", u, "env"] + ["%s=%s" % (k, v) for k, v in user_env().items()] + argv
+    SVC_PROC[name] = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def kvm_start():
+    # x11vnc on a dedicated port (5901), localhost + password; websockify bridges it to
+    # noVNC on localhost:KVM_PORT (plain) — the dashboard reverse-proxies it under /kvm
+    # over its own TLS + session, so there's no second cert/login and no LAN exposure.
+    _spawn("x11vnc", ["x11vnc", "-display", ":0", "-rfbport", "5901", "-localhost",
+                      "-passwd", VNC_PASS, "-forever", "-shared", "-noxdamage", "-repeat", "-quiet"],
+           as_user=True, kill_pat="x11vnc -display :0 -rfbport 5901")
+    time.sleep(1.0)
+    _spawn("websockify", ["websockify", "--web", "/usr/share/novnc",
+                          "127.0.0.1:%d" % KVM_PORT, "localhost:5901"],
+           kill_pat="websockify --web")
+    time.sleep(0.8)
+    return {"ok": True, "password": VNC_PASS}
+
+
+def kvm_stop():
+    for n in ("websockify", "x11vnc"):
+        p = SVC_PROC.pop(n, None)
+        if p and p.poll() is None:
+            p.terminate()
+    return {"ok": True}
+
+
+def terminal_start():
+    u = CONFIG.get("user", "skillfish")
+    # ttyd on loopback only, base-path /terminal, NO auth/TLS of its own — the dashboard
+    # reverse-proxies it under /terminal (its TLS + login session = single sign-on).
+    # Command after `--` so ttyd's getopt can't eat the shell's flags.
+    _spawn("ttyd", ["ttyd", "-i", "lo", "-p", str(TTYD_PORT), "-b", "/terminal",
+                    "-W", "-t", "fontSize=14", "--", "su", "-", u],
+           kill_pat="ttyd -i lo")
+    time.sleep(0.8)
+    return {"ok": True}
+
+
+def terminal_stop():
+    p = SVC_PROC.pop("ttyd", None)
+    if p and p.poll() is None:
+        p.terminate()
+    return {"ok": True}
+
+
+# ---------------- AI / OpenWebUI ----------------
+AI_COMPOSE = "/opt/stacks/skillfish-ai/compose.yaml"
+AI_CONTAINER = "skillfish-ollama"
+WEBUI_PORT = 8080
+
+
+def _port_open(port):
+    try:
+        s = socket.create_connection(("127.0.0.1", port), timeout=1); s.close(); return True
+    except Exception:
+        return False
+
+
+def _ai_models():
+    try:
+        r = subprocess.run(["docker", "exec", AI_CONTAINER, "ollama", "list"],
+                           capture_output=True, text=True, timeout=8).stdout
+        return [ln.split()[0] for ln in r.splitlines()[1:] if ln.strip()]
+    except Exception:
+        return []
+
+
+def ai_status():
+    r = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", AI_CONTAINER],
+                       capture_output=True, text=True)
+    running = r.stdout.strip() == "true"
+    return {"ok": True, "running": running, "webui": _port_open(WEBUI_PORT),
+            "models": _ai_models() if running else []}
+
+
+def ai_start():
+    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "up", "-d"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True}
+
+
+def ai_stop():
+    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "down"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True}
+
+
+def ai_pull(model):
+    if not re.match(r"^[A-Za-z0-9._:/-]{1,80}$", (model or "").strip()):
+        return {"ok": False, "error": "nome modello non valido"}
+    subprocess.Popen(["docker", "exec", AI_CONTAINER, "ollama", "pull", model.strip()],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True, "model": model.strip()}
+
+
+# ---- "Optimize for AI" (#5): tune GTT cap, KV cache and context for bigger models ----
+GRUB_F = "/etc/default/grub"
+
+
+def _cmdline_param(name):
+    try:
+        with open("/proc/cmdline") as f:
+            for tok in f.read().split():
+                if tok.startswith(name + "="):
+                    return tok.split("=", 1)[1]
+    except Exception:
+        pass
+    return None
+
+
+def _compose_env(name):
+    try:
+        with open(AI_COMPOSE) as f:
+            m = re.search(r"^\s*-\s*%s=(\S+)" % re.escape(name), f.read(), re.M)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def ai_tune_status():
+    gtt_cap = _cmdline_param("amdgpu.gttsize")
+    swap_mb = 0
+    try:
+        with open("/proc/meminfo") as f:
+            m = re.search(r"SwapTotal:\s+(\d+)", f.read())
+            swap_mb = int(m.group(1)) // 1024 if m else 0
+    except Exception:
+        pass
+    kv = _compose_env("OLLAMA_KV_CACHE_TYPE")
+    ctx = _compose_env("OLLAMA_CONTEXT_LENGTH")
+    recs = []
+    if kv and kv != "q8_0":
+        recs.append("kv_q8")
+    if gtt_cap:
+        recs.append("gtt_unlock")
+    return {"ok": True, "gtt_cap_mb": int(gtt_cap) if (gtt_cap or "").isdigit() else gtt_cap,
+            "swap_mb": swap_mb, "kv_cache": kv, "context": ctx,
+            "vulkan": _compose_env("OLLAMA_VULKAN") == "1",
+            "flash_attention": _compose_env("OLLAMA_FLASH_ATTENTION") == "1",
+            "recommend": recs}
+
+
+def _grub_update():
+    subprocess.run(["update-grub"], capture_output=True, text=True, timeout=60)
+
+
+def _ollama_recreate():
+    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "up", "-d", "ollama"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def ai_tune_apply(action):
+    try:
+        if action in ("kv_q8", "kv_f16"):
+            val = "q8_0" if action == "kv_q8" else "f16"
+            with open(AI_COMPOSE) as f:
+                txt = f.read()
+            txt = re.sub(r"(- OLLAMA_KV_CACHE_TYPE=)\S+", r"\g<1>" + val, txt)
+            with open(AI_COMPOSE, "w") as f:
+                f.write(txt)
+            _ollama_recreate()
+            return {"ok": True, "kv_cache": val, "note": "Contenitore Ollama ricreato."}
+        if action == "context":
+            return {"ok": False, "error": "non implementato qui"}
+        if action in ("gtt_unlock", "gtt_restore"):
+            with open(GRUB_F) as f:
+                txt = f.read()
+            if action == "gtt_unlock":
+                new = re.sub(r"\s*amdgpu\.gttsize=\d+", "", txt)
+            else:
+                if "amdgpu.gttsize=" not in txt:
+                    new = re.sub(r'(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*)"',
+                                 r"\1 amdgpu.gttsize=6144\"", txt, count=1)
+                else:
+                    new = txt
+            if new != txt:
+                with open(GRUB_F, "w") as f:
+                    f.write(new)
+                _grub_update()
+            return {"ok": True, "reboot_needed": True,
+                    "note": "Modifica al boot applicata: riavvia per attivarla."}
+        return {"ok": False, "error": "azione sconosciuta"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def ai_chat(model, messages):
+    if not _port_open(11434):
+        return {"ok": False, "error": "Motore AI spento — accendilo dal modulo AI."}
+    if not model:
+        ms = _ai_models(); model = ms[0] if ms else "qwen3:14b"
+    if not isinstance(messages, list):
+        return {"ok": False, "error": "messaggi non validi"}
+    try:
+        req = urllib.request.Request("http://127.0.0.1:11434/api/chat",
+                                     data=json.dumps({"model": model, "messages": messages, "stream": False}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        out = json.loads(urllib.request.urlopen(req, timeout=300).read().decode())
+        return {"ok": True, "model": model, "message": out.get("message", {}).get("content", "")}
+    except Exception as e:
+        return {"ok": False, "error": "Ollama: %s" % e}
+
+
+# ---------------- Wake-on-LAN / power schedule ----------------
+def _primary_nic():
+    out = subprocess.run("ip -o route get 1.1.1.1 2>/dev/null", shell=True, capture_output=True, text=True).stdout
+    m = re.search(r"dev (\S+)", out)
+    return m.group(1) if m else "enp4s0"
+
+
+def wol_info():
+    nic = _primary_nic()
+    try:
+        with open("/sys/class/net/%s/address" % nic) as f:
+            mac = f.read().strip()
+    except Exception:
+        mac = ""
+    eth = ""
+    try:
+        eth = subprocess.run(["ethtool", nic], capture_output=True, text=True, timeout=5).stdout
+    except Exception:
+        eth = ""  # ethtool may be missing; report what we can
+    return {"ok": True, "nic": nic, "mac": mac,
+            "wol_supported": "Supports Wake-on" in eth,
+            "wol_enabled": bool(re.search(r"Wake-on:\s*\w*g", eth))}
+
+
+def wol_enable(on):
+    try:
+        subprocess.run(["ethtool", "-s", _primary_nic(), "wol", "g" if on else "d"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def wol_send(mac):
+    if not re.match(r"^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$", mac or ""):
+        return {"ok": False, "error": "MAC non valido"}
+    subprocess.run(["wakeonlan", mac], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True, "mac": mac}
+
+
+def power_schedule(action, minutes):
+    try:
+        m = max(1, int(minutes))
+    except Exception:
+        m = 1
+    if action == "cancel":
+        subprocess.run(["shutdown", "-c"]); return {"ok": True, "cancelled": True}
+    if action == "reboot":
+        subprocess.run(["shutdown", "-r", "+%d" % m]); return {"ok": True, "in_min": m}
+    if action in ("poweroff", "shutdown"):
+        subprocess.run(["shutdown", "-h", "+%d" % m]); return {"ok": True, "in_min": m}
+    return {"ok": False, "error": "azione sconosciuta"}
+
+
+# ---------------- auto rules + screen snapshot ----------------
+import urllib.request
+RULES_DEFAULT = {"enabled": True, "temp_limit": 92, "samples": 6}
+_RULES = {"hot": 0, "last_action": ""}
+
+
+def save_conf():
+    try:
+        with open(CONF, "w") as f:
+            json.dump(CONFIG, f, indent=2)
+    except Exception:
+        pass
+
+
+def rules_cfg():
+    return {**RULES_DEFAULT, **(CONFIG.get("rules_cfg") or {})}
+
+
+def rules_loop():
+    while True:
+        try:
+            c = rules_cfg()
+            if CONFIG.get("modules", {}).get("rules") and c["enabled"]:
+                v = read_all()
+                temps = [x for x in (v.get("gpu_temp"), v.get("cpu_temp")) if isinstance(x, (int, float))]
+                t = max(temps) if temps else 0
+                if t >= c["temp_limit"]:
+                    _RULES["hot"] += 1
+                    if _RULES["hot"] >= c["samples"]:
+                        apply_preset("Stock")
+                        _RULES["hot"] = 0
+                        _RULES["last_action"] = "%s — %d°C ≥ %d°C → preset Stock applicato" % (
+                            time.strftime("%H:%M:%S"), round(t), c["temp_limit"])
+                else:
+                    _RULES["hot"] = 0
+        except Exception:
+            pass
+        time.sleep(2)
+
+
+# ---------------- AI-Ops (local LLM log diagnosis) ----------------
+def _ollama_models():
+    try:
+        r = subprocess.run(["docker", "exec", AI_CONTAINER, "ollama", "list"],
+                           capture_output=True, text=True, timeout=8).stdout
+        return [ln.split()[0] for ln in r.splitlines()[1:] if ln.strip()]
+    except Exception:
+        return []
+
+
+def aiops_diagnose(question):
+    if not _port_open(11434):
+        return {"ok": False, "error": "Motore AI spento: accendilo dal modulo AI."}
+    models = _ollama_models()
+    model = models[0] if models else "qwen3:14b"
+    jrn = subprocess.run(["journalctl", "-p", "warning", "-n", "60", "--no-pager", "-o", "short"],
+                         capture_output=True, text=True, timeout=8).stdout
+    try:
+        with open("/var/log/skillfish-freeze.log") as f:
+            frz = f.read()[-1500:]
+    except Exception:
+        frz = "(nessun freeze registrato)"
+    v = read_all()
+    tele = "GPU %s°C / CPU %s°C, GPU %s MHz, %s W, ventola %s RPM" % (
+        v.get("gpu_temp"), v.get("cpu_temp"), v.get("gpu_freq"), v.get("gpu_power"), v.get("fan"))
+    q = question or "Analizza i log e lo stato: ci sono problemi? Causa probabile e come risolvere?"
+    prompt = ("Sei l'assistente di sistema di SkillFishOS su una scheda AMD BC-250. "
+              "Rispondi in italiano, conciso e pratico.\n\n=== Telemetria ===\n%s\n\n"
+              "=== Log freeze ===\n%s\n\n=== journalctl (warning+) ===\n%s\n\n=== Domanda ===\n%s\n" %
+              (tele, frz, jrn[-3000:], q))
+    try:
+        req = urllib.request.Request("http://127.0.0.1:11434/api/generate",
+                                     data=json.dumps({"model": model, "prompt": prompt, "stream": False}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        out = json.loads(urllib.request.urlopen(req, timeout=120).read().decode())
+        return {"ok": True, "model": model, "answer": out.get("response", "").strip()}
+    except Exception as e:
+        return {"ok": False, "error": "Ollama: %s" % e}
+
+
+# ---------------- ZeroTier (remote access from anywhere) ----------------
+_ZT_CMDS = {"info", "listnetworks", "join", "leave"}
+
+
+def _zt(args):
+    # hardening: only allow known subcommands and strictly-shaped arguments
+    if not args or args[0] not in _ZT_CMDS:
+        return ""
+    for a in args[1:]:
+        if not re.match(r"^[0-9a-fA-F]{16}$", a):  # only 16-hex network IDs
+            return ""
+    try:
+        return subprocess.run(["zerotier-cli"] + list(args), capture_output=True,
+                              text=True, timeout=8).stdout.strip()
+    except Exception:
+        return ""
+
+
+def zt_status():
+    info = _zt(["info"])
+    parts = info.split()
+    address = parts[2] if len(parts) > 2 else ""
+    nets = []
+    for ln in _zt(["listnetworks"]).splitlines():
+        p = ln.split()
+        # 200 listnetworks <nwid> <name> <mac> <status> <type> <dev> <ips>
+        if len(p) >= 8 and p[1] == "listnetworks" and p[2] != "<nwid>":
+            ip = p[8] if len(p) > 8 else "-"
+            nets.append({"nwid": p[2], "name": p[3], "status": p[5], "ip": ip})
+    return {"ok": True, "address": address, "online": "ONLINE" in info, "networks": nets}
+
+
+def zt_join(nwid):
+    if not re.match(r"^[0-9a-fA-F]{16}$", (nwid or "").strip()):
+        return {"ok": False, "error": "Network ID non valido (16 cifre esadecimali)"}
+    _zt(["join", nwid.strip()])
+    return {"ok": True, "nwid": nwid.strip()}
+
+
+def zt_leave(nwid):
+    if re.match(r"^[0-9a-fA-F]{16}$", (nwid or "").strip()):
+        _zt(["leave", nwid.strip()])
+    return {"ok": True}
+
+
+# ---------------- HTTP ----------------
+CONFIG = load_conf()
+_login_fails = {}  # ip -> (count, first_ts)
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "SkillFishRemote/1.0"
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *a):
+        pass
+
+    # --- helpers ---
+    def _send(self, code, body=b"", ctype="application/json", extra=None):
+        if isinstance(body, str):
+            body = body.encode()
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        for k, v in (extra or {}):
+            # strip CR/LF to prevent HTTP response splitting / header injection
+            self.send_header(str(k).replace("\r", "").replace("\n", ""),
+                             str(v).replace("\r", "").replace("\n", ""))
+        self.end_headers()
+        if body:
+            self.wfile.write(body)
+
+    def _json(self, code, obj, extra=None):
+        self._send(code, json.dumps(obj), "application/json", extra)
+
+    def _user(self):
+        c = self.headers.get("Cookie", "")
+        m = re.search(r"sfdash=([^;]+)", c)
+        return check_token(m.group(1)) if m else None
+
+    def _body(self):
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        return self.rfile.read(n) if n else b""
+
+    def _mod(self, name):
+        return bool(CONFIG.get("modules", {}).get(name))
+
+    def _guard(self, mod):
+        """Return True if request is allowed (authed + module on), else send error."""
+        if not self._user():
+            self._json(401, {"error": "auth"}); return False
+        if mod and not self._mod(mod):
+            self._json(403, {"error": "modulo disattivato"}); return False
+        return True
+
+    def _proxy(self, port, strip_prefix=None):
+        """Reverse-proxy this request to a localhost backend (ttyd/websockify), tunnelling
+        WebSocket upgrades as raw TCP. Auth is already enforced by the caller (single sign-on:
+        the dashboard session gates these, so the backends need no auth of their own)."""
+        path = self.path
+        if strip_prefix and path.startswith(strip_prefix):
+            path = path[len(strip_prefix):] or "/"
+            if not path.startswith("/"):
+                path = "/" + path
+        is_ws = self.headers.get("Upgrade", "").lower() == "websocket"
+        try:
+            b = socket.create_connection(("127.0.0.1", port), timeout=10)
+        except Exception:
+            return self._json(502, {"error": "servizio non avviato"})
+        out = ["%s %s HTTP/1.1" % (self.command, path)]
+        for k, v in self.headers.items():
+            if k.lower() in ("host", "connection"):
+                continue
+            out.append("%s: %s" % (k, v))
+        out.append("Host: 127.0.0.1:%d" % port)
+        out.append("Connection: " + ("Upgrade" if is_ws else "close"))
+        body = b""
+        clen = int(self.headers.get("Content-Length", 0) or 0)
+        if clen:
+            body = self.rfile.read(clen)
+        b.sendall(("\r\n".join(out) + "\r\n\r\n").encode() + body)
+        self.close_connection = True
+        cli = self.connection
+        if is_ws:
+            b.setblocking(False); cli.setblocking(False)
+            try:
+                while True:
+                    r, _, x = select.select([cli, b], [], [cli, b], 300)
+                    if x or not r:
+                        break
+                    stop = False
+                    for s in r:
+                        try:
+                            data = s.recv(65536)
+                        except Exception:
+                            data = b""
+                        if not data:
+                            stop = True; break
+                        (b if s is cli else cli).sendall(data)
+                    if stop:
+                        break
+            except Exception:
+                pass
+            finally:
+                try: b.close()
+                except Exception: pass
+        else:
+            try:
+                while True:
+                    chunk = b.recv(65536)
+                    if not chunk:
+                        break
+                    cli.sendall(chunk)
+            except Exception:
+                pass
+            finally:
+                try: b.close()
+                except Exception: pass
+
+    def _client_ip(self):
+        return self.client_address[0]
+
+    # --- routing ---
+    def do_GET(self):
+        path = urllib.parse.urlparse(self.path).path
+        # reverse-proxied interactive services (single sign-on via the dashboard session)
+        if path == "/terminal" or path.startswith("/terminal/"):
+            if not self._guard("terminal"):
+                return
+            if not _alive("ttyd"):
+                terminal_start()
+            return self._proxy(TTYD_PORT)
+        if path == "/kvm" or path.startswith("/kvm/"):
+            if not self._guard("kvm"):
+                return
+            if not _alive("websockify"):
+                kvm_start()
+            return self._proxy(KVM_PORT, "/kvm")
+        if path == "/webui" or path.startswith("/webui/"):
+            if not self._guard("ai"):
+                return
+            return self._proxy(WEBUI_PORT, "/webui")
+        if path in ("/", "/index.html"):
+            return self._serve_file("index.html", "text/html; charset=utf-8")
+        if path.startswith("/static/"):
+            return self._serve_file(path[len("/static/"):], None)
+        if path == "/api/me":
+            u = self._user()
+            return self._json(200 if u else 401, {"user": u} if u else {"error": "auth"})
+        if path == "/api/modules":
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            mods = [{"id": k, **MODULE_META.get(k, {"name": k, "icon": "•"})}
+                    for k, on in CONFIG.get("modules", {}).items()
+                    if on and k in MODULE_META]
+            return self._json(200, {"modules": mods, "host": sysinfo().get("host", "")})
+        if path == "/api/status":
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            s = sysinfo()
+            s["you"] = (self.headers.get("Host", "") or "").split(":")[0]  # host you actually reached us on
+            return self._json(200, s)
+        if path == "/api/telemetry":
+            if not self._guard("telemetry"):
+                return
+            return self._sse_telemetry()
+        if path == "/api/tuner":
+            if not self._guard("tuner"):
+                return
+            ps = [{"name": p.get("name"), "desc": p.get("desc_it") or p.get("desc", "")} for p in list_presets()]
+            return self._json(200, {"presets": ps, "state": tuner_cmd([{"cmd": "get"}])})
+        if path == "/api/tuner/cu-profiles":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, {"ok": True, "profiles": cu_profiles_load()})
+        if path == "/api/tuner/coremap":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, cpu_coremap())
+        if path == "/api/tuner/fan-curve":
+            if not self._guard("tuner"):
+                return
+            cur = fan_curve_load()
+            return self._json(200, {"ok": True, "curve": cur, "preview": fan_curve_pct(cur)})
+        if path == "/api/logs":
+            if not self._guard("logs"):
+                return
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self._json(200, {"lines": read_log(q.get("which", ["journal"])[0], q.get("n", ["200"])[0])})
+        if path == "/api/ai":
+            if not self._guard("ai"):
+                return
+            s = ai_status(); s["webui_port"] = WEBUI_PORT
+            return self._json(200, s)
+        if path == "/api/ai/tune":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_tune_status())
+        if path == "/api/wol":
+            if not self._guard("wol"):
+                return
+            return self._json(200, wol_info())
+        if path == "/api/rules":
+            if not self._guard("rules"):
+                return
+            c = rules_cfg()
+            c["last_action"] = _RULES["last_action"]
+            return self._json(200, c)
+        if path == "/api/zerotier":
+            if not self._guard("zerotier"):
+                return
+            return self._json(200, zt_status())
+        if path == "/api/hub/status":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_status())
+        if path == "/api/hub/catalog":
+            if not self._guard("hub"):
+                return
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            p = {k: v[0] for k, v in qs.items()}
+            return self._json(200, hub_catalog(p))
+        if path == "/api/hub/categories":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_categories())
+        if path == "/api/hub/app":
+            if not self._guard("hub"):
+                return
+            key = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("key", [""])[0]
+            return self._json(200, hub_app(key))
+        if path == "/api/hub/icon":
+            if not self._guard("hub"):
+                return
+            key = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("key", [""])[0]
+            ip = hub_icon_path(key)
+            if not ip:
+                return self._json(404, {"error": "no icon"})
+            ext = os.path.splitext(ip)[1].lower()
+            ct = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg",
+                  ".jpeg": "image/jpeg", ".xpm": "image/x-xpixmap"}.get(ext, "application/octet-stream")
+            try:
+                with open(ip, "rb") as f:
+                    return self._send(200, f.read(), ct, [("Cache-Control", "max-age=86400")])
+            except Exception:
+                return self._json(404, {"error": "no icon"})
+        if path == "/api/hub/updates":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_updates())
+        if path == "/api/hub/installed":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_installed())
+        if path == "/api/hub/search":
+            if not self._guard("hub"):
+                return
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("q", [""])[0]
+            return self._json(200, hub_search(q))
+        if path == "/api/hub/sources":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_sources())
+        if path == "/api/hub/log":
+            if not self._guard("hub"):
+                return
+            return self._json(200, {"running": _HUBJOB["running"], "title": _HUBJOB["title"],
+                                    "log": "\n".join(_HUBJOB["log"]), "done": _HUBJOB["done"],
+                                    "rc": _HUBJOB["rc"]})
+        if path == "/api/config":
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            cat = [dict(id=k, **v) for k, v in MODULE_META.items()]
+            return self._json(200, {"modules": CONFIG.get("modules", {}), "catalogue": cat})
+        return self._json(404, {"error": "not found"})
+
+    def do_POST(self):
+        path = urllib.parse.urlparse(self.path).path
+        if path == "/api/login":
+            return self._login()
+        if path == "/api/logout":
+            return self._json(200, {"ok": True},
+                              extra=[("Set-Cookie", "sfdash=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict")])
+        if not self._user():
+            return self._json(401, {"error": "auth"})
+        try:
+            data = json.loads(self._body() or b"{}")
+        except Exception:
+            data = {}
+        if path == "/api/tuner/preset":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, apply_preset(data.get("name")))
+        if path == "/api/tuner/govmode":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "gov-mode", "mode": data.get("mode", "balanced")}]))
+        if path == "/api/tuner/fan":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "apply-fan", "mode": data.get("mode", "auto"),
+                                               "pct": int(data.get("pct", 45))}]))
+        if path == "/api/tuner/cpu":
+            if not self._guard("tuner"):
+                return
+            cmd = "persist-cpu" if data.get("persist") else "apply-cpu"
+            return self._json(200, tuner_cmd([{"cmd": cmd, "mhz": int(data.get("mhz", 3700)),
+                                               "scale": int(data.get("scale", 0)),
+                                               "temp": int(data.get("temp", 85))}]))
+        if path == "/api/tuner/gpu":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "apply-gpu",
+                                               "minmhz": int(data.get("minmhz", 350)),
+                                               "minmv": int(data.get("minmv", 700)),
+                                               "maxmhz": int(data.get("maxmhz", 2200)),
+                                               "maxmv": int(data.get("maxmv", 1000))}]))
+        if path == "/api/tuner/cu":
+            if not self._guard("tuner"):
+                return
+            rows = data.get("rows", [])
+            try:
+                rows = [int(x) & 0x1f for x in rows][:4]
+            except Exception:
+                rows = []
+            return self._json(200, tuner_cmd([{"cmd": "cu-apply", "rows": rows}]))
+        if path == "/api/tuner/cu-test":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "cu-test"}], timeout=240))
+        if path == "/api/tuner/cu-profile":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, cu_profile_op(data.get("action"), data.get("name"), data.get("rows")))
+        if path == "/api/tuner/fan-curve":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, fan_curve_save(data))
+        if path == "/api/tuner/vram":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "set-vram", "mb": int(data.get("mb", 8192))}]))
+        if path == "/api/tuner/test-cpu":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "test-cpu", "mhz": int(data.get("mhz", 3700)),
+                                               "scale": int(data.get("scale", 0)),
+                                               "temp": int(data.get("temp", 85))}], timeout=150))
+        if path == "/api/tuner/test-gpu":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "test-gpu",
+                                               "minmhz": int(data.get("minmhz", 350)),
+                                               "minmv": int(data.get("minmv", 700)),
+                                               "maxmhz": int(data.get("maxmhz", 2200)),
+                                               "maxmv": int(data.get("maxmv", 1000))}], timeout=150))
+        if path == "/api/tuner/suggest-uv":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "suggest-uv", "mhz": int(data.get("mhz", 3700))}], timeout=150))
+        if path == "/api/hub/op":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_op(data.get("op"), data.get("backend", "apt"), data.get("pkg")))
+        if path == "/api/hub/refresh":
+            if not self._guard("hub"):
+                return
+            cat_build_async()
+            return self._json(200, {"ok": True, "building": True})
+        if path == "/api/hub/source":
+            if not self._guard("hub"):
+                return
+            return self._json(200, hub_source_toggle(data.get("name"), bool(data.get("enable"))))
+        if path == "/api/power":
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            a = data.get("action")
+            if a == "reboot":
+                subprocess.Popen(["systemctl", "reboot"]); return self._json(200, {"ok": True})
+            if a in ("poweroff", "shutdown"):
+                subprocess.Popen(["systemctl", "poweroff"]); return self._json(200, {"ok": True})
+            return self._json(400, {"error": "azione sconosciuta"})
+        if path == "/api/launch":
+            if not self._guard("launcher"):
+                return
+            apps = {"console": ["/usr/local/bin/skillfish-gaming-mode"],
+                    "monitor": ["/usr/local/bin/skillfish-monitor"],
+                    "tuner": ["/usr/local/bin/skillfish-tuner"],
+                    "hub": ["/usr/local/bin/skillfish-hub"],
+                    "ai": ["/usr/local/bin/skillfish-ai-panel"]}
+            cmd = apps.get(data.get("what"))
+            return self._json(200, launch_app(cmd) if cmd else {"ok": False, "error": "app sconosciuta"})
+        if path == "/api/kvm/start":
+            if not self._guard("kvm"):
+                return
+            return self._json(200, kvm_start())
+        if path == "/api/kvm/stop":
+            if not self._guard("kvm"):
+                return
+            return self._json(200, kvm_stop())
+        if path == "/api/terminal/start":
+            if not self._guard("terminal"):
+                return
+            return self._json(200, terminal_start())
+        if path == "/api/terminal/stop":
+            if not self._guard("terminal"):
+                return
+            return self._json(200, terminal_stop())
+        if path == "/api/ai/start":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_start())
+        if path == "/api/ai/stop":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_stop())
+        if path == "/api/ai/tune":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_tune_apply(data.get("action")))
+        if path == "/api/wol/enable":
+            if not self._guard("wol"):
+                return
+            return self._json(200, wol_enable(bool(data.get("on", True))))
+        if path == "/api/wol/send":
+            if not self._guard("wol"):
+                return
+            return self._json(200, wol_send(data.get("mac")))
+        if path == "/api/wol/schedule":
+            if not self._guard("wol"):
+                return
+            return self._json(200, power_schedule(data.get("action"), data.get("minutes", 1)))
+        if path == "/api/rules":
+            if not self._guard("rules"):
+                return
+            cfg = rules_cfg()
+            if "enabled" in data:
+                cfg["enabled"] = bool(data["enabled"])
+            if "temp_limit" in data:
+                cfg["temp_limit"] = max(70, min(100, int(data["temp_limit"])))
+            CONFIG["rules_cfg"] = cfg
+            save_conf()
+            return self._json(200, {"ok": True, **cfg})
+        if path == "/api/aiops/diagnose":
+            if not self._guard("aiops"):
+                return
+            return self._json(200, aiops_diagnose(data.get("question")))
+        if path == "/api/zerotier/join":
+            if not self._guard("zerotier"):
+                return
+            return self._json(200, zt_join(data.get("nwid")))
+        if path == "/api/zerotier/leave":
+            if not self._guard("zerotier"):
+                return
+            return self._json(200, zt_leave(data.get("nwid")))
+        if path == "/api/config":
+            if not self._user():
+                return self._json(401, {"error": "auth"})
+            mod = data.get("module")
+            if mod in MODULE_META:
+                CONFIG.setdefault("modules", {})[mod] = bool(data.get("on"))
+                save_conf()
+                return self._json(200, {"ok": True, "modules": CONFIG["modules"]})
+            return self._json(400, {"error": "modulo sconosciuto"})
+        if path == "/api/ai/pull":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_pull(data.get("model")))
+        if path == "/api/ai/chat":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_chat(data.get("model"), data.get("messages")))
+        return self._json(404, {"error": "not found"})
+
+    def _login(self):
+        ip = self._client_ip()
+        cnt, t0 = _login_fails.get(ip, (0, time.time()))
+        if cnt >= 8 and time.time() - t0 < 300:
+            return self._json(429, {"error": "too many attempts, wait a few minutes"})
+        try:
+            data = json.loads(self._body() or b"{}")
+        except Exception:
+            data = {}
+        user = (data.get("user") or CONFIG.get("user") or "").strip()
+        pw = data.get("pass") or ""
+        if user and pw and pam_check(user, pw):
+            _login_fails.pop(ip, None)
+            tok = make_token(user)
+            return self._json(200, {"ok": True, "user": user},
+                              extra=[("Set-Cookie",
+                                      "sfdash=%s; Max-Age=%d; Path=/; HttpOnly; SameSite=Strict; Secure"
+                                      % (tok, SESSION_TTL))])
+        _login_fails[ip] = (cnt + 1, t0 if cnt else time.time())
+        return self._json(401, {"error": "credenziali non valide"})
+
+    def _serve_file(self, rel, ctype):
+        rel = rel.lstrip("/")
+        # canonicalise and ensure the resolved path stays inside WEB (no traversal)
+        root = os.path.realpath(WEB)
+        full = os.path.realpath(os.path.join(root, rel))
+        if full != root and not full.startswith(root + os.sep):
+            return self._json(403, {"error": "no"})
+        if not os.path.isfile(full):
+            return self._json(404, {"error": "not found"})
+        if ctype is None:
+            ext = os.path.splitext(full)[1]
+            ctype = {".js": "application/javascript", ".css": "text/css",
+                     ".html": "text/html; charset=utf-8", ".svg": "image/svg+xml",
+                     ".png": "image/png", ".ico": "image/x-icon"}.get(ext, "application/octet-stream")
+        with open(full, "rb") as f:
+            self._send(200, f.read(), ctype)
+
+    def _sse_telemetry(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+        st = [None]
+        try:
+            while True:
+                vals = read_all()
+                vals["cpu_load"] = cpu_load(st)
+                vals["_t"] = round(time.time(), 1)
+                self.wfile.write(("data: %s\n\n" % json.dumps(vals)).encode())
+                self.wfile.flush()
+                time.sleep(0.5)
+        except Exception:
+            return
+
+
+def ensure_cert():
+    if os.path.isfile(CERT_F) and os.path.isfile(KEY_F):
+        return
+    host = subprocess.run("hostname", capture_output=True, text=True).stdout.strip() or "skillfishos"
+    subprocess.run(
+        ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+         "-keyout", KEY_F, "-out", CERT_F, "-days", "3650",
+         "-subj", "/CN=%s" % host,
+         "-addext", "subjectAltName=DNS:%s,DNS:%s.local,DNS:localhost" % (host, host)],
+        check=False)
+    try:
+        os.chmod(KEY_F, 0o600)
+    except Exception:
+        pass
+
+
+def main():
+    os.makedirs(STATE, exist_ok=True)
+    ensure_cert()
+    bind = CONFIG.get("bind", "0.0.0.0"); port = int(CONFIG.get("port", 8443))
+    httpd = ThreadingHTTPServer((bind, port), Handler)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2  # refuse legacy SSL/TLS
+    ctx.load_cert_chain(CERT_F, KEY_F)
+    httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+    sys.stderr.write("SkillFish Remote on https://%s:%d (PAM=%s)\n" % (bind, port, _PAM_OK))
+    sys.stderr.flush()
+    threading.Thread(target=rules_loop, daemon=True).start()
+    threading.Thread(target=fan_curve_loop, daemon=True).start()
+    if CONFIG.get("modules", {}).get("hub"):
+        cat_build_async()  # pre-build the app catalogue in the background
+    httpd.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

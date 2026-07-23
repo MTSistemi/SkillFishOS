@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+"""SkillFishOS Tuner - privileged DAEMON (root via pkexec, started once at app launch).
+Reads one JSON command per line on stdin, writes one JSON reply per line on stdout.
+This way the user authenticates ONCE at startup, not per-action."""
+import sys, os, json, subprocess, re, glob, time
+
+OC_DIR  = "/root/bc250_smu_oc"
+OC_CONF = "/etc/bc250-smu-oc.conf"
+GOV_CONF= "/etc/cyan-skillfish-governor/config.toml"
+MEMCFG  = "/root/bc250_memcfg/bc250memcfg"
+VKPEAK  = glob.glob("/root/bench/vkpeak*/vkpeak")
+VKPEAK  = VKPEAK[0] if VKPEAK else None
+
+def _rd(path, mode="r"):
+    """Read a whole file with a context manager (no leaked fd)."""
+    with open(path, mode) as f:
+        return f.read()
+
+def _wr(path, data):
+    """Write a whole file with a context manager (no leaked fd)."""
+    with open(path, "w") as f:
+        f.write(data)
+
+def sh(cmd, t=120):
+    try: return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+    except Exception as e:
+        class R: returncode=1; stdout=""; stderr=str(e)
+        return R()
+
+def nct_dir():
+    for h in glob.glob("/sys/class/hwmon/hwmon*"):
+        try:
+            if _rd(h+"/name").strip()=="nct6686": return h
+        except Exception: pass  # best-effort: skip hwmon nodes we can't read
+    return None
+
+def temp(name):
+    for h in glob.glob("/sys/class/hwmon/hwmon*"):
+        try:
+            if _rd(h+"/name").strip()==name:
+                return int(_rd(h+"/temp1_input"))//1000
+        except Exception: pass  # best-effort: sensor may be absent/unreadable
+    return 0
+
+def cpu_min_freq():
+    fs=[float(x) for x in re.findall(r'cpu MHz\s*:\s*([\d.]+)', _rd("/proc/cpuinfo"))]
+    return int(min(fs)) if fs else 0
+
+def active_cu():
+    try:
+        v=_rd("/run/skillfish-cu").strip()
+        if v.isdigit(): return int(v)
+    except Exception: pass  # best-effort: runtime CU file may not exist yet
+    m=re.search(r'active_cu_number\s+(\d+)', sh("dmesg | grep active_cu_number | tail -1").stdout)
+    return int(m.group(1)) if m else 0
+
+# ---------- read current ----------
+def get():
+    out={}
+    cpu={"frequency":3700,"scale":0,"max_temperature":85}
+    try:
+        for line in _rd(OC_CONF).splitlines():
+            m=re.match(r'(\w+)\s*=\s*(-?\d+)',line.strip())
+            if m: cpu[m.group(1)]=int(m.group(2))
+    except Exception: pass  # best-effort: OC conf may be missing -> keep defaults
+    out["cpu"]=cpu
+    gpu={"min_mhz":350,"min_mv":700,"max_mhz":2230,"max_mv":1000}
+    try:
+        pts=re.findall(r'frequency\s*=\s*(\d+)\s*\n\s*voltage\s*=\s*(\d+)', _rd(GOV_CONF))
+        if len(pts)>=2:
+            gpu["min_mhz"],gpu["min_mv"]=int(pts[0][0]),int(pts[0][1])
+            gpu["max_mhz"],gpu["max_mv"]=int(pts[-1][0]),int(pts[-1][1])
+    except Exception: pass  # best-effort: governor conf may be missing -> keep defaults
+    gpu["gov_mode"]=current_gov_mode()
+    out["gpu"]=gpu
+    vram={"uma_mb":0}
+    if os.path.exists(MEMCFG):
+        m=re.search(r'UMA_SIZE=(\d+)', sh(MEMCFG).stdout)
+        if m: vram["uma_mb"]=int(m.group(1))
+    out["vram"]=vram
+    fan={"mode":"auto","pct":50,"rpm":0}
+    nd=nct_dir()
+    if nd:
+        try:
+            en=_rd(nd+"/pwm2_enable").strip(); pwm=int(_rd(nd+"/pwm2")); rpm=int(_rd(nd+"/fan2_input"))
+            fan={"mode":("manual" if en=="1" else "auto"),"pct":pwm*100//255,"rpm":rpm}
+        except Exception: pass  # best-effort: fan node may be unreadable
+    out["fan"]=fan
+    cu={"active":active_cu(),"max":40,"floor":7,"rows":{"0.0":7,"0.1":7,"1.0":7,"1.1":7},"live":False}
+    try:
+        j=json.loads(sh("/usr/local/bin/skillfish-cu get").stdout)
+        cu["active"]=j.get("active_cu",cu["active"]); cu["rows"]=j.get("rows",cu["rows"])
+        cu["floor"]=j.get("floor",7); cu["live"]=True
+    except Exception: pass  # best-effort: skillfish-cu may be unavailable
+    out["cu"]=cu
+    return out
+
+# ---------- apply ----------
+def apply_cpu(mhz,scale,tmp):
+    _wr(OC_CONF,"[overclock]\nfrequency = %d\nscale = %d\nmax_temperature = %d\n"%(mhz,scale,tmp))
+    sh("systemctl stop cyan-skillfish-governor")
+    r=sh("python3 %s/bc250_apply.py --apply %s"%(OC_DIR,OC_CONF))
+    sh("systemctl start cyan-skillfish-governor")
+    return r.returncode==0
+
+def persist_cpu():
+    sh("python3 %s/bc250_apply.py --install %s"%(OC_DIR,OC_CONF)); sh("systemctl enable bc250-smu-oc.service")
+
+def _gpu_curve(minmhz,minmv,maxmhz,maxmv):
+    # Build a SMOOTH multi-point voltage curve (gentle clock/voltage transitions).
+    # The BC-250 SMU can hard-hang on abrupt jumps, so insert validated mid-points
+    # (1500/900, 2000/1000) between idle and the requested max instead of a 2-point line.
+    # Safety clamp: >2200 MHz at <=1000 mV is UNDERVOLTED and hard-freezes the
+    # machine (reproduced + community data: 2230 needs 1000-1060 mV). Allow >2200
+    # only when the caller raises the voltage accordingly.
+    maxmhz, maxmv = int(maxmhz), int(maxmv)
+    if maxmhz > 2200 and maxmv <= 1000:
+        maxmhz = 2200
+    pts=[(int(minmhz),int(minmv))]
+    for f,v in ((1500,900),(2000,1000)):
+        if minmhz < f < maxmhz: pts.append((f,v))
+    pts.append((int(maxmhz),int(maxmv)))
+    # de-dup by frequency, keep ascending
+    seen=set(); out=[]
+    for f,v in pts:
+        if f in seen: continue
+        seen.add(f); out.append((f,v))
+    return out
+
+def apply_gpu(minmhz,minmv,maxmhz,maxmv):
+    txt=_rd(GOV_CONF)
+    txt=re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+','',txt)
+    txt=txt.rstrip()+"\n"
+    for f,v in _gpu_curve(minmhz,minmv,maxmhz,maxmv):
+        txt+="[[safe-points]]\nfrequency = %d\nvoltage = %d\n"%(f,v)
+    _wr(GOV_CONF,txt)
+    # gentle reload (stop, settle, start) — avoids SMU hard-hang on abrupt transition
+    sh("systemctl stop cyan-skillfish-governor"); sh("sleep 2")
+    return sh("systemctl start cyan-skillfish-governor").returncode==0
+
+# ---------- GPU governor mode (balanced / performance) ----------
+# Balanced = upstream load-target (cooler, only clocks up as needed).
+# Performance = low load-target band + snappier ramp -> holds the top safe-point
+# under any real gaming load (best FPS in GPU-bound titles); still idles to 350.
+GOV_BAL  = {"sample":2000,"adjust":20000,"normal":1,"burst":200,"bsamples":48,"fadj":100,"upper":"0.95","lower":"0.7"}
+GOV_PERF = {"sample":1000,"adjust":10000,"normal":6,"burst":250,"bsamples":16,"fadj":50, "upper":"0.20","lower":"0.08"}
+
+def _gov_safepoints():
+    try:
+        pts=re.findall(r'frequency\s*=\s*(\d+)[^\n]*\n\s*voltage\s*=\s*(\d+)', _rd(GOV_CONF))
+        if len(pts)>=2:
+            d={}
+            for f,v in pts: d[int(f)]=int(v)   # de-dup by frequency
+            return sorted(d.items())           # ascending
+    except Exception: pass  # best-effort: keep safe defaults
+    return [(350,700),(1500,900),(2000,1000),(2200,1000)]
+
+def current_gov_mode():
+    try:
+        m=re.search(r'\[load-target\][^\[]*?upper\s*=\s*([0-9.]+)', _rd(GOV_CONF), re.S)
+        if m and float(m.group(1))<=0.5: return "performance"
+    except Exception: pass  # best-effort
+    return "balanced"
+
+def gov_mode(mode):
+    p = GOV_PERF if mode=="performance" else GOV_BAL
+    sp = _gov_safepoints()  # preserve the user's max-freq/voltage safe-points
+    txt = ("# SkillFishOS Tuner - cyan-skillfish-governor (mode: %s). Managed via the Tuner.\n"
+           "[timing.intervals]\nsample = %d\nadjust = %d\nfinetune = 1000000000\n\n"
+           "[timing.ramp-rates]\nnormal = %d\nburst = %d\n\n"
+           "[timing]\nburst-samples = %d\n\n"
+           "[frequency-thresholds]\nadjust = %d\nfinetune = 10\n\n"
+           "[load-target]\nupper = %s\nlower = %s\n"
+          ) % (mode, p["sample"], p["adjust"], p["normal"], p["burst"], p["bsamples"], p["fadj"], p["upper"], p["lower"])
+    for f,v in sp:
+        txt += "\n[[safe-points]]\nfrequency = %d\nvoltage = %d\n" % (f,v)
+    _wr(GOV_CONF, txt)
+    # Gentle reload: the BC-250 SMU can hard-hang on an abrupt clock transition,
+    # so stop the governor, let the GPU settle to idle, then start with the new config.
+    sh("systemctl stop cyan-skillfish-governor")
+    sh("sleep 2")
+    return sh("systemctl start cyan-skillfish-governor").returncode==0
+
+def fan_set(mode,pct):
+    nd=nct_dir()
+    if not nd: return False,0
+    if mode=="manual":
+        _wr(nd+"/pwm2_enable","1")
+        _wr(nd+"/pwm2",str(max(0,min(255,int(pct)*255//100))))
+    else:
+        _wr(nd+"/pwm2_enable","2")
+    time.sleep(1)
+    try: return True,int(_rd(nd+"/fan2_input"))
+    except Exception: return True,0
+
+def set_vram(mb):
+    if not os.path.exists(MEMCFG): return False
+    return sh("%s UMA_SIZE %d"%(MEMCFG,max(256,int(mb)))).returncode==0
+
+def cu_test():
+    """Health-test each extra CU pair (WGP3-4 on every SE/SH) for the silicon
+    lottery: enable the 24-CU floor + one extra WGP at a time, stress it with
+    vkpeak, and flag GPU faults/hangs or a WGP that adds no performance.
+    Restores the previous CU config at the end. ~2-3 min."""
+    import time
+    if not VKPEAK: return {"ok":False,"err":"vkpeak assente"}
+    vdir=os.path.dirname(VKPEAK)
+    def vk():
+        # stdbuf -> line-buffered so the early fp32-scalar line survives the timeout kill
+        r=sh("cd %s && stdbuf -oL -eL timeout 22 ./vkpeak"%vdir, t=35)
+        m=re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
+        return (float(m.group(1)) if m else 0.0), r.returncode
+    def alive():
+        return "BC-250" in sh("timeout 12 vulkaninfo --summary 2>/dev/null | grep -m1 deviceName", t=20).stdout
+    def errs():
+        s=sh("dmesg --since '16 seconds ago' 2>/dev/null | grep -ciE 'amdgpu.*(fault|timeout|reset|hang|recover|failed)'").stdout.strip()
+        return int(s) if s.isdigit() else 0
+    try: cur=json.loads(sh("/usr/local/bin/skillfish-cu get").stdout).get("rows",{})
+    except Exception: cur={}
+    order=["0.0","0.1","1.0","1.1"]
+    res=[]
+    sh("/usr/local/bin/skillfish-cu set-rows 7 7 7 7"); time.sleep(1)
+    base,_=vk()
+    for rk in order:
+        for wgp in (3,4):
+            rows={k:7 for k in order}; rows[rk]=7|(1<<wgp)
+            sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d"%(rows["0.0"],rows["0.1"],rows["1.0"],rows["1.1"]))
+            time.sleep(1)
+            g,rc=vk(); e=errs(); al=alive()
+            # defect = GPU fault/hang/no-response under load (the silicon-lottery symptom).
+            # per-WGP throughput delta is below vkpeak noise, so verdict is stability-based.
+            if not al or e>0: verdict="FAIL"
+            elif g<=0:        verdict="N/A"
+            else:             verdict="OK"
+            res.append({"row":rk,"wgp":wgp,"cu":"%d-%d"%(wgp*2,wgp*2+1),
+                        "gflops":round(g),"errors":e,"verdict":verdict})
+            time.sleep(1.5)
+    # headline: full 40-CU sustained run (vkpeak to completion) + GPU error scan
+    sh("/usr/local/bin/skillfish-cu max"); time.sleep(1)
+    rf=sh("cd %s && ./vkpeak"%vdir, t=120)
+    mf=re.search(r'fp32-scalar\s*=\s*([\d.]+)', rf.stdout)
+    full=round(float(mf.group(1)) if mf else 0.0); full_err=errs()
+    g0=lambda k: int(cur.get(k,31))
+    sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d"%(g0("0.0"),g0("0.1"),g0("1.0"),g0("1.1")))
+    bad=sum(1 for x in res if x["verdict"]=="FAIL")
+    na=sum(1 for x in res if x["verdict"]=="N/A")
+    return {"ok":True,"baseline":round(base),"results":res,"bad":bad,"na":na,
+            "full40":full,"full40_err":full_err}
+
+def cu_apply(rows):
+    """Apply live per-row WGP masks (24..40 CU) via skillfish-cu. No reboot."""
+    try:
+        r=[int(x)&0x1f for x in rows][:4]
+        while len(r)<4: r.append(0x07)
+        rc=sh("/usr/local/bin/skillfish-cu set-rows %s"%(" ".join(str(x) for x in r))).returncode
+        j=json.loads(sh("/usr/local/bin/skillfish-cu get").stdout)
+        return {"ok":rc==0,"active":j.get("active_cu"),"rows":j.get("rows")}
+    except Exception as e:
+        return {"ok":False,"err":str(e)}
+
+def set_cu(unlock):
+    """Abilita/disabilita lo sblocco 40 CU via parametro di boot GRUB. Richiede riavvio."""
+    grub="/etc/default/grub"; param="amdgpu.bc250_cc_write_mode=3"
+    try: lines=_rd(grub).splitlines(True)
+    except Exception: return False
+    out=[]; done=False
+    for ln in lines:
+        if ln.startswith("GRUB_CMDLINE_LINUX_DEFAULT="):
+            has=param in ln
+            if unlock and not has:
+                ln=ln.rstrip("\n").rstrip('"')
+                if not ln.endswith(" "): ln+=" "
+                ln=ln+param+'"\n'
+            elif (not unlock) and has:
+                ln=ln.replace(" "+param,"").replace(param+" ","").replace(param,"")
+            done=True
+        out.append(ln)
+    if not done: return False
+    _wr(grub,"".join(out))
+    return sh("update-grub", t=120).returncode==0
+
+# ---------- BENCHMARK / TEST ----------
+def bench_cpu(secs=60):
+    """sysbench multi-thread per >=60s (temp realistica); campiona min-freq e temp max sotto carico."""
+    nth=os.cpu_count() or 6
+    import threading
+    samp={"minf":99999,"maxt":0}
+    stop=threading.Event()
+    def mon():
+        while not stop.is_set():
+            f=cpu_min_freq();  t=temp("k10temp")
+            if f>0 and f<samp["minf"]: samp["minf"]=f
+            if t>samp["maxt"]: samp["maxt"]=t
+            time.sleep(2)
+    th=threading.Thread(target=mon,daemon=True); th.start()
+    r=sh("sysbench cpu --threads=%d --time=%d --cpu-max-prime=20000 run"%(nth,secs), t=secs+30)
+    stop.set(); th.join(timeout=3)
+    m=re.search(r'events per second:\s*([\d.]+)', r.stdout)
+    eps=float(m.group(1)) if m else 0
+    minf=samp["minf"] if samp["minf"]<99999 else cpu_min_freq()
+    return {"score":round(eps,1),"unit":"ev/s","min_mhz":minf,"temp":samp["maxt"] or temp("k10temp"),"ok":r.returncode==0 and eps>0}
+
+def bench_gpu():
+    if not VKPEAK: return {"score":0,"unit":"GFLOPS","ok":False,"err":"vkpeak assente"}
+    r=sh("cd %s && ./vkpeak"%os.path.dirname(VKPEAK), t=150)
+    # vkpeak prints lines like 'fp32-scalar  = 11329.xx GFLOPS'
+    m=re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
+    g=float(m.group(1)) if m else 0
+    return {"score":round(g,0),"unit":"GFLOPS","temp":temp("amdgpu"),"ok":r.returncode==0 and g>0}
+
+def _write_cpu_conf(mhz,scale,tmp):
+    _wr(OC_CONF,"[overclock]\nfrequency = %d\nscale = %d\nmax_temperature = %d\n"%(mhz,scale,tmp))
+
+def test_cpu(mhz,scale,tmp):
+    prev=get()["cpu"]
+    if not apply_cpu(mhz,scale,tmp):
+        _write_cpu_conf(prev["frequency"],prev["scale"],prev["max_temperature"])
+        return {"ok":False,"phase":"apply","err":"applicazione fallita"}
+    # CRASH SAFETY: while the candidate is being benched, keep the LAST-KNOWN-GOOD
+    # values on disk. A hard freeze mid-bench must not leave the unstable candidate
+    # in the conf that bc250-smu-oc.service re-applies at boot (freeze loop).
+    _write_cpu_conf(prev["frequency"],prev["scale"],prev["max_temperature"])
+    b=bench_cpu()
+    # stability: under load the min core freq should stay within 150MHz of target
+    stable = b["ok"] and b["min_mhz"] >= (mhz-200)
+    if not stable:
+        apply_cpu(prev["frequency"],prev["scale"],prev["max_temperature"])  # rollback
+        return {"ok":False,"applied":False,"bench":b,
+                "err":"Instabile/throttle: %d MHz sotto carico (target %d). Ripristinato."%(b["min_mhz"],mhz)}
+    _write_cpu_conf(mhz,scale,tmp)  # passed: persist the candidate
+    return {"ok":True,"applied":True,"bench":b}
+
+def suggest_uv(mhz):
+    """Suggerisce l'undervolt (scale) ottimale per la frequenza data: applica, scende di
+    scale finche' un breve stress resta stabile (min-freq non crolla). NON persiste:
+    ripristina la config corrente alla fine. Ritorna il miglior scale trovato."""
+    prev=get()["cpu"]
+    best=0
+    s=0
+    while s>-20:  # limite di sicurezza
+        if not apply_cpu(mhz, s, prev["max_temperature"]): break
+        # crash safety: keep last-known-good on disk during the stress (see test_cpu)
+        _write_cpu_conf(prev["frequency"],prev["scale"],prev["max_temperature"])
+        b=bench_cpu(12)  # breve verifica
+        if b["ok"] and b["min_mhz"] >= (mhz-200):
+            best=s; s-=2
+        else:
+            break
+    # ripristina lo stato iniziale
+    apply_cpu(prev["frequency"],prev["scale"],prev["max_temperature"])
+    return {"ok":True,"suggested_scale":best,"mhz":mhz}
+
+def test_gpu(minmhz,minmv,maxmhz,maxmv):
+    prev=get()["gpu"]
+    if not apply_gpu(minmhz,minmv,maxmhz,maxmv):
+        return {"ok":False,"phase":"apply","err":"applicazione fallita"}
+    b=bench_gpu()
+    if not b["ok"]:
+        apply_gpu(prev["min_mhz"],prev["min_mv"],prev["max_mhz"],prev["max_mv"])
+        return {"ok":False,"applied":False,"bench":b,"err":"Benchmark GPU fallito/instabile. Ripristinato."}
+    return {"ok":True,"applied":True,"bench":b}
+
+def thermal_guard(limit):
+    script="/usr/local/bin/skillfish-thermal-guard.sh"
+    body="#!/bin/sh\nLIMIT=%d\nwhile true; do\n t=0\n for h in /sys/class/hwmon/hwmon*; do [ \"$(cat $h/name 2>/dev/null)\" = k10temp ] && t=$(awk '{printf \"%%d\",$1/1000}' \"$h/temp1_input\"); done\n cur=$(awk -F= '/frequency/{print $2}' /etc/bc250-smu-oc.conf|tr -d ' '|head -1)\n if [ \"$t\" -gt \"$LIMIT\" ] && [ -n \"$cur\" ] && [ \"$cur\" -gt 3500 ]; then new=$((cur-100)); sed -i \"s/^frequency = .*/frequency = $new/\" /etc/bc250-smu-oc.conf; systemctl stop cyan-skillfish-governor 2>/dev/null; python3 /root/bc250_smu_oc/bc250_apply.py --apply /etc/bc250-smu-oc.conf 2>/dev/null; systemctl start cyan-skillfish-governor 2>/dev/null; fi\n sleep 10\ndone\n"%int(limit)
+    _wr(script,body); os.chmod(script,0o700)  # owner-only: privileged root helper
+    _wr("/etc/systemd/system/skillfish-thermal-guard.service","[Unit]\nDescription=SkillFishOS thermal guard\n[Service]\nExecStart=%s\nRestart=always\n[Install]\nWantedBy=multi-user.target\n"%script)
+    sh("systemctl daemon-reload; systemctl enable --now skillfish-thermal-guard.service")
+    return True
+
+def handle(req):
+    c=req.get("cmd")
+    if c=="ping": return {"ok":True}
+    if c=="get": return {"ok":True,"data":get()}
+    if c=="apply-cpu": return {"ok":apply_cpu(req["mhz"],req["scale"],req["temp"])}
+    if c=="persist-cpu": apply_cpu(req["mhz"],req["scale"],req["temp"]); persist_cpu(); return {"ok":True}
+    if c=="apply-gpu": return {"ok":apply_gpu(req["minmhz"],req["minmv"],req["maxmhz"],req["maxmv"])}
+    if c=="gov-mode": return {"ok":gov_mode(req["mode"]),"mode":current_gov_mode()}
+    if c=="apply-fan":
+        ok,rpm=fan_set(req["mode"],req.get("pct",50)); return {"ok":ok,"rpm":rpm}
+    if c=="set-vram": return {"ok":set_vram(req["mb"]),"reboot":True}
+    if c=="set-cu": return {"ok":set_cu(req["unlock"]),"reboot":True}
+    if c=="cu-apply": return cu_apply(req.get("rows",[]))
+    if c=="cu-test": return cu_test()
+    if c=="thermal-guard": return {"ok":thermal_guard(req["limit"])}
+    if c=="test-cpu": return test_cpu(req["mhz"],req["scale"],req["temp"])
+    if c=="test-gpu": return test_gpu(req["minmhz"],req["minmv"],req["maxmhz"],req["maxmv"])
+    if c=="suggest-uv": return suggest_uv(req["mhz"])
+    return {"ok":False,"err":"comando sconosciuto"}
+
+def main():
+    # one-shot mode (for testing): arg 'get' prints once
+    if len(sys.argv)>1 and sys.argv[1]=="get":
+        print(json.dumps(get())); return
+    # daemon mode: read JSON lines from stdin
+    sys.stdout.write(json.dumps({"ok":True,"ready":True})+"\n"); sys.stdout.flush()
+    for line in sys.stdin:
+        line=line.strip()
+        if not line: continue
+        try: req=json.loads(line)
+        except Exception: continue
+        if req.get("cmd")=="quit": break
+        try: rep=handle(req)
+        except Exception as e: rep={"ok":False,"err":str(e)}
+        sys.stdout.write(json.dumps(rep)+"\n"); sys.stdout.flush()
+
+if __name__=="__main__": main()

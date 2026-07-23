@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-skillfish-monitor">
+    <comment>SkillFishOS Monitor recording</comment>
+    <comment xml:lang="it">Registrazione SkillFishOS Monitor</comment>
+    <glob pattern="*.sfmon"/>
+    <generic-icon name="utilities-system-monitor"/>
+    <magic priority="60">
+      <match type="string" offset="0" value="# SkillFishOS Monitor recording"/>
+    </magic>
+  </mime-type>
+</mime-info>

@@ -1,0 +1,21 @@
+{
+  "bind": "0.0.0.0",
+  "port": 8443,
+  "user": "skillfish",
+  "modules": {
+    "telemetry":  true,
+    "status":     true,
+    "tuner":      true,
+    "power":      true,
+    "recording":  true,
+    "logs":       true,
+    "launcher":   true,
+    "kvm":        false,
+    "terminal":   false,
+    "ai":         false,
+    "gamestream": false,
+    "aiops":      false,
+    "rules":      false,
+    "wol":        false
+  }
+}

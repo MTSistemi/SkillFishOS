@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+# SkillFishOS Monitor v2 - live sensor dashboard + benchmark recorder/analyzer.
+# Live mode: temperature, load (CPU/GPU), frequency, power (W), GPU voltage, fan.
+#   Selectable refresh (0.3/0.5/0.75/1/2 s). Records to a .sfmon file (CSV-backed).
+# Viewer mode: `skillfish-monitor file.sfmon` loads a recording and shows the whole
+#   run with a time scrubber to analyze it second by second.
+# KDE-native PyQt6, brass/steampunk look. Bilingual (IT/EN). Sensors via skillfish-hud-val.
+import sys, os, re, signal, subprocess, collections, csv, time, datetime, shutil
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont)
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QGridLayout, QLabel, QComboBox, QPushButton, QMessageBox, QSlider,
+                             QFileDialog)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+REC_DIR = os.path.expanduser("~/SkillFishOS-benchmarks")
+SFMON_EXT = ".sfmon"
+
+def _lang():
+    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    return "it" if v.lower().startswith("it") else "en"
+LANG = _lang()
+def L(it, en): return it if LANG == "it" else en
+
+# Chart spec: (title_it, title_en, unit, [(label, color, key)...]). Drives both
+# the live charts and the recording/viewer columns.
+CHARTS = [
+    (L("Temperatura", "Temperature"), "°C", [("CPU", "#e8c878", "cpu_temp"), ("GPU", "#e07b39", "gpu_temp")]),
+    (L("Carico", "Load"), "%", [("CPU", "#5fd24f", "cpu_load"), ("GPU", "#49b6e0", "gpu_util")]),
+    (L("Frequenza", "Frequency"), "MHz", [("CPU", "#9bd24f", "cpu_mhz"), ("GPU", "#49b6e0", "gpu_freq")]),
+    (L("Potenza", "Power"), "W", [("GPU", "#e0d24f", "gpu_power")]),
+    (L("Voltaggio", "Voltage"), "mV", [("GPU", "#c98be0", "gpu_mv"), ("CPU", "#e8a878", "cpu_mv")]),
+    (L("Ventola", "Fan"), "RPM", [("FAN", "#d8a849", "fan")]),
+]
+# recording column order (besides the leading t_sec)
+REC_KEYS = ["cpu_temp", "gpu_temp", "cpu_load", "gpu_util", "cpu_mhz", "gpu_freq",
+            "gpu_power", "gpu_mv", "cpu_mv", "fan", "vram"]
+
+
+def _num(s):
+    """Extract the first number from a sensor value like '350Mhz' or '40/40'."""
+    if s is None:
+        return None
+    m = re.search(r'-?\d+(?:\.\d+)?', str(s))
+    return float(m.group()) if m else None
+
+
+class Chart(QWidget):
+    """Live (rolling) or static (full recording + scrubber) line chart, brass look."""
+    def __init__(self, title, unit, series):
+        super().__init__()
+        self.title = title; self.unit = unit; self.series = series  # [(label,color,key)]
+        self.data = [collections.deque(maxlen=240) for _ in series]
+        self.static = False           # viewer mode
+        self.times = []               # x axis (seconds) in static mode
+        self.sdata = [[] for _ in series]
+        self.cursor = 0               # current index in static mode
+        self.setMinimumSize(360, 170)
+
+    def push(self, vals):
+        for d, v in zip(self.data, vals):
+            d.append(float(v) if v is not None else (d[-1] if d else 0.0))
+        self.update()
+
+    def set_full(self, times, series_vals):
+        self.static = True; self.times = times; self.sdata = series_vals
+        self.cursor = len(times) - 1 if times else 0; self.update()
+
+    def set_cursor(self, i):
+        self.cursor = i; self.update()
+
+    def paintEvent(self, _e):
+        w, h = self.width(), self.height()
+        if w <= 2 or h <= 2:
+            return
+        p = QPainter()
+        if not p.begin(self):
+            return
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            p.setPen(QPen(QColor(216, 168, 73, 80), 1)); p.setBrush(QColor(18, 15, 9, 240))
+            p.drawRoundedRect(1, 1, w - 2, h - 2, 14, 14)
+            gx0, gy0, gx1, gy1 = 14, 34, w - 14, h - 16
+            gw, gh = gx1 - gx0, gy1 - gy0
+            f = QFont("Inter"); f.setBold(True); f.setPointSize(10); p.setFont(f)
+            p.setPen(QColor(216, 168, 73)); p.drawText(14, 22, "%s (%s)" % (self.title, self.unit))
+
+            cols = [self.sdata, self.data][not self.static]
+            allv = [v for d in cols for v in d if v is not None]
+            if not allv:
+                return
+            lo, hi = min(allv), max(allv)
+            if hi - lo < 1e-6: hi = lo + 1.0
+            m = (hi - lo) * 0.14; lo -= m; hi += m
+            span = (hi - lo) or 1.0
+            p.setPen(QPen(QColor(216, 168, 73, 26), 1))
+            for i in range(4):
+                yy = int(gy0 + gh * i / 3); p.drawLine(gx0, yy, gx1, yy)
+            fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
+
+            n = len(cols[0]) if cols else 0
+            # vertical time cursor (viewer mode)
+            if self.static and n >= 2:
+                cx = gx0 + gw * (self.cursor / (n - 1))
+                p.setPen(QPen(QColor(216, 168, 73, 120), 1, Qt.PenStyle.DashLine))
+                p.drawLine(int(cx), gy0, int(cx), gy1)
+
+            lx = gx1
+            for si, (label, col, _key) in enumerate(self.series):
+                d = cols[si]; nn = len(d); color = QColor(col)
+                if nn >= 2:
+                    line = QPainterPath(); fill = QPainterPath()
+                    for i, v in enumerate(d):
+                        vv = v if v is not None else lo
+                        x = gx0 + gw * (i / (nn - 1)); y = gy1 - gh * ((vv - lo) / span)
+                        if i == 0: line.moveTo(x, y); fill.moveTo(x, gy1); fill.lineTo(x, y)
+                        else: line.lineTo(x, y); fill.lineTo(x, y)
+                    fill.lineTo(gx1, gy1); fill.closeSubpath()
+                    grad = QLinearGradient(0, gy0, 0, gy1)
+                    c0 = QColor(color); c0.setAlpha(75); c1 = QColor(color); c1.setAlpha(0)
+                    grad.setColorAt(0, c0); grad.setColorAt(1, c1)
+                    p.setPen(Qt.PenStyle.NoPen); p.setBrush(QBrush(grad)); p.drawPath(fill)
+                    glow = QColor(color); glow.setAlpha(55)
+                    p.setBrush(Qt.BrushStyle.NoBrush); p.setPen(QPen(glow, 5)); p.drawPath(line)
+                    p.setPen(QPen(color, 2)); p.drawPath(line)
+                # legend value: cursor value (static) or latest (live)
+                if self.static:
+                    cur = d[self.cursor] if 0 <= self.cursor < nn else (d[-1] if nn else None)
+                else:
+                    cur = d[-1] if nn else 0.0
+                if cur is None: cur = 0.0
+                txt = "%s %s" % (label, ("%d" % round(cur)) if abs(cur) >= 10 else ("%.2f" % cur))
+                p.setFont(fv); p.setPen(color)
+                tw = p.fontMetrics().horizontalAdvance(txt)
+                lx -= tw + 14; p.drawText(int(lx), 22, txt)
+        except Exception:
+            pass
+        finally:
+            if p.isActive():
+                p.end()
+
+
+# Resolve the sensor helper by absolute path: launched from SDDM/menu the PATH
+# usually has /usr/local/bin, but a sudo/cron context may not — never rely on PATH.
+HUD = shutil.which("skillfish-hud-val") or "/usr/local/bin/skillfish-hud-val"
+
+
+def read_all():
+    """One subprocess: parse `skillfish-hud-val all` into {key: float}."""
+    out = {}
+    try:
+        txt = subprocess.run([HUD, "all"], capture_output=True,
+                             text=True, timeout=1.2).stdout
+        for line in txt.splitlines():
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                out[parts[0]] = _num(parts[1])
+    except Exception:
+        pass
+    return out
+
+
+def cpu_load_pct(prev):
+    """CPU utilization % from /proc/stat delta. Returns (pct_or_None, new_state)."""
+    try:
+        with open("/proc/stat") as fh:
+            f = fh.readline().split()[1:]
+        vals = [int(x) for x in f]
+        idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
+        total = sum(vals)
+        if prev is None:
+            return None, (total, idle)
+        dt = total - prev[0]; di = idle - prev[1]
+        pct = (100.0 * (dt - di) / dt) if dt > 0 else None
+        return (max(0.0, min(100.0, pct)) if pct is not None else None), (total, idle)
+    except Exception:
+        return None, prev
+
+
+class Sampler(QThread):
+    """Reads sensors off the GUI thread. Emits a {key: value} dict per tick."""
+    sample = pyqtSignal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self._interval = 0.7
+        self._stop = False
+        self._cpu_prev = None
+
+    def setIntervalMs(self, ms):
+        try:
+            self._interval = max(0.1, float(ms) / 1000.0)
+        except Exception:
+            self._interval = 0.7
+
+    def stop(self):
+        self._stop = True
+
+    def run(self):
+        while not self._stop:
+            vals = read_all()
+            pct, self._cpu_prev = cpu_load_pct(self._cpu_prev)
+            vals["cpu_load"] = pct
+            if self._stop:
+                break
+            self.sample.emit(vals)
+            t = 0.0
+            while t < self._interval and not self._stop:
+                self.msleep(50); t += 0.05
+
+
+class Monitor(QMainWindow):
+    def __init__(self, recording=None):
+        super().__init__()
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(1060, 720)
+        w = QWidget(); self.setCentralWidget(w)
+        w.setStyleSheet("QWidget{background:#0d0b06;color:#cbb98f;}"
+                        "QLabel{color:#b9a07a;} QComboBox{background:#1a140b;color:#e8c878;"
+                        "border:1px solid rgba(216,168,73,.3);border-radius:6px;padding:2px 8px;}")
+        self.v = QVBoxLayout(w); self.v.setContentsMargins(14, 12, 14, 12); self.v.setSpacing(10)
+
+        self.charts = []
+        grid = QGridLayout(); grid.setSpacing(12)
+        for i, (title, unit, series) in enumerate(CHARTS):
+            c = Chart(title, unit, series)
+            self.charts.append(c)
+            grid.addWidget(c, i // 2, i % 2)
+
+        if recording:
+            self._build_viewer(recording, grid)
+        else:
+            self._build_live(grid)
+
+    # ---------------- live mode ----------------
+    def _build_live(self, grid):
+        self.setWindowTitle(L("SkillFishOS — Telemetry", "SkillFishOS — Telemetry"))
+        top = QHBoxLayout()
+        hdr = QLabel(L("◉  TELEMETRY LIVE", "◉  TELEMETRY LIVE"))
+        hdr.setStyleSheet("color:#d8a849;font-weight:bold;font-size:14px;letter-spacing:3px;")
+        top.addWidget(hdr); top.addStretch(1)
+        self._rec = None
+        self.open_btn = QPushButton(L("\U0001f4c2 Apri", "\U0001f4c2 Open"))
+        self.open_btn.setToolTip(L("Apri una registrazione .sfmon da analizzare",
+                                   "Open a .sfmon recording to analyze"))
+        self.open_btn.setStyleSheet(self._btn_css())
+        self.open_btn.clicked.connect(self._open_recording)
+        top.addWidget(self.open_btn)
+        self.rec_btn = QPushButton(L("● REC", "● REC")); self.rec_btn.setCheckable(True)
+        self.rec_btn.setToolTip(L("Registra la telemetria su file .sfmon (benchmark/sessioni)",
+                                  "Record telemetry to a .sfmon file (benchmarks/sessions)"))
+        self.rec_btn.setStyleSheet(self._btn_css() +
+            "QPushButton:checked{color:#fff;background:#a03020;border-color:#e05540;}")
+        self.rec_btn.toggled.connect(self._rec_toggle)
+        top.addWidget(self.rec_btn)
+        top.addWidget(QLabel(L("Aggiornamento:", "Refresh:")))
+        self.iv = QComboBox()
+        for ms, lab in [(300, "0.3 s"), (500, "0.5 s"), (750, "0.75 s"), (1000, "1 s"), (2000, "2 s")]:
+            self.iv.addItem(lab, ms)
+        self.iv.setCurrentIndex(2)  # default 0.75 s
+        self.iv.currentIndexChanged.connect(lambda: self.sampler.setIntervalMs(self.iv.currentData()))
+        top.addWidget(self.iv)
+        self.v.addLayout(top)
+        self.v.addLayout(grid)
+
+        self.sampler = Sampler()
+        self.sampler.setIntervalMs(self.iv.currentData())
+        self.sampler.sample.connect(self._apply)
+        self.sampler.start()
+
+    def _btn_css(self):
+        return ("QPushButton{color:#b9a07a;background:rgba(216,168,73,0.10);"
+                "border:1px solid rgba(216,168,73,0.3);border-radius:8px;padding:4px 12px;font-weight:bold;}"
+                "QPushButton:hover{color:#fff;}")
+
+    def _apply(self, vals):
+        for c in self.charts:
+            c.push([vals.get(k) for (_lab, _col, k) in c.series])
+        if self._rec:
+            wtr, fh, rows, t0 = self._rec
+            row = [round(time.time() - t0, 2)] + [vals.get(k) for k in REC_KEYS]
+            wtr.writerow(row); rows.append(row)
+
+    # ---------------- recorder ----------------
+    def _rec_toggle(self, on):
+        if on:
+            os.makedirs(REC_DIR, exist_ok=True)
+            path = os.path.join(REC_DIR, datetime.datetime.now().strftime("rec-%Y%m%d-%H%M%S") + SFMON_EXT)
+            fh = open(path, "w", newline="")
+            fh.write("# SkillFishOS Monitor recording v1\n")
+            fh.write("# started=%s interval_ms=%s\n" % (
+                datetime.datetime.now().isoformat(timespec="seconds"), self.iv.currentData()))
+            wtr = csv.writer(fh); wtr.writerow(["t_sec"] + REC_KEYS)
+            self._rec = (wtr, fh, [], time.time()); self._rec_path = path
+            self.rec_btn.setText(L("■ STOP", "■ STOP"))
+        else:
+            rec, self._rec = self._rec, None
+            self.rec_btn.setText(L("● REC", "● REC"))
+            if not rec:
+                return
+            _w, fh, rows, _t0 = rec; fh.close()
+            if not rows:
+                return
+            dur = rows[-1][0]
+            names = {"cpu_temp": "CPU °C", "gpu_temp": "GPU °C", "cpu_load": "CPU %",
+                     "gpu_util": "GPU %", "cpu_mhz": "CPU MHz", "gpu_freq": "GPU MHz",
+                     "gpu_power": "GPU W", "gpu_mv": "GPU mV", "cpu_mv": "CPU mV",
+                     "fan": "Fan RPM", "vram": "VRAM MB"}
+            lines = [L("Registrazione: %.0f s, %d campioni" % (dur, len(rows)),
+                       "Recording: %.0f s, %d samples" % (dur, len(rows))), ""]
+            for i, k in enumerate(REC_KEYS, start=1):
+                series = [r[i] for r in rows if isinstance(r[i], (int, float))]
+                if series:
+                    lines.append("%-9s min %.0f · avg %.0f · max %.0f"
+                                 % (names[k], min(series), sum(series) / len(series), max(series)))
+            lines += ["", L("Salvato in (apri per analizzare):", "Saved to (open to analyze):"), self._rec_path]
+            QMessageBox.information(self, L("Riepilogo registrazione", "Recording summary"), "\n".join(lines))
+
+    def _open_recording(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, L("Apri registrazione", "Open recording"), REC_DIR,
+            "SkillFishOS Monitor (*.sfmon *.csv)")
+        if path:
+            self._launch_viewer(path)
+
+    def _launch_viewer(self, path):
+        # open the viewer in a fresh process so live and analysis can coexist
+        try:
+            subprocess.Popen([sys.executable, os.path.abspath(__file__), path])
+        except Exception:
+            self._build_viewer(path, None)
+
+    # ---------------- viewer mode ----------------
+    def _build_viewer(self, path, grid):
+        self.sampler = None
+        name = os.path.basename(path)
+        self.setWindowTitle(L("SkillFishOS — Analisi: ", "SkillFishOS — Analysis: ") + name)
+        times, cols, meta = self._load_sfmon(path)
+        top = QHBoxLayout()
+        hdr = QLabel(L("\U0001f4ca ANALISI  ·  ", "\U0001f4ca ANALYSIS  ·  ") + name)
+        hdr.setStyleSheet("color:#d8a849;font-weight:bold;font-size:14px;letter-spacing:1px;")
+        top.addWidget(hdr); top.addStretch(1)
+        self.cur_lbl = QLabel("")
+        self.cur_lbl.setStyleSheet("color:#e8c878;font-family:'DejaVu Sans Mono';font-weight:bold;")
+        top.addWidget(self.cur_lbl)
+        self.v.addLayout(top)
+        if grid is None:
+            grid = QGridLayout(); grid.setSpacing(12)
+            for i, c in enumerate(self.charts):
+                grid.addWidget(c, i // 2, i % 2)
+        self.v.addLayout(grid)
+
+        # feed each chart its full series
+        self._times = times
+        for c in self.charts:
+            series_vals = [cols.get(k, [None] * len(times)) for (_lab, _col, k) in c.series]
+            c.set_full(times, series_vals)
+
+        # time scrubber
+        sb = QHBoxLayout()
+        sb.addWidget(QLabel(L("Tempo:", "Time:")))
+        self.scrub = QSlider(Qt.Orientation.Horizontal)
+        self.scrub.setMinimum(0); self.scrub.setMaximum(max(0, len(times) - 1))
+        self.scrub.setValue(max(0, len(times) - 1))
+        self.scrub.valueChanged.connect(self._scrub)
+        sb.addWidget(self.scrub, 1)
+        self.v.addLayout(sb)
+        if times:
+            self._scrub(len(times) - 1)
+
+    def _scrub(self, i):
+        for c in self.charts:
+            c.set_cursor(i)
+        if 0 <= i < len(self._times):
+            self.cur_lbl.setText("t = %.1f s  /  %.1f s   (#%d)" % (
+                self._times[i], self._times[-1] if self._times else 0, i))
+
+    def _load_sfmon(self, path):
+        times, header, rows, meta = [], None, [], {}
+        try:
+            with open(path, newline="") as fh:
+                for line in fh:
+                    s = line.strip()
+                    if not s:
+                        continue
+                    if s.startswith("#"):
+                        for tok in s[1:].split():
+                            if "=" in tok:
+                                k, v = tok.split("=", 1); meta[k] = v
+                        continue
+                    parts = next(csv.reader([line]))
+                    if header is None:
+                        header = parts; continue
+                    rows.append(parts)
+        except Exception:
+            pass
+        cols = {}
+        if header:
+            idx = {h: i for i, h in enumerate(header)}
+            for r in rows:
+                try:
+                    times.append(float(r[idx["t_sec"]]))
+                except Exception:
+                    times.append(len(times) * 1.0)
+            for k in REC_KEYS:
+                if k in idx:
+                    series = []
+                    for r in rows:
+                        try:
+                            series.append(float(r[idx[k]]))
+                        except Exception:
+                            series.append(None)
+                    cols[k] = series
+        return times, cols, meta
+
+    def closeEvent(self, e):
+        if getattr(self, "_rec", None):
+            try: self._rec[1].close()
+            except Exception: pass
+            self._rec = None
+        if getattr(self, "sampler", None):
+            try:
+                self.sampler.stop(); self.sampler.wait(1500)
+            except Exception:
+                pass
+        super().closeEvent(e)
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Telemetry")
+    app.setDesktopFileName("os.skillfish.monitor")
+    app.setWindowIcon(QIcon(ICON))
+    rec = None
+    for a in sys.argv[1:]:
+        if a.endswith(SFMON_EXT) or a.endswith(".csv"):
+            if os.path.isfile(a):
+                rec = a; break
+    win = Monitor(recording=rec); win.show()
+    if win.sampler is not None:
+        app.aboutToQuit.connect(win.sampler.stop)
+    signal.signal(signal.SIGTERM, lambda *_a: app.quit())
+    signal.signal(signal.SIGINT, lambda *_a: app.quit())
+    _keepalive = QTimer(); _keepalive.start(250); _keepalive.timeout.connect(lambda: None)
+    win._keepalive = _keepalive
+    sq = os.environ.get("SFX_SELFQUIT_MS")
+    if sq:
+        QTimer.singleShot(int(sq), win.close)
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>os.skillfish.Tuner</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Tuner</name>
+  <summary>Overclock, undervolt and tune the AMD BC-250 without a terminal</summary>
+  <summary xml:lang="it">Overclock, undervolt e tuning della AMD BC-250 senza terminale</summary>
+  <description>
+    <p>The control centre for the AMD BC-250: overclock and undervolt the CPU, drive the GPU safe-point governor, control the fan, resize the shared VRAM, and manage Compute Units live — a grid of CU squares (24/32/40 presets, no reboot) with a CU health test for the silicon lottery.</p>
+    <p>Four ready presets (Stock, Performance, Turbo, Crazy), benchmark-and-rollback testing that applies a setting, stresses it and reverts if unstable, and a pop-up live monitor during any test. Bilingual (IT/EN); privileged actions go through a single authenticated helper.</p>
+    <p xml:lang="it">Il centro di controllo della AMD BC-250: overclock e undervolt della CPU, governor GPU al safe-point, controllo ventola, ridimensionamento della VRAM condivisa e gestione live delle Compute Unit — una griglia di quadratini CU (preset 24/32/40, senza riavvio) con un test di salute CU per la lotteria del silicio.</p>
+    <p xml:lang="it">Quattro preset pronti (Stock, Performance, Turbo, Crazy), test con benchmark-e-rollback che applica un'impostazione, la stressa e la ripristina se instabile, e un monitor live durante ogni test. Bilingue (IT/EN); le azioni privilegiate passano da un singolo helper autenticato.</p>
+  </description>
+  <launchable type="desktop-id">os.skillfish.Tuner.desktop</launchable>
+  <icon type="stock">skillfishos</icon>
+  <categories>
+    <category>System</category>
+    <category>Settings</category>
+  </categories>
+  <keywords>
+    <keyword>overclock</keyword>
+    <keyword>undervolt</keyword>
+    <keyword>tuner</keyword>
+    <keyword>fan</keyword>
+    <keyword>bc-250</keyword>
+  </keywords>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos"><name>SkillFishOS</name></developer>
+  <pkgname>skillfish-tuner</pkgname>
+  <provides><binary>skillfish-tuner</binary></provides>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Tuner main window</caption>
+      <caption xml:lang="it">Finestra principale del Tuner</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/tuner.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Live Compute Unit grid</caption>
+      <caption xml:lang="it">Griglia Compute Unit live</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/tuner-full.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>CU health test</caption>
+      <caption xml:lang="it">Test di salute delle CU</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/cu-test.jpg</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="26.06.7" date="2026-06-10">
+      <description><p>Find-my-max wizards for CPU and GPU with per-step benchmark-and-rollback; crash-safe testing; Turbo/Crazy presets capped at the validated 2200 MHz; extreme-preset warning; anonymous silicon-lottery sharing.</p></description>
+    </release>
+    <release version="26.06.6" date="2026-06-10">
+      <description><p>GPU governor Balanced/Performance mode toggle (+11% FPS in GPU-bound loads) and the safe multi-point voltage curve.</p></description>
+    </release>
+    <release version="26.06.3" date="2026-06-08"/>
+  </releases>
+</component>

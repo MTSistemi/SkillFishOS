@@ -1,0 +1,13 @@
+[Unit]
+Description=SkillFishOS — route all BC-250 Compute Units (40 CU) at boot
+Documentation=https://skillfishos.com
+After=display-manager.service multi-user.target
+Wants=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-cu max
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target

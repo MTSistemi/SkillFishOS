@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>os.skillfish.kernel</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Kernel Manager</name>
+  <summary>Choose the boot kernel and completely remove unused kernels</summary>
+  <summary xml:lang="it">Scegli il kernel di avvio e rimuovi completamente quelli inutilizzati</summary>
+  <description>
+    <p>Lists every installed kernel with its flavour (BC-250, Generic, Slim), size and running/default badges. Set the permanent GRUB default, boot a kernel just once, or completely uninstall a kernel (image, headers and modules) so they don't pile up.</p>
+    <p>Safe by design: it never removes the running kernel or the last remaining one, and moves the GRUB default off a kernel before removing it. Privileged actions go through an authenticated helper.</p>
+    <p xml:lang="it">Elenca ogni kernel installato con il suo tipo (BC-250, Generic, Slim), la dimensione e i badge in esecuzione/predefinito. Imposta il default GRUB permanente, avvia un kernel una sola volta, o disinstalla completamente un kernel (immagine, header e moduli) così non si accumulano.</p>
+    <p xml:lang="it">Sicuro per progettazione: non rimuove mai il kernel in esecuzione né l'ultimo rimasto, e sposta il default GRUB prima di rimuoverlo. Le azioni privilegiate passano da un helper autenticato.</p>
+  </description>
+  <launchable type="desktop-id">os.skillfish.kernel.desktop</launchable>
+  <icon type="stock">skillfishos</icon>
+  <categories>
+    <category>System</category>
+    <category>Settings</category>
+  </categories>
+  <keywords>
+    <keyword>kernel</keyword>
+    <keyword>grub</keyword>
+    <keyword>boot</keyword>
+    <keyword>uninstall</keyword>
+  </keywords>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos"><name>SkillFishOS</name></developer>
+  <pkgname>skillfish-kernel-manager</pkgname>
+  <provides><binary>skillfish-kernel-manager</binary></provides>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Installed kernels with flavour and size</caption>
+      <caption xml:lang="it">Kernel installati con tipo e dimensione</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/kernel-manager.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="26.06" date="2026-06-08"/>
+  </releases>
+</component>

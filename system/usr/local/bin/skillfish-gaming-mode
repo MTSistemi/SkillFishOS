@@ -1,0 +1,16 @@
+#!/bin/bash
+# SkillFishOS Console — SteamOS-style session: Steam Big Picture (gamepad UI)
+# inside gamescope. Selectable from the SDDM login screen; quitting Steam
+# returns to the login screen.
+# NOTE: Debian installs gamescope in /usr/games, which is NOT on the PATH of
+# SDDM-launched sessions — the absolute path here is load-bearing.
+GS=/usr/games/gamescope
+[ -x "$GS" ] || GS=$(command -v gamescope || echo /usr/games/gamescope)
+W="${GAMESCOPE_W:-1920}"; H="${GAMESCOPE_H:-1080}"; R="${GAMESCOPE_R:-60}"
+LOG="$HOME/.local/state/skillfish-console.log"
+mkdir -p "$(dirname "$LOG")"
+{
+  echo "=== SkillFishOS Console $(date -Is) ($GS ${W}x${H}@${R}) ==="
+  exec "$GS" --steam -f -W "$W" -H "$H" -r "$R" -- \
+       flatpak run com.valvesoftware.Steam -gamepadui -steamos3 -steampal
+} >> "$LOG" 2>&1

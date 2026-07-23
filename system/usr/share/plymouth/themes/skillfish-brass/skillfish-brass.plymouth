@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=SkillFish Brass
+Description=SkillFishOS steampunk boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/skillfish-brass
+ScriptFile=/usr/share/plymouth/themes/skillfish-brass/skillfish-brass.script

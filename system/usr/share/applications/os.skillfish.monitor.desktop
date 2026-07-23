@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Telemetry
+GenericName=System telemetry
+Comment=Live sensor charts + benchmark recorder/analyzer (.sfmon)
+Comment[it]=Grafici live dei sensori + registratore/analizzatore di benchmark (.sfmon)
+Exec=/usr/local/bin/skillfish-monitor %f
+Icon=skillfishos
+Terminal=false
+Categories=System;Monitor;X-SkillFishOS;
+Keywords=monitor;sensors;temperature;fan;power;watt;benchmark;skillfish;
+MimeType=application/x-skillfish-monitor;
+StartupNotify=true
+X-KDE-StartupNotify=true

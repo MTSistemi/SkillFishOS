@@ -1,0 +1,10 @@
+[Unit]
+Description=SkillFishOS - detect an unclean previous shutdown (freeze/watchdog reset)
+After=systemd-journald.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-freeze-check.sh
+
+[Install]
+WantedBy=multi-user.target

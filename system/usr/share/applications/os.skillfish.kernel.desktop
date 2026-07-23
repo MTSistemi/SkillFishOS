@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS Kernel Manager
+Name[it]=SkillFishOS Gestore Kernel
+GenericName=Kernel Manager
+GenericName[it]=Gestore Kernel
+Comment=Choose the boot kernel and completely remove unused kernels
+Comment[it]=Scegli il kernel di avvio e rimuovi completamente i kernel inutilizzati
+Exec=/usr/local/bin/skillfish-kernel-manager
+Icon=skillfishos
+Terminal=false
+Categories=System;X-SkillFishOS;
+Keywords=kernel;grub;boot;remove;uninstall;manager;skillfish;
+StartupNotify=true
+X-KDE-StartupNotify=true

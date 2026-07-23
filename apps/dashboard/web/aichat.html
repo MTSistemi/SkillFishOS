@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SkillFishOS AI Chat</title>
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--gold:#d8a849;--gold-lt:#e8c878;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);display:flex;flex-direction:column;height:100vh}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header b{color:var(--gold-lt)}
+  select{background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:.85rem}
+  #log{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .m{max-width:80%;padding:10px 14px;border-radius:14px;white-space:pre-wrap;line-height:1.5;font-size:.95rem}
+  .u{align-self:flex-end;background:linear-gradient(135deg,#e8c878,#d8a849);color:#1a130a}
+  .a{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
+  .sys{align-self:center;color:var(--muted);font-size:.85rem}
+  form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--panel)}
+  textarea{flex:1;resize:none;background:#0d0b06;color:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:.95rem;height:46px}
+  button{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;padding:0 18px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+</style></head>
+<body>
+<header><b>🧠 SkillFishOS AI</b><span style="flex:1"></span><span style="color:var(--muted);font-size:.8rem">modello</span><select id="model"></select></header>
+<div id="log"><div class="m sys">Chiedi qualcosa al modello locale. Gira sulla GPU della BC-250, nessun cloud.</div></div>
+<form id="f"><textarea id="q" placeholder="Scrivi un messaggio…  (Invio per inviare)"></textarea><button id="send" type="submit">Invia</button></form>
+<script>
+  const $ = s => document.querySelector(s);
+  const log = $("#log"); const msgs = [];
+  const add = (role, text) => { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : role === "assistant" ? "a" : "sys"); d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
+  (async () => { try { const s = await (await fetch("/api/ai", { credentials: "same-origin" })).json();
+    (s.models || []).forEach(m => { const o = document.createElement("option"); o.value = o.textContent = m; $("#model").appendChild(o); });
+    if (!(s.models || []).length) add("system", "Nessun modello installato. Scaricane uno dal modulo AI.");
+  } catch (e) {} })();
+  $("#f").addEventListener("submit", async e => {
+    e.preventDefault(); const q = $("#q").value.trim(); if (!q) return;
+    $("#q").value = ""; add("user", q); msgs.push({ role: "user", content: q });
+    $("#send").disabled = true; const wait = add("assistant", "…");
+    try {
+      const r = await (await fetch("/api/ai/chat", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: $("#model").value, messages: msgs }) })).json();
+      if (r.ok) { wait.textContent = r.message || "(vuoto)"; msgs.push({ role: "assistant", content: r.message || "" }); }
+      else { wait.textContent = "⚠ " + (r.error || "errore"); }
+    } catch (e) { wait.textContent = "⚠ errore di rete"; }
+    $("#send").disabled = false; $("#q").focus();
+  });
+  $("#q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#f").requestSubmit(); } });
+</script>
+</body></html>

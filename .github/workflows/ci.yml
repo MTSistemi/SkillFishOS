@@ -1,0 +1,101 @@
+name: CI — apps build & verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'system/usr/**'
+      - 'system/etc/**'
+      - 'theme/**'
+      - 'tests/**'
+      - 'scripts/build-debs-ci.sh'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Syntax check every app script
+        run: |
+          set -e
+          for f in apps/tuner/skillfish-tuner apps/tuner/skillfish-tuner-helper \
+                   apps/hub/skillfish-hub apps/hub/skillfish-hub-helper \
+                   apps/monitor/skillfish-monitor \
+                   apps/kernel-manager/skillfish-kernel-manager \
+                   apps/ai-panel/skillfish-ai-panel; do
+            case "$(head -1 "$f")" in
+              *python*) python -m py_compile "$f" && echo "compile OK: $f";;
+              *) bash -n "$f" && echo "bash -n OK: $f";;
+            esac
+          done
+
+      - name: Lint (ruff — pyflakes blocking, bugbear informational)
+        run: |
+          pip install -q ruff
+          PYAPPS="apps/tuner/skillfish-tuner apps/tuner/skillfish-tuner-helper \
+                  apps/hub/skillfish-hub apps/monitor/skillfish-monitor \
+                  apps/kernel-manager/skillfish-kernel-manager apps/ai-panel/skillfish-ai-panel"
+          ruff check --select F,E9 --no-cache $PYAPPS
+          ruff check --select B,PLE --no-cache $PYAPPS || true
+
+      - name: ShellCheck (informational)
+        run: |
+          sudo apt-get -qq install -y shellcheck >/dev/null
+          shellcheck -S warning apps/hub/skillfish-hub-helper apps/kernel-manager/skillfish-kernel-helper \
+            apps/ai-panel/skillfish-gtt system/usr/local/bin/skillfish-freeze-check.sh \
+            system/usr/local/bin/skillfish-freeze-notify.sh scripts/build-debs-ci.sh || true
+
+      - name: apps/ vs system/ mirror drift check
+        run: |
+          set -e
+          for f in tuner/skillfish-tuner tuner/skillfish-tuner-helper hub/skillfish-hub \
+                   hub/skillfish-hub-helper monitor/skillfish-monitor \
+                   kernel-manager/skillfish-kernel-manager kernel-manager/skillfish-kernel-helper; do
+            b=$(basename "$f")
+            if [ -f "system/usr/local/bin/$b" ]; then
+              diff -q "apps/$f" "system/usr/local/bin/$b" || { echo "DRIFT: apps/$f != system mirror" >&2; exit 1; }
+            fi
+          done
+          echo "mirror in sync"
+
+      - name: Icon theme — no dangling gradient references
+        run: |
+          # qtsvg >= 6.10.2-9 refuses to paint an element whose fill points at a
+          # missing gradient id, so a cross-icon reference renders as an EMPTY
+          # icon in the Plasma menu. Dry-run exits non-zero if any are left.
+          python scripts/fix-icon-gradient-refs.py theme/icons/SkillFishSteampunk
+
+      - name: Unit tests (governor config logic)
+        run: |
+          # PyQt6.QtWidgets needs these system libs even for an import-only test
+          sudo apt-get -qq update >/dev/null
+          sudo apt-get -qq install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3 >/dev/null
+          pip install -q pytest PyQt6
+          python -m pytest tests/ -v
+
+      - name: Build all .debs from git sources
+        run: |
+          chmod +x scripts/build-debs-ci.sh
+          ./scripts/build-debs-ci.sh "0.0~ci${{ github.run_number }}"
+
+      - name: Lintian (informational)
+        run: |
+          sudo apt-get -qq install -y lintian >/dev/null
+          lintian --no-tag-display-limit /tmp/sfx-debs/out/*.deb || true
+
+      - name: Upload .deb artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: skillfish-debs
+          path: /tmp/sfx-debs/out/*.deb
+          retention-days: 14

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>os.skillfish.monitor</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Telemetry</name>
+  <name xml:lang="it">SkillFishOS Telemetry</name>
+  <summary>Live sensor charts + benchmark recorder/analyzer</summary>
+  <summary xml:lang="it">Grafici live dei sensori + registratore/analizzatore di benchmark</summary>
+  <description>
+    <p>A standalone live dashboard for the AMD BC-250: real-time line charts of CPU and GPU temperature, clock frequency, GPU voltage and fan speed, read straight from the hardware sensors.</p>
+    <p>Sensor sampling runs on a background thread so the interface stays smooth, and the refresh interval is adjustable. Part of the native SkillFishOS app suite.</p>
+    <p xml:lang="it">Un cruscotto live indipendente per l'AMD BC-250: grafici in tempo reale di temperatura CPU e GPU, frequenza di clock, voltaggio GPU e velocità della ventola, letti direttamente dai sensori hardware.</p>
+    <p xml:lang="it">Il campionamento dei sensori gira su un thread dedicato così l'interfaccia resta fluida, e l'intervallo di aggiornamento è regolabile. Fa parte della suite di app native di SkillFishOS.</p>
+  </description>
+  <launchable type="desktop-id">os.skillfish.monitor.desktop</launchable>
+  <icon type="stock">skillfishos</icon>
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+  <keywords>
+    <keyword>monitor</keyword>
+    <keyword>sensors</keyword>
+    <keyword>temperature</keyword>
+    <keyword>fan</keyword>
+  </keywords>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-monitor</pkgname>
+  <provides>
+    <binary>skillfish-monitor</binary>
+  </provides>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Live temperature, frequency, voltage and fan charts</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/monitor.jpg</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="26.06.6" date="2026-06-10">
+      <description>
+        <p>Monitor v2: added power (W) and CPU/GPU load charts (six panels total); refresh now selectable down to 0.5 s. Recordings are saved as .sfmon files (CSV-backed) and can be re-opened in the Monitor as a benchmark analyzer with a time scrubber to inspect the whole run second by second.</p>
+      </description>
+    </release>
+    <release version="26.06.5" date="2026-06-10">
+      <description><p>REC button: record telemetry to CSV with a min/avg/max summary at the end of the session.</p></description>
+    </release>
+    <release version="26.06.3" date="2026-06-08"/>
+  </releases>
+</component>

@@ -1,0 +1,13 @@
+PRETTY_NAME="SkillFishOS 26.06 (Aetherium)"
+NAME="SkillFishOS"
+VERSION="26.06 (Aetherium)"
+VERSION_ID="26.06"
+VERSION_CODENAME=aetherium
+ID=skillfishos
+ID_LIKE=debian
+HOME_URL="https://skillfishos.com"
+SUPPORT_URL="https://github.com/MTSistemi/SkillFishOS"
+BUG_REPORT_URL="https://github.com/MTSistemi/SkillFishOS/issues"
+PRIVACY_POLICY_URL="https://skillfishos.com"
+LOGO=skillfishos
+ANSI_COLOR="0;33"

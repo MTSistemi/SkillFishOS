@@ -1,0 +1,58 @@
+name: "🎰 Silicon lottery report"
+description: "Share your BC-250's validated stable clocks — help build the community database"
+title: "[silicon] BC-250 stable clocks report"
+labels: ["silicon-lottery"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing! Every BC-250 is different (the *silicon lottery*).
+        Sharing your validated-stable clocks helps everyone pick safe defaults.
+        Use the **SkillFishOS Tuner** tests (benchmark-and-rollback, CU health test)
+        to validate before reporting — and only report settings that survived
+        **30+ minutes of load** without a freeze.
+  - type: input
+    id: gpu-max
+    attributes:
+      label: "GPU max stable (MHz @ mV)"
+      placeholder: "2200 @ 1000"
+    validations:
+      required: true
+  - type: input
+    id: cpu-max
+    attributes:
+      label: "CPU max stable (MHz, undervolt offset if any)"
+      placeholder: "3700 @ -16"
+    validations:
+      required: true
+  - type: dropdown
+    id: cu
+    attributes:
+      label: "Compute Units stable"
+      options: ["40 (all)", "32", "24 (stock)", "other / partial (explain below)"]
+    validations:
+      required: true
+  - type: input
+    id: cooling
+    attributes:
+      label: "Cooling"
+      placeholder: "stock blower / custom 120mm / watercooled…"
+    validations:
+      required: true
+  - type: input
+    id: validation
+    attributes:
+      label: "How was it validated?"
+      placeholder: "Tuner GPU test + 2h Wukong / vkpeak loop 30 min…"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: "Notes (board markings, temps, failures at higher clocks…)"
+      placeholder: "2230@1000mV froze in 5 min; GPU max temp 83°C at 2200…"
+  - type: input
+    id: version
+    attributes:
+      label: "SkillFishOS version / kernel"
+      placeholder: "26.06 Aetherium / 7.0.11-skillfishos"

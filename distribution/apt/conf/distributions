@@ -1,0 +1,12 @@
+Origin: SkillFishOS
+Label: SkillFishOS
+Suite: aetherium
+Codename: aetherium
+Version: 26.06
+Architectures: amd64 i386 source
+Components: main
+# i386 carries the Architecture:all packages (apps) so apt does not warn on
+# systems with i386 multiarch enabled for 32-bit gaming (Steam/Wine/Proton).
+# Populate after adding a new arch with: reprepro -b . flood aetherium i386
+Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)
+SignWith: yes

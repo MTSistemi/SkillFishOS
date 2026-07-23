@@ -1,0 +1,16 @@
+[Unit]
+Description=SkillFish Remote dashboard (LAN control panel)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/skillfish-dashboardd
+ExecStopPost=/bin/sh -c 'pkill -f "ttyd -i lo"; pkill -f "websockify --web"; pkill -f "x11vnc -display :0 -rfbport 5901"; true'
+Restart=on-failure
+RestartSec=3
+# LAN control panel: needs PAM auth and system actions, so it runs as root.
+# It binds only where dashboard.json says (LAN by default) and serves over TLS.
+
+[Install]
+WantedBy=multi-user.target

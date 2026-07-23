@@ -1,0 +1,399 @@
+#!/usr/bin/env python3
+# SkillFishOS Hub catalogue helper — emits JSON for the web Hub.
+# Uses AppStream (apt+flatpak metadata), python3-apt, snapd REST, flatpak CLI, ODRS.
+# Subcommands:
+#   build              full app catalogue (apt+flatpak+installed snaps) -> stdout JSON
+#   snap-find <query>  live snap search via snapd -> JSON list of apps
+#   reviews <appid> <ver>   ODRS reviews for one app -> JSON list
+import sys, os, json, glob, subprocess, hashlib, urllib.request, urllib.parse
+
+SNAP_SOCK = "/run/snapd.socket"
+ODRS = "https://odrs.gnome.org/1.0/reviews/api"
+
+CATEGORIES = [
+    ("Game",        "🎮", {"Game"}, ["games"]),
+    ("Development", "🛠️", {"Development"}, ["development"]),
+    ("Graphics",    "🎨", {"Graphics"}, ["art-and-design"]),
+    ("AudioVideo",  "🎬", {"AudioVideo", "Audio", "Video"}, ["music-and-audio", "photo-and-video"]),
+    ("Network",     "🌐", {"Network"}, ["social", "news-and-weather"]),
+    ("Office",      "📝", {"Office"}, ["productivity", "finance"]),
+    ("Education",   "📚", {"Education", "Science"}, ["education", "science"]),
+    ("System",      "⚙️", {"System", "Settings"}, ["devices-and-iot"]),
+    ("Utility",     "🧰", {"Utility", "Accessibility"}, ["utilities", "personalisation"]),
+]
+
+
+def top_category_of(cats):
+    s = set(cats or [])
+    for key, _e, members, _sn in CATEGORIES:
+        if s & members:
+            return key
+    return "Utility"
+
+
+def run(argv, t=30):
+    try:
+        p = subprocess.run(argv, capture_output=True, text=True, timeout=t)
+        return p.returncode, p.stdout, p.stderr
+    except Exception:
+        return 1, "", ""
+
+
+def have(x):
+    return any(os.access(os.path.join(d, x), os.X_OK) for d in os.environ.get("PATH", "/usr/bin:/bin").split(":"))
+
+
+def snapd_get(path):
+    if not os.path.exists(SNAP_SOCK):
+        return {}
+    rc, out, _ = run(["curl", "-s", "--max-time", "20", "--unix-socket", SNAP_SOCK,
+                      "http://localhost" + path], 25)
+    try:
+        return json.loads(out)
+    except Exception:
+        return {}
+
+
+# ---- ODRS ratings (24h cache) ----
+def load_ratings():
+    cache = "/var/cache/skillfish/odrs-ratings.json"
+    data = None
+    try:
+        import time
+        if os.path.exists(cache) and (time.time() - os.path.getmtime(cache)) < 86400:
+            with open(cache, encoding="utf-8") as fh:
+                data = json.load(fh)
+    except Exception:
+        data = None
+    if data is None:
+        try:
+            with urllib.request.urlopen(ODRS + "/ratings", timeout=15) as r:
+                data = json.loads(r.read().decode())
+            os.makedirs(os.path.dirname(cache), exist_ok=True)
+            with open(cache, "w", encoding="utf-8") as fh:
+                json.dump(data, fh)
+        except Exception:
+            try:
+                with open(cache, encoding="utf-8") as fh:
+                    data = json.load(fh)
+            except Exception:
+                data = {}
+    out = {}
+    for k, v in (data or {}).items():
+        tot = v.get("total", 0)
+        if tot:
+            avg = sum(int(s[-1]) * v.get(s, 0) for s in ("star1", "star2", "star3", "star4", "star5")) / tot
+            out[k] = (round(avg, 2), tot)
+    return out
+
+
+def _icon(c):
+    """Return (remote_url, local_path)."""
+    try:
+        ic = c.get_icon_by_size(64, 64) or None
+        if ic is None:
+            ics = c.get_icons()
+            ia = ics.as_array() if (ics and hasattr(ics, "as_array")) else (list(ics) if ics else [])
+            ic = ia[0] if ia else None
+        if ic and hasattr(ic, "get_url") and ic.get_url():
+            u = ic.get_url()
+            if u.startswith("file://"):
+                return "", u[7:]
+            if u.startswith("http"):
+                return u, ""
+            return "", u
+    except Exception:
+        pass
+    return "", ""
+
+
+def _screens(c):
+    out = []
+    try:
+        scr = c.get_screenshots_all()
+        sa = scr.as_array() if hasattr(scr, "as_array") else list(scr)
+        for s in sa:
+            imgs = s.get_images()
+            ia = imgs.as_array() if hasattr(imgs, "as_array") else list(imgs)
+            best, bw = None, 0
+            for im in ia:
+                w = im.get_width() or 0
+                if w >= bw:
+                    bw = w
+                    best = im.get_url()
+            if best and best.startswith("http"):
+                out.append(best)
+    except Exception:
+        pass
+    return out[:6]
+
+
+def _releases(c):
+    out = []
+    try:
+        rl = c.get_releases_plain() if hasattr(c, "get_releases_plain") else c.get_releases()
+        entries = rl.get_entries() if hasattr(rl, "get_entries") else (rl.as_array() if hasattr(rl, "as_array") else list(rl))
+        for r in entries[:4]:
+            out.append([r.get_version() or "", (r.get_description() or "")])
+    except Exception:
+        pass
+    return out
+
+
+def our_pkgs():
+    """Package names published in OUR apt repo (suite 'aetherium', mtsistemi.github.io)."""
+    names = set()
+    pats = glob.glob("/var/lib/apt/lists/*SkillFishOS*aetherium*Packages*") + \
+        glob.glob("/var/lib/apt/lists/*mtsistemi*aetherium*Packages*") + \
+        glob.glob("/var/lib/apt/lists/*aetherium*Packages*")
+    for fn in pats:
+        try:
+            with open(fn, errors="ignore") as f:
+                for ln in f:
+                    if ln.startswith("Package:"):
+                        names.add(ln.split(":", 1)[1].strip())
+        except Exception:
+            pass
+    return names
+
+
+def _icon_from_name(name):
+    """Resolve a freedesktop icon name to a local file."""
+    if not name:
+        return ""
+    if name.startswith("/"):
+        return name if os.path.isfile(name) else ""
+    for d in ("/usr/share/icons/hicolor/256x256/apps", "/usr/share/icons/hicolor/128x128/apps",
+              "/usr/share/icons/hicolor/scalable/apps", "/usr/share/pixmaps"):
+        for ext in (".png", ".svg", ".xpm"):
+            p = os.path.join(d, name + ext)
+            if os.path.isfile(p):
+                return p
+    return ""
+
+
+def _our_app_from_desktop(pkg, cache):
+    """Build a minimal app entry for one of our packages that ships a .desktop file."""
+    rc, out, _ = run(["dpkg", "-L", pkg], 10)
+    desk = [l for l in out.splitlines() if l.endswith(".desktop") and "/applications/" in l]
+    if not desk:
+        return None
+    name = summary = icon = ""
+    try:
+        with open(desk[0], errors="ignore") as f:
+            for ln in f:
+                if ln.startswith("Name=") and not name:
+                    name = ln.split("=", 1)[1].strip()
+                elif ln.startswith("Comment=") and not summary:
+                    summary = ln.split("=", 1)[1].strip()
+                elif ln.startswith("Icon=") and not icon:
+                    icon = ln.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    inst = False
+    ver = ""
+    summ = summary
+    if cache is not None and pkg in cache:
+        p = cache[pkg]
+        inst = p.is_installed
+        if p.candidate:
+            ver = p.candidate.version
+            if not summ:
+                summ = p.candidate.summary or ""
+    return {
+        "key": "apt:" + pkg, "backend": "apt", "id": pkg, "pkgid": pkg,
+        "name": name or pkg, "summary": summ, "desc": "", "icon": "",
+        "icon_local": _icon_from_name(icon), "cats": [], "top": "System",
+        "rating": 0, "rating_n": 0, "installed": inst, "ver": ver, "size": 0,
+        "screens": [], "releases": [], "license": "", "developer": "SkillFishOS",
+        "homepage": "https://skillfishos.com", "ours": True,
+    }
+
+
+def build():
+    apps = {}
+    ratings = load_ratings()
+    ours = our_pkgs()
+    # ---- AppStream (apt + flatpak) ----
+    try:
+        import gi
+        gi.require_version("AppStream", "1.0")
+        from gi.repository import AppStream as AS
+        pool = AS.Pool()
+        try:
+            pool.set_flags(AS.PoolFlags.LOAD_OS_CATALOG | AS.PoolFlags.LOAD_OS_METAINFO | AS.PoolFlags.LOAD_FLATPAK)
+        except Exception:
+            pass
+        pool.load()
+        comps = pool.get_components()
+        arr = comps.as_array() if hasattr(comps, "as_array") else list(comps)
+        # apt cache for install state / version / size
+        cache = None
+        try:
+            import apt
+            cache = apt.Cache()
+        except Exception:
+            cache = None
+        for c in arr:
+            try:
+                if c.get_kind() != AS.ComponentKind.DESKTOP_APP:
+                    continue
+                backend = "apt"
+                pkgid = c.get_pkgname()
+                bundle = None
+                try:
+                    bundle = c.get_bundle(AS.BundleKind.FLATPAK)
+                except Exception:
+                    bundle = None
+                if bundle is not None:
+                    backend = "flatpak"
+                    pkgid = bundle.get_id()
+                if not pkgid:
+                    continue
+                key = backend + ":" + pkgid
+                if key in apps:
+                    continue
+                cats = list(c.get_categories() or [])
+                remote, local = _icon(c)
+                lic = dev = home = ""
+                try:
+                    lic = c.get_project_license() or ""
+                except Exception:
+                    pass
+                try:
+                    d = c.get_developer()
+                    dev = (d.get_name() if d else "") or ""
+                except Exception:
+                    pass
+                try:
+                    home = c.get_url(AS.UrlKind.HOMEPAGE) or ""
+                except Exception:
+                    pass
+                installed = False
+                ver = ""
+                size = 0
+                if backend == "apt" and cache is not None and pkgid in cache:
+                    p = cache[pkgid]
+                    installed = p.is_installed
+                    if p.candidate:
+                        ver = p.candidate.version
+                        size = p.candidate.installed_size or 0
+                odrs_id = c.get_id() or pkgid
+                rt = ratings.get(odrs_id) or ratings.get(odrs_id + ".desktop") or (0, 0)
+                apps[key] = {
+                    "key": key, "backend": backend, "id": odrs_id, "pkgid": pkgid,
+                    "name": c.get_name() or pkgid, "summary": c.get_summary() or "",
+                    "desc": c.get_description() or "", "icon": remote, "icon_local": local,
+                    "cats": cats, "top": top_category_of(cats), "rating": rt[0], "rating_n": rt[1],
+                    "installed": installed, "ver": ver, "size": size,
+                    "screens": _screens(c), "releases": _releases(c),
+                    "license": lic, "developer": dev, "homepage": home,
+                    "ours": (backend == "apt" and pkgid in ours),
+                }
+            except Exception:
+                continue
+        # mark installed flatpaks
+        if have("flatpak"):
+            rc, out, _ = run(["flatpak", "list", "--app", "--columns=application,version"], 25)
+            inst = {}
+            for ln in out.splitlines():
+                f = ln.split("\t")
+                if f and f[0]:
+                    inst[f[0].strip()] = (f[1].strip() if len(f) > 1 else "")
+            for a in apps.values():
+                if a["backend"] == "flatpak" and a["pkgid"] in inst:
+                    a["installed"] = True
+                    a["ver"] = inst[a["pkgid"]] or a["ver"]
+        # add OUR packages that ship a .desktop but aren't in the AppStream catalogue,
+        # so newly released SkillFishOS apps show up (and are featured) immediately
+        for pkg in sorted(ours):
+            if ("apt:" + pkg) in apps:
+                continue
+            extra = _our_app_from_desktop(pkg, cache)
+            if extra:
+                apps[extra["key"]] = extra
+    except Exception as e:
+        sys.stderr.write("appstream failed: %s\n" % e)
+    # ---- installed snaps ----
+    try:
+        d = snapd_get("/v2/snaps")
+        for s in d.get("result", []) or []:
+            nm = s.get("name")
+            if not nm:
+                continue
+            key = "snap:" + nm
+            media = s.get("media", []) or []
+            icon = next((m.get("url") for m in media if m.get("type") == "icon"), "")
+            shots = [m.get("url") for m in media if m.get("type") == "screenshot"]
+            apps[key] = {
+                "key": key, "backend": "snap", "id": nm, "pkgid": nm,
+                "name": s.get("title") or nm, "summary": s.get("summary") or "",
+                "desc": s.get("description") or "", "icon": icon, "icon_local": "",
+                "cats": [], "top": "Utility", "rating": 0, "rating_n": 0,
+                "installed": True, "ver": s.get("version", ""), "size": s.get("installed-size", 0) or 0,
+                "screens": shots, "releases": [], "license": s.get("license", "") or "",
+                "developer": (s.get("publisher", {}) or {}).get("display-name", "") or "",
+                "homepage": s.get("website", "") or "", "confinement": s.get("confinement", ""),
+                "ours": False,
+            }
+    except Exception:
+        pass
+    return {"apps": list(apps.values())}
+
+
+def snap_find(q):
+    out = []
+    d = snapd_get("/v2/find?" + urllib.parse.urlencode({"q": q}))
+    for s in d.get("result", [])[:40]:
+        nm = s.get("name")
+        if not nm:
+            continue
+        media = s.get("media", []) or []
+        icon = next((m.get("url") for m in media if m.get("type") == "icon"), "")
+        shots = [m.get("url") for m in media if m.get("type") == "screenshot"]
+        out.append({
+            "key": "snap:" + nm, "backend": "snap", "id": nm, "pkgid": nm,
+            "name": s.get("title") or nm, "summary": s.get("summary") or "",
+            "desc": s.get("description") or "", "icon": icon, "icon_local": "",
+            "cats": [], "top": "Utility", "rating": 0, "rating_n": 0,
+            "installed": (s.get("status") == "installed"), "ver": s.get("version", ""),
+            "size": s.get("download-size", 0) or 0, "screens": shots, "releases": [],
+            "license": s.get("license", "") or "",
+            "developer": (s.get("publisher", {}) or {}).get("display-name", "") or "",
+            "homepage": s.get("website", "") or "", "confinement": s.get("confinement", ""),
+            "channels": sorted((s.get("channels", {}) or {}).keys()), "ours": False,
+        })
+    return out
+
+
+def reviews(appid, ver):
+    try:
+        uh = hashlib.sha1(("skillfishos" + os.uname().nodename).encode()).hexdigest()
+        aid = appid if ("." in appid) else appid + ".desktop"
+        body = json.dumps({"user_hash": uh, "app_id": aid, "locale": "it", "distro": "SkillFishOS",
+                           "version": ver or "", "limit": 8}).encode()
+        req = urllib.request.Request(ODRS + "/fetch", data=body, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = json.loads(r.read().decode())
+        return [{"rating": rv.get("rating", 0), "summary": rv.get("summary", ""),
+                 "description": rv.get("description", ""), "user": rv.get("user_display") or "anon"}
+                for rv in (raw or [])[:8]]
+    except Exception:
+        return []
+
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
+    if cmd == "build":
+        print(json.dumps(build()))
+    elif cmd == "snap-find":
+        print(json.dumps(snap_find(sys.argv[2] if len(sys.argv) > 2 else "")))
+    elif cmd == "reviews":
+        print(json.dumps(reviews(sys.argv[2] if len(sys.argv) > 2 else "",
+                                 sys.argv[3] if len(sys.argv) > 3 else "")))
+    else:
+        print(json.dumps({"error": "unknown command"}))
+
+
+if __name__ == "__main__":
+    main()

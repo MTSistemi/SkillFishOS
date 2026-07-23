@@ -1,0 +1,35 @@
+#!/bin/bash
+# SkillFishOS sensor value helper. Single key: `skillfish-hud-val <key>`.
+# Batch: `skillfish-hud-val all` prints "key value" lines for every metric in ONE
+# process (used by the Monitor app and the telemetry web dashboard to avoid a
+# subprocess fan-out per sample). CPU load% is stateful (delta) → computed by callers.
+GHW=$(echo /sys/class/drm/card0/device/hwmon/hwmon*)
+hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && { echo "$h"; return; }; done; }
+# locale: it* -> Italian labels, anything else -> English
+_loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-$LANGUAGE}}}"; case "$_loc" in it*) IT=1;; *) IT=0;; esac
+
+get(){
+  case "$1" in
+    lbl_use)  [ "$IT" = 1 ] && echo "uso"   || echo "use"  ;;
+    lbl_disk) [ "$IT" = 1 ] && echo "DISCO" || echo "DISK" ;;
+    cpu_temp) awk '{printf "%.0f",$1/1000}' "$(hw k10temp)/temp1_input" 2>/dev/null ;;
+    gpu_freq) awk '/\*/{print $2}' /sys/class/drm/card0/device/pp_dpm_sclk 2>/dev/null ;;
+    gpu_util) cat /run/skillfish-gpu-util 2>/dev/null || echo 0 ;;
+    gpu_temp) awk '{printf "%.0f",$1/1000}' "$GHW/temp1_input" 2>/dev/null ;;
+    gpu_power) awk '{printf "%.0f",$1/1000000}' "$GHW/power1_average" 2>/dev/null ;;
+    gpu_mv) cat "$GHW/in0_input" 2>/dev/null ;;
+    cpu_mv) cat "$GHW/in1_input" 2>/dev/null ;;   # vddnb = APU SoC/uncore (CPU-side) rail; nct6686 Vcore reads 0 on the BC-250
+    vram) awk '{printf "%.0f",$1/1048576}' /sys/class/drm/card0/device/mem_info_vram_used 2>/dev/null ;;
+    fan) cat "$(hw nct6686)/fan2_input" 2>/dev/null ;;
+    cu) cat /run/skillfish/cu_active 2>/dev/null || echo "?" ;;
+    cpu_mhz) awk -F: '/cpu MHz/{printf "%d",$2; exit}' /proc/cpuinfo 2>/dev/null ;;
+  esac
+}
+
+if [ "$1" = "all" ]; then
+  for k in cpu_temp gpu_temp cpu_mhz gpu_freq gpu_mv cpu_mv gpu_power fan vram gpu_util cu; do
+    printf '%s %s\n' "$k" "$(get "$k")"
+  done
+  exit 0
+fi
+get "$1"

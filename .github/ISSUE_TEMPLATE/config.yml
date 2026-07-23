@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/MTSistemi/SkillFishOS/security/advisories/new
+    about: "Please report security issues privately — see SECURITY.md. Do not open a public issue."
+  - name: 💬 Questions & discussion
+    url: https://sourceforge.net/p/skillfishos/discussion/
+    about: General questions, help and ideas.
+  - name: 🌐 SkillFishOS website & docs
+    url: https://skillfishos.com
+    about: Documentation, benchmarks and downloads.
