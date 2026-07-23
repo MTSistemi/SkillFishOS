@@ -170,6 +170,22 @@ MD5sum: 921ed71aeeeae9344859210a86be498d
 Description: SkillFishOS Monitor - live temperature/frequency/voltage/fan charts
 Homepage: https://skillfishos.com
 
+Package: skillfish-theme
+Version: 26.06.1
+Architecture: all
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: hicolor-icon-theme
+Homepage: https://skillfishos.com
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-theme/skillfish-theme_26.06.1_all.deb
+Size: 11058096
+SHA256: 81e819613046ac6168b16f66fa926163ef0915003d648572b23fecce195a4408
+SHA1: 7c24167084c3e511c7b02e75384c6eef750d5e22
+MD5sum: 39c44744edb404bb1a1fa7847dc55415
+Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours
+ built from git by CI.
+
 Package: skillfish-tuner
 Maintainer: SkillFishOS <info@skillfishos.com>
 Architecture: all
