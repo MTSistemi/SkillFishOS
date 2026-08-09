@@ -4,7 +4,20 @@ All notable changes to SkillFishOS. Dates are ISO-8601.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+- **All 8 CPU cores unlocked** (`skillfish-base`) — the BC-250 ships as 6c/12t because two of its eight Zen 2 cores are switched off by product configuration, not by defect (the presence mask reads a symmetric `0x77` on virtually every board). `skillfish-core-unlock` writes that mask through the SMU at boot and warm-reboots once, bringing the board up as **8c/16t**. No modified BIOS required. It refuses any non-`0x77` mask — a different pattern suggests a real harvest of defective cores — and only reboots after confirming the write, so it can never loop. Verified on hardware: 16 threads, zero MCEs under stress. Credit to [rw-r-r-0644/bc250-core-unlock](https://github.com/rw-r-r-0644/bc250-core-unlock).
+- **CPU frequency scaling** (`skillfish-acpi-pstates`, in `skillfish-base`) — the board's firmware exposes no `_PSS` objects, so Linux had no cpufreq interface at all. An SSDT injected through GRUB's early initrd gives `acpi-cpufreq` with 8 P-states (800–3200 MHz), the usual governors including `schedutil`, and working C-states. Idle drops from ~1400 MHz to 800 MHz while the peak is unchanged (~3500 with the SMU overclock — the table's frequency labels don't cap the hardware). Only enables itself on an actual BC-250, and `skillfish-acpi-pstates disable` reverses it.
+- **Unsloth Studio as the AI engine** (`scripts/install-unsloth.sh`) — runs GGUF models through llama.cpp's **Vulkan** backend, the only GPU-accelerated path on gfx1013, and serves both a chat UI and an OpenAI-compatible API from one native service. Measured on the board with Qwen3-1.7B Q4_K_M: **210 tok/s** generation and 157 tok/s prompt, against 41 and 9 CPU-only. The dashboard detects the engine and proxies its UI behind the PAM login. The Ollama + Open WebUI stack keeps working where it's already installed.
+- **Efficient tuner preset** (1850 MHz @ 950 mV) — with all 40 CUs enabled, asking for 2200 MHz buys ~3% frames for 10 °C and 18 W, and the clock throttles back to ~1859 MHz anyway. 1850 holds, runs 10 °C cooler and is now the first preset offered.
+- **Polish and Ukrainian** on the website — full UI translation under `/pl` and `/uk`; the documentation stays in English for now.
+- `scripts/install-minecraft.sh` and `scripts/install-minecraft-mods.sh` — official Mojang launcher (the .deb needs repackaging: it declares dependency names that no longer exist on sid) plus Fabric with Sodium, Lithium and FerriteCore.
+
+### Fixed
+- **Desktop HUD after the core unlock** — `amdgpu` reports a bogus GPU clock once the cores are unlocked (~100 MHz at idle instead of 350). `skillfish-gpu-freq-sampler` reads the SMU's own getter, which stays correct, and the HUD now shows 16 CPU bars instead of 12. Existing per-user HUD configs are migrated in place, and only when they still match what we shipped.
+- **Blank icons** (`skillfish-theme` 26.06.1) — 93 icons in the steampunk theme referenced gradient ids belonging to a *different* icon. Older qtsvg tolerated the dangling reference; since 6.10.2-9 Qt refuses to paint those elements, so they rendered as empty frames. Also, the theme is now a package at all: it used to live only in the ISO filesystem, so fixes could never reach installed systems.
+
+### Changed
+- **Kernel 7.1.7** — the 7.0 series is end of life. Same tuning and the same three editions; the BC-250 patches apply cleanly. Performance measured within ±2% of 7.0.11 on both CPU and Vulkan workloads: this is a maintenance move, not a speed one.
 
 ## [26.06.2 "Aetherium" — media respin] — 2026-07-11
 

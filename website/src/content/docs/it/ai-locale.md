@@ -1,6 +1,6 @@
 ---
 title: AI in locale
-description: Lo stack Ollama + OpenWebUI accelerato in Vulkan sulla GPU della BC-250.
+description: Il motore AI locale accelerato in Vulkan sulla GPU della BC-250 (Unsloth Studio; Ollama + OpenWebUI sulle installazioni precedenti).
 group: Uso
 order: 2
 ---
@@ -17,7 +17,8 @@ Lo stack AMD "ufficiale" per il calcolo è **ROCm**, ma **non supporta la `gfx10
 
 | Componente | Ruolo |
 |---|---|
-| **[Ollama](https://ollama.com/)** (backend Vulkan) | esegue i modelli LLM sulla GPU |
+| **[Unsloth Studio](https://unsloth.ai/)** (backend Vulkan) | esegue i modelli GGUF sulla GPU e offre chat + API compatibile OpenAI |
+| **[Ollama](https://ollama.com/)** (backend Vulkan) | motore delle installazioni precedenti, tuttora supportato |
 | **[OpenWebUI](https://openwebui.com/)** | interfaccia web di chat (con ricerca web) |
 | **[Dockge](https://github.com/louislam/dockge)** | gestione degli stack Docker via web |
 

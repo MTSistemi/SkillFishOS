@@ -11,7 +11,7 @@ La **AMD BC-250** è una scheda compatta basata su un'**APU semi-custom** chiama
 
 | Componente | Dettaglio |
 |---|---|
-| **CPU** | 6 core / 12 thread **Zen 2** ("Oberon"), fino a **3.9 GHz** (Turbo), 4.0 GHz validati |
+| **CPU** | 8 core / 16 thread **Zen 2** ("Oberon") — la scheda ne espone 6, SkillFishOS sblocca gli altri due via SMU — fino a **3.9 GHz** (Turbo), 4.0 GHz validati |
 | **GPU** | **RDNA 2** "Cyan Skillfish" (`gfx1013`), fino a **40 Compute Unit** sbloccabili |
 | **Memoria** | **16 GB GDDR6** condivisa (UMA) tra CPU e GPU |
 | **Potenza** | ~**11.3 TFLOPS** FP32 con 40 CU a 2000 MHz (misurato con vkpeak) |

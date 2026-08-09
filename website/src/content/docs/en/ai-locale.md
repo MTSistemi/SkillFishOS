@@ -1,6 +1,6 @@
 ---
 title: On-device AI
-description: The Ollama + OpenWebUI stack accelerated in Vulkan on the BC-250's GPU.
+description: The on-device AI engine accelerated in Vulkan on the BC-250's GPU (Unsloth Studio; Ollama + Open WebUI on earlier installs).
 group: Usage
 order: 2
 ---
