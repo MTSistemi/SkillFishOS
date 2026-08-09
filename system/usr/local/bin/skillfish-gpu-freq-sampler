@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+# SkillFishOS — GPU gfxclk sampler.
+#
+# After the BC-250 8-core unlock, amdgpu's derived GPU frequency (pp_dpm_sclk and
+# gpu_metrics current_gfxclk) reads bogus (~100 MHz at idle instead of ~350). The
+# SMU's own gfxclk getter stays correct, so this samples it directly (queue 0:
+# msg 0x0E "request refresh" + 0x0F "read", result in the arg register) every 2 s
+# and publishes MHz to /run/skillfish-gpu-freq. The HUD/Monitor read that file.
+#
+# Concurrency: the GPU governor also touches the SMU. Reads are short and low-rate,
+# and every sample is sanity-checked (50..2500 MHz) — a rare collision just keeps the
+# previous value, it never publishes garbage and never blocks the governor.
+#
+# Register/primitive from bc250_smu (queue-0 mailbox) + rw-r-r-0644/bc250-core-unlock.
+import os, struct, time, sys
+
+CFG = "/sys/bus/pci/devices/0000:00:00.0/config"
+Q0_CMD, Q0_RSP, Q0_ARG = 0x03B10A08, 0x03B10A68, 0x03B10A48
+DONE = {0x01, 0xFF, 0xFE, 0xFD, 0xFC}
+OK = 0x01
+OUT = "/run/skillfish-gpu-freq"
+
+if os.geteuid() != 0:
+    sys.exit("root required")
+try:
+    fd = os.open(CFG, os.O_RDWR)
+except FileNotFoundError:
+    sys.exit(0)  # not a BC-250
+
+
+def rd(reg):
+    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+    return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+
+
+def wr(reg, val):
+    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+    os.pwrite(fd, struct.pack("<I", val), 0xBC)
+
+
+def msg(m, arg=0, budget=0.3):
+    end = time.monotonic() + budget
+    while rd(Q0_RSP) not in DONE and time.monotonic() < end:
+        time.sleep(0.001)
+    wr(Q0_RSP, 0)
+    wr(Q0_ARG, arg)
+    wr(Q0_ARG + 4, 0)
+    wr(Q0_CMD, m)
+    end = time.monotonic() + budget
+    while time.monotonic() < end:
+        st = rd(Q0_RSP)
+        if st in DONE:
+            return st
+        time.sleep(0.001)
+    return None
+
+
+def publish(v):
+    try:
+        tmp = OUT + ".tmp"
+        with open(tmp, "w") as f:
+            f.write("%d\n" % v)
+        os.replace(tmp, OUT)
+    except OSError:
+        pass
+
+
+last = 350
+publish(last)
+while True:
+    try:
+        msg(0x0E)               # request a fresh gfxclk sample
+        if msg(0x0F) == OK:     # query it
+            v = rd(Q0_ARG)
+            if 50 <= v <= 2500:
+                last = v
+    except OSError:
+        pass
+    publish(last)
+    time.sleep(2)
