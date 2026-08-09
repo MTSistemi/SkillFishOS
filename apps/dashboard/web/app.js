@@ -268,18 +268,32 @@ const RENDER = {
     card.innerHTML = "<h3>🧠 AI / OpenWebUI</h3><div id=\"ai\">…</div>";
     const refresh = async () => { let s; try { s = await (await api("/api/ai")).json(); } catch (e) { return; }
       const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${it ? "nessun modello installato" : "no models installed"}</span>`;
-      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + T("ai_engine") + "</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>OpenWebUI</span><span>' + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div></div>" +
+      // Unsloth serves its own UI and manages models there; the legacy Ollama stack
+      // exposes them through the dashboard, so only that one gets the model list/pull.
+      const uns = s.engine === "unsloth";
+      const engName = uns ? "Unsloth Studio" : "Ollama";
+      const uiName = uns ? "Unsloth Studio" : "OpenWebUI";
+      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (it ? "Motore" : "Engine") + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
+        (uns ? '<div class="r"><span>' + (it ? "Accelerazione" : "Acceleration") + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
         '<div class="brow" style="margin-top:10px">' + (s.running ? '<button class="dbtn danger" id="aistop">' + T("ai_stop") + "</button>" : '<button class="dbtn" id="aistart">' + T("ai_start") + "</button>") +
         '<button class="dbtn" id="aichat"' + (s.running ? "" : " disabled") + ">💬 " + (it ? "Chat" : "Chat") + "</button>" +
-        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + T("ai_open") + "</button></div>" +
-        '<div class="gl" style="margin-top:12px">' + (it ? "Modelli installati" : "Installed models") + '</div><div style="margin-top:4px">' + models + "</div>" +
-        '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (it ? "scarica modello (es. qwen3:14b)" : "pull model (e.g. qwen3:14b)") + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (it ? "Scarica" : "Pull") + "</button></div>" +
+        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (it ? "Apri " : "Open ") + uiName + " ↗</button></div>" +
+        (uns ? ""
+             : '<div class="gl" style="margin-top:12px">' + (it ? "Modelli installati" : "Installed models") + '</div><div style="margin-top:4px">' + models + "</div>" +
+               '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (it ? "scarica modello (es. qwen3:14b)" : "pull model (e.g. qwen3:14b)") + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (it ? "Scarica" : "Pull") + "</button></div>") +
         '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + (it ? "Ottimizza per AI" : "Optimize for AI") + "</button></div><div id=\"aitune\"></div>" +
-        '<div class="stub" style="margin-top:8px">' + T("ai_hint") + "</div>";
+        '<div class="stub" style="margin-top:8px">' + (uns ? (it ? "I modelli si scaricano dentro Unsloth Studio. Gira sulla GPU: spegnilo quando giochi."
+                                                                : "Models are downloaded inside Unsloth Studio. It runs on the GPU: turn it off when gaming.")
+                                                          : T("ai_hint")) + "</div>";
       if ($("#aistart", card)) $("#aistart", card).onclick = async () => { await action("/api/ai/start", {}, T("ai_starting")); setTimeout(refresh, 4000); };
       if ($("#aistop", card)) $("#aistop", card).onclick = async () => { await action("/api/ai/stop", {}, T("ai_stopping")); setTimeout(refresh, 2000); };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
-      if ($("#aiweb", card)) $("#aiweb", card).onclick = () => window.open("http://" + location.hostname + ":" + s.webui_port, "_blank");
+      if ($("#aiweb", card)) $("#aiweb", card).onclick = () => {
+        // Unsloth listens on loopback only, so it is reached through the dashboard's
+        // authenticated reverse proxy; OpenWebUI keeps its own LAN port.
+        if (uns) openFrame("Unsloth Studio", "/unsloth/");
+        else window.open("http://" + location.hostname + ":" + s.webui_port, "_blank");
+      };
       if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, it ? "Download avviato…" : "Download started…"); $("#aipm", card).value = ""; } };
       if ($("#aitunebtn", card)) $("#aitunebtn", card).onclick = () => aiTune(card, it);
     };
