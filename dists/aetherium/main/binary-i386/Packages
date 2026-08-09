@@ -17,18 +17,18 @@ Description: SkillFish AI - on-device LLM control panel
 Homepage: https://skillfishos.com
 
 Package: skillfish-base
-Version: 26.08
+Version: 26.08.1
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: systemd, libnotify-bin, python3
+Depends: systemd, libnotify-bin, python3, cpio
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08_all.deb
-Size: 6428
-SHA256: 470cbe091174a0f6286928b4c62387782ae99e4df9c5aba916460e2b26e8f45c
-SHA1: 37e8376d1eb0a2dfbb61a17fa25af38ee4f73ca6
-MD5sum: eecd45f5a2e0776293fe3435cfde5360
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.1_all.deb
+Size: 9608
+SHA256: bd79672373433cddd6892fb1ba3df8cfcb64abfb58def389502ea3f195f47aac
+SHA1: c948071a1202b73b0431ff972d48be247d5d165b
+MD5sum: fd057ae3373e213a0b35c21be4057098
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  built from git by CI.
 
