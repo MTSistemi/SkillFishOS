@@ -90,9 +90,13 @@ put $P 0644 system/etc/modules-load.d/skillfish-watchdog.conf         etc/module
 put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/systemd/system.conf.d/10-skillfish-watchdog.conf
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
-ctrl $P "systemd, libnotify-bin" "SkillFishOS base - hardware watchdog + freeze detector"
-# base needs its own postinst: enable the watchdog and the freeze check
-printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-freeze-check.service || true\n  modprobe sp5100_tco 2>/dev/null || true\n  modprobe nct6683 force=1 2>/dev/null || true\n  systemctl daemon-reexec || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
+put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
+ctrl $P "systemd, libnotify-bin, python3" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
+# base needs its own postinst: enable the watchdog and the freeze check.
+# NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
+# it flips the mask, which must not happen during apt. It fires on the next boot.
+printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-freeze-check.service || true\n  systemctl enable skillfish-core-unlock.service || true\n  modprobe sp5100_tco 2>/dev/null || true\n  modprobe nct6683 force=1 2>/dev/null || true\n  systemctl daemon-reexec || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-console
@@ -171,6 +175,7 @@ check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub      
 check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-manager skillfish
 check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel       skillfish
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"

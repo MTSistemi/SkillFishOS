@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+# SkillFishOS — enable the two disabled BC-250 CPU cores (6c/12t -> 8c/16t) at boot.
+#
+# Software method, no modified BIOS: writes the SMU core-presence mask (SMN 0x5A870)
+# from 0x77 to 0xFF via queue-3 message 0x98 (an SMU-privileged SMN write), then warm-
+# reboots once. The mask survives a warm reset, so on the second boot AGESA/PSP
+# enumerate all 8 cores. A cold power-off reverts the mask, which is why this runs on
+# every boot.
+#
+# Loop-safe & idempotent:
+#   - mask already 0xFF  -> we're on the warm reboot after the unlock: do nothing.
+#   - mask != 0x77       -> non-standard harvest, cores may be genuinely defective: skip.
+#   - reboots ONLY after confirming the write took, so a failed write can never loop.
+#
+# Credit: register/primitive from github.com/rw-r-r-0644/bc250-core-unlock
+import os, struct, sys, time
+
+MASK_REG = 0x5A870
+MSG_WRITE = 0x98
+Q3_CMD, Q3_RSP, Q3_ARG = 0x03B10A20, 0x03B10A80, 0x03B10A88
+DONE = {0x01, 0xFF, 0xFE, 0xFD, 0xFC}
+CFG = "/sys/bus/pci/devices/0000:00:00.0/config"
+
+if os.geteuid() != 0:
+    sys.exit("root required")
+if not os.path.exists(CFG):
+    sys.exit(0)  # not a BC-250 / no PCI root complex
+
+fd = os.open(CFG, os.O_RDWR)
+
+
+def rd(reg):
+    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+    return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+
+
+def wr(reg, val):
+    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+    os.pwrite(fd, struct.pack("<I", val), 0xBC)
+
+
+def send(msg, arg, budget=5.0):
+    end = time.monotonic() + budget
+    while rd(Q3_RSP) not in DONE and time.monotonic() < end:
+        time.sleep(0.002)
+    wr(Q3_RSP, 0)
+    wr(Q3_ARG, arg)
+    wr(Q3_ARG + 4, 0)
+    wr(Q3_CMD, msg)
+    end = time.monotonic() + budget
+    while time.monotonic() < end:
+        st = rd(Q3_RSP)
+        if st in DONE:
+            return st
+        time.sleep(0.002)
+    return None
+
+
+mask = rd(MASK_REG) & 0xFF
+if mask == 0xFF:
+    sys.exit(0)  # already unlocked (warm reboot) -> keep booting with 8 cores
+if mask != 0x77:
+    sys.stderr.write(
+        "skillfish-core-unlock: presence mask 0x%02X != 0x77 — skipping "
+        "(non-standard harvest, cores may be defective)\n" % mask)
+    sys.exit(0)
+
+# Early boot: the GPU governor normally hasn't grabbed the SMU yet, but stop it just
+# in case so the mailbox is free.
+os.system("systemctl stop cyan-skillfish-governor.service >/dev/null 2>&1")
+
+st = send(MSG_WRITE, MASK_REG)
+if st != 0x01 or (rd(MASK_REG) & 0xFF) != 0xFF:
+    sys.stderr.write("skillfish-core-unlock: SMU write failed (st=%s) — NOT rebooting\n" % st)
+    os.system("systemctl start cyan-skillfish-governor.service >/dev/null 2>&1")
+    sys.exit(1)  # write did not take -> no reboot, no loop
+
+os.close(fd)
+sys.stderr.write("skillfish-core-unlock: mask set to 0xFF, warm-rebooting for 8c/16t\n")
+os.system("systemctl reboot")
