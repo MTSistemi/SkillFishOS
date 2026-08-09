@@ -1,6 +1,30 @@
 {
   "presets": [
     {
+      "name": "Efficiente",
+      "name_it": "Efficiente",
+      "name_en": "Efficient",
+      "desc": "Il punto dolce con 40 CU: quasi gli stessi FPS di 2200 MHz ma 10 °C e 18 W in meno. Misurato: a 2200 la GPU throttla comunque a ~1859 MHz.",
+      "desc_it": "Il punto dolce con 40 CU: quasi gli stessi FPS di 2200 MHz ma 10 °C e 18 W in meno. Misurato: a 2200 la GPU throttla comunque a ~1859 MHz.",
+      "desc_en": "The sweet spot with 40 CUs: nearly the same FPS as 2200 MHz for 10 °C and 18 W less. Measured: at 2200 the GPU throttles back to ~1859 MHz anyway.",
+      "cpu": {
+        "frequency": 3500,
+        "scale": 0,
+        "max_temperature": 85
+      },
+      "gpu": {
+        "min_mhz": 350,
+        "min_mv": 700,
+        "max_mhz": 1850,
+        "max_mv": 950
+      },
+      "fan": {
+        "mode": "auto",
+        "pct": 45
+      },
+      "thermal_guard": 85
+    },
+    {
       "name": "Stock",
       "name_it": "Stock",
       "name_en": "Stock",
