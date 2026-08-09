@@ -1,0 +1,14 @@
+[Unit]
+Description=SkillFishOS — GPU gfxclk sampler (SMU) for the HUD after the 8-core unlock
+After=cyan-skillfish-governor.service
+ConditionPathExists=/sys/bus/pci/devices/0000:00:00.0/config
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/skillfish-gpu-freq-sampler
+Restart=on-failure
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
