@@ -95,7 +95,10 @@ put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/system
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
 put $P 0644 system/etc/systemd/system/skillfish-gpu-freq.service      etc/systemd/system/skillfish-gpu-freq.service
 put $P 0644 system/etc/skel/.config/conky/skillfish.conf              etc/skel/.config/conky/skillfish.conf
-ctrl $P "systemd, libnotify-bin, python3" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
+put $P 0755 system/usr/local/bin/skillfish-acpi-pstates               usr/local/bin/skillfish-acpi-pstates
+put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/skillfish/acpi/SSDT-PST.aml
+put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
+ctrl $P "systemd, libnotify-bin, python3, cpio" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
@@ -111,6 +114,11 @@ if [ -d /run/systemd/system ]; then
   modprobe nct6683 force=1 2>/dev/null || true
   systemctl daemon-reexec || true
 fi
+
+# ACPI P-states: the BC-250 firmware exposes no _PSS, so Linux has no cpufreq at all.
+# The helper injects an SSDT via GRUB's early initrd and no-ops on anything that is
+# not a BC-250. It only rewrites the GRUB config — the change lands on next boot.
+/usr/local/bin/skillfish-acpi-pstates enable || true
 
 # HUD migration: the desktop widget was wired for 6c/12t. Now that the 8 cores are
 # unlocked it needs 16 bars. Only the two cpubar rows are rewritten, and only when
@@ -133,7 +141,17 @@ PY
 done
 exit 0
 POSTINST
-chmod 0755 "$OUT/$P/DEBIAN/postinst"
+# On removal the SSDT would vanish while GRUB still referenced it, so undo the
+# bootloader change before the files go away.
+cat > "$OUT/$P/DEBIAN/prerm" <<'PRERM'
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+  [ -x /usr/local/bin/skillfish-acpi-pstates ] && /usr/local/bin/skillfish-acpi-pstates disable || true
+fi
+exit 0
+PRERM
+chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-console
 put $P 0755 system/usr/local/bin/skillfish-gaming-mode usr/local/bin/skillfish-gaming-mode

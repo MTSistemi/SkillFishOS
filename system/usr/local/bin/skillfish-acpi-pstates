@@ -1,0 +1,74 @@
+#!/bin/sh
+# SkillFishOS — enable/disable ACPI CPU frequency scaling on the BC-250.
+#
+# The board's firmware ships no _PSS objects, so Linux gets no cpufreq interface at
+# all: the CPU runs at whatever the hardware picks and the OS has no say. Injecting
+# an SSDT with P-states through GRUB's early initrd gives us acpi-cpufreq with 8
+# steps (800–3200 MHz) and the usual governors, schedutil included.
+#
+# The frequencies in the table are labels — the real clock comes from the hardware
+# P-state registers, so an SMU overclock above 3200 is NOT capped by this (measured:
+# the board still peaks at ~3500 with the table loaded). What it buys is idle: the
+# cores drop to 800 MHz instead of sitting near 1400, which frees thermal budget.
+#
+# Table from mendesrr/bc250-acpi-fix-updated-8c (covers P000..P00F = 16 threads).
+# Only SSDT-PST is installed: the companion SSDT-CST targets \_PR.C000..C009, which
+# do not exist in this DSDT, so it only produced ACPI BIOS errors while the kernel's
+# own C-states worked anyway.
+#
+#   skillfish-acpi-pstates enable   (default)
+#   skillfish-acpi-pstates disable
+#   skillfish-acpi-pstates status
+set -e
+AML=/usr/share/skillfish/acpi/SSDT-PST.aml
+CPIO=/boot/SkillFishOS-acpi.cpio
+GRUBDEF=/etc/default/grub
+ACTION="${1:-enable}"
+
+need_root() { [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }; }
+
+# The table hard-codes this board's P-state ladder and attaches to \_PR.P000..P00F.
+# On any other machine that is at best useless and at worst a conflict with the
+# firmware's own _PSS, so refuse unless we really are on a BC-250.
+is_bc250() { grep -q 'AMD BC-250' /proc/cpuinfo 2>/dev/null; }
+
+case "$ACTION" in
+  status)
+    if [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
+      echo "cpufreq: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver) / $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
+      echo "P-states: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies 2>/dev/null)"
+    else
+      echo "cpufreq: assente (tabella non attiva o non ancora riavviato)"
+    fi
+    [ -f "$CPIO" ] && echo "tabella installata: $CPIO" || echo "tabella non installata"
+    ;;
+
+  enable)
+    need_root
+    if ! is_bc250 && [ "${2:-}" != "--force" ]; then
+      echo "non è una BC-250: non tocco l'ACPI (usa --force se sai cosa stai facendo)."
+      exit 0
+    fi
+    [ -f "$AML" ] || { echo "manca $AML" >&2; exit 1; }
+    # the kernel looks for the tables at this exact path inside the early cpio
+    tmp=$(mktemp -d)
+    mkdir -p "$tmp/kernel/firmware/acpi"
+    cp "$AML" "$tmp/kernel/firmware/acpi/"
+    (cd "$tmp" && find kernel | cpio -H newc --create --quiet) > "$CPIO"
+    rm -rf "$tmp"
+    sed -i '/^GRUB_EARLY_INITRD_LINUX_CUSTOM=/d' "$GRUBDEF"
+    echo "GRUB_EARLY_INITRD_LINUX_CUSTOM=\"$(basename "$CPIO")\"" >> "$GRUBDEF"
+    update-grub >/dev/null 2>&1 || update-grub2 >/dev/null 2>&1 || true
+    echo "P-states ACPI attivati — hanno effetto al prossimo riavvio."
+    ;;
+
+  disable)
+    need_root
+    sed -i '/^GRUB_EARLY_INITRD_LINUX_CUSTOM=/d' "$GRUBDEF"
+    rm -f "$CPIO"
+    update-grub >/dev/null 2>&1 || update-grub2 >/dev/null 2>&1 || true
+    echo "P-states ACPI disattivati — al prossimo riavvio si torna al comportamento del firmware."
+    ;;
+
+  *) echo "uso: $0 [enable|disable|status]" >&2; exit 2 ;;
+esac
