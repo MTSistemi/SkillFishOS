@@ -1,0 +1,16 @@
+[Unit]
+Description=SkillFishOS — unlock the 2 disabled BC-250 CPU cores (8c/16t)
+Documentation=https://github.com/rw-r-r-0644/bc250-core-unlock
+DefaultDependencies=no
+After=sysinit.target
+Before=basic.target cyan-skillfish-governor.service
+Conflicts=shutdown.target
+ConditionPathExists=/sys/bus/pci/devices/0000:00:00.0/config
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-core-unlock
+
+[Install]
+WantedBy=sysinit.target
