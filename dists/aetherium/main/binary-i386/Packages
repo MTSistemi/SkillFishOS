@@ -17,23 +17,20 @@ Description: SkillFish AI - on-device LLM control panel
 Homepage: https://skillfishos.com
 
 Package: skillfish-base
-Version: 26.06
+Version: 26.08
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: systemd, libnotify-bin
+Depends: systemd, libnotify-bin, python3
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.06_all.deb
-Size: 2888
-SHA256: ca58d2e4b769682f433465024596f3cd031bcd0dbc7c047544f84e902758d956
-SHA1: 08f68d97b816f094db6ad1934a5281b8cbcf28e2
-MD5sum: 692055f4ba5507731e6f79bc8e131858
-Description: SkillFishOS base - hardware watchdog + freeze detector
- Enables the AMD SP5100 hardware watchdog (the board reboots itself on a hard
- hang instead of needing a physical power-cycle) and detects an unclean
- previous shutdown at boot, logging it and notifying the desktop user that
- their overclock/undervolt profile may be unstable.
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08_all.deb
+Size: 6428
+SHA256: 470cbe091174a0f6286928b4c62387782ae99e4df9c5aba916460e2b26e8f45c
+SHA1: 37e8376d1eb0a2dfbb61a17fa25af38ee4f73ca6
+MD5sum: eecd45f5a2e0776293fe3435cfde5360
+Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
+ built from git by CI.
 
 Package: skillfish-console
 Version: 26.06
