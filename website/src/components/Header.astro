@@ -1,5 +1,5 @@
 ---
-import { t, localePath, SITE, type Lang } from '../i18n';
+import { t, localePath, languages, SITE, type Lang } from '../i18n';
 interface Props { lang: Lang; page?: string; }
 const { lang, page = '/' } = Astro.props;
 const home = localePath('/', lang);
@@ -21,8 +21,10 @@ const active = (p: string) => (page === p || (p === '/docs' && page.startsWith('
       <a href={SITE.github} target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
     <div class="lang">
-      <a class={`lang-btn ${lang === 'it' ? 'active' : ''}`} href={localePath(page, 'it')}>IT</a>
-      <a class={`lang-btn ${lang === 'en' ? 'active' : ''}`} href={localePath(page, 'en')}>EN</a>
+      {(['it', 'en', 'pl', 'uk'] as const).map((l) => (
+        <a class={`lang-btn ${lang === l ? 'active' : ''}`} href={localePath(page, l)}
+           hreflang={l} title={languages[l]}>{l.toUpperCase()}</a>
+      ))}
     </div>
   </div>
 </header>

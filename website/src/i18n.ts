@@ -2,9 +2,18 @@
 // Strings keep the original {it, en} shape ported from the legacy landing.
 // Values may contain inline HTML → render with `set:html`.
 
-export type Lang = 'it' | 'en';
+import { pl } from './i18n.pl';
+import { uk } from './i18n.uk';
+
+// pl/uk arrived after it/en and live in their own files as flat key→string maps.
+// Anything they don't translate falls back to English, so a partial dictionary
+// degrades to English instead of showing a raw key.
+export type Lang = 'it' | 'en' | 'pl' | 'uk';
 export const defaultLang: Lang = 'it';
-export const languages: Record<Lang, string> = { it: 'Italiano', en: 'English' };
+export const languages: Record<Lang, string> = {
+  it: 'Italiano', en: 'English', pl: 'Polski', uk: 'Українська',
+};
+const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk };
 
 // Centralized site config (download URL finalized later — see DESIGN notes).
 export const SITE = {
@@ -332,14 +341,17 @@ export const strings: Record<string, Entry> = {
 };
 
 export function t(key: string, lang: Lang): string {
+  const ex = extra[lang];
+  if (ex && ex[key] !== undefined) return ex[key];
   const e = strings[key];
   if (!e) return key;
-  return e[lang] ?? e[defaultLang];
+  // pl/uk are not in the it/en table: fall back to English, then Italian.
+  return (e as Record<string, string>)[lang] ?? e.en ?? e[defaultLang];
 }
 
-/** Locale-aware path helper: prefixes EN routes with /en. */
+/** Locale-aware path helper: non-default locales live under /<lang>. */
 export function localePath(path: string, lang: Lang): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
   if (lang === defaultLang) return clean;
-  return `/en${clean === '/' ? '' : clean}`;
+  return `/${lang}${clean === '/' ? '' : clean}`;
 }

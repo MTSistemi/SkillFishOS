@@ -15,16 +15,19 @@ interface Props {
 const { lang, entries, current, headings } = Astro.props;
 
 // Group display order per language (group names come localized from frontmatter).
-const groupOrder: Record<Lang, string[]> = {
+// pl/uk read the English docs, so they use the English group names for ordering.
+const groupOrder: Partial<Record<Lang, string[]>> = {
   it: ['Introduzione', 'Installazione', 'Sistema', 'Uso', 'Riferimenti'],
   en: ['Introduction', 'Installation', 'System', 'Usage', 'Reference'],
 };
-const ui = {
+const ui: Partial<Record<Lang, { onThisPage: string; prev: string; next: string }>> = {
   it: { onThisPage: 'In questa pagina', prev: 'Precedente', next: 'Successivo' },
   en: { onThisPage: 'On this page', prev: 'Previous', next: 'Next' },
+  pl: { onThisPage: 'Na tej stronie', prev: 'Poprzednia', next: 'Następna' },
+  uk: { onThisPage: 'На цій сторінці', prev: 'Попередня', next: 'Наступна' },
 };
-const u = ui[lang];
-const order = groupOrder[lang];
+const u = ui[lang] ?? ui.en!;
+const order = groupOrder[lang] ?? groupOrder.en!;
 const gi = (g: string) => {
   const i = order.indexOf(g);
   return i === -1 ? 999 : i;
