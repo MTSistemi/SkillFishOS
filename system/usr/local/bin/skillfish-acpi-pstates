@@ -11,16 +11,18 @@
 # the board still peaks at ~3500 with the table loaded). What it buys is idle: the
 # cores drop to 800 MHz instead of sitting near 1400, which frees thermal budget.
 #
-# Table from mendesrr/bc250-acpi-fix-updated-8c (covers P000..P00F = 16 threads).
-# Only SSDT-PST is installed: the companion SSDT-CST targets \_PR.C000..C009, which
-# do not exist in this DSDT, so it only produced ACPI BIOS errors while the kernel's
-# own C-states worked anyway.
+# Tables from mendesrr/bc250-acpi-fix-updated-8c (they cover P000..P00F = 16 threads).
+# Both are installed: SSDT-PST gives the P-states, SSDT-CST the idle C-states — tested
+# without CST and cpuidle came up empty, so it does real work here. The
+# "Could not resolve symbol \_PR.C000" messages in dmesg are NOT from these tables:
+# they still appear with CST removed, so they come from the board's own firmware.
 #
 #   skillfish-acpi-pstates enable   (default)
 #   skillfish-acpi-pstates disable
 #   skillfish-acpi-pstates status
 set -e
-AML=/usr/share/skillfish/acpi/SSDT-PST.aml
+AMLDIR=/usr/share/skillfish/acpi
+AML="$AMLDIR/SSDT-PST.aml"
 CPIO=/boot/SkillFishOS-acpi.cpio
 GRUBDEF=/etc/default/grub
 ACTION="${1:-enable}"
@@ -53,7 +55,7 @@ case "$ACTION" in
     # the kernel looks for the tables at this exact path inside the early cpio
     tmp=$(mktemp -d)
     mkdir -p "$tmp/kernel/firmware/acpi"
-    cp "$AML" "$tmp/kernel/firmware/acpi/"
+    cp "$AMLDIR"/SSDT-*.aml "$tmp/kernel/firmware/acpi/"
     (cd "$tmp" && find kernel | cpio -H newc --create --quiet) > "$CPIO"
     rm -rf "$tmp"
     sed -i '/^GRUB_EARLY_INITRD_LINUX_CUSTOM=/d' "$GRUBDEF"
