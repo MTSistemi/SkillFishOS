@@ -850,10 +850,17 @@ def terminal_stop():
     return {"ok": True}
 
 
-# ---------------- AI / OpenWebUI ----------------
+# ---------------- AI ----------------
+# Two engines are supported. Unsloth Studio is the current one: a native service
+# running GGUF models through llama.cpp's Vulkan backend, which is the only
+# GPU-accelerated path on the BC-250 (gfx1013 has no ROCm). It serves both its own
+# chat UI and an OpenAI-compatible API on one port. The older Ollama + Open WebUI
+# Docker stack is still driven here so existing installs keep working.
 AI_COMPOSE = "/opt/stacks/skillfish-ai/compose.yaml"
 AI_CONTAINER = "skillfish-ollama"
 WEBUI_PORT = 8080
+UNSLOTH_PORT = 8888
+UNSLOTH_SVC = "skillfish-unsloth.service"
 
 
 def _port_open(port):
@@ -861,6 +868,15 @@ def _port_open(port):
         s = socket.create_connection(("127.0.0.1", port), timeout=1); s.close(); return True
     except Exception:
         return False
+
+
+def _unsloth_installed():
+    return os.path.exists("/usr/local/bin/skillfish-unsloth")
+
+
+def ai_engine():
+    """Which engine this box uses: Unsloth when installed, else the legacy stack."""
+    return "unsloth" if _unsloth_installed() else "ollama"
 
 
 def _ai_models():
@@ -873,20 +889,36 @@ def _ai_models():
 
 
 def ai_status():
+    if ai_engine() == "unsloth":
+        running = _port_open(UNSLOTH_PORT)
+        return {"ok": True, "engine": "unsloth", "running": running,
+                "webui": running, "webui_path": "/unsloth",
+                # Unsloth serves models through its own authenticated UI, so the
+                # dashboard does not enumerate them (that would need the user's API key).
+                "models": []}
     r = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", AI_CONTAINER],
                        capture_output=True, text=True)
     running = r.stdout.strip() == "true"
-    return {"ok": True, "running": running, "webui": _port_open(WEBUI_PORT),
+    return {"ok": True, "engine": "ollama", "running": running,
+            "webui": _port_open(WEBUI_PORT), "webui_path": "/webui",
             "models": _ai_models() if running else []}
 
 
 def ai_start():
+    if ai_engine() == "unsloth":
+        subprocess.Popen(["systemctl", "start", UNSLOTH_SVC],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"ok": True}
     subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "up", "-d"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True}
 
 
 def ai_stop():
+    if ai_engine() == "unsloth":
+        subprocess.Popen(["systemctl", "stop", UNSLOTH_SVC],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"ok": True}
     subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "down"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True}
@@ -991,13 +1023,47 @@ def ai_tune_apply(action):
         return {"ok": False, "error": str(e)}
 
 
+def _unsloth_key():
+    """API key for Unsloth's OpenAI-compatible endpoint, if the user configured one.
+
+    Unsloth Studio issues keys from its own UI (it has its own accounts), so we can
+    only use one the user pasted into the dashboard config — we never mint it here.
+    """
+    return (load_cfg().get("unsloth_api_key") or os.environ.get("UNSLOTH_API_KEY") or "").strip()
+
+
 def ai_chat(model, messages):
+    if not isinstance(messages, list):
+        return {"ok": False, "error": "messaggi non validi"}
+
+    if ai_engine() == "unsloth":
+        if not _port_open(UNSLOTH_PORT):
+            return {"ok": False, "error": "Motore AI spento — accendilo dal modulo AI."}
+        key = _unsloth_key()
+        if not key:
+            return {"ok": False, "error": "Unsloth richiede una API key: creala in Unsloth Studio "
+                                          "(pulsante «Apri Unsloth Studio») e incollala in "
+                                          "/etc/skillfish/dashboard.json come \"unsloth_api_key\"."}
+        try:
+            body = {"messages": messages, "stream": False}
+            if model:
+                body["model"] = model
+            req = urllib.request.Request(
+                "http://127.0.0.1:%d/v1/chat/completions" % UNSLOTH_PORT,
+                data=json.dumps(body).encode(),
+                headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
+            out = json.loads(urllib.request.urlopen(req, timeout=300).read().decode())
+            msg = (out.get("choices") or [{}])[0].get("message", {})
+            # reasoning models put the answer in reasoning_content when they run out of budget
+            return {"ok": True, "model": out.get("model", model or ""),
+                    "message": msg.get("content") or msg.get("reasoning_content", "")}
+        except Exception as e:
+            return {"ok": False, "error": "Unsloth: %s" % e}
+
     if not _port_open(11434):
         return {"ok": False, "error": "Motore AI spento — accendilo dal modulo AI."}
     if not model:
         ms = _ai_models(); model = ms[0] if ms else "qwen3:14b"
-    if not isinstance(messages, list):
-        return {"ok": False, "error": "messaggi non validi"}
     try:
         req = urllib.request.Request("http://127.0.0.1:11434/api/chat",
                                      data=json.dumps({"model": model, "messages": messages, "stream": False}).encode(),
@@ -1325,6 +1391,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._proxy(WEBUI_PORT, "/webui")
+        if path == "/unsloth" or path.startswith("/unsloth/"):
+            # Unsloth Studio binds to loopback only; the dashboard is the LAN door and
+            # has already authenticated the user via PAM before we get here.
+            if not self._guard("ai"):
+                return
+            if not _port_open(UNSLOTH_PORT):
+                ai_start()
+            return self._proxy(UNSLOTH_PORT, "/unsloth")
         if path in ("/", "/index.html"):
             return self._serve_file("index.html", "text/html; charset=utf-8")
         if path.startswith("/static/"):
