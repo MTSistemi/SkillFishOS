@@ -11,7 +11,7 @@ The **AMD BC-250** is a compact board based on a **semi-custom APU** codenamed *
 
 | Component | Detail |
 |---|---|
-| **CPU** | 6 cores / 12 threads **Zen 2** ("Oberon"), up to **3.9 GHz** (Turbo), 4.0 GHz validated |
+| **CPU** | 8 cores / 16 threads **Zen 2** (the board exposes 6; SkillFishOS unlocks the other two via the SMU) ("Oberon"), up to **3.9 GHz** (Turbo), 4.0 GHz validated |
 | **GPU** | **RDNA 2** "Cyan Skillfish" (`gfx1013`), up to **40 Compute Units** unlockable |
 | **Memory** | **16 GB GDDR6** shared (UMA) between CPU and GPU |
 | **Compute** | ~**11.3 TFLOPS** FP32 at 40 CU / 2000 MHz (measured with vkpeak) |
