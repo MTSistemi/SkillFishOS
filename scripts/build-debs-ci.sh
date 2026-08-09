@@ -94,11 +94,45 @@ put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/
 put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
 put $P 0644 system/etc/systemd/system/skillfish-gpu-freq.service      etc/systemd/system/skillfish-gpu-freq.service
+put $P 0644 system/etc/skel/.config/conky/skillfish.conf              etc/skel/.config/conky/skillfish.conf
 ctrl $P "systemd, libnotify-bin, python3" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
-printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-freeze-check.service || true\n  systemctl enable skillfish-core-unlock.service || true\n  systemctl enable --now skillfish-gpu-freq.service || true\n  modprobe sp5100_tco 2>/dev/null || true\n  modprobe nct6683 force=1 2>/dev/null || true\n  systemctl daemon-reexec || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload || true
+  systemctl enable --now skillfish-freeze-check.service || true
+  systemctl enable skillfish-core-unlock.service || true
+  systemctl enable --now skillfish-gpu-freq.service || true
+  modprobe sp5100_tco 2>/dev/null || true
+  modprobe nct6683 force=1 2>/dev/null || true
+  systemctl daemon-reexec || true
+fi
+
+# HUD migration: the desktop widget was wired for 6c/12t. Now that the 8 cores are
+# unlocked it needs 16 bars. Only the two cpubar rows are rewritten, and only when
+# they still match what we originally shipped — any other customisation is kept,
+# and a hand-edited HUD is left alone.
+OLD_A='${voffset 3}${color D8A849}${cpubar cpu1 6,16} ${cpubar cpu2 6,16} ${cpubar cpu3 6,16} ${cpubar cpu4 6,16} ${cpubar cpu5 6,16} ${cpubar cpu6 6,16}'
+OLD_B='${voffset 2}${color D8A849}${cpubar cpu7 6,16} ${cpubar cpu8 6,16} ${cpubar cpu9 6,16} ${cpubar cpu10 6,16} ${cpubar cpu11 6,16} ${cpubar cpu12 6,16}'
+NEW_A='${voffset 3}${color D8A849}${cpubar cpu1 6,16} ${cpubar cpu2 6,16} ${cpubar cpu3 6,16} ${cpubar cpu4 6,16} ${cpubar cpu5 6,16} ${cpubar cpu6 6,16} ${cpubar cpu7 6,16} ${cpubar cpu8 6,16}'
+NEW_B='${voffset 2}${color D8A849}${cpubar cpu9 6,16} ${cpubar cpu10 6,16} ${cpubar cpu11 6,16} ${cpubar cpu12 6,16} ${cpubar cpu13 6,16} ${cpubar cpu14 6,16} ${cpubar cpu15 6,16} ${cpubar cpu16 6,16}'
+for cfg in /home/*/.config/conky/skillfish.conf /root/.config/conky/skillfish.conf; do
+  [ -f "$cfg" ] || continue
+  grep -qF "$OLD_B" "$cfg" || continue
+  python3 - "$cfg" "$OLD_A" "$OLD_B" "$NEW_A" "$NEW_B" <<'PY' || true
+import sys
+p, oa, ob, na, nb = sys.argv[1:6]
+t = open(p, encoding='utf-8').read()
+open(p, 'w', encoding='utf-8').write(t.replace(oa, na).replace(ob, nb))
+PY
+  echo "skillfish-base: HUD aggiornato a 16 thread in $cfg"
+done
+exit 0
+POSTINST
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-console
