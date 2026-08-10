@@ -1,0 +1,34 @@
+#!/bin/sh
+# Esce 0 se siamo su una AMD BC-250, 1 altrimenti.
+#
+# Serve come ExecCondition= per i servizi specifici della scheda. systemd
+# tratta un ExecCondition diverso da zero come "salta l'unita'", NON come
+# fallimento: niente stato failed, niente riavvii, niente journal sporco.
+#
+# PERCHE' ESISTE
+# La cyan-skillfish-governor.service non aveva nessuna guardia: su un PC che
+# non e' una BC-250 partiva, non trovava la GPU, moriva e ripartiva ogni 5
+# secondi all'infinito. Misurato in una VM: 231 riavvii in pochi minuti.
+# Su una edizione che si chiama "Generic", pensata per PC qualunque, era il
+# comportamento peggiore possibile - e invisibile, perche' il desktop
+# funziona lo stesso mentre il servizio brucia CPU e riempie il journal.
+#
+# Il riconoscimento guarda il nome del modello in /proc/cpuinfo, che sulla
+# BC-250 e' letteralmente "AMD BC-250", con un secondo controllo sul device
+# id PCI della GPU (0x13fe, "Cyan Skillfish") per i casi in cui il primo non
+# bastasse.
+set -u
+
+if grep -qi 'AMD BC-250' /proc/cpuinfo 2>/dev/null; then
+    exit 0
+fi
+
+for d in /sys/bus/pci/devices/*/device; do
+    [ -r "$d" ] || continue
+    if [ "$(cat "$d" 2>/dev/null)" = "0x13fe" ]; then
+        v="$(dirname "$d")/vendor"
+        [ -r "$v" ] && [ "$(cat "$v" 2>/dev/null)" = "0x1002" ] && exit 0
+    fi
+done
+
+exit 1
