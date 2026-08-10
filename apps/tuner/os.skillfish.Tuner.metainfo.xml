@@ -6,11 +6,14 @@
   <name>SkillFishOS Tuner</name>
   <summary>Overclock, undervolt and tune the AMD BC-250 without a terminal</summary>
   <summary xml:lang="it">Overclock, undervolt e tuning della AMD BC-250 senza terminale</summary>
+  <summary xml:lang="pl">Overclocking, undervolting i tuning AMD BC-250 bez terminala</summary>
   <description>
     <p>The control centre for the AMD BC-250: overclock and undervolt the CPU, drive the GPU safe-point governor, control the fan, resize the shared VRAM, and manage Compute Units live — a grid of CU squares (24/32/40 presets, no reboot) with a CU health test for the silicon lottery.</p>
     <p>Four ready presets (Stock, Performance, Turbo, Crazy), benchmark-and-rollback testing that applies a setting, stresses it and reverts if unstable, and a pop-up live monitor during any test. Bilingual (IT/EN); privileged actions go through a single authenticated helper.</p>
     <p xml:lang="it">Il centro di controllo della AMD BC-250: overclock e undervolt della CPU, governor GPU al safe-point, controllo ventola, ridimensionamento della VRAM condivisa e gestione live delle Compute Unit — una griglia di quadratini CU (preset 24/32/40, senza riavvio) con un test di salute CU per la lotteria del silicio.</p>
+    <p xml:lang="pl">Centrum sterowania dla AMD BC-250: overclocking i undervolting CPU, sterowanie governorem GPU w bezpiecznym punkcie pracy, kontrola wentylatora, zmiana rozmiaru współdzielonego VRAM oraz zarządzanie Compute Units na żywo — siatka kwadratów CU (presety 24/32/40, bez restartu) z testem kondycji CU dla loterii krzemowej.</p>
     <p xml:lang="it">Quattro preset pronti (Stock, Performance, Turbo, Crazy), test con benchmark-e-rollback che applica un'impostazione, la stressa e la ripristina se instabile, e un monitor live durante ogni test. Bilingue (IT/EN); le azioni privilegiate passano da un singolo helper autenticato.</p>
+    <p xml:lang="pl">Cztery gotowe presety (Stock, Performance, Turbo, Crazy), testowanie benchmark-i-rollback, które stosuje ustawienie, obciąża je testem i cofa, jeśli jest niestabilne, oraz podręczny monitor na żywo podczas każdego testu. Wielojęzyczny (IT/EN/PL); uprzywilejowane operacje przechodzą przez jeden uwierzytelniony helper.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.Tuner.desktop</launchable>
   <icon type="stock">skillfishos</icon>
@@ -34,16 +37,19 @@
     <screenshot type="default">
       <caption>Tuner main window</caption>
       <caption xml:lang="it">Finestra principale del Tuner</caption>
+      <caption xml:lang="pl">Główne okno Tunera</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/tuner.jpg</image>
     </screenshot>
     <screenshot>
       <caption>Live Compute Unit grid</caption>
       <caption xml:lang="it">Griglia Compute Unit live</caption>
+      <caption xml:lang="pl">Siatka Compute Unit na żywo</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/tuner-full.png</image>
     </screenshot>
     <screenshot>
       <caption>CU health test</caption>
       <caption xml:lang="it">Test di salute delle CU</caption>
+      <caption xml:lang="pl">Test kondycji CU</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/cu-test.jpg</image>
     </screenshot>
   </screenshots>

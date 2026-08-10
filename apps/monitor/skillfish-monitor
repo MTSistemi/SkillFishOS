@@ -4,7 +4,7 @@
 #   Selectable refresh (0.3/0.5/0.75/1/2 s). Records to a .sfmon file (CSV-backed).
 # Viewer mode: `skillfish-monitor file.sfmon` loads a recording and shows the whole
 #   run with a time scrubber to analyze it second by second.
-# KDE-native PyQt6, brass/steampunk look. Bilingual (IT/EN). Sensors via skillfish-hud-val.
+# KDE-native PyQt6, brass/steampunk look. Trilingual (IT/EN/PL). Sensors via skillfish-hud-val.
 import sys, os, re, math, signal, subprocess, collections, csv, time, datetime, shutil
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont)
@@ -16,12 +16,60 @@ ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 REC_DIR = os.path.expanduser("~/SkillFishOS-benchmarks")
 SFMON_EXT = ".sfmon"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
-         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    "Temperature": "Temperatura",
+    "Load": "Obciążenie",
+    "Frequency": "Częstotliwość",
+    "Power": "Moc",
+    "Voltage": "Napięcie",
+    "Fan": "Wentylator",
+    "SkillFishOS — Telemetry": "SkillFishOS — Telemetria",
+    "◉  TELEMETRY LIVE": "◉  TELEMETRIA NA ŻYWO",
+    "\U0001f4c2 Open": "\U0001f4c2 Otwórz",
+    "Open a .sfmon recording to analyze": "Otwórz nagranie .sfmon do analizy",
+    "● REC": "● REC",
+    "Record telemetry to a .sfmon file (benchmarks/sessions)":
+        "Nagraj telemetrię do pliku .sfmon (benchmarki/sesje)",
+    "Refresh:": "Odświeżanie:",
+    "■ STOP": "■ STOP",
+    "Saved to (open to analyze):": "Zapisano w (otwórz, aby przeanalizować):",
+    "Recording summary": "Podsumowanie nagrania",
+    "Open recording": "Otwórz nagranie",
+    "SkillFishOS — Analysis: ": "SkillFishOS — Analiza: ",
+    "\U0001f4ca ANALYSIS  ·  ": "\U0001f4ca ANALIZA  ·  ",
+    "Time:": "Czas:",
+    # Pannello frequenza per core/thread, aggiunto dopo la traduzione di cyryllo.
+    # Termini tecnici semplici, ma da far confermare a un madrelingua.
+    "Per core/thread frequency (MHz)": "Częstotliwość na rdzeń/wątek (MHz)",
+    "min": "min",
+    "avg": "śr.",
+    "max": "maks.",
+    "online": "aktywne",
+    "off": "wył.",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    return en
 
 # Chart spec: (title_it, title_en, unit, [(label, color, key)...]). Drives both
 # the live charts and the recording/viewer columns.

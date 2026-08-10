@@ -5,13 +5,17 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Telemetry</name>
   <name xml:lang="it">SkillFishOS Telemetry</name>
+  <name xml:lang="pl">SkillFishOS Telemetry</name>
   <summary>Live sensor charts + benchmark recorder/analyzer</summary>
   <summary xml:lang="it">Grafici live dei sensori + registratore/analizzatore di benchmark</summary>
+  <summary xml:lang="pl">Wykresy sensorów na żywo + rejestrator/analizator benchmarków</summary>
   <description>
     <p>A standalone live dashboard for the AMD BC-250: real-time line charts of CPU and GPU temperature, clock frequency, GPU voltage and fan speed, read straight from the hardware sensors.</p>
     <p>Sensor sampling runs on a background thread so the interface stays smooth, and the refresh interval is adjustable. Part of the native SkillFishOS app suite.</p>
     <p xml:lang="it">Un cruscotto live indipendente per l'AMD BC-250: grafici in tempo reale di temperatura CPU e GPU, frequenza di clock, voltaggio GPU e velocità della ventola, letti direttamente dai sensori hardware.</p>
+    <p xml:lang="pl">Samodzielny pulpit na żywo dla AMD BC-250: wykresy liniowe w czasie rzeczywistym temperatury CPU i GPU, częstotliwości zegara, napięcia GPU i prędkości wentylatora, odczytywane bezpośrednio z czujników sprzętowych.</p>
     <p xml:lang="it">Il campionamento dei sensori gira su un thread dedicato così l'interfaccia resta fluida, e l'intervallo di aggiornamento è regolabile. Fa parte della suite di app native di SkillFishOS.</p>
+    <p xml:lang="pl">Próbkowanie czujników działa na osobnym wątku, dzięki czemu interfejs pozostaje płynny, a interwał odświeżania jest regulowany. Część natywnego zestawu aplikacji SkillFishOS.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.monitor.desktop</launchable>
   <icon type="stock">skillfishos</icon>

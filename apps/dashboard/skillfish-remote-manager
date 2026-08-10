@@ -11,11 +11,53 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 CTL = "/usr/local/bin/skillfish-remote-ctl"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LANG") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    "Telemetry": "Telemetria",
+    "System status": "Stan systemu",
+    "Controls": "Sterowanie",
+    "Apps & packages": "Aplikacje i pakiety",
+    "Launcher": "Uruchamianie aplikacji",
+    "Desktop (KVM)": "Pulpit (KVM)",
+    "Terminal": "Terminal",
+    "Auto rules": "Reguły automatyczne",
+    "Power schedule": "Harmonogram zasilania",
+    "SkillFishOS — Remote Manager": "SkillFishOS — Remote Manager",
+    "Remote control panel · SkillFishOS": "Panel zdalnego sterowania · SkillFishOS",
+    "ACCESS": "DOSTĘP",
+    "Open in browser": "Otwórz w przeglądarce",
+    "EXPOSED MODULES": "UDOSTĘPNIONE MODUŁY",
+    "  (coming)": "  (wkrótce)",
+    "service unavailable": "usługa niedostępna",
+    "Turn off": "Wyłącz",
+    "Turn on": "Włącz",
+    "● On": "● Włączona",
+    "○ Off": "○ Wyłączona",
+    "  · at boot: ": "  · przy starcie: ",
+    "Log in with user “%s” password.": "Zaloguj się hasłem użytkownika „%s”.",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    return en
 
 # id, icon, name, ready?  (not-ready modules need external tools still to be wired)
 MODULES = [

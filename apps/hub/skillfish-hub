@@ -22,12 +22,99 @@ CACHE_DIR = os.path.join(os.path.expanduser("~/.cache"), "skillfish-hub")
 SNAP_SOCK = "/run/snapd.socket"
 ODRS = "https://odrs.gnome.org/1.0/reviews/api"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
-         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    # top categories
+    "Games": "Gry", "Development": "Programowanie", "Graphics": "Grafika",
+    "Multimedia": "Multimedia", "Internet": "Internet", "Productivity": "Produktywność",
+    "Education & science": "Edukacja i nauka", "System": "System", "Utilities": "Narzędzia",
+    # Game sub-categories
+    "Action": "Akcja", "Adventure": "Przygodowe", "Arcade": "Zręcznościowe", "Board": "Planszowe",
+    "Card": "Karciane", "Kids": "Dla dzieci", "Logic": "Logiczne", "Role-playing": "Fabularne",
+    "Simulation": "Symulacje", "Sports": "Sportowe", "Strategy": "Strategiczne", "Shooter": "Strzelanki",
+    # Development sub-categories
+    "Building": "Budowanie", "Debugger": "Debugowanie", "Version control": "Kontrola wersji",
+    "Translation": "Tłumaczenie",
+    # Graphics sub-categories
+    "Vector": "Wektorowa", "Photography": "Fotografia", "Publishing": "Publikowanie",
+    "Viewers": "Przeglądarki", "Scanning": "Skanowanie",
+    # AudioVideo sub-categories
+    "Recorders": "Nagrywanie", "Editing": "Edycja", "Music": "Muzyka",
+    # Network sub-categories
+    "Browsers": "Przeglądarki internetowe", "Messaging": "Komunikatory",
+    "File transfer": "Przesyłanie plików", "Remote access": "Zdalny dostęp",
+    # Office sub-categories
+    "Word processors": "Procesory tekstu", "Spreadsheets": "Arkusze kalkulacyjne",
+    "Presentations": "Prezentacje", "Calendar": "Kalendarz", "Finance": "Finanse",
+    "Dictionaries": "Słowniki",
+    # Education sub-categories
+    "Astronomy": "Astronomia", "Biology": "Biologia", "Chemistry": "Chemia",
+    "Geography": "Geografia", "Maths": "Matematyka", "Physics": "Fizyka",
+    "Languages": "Języki", "Computer science": "Informatyka",
+    # System sub-categories
+    "Monitoring": "Monitorowanie", "Security": "Bezpieczeństwo", "Filesystem": "System plików",
+    "Terminal": "Terminal",
+    # Utility sub-categories
+    "Archiving": "Archiwizacja", "Calculators": "Kalkulatory", "Text editors": "Edytory tekstu",
+    "File managers": "Menedżery plików", "Clocks": "Zegary", "Accessibility": "Dostępność",
+    # general UI
+    "Loading the catalogue (APT + Flatpak)…": "Wczytywanie katalogu (APT + Flatpak)…",
+    "Fetching ratings (ODRS)…": "Pobieranie ocen (ODRS)…",
+    "Install": "Zainstaluj", "Remove": "Usuń",
+    "Loading screenshots…": "Wczytywanie zrzutów ekranu…",
+    "Explore": "Odkrywaj", "Installed": "Zainstalowane", "Updates": "Aktualizacje",
+    "Sources": "Źródła", "CATEGORIES": "KATEGORIE", "Search…": "Szukaj…",
+    "Refresh lists and check for updates": "Odśwież listy i sprawdź aktualizacje",
+    "All": "Wszystkie", "Loading the software catalogue…": "Wczytywanie katalogu oprogramowania…",
+    "All sources": "Wszystkie źródła", "Name": "Nazwa", "Rating": "Ocena",
+    "Filter:": "Filtr:", "Sort:": "Sortuj:", "No results.": "Brak wyników.",
+    "Featured · SkillFishOS": "Polecane · SkillFishOS", "Most popular": "Najpopularniejsze",
+    "Editor's choice": "Wybór redakcji", "Search": "Szukaj", "Search: ": "Szukaj: ",
+    "Searching…": "Wyszukiwanie…", "Open": "Otwórz", "Source": "Źródło", "Version": "Wersja",
+    "Size": "Rozmiar", "License": "Licencja", "Website": "Strona internetowa",
+    "What's new": "Co nowego", "Permissions": "Uprawnienia", "Channel:": "Kanał:",
+    "network/ipc: ": "sieć/ipc: ", "sockets: ": "gniazda: ", "devices: ": "urządzenia: ",
+    "filesystem: ": "system plików: ", "Reviews": "Recenzje", "Installing": "Instalowanie",
+    "Removing": "Usuwanie", "Unsupported backend: ": "Nieobsługiwany backend: ",
+    "Close": "Zamknij", "✓ Done.": "✓ Gotowe.", "Checking for updates…": "Sprawdzanie aktualizacji…",
+    "Everything is up to date ✓": "Wszystko aktualne ✓", "Update all": "Aktualizuj wszystko",
+    "Updating the whole system…": "Aktualizowanie całego systemu…",
+    "✓ Update complete.": "✓ Aktualizacja zakończona.",
+    "Refreshing the package lists…": "Odświeżanie list pakietów…",
+    "Reloading…": "Ponowne wczytywanie…", "Software sources": "Źródła oprogramowania",
+    "Backends": "Backendy", "(not installed)": "(nie zainstalowano)",
+    "APT repositories": "Repozytoria APT", "+ Add repository": "+ Dodaj repozytorium",
+    "Flatpak remotes": "Zdalne repozytoria Flatpak",
+    "Backend updated. Reloading…": "Backend zaktualizowany. Ponowne wczytywanie…",
+    "Add APT repository": "Dodaj repozytorium APT",
+    "key .asc URL (optional)": "URL klucza .asc (opcjonalnie)",
+    "Suite": "Seria", "Components": "Komponenty", "Key": "Klucz", "Add": "Dodaj",
+    "Cancel": "Anuluj", "Adding the repository…": "Dodawanie repozytorium…",
+    "Removing the repository…": "Usuwanie repozytorium…",
+    "Repository updated. Reloading…": "Repozytorium zaktualizowane. Ponowne wczytywanie…",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    return en
 
 def run(cmd, t=120):
     try:
