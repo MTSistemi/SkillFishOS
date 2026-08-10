@@ -15,18 +15,18 @@ Description: SkillFish AI - on-device LLM control panel
  built from git by CI.
 
 Package: skillfish-base
-Version: 26.08.1
+Version: 26.08.2
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.1_all.deb
-Size: 9608
-SHA256: bd79672373433cddd6892fb1ba3df8cfcb64abfb58def389502ea3f195f47aac
-SHA1: c948071a1202b73b0431ff972d48be247d5d165b
-MD5sum: fd057ae3373e213a0b35c21be4057098
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.2_all.deb
+Size: 9800
+SHA256: 71ac8c68f7e72c4d6218079b576b696571676f23a91f8bd855e023606f5a1df5
+SHA1: f8743a28ebddb60454c290246e860625d4904374
+MD5sum: ffd94453fb5d2cd444fce826bd7264d2
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  built from git by CI.
 
@@ -49,7 +49,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Quitting Steam returns to the login screen.
 
 Package: skillfish-dashboard
-Version: 26.06.1
+Version: 26.08.2
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
@@ -58,17 +58,17 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.06.1_all.deb
-Size: 46212
-SHA256: 32aa7081635600cc1b23ab0876399fb05abaec1d9a693fb6da5f06f173ec3442
-SHA1: 88dfdb20bf543f61f7b153ba0a54fc75443f9e34
-MD5sum: ba9d120a45eda5767a7e033b0b3a359c
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.2_all.deb
+Size: 52364
+SHA256: e4e103fa5121c8dc03cbc42a453ffb29565c6855a08de75945045e7903122e39
+SHA1: 862e9346a5da097874fadb1fa7af08b0705a8843
+MD5sum: a97a104790ae11b763c7d9a6a807061c
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
- board remotely: telemetry, software KVM (noVNC), web terminal (ttyd), the
- Tuner (CPU/GPU/compute-unit control), a full Hub app store, AI/OpenWebUI,
+ board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
+ the Tuner (CPU/GPU/compute-unit control), a full Hub app store, AI/OpenWebUI,
  logs, Wake-on-LAN and ZeroTier. Ships the always-available daemon plus the
- native Remote Manager toggle app.
+ native Remote Manager toggle app. Built from git by CI.
 
 Package: skillfish-hub
 Version: 26.06.9
@@ -182,23 +182,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  built from git by CI.
 
 Package: skillfish-tuner
-Maintainer: SkillFishOS <info@skillfishos.com>
+Version: 26.08.2
 Architecture: all
-Version: 26.06.8
+Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
-Recommends: umr
+Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.06.8_all.deb
-Size: 394400
-SHA256: 1aa4740a947d4f0954e18a5161017f8a5acaf86f9f7aa4b060f2dca6dd6568a7
-SHA1: a4d9b587223e7615d8ada7402dbc09b84d9e588d
-MD5sum: 229504e8546ef9c77a09599439716315
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.2_all.deb
+Size: 367032
+SHA256: 000dff1e4e717d2b492401cc0f957befb1f17a556f4f14ca7cb58d70789a66b4
+SHA1: fce586de9f4f0625bb563b1a19578f0b26dca303
+MD5sum: 1f6baaff61ed89e6ee0fd46d2fffae8b
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
- PyQt6 desktop app to control the AMD BC-250 with no terminal: CPU
- overclock/undervolt, GPU governor safe-point, fan curve, UMA VRAM split and
- live 40 Compute Unit control with per-WGP health tests and a live monitor
- (temperature, frequency, voltage, fan). Talks to a privileged JSON helper via
- a single polkit authentication.
-Homepage: https://skillfishos.com
+ built from git by CI.
 
