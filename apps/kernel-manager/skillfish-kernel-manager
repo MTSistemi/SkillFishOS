@@ -21,6 +21,9 @@ def _detect_lang():
     v = val.lower()
     if v.startswith("it"): return "it"
     if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
     return "en"
 
 LANG = _detect_lang()
@@ -60,10 +63,47 @@ PL = {
     "operation failed": "operacja nie powiodła się",
 }
 
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+# Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
+# a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
+UK = {
+    "Generic · x86-64 · PCs & virtual machines": "Загальне · x86-64 · ПК та віртуальні машини",
+    "Slim · BC-250 · ultra-lean kernel": "Полегшене · BC-250 · мінімальне ядро",
+    "BC-250 · znver2 · optimized": "BC-250 · znver2 · оптимізоване",
+    "external kernel (non-SkillFishOS)": "стороннє ядро (не SkillFishOS)",
+    "SkillFishOS — Kernel Manager": "SkillFishOS — Менеджер ядер",
+    "Kernel Manager": "Менеджер ядер",
+    "Choose the boot kernel or remove the ones you don't need":
+        "Виберіть ядро для завантаження або вилучіть непотрібні",
+    "Installed kernels": "Встановлені ядра",
+    "Set as default": "Зробити типовим",
+    "Boot once": "Завантажити один раз",
+    "Uninstall": "Вилучити",
+    "Reboot now": "Перезавантажити зараз",
+    "running": "запущене",
+    "default": "типове",
+    "You can't uninstall the running kernel. Boot another kernel and try again.":
+        "Не можна вилучити запущене ядро. Завантажте інше ядро і спробуйте ще раз.",
+    "It's the only installed kernel: it can't be removed.":
+        "Це єдине встановлене ядро: його не можна вилучити.",
+    "vmlinuz, initrd and the modules will be removed (not dpkg-managed).":
+        "vmlinuz, initrd і модулі буде вилучено (не через dpkg).",
+    "\n⚠ It's the default kernel: the default will move to the running one.":
+        "\n⚠ Це типове ядро: типовим стане запущене.",
+    "\nThis cannot be undone. Continue?": "\nЦю дію не можна скасувати. Продовжити?",
+    "Uninstalling…": "Вилучення…",
+    "operation cancelled": "операцію скасовано",
+    "Reboot now?": "Перезавантажити зараз?",
+    "operation failed": "операція не вдалася",
+}
+
+
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
     if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
     return en
 
 def sh(cmd, t=30):

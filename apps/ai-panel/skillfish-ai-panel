@@ -92,6 +92,8 @@ def _detect_lang():
     v = val.lower()
     if v.startswith("it"): return "it"
     if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina; "ua" e' quello del paese.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
     return "en"
 LANG = _detect_lang()
 
@@ -99,12 +101,118 @@ LANG = _detect_lang()
 # quello delle altre app (chiavi = stringhe inglesi passate a L), cosi' basta
 # riempire il dizionario. Finche' e' vuoto un utente polacco vede l'inglese,
 # che e' comunque meglio dell'italiano.
-PL = {}
+PL = {
+    "unknown": "nieznany",
+    "SkillFish AI - Setup": "SkillFish AI - Konfiguracja",
+    "Welcome to SkillFish AI": "Witamy w SkillFish AI",
+    "All set!": "Gotowe!",
+    "Installing the engine": "Instalowanie silnika",
+    "Install / Start": "Zainstaluj / Uruchom",
+    "Choose a model": "Wybierz model",
+    "Download model": "Pobierz model",
+    "Model": "Model",
+    "active model / name to pull": "aktywny model / nazwa do pobrania",
+    "Use": "Użyj",
+    "Pull": "Pobierz",
+    "Hardware": "Sprzęt",
+    "Shared memory for the model": "Pamięć współdzielona dla modelu",
+    "Apply and reboot": "Zastosuj i uruchom ponownie",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "Na BC-250 pamięć jest współdzielona GPU/CPU: to zwiększa część pamięci systemowej (GTT), której model może użyć poza VRAM, dzięki czemu mieszczą się większe modele. To parametr jądra → wymagany jest restart (zmiana na żywo nie jest możliwa na tym sprzęcie, zweryfikowane).",
+    "Open Chat (web)": "Otwórz czat (web)",
+    "Refresh": "Odśwież",
+    "… working …": "… pracuję …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Ten kreator instaluje i uruchamia Unsloth Studio, lokalny silnik LLM przyspieszany w Vulkan na GPU.\n\nPrzy pierwszym logowaniu Unsloth poprosi o ustawienie hasła: wybierasz je sam, nie jest tworzone stąd. Modele pobiera się później z jego własnego interfejsu.\n\nWszystko działa lokalnie: żadne dane nie opuszczają Twojego komputera.",
+    "This wizard installs and starts the local LLM engine (Ollama + Vulkan) and lets you choose a model to download.\n\nEverything runs locally on the GPU: no data leaves your PC.":
+        "Ten kreator instaluje i uruchamia lokalny silnik LLM (Ollama + Vulkan) i pozwala wybrać model do pobrania.\n\nWszystko działa lokalnie na GPU: żadne dane nie opuszczają Twojego komputera.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Silnik AI jest gotowy. Modele i pamięć GPU (GTT) możesz zmienić w panelu w dowolnej chwili.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Naciśnij „Zainstaluj”, aby pobrać i skonfigurować Unsloth Studio z backendem Vulkan. To około 2 GB: może potrwać kilka minut.",
+    "Press “Install” to set up docker, the stack and the Ollama-Vulkan image.":
+        "Naciśnij „Zainstaluj”, aby skonfigurować docker, stos i obraz Ollama-Vulkan.",
+    "\n✓ Stack started. Log out and back in so passwordless Docker access takes effect.":
+        "\n✓ Stos uruchomiony. Wyloguj się i zaloguj ponownie, aby dostęp do Dockera bez hasła zaczął działać.",
+    "Pick a model to download (or type any name from the Ollama library):":
+        "Wybierz model do pobrania (lub wpisz dowolną nazwę z biblioteki Ollama):",
+    "or custom name:": "lub własna nazwa:",
+    "✓ Model ready.": "✓ Model gotowy.",
+    "! download failed": "! pobieranie nie powiodło się",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Modele pobiera się i wybiera wewnątrz Unsloth Studio (przycisk „Otwórz czat”).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Lokalny silnik LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Silnik WYŁ. — GPU/pamięć wolne dla gier",
+    "n/a (non-AMD GPU or shared VRAM)": "nd. (GPU inne niż AMD lub współdzielona VRAM)",
+    "not available on this GPU": "niedostępne na tym GPU",
+    "n/a": "nd.",
+    "Turn the AI engine on first.": "Najpierw włącz silnik AI.",
+    "● Engine ON — ready": "● Silnik WŁ. — gotowy",
+    "free": "wolne",
+    "operation cancelled": "operacja anulowana",
+}
+
+# Polacco e ucraino di questo pannello: li ho scritti io, NON un madrelingua.
+# Il polacco delle altre app e' di cyryllo (github.com/cyryllo), qui il
+# dizionario era rimasto vuoto e quindi tutto restava in inglese.
+UK = {
+    "unknown": "невідомо",
+    "SkillFish AI - Setup": "SkillFish AI - Налаштування",
+    "Welcome to SkillFish AI": "Ласкаво просимо до SkillFish AI",
+    "All set!": "Готово!",
+    "Installing the engine": "Встановлення рушія",
+    "Install / Start": "Встановити / Запустити",
+    "Choose a model": "Виберіть модель",
+    "Download model": "Завантажити модель",
+    "Model": "Модель",
+    "active model / name to pull": "активна модель / назва для завантаження",
+    "Use": "Використати",
+    "Pull": "Завантажити",
+    "Hardware": "Обладнання",
+    "Shared memory for the model": "Спільна пам’ять для моделі",
+    "Apply and reboot": "Застосувати і перезавантажити",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "На BC-250 пам’ять спільна для ГП і ЦП: це збільшує частку системної пам’яті (GTT), яку модель може використати додатково до VRAM, тож поміщаються більші моделі. Це параметр ядра → потрібне перезавантаження (зміна наживо на цьому обладнанні неможлива, перевірено).",
+    "Open Chat (web)": "Відкрити чат (веб)",
+    "Refresh": "Оновити",
+    "… working …": "… виконується …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Цей майстер встановлює і запускає Unsloth Studio — локальний рушій LLM з прискоренням через Vulkan на ГП.\n\nПри першому вході Unsloth попросить встановити пароль: ви обираєте його самі, звідси він не створюється. Моделі потім завантажуються з його власного інтерфейсу.\n\nУсе працює локально: жодні дані не залишають ваш комп’ютер.",
+    "This wizard installs and starts the local LLM engine (Ollama + Vulkan) and lets you choose a model to download.\n\nEverything runs locally on the GPU: no data leaves your PC.":
+        "Цей майстер встановлює і запускає локальний рушій LLM (Ollama + Vulkan) і дає змогу вибрати модель для завантаження.\n\nУсе працює локально на ГП: жодні дані не залишають ваш комп’ютер.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Рушій ШІ готовий. Змінювати моделі й налаштовувати пам’ять ГП (GTT) можна в панелі будь-коли.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Натисніть «Встановити», щоб завантажити і налаштувати Unsloth Studio з бекендом Vulkan. Це близько 2 ГБ: може зайняти кілька хвилин.",
+    "Press “Install” to set up docker, the stack and the Ollama-Vulkan image.":
+        "Натисніть «Встановити», щоб налаштувати docker, стек і образ Ollama-Vulkan.",
+    "\n✓ Stack started. Log out and back in so passwordless Docker access takes effect.":
+        "\n✓ Стек запущено. Вийдіть і увійдіть знову, щоб доступ до Docker без пароля почав діяти.",
+    "Pick a model to download (or type any name from the Ollama library):":
+        "Виберіть модель для завантаження (або впишіть будь-яку назву з бібліотеки Ollama):",
+    "or custom name:": "або власна назва:",
+    "✓ Model ready.": "✓ Модель готова.",
+    "! download failed": "! завантаження не вдалося",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Моделі завантажуються і обираються всередині Unsloth Studio (кнопка «Відкрити чат»).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Локальний рушій LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Рушій ВИМК. — ГП і пам’ять вільні для ігор",
+    "n/a (non-AMD GPU or shared VRAM)": "н/д (не AMD ГП або спільна VRAM)",
+    "not available on this GPU": "недоступно на цьому ГП",
+    "n/a": "н/д",
+    "Turn the AI engine on first.": "Спершу увімкніть рушій ШІ.",
+    "● Engine ON — ready": "● Рушій УВІМК. — готовий",
+    "free": "вільно",
+    "operation cancelled": "операцію скасовано",
+}
 
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
     if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
     return en
 
 def sh(cmd, t=60):

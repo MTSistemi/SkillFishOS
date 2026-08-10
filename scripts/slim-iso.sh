@@ -168,6 +168,45 @@ else
 fi
 
 echo
+echo "=== compressione dell'immagine ==="
+# eggs passa a mksquashfs solo `-comp xz`, cioe' xz con le impostazioni
+# predefinite: blocco da 128 KB e nessun filtro. Misurato sulla scheda su un
+# campione di 641 MB di binari (/usr/bin):
+#
+#   -comp xz                       190,0 MB   14 s   <- quello che facciamo ora
+#   -comp xz -Xbcj x86             180,0 MB   28 s   -5,5%
+#   -comp xz -Xbcj x86 -b 1M       166,0 MB   36 s   -13,0%
+#   -comp zstd -Xcompression-level 19 -b 1M  190,0 MB  21 s   -0,2%
+#
+# Il filtro BCJ x86 riscrive gli indirizzi relativi delle istruzioni di salto
+# in forma assoluta prima di comprimere: sul codice macchina i pattern
+# diventano molto piu' ripetitivi. Il blocco da 1 MB da' a xz una finestra piu'
+# grande su cui trovare ripetizioni. Insieme valgono il 13% sui binari, meno
+# sul resto, ma sono gratis: il prezzo e' solo tempo di costruzione.
+#
+# zstd al massimo livello non serve: comprime come xz predefinito ma non come
+# xz regolato. Va bene per chi vuole un boot piu' rapido, non per la dimensione.
+#
+# In eggs il valore finisce dentro `-comp ${compression}`, e la variabile
+# `limit` che segue e' vuota (verificato in make-squashfs.js), quindi si possono
+# infilare li' anche le opzioni: mksquashfs le legge come argomenti separati.
+Y=/etc/penguins-eggs.d/eggs.yaml
+WANT='compression: xz -Xbcj x86 -b 1M'
+if [ -f "$Y" ]; then
+    if grep -qF "$WANT" "$Y"; then
+        echo "   gia' impostata: $(grep '^compression:' "$Y")"
+    elif [ "$DRY" = 1 ]; then
+        echo "   [dry] $(grep '^compression:' "$Y")  ->  $WANT"
+    else
+        [ -f "$Y.pre-comp" ] || cp "$Y" "$Y.pre-comp"
+        sed -i "s|^compression:.*|$WANT|" "$Y"
+        echo "   impostata: $(grep '^compression:' "$Y")"
+    fi
+else
+    echo "   ATTENZIONE: manca $Y"
+fi
+
+echo
 echo "=== controllo che le cose che servono NON siano state escluse ==="
 for keep in /root/bc250_smu_oc /root/bc250_memcfg /root/bench; do
     if [ -e "$keep" ]; then

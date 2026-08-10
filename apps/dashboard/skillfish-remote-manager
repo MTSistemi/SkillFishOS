@@ -20,6 +20,9 @@ def _detect_lang():
     v = val.lower()
     if v.startswith("it"): return "it"
     if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
     return "en"
 
 LANG = _detect_lang()
@@ -53,10 +56,41 @@ PL = {
     "Log in with user “%s” password.": "Zaloguj się hasłem użytkownika „%s”.",
 }
 
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+# Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
+# a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
+UK = {
+    "Telemetry": "Телеметрія",
+    "System status": "Стан системи",
+    "Controls": "Керування",
+    "Apps & packages": "Програми та пакунки",
+    "Launcher": "Лаунчер",
+    "Desktop (KVM)": "Робочий стіл (KVM)",
+    "Terminal": "Термінал",
+    "Auto rules": "Автоматичні правила",
+    "Power schedule": "Розклад живлення",
+    "SkillFishOS — Remote Manager": "SkillFishOS — Віддалене керування",
+    "Remote control panel · SkillFishOS": "Панель віддаленого керування · SkillFishOS",
+    "ACCESS": "ДОСТУП",
+    "Open in browser": "Відкрити у браузері",
+    "EXPOSED MODULES": "ДОСТУПНІ МОДУЛІ",
+    "  (coming)": "  (незабаром)",
+    "service unavailable": "служба недоступна",
+    "Turn off": "Вимкнути",
+    "Turn on": "Увімкнути",
+    "● On": "● Увімк.",
+    "○ Off": "○ Вимк.",
+    "  · at boot: ": "  · при завантаженні: ",
+    "Log in with user “%s” password.": "Увійдіть за допомогою пароля користувача «%s».",
+}
+
+
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
     if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
     return en
 
 # id, icon, name, ready?  (not-ready modules need external tools still to be wired)
