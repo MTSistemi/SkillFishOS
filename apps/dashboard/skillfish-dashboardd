@@ -899,11 +899,12 @@ def terminal_stop():
 # Two engines are supported. Unsloth Studio is the current one: a native service
 # running GGUF models through llama.cpp's Vulkan backend, which is the only
 # GPU-accelerated path on the BC-250 (gfx1013 has no ROCm). It serves both its own
-# chat UI and an OpenAI-compatible API on one port. The older Ollama + Open WebUI
-# Docker stack is still driven here so existing installs keep working.
-AI_COMPOSE = "/opt/stacks/skillfish-ai/compose.yaml"
-AI_CONTAINER = "skillfish-ollama"
-WEBUI_PORT = 8080
+# chat UI and an OpenAI-compatible API on one port.
+#
+# Qui c'era anche il vecchio stack Ollama + Open WebUI su Docker, pilotato con
+# `docker compose`. Docker e' stato rimosso dal sistema (non serviva piu' a
+# niente: girava un solo container, dockge, che gestiva zero stack), quindi
+# quelle strade erano diventate impercorribili.
 UNSLOTH_PORT = 8888
 UNSLOTH_SVC = "skillfish-unsloth.service"
 
@@ -920,61 +921,43 @@ def _unsloth_installed():
 
 
 def ai_engine():
-    """Which engine this box uses: Unsloth when installed, else the legacy stack."""
-    return "unsloth" if _unsloth_installed() else "ollama"
+    """Il motore AI di SkillFishOS: uno solo, Unsloth Studio.
 
-
-def _ai_models():
-    try:
-        r = subprocess.run(["docker", "exec", AI_CONTAINER, "ollama", "list"],
-                           capture_output=True, text=True, timeout=8).stdout
-        return [ln.split()[0] for ln in r.splitlines()[1:] if ln.strip()]
-    except Exception:
-        return []
+    Resta una funzione invece di una costante perche' il frontend legge il campo
+    "engine" e domani il motore potrebbe cambiare ancora.
+    """
+    return "unsloth"
 
 
 def ai_status():
-    if ai_engine() == "unsloth":
-        running = _port_open(UNSLOTH_PORT)
-        return {"ok": True, "engine": "unsloth", "running": running,
-                "webui": running, "webui_path": "/unsloth",
-                # Unsloth serves models through its own authenticated UI, so the
-                # dashboard does not enumerate them (that would need the user's API key).
-                "models": []}
-    r = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", AI_CONTAINER],
-                       capture_output=True, text=True)
-    running = r.stdout.strip() == "true"
-    return {"ok": True, "engine": "ollama", "running": running,
-            "webui": _port_open(WEBUI_PORT), "webui_path": "/webui",
-            "models": _ai_models() if running else []}
+    running = _port_open(UNSLOTH_PORT)
+    return {"ok": True, "engine": "unsloth", "running": running,
+            "webui": running, "webui_path": "/unsloth",
+            # I modelli li serve Unsloth dalla sua interfaccia autenticata, quindi
+            # la dashboard non li elenca: servirebbe la API key dell'utente.
+            "models": []}
 
 
 def ai_start():
-    if ai_engine() == "unsloth":
-        subprocess.Popen(["systemctl", "start", UNSLOTH_SVC],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return {"ok": True}
-    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "up", "-d"],
+    subprocess.Popen(["systemctl", "start", UNSLOTH_SVC],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True}
 
 
 def ai_stop():
-    if ai_engine() == "unsloth":
-        subprocess.Popen(["systemctl", "stop", UNSLOTH_SVC],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return {"ok": True}
-    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "down"],
+    subprocess.Popen(["systemctl", "stop", UNSLOTH_SVC],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True}
 
 
 def ai_pull(model):
-    if not re.match(r"^[A-Za-z0-9._:/-]{1,80}$", (model or "").strip()):
-        return {"ok": False, "error": "nome modello non valido"}
-    subprocess.Popen(["docker", "exec", AI_CONTAINER, "ollama", "pull", model.strip()],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return {"ok": True, "model": model.strip()}
+    # Con Ollama il modello lo scaricava la dashboard. Unsloth Studio ha il
+    # proprio catalogo dietro la propria autenticazione: da qui non possiamo
+    # scaricarlo per conto dell'utente, e fingere di poterlo fare sarebbe peggio
+    # che dirglielo.
+    return {"ok": False,
+            "error": "I modelli si scaricano da Unsloth Studio: apri «Apri Unsloth Studio» "
+                     "e scegli il modello da li'."}
 
 
 # ---- "Optimize for AI" (#5): tune GTT cap, KV cache and context for bigger models ----
@@ -992,15 +975,6 @@ def _cmdline_param(name):
     return None
 
 
-def _compose_env(name):
-    try:
-        with open(AI_COMPOSE) as f:
-            m = re.search(r"^\s*-\s*%s=(\S+)" % re.escape(name), f.read(), re.M)
-        return m.group(1) if m else None
-    except Exception:
-        return None
-
-
 def ai_tune_status():
     gtt_cap = _cmdline_param("amdgpu.gttsize")
     swap_mb = 0
@@ -1010,23 +984,16 @@ def ai_tune_status():
             swap_mb = int(m.group(1)) // 1024 if m else 0
     except Exception:
         pass
-    # Le voci KV-cache/contesto vivono nel compose di Ollama: con Unsloth non
-    # esistono (i parametri stanno dentro Studio), quindi restano solo le leve di
-    # sistema - cap GTT e swap - che valgono per entrambi i motori.
-    eng = ai_engine()
-    kv = _compose_env("OLLAMA_KV_CACHE_TYPE") if eng == "ollama" else ""
-    ctx = _compose_env("OLLAMA_CONTEXT_LENGTH") if eng == "ollama" else ""
-    recs = []
-    if kv and kv != "q8_0":
-        recs.append("kv_q8")
-    if gtt_cap:
-        recs.append("gtt_unlock")
-    return {"ok": True, "engine": eng,
+    # KV-cache e lunghezza del contesto erano variabili del compose di Ollama.
+    # In Unsloth quei parametri stanno dentro Studio e non li tocchiamo da qui:
+    # restano le leve di sistema, il cap della GTT e lo swap. I campi vuoti li
+    # teniamo perche' il frontend li legge.
+    recs = ["gtt_unlock"] if gtt_cap else []
+    return {"ok": True, "engine": "unsloth",
             "gtt_cap_mb": int(gtt_cap) if (gtt_cap or "").isdigit() else gtt_cap,
-            "swap_mb": swap_mb, "kv_cache": kv, "context": ctx,
-            # Con Unsloth la GPU la usa llama.cpp col backend Vulkan, non il compose.
-            "vulkan": True if eng == "unsloth" else _compose_env("OLLAMA_VULKAN") == "1",
-            "flash_attention": (_compose_env("OLLAMA_FLASH_ATTENTION") == "1") if eng == "ollama" else None,
+            "swap_mb": swap_mb, "kv_cache": "", "context": "",
+            # Con Unsloth la GPU la usa llama.cpp col backend Vulkan.
+            "vulkan": True, "flash_attention": None,
             "recommend": recs}
 
 
@@ -1034,24 +1001,10 @@ def _grub_update():
     subprocess.run(["update-grub"], capture_output=True, text=True, timeout=60)
 
 
-def _ollama_recreate():
-    subprocess.Popen(["docker", "compose", "-f", AI_COMPOSE, "up", "-d", "ollama"],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-
 def ai_tune_apply(action):
     try:
-        if action in ("kv_q8", "kv_f16") and ai_engine() != "ollama":
-            return {"ok": False, "error": "KV cache: parametro del solo stack Ollama"}
         if action in ("kv_q8", "kv_f16"):
-            val = "q8_0" if action == "kv_q8" else "f16"
-            with open(AI_COMPOSE) as f:
-                txt = f.read()
-            txt = re.sub(r"(- OLLAMA_KV_CACHE_TYPE=)\S+", r"\g<1>" + val, txt)
-            with open(AI_COMPOSE, "w") as f:
-                f.write(txt)
-            _ollama_recreate()
-            return {"ok": True, "kv_cache": val, "note": "Contenitore Ollama ricreato."}
+            return {"ok": False, "error": "KV cache: si imposta dentro Unsloth Studio"}
         if action == "context":
             return {"ok": False, "error": "non implementato qui"}
         if action in ("gtt_unlock", "gtt_restore"):
@@ -1112,19 +1065,6 @@ def ai_chat(model, messages):
                     "message": msg.get("content") or msg.get("reasoning_content", "")}
         except Exception as e:
             return {"ok": False, "error": "Unsloth: %s" % e}
-
-    if not _port_open(11434):
-        return {"ok": False, "error": "Motore AI spento — accendilo dal modulo AI."}
-    if not model:
-        ms = _ai_models(); model = ms[0] if ms else "qwen3:14b"
-    try:
-        req = urllib.request.Request("http://127.0.0.1:11434/api/chat",
-                                     data=json.dumps({"model": model, "messages": messages, "stream": False}).encode(),
-                                     headers={"Content-Type": "application/json"})
-        out = json.loads(urllib.request.urlopen(req, timeout=300).read().decode())
-        return {"ok": True, "model": model, "message": out.get("message", {}).get("content", "")}
-    except Exception as e:
-        return {"ok": False, "error": "Ollama: %s" % e}
 
 
 # ---------------- Wake-on-LAN / power schedule ----------------
@@ -1222,20 +1162,13 @@ def rules_loop():
 
 
 # ---------------- AI-Ops (local LLM log diagnosis) ----------------
-def _ollama_models():
-    try:
-        r = subprocess.run(["docker", "exec", AI_CONTAINER, "ollama", "list"],
-                           capture_output=True, text=True, timeout=8).stdout
-        return [ln.split()[0] for ln in r.splitlines()[1:] if ln.strip()]
-    except Exception:
-        return []
-
-
 def aiops_diagnose(question):
-    if not _port_open(11434):
+    # Prima interrogava Ollama sulla 11434 senza autenticazione. Unsloth espone
+    # la stessa forma di API sulla 8888 ma vuole una chiave, quindi passiamo da
+    # ai_chat(), che la chiave la gestisce gia' e sa dire all'utente dove
+    # incollarla se manca.
+    if not _port_open(UNSLOTH_PORT):
         return {"ok": False, "error": "Motore AI spento: accendilo dal modulo AI."}
-    models = _ollama_models()
-    model = models[0] if models else "qwen3:14b"
     jrn = subprocess.run(["journalctl", "-p", "warning", "-n", "60", "--no-pager", "-o", "short"],
                          capture_output=True, text=True, timeout=8).stdout
     try:
@@ -1251,14 +1184,10 @@ def aiops_diagnose(question):
               "Rispondi in italiano, conciso e pratico.\n\n=== Telemetria ===\n%s\n\n"
               "=== Log freeze ===\n%s\n\n=== journalctl (warning+) ===\n%s\n\n=== Domanda ===\n%s\n" %
               (tele, frz, jrn[-3000:], q))
-    try:
-        req = urllib.request.Request("http://127.0.0.1:11434/api/generate",
-                                     data=json.dumps({"model": model, "prompt": prompt, "stream": False}).encode(),
-                                     headers={"Content-Type": "application/json"})
-        out = json.loads(urllib.request.urlopen(req, timeout=120).read().decode())
-        return {"ok": True, "model": model, "answer": out.get("response", "").strip()}
-    except Exception as e:
-        return {"ok": False, "error": "Ollama: %s" % e}
+    r = ai_chat("", [{"role": "user", "content": prompt}])
+    if not r.get("ok"):
+        return r
+    return {"ok": True, "model": r.get("model", ""), "answer": (r.get("message") or "").strip()}
 
 
 # ---------------- ZeroTier (remote access from anywhere) ----------------
@@ -1440,10 +1369,6 @@ class Handler(BaseHTTPRequestHandler):
             if not _alive("websockify"):
                 kvm_start()
             return self._proxy(KVM_PORT, "/kvm")
-        if path == "/webui" or path.startswith("/webui/"):
-            if not self._guard("ai"):
-                return
-            return self._proxy(WEBUI_PORT, "/webui")
         if path == "/unsloth" or path.startswith("/unsloth/"):
             # Unsloth Studio binds to loopback only; the dashboard is the LAN door and
             # has already authenticated the user via PAM before we get here.
@@ -1507,8 +1432,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/ai":
             if not self._guard("ai"):
                 return
-            s = ai_status(); s["webui_port"] = WEBUI_PORT
-            return self._json(200, s)
+            return self._json(200, ai_status())
         if path == "/api/ai/tune":
             if not self._guard("ai"):
                 return
