@@ -1440,6 +1440,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, cpu_coremap())
+        if path == "/api/tuner/cpu-cores":
+            # GET reads the live core map; the POST route below changes it
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
         if path == "/api/tuner/fan-curve":
             if not self._guard("tuner"):
                 return
@@ -1558,6 +1563,15 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "gov-mode", "mode": data.get("mode", "balanced")}]))
+        if path == "/api/tuner/cpu-cores":
+            # live CPU hotplug — same idea as the CU grid, but for the CPU side
+            if not self._guard("tuner"):
+                return
+            if "smt" in data:
+                return self._json(200, tuner_cmd([{"cmd": "cpu-smt", "on": bool(data["smt"])}]))
+            if "cores" in data:
+                return self._json(200, tuner_cmd([{"cmd": "cpu-cores-set", "cores": data["cores"]}]))
+            return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
         if path == "/api/tuner/fan":
             if not self._guard("tuner"):
                 return
