@@ -314,6 +314,13 @@ def bench_cpu(secs=60):
     samp={"minf":99999,"maxt":0}
     stop=threading.Event()
     def mon():
+        # sysbench needs a moment to spin every thread up. Sampling from t=0 caught
+        # the machine still idling and that single low reading became the "minimum",
+        # failing even a known-good clock — 3500 was rejected at 1396 MHz while the
+        # live frequency mid-bench was 3493. Let the load settle before believing it.
+        deadline = time.monotonic() + 8
+        while not stop.is_set() and time.monotonic() < deadline:
+            time.sleep(0.5)
         while not stop.is_set():
             f=cpu_min_freq();  t=temp("k10temp")
             if f>0 and f<samp["minf"]: samp["minf"]=f
