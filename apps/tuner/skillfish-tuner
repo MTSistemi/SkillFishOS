@@ -54,6 +54,9 @@ HELP = {
  "vram": (L("VRAM (memoria grafica)", "VRAM (graphics memory)"),
    L("Quantità di RAM di sistema riservata alla GPU (UMA).\n\n⚠ Scrive nel CMOS del BIOS e richiede un RIAVVIO per applicare. Reversibile azzerando il CMOS (jumper sulla scheda).\n\nNon superare valori che lascino troppo poca RAM al sistema.",
      "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.")),
+ "cpucores": (L("Core CPU", "CPU cores"),
+   L("Accendi e spegni i core della CPU A CALDO, senza riavvio — come per le CU della GPU.\n\n• Ogni riquadro = 1 core fisico con i suoi 2 thread: VERDE = acceso, ROSSO = spento.\n• CLIC su un core per accenderlo/spegnerlo, poi «Applica».\n• Il core 0 è VERDE FISSO: ospita la CPU di avvio e il kernel non può spegnerlo.\n• «SMT» accende/spegne il multi-threading: da 2 thread per core a 1.\n\nA cosa serve: spegnere core libera budget termico e di consumo per far salire la frequenza dei core rimasti — utile nei giochi che usano pochi thread. Meno core = meno calore, ma meno potenza nei carichi multi-thread.\n\nLa scelta NON è permanente: al riavvio tornano tutti accesi.",
+     "Turn CPU cores on and off LIVE, no reboot — just like the GPU's CUs.\n\n• Each box = 1 physical core with its 2 threads: GREEN = on, RED = off.\n• CLICK a core to toggle it, then «Apply».\n• Core 0 is FIXED GREEN: it holds the boot CPU and the kernel cannot offline it.\n• «SMT» toggles multi-threading: 2 threads per core, or 1.\n\nWhy: switching cores off frees thermal and power budget so the remaining cores can clock higher — handy for games that use few threads. Fewer cores = less heat, but less multi-threaded power.\n\nThe choice is NOT permanent: everything comes back on at reboot.")),
  "cu": (L("Compute Unit (CU)", "Compute Units (CU)"),
    L("Le CU sono i core di calcolo della GPU. Qui le attivi/disattivi A CALDO, senza riavvio.\n\n• Ogni quadratino = 1 CU: VERDE = attiva, ROSSO = spenta.\n• CLIC su una coppia per accenderla/spegnerla manualmente (le coppie si gestiscono a 2 CU per volta = 1 WGP).\n• Oppure usa i PRESET (24 / 32 / 40 CU).\n• Le prime 3 coppie per fila (24 CU) sono il minimo del driver e restano sempre attive.\n• Premi «Applica a caldo» per rendere effettiva la scelta.\n\nPiù CU = più potenza grafica ma anche più calore e consumo.\n\nUsa «Test CU» per verificare che le CU attive siano stabili e senza difetti (lotteria del silicio).",
      "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).")),
@@ -146,6 +149,38 @@ class CuWgp(QFrame):
     def mousePressEvent(self, e):
         if self.locked: return
         self.on = not self.on; self._paint(); self.on_toggle(self.on)
+
+
+class CpuCore(QFrame):
+    """One physical CPU core drawn as its two SMT threads, styled like the CU grid.
+
+    Core 0 is locked: it holds cpu0, the boot CPU, which this kernel cannot offline.
+    """
+    def __init__(self, core, on, locked, on_toggle):
+        super().__init__()
+        self.core = core; self.on = on; self.locked = locked; self.on_toggle = on_toggle
+        lay = QVBoxLayout(self); lay.setContentsMargins(1, 1, 1, 1); lay.setSpacing(2)
+        row = QHBoxLayout(); row.setSpacing(2)
+        self.sq = [QFrame(), QFrame()]
+        for s in self.sq:
+            s.setFixedSize(16, 16); row.addWidget(s)
+        rw = QWidget(); rw.setLayout(row); lay.addWidget(rw)
+        cap = QLabel("C%d" % core); cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        cap.setStyleSheet("color:#8f7c52;font-size:9px;"); lay.addWidget(cap)
+        if not self.locked:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._paint()
+    def _paint(self):
+        if self.locked:  col, bd = "#3f7a39", "#2c571f"
+        elif self.on:    col, bd = "#5fd24f", "#36862c"
+        else:            col, bd = "#7c2424", "#4d1414"
+        for s in self.sq:
+            s.setStyleSheet("background:%s;border:1px solid %s;border-radius:3px;" % (col, bd))
+        self.setToolTip(L("core di avvio (sempre attivo)", "boot core (always on)") if self.locked
+                        else (L("attivo", "on") if self.on else L("spento", "off")))
+    def mousePressEvent(self, e):
+        if self.locked: return
+        self.on = not self.on; self._paint(); self.on_toggle(self.core, self.on)
 
 
 class Chart(QWidget):
@@ -274,6 +309,7 @@ class TunerWindow(QMainWindow):
         self.box.addWidget(self._gpu())
         self.box.addWidget(self._vram())
         self.box.addWidget(self._cu())
+        self.box.addWidget(self._sec_cpu_cores())
         self.box.addWidget(self._fan())
         self.box.addStretch(1)
 
@@ -653,6 +689,74 @@ class TunerWindow(QMainWindow):
         ba = QPushButton(L("Applica", "Apply")); ba.setDefault(True); ba.clicked.connect(self._apply_cu); pr.addWidget(ba)
         pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
         return g
+
+    def _sec_cpu_cores(self):
+        g, v = self._section(L("Core CPU — a caldo", "CPU cores — live"))
+        st = self.d.cmd(cmd="cpu-cores") or {}
+        self.cpu_cores = st.get("cores", [])
+        self.cpu_want = {c["core"]: c["online"] for c in self.cpu_cores}
+        grid = QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(5)
+        self.cpu_cells = {}
+        for i, c in enumerate(self.cpu_cores):
+            cell = CpuCore(c["core"], c["online"], not c.get("removable", True), self._cpu_toggle)
+            self.cpu_cells[c["core"]] = cell
+            grid.addWidget(cell, i // 8, i % 8)
+        gw = QWidget(); gw.setLayout(grid); v.addWidget(gw)
+        self.cpu_count_lbl = QLabel(); self.cpu_count_lbl.setStyleSheet("color:#d8a849;font-size:13px;")
+        v.addWidget(self.cpu_count_lbl); self._cpu_update_count()
+        pr = QHBoxLayout()
+        for lbl, n in ((L("Tutti", "All"), 99), ("6 core", 6), ("4 core", 4)):
+            b = QPushButton(lbl); b.clicked.connect(lambda _=False, k=n: self._cpu_preset(k)); pr.addWidget(b)
+        self.smt_cb = QCheckBox("SMT")
+        self.smt_cb.setChecked((st.get("smt") or "on") == "on")
+        self.smt_cb.setToolTip(L("Multi-threading: 2 thread per core. Spento = 1 thread per core.",
+                                 "Multi-threading: 2 threads per core. Off = 1 thread per core."))
+        self.smt_cb.toggled.connect(self._cpu_smt)
+        if not st.get("smt"): self.smt_cb.setEnabled(False)
+        pr.addWidget(self.smt_cb)
+        pr.addWidget(self._help_btn("cpucores"))
+        pr.addStretch(1)
+        ba = QPushButton(L("Applica", "Apply")); ba.clicked.connect(self._apply_cpu_cores); pr.addWidget(ba)
+        pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
+        return g
+
+    def _cpu_toggle(self, core, on):
+        self.cpu_want[core] = on; self._cpu_update_count()
+
+    def _cpu_update_count(self):
+        n = sum(1 for v in self.cpu_want.values() if v)
+        thr = n * (2 if getattr(self, "smt_cb", None) is None or self.smt_cb.isChecked() else 1)
+        self.cpu_count_lbl.setText(L("Core attivi: %d / %d  ·  %d thread", "Active cores: %d / %d  ·  %d threads")
+                                   % (n, len(self.cpu_want) or 8, thr))
+
+    def _cpu_preset(self, keep):
+        for c in self.cpu_cores:
+            want = True if keep >= len(self.cpu_cores) else (c["core"] < keep)
+            if not c.get("removable", True): want = True      # core 0 stays
+            self.cpu_want[c["core"]] = want
+            cell = self.cpu_cells.get(c["core"])
+            if cell and not cell.locked:
+                cell.on = want; cell._paint()
+        self._cpu_update_count()
+
+    def _cpu_smt(self, on):
+        res = self.d.cmd(cmd="cpu-smt", on=bool(on)) or {}
+        if res.get("ok"):
+            self.toast(L("SMT %s — %d thread", "SMT %s — %d threads")
+                       % (L("acceso", "on") if on else L("spento", "off"), res.get("nproc", 0)), 4)
+        else:
+            self.toast(L("SMT: %s", "SMT: %s") % res.get("err", "errore"), 6)
+        self._cpu_update_count()
+
+    def _apply_cpu_cores(self):
+        req = [{"core": k, "online": bool(v)} for k, v in self.cpu_want.items()]
+        res = self.d.cmd(cmd="cpu-cores-set", cores=req) or {}
+        if res.get("ok"):
+            self.cpu_cores = res.get("cores", self.cpu_cores)
+            self.toast(L("Core applicati — %d thread attivi", "Cores applied — %d active threads")
+                       % res.get("nproc", 0), 5)
+        else:
+            self.toast(L("Errore core: %s", "Core error: %s") % res.get("err", "apply failed"), 7)
 
     def _cu_toggle(self, rk, wgp, on):
         m = self.cu_rows.get(rk, 7)

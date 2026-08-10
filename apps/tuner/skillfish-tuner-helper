@@ -269,6 +269,78 @@ def cu_apply(rows):
     except Exception as e:
         return {"ok":False,"err":str(e)}
 
+def cpu_cores_get():
+    """Live CPU-core map: one entry per physical core with its SMT siblings.
+
+    Every logical CPU can be taken offline except cpu0 — it is the boot CPU and
+    this kernel is built without BOOTPARAM_HOTPLUG_CPU0 — so core 0 can drop its
+    second thread but never disappear entirely.
+    """
+    cores = {}
+    for p in sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*")):
+        n = os.path.basename(p)[3:]
+        if not n.isdigit(): continue
+        n = int(n)
+        try:
+            core = int(_rd("%s/topology/core_id" % p).strip())
+        except Exception:
+            continue  # offline CPUs hide their topology; folded in below
+        online = True if not os.path.exists(p + "/online") else _rd(p + "/online").strip() == "1"
+        cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
+        cores[core]["cpus"].append({"cpu": n, "online": online,
+                                    "removable": os.path.exists(p + "/online")})
+        if online: cores[core]["online"] = True
+        if not os.path.exists(p + "/online"): cores[core]["removable"] = False
+    # an offline CPU loses topology/core_id, so recover it from the sibling numbering
+    for p in sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*")):
+        n = os.path.basename(p)[3:]
+        if not n.isdigit(): continue
+        n = int(n)
+        if any(c["cpu"] == n for e in cores.values() for c in e["cpus"]): continue
+        core = n // 2   # this APU pairs threads as (2k, 2k+1)
+        cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
+        cores[core]["cpus"].append({"cpu": n, "online": False, "removable": True})
+    smt = None
+    try: smt = _rd("/sys/devices/system/cpu/smt/control").strip()
+    except Exception: pass
+    out = [cores[k] for k in sorted(cores)]
+    for e in out: e["cpus"].sort(key=lambda c: c["cpu"])
+    return {"ok": True, "cores": out, "nproc": os.cpu_count(), "smt": smt}
+
+
+def cpu_cores_set(states):
+    """states: list of {core, online}. Toggles both SMT siblings of each core.
+
+    Refuses to leave the machine with no cores and never touches cpu0, so a bad
+    request can't strand the box — the worst case is one core left running.
+    """
+    want = {}
+    for s in states or []:
+        try: want[int(s["core"])] = bool(s["online"])
+        except Exception: pass
+    if not want: return {"ok": False, "err": "nessun core specificato"}
+    cur = cpu_cores_get()["cores"]
+    if not any(want.get(e["core"], e["online"]) for e in cur):
+        return {"ok": False, "err": "almeno un core deve restare acceso"}
+    for e in cur:
+        tgt = want.get(e["core"])
+        if tgt is None: continue
+        for c in e["cpus"]:
+            if not c["removable"]: continue          # cpu0
+            _wr("/sys/devices/system/cpu/cpu%d/online" % c["cpu"], "1" if tgt else "0")
+    time.sleep(1)
+    return cpu_cores_get()
+
+
+def cpu_smt_set(on):
+    """Global SMT switch — halves or restores the thread count in one go."""
+    p = "/sys/devices/system/cpu/smt/control"
+    if not os.path.exists(p): return {"ok": False, "err": "SMT non controllabile su questo kernel"}
+    _wr(p, "on" if on else "off")
+    time.sleep(1)
+    return cpu_cores_get()
+
+
 def set_cu(unlock):
     """Abilita/disabilita lo sblocco 40 CU via parametro di boot GRUB. Richiede riavvio."""
     grub="/etc/default/grub"; param="amdgpu.bc250_cc_write_mode=3"
@@ -416,6 +488,9 @@ def handle(req):
     if c=="set-vram": return {"ok":set_vram(req["mb"]),"reboot":True}
     if c=="set-cu": return {"ok":set_cu(req["unlock"]),"reboot":True}
     if c=="cu-apply": return cu_apply(req.get("rows",[]))
+    if c=="cpu-cores": return cpu_cores_get()
+    if c=="cpu-cores-set": return cpu_cores_set(req.get("cores",[]))
+    if c=="cpu-smt": return cpu_smt_set(bool(req.get("on",True)))
     if c=="cu-test": return cu_test()
     if c=="thermal-guard": return {"ok":thermal_guard(req["limit"])}
     if c=="test-cpu": return test_cpu(req["mhz"],req["scale"],req["temp"])

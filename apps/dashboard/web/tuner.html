@@ -101,8 +101,18 @@
   <pre class="log" id="cutestlog"></pre>
 </div>
 
-<div class="panel"><h3>🧩 Mappa core CPU</h3>
-  <div class="stub">Layout fisico dei core (per affinità/pinning dei giochi). MHz live per core.</div>
+<div class="panel"><h3>🧩 Core CPU — a caldo, senza riavvio</h3>
+  <div class="brow">
+    <span class="pill" id="cpucount">– core attivi</span>
+    <button class="btn sec" data-cores="99">Tutti</button>
+    <button class="btn sec" data-cores="6">6 core</button>
+    <button class="btn sec" data-cores="4">4 core</button>
+    <label class="pill" style="cursor:pointer"><input type="checkbox" id="smtcb" checked style="vertical-align:-2px"> SMT</label>
+  </div>
+  <div class="cugrid" id="cpugrid" style="grid-template-columns:repeat(8,1fr)"></div>
+  <div class="brow"><button class="btn" id="cpucoresapply">Applica core</button></div>
+  <div class="stub">Ogni riquadro = 1 core fisico con i suoi 2 thread. Il <b>core 0</b> resta sempre acceso: ospita la CPU di avvio, il kernel non può spegnerlo. Spegnere core libera budget termico per far salire la frequenza dei rimanenti. Al riavvio tornano tutti accesi.</div>
+  <div class="stub" style="margin-top:10px">Layout fisico dei core (per affinità/pinning dei giochi). MHz live per core.</div>
   <div id="coremap" style="margin-top:8px"></div>
 </div>
 
@@ -159,6 +169,37 @@ function bindSlider(id, fmt){ const el=$("#"+id), v=$("#"+id+"v"); const upd=()=
 function renderGov(){ const m=(STATE.gpu||{}).gov_mode||"balanced";
   $("#govbal").classList.toggle("on", m==="balanced"); $("#govperf").classList.toggle("on", m!=="balanced"); }
 function renderFanMode(mode){ $("#fanauto").classList.toggle("on", mode!=="manual"); $("#fanman").classList.toggle("on", mode==="manual"); }
+
+// ---- CPU cores (live hotplug) ----
+let CPU_CORES = [];        // [{core, online, removable, cpus:[...]}]
+let cpuWant = {};          // core -> desired state, applied on "Applica core"
+
+function renderCPUCores(){
+  const g = $("#cpugrid"); if(!g) return;
+  g.innerHTML = "";
+  CPU_CORES.forEach(c=>{
+    const on = cpuWant[c.core];
+    const locked = !c.removable;          // core 0: holds the boot CPU
+    const d = document.createElement('div');
+    d.className = 'wgp'+(on?' on':'')+(locked?' locked':'');
+    d.innerHTML = '<div class="cu"></div><div class="cu"></div>';
+    d.title = locked ? 'core di avvio — sempre acceso' : (on?'acceso':'spento');
+    if(!locked) d.onclick = ()=>{ cpuWant[c.core] = !cpuWant[c.core]; renderCPUCores(); };
+    g.appendChild(d);
+  });
+  const n = CPU_CORES.filter(c=>cpuWant[c.core]).length;
+  const thr = n * ($("#smtcb") && $("#smtcb").checked ? 2 : 1);
+  $("#cpucount").textContent = n+" / "+CPU_CORES.length+" core · "+thr+" thread";
+}
+
+async function loadCPUCores(){
+  const r = await api("/api/tuner/cpu-cores");
+  if(!r || !r.cores) return;
+  CPU_CORES = r.cores;
+  cpuWant = {}; CPU_CORES.forEach(c=> cpuWant[c.core] = c.online);
+  if($("#smtcb")) $("#smtcb").checked = (r.smt || "on") === "on";
+  renderCPUCores();
+}
 
 function renderCU(){
   const g = $("#cugrid"); g.innerHTML = '<div class="cuh"></div>' +
@@ -248,6 +289,20 @@ $("#gpuwiz").onclick=async()=>{ if(!confirm("Il wizard testa frequenze GPU cresc
   else lg("gpulog","Nessun passo stabile."); busy(false); };
 $("#govbal").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"balanced"}); STATE.gpu.gov_mode="balanced"; renderGov(); toast("Governor: bilanciato"); };
 $("#govperf").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"performance"}); STATE.gpu.gov_mode="performance"; renderGov(); toast("Governor: prestazioni"); };
+document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{
+  const k=+b.dataset.cores;
+  CPU_CORES.forEach(c=> cpuWant[c.core] = (k>=CPU_CORES.length) ? true : (c.core<k || !c.removable));
+  renderCPUCores(); });
+$("#cpucoresapply").onclick=async()=>{ toast("Applico i core…");
+  const cores=CPU_CORES.map(c=>({core:c.core, online:!!cpuWant[c.core]}));
+  const x=await api("/api/tuner/cpu-cores",{cores});
+  if(x && x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online);
+    renderCPUCores(); toast("Core applicati — "+(x.nproc||"?")+" thread attivi"); }
+  else toast("Errore core: "+((x&&x.err)||"")); };
+$("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; toast("SMT "+(on?"acceso":"spento")+"…");
+  const x=await api("/api/tuner/cpu-cores",{smt:on});
+  if(x && x.ok){ toast("SMT "+(on?"acceso":"spento")+" — "+(x.nproc||"?")+" thread"); await loadCPUCores(); }
+  else toast("SMT: "+((x&&x.err)||"errore")); };
 document.querySelectorAll("[data-cu]").forEach(b=> b.onclick=()=>{ const m=+b.dataset.cu; CU_ROWS.forEach(([k])=>cuMask[k]=m|cuFloor); renderCU(); });
 $("#cuapply").onclick=async()=>{ toast("Applico CU a caldo…"); const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor);
   const x=await api("/api/tuner/cu",{rows}); toast(x.ok?("CU applicate: "+(x.active||cuActive())+" attive"):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
@@ -317,6 +372,6 @@ $("#fcadd").onclick=()=>{FC.points.push([75,65]);FC.points.sort((a,b)=>a[0]-b[0]
 $("#fcon").onclick=()=>{FC.enabled=true;fcRenderMode();fcSave();};
 $("#fcoff").onclick=()=>{FC.enabled=false;fcRenderMode();fcSave();};
 
-load(); loadProfiles(); loadCoremap(); loadFanCurve();
+load(); loadProfiles(); loadCoremap(); loadFanCurve(); loadCPUCores();
 </script>
 </body></html>
