@@ -1,0 +1,32 @@
+[Unit]
+# Genera le chiavi host di SSH al primo avvio.
+#
+# PERCHE' SERVE
+# L'immagine non contiene le chiavi host, ed e' giusto cosi': spedirle
+# significherebbe dare a tutte le installazioni la stessa identita', cioe' un
+# buco di sicurezza. Il problema e' che nella 26.06.3-rc2 nessuno le
+# rigenerava, quindi su un'installazione fresca ssh.service falliva:
+#
+#   Job for ssh.service failed because the control process exited with error
+#   ssh.service: Start request repeated too quickly
+#   ssh.service: Failed with result 'start-limit-hit'
+#
+# Verificato in VM: bastava `ssh-keygen -A` per farlo partire. Debian ha gia'
+# un sshd-keygen.service collegato via .wants, ma sull'immagine prodotta da
+# eggs non entra in funzione; questa unita' e' esplicita e non dipende da
+# quell'aggancio.
+#
+# ConditionPathExists negato: se la chiave c'e' gia', l'unita' viene saltata.
+Description=SkillFishOS - genera le chiavi host SSH al primo avvio
+Documentation=man:ssh-keygen(1)
+ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
+Before=ssh.service ssh.socket sshd.service
+Wants=ssh.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ssh-keygen -A
+
+[Install]
+WantedBy=multi-user.target
