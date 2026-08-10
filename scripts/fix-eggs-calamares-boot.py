@@ -64,6 +64,7 @@
 #
 # Da eseguire DOPO che eggs ha generato /etc/calamares e PRIMA di produrre la ISO.
 import os
+import re
 import shutil
 
 # ATTENZIONE: `eggs produce` RIGENERA /etc/calamares dai propri template e
@@ -114,6 +115,32 @@ PART_SUBS = [
     ("defaultFileSystemType: \"ext4\"", 'defaultFileSystemType:  "btrfs"'),
     ("initialSwapChoice: none", "initialSwapChoice: file"),
 ]
+
+
+def btrfs_first(text):
+    """Mette btrfs in cima ad availableFileSystemTypes.
+
+    Non basta defaultFileSystemType. Verificato avviando la ISO in VM: il menu a
+    tendina del filesystem mostrava **ext4** mentre l'anteprima delle partizioni
+    sotto diceva Btrfs — i due leggono cose diverse. L'anteprima usa
+    defaultFileSystemType, il menu preseleziona il PRIMO elemento di
+    availableFileSystemTypes, che era ext4.
+
+    Un utente che non guarda l'anteprima installa ext4 credendo di aver preso
+    quello che gli proponiamo, e si perde snapshot e rollback, che sono meta'
+    del motivo per cui usiamo btrfs. Con btrfs in cima all'elenco il menu e
+    l'anteprima dicono la stessa cosa qualunque delle due logiche prevalga.
+    """
+    m = re.search(r"^availableFileSystemTypes:\s*\n((?:\s*-\s*\S+\s*\n)+)", text, re.M)
+    if not m:
+        return text, None
+    items = re.findall(r"-\s*(\S+)", m.group(1))
+    if not items or items[0] == "btrfs" or "btrfs" not in items:
+        return text, items
+    ordered = ["btrfs"] + [i for i in items if i != "btrfs"]
+    indent = re.match(r"(\s*)-", m.group(1)).group(1)
+    block = "".join("%s- %s\n" % (indent, i) for i in ordered)
+    return text[:m.start(1)] + block + text[m.end(1):], ordered
 
 # --- 2. layout dei sottovolumi sicuro per GRUB ----------------------------
 # Nessun @boot: /boot resta dentro @, cosi' GRUB non deve attraversare un
@@ -169,6 +196,9 @@ def main():
             for a, b in PART_SUBS:
                 if a in t:
                     t = t.replace(a, b)
+            t, fslist = btrfs_first(t)
+            if fslist:
+                print("      elenco filesystem:", " ".join(fslist))
             if t != orig:
                 backup(f)
                 with open(f, "w", encoding="utf-8") as fh:
@@ -229,6 +259,9 @@ def verify():
                 bad.append("filesystem ancora ext4")
             if "initialSwapChoice: none" in t:
                 bad.append("swap ancora none")
+            fs = re.search(r"^availableFileSystemTypes:\s*\n\s*-\s*(\S+)", t, re.M)
+            if fs and fs.group(1) != "btrfs":
+                bad.append("nel menu comparirebbe %s per primo" % fs.group(1))
             print(("KO  : %s -> %s" % (f, ", ".join(bad))) if bad
                   else "OK  : %s -> btrfs + swap su file" % f)
             if bad:

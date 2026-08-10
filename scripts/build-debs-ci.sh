@@ -280,6 +280,14 @@ put $P 0644 system/usr/share/wallpapers/SkillFishOS/metadata.json \
     usr/share/wallpapers/SkillFishOS/metadata.json
 put $P 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png \
     usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
+# Il desktop preconfigurato che ogni nuovo utente eredita. Era un file orfano
+# sul disco della scheda, come lo sfondo: nessun pacchetto lo possedeva, quindi
+# una correzione non poteva raggiungere chi aveva gia' installato.
+#
+# La sua chiave Image= vince su quella del look-and-feel, ed e' il motivo per
+# cui il pacchetto wallpaper da solo non bastava: puntava ancora al PNG grezzo
+# e Plasma, davanti a un file singolo, ricade sul proprio sfondo predefinito.
+put $P 0644 system/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc     etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
@@ -321,5 +329,6 @@ check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampun
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)
 check skillfish-theme_${VER}_all.deb ./usr/share/icons/SkillFishSteampunk/scalable/actions/document-open.svg document_open_copper
 check skillfish-theme_${VER}_all.deb ./usr/share/wallpapers/SkillFishOS/metadata.json SkillFishOS
+check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc usr/share/wallpapers/SkillFishOS
 check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults usr/share/wallpapers/SkillFishOS
 echo "ALL DEBS VERIFIED"
