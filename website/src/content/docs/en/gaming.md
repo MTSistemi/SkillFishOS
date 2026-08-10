@@ -28,7 +28,7 @@ On SkillFishOS the `~/Emulation` folder can point to a network **NAS** (BIOS, RO
 ## Android and more
 
 - **[Waydroid](https://waydro.id/)** for Android apps/games (binder in the kernel, iptables support and ARM libraries);
-- **[Sober](https://sober.vinegarhq.org/)** as a Roblox player.
+- **[Sober](https://sober.vinegarhq.org/)** as a Roblox player — not preinstalled, grab it from the store with `flatpak install flathub org.vinegarhq.Sober`. It is an 18 MB app that drags in 1.1 GB of GNOME runtime: keeping it out of the image is what keeps the ISO small.
 
 > Note: local AI and Android should not be used together with heavy games, because they share the same GPU and memory.
 
