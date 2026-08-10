@@ -450,7 +450,7 @@ class Chart(QWidget):
         self.setMinimumSize(400, 190)
 
     def push(self, vals):
-        for d, v in zip(self.data, vals):
+        for d, v in zip(self.data, vals, strict=False):
             d.append(float(v) if v is not None else (d[-1] if d else 0.0))
         self.update()
 

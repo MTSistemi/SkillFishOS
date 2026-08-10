@@ -8,13 +8,17 @@
 #  - Live hardware panel: GPU + CPU model, VRAM and RAM available.
 #  - GTT slider: tune how much system RAM the GPU/LLM may use (amdgpu.gttsize).
 #  - On the generic OS build the GPU is auto-detected (unknown hardware).
-import sys, os, json, subprocess, shutil, urllib.request
+# shutil e urllib.request servivano solo al vecchio stack Ollama: shutil.which
+# per cercare docker, urllib per interrogare la sua API sulla 11434. Rimossi
+# quelli, gli import restavano orfani e ruff (regola F, bloccante in CI) faceva
+# fallire la build.
+import sys, os, json, subprocess
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QCheckBox, QPushButton, QComboBox, QSlider,
                              QProgressBar, QWizard, QWizardPage, QTextEdit, QMessageBox,
-                             QGridLayout, QLineEdit)
+                             QGridLayout)
 
 WEBUI_URL  = "http://localhost:8080"
 
