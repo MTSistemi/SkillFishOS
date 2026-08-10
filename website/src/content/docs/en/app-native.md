@@ -63,7 +63,17 @@ The **"My silicon"** panel sums up your board's profile — best CPU and GPU fou
 
 **Telemetry** shows temperature, frequency, CPU/GPU load, voltages, power draw and fan in real time. It opens automatically during Tuner tests, but it's also a standalone app. The **REC** button records a benchmark session to a **`.sfmon`** file (in `~/SkillFishOS-benchmarks/`): re-open it and Telemetry becomes an **analyzer** with a time scrubber to review the run second by second.
 
-![SkillFishOS Telemetry — live charts of temperature, frequency, GPU voltage and fan, with REC recording](/img/monitor.jpg)
+![SkillFishOS Telemetry — charts with a labelled axis and the per core/thread frequency panel](/img/telemetry-percore.jpg)
+
+### Per core/thread frequency
+
+With [8 cores unlocked](/en/docs/hardware-bc250) a single "CPU frequency" number says very little: at idle the sixteen threads can sit at 800, 1775 and 3990 MHz **at the same time**, so the value you read depends only on which core happened to be sampled.
+
+The bottom panel draws **one bar per thread**, paired by physical core and labelled `core·thread`. The colour runs from brass to ember as the thread climbs, the MHz are printed on each bar, and the header sums up **min, average, max and how many threads are online**. Threads you parked from the Tuner don't vanish: they stay as a dashed **"off"** slot, so the real configuration is visible at a glance.
+
+### Readable axes
+
+Every chart now has a **gridline scale with values on the vertical axis**, snapped to human numbers (`0 / 1000 / 2000 / 3000`, not `-160 / 1394 / 2948`). Zero becomes the floor when the data sits near it, so a MHz or fan-RPM chart never shows a negative baseline; and a flat line is no longer zoomed until noise looks like a mountain.
 
 ## SkillFishOS AI
 

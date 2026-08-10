@@ -63,7 +63,17 @@ Il pannello **«Il mio silicio»** riassume il profilo della tua scheda — CPU 
 
 **Telemetry** mostra in tempo reale temperatura, frequenza, carico CPU/GPU, voltaggi, assorbimento e ventola. Si apre automaticamente durante i test del Tuner, ma è anche un'app a sé. Il pulsante **REC** registra una sessione di benchmark in un file **`.sfmon`** (in `~/SkillFishOS-benchmarks/`): riaprendolo, Telemetry diventa un **analizzatore** con scrubber temporale per rivedere la run secondo per secondo.
 
-![SkillFishOS Telemetry — grafici live di temperatura, frequenza, voltaggio GPU e ventola, con registrazione REC](/img/monitor.jpg)
+![SkillFishOS Telemetry — grafici con asse dei valori e pannello della frequenza per core/thread](/img/telemetry-percore.jpg)
+
+### Frequenza per core/thread
+
+Con gli [8 core sbloccati](/docs/hardware-bc250) un unico numero "frequenza CPU" dice poco: a riposo i sedici thread possono stare **contemporaneamente** a 800, 1775 e 3990 MHz, quindi il valore che leggi dipende solo da quale core è stato campionato.
+
+Il pannello in fondo mostra **una barra per ogni thread**, raggruppate a coppie per core fisico ed etichettate `core·thread`. Il colore va dall'ottone alla brace man mano che il thread sale, i MHz sono scritti sopra ogni barra e l'intestazione riassume **minimo, media, massimo e quanti thread sono attivi**. I thread che hai spento dal Tuner non spariscono: restano come **slot tratteggiato "off"**, così vedi a colpo d'occhio la configurazione reale.
+
+### Assi leggibili
+
+Tutti i grafici hanno una **griglia con i valori sull'asse verticale**, agganciati a numeri tondi (`0 / 1000 / 2000 / 3000`, non `-160 / 1394 / 2948`). Lo zero diventa il fondo scala quando i dati gli stanno vicino, così un grafico di MHz o di giri ventola non mostra mai un fondo negativo; e una linea piatta non viene "zoomata" fino a trasformare il rumore in una montagna.
 
 ## SkillFishOS AI
 

@@ -38,7 +38,7 @@ Sign in with your **system username and password** (the same as the SkillFishOS 
 
 The dashboard composes itself from the modules you enabled:
 
-- **Telemetry** — live charts of temperatures, frequencies, Watts and CPU/GPU load.
+- **Telemetry** — live charts of temperatures, frequencies, Watts and CPU/GPU load, with values on the vertical axis and a bar panel showing **per core/thread frequency** (all 16 threads, parked ones clearly marked).
 - **System status** — host, IP, kernel, uptime, RAM, disk, active CUs, detected freezes.
 - **Controls (Tuner)** — quick presets plus the **full Tuner** on the web: CPU (frequency/undervolt/temperature), GPU (frequency/voltage/governor), **live Compute-Unit control** (WGP grid, no reboot), fan, VRAM, *Test* and the **"Find my max"** wizards.
 - **Apps & packages (Hub)** — a real **app store** (AppStream + Flatpak + Snap): browse by category, search, install/remove, update. The **SkillFishOS apps** are featured at the top.

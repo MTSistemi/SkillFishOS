@@ -6,7 +6,7 @@ The BC‑250 is a semi‑custom APU from the **AMD Zen 2 + RDNA 2** family: CPU 
 
 ---
 
-## 1. Custom kernel — `linux-tkg` 7.0.10‑skillfishos
+## 1. Custom kernel — `linux-tkg` 7.1.7‑skillfishos
 
 Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/linux-tkg) with:
 
@@ -18,7 +18,7 @@ Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/li
 
 > ⚠️ **Never enable IOMMU on the BC‑250** — it's broken on this hardware. Avoid kernels 6.15.0–6.15.6 and 6.17.8–6.17.10.
 
-Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.0.10-skillfishos).
+Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.1.7-skillfishos). Two variants ship: **generic** (`-march=x86-64`, runs on any x64 box) and **slim** (BC‑250 only). Measured against 7.0.11 the two kernels are **identical within ±2%** — the update is for maintenance and security, not speed.
 
 ---
 
@@ -39,16 +39,26 @@ Memory bandwidth was *measured* (clpeak/OpenCL) at **~350–367 GB/s** — healt
 
 ---
 
-## 3. CPU overclock & undervolt — 3.7 GHz
+## 3. CPU overclock & undervolt — 4.0 GHz
 
 A persistent SMU overclock via [`bc250_smu_oc`](https://github.com/bc250-collective/bc250_smu_oc), applied at boot by a one‑shot systemd service from `/etc/bc250-smu-oc.conf`:
 
-- **3700 MHz** with **Vid ≤ 1.325 V**, 6 cores active, **85 °C** thermal cap.
-- 3700 is this chip's verified‑stable maximum under an 85 °C cap; 3800 throttles back to 3700 reproducibly.
+- **4000 MHz** with **Vid ≤ 1.325 V**, **85 °C** thermal cap.
+- 4000 is this chip's verified‑stable maximum with **all 8 cores** unlocked, re‑measured step by step from 3500: every rung up to 4000 passes with **zero MCEs**, and the score climbs +14% over 3500. It only became reachable after the fan control was fixed — below ~3900 the limiter is the heatsink, not the silicon.
+- With **half the cores parked** (4c/8t) the ceiling moves to **4200 MHz**, but multi‑thread throughput halves: worth it only for loads that use ≤8 threads.
+- ⚠️ Under a **combined CPU+GPU** soak the clock settles at 3375‑3492 MHz at 86 °C — no crash, just the thermal budget.
 - **APU power sharing:** under a combined CPU+GPU load the APU eases the CPU to ~3450 MHz to stay in budget — by design, no instability. Under CPU‑only load it holds 3700 MHz pinned right at the 85 °C guard.
 - A **thermal guard** watchdog steps the clock down if temperature exceeds the cap.
 
 ⚠️ **SMU contention:** the governor and the OC tool both talk to the SMU. The OC service ordering (`After=`) and a lock prevent them from clashing during apply/detect.
+
+---
+
+## 3b. 8‑core unlock — 6c/12t → 8c/16t
+
+The BC‑250 ships with two cores fused off *in software*: the SMU's core‑enable mask at SMN `0x5A870` reads `0x77` (3 of 4 cores per CCX). Writing `0xFF` through SMU queue 3 (message `0x98`) brings all **8 cores / 16 threads** online — **no patched BIOS required**. `skillfish-core-unlock`, shipped in `skillfish-base`, does this at boot.
+
+Measured gain (same boot, extra cores toggled off via `/sys/.../cpuN/online`): **+20%** — `xz -T` 6.41 s → **5.11 s**, CPU llama.cpp inference 34.0 → **40.8 tok/s**, for +2 °C. Below the theoretical +33% because of memory bandwidth and thread overhead, but the unlock genuinely pays.
 
 ---
 
@@ -118,7 +128,25 @@ Controller battery levels (via UPower) are surfaced in the desktop HUD.
 
 ---
 
-## 11. Always‑on (no suspend)
+## 11. Telemetry — what this APU will and won't tell you
+
+The BC‑250 mis‑reports its own graphics clock: under load `pp_dpm_sclk` reads **17‑51 MHz**. Real numbers only come from the **SMU mailbox**, which is what `skillfish-gpu-freq-sampler` reads for the HUD and the charts.
+
+On the CPU side each Zen 2 core has its own P‑state, so per‑core frequency is real and meaningful — with 8 cores unlocked, idle threads sit at 800, 1775 and 3990 MHz *simultaneously*. Sampling one core (what `/proc/cpuinfo`'s first entry gives you) is therefore misleading, and **Monitor** and the dashboard now chart **every logical CPU** separately.
+
+**There is no per‑CU frequency, and that's hardware.** `umr -c` reports `max_shader_engines=2`, `max_sh_per_se=2`, `max_cu_per_sh=10` — 2×2×10 = **40 CU (20 WGP)** — all in a **single `sclk` domain**. RDNA2 has no per‑CU DVFS: every enabled CU always runs at the same clock, so there is nothing to read.
+
+Per‑CU *occupancy* is blocked too, on three independent counts (all measured with `vkcube` running):
+
+- `umr -wa` returns *"No active waves!"* — **GFXOFF** power‑gates the shader array between frames;
+- the `amdgpu_gfxoff*` debugfs nodes are **read‑only and return `EINVAL`**, so GFXOFF can't even be queried from there;
+- `GRBM_STATUS`, `GRBM_STATUS_SE0` and `GRBM_STATUS_SE1` stay pinned at `0x00000006` both idle and loaded — the cheap per‑shader‑engine signal doesn't move on this ASIC.
+
+Getting there would need GFXOFF disabled via module parameter plus `-O halt_waves`, which **halts the SQ** — unacceptable on a GPU that is driving the desktop.
+
+---
+
+## 12. Always‑on (no suspend)
 
 The BC‑250's ACPI suspend is broken (it enters `s2idle` and never wakes → reset). SkillFishOS **masks** `sleep.target suspend.target hibernate.target hybrid-sleep.target` and sets logind/KDE to never idle‑suspend or lock — so the box stays reachable (important for remote access) and a child or a remote session is never locked out. **This mask is mandatory on any desktop environment.**
 
