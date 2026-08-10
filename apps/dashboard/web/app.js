@@ -163,14 +163,28 @@ document.addEventListener("click", (e) => {
 });
 
 // ---------------- charts ----------------
-// Round the axis to human numbers (50/60/70, not 50.6/60.5): pick a 1/2/2.5/5-times-
-// power-of-ten step and snap the ends to it, otherwise the labels are unreadable.
+// Round the axis to human numbers (0/1000/2000, not -160/1394/2948). Two rules
+// beyond plain rounding: zero becomes the floor when the data sits near it (a MHz
+// or RPM chart must never show a negative baseline), and the step comes from the
+// *unpadded* range, or the padding inflates it and 3992 MHz lands on a 0-6000 axis.
+function niceStep(raw) {
+  if (!(raw > 0)) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
+}
 function niceScale(lo, hi, ticks) {
-  const raw = (hi - lo) / Math.max(1, ticks);
-  const mag = Math.pow(10, Math.floor(Math.log10(raw || 1)));
-  const n = raw / mag;
-  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
-  return { lo: Math.floor(lo / step) * step, hi: Math.ceil(hi / step) * step, step };
+  // a dead-flat series must not get a wildly zoomed axis: 800/800 MHz would
+  // otherwise be drawn on a 799.8-801.2 scale, amplifying nothing into noise
+  if (hi - lo < Math.max(1e-9, Math.abs(hi) * 0.005)) {
+    if (hi === 0) { lo = 0; hi = 1; }
+    else { const band = Math.abs(hi) * 0.05; lo = hi - band; hi = hi + band; }
+  }
+  const nonneg = lo >= 0;
+  if (nonneg && lo < hi - lo) lo = 0;
+  const span = hi - lo, step = niceStep(span / Math.max(1, ticks)), pad = span * 0.06;
+  let nlo = (nonneg && lo === 0) ? 0 : Math.floor((lo - pad) / step) * step;
+  if (nonneg) nlo = Math.max(0, nlo);
+  return { lo: nlo, hi: Math.ceil((hi + pad) / step) * step, step };
 }
 class Mini {
   constructor(canvas, series) { this.c = canvas; this.series = series; this.data = series.map(() => []); this.max = 90; }
@@ -180,11 +194,12 @@ class Mini {
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
     const x = cv.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
     let all = []; this.data.forEach(d => all = all.concat(d)); if (!all.length) return;
-    let lo = Math.min(...all), hi = Math.max(...all); if (hi - lo < 1e-6) hi = lo + 1; const m = (hi - lo) * 0.15; lo -= m; hi += m;
-    const sc = niceScale(lo, hi, 3); lo = sc.lo; hi = sc.hi;
+    const sc = niceScale(Math.min(...all), Math.max(...all), 4);   // padding included
+    let lo = sc.lo, hi = sc.hi;
     // plot area: a left gutter carries the y-axis values, otherwise the scale is unreadable
     const gx = 40, gw = Math.max(4, w - gx - 3), gy = 7, gh = Math.max(4, h - 14), span = hi - lo;
-    const dec = sc.step >= 1 ? 0 : (sc.step >= 0.1 ? 1 : 2);
+    let dec = 0;   // exactly the decimals the step needs: 0.25 -> "0.25", never "0.2"
+    while (dec < 3 && Math.abs(+sc.step.toFixed(dec) - sc.step) > 1e-9) dec++;
     x.font = "10px 'DejaVu Sans Mono',monospace"; x.textAlign = "right"; x.textBaseline = "middle";
     x.lineWidth = 1;
     for (let v = lo; v <= hi + sc.step / 2; v += sc.step) {
