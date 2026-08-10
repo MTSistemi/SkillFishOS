@@ -5,6 +5,10 @@
 # subprocess fan-out per sample). CPU load% is stateful (delta) → computed by callers.
 GHW=$(echo /sys/class/drm/card0/device/hwmon/hwmon*)
 hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && { echo "$h"; return; }; done; }
+# The NCT6686 is claimed by two drivers (mainline nct6683 + out-of-tree nct6687) and
+# both register an "nct6686" hwmon, in an order that changes between boots. Only one
+# carries the fan tacho, so pick by the node we actually need, not by first match.
+hw_with(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && [ -e "$h/$2" ] && { echo "$h"; return; }; done; }
 # locale: it* -> Italian labels, anything else -> English
 _loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-$LANGUAGE}}}"; case "$_loc" in it*) IT=1;; *) IT=0;; esac
 
@@ -21,7 +25,7 @@ get(){
     gpu_mv) cat "$GHW/in0_input" 2>/dev/null ;;
     cpu_mv) cat "$GHW/in1_input" 2>/dev/null ;;   # vddnb = APU SoC/uncore (CPU-side) rail; nct6686 Vcore reads 0 on the BC-250
     vram) awk '{printf "%.0f",$1/1048576}' /sys/class/drm/card0/device/mem_info_vram_used 2>/dev/null ;;
-    fan) cat "$(hw nct6686)/fan2_input" 2>/dev/null ;;
+    fan) cat "$(hw_with nct6686 fan2_input)/fan2_input" 2>/dev/null ;;
     cu) cat /run/skillfish/cu_active 2>/dev/null || echo "?" ;;
     cpu_mhz) awk -F: '/cpu MHz/{printf "%d",$2; exit}' /proc/cpuinfo 2>/dev/null ;;
   esac
