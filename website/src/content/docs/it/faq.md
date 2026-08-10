@@ -66,7 +66,7 @@ Sì: la sessione predefinita è X11 e gira **x11vnc**, quindi controlli il deskt
 ## AI locale
 
 **Che modello AI posso usare?**
-Il riferimento pratico è **`qwen3:14b`**, che gira al 100% su GPU. Lo stack è Ollama + OpenWebUI in **Vulkan** (non ROCm, non supportato su gfx1013). Vedi [AI in locale](/docs/ai-locale).
+Il motore è **Unsloth Studio** su **Vulkan** (non ROCm, non supportato su gfx1013), e i modelli sono GGUF presi da Hugging Face. Misurato sulla scheda: **210,7 tok/s** in generazione contro 41,5 su CPU. Vedi [AI in locale](/docs/ai-locale).
 
 **Posso giocare mentre l'AI è accesa?**
 No: AI e giochi pesanti condividono GPU e memoria. Spegni lo stack AI prima di giocare.

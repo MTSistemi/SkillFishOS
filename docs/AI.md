@@ -1,10 +1,19 @@
 # Local AI on the integrated GPU
 
-The BC‑250's 16 GB of shared GDDR6 makes it a surprisingly capable local‑LLM box. SkillFishOS runs an **Ollama + OpenWebUI** stack accelerated in **Vulkan** on the integrated GPU, with a one‑click brass panel to start/stop it (so it gives the GPU back when you want to game).
+The BC‑250's 16 GB of shared GDDR6 makes it a surprisingly capable local‑LLM box. SkillFishOS runs **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU, with a one‑click brass panel to start/stop it (so it gives the GPU back when you want to game).
 
 ## Why Vulkan, not ROCm
 
-ROCm **does not support `GFX1013`** (no rocBLAS/Tensile), and forcing `HSA_OVERRIDE_GFX_VERSION` is unsafe (ISA mismatch → silent errors/crashes). The right path is **llama.cpp / Ollama on the RADV Vulkan backend**. The official Ollama image lacks Mesa Vulkan drivers, so SkillFishOS builds a small custom image adding `mesa-vulkan-drivers libvulkan1 vulkan-tools`.
+ROCm **does not support `GFX1013`** (no rocBLAS/Tensile), and forcing `HSA_OVERRIDE_GFX_VERSION` is unsafe (ISA mismatch → silent errors/crashes). The right path is **llama.cpp on the RADV Vulkan backend**, which is exactly what Unsloth Studio ships.
+
+Measured on the board with Qwen3‑1.7B Q4_K_M:
+
+| | CPU only | GPU over Vulkan | |
+|---|---:|---:|---|
+| Generation | 41.5 tok/s | **210.7 tok/s** | **5.1×** |
+| Prompt processing | 9.2 tok/s | **157.2 tok/s** | **17×** |
+
+`UNSLOTH_FORCE_VULKAN=1` has to be set **before the installer runs**: it selects which llama.cpp bundle gets downloaded and cannot be changed at launch time.
 
 ## Memory tuning (critical)
 
@@ -17,18 +26,20 @@ amdgpu.gttsize=5120                                   # GTT, in MiB
 
 With this, Vulkan sees **~13 GiB** (UMA VRAM + GTT) instead of just the VRAM split — enough to fit large models entirely on the GPU. All memory is the same GDDR6, so GTT runs at VRAM speed (no PCIe hop).
 
-## The stack
+## The engine
 
-Managed as a docker‑compose stack (via **Dockge**), `restart: "no"` so it never steals the GPU at boot:
+`skillfish-unsloth.service` runs Unsloth Studio on `127.0.0.1:8888`. One native service provides **both** the chat UI and an **OpenAI‑compatible API**; it listens on loopback only, and remote access goes through the dashboard's PAM‑authenticated reverse proxy at `/unsloth`.
 
-- **Ollama** (Vulkan) on `:11434`, with `OLLAMA_FLASH_ATTENTION=1` and **`OLLAMA_KV_CACHE_TYPE=f16`**.
-- **OpenWebUI** (ChatGPT‑style web chat) on `:8080`, optional DuckDuckGo web search.
-- **OpenCode** (TUI coding agent) pointed at the local Ollama.
+Models are **GGUF files pulled straight from Hugging Face** through Studio's own interface, rather than from a curated registry — a far wider choice of models and quantisations, including the builds the Unsloth team publishes themselves. On this board, keeping weights under ~11 GB leaves room for everything else.
 
-> ⚠️ **Do not use a quantized KV cache (`q4_0`) on RADV** — it corrupts output (gibberish). Use `f16`. The trade‑off is memory: f16 KV is larger, so the practical sweet‑spot models are a **14B** (chat, 100 % GPU) and a **7B coder** (32K context, 100 % GPU). A 30B MoE fits but is slow with a coherent (f16) cache.
+The venv is built against **uv's bundled Python**, deliberately: an earlier install pointed at the system `python3.13`, and an `apt autoremove` that swept up the now‑orphaned interpreter left the service crash‑looping with `exec: .../bin/unsloth: not found` — the binary was there, the interpreter was not.
+
+### Superseded: the Ollama + OpenWebUI stack
+
+Earlier releases ran Ollama (`:11434`) plus OpenWebUI (`:8080`) as a docker‑compose stack with a custom Vulkan image. It still works and the dashboard **auto‑detects** which engine is present, so existing installs keep running untouched. Two notes if you are still on it: use `OLLAMA_FLASH_ATTENTION=1`, and **never** a quantized KV cache — `q4_0` corrupts output on RADV, use `f16`.
 
 ## One‑click panel
 
-The **SkillFish AI** panel (brass GTK4) toggles the whole stack: **ON** = `docker compose up -d`, **OFF** = `docker compose stop` (frees GPU + RAM). It shows status, the model in VRAM, and shortcuts to the web chat, Dockge and OpenCode. This is how "AI now, games later" stays a one‑click decision.
+The **SkillFish AI** panel toggles the engine, and the same switch exists in the web dashboard's *AI locale* card. It shows engine status, Vulkan acceleration and a shortcut to the chat UI. This is how "AI now, games later" stays a one‑click decision — AI and games should not share the GPU.
 
 See [OPTIMIZATIONS.md §5](OPTIMIZATIONS.md#5-memory-split--vram-uma--gtt) for the memory split details.

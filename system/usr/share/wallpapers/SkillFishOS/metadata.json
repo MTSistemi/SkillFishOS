@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "SkillFishOS"
+            }
+        ],
+        "Id": "SkillFishOS",
+        "License": "CC-BY-SA-4.0",
+        "Name": "SkillFishOS",
+        "Name[it]": "SkillFishOS",
+        "Website": "https://skillfishos.com"
+    },
+    "X-KDE-PluginInfo-Category": "Wallpaper"
+}

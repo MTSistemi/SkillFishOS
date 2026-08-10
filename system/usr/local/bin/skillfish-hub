@@ -22,12 +22,241 @@ CACHE_DIR = os.path.join(os.path.expanduser("~/.cache"), "skillfish-hub")
 SNAP_SOCK = "/run/snapd.socket"
 ODRS = "https://odrs.gnome.org/1.0/reviews/api"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
-         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    # top categories
+    "Games": "Gry", "Development": "Programowanie", "Graphics": "Grafika",
+    "Multimedia": "Multimedia", "Internet": "Internet", "Productivity": "Produktywność",
+    "Education & science": "Edukacja i nauka", "System": "System", "Utilities": "Narzędzia",
+    # Game sub-categories
+    "Action": "Akcja", "Adventure": "Przygodowe", "Arcade": "Zręcznościowe", "Board": "Planszowe",
+    "Card": "Karciane", "Kids": "Dla dzieci", "Logic": "Logiczne", "Role-playing": "Fabularne",
+    "Simulation": "Symulacje", "Sports": "Sportowe", "Strategy": "Strategiczne", "Shooter": "Strzelanki",
+    # Development sub-categories
+    "Building": "Budowanie", "Debugger": "Debugowanie", "Version control": "Kontrola wersji",
+    "Translation": "Tłumaczenie",
+    # Graphics sub-categories
+    "Vector": "Wektorowa", "Photography": "Fotografia", "Publishing": "Publikowanie",
+    "Viewers": "Przeglądarki", "Scanning": "Skanowanie",
+    # AudioVideo sub-categories
+    "Recorders": "Nagrywanie", "Editing": "Edycja", "Music": "Muzyka",
+    # Network sub-categories
+    "Browsers": "Przeglądarki internetowe", "Messaging": "Komunikatory",
+    "File transfer": "Przesyłanie plików", "Remote access": "Zdalny dostęp",
+    # Office sub-categories
+    "Word processors": "Procesory tekstu", "Spreadsheets": "Arkusze kalkulacyjne",
+    "Presentations": "Prezentacje", "Calendar": "Kalendarz", "Finance": "Finanse",
+    "Dictionaries": "Słowniki",
+    # Education sub-categories
+    "Astronomy": "Astronomia", "Biology": "Biologia", "Chemistry": "Chemia",
+    "Geography": "Geografia", "Maths": "Matematyka", "Physics": "Fizyka",
+    "Languages": "Języki", "Computer science": "Informatyka",
+    # System sub-categories
+    "Monitoring": "Monitorowanie", "Security": "Bezpieczeństwo", "Filesystem": "System plików",
+    "Terminal": "Terminal",
+    # Utility sub-categories
+    "Archiving": "Archiwizacja", "Calculators": "Kalkulatory", "Text editors": "Edytory tekstu",
+    "File managers": "Menedżery plików", "Clocks": "Zegary", "Accessibility": "Dostępność",
+    # general UI
+    "Loading the catalogue (APT + Flatpak)…": "Wczytywanie katalogu (APT + Flatpak)…",
+    "Fetching ratings (ODRS)…": "Pobieranie ocen (ODRS)…",
+    "Install": "Zainstaluj", "Remove": "Usuń",
+    "Loading screenshots…": "Wczytywanie zrzutów ekranu…",
+    "Explore": "Odkrywaj", "Installed": "Zainstalowane", "Updates": "Aktualizacje",
+    "Sources": "Źródła", "CATEGORIES": "KATEGORIE", "Search…": "Szukaj…",
+    "Refresh lists and check for updates": "Odśwież listy i sprawdź aktualizacje",
+    "All": "Wszystkie", "Loading the software catalogue…": "Wczytywanie katalogu oprogramowania…",
+    "All sources": "Wszystkie źródła", "Name": "Nazwa", "Rating": "Ocena",
+    "Filter:": "Filtr:", "Sort:": "Sortuj:", "No results.": "Brak wyników.",
+    "Featured · SkillFishOS": "Polecane · SkillFishOS", "Most popular": "Najpopularniejsze",
+    "Editor's choice": "Wybór redakcji", "Search": "Szukaj", "Search: ": "Szukaj: ",
+    "Searching…": "Wyszukiwanie…", "Open": "Otwórz", "Source": "Źródło", "Version": "Wersja",
+    "Size": "Rozmiar", "License": "Licencja", "Website": "Strona internetowa",
+    "What's new": "Co nowego", "Permissions": "Uprawnienia", "Channel:": "Kanał:",
+    "network/ipc: ": "sieć/ipc: ", "sockets: ": "gniazda: ", "devices: ": "urządzenia: ",
+    "filesystem: ": "system plików: ", "Reviews": "Recenzje", "Installing": "Instalowanie",
+    "Removing": "Usuwanie", "Unsupported backend: ": "Nieobsługiwany backend: ",
+    "Close": "Zamknij", "✓ Done.": "✓ Gotowe.", "Checking for updates…": "Sprawdzanie aktualizacji…",
+    "Everything is up to date ✓": "Wszystko aktualne ✓", "Update all": "Aktualizuj wszystko",
+    "Updating the whole system…": "Aktualizowanie całego systemu…",
+    "✓ Update complete.": "✓ Aktualizacja zakończona.",
+    "Refreshing the package lists…": "Odświeżanie list pakietów…",
+    "Reloading…": "Ponowne wczytywanie…", "Software sources": "Źródła oprogramowania",
+    "Backends": "Backendy", "(not installed)": "(nie zainstalowano)",
+    "APT repositories": "Repozytoria APT", "+ Add repository": "+ Dodaj repozytorium",
+    "Flatpak remotes": "Zdalne repozytoria Flatpak",
+    "Backend updated. Reloading…": "Backend zaktualizowany. Ponowne wczytywanie…",
+    "Add APT repository": "Dodaj repozytorium APT",
+    "key .asc URL (optional)": "URL klucza .asc (opcjonalnie)",
+    "Suite": "Seria", "Components": "Komponenty", "Key": "Klucz", "Add": "Dodaj",
+    "Cancel": "Anuluj", "Adding the repository…": "Dodawanie repozytorium…",
+    "Removing the repository…": "Usuwanie repozytorium…",
+    "Repository updated. Reloading…": "Repozytorium zaktualizowane. Ponowne wczytywanie…",
+}
+
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+# Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
+# a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
+UK = {
+    "Games": "Ігри",
+    "Development": "Розробка",
+    "Graphics": "Графіка",
+    "Multimedia": "Мультимедіа",
+    "Internet": "Інтернет",
+    "Productivity": "Продуктивність",
+    "Education & science": "Освіта та наука",
+    "System": "Система",
+    "Utilities": "Утиліти",
+    "Action": "Екшен",
+    "Adventure": "Пригоди",
+    "Arcade": "Аркади",
+    "Board": "Настільні",
+    "Card": "Карткові",
+    "Kids": "Дитячі",
+    "Logic": "Логічні",
+    "Role-playing": "Рольові",
+    "Simulation": "Симулятори",
+    "Sports": "Спортивні",
+    "Strategy": "Стратегії",
+    "Shooter": "Шутери",
+    "Building": "Складання",
+    "Debugger": "Зневаджувач",
+    "Version control": "Контроль версій",
+    "Translation": "Переклад",
+    "Vector": "Векторна графіка",
+    "Photography": "Фотографія",
+    "Publishing": "Верстка",
+    "Viewers": "Переглядачі",
+    "Scanning": "Сканування",
+    "Recorders": "Запис",
+    "Editing": "Редагування",
+    "Music": "Музика",
+    "Browsers": "Браузери",
+    "Messaging": "Обмін повідомленнями",
+    "File transfer": "Передавання файлів",
+    "Remote access": "Віддалений доступ",
+    "Word processors": "Текстові процесори",
+    "Spreadsheets": "Електронні таблиці",
+    "Presentations": "Презентації",
+    "Calendar": "Календар",
+    "Finance": "Фінанси",
+    "Dictionaries": "Словники",
+    "Astronomy": "Астрономія",
+    "Biology": "Біологія",
+    "Chemistry": "Хімія",
+    "Geography": "Географія",
+    "Maths": "Математика",
+    "Physics": "Фізика",
+    "Languages": "Мови",
+    "Computer science": "Інформатика",
+    "Monitoring": "Моніторинг",
+    "Security": "Безпека",
+    "Filesystem": "Файлова система",
+    "Terminal": "Термінал",
+    "Archiving": "Архівування",
+    "Calculators": "Калькулятори",
+    "Text editors": "Текстові редактори",
+    "File managers": "Файлові менеджери",
+    "Clocks": "Годинники",
+    "Accessibility": "Доступність",
+    "Loading the catalogue (APT + Flatpak)…": "Завантаження каталогу (APT + Flatpak)…",
+    "Fetching ratings (ODRS)…": "Отримання оцінок (ODRS)…",
+    "Install": "Встановити",
+    "Remove": "Вилучити",
+    "Loading screenshots…": "Завантаження знімків екрана…",
+    "Explore": "Огляд",
+    "Installed": "Встановлені",
+    "Updates": "Оновлення",
+    "Sources": "Джерела",
+    "CATEGORIES": "КАТЕГОРІЇ",
+    "Search…": "Пошук…",
+    "Refresh lists and check for updates": "Оновити списки та перевірити наявність оновлень",
+    "All": "Усі",
+    "Loading the software catalogue…": "Завантаження каталогу програм…",
+    "All sources": "Усі джерела",
+    "Name": "Назва",
+    "Rating": "Оцінка",
+    "Filter:": "Фільтр:",
+    "Sort:": "Сортування:",
+    "No results.": "Нічого не знайдено.",
+    "Featured · SkillFishOS": "Рекомендовані · SkillFishOS",
+    "Most popular": "Найпопулярніші",
+    "Editor's choice": "Вибір редакції",
+    "Search": "Пошук",
+    "Search: ": "Пошук: ",
+    "Searching…": "Триває пошук…",
+    "Open": "Відкрити",
+    "Source": "Джерело",
+    "Version": "Версія",
+    "Size": "Розмір",
+    "License": "Ліцензія",
+    "Website": "Вебсайт",
+    "What's new": "Що нового",
+    "Permissions": "Дозволи",
+    "Channel:": "Канал:",
+    "network/ipc: ": "мережа/ipc: ",
+    "sockets: ": "сокети: ",
+    "devices: ": "пристрої: ",
+    "filesystem: ": "файлова система: ",
+    "Reviews": "Відгуки",
+    "Installing": "Встановлення",
+    "Removing": "Вилучення",
+    "Unsupported backend: ": "Непідтримуваний бекенд: ",
+    "Close": "Закрити",
+    "✓ Done.": "✓ Готово.",
+    "Checking for updates…": "Перевірка оновлень…",
+    "Everything is up to date ✓": "Усе оновлено ✓",
+    "Update all": "Оновити все",
+    "Updating the whole system…": "Оновлення всієї системи…",
+    "✓ Update complete.": "✓ Оновлення завершено.",
+    "Refreshing the package lists…": "Оновлення списків пакунків…",
+    "Reloading…": "Перезавантаження…",
+    "Software sources": "Джерела програм",
+    "Backends": "Бекенди",
+    "(not installed)": "(не встановлено)",
+    "APT repositories": "Репозиторії APT",
+    "+ Add repository": "+ Додати репозиторій",
+    "Flatpak remotes": "Віддалені джерела Flatpak",
+    "Backend updated. Reloading…": "Бекенд оновлено. Перезавантаження…",
+    "Add APT repository": "Додати репозиторій APT",
+    "key .asc URL (optional)": "URL ключа .asc (необов’язково)",
+    "Suite": "Випуск (suite)",
+    "Components": "Компоненти",
+    "Key": "Ключ",
+    "Add": "Додати",
+    "Cancel": "Скасувати",
+    "Adding the repository…": "Додавання репозиторію…",
+    "Removing the repository…": "Вилучення репозиторію…",
+    "Repository updated. Reloading…": "Репозиторій оновлено. Перезавантаження…",
+}
+
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
+    return en
 
 def run(cmd, t=120):
     try:

@@ -44,7 +44,7 @@ The dashboard composes itself from the modules you enabled:
 - **Apps & packages (Hub)** — a real **app store** (AppStream + Flatpak + Snap): browse by category, search, install/remove, update. The **SkillFishOS apps** are featured at the top.
 - **Desktop (KVM)** — see and control the board's real desktop from the browser (noVNC), no extra hardware.
 - **Terminal** — a web shell (ttyd) inside the dashboard.
-- **AI / OpenWebUI** — engine status, installed models and a chat with the local LLM, running on the BC-250 GPU.
+- **On-device AI** — Unsloth engine status, Vulkan acceleration and a chat with the local LLM, running on the BC-250 GPU.
 - **AI-Ops** — the local LLM reads logs and telemetry and diagnoses problems for you.
 - **Logs**, **automatic rules** (auto-throttle above a °C threshold), **Wake-on-LAN** and scheduled power on/off.
 - **ZeroTier** — to reach the dashboard **from anywhere** (see below).

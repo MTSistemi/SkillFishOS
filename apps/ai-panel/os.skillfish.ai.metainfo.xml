@@ -6,11 +6,14 @@
   <name>SkillFishOS AI</name>
   <summary>Run local AI models on the integrated GPU, on demand</summary>
   <summary xml:lang="it">Esegui modelli AI locali sulla GPU integrata, on-demand</summary>
+  <summary xml:lang="pl">Uruchamiaj lokalne modele AI na zintegrowanej GPU, na żądanie</summary>
   <description>
     <p>A one-click panel for an on-device LLM stack (Ollama + OpenWebUI, accelerated in Vulkan on the BC-250 GPU). A first-run wizard installs the stack and lets you pick a model from a curated list of more than 30 options that fit the hardware.</p>
     <p>Shows live CPU, GPU, VRAM and RAM, and a slider to grow the shared memory available to the model. Turn the engine off with one click to free the GPU for gaming. Nothing leaves the machine.</p>
     <p xml:lang="it">Un pannello 1-click per uno stack LLM locale (Ollama + OpenWebUI, accelerato in Vulkan sulla GPU della BC-250). Un wizard alla prima esecuzione installa lo stack e ti fa scegliere un modello da una lista curata di oltre 30 opzioni adatte all'hardware.</p>
+    <p xml:lang="pl">Panel 1-click dla lokalnego stacka LLM (Ollama + OpenWebUI, przyspieszany w Vulkanie na GPU BC-250). Kreator pierwszego uruchomienia instaluje stack i pozwala wybrać model z wyselekcjonowanej listy ponad 30 opcji dopasowanych do sprzętu.</p>
     <p xml:lang="it">Mostra CPU, GPU, VRAM e RAM in tempo reale, e un cursore per aumentare la memoria condivisa disponibile al modello. Spegni il motore con un clic per liberare la GPU per i giochi. Nessun dato lascia la macchina.</p>
+    <p xml:lang="pl">Pokazuje na żywo zużycie CPU, GPU, VRAM i RAM oraz suwak do zwiększania pamięci współdzielonej dostępnej dla modelu. Wyłącz silnik jednym kliknięciem, by zwolnić GPU do grania. Żadne dane nie opuszczają komputera.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.ai.desktop</launchable>
   <icon type="stock">skillfishos</icon>
@@ -33,6 +36,7 @@
     <screenshot type="default">
       <caption>AI panel with hardware readout</caption>
       <caption xml:lang="it">Pannello AI con lettura hardware</caption>
+      <caption xml:lang="pl">Panel AI z odczytem sprzętu</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/ai-panel.jpg</image>
     </screenshot>
   </screenshots>

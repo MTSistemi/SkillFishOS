@@ -66,7 +66,7 @@ Yes: the default session is X11 and **x11vnc** runs, so you can control the desk
 ## Local AI
 
 **Which AI model can I use?**
-The practical reference is **`qwen3:14b`**, which runs fully on the GPU. The stack is Ollama + OpenWebUI in **Vulkan** (not ROCm, unsupported on gfx1013). See [Local AI](/en/docs/ai-locale).
+The engine is **Unsloth Studio** on **Vulkan** (not ROCm, unsupported on gfx1013), and models are GGUF files pulled from Hugging Face. Measured on the board: **210.7 tok/s** generating vs 41.5 on CPU. See [On-device AI](/en/docs/ai-locale).
 
 **Can I game while the AI is on?**
 No: AI and heavy games share GPU and memory. Shut down the AI stack before playing.

@@ -44,7 +44,7 @@ La dashboard si compone in automatico in base ai moduli che hai attivato:
 - **App e pacchetti (Hub)** — un vero **app store** (AppStream + Flatpak + Snap): sfoglia per categorie, cerca, installa/rimuovi, aggiorna. Le **app SkillFishOS** sono messe in evidenza in cima.
 - **Desktop (KVM)** — vedi e controlli il desktop reale della board dal browser (noVNC), niente hardware aggiuntivo.
 - **Terminale** — una shell web (ttyd) dentro la dashboard.
-- **AI / OpenWebUI** — stato del motore, modelli installati e chat con l'LLM locale, sulla GPU della BC-250.
+- **AI locale** — stato del motore Unsloth, accelerazione Vulkan e chat con l’LLM locale, sulla GPU della BC-250.
 - **AI-Ops** — l'LLM locale legge log e telemetria e ti diagnostica eventuali problemi.
 - **Log**, **Regole automatiche** (auto-throttle oltre soglia °C), **Wake-on-LAN** e accensione/spegnimento programmati.
 - **ZeroTier** — per raggiungere la dashboard **da ovunque** (vedi sotto).

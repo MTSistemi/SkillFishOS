@@ -45,8 +45,8 @@ The three userpatches:
 Output `.deb`s land in `DEBS/`. Install:
 
 ```sh
-sudo dpkg -i linux-image-7.0.10-skillfishos_*.deb linux-headers-7.0.10-skillfishos_*.deb
-sudo apt-mark hold linux-image-7.0.10-skillfishos linux-headers-7.0.10-skillfishos
+sudo dpkg -i linux-image-7.1.7-skillfishos_*.deb linux-headers-7.1.7-skillfishos_*.deb
+sudo apt-mark hold linux-image-7.1.7-skillfishos linux-headers-7.1.7-skillfishos
 sudo update-grub
 ```
 

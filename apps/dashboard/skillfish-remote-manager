@@ -11,11 +11,87 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 CTL = "/usr/local/bin/skillfish-remote-ctl"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LANG") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    "Telemetry": "Telemetria",
+    "System status": "Stan systemu",
+    "Controls": "Sterowanie",
+    "Apps & packages": "Aplikacje i pakiety",
+    "Launcher": "Uruchamianie aplikacji",
+    "Desktop (KVM)": "Pulpit (KVM)",
+    "Terminal": "Terminal",
+    "Auto rules": "Reguły automatyczne",
+    "Power schedule": "Harmonogram zasilania",
+    "SkillFishOS — Remote Manager": "SkillFishOS — Remote Manager",
+    "Remote control panel · SkillFishOS": "Panel zdalnego sterowania · SkillFishOS",
+    "ACCESS": "DOSTĘP",
+    "Open in browser": "Otwórz w przeglądarce",
+    "EXPOSED MODULES": "UDOSTĘPNIONE MODUŁY",
+    "  (coming)": "  (wkrótce)",
+    "service unavailable": "usługa niedostępna",
+    "Turn off": "Wyłącz",
+    "Turn on": "Włącz",
+    "● On": "● Włączona",
+    "○ Off": "○ Wyłączona",
+    "  · at boot: ": "  · przy starcie: ",
+    "Log in with user “%s” password.": "Zaloguj się hasłem użytkownika „%s”.",
+}
+
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+# Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
+# a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
+UK = {
+    "Telemetry": "Телеметрія",
+    "System status": "Стан системи",
+    "Controls": "Керування",
+    "Apps & packages": "Програми та пакунки",
+    "Launcher": "Лаунчер",
+    "Desktop (KVM)": "Робочий стіл (KVM)",
+    "Terminal": "Термінал",
+    "Auto rules": "Автоматичні правила",
+    "Power schedule": "Розклад живлення",
+    "SkillFishOS — Remote Manager": "SkillFishOS — Віддалене керування",
+    "Remote control panel · SkillFishOS": "Панель віддаленого керування · SkillFishOS",
+    "ACCESS": "ДОСТУП",
+    "Open in browser": "Відкрити у браузері",
+    "EXPOSED MODULES": "ДОСТУПНІ МОДУЛІ",
+    "  (coming)": "  (незабаром)",
+    "service unavailable": "служба недоступна",
+    "Turn off": "Вимкнути",
+    "Turn on": "Увімкнути",
+    "● On": "● Увімк.",
+    "○ Off": "○ Вимк.",
+    "  · at boot: ": "  · при завантаженні: ",
+    "Log in with user “%s” password.": "Увійдіть за допомогою пароля користувача «%s».",
+}
+
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
+    return en
 
 # id, icon, name, ready?  (not-ready modules need external tools still to be wired)
 MODULES = [

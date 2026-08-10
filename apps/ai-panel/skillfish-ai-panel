@@ -8,20 +8,19 @@
 #  - Live hardware panel: GPU + CPU model, VRAM and RAM available.
 #  - GTT slider: tune how much system RAM the GPU/LLM may use (amdgpu.gttsize).
 #  - On the generic OS build the GPU is auto-detected (unknown hardware).
-import sys, os, json, subprocess, shutil, urllib.request
+# shutil e urllib.request servivano solo al vecchio stack Ollama: shutil.which
+# per cercare docker, urllib per interrogare la sua API sulla 11434. Rimossi
+# quelli, gli import restavano orfani e ruff (regola F, bloccante in CI) faceva
+# fallire la build.
+import sys, os, json, subprocess
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QCheckBox, QPushButton, QComboBox, QSlider,
                              QProgressBar, QWizard, QWizardPage, QTextEdit, QMessageBox,
-                             QGridLayout, QLineEdit)
+                             QGridLayout)
 
-STACK_DIR  = "/opt/stacks/skillfish-ai"
-COMPOSE_NAMES = ("compose.yaml", "compose.yml", "docker-compose.yml", "docker-compose.yaml")
-CONTAINER  = "skillfish-ollama"
-OLLAMA_API = "http://localhost:11434"
 WEBUI_URL  = "http://localhost:8080"
-DOCKGE_URL = "http://localhost:5001"
 
 # Unsloth Studio: the current engine. One native service runs GGUF models through
 # llama.cpp's Vulkan backend (the only GPU path on gfx1013) and serves both the chat
@@ -85,11 +84,115 @@ CATALOG = [
 ]
 
 def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
     val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
            or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if val.lower().startswith("it") else "en"
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina; "ua" e' quello del paese.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
+    return "en"
 LANG = _detect_lang()
-def L(it, en): return it if LANG == "it" else en
+
+# Traduzione polacca: ancora da scrivere per questo pannello. Il meccanismo e'
+# quello delle altre app (chiavi = stringhe inglesi passate a L), cosi' basta
+# riempire il dizionario. Finche' e' vuoto un utente polacco vede l'inglese,
+# che e' comunque meglio dell'italiano.
+PL = {
+    "unknown": "nieznany",
+    "SkillFish AI - Setup": "SkillFish AI - Konfiguracja",
+    "Welcome to SkillFish AI": "Witamy w SkillFish AI",
+    "All set!": "Gotowe!",
+    "Installing the engine": "Instalowanie silnika",
+    "Install / Start": "Zainstaluj / Uruchom",
+    "Model": "Model",
+    "active model / name to pull": "aktywny model / nazwa do pobrania",
+    "Use": "Użyj",
+    "Pull": "Pobierz",
+    "Hardware": "Sprzęt",
+    "Shared memory for the model": "Pamięć współdzielona dla modelu",
+    "Apply and reboot": "Zastosuj i uruchom ponownie",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "Na BC-250 pamięć jest współdzielona GPU/CPU: to zwiększa część pamięci systemowej (GTT), której model może użyć poza VRAM, dzięki czemu mieszczą się większe modele. To parametr jądra → wymagany jest restart (zmiana na żywo nie jest możliwa na tym sprzęcie, zweryfikowane).",
+    "Open Chat (web)": "Otwórz czat (web)",
+    "Refresh": "Odśwież",
+    "… working …": "… pracuję …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Ten kreator instaluje i uruchamia Unsloth Studio, lokalny silnik LLM przyspieszany w Vulkan na GPU.\n\nPrzy pierwszym logowaniu Unsloth poprosi o ustawienie hasła: wybierasz je sam, nie jest tworzone stąd. Modele pobiera się później z jego własnego interfejsu.\n\nWszystko działa lokalnie: żadne dane nie opuszczają Twojego komputera.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Silnik AI jest gotowy. Modele i pamięć GPU (GTT) możesz zmienić w panelu w dowolnej chwili.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Naciśnij „Zainstaluj”, aby pobrać i skonfigurować Unsloth Studio z backendem Vulkan. To około 2 GB: może potrwać kilka minut.",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Modele pobiera się i wybiera wewnątrz Unsloth Studio (przycisk „Otwórz czat”).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Lokalny silnik LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Silnik WYŁ. — GPU/pamięć wolne dla gier",
+    "n/a (non-AMD GPU or shared VRAM)": "nd. (GPU inne niż AMD lub współdzielona VRAM)",
+    "not available on this GPU": "niedostępne na tym GPU",
+    "n/a": "nd.",
+    "● Engine ON — ready": "● Silnik WŁ. — gotowy",
+    "free": "wolne",
+    "operation cancelled": "operacja anulowana",
+    "Models are downloaded inside Unsloth Studio: open “Open Chat” and pick the model there.":
+        "Modele pobiera się wewnątrz Unsloth Studio: otwórz „Otwórz czat” i wybierz model tam.",
+    "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
+        "\n✓ Unsloth Studio zainstalowany i uruchomiony. Przy pierwszym logowaniu poprosi o ustawienie hasła: wybierasz je sam.",
+}
+
+# Polacco e ucraino di questo pannello: li ho scritti io, NON un madrelingua.
+# Il polacco delle altre app e' di cyryllo (github.com/cyryllo), qui il
+# dizionario era rimasto vuoto e quindi tutto restava in inglese.
+UK = {
+    "unknown": "невідомо",
+    "SkillFish AI - Setup": "SkillFish AI - Налаштування",
+    "Welcome to SkillFish AI": "Ласкаво просимо до SkillFish AI",
+    "All set!": "Готово!",
+    "Installing the engine": "Встановлення рушія",
+    "Install / Start": "Встановити / Запустити",
+    "Model": "Модель",
+    "active model / name to pull": "активна модель / назва для завантаження",
+    "Use": "Використати",
+    "Pull": "Завантажити",
+    "Hardware": "Обладнання",
+    "Shared memory for the model": "Спільна пам’ять для моделі",
+    "Apply and reboot": "Застосувати і перезавантажити",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "На BC-250 пам’ять спільна для ГП і ЦП: це збільшує частку системної пам’яті (GTT), яку модель може використати додатково до VRAM, тож поміщаються більші моделі. Це параметр ядра → потрібне перезавантаження (зміна наживо на цьому обладнанні неможлива, перевірено).",
+    "Open Chat (web)": "Відкрити чат (веб)",
+    "Refresh": "Оновити",
+    "… working …": "… виконується …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Цей майстер встановлює і запускає Unsloth Studio — локальний рушій LLM з прискоренням через Vulkan на ГП.\n\nПри першому вході Unsloth попросить встановити пароль: ви обираєте його самі, звідси він не створюється. Моделі потім завантажуються з його власного інтерфейсу.\n\nУсе працює локально: жодні дані не залишають ваш комп’ютер.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Рушій ШІ готовий. Змінювати моделі й налаштовувати пам’ять ГП (GTT) можна в панелі будь-коли.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Натисніть «Встановити», щоб завантажити і налаштувати Unsloth Studio з бекендом Vulkan. Це близько 2 ГБ: може зайняти кілька хвилин.",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Моделі завантажуються і обираються всередині Unsloth Studio (кнопка «Відкрити чат»).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Локальний рушій LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Рушій ВИМК. — ГП і пам’ять вільні для ігор",
+    "n/a (non-AMD GPU or shared VRAM)": "н/д (не AMD ГП або спільна VRAM)",
+    "not available on this GPU": "недоступно на цьому ГП",
+    "n/a": "н/д",
+    "● Engine ON — ready": "● Рушій УВІМК. — готовий",
+    "free": "вільно",
+    "operation cancelled": "операцію скасовано",
+    "Models are downloaded inside Unsloth Studio: open “Open Chat” and pick the model there.":
+        "Моделі завантажуються всередині Unsloth Studio: відкрийте «Відкрити чат» і виберіть модель там.",
+    "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
+        "\n✓ Unsloth Studio встановлено і запущено. При першому вході він попросить встановити пароль: ви обираєте його самі.",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
+    return en
 
 def sh(cmd, t=60):
     try:
@@ -188,104 +291,34 @@ def unsloth_installed():
     return os.path.exists(UNSLOTH_BIN)
 
 def engine_kind():
-    """'unsloth' once it is installed, otherwise the legacy Docker stack."""
-    return "unsloth" if unsloth_installed() else "ollama"
+    """Il motore e' uno solo: Unsloth Studio.
+
+    Qui c'era la scelta col vecchio stack Ollama su Docker. Docker e' stato
+    disinstallato e /opt/stacks rimossa, quindi quel ramo non era piu'
+    percorribile: restava solo a far credere che ci fosse un'alternativa.
+    """
+    return "unsloth"
 
 def unsloth_running():
     rc, out, _ = sh(f"systemctl is-active {UNSLOTH_SVC}", 8)
     return out.strip() == "active"
 
-def docker_ok():
-    return shutil.which("docker") is not None
-
-def compose_file():
-    for n in COMPOSE_NAMES:
-        p = os.path.join(STACK_DIR, n)
-        if os.path.exists(p): return p
-    return os.path.join(STACK_DIR, "compose.yaml")  # default target to create
-
-def stack_present():
-    return any(os.path.exists(os.path.join(STACK_DIR, n)) for n in COMPOSE_NAMES)
-
 def engine_running():
-    if engine_kind() == "unsloth":
-        return unsloth_running()
-    rc, out, _ = sh(f"docker inspect -f '{{{{.State.Running}}}}' {CONTAINER}", 8)
-    return out == "true"
+    return unsloth_running()
 
 def installed_models():
-    # Unsloth keeps its models behind its own authenticated API, so we don't list
-    # them here — its UI is the place to add and pick models.
-    if engine_kind() == "unsloth":
-        return []
-    # prefer the HTTP API (works while the engine is up)
-    try:
-        with urllib.request.urlopen(OLLAMA_API + "/api/tags", timeout=4) as r:
-            data = json.load(r)
-            return sorted(m["name"] for m in data.get("models", []))
-    except Exception:
-        pass
-    rc, out, _ = sh(f"docker exec {CONTAINER} ollama list", 10)
-    names = []
-    for line in out.splitlines()[1:]:
-        if line.strip(): names.append(line.split()[0])
-    return sorted(names)
-
-def docker_image_present():
-    rc, out, _ = sh("docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null", 10)
-    return any(k in out for k in ("ollama", "skillfish-ollama"))
-
-def container_exists():
-    rc, out, _ = sh("docker ps -a --format '{{.Names}}' 2>/dev/null", 8)
-    return CONTAINER in out.split()
+    # Unsloth tiene i modelli dietro la propria API autenticata: non li elenchiamo
+    # da qui, si scelgono dalla sua interfaccia.
+    return []
 
 def stack_installed():
-    """True when an engine is really installed. The first-run wizard is shown ONLY
-    when this is False. Unsloth counts on its own — it needs no Docker at all."""
-    if unsloth_installed():
-        return True
-    return stack_present() and docker_ok() and (docker_image_present() or container_exists())
+    """Vero quando il motore e' davvero installato: la procedura di primo avvio
+    compare SOLO quando e' falso."""
+    return unsloth_installed()
 
 def is_configured():
     # wizard appears only if the stack is NOT already installed
     return stack_installed()
-
-# Which engine this run is about: Unsloth once installed, and for fresh setups when
-# its installer is present. A box that already runs the Docker stack keeps it.
-UNSLOTH_MODE = unsloth_installed() or (os.path.exists(UNSLOTH_INSTALLER) and not stack_present())
-
-DEFAULT_COMPOSE = """services:
-  ollama:
-    image: ollama/ollama:rocm
-    container_name: skillfish-ollama
-    restart: unless-stopped
-    environment:
-      # BC-250 (gfx1013): use the Vulkan backend and allow the integrated GPU,
-      # otherwise Ollama silently falls back to slow CPU inference.
-      - OLLAMA_VULKAN=1
-      - OLLAMA_IGPU_ENABLE=1
-      - OLLAMA_FLASH_ATTENTION=1
-      - OLLAMA_KEEP_ALIVE=30m
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    volumes:
-      - ./ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: skillfish-openwebui
-    restart: unless-stopped
-    depends_on:
-      - ollama
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-    volumes:
-      - ./openwebui_data:/app/backend/data
-    ports:
-      - "8080:8080"
-"""
 
 # ---------- worker threads ----------
 class Worker(QThread):
@@ -315,16 +348,14 @@ class SetupWizard(QWizard):
         self.chosen_model = None
         self.addPage(self._welcome())
         self.install_page = InstallPage(); self.addPage(self.install_page)
-        # Unsloth downloads models from its own UI, so the model-pull page would have
-        # nothing to do — it is only added for the legacy Ollama stack.
-        if not UNSLOTH_MODE:
-            self.model_page = ModelPage(self); self.addPage(self.model_page)
+        # La pagina di scelta del modello non c'e': i modelli si scaricano dentro
+        # Unsloth Studio, che ha il proprio catalogo dietro la propria autenticazione.
         self.addPage(self._finish())
 
     def _welcome(self):
         p = QWizardPage(); p.setTitle(L("Benvenuto in SkillFish AI", "Welcome to SkillFish AI"))
         v = QVBoxLayout(p)
-        if UNSLOTH_MODE:
+        if True:
             t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
                          "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
                          "ti chiederà di impostare una password: la scegli tu, non viene "
@@ -335,13 +366,6 @@ class SetupWizard(QWizard):
                          "to set a password: you choose it, it is not created from here. Models "
                          "are then downloaded from its own interface."
                          "\n\nEverything runs locally: no data leaves your PC."))
-        else:
-            t = QLabel(L("Questa procedura installa e avvia il motore LLM locale (Ollama + "
-                         "Vulkan) e ti fa scegliere un modello da scaricare.\n\nTutto gira "
-                         "in locale sulla GPU: nessun dato lascia il PC.",
-                         "This wizard installs and starts the local LLM engine (Ollama + "
-                         "Vulkan) and lets you choose a model to download.\n\nEverything runs "
-                         "locally on the GPU: no data leaves your PC."))
         t.setWordWrap(True); v.addWidget(t)
         # hardware summary
         gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
@@ -367,16 +391,12 @@ class InstallPage(QWizardPage):
         self.setTitle(L("Installazione del motore", "Installing the engine"))
         self.ok = False
         v = QVBoxLayout(self)
-        if UNSLOTH_MODE:
+        if True:
             self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
                                  "con il backend Vulkan. Sono circa 2 GB: può richiedere "
                                  "qualche minuto.",
                                  "Press “Install” to download and set up Unsloth Studio with the "
                                  "Vulkan backend. It is about 2 GB: this may take a few minutes."))
-        else:
-            self.info = QLabel(L("Premi «Installa» per preparare docker, lo stack e l'immagine "
-                                 "Ollama-Vulkan.", "Press “Install” to set up docker, the stack "
-                                 "and the Ollama-Vulkan image."))
         self.info.setWordWrap(True); v.addWidget(self.info)
         self.btn = QPushButton(L("Installa / Avvia", "Install / Start")); self.btn.clicked.connect(self.run)
         v.addWidget(self.btn)
@@ -388,32 +408,22 @@ class InstallPage(QWizardPage):
     def _append(self, s): self.log.append(s)
     def run(self):
         self.btn.setEnabled(False); self.bar.show()
-        user = os.environ.get("USER") or os.environ.get("LOGNAME") or "skillfish"
-        steps = []
-        if UNSLOTH_MODE:
-            # One privileged step: the installer fetches Unsloth, forces the Vulkan
-            # llama.cpp bundle and installs the systemd unit.
-            self.steps = [f"pkexec sh -c 'UNSLOTH_FORCE_VULKAN=1 bash {UNSLOTH_INSTALLER}'"]
-            self.i = 0; self._next(); return
-        if not docker_ok():
-            steps.append("pkexec sh -c 'apt-get update && apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker'")
-        # add the desktop user to the docker group so `docker` works without sudo (needs re-login)
-        steps.append(f"pkexec usermod -aG docker {user}")
-        steps.append(f"pkexec mkdir -p {STACK_DIR}" if not os.access(os.path.dirname(STACK_DIR), os.W_OK) else f"mkdir -p {STACK_DIR}")
-        if not stack_present():
-            # write a default compose if the SkillFishOS one is absent (needs root for /opt)
-            tgt = os.path.join(STACK_DIR, "compose.yaml")
-            steps.append("pkexec sh -c " + repr(f"cat > {tgt} <<'EOF'\n{DEFAULT_COMPOSE}EOF\n"))
-        # run compose as root: the docker group membership above only applies after re-login,
-        # so the very first start must not rely on it (this is the fix for the perm-denied bug)
-        steps.append(f"pkexec sh -c 'cd {STACK_DIR} && docker compose up -d'")
-        self._queue = steps; self._next()
+        # Un solo passo privilegiato: l'installer scarica Unsloth, forza il bundle
+        # llama.cpp con Vulkan e installa la unit systemd.
+        #
+        # ATTENZIONE, qui c'era un difetto: si impostava self.steps mentre _next()
+        # legge self._queue, che non veniva creato da nessuna parte. Premere
+        # «Installa» sollevava un AttributeError. Non si vedeva perche' questa
+        # procedura compare solo quando il motore NON e' ancora installato, e sulla
+        # macchina di sviluppo lo e' sempre stato.
+        self._queue = [f"pkexec sh -c 'UNSLOTH_FORCE_VULKAN=1 bash {UNSLOTH_INSTALLER}'"]
+        self._next()
     def _next(self):
         if not self._queue:
-            self._append(L("\n✓ Stack avviato. Esci e rientra nella sessione perché l'accesso "
-                           "a Docker senza sudo diventi effettivo.",
-                           "\n✓ Stack started. Log out and back in so passwordless Docker "
-                           "access takes effect."))
+            self._append(L("\n✓ Unsloth Studio installato e avviato. Al primo accesso ti chiedera' "
+                           "di impostare una password: la scegli tu.",
+                           "\n✓ Unsloth Studio installed and started. On first sign-in it will ask "
+                           "you to set a password: you choose it."))
             self.bar.hide(); self.ok = True; self.completeChanged.emit(); return
         cmd = self._queue.pop(0)
         self._append("$ " + (cmd[:90] + ("…" if len(cmd) > 90 else "")))
@@ -424,45 +434,6 @@ class InstallPage(QWizardPage):
             self._append(L(f"! comando fallito (rc={rc}) — continuo",
                            f"! command failed (rc={rc}) — continuing"))
         self._next()
-
-class ModelPage(QWizardPage):
-    def __init__(self, wiz):
-        super().__init__(); self.wiz = wiz
-        self.setTitle(L("Scegli un modello", "Choose a model"))
-        self.ok = False
-        v = QVBoxLayout(self)
-        v.addWidget(QLabel(L("Seleziona un modello da scaricare (o scrivine uno qualsiasi "
-                             "dalla libreria Ollama):", "Pick a model to download (or type "
-                             "any name from the Ollama library):")))
-        self.combo = QComboBox()
-        for name, desc in CATALOG: self.combo.addItem(f"{name}   —   {desc}", name)
-        self.combo.setEditable(False); v.addWidget(self.combo)
-        cr = QHBoxLayout()
-        cr.addWidget(QLabel(L("oppure nome libero:", "or custom name:")))
-        self.custom = QLineEdit(); self.custom.setPlaceholderText("es. gemma3:12b")
-        cr.addWidget(self.custom); v.addLayout(cr)
-        self.btn = QPushButton(L("Scarica modello", "Download model")); self.btn.clicked.connect(self.pull)
-        v.addWidget(self.btn)
-        self.bar = QProgressBar(); self.bar.setRange(0, 0); self.bar.hide(); v.addWidget(self.bar)
-        self.log = QTextEdit(); self.log.setReadOnly(True); self.log.setMinimumHeight(150); v.addWidget(self.log)
-        self._w = None
-    def isComplete(self): return self.ok
-    def pull(self):
-        name = self.custom.text().strip() or self.combo.currentData()
-        if not name: return
-        self.wiz.chosen_model = name
-        self.btn.setEnabled(False); self.bar.show(); self.log.append(L(f"Scarico {name}…", f"Pulling {name}…"))
-        self._w = Worker(f"docker exec {CONTAINER} ollama pull {name}", 3600)
-        self._w.line.connect(lambda s: self.log.append(s))
-        self._w.done.connect(self._done); self._w.start()
-    def _done(self, rc):
-        self.bar.hide(); self.btn.setEnabled(True)
-        if rc == 0:
-            cfg = load_cfg(); cfg["model"] = self.wiz.chosen_model; cfg["setup_done"] = True; save_cfg(cfg)
-            self.log.append(L("✓ Modello pronto.", "✓ Model ready.")); self.ok = True; self.completeChanged.emit()
-        else:
-            self.log.append(L("! download fallito", "! download failed"))
-
 
 # ======================= MAIN PANEL =======================
 class Panel(QMainWindow):
@@ -489,7 +460,7 @@ class Panel(QMainWindow):
 
         # engine switch
         self.eng = engine_kind()
-        engname = "Unsloth Studio" if self.eng == "unsloth" else "Ollama"
+        engname = "Unsloth Studio"
         g = QGroupBox(L(f"Motore AI (LLM) — {engname}", f"AI Engine (LLM) — {engname}")); gv = QVBoxLayout(g)
         self.cb = QCheckBox(L(f"Acceso — accende/spegne {engname}. Spegnilo prima di giocare.",
                               f"On — starts/stops {engname}. Turn it off before gaming."))
@@ -555,8 +526,6 @@ class Panel(QMainWindow):
         bw = QPushButton(L("Apri Chat (web)", "Open Chat (web)")); bw.clicked.connect(lambda: sh(f"xdg-open {chat_url} &"))
         br = QPushButton(L("Aggiorna", "Refresh")); br.clicked.connect(self.refresh_all)
         b.addWidget(bw)
-        if self.eng != "unsloth":   # Dockge only makes sense for the Docker stack
-            bd = QPushButton("Dockge"); bd.clicked.connect(lambda: sh(f"xdg-open {DOCKGE_URL} &")); b.addWidget(bd)
         b.addWidget(br)
         v.addLayout(b)
 
@@ -577,7 +546,7 @@ class Panel(QMainWindow):
                                "Local LLM engine · Unsloth Studio · Vulkan GPU"))
         else:
             self.sub.setText(L(f"Motore LLM locale · modello: {self.model}", f"Local LLM engine · model: {self.model}"))
-        api = UNSLOTH_URL + "/v1" if self.eng == "unsloth" else OLLAMA_API
+        api = UNSLOTH_URL + "/v1"
         if run:
             self.status.setText(L("● Motore ACCESO — pronto", "● Engine ON — ready")
                                 + f"   ·   API {api}")
@@ -631,11 +600,8 @@ class Panel(QMainWindow):
         if self.busy: return
         self.busy = True; self.cb.setEnabled(False)
         self.status.setText(L("… operazione in corso …", "… working …"))
-        if self.eng == "unsloth":
-            action = "start" if state else "stop"
-            cmd = f"pkexec systemctl {action} {UNSLOTH_SVC}"
-        else:
-            cmd = (f"cd {STACK_DIR} && docker compose up -d") if state else (f"cd {STACK_DIR} && docker compose stop")
+        action = "start" if state else "stop"
+        cmd = f"pkexec systemctl {action} {UNSLOTH_SVC}"
         self._t = Worker(cmd, 180); self._t.done.connect(self._toggled); self._t.start()
     def _toggled(self, rc):
         self.busy = False; self.cb.setEnabled(True); self.refresh_engine()
@@ -649,13 +615,15 @@ class Panel(QMainWindow):
     def pull_model(self):
         name = self.modelbox.currentText().strip()
         if not name: return
-        if not engine_running():
-            QMessageBox.information(self, "SkillFish AI", L("Accendi prima il motore AI.", "Turn the AI engine on first."))
-            return
-        self.bpull.setEnabled(False); self.modelmsg.setText(L(f"Scarico {name}…", f"Pulling {name}…"))
-        self._p = Worker(f"docker exec {CONTAINER} ollama pull {name}", 3600)
-        self._p.line.connect(lambda s: self.statusBar().showMessage(s, 1500))
-        self._p.done.connect(lambda rc: self._pulled(rc, name)); self._p.start()
+        # Scaricare il modello da qui era possibile con Ollama. Unsloth Studio ha il
+        # proprio catalogo dietro la propria autenticazione: non possiamo farlo al
+        # posto dell'utente, e dirglielo e' meglio che un pulsante che non fa nulla.
+        QMessageBox.information(self, "SkillFish AI",
+                                L("I modelli si scaricano dentro Unsloth Studio: apri «Apri Chat» "
+                                  "e scegli il modello da li'.",
+                                  "Models are downloaded inside Unsloth Studio: open “Open Chat” "
+                                  "and pick the model there."))
+        return
     def _pulled(self, rc, name):
         self.bpull.setEnabled(True)
         self.modelmsg.setText(L(f"✓ {name} scaricato" if rc == 0 else f"! errore su {name}",

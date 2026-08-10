@@ -46,7 +46,7 @@ The Tuner **tests each profile on your own BC-250** and automatically **rolls ba
 
 ## 6. (Optional) Turn on local AI
 
-When you need an offline AI assistant, open the **AI panel** and start the [Ollama + OpenWebUI](/en/docs/ai-locale) stack. Remember: AI and heavy games should **not** be used together (same GPU and memory). With the stack off, the GPU goes back fully to gaming.
+When you need an offline AI assistant, open the **AI panel** and start [Unsloth Studio](/en/docs/ai-locale). Remember: AI and heavy games should **not** be used together (same GPU and memory). With the engine off, the GPU goes back fully to gaming.
 
 ## Things to know right away
 

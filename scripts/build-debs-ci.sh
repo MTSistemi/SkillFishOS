@@ -95,6 +95,11 @@ put $P 0644 system/etc/systemd/system/skillfish-wol.service          etc/systemd
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
 put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
+put $P 0755 system/usr/local/bin/skillfish-fix-boot-extents         usr/local/bin/skillfish-fix-boot-extents
+put $P 0755 system/usr/local/bin/skillfish-is-bc250                usr/local/bin/skillfish-is-bc250
+put $P 0644 system/etc/systemd/system/skillfish-sshd-keygen.service etc/systemd/system/skillfish-sshd-keygen.service
+put $P 0644 system/etc/ssh/sshd_config.d/10-skillfish.conf        etc/ssh/sshd_config.d/10-skillfish.conf
+put $P 0644 system/etc/systemd/coredump.conf.d/10-skillfish.conf  etc/systemd/coredump.conf.d/10-skillfish.conf
 put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
 put $P 0644 system/etc/systemd/system/skillfish-gpu-freq.service      etc/systemd/system/skillfish-gpu-freq.service
@@ -104,7 +109,7 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
-ctrl $P "systemd, libnotify-bin, python3, cpio" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
@@ -113,10 +118,27 @@ cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 set -e
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
+  # senza chiavi host ssh.service fallisce all'infinito su installazione fresca
+  systemctl enable skillfish-sshd-keygen.service || true
+  [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
   systemctl enable skillfish-core-unlock.service || true
   # ntsync serve a Proton: caricalo subito, non al prossimo riavvio
   modprobe ntsync 2>/dev/null || true
+  # guardia hardware sui servizi specifici della BC-250: senza, su un PC
+  # normale ripartono ogni 5 secondi all'infinito
+  for u in cyan-skillfish-governor skillfish-core-unlock skillfish-cu            skillfish-gpu-freq skillfish-gpu-util skillfish-thermal-guard            skillfish-dp-hotswap; do
+    f=""
+    for d in /etc/systemd/system /usr/lib/systemd/system; do
+      [ -f "$d/$u.service" ] && { f="$d/$u.service"; break; }
+    done
+    [ -n "$f" ] || continue
+    grep -q 'ExecCondition=/usr/local/bin/skillfish-is-bc250' "$f" && continue
+    grep -q '^ExecStart=' "$f" || continue
+    sed -i '0,/^ExecStart=/s##ExecCondition=/usr/local/bin/skillfish-is-bc250
+ExecStart=#' "$f" || true
+  done
+  systemctl daemon-reload || true
   systemctl enable --now skillfish-gpu-freq.service || true
   systemctl enable --now skillfish-wol.service || true
   modprobe sp5100_tco 2>/dev/null || true
@@ -148,6 +170,37 @@ open(p, 'w', encoding='utf-8').write(t.replace(oa, na).replace(ob, nb))
 PY
   echo "skillfish-base: HUD aggiornato a 16 thread in $cfg"
 done
+
+# Le quattro lingue di SkillFishOS.
+#
+# Le traduzioni polacche (di cyryllo) sono nelle app da mesi, ma sull'immagine
+# risultavano generati solo en_US e it_IT: senza il locale generato, KDE non
+# mostra la lingua nel menu delle impostazioni e SDDM non la offre. Il polacco
+# era quindi presente nel codice e irraggiungibile per l'utente. Verificato
+# sulla scheda con `locale -a`: due voci in tutto.
+#
+# Qui li abilitiamo tutti e quattro in locale.gen e rigeneriamo, ma solo se
+# qualcosa e' davvero cambiato: locale-gen ci mette parecchio e non ha senso
+# rifarlo a ogni aggiornamento del pacchetto.
+if [ -f /etc/locale.gen ]; then
+  need=0
+  for l in en_US.UTF-8 it_IT.UTF-8 pl_PL.UTF-8 uk_UA.UTF-8; do
+    if grep -qE "^${l} UTF-8" /etc/locale.gen; then
+      continue
+    elif grep -qE "^[#[:space:]]*${l} UTF-8" /etc/locale.gen; then
+      sed -i "s|^[#[:space:]]*\(${l} UTF-8\)|\1|" /etc/locale.gen
+      need=1
+    else
+      echo "${l} UTF-8" >> /etc/locale.gen
+      need=1
+    fi
+  done
+  if [ "$need" = 1 ]; then
+    echo "skillfish-base: genero i locale it/en/pl/uk (ci vuole qualche secondo)"
+    locale-gen >/dev/null 2>&1 || true
+  fi
+fi
+
 exit 0
 POSTINST
 # On removal the SSDT would vanish while GRUB still referenced it, so undo the
@@ -214,6 +267,19 @@ putdir $P theme/plasma-theme/SkillFishSteampunk       usr/share/plasma/desktopth
 putdir $P theme/look-and-feel/org.skillfish.steampunk usr/share/plasma/look-and-feel/org.skillfish.steampunk
 putdir $P theme/Kvantum/SkillFishSteampunk            usr/share/Kvantum/SkillFishSteampunk
 put $P 0644 theme/color-scheme/SkillFishSteampunk.colors usr/share/color-schemes/SkillFishSteampunk.colors
+# Lo sfondo come vero PACCHETTO wallpaper, non come PNG sciolto.
+# Plasma, nella chiave Image= del look-and-feel, si aspetta una cartella con
+# metadata.json e contents/images/: davanti a un file singolo non lo risolve e
+# ricade sullo sfondo predefinito. Ecco perche' nessuno vedeva il nostro sfondo
+# ne' nella live ne' dopo l'installazione. Il percorso e' dichiarato in
+# theme/look-and-feel/org.skillfish.steampunk/contents/defaults.
+#
+# Queste righe stavano piu' in basso, in mezzo ai controlli: giravano dopo
+# dpkg-deb e i file non entravano mai nel pacchetto.
+put $P 0644 system/usr/share/wallpapers/SkillFishOS/metadata.json \
+    usr/share/wallpapers/SkillFishOS/metadata.json
+put $P 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png \
+    usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
@@ -240,6 +306,11 @@ check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel 
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents reflink=never
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
+check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication
+check skillfish-base_${VER}_all.deb          ./etc/systemd/coredump.conf.d/10-skillfish.conf ExternalSizeMax
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
@@ -249,4 +320,6 @@ check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampun
 # guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)
 check skillfish-theme_${VER}_all.deb ./usr/share/icons/SkillFishSteampunk/scalable/actions/document-open.svg document_open_copper
+check skillfish-theme_${VER}_all.deb ./usr/share/wallpapers/SkillFishOS/metadata.json SkillFishOS
+check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults usr/share/wallpapers/SkillFishOS
 echo "ALL DEBS VERIFIED"

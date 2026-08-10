@@ -18,7 +18,7 @@ Valide per **tutti** i benchmark sotto, salvo dove indicato diversamente.
 | Scheda | **AMD BC-250** — APU Zen 2 "Oberon" + RDNA 2 "Cyan Skillfish" (`gfx1013`) |
 | Memoria | **16 GB GDDR6** unificata (UMA) |
 | Compute Unit | **40 / 40 attive** (instradate a caldo, vedi [GPU](/docs/gpu-overclock)) |
-| Kernel | **7.0.10-skillfishos** (linux-tkg) |
+| Kernel | **7.0.10-skillfishos** (linux-tkg) — la versione con cui furono presi questi numeri; oggi spediamo la **7.1.7**, rimisurata entro il 2% |
 | Driver | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO |
 | Governor GPU | cyan-skillfish — idle **350 MHz / 700 mV**, carico **2230 MHz / ~1000 mV** |
 | Profilo OC | **Turbo/Crazy** (GPU cap 2230 MHz, CPU 3.9–4.0 GHz) |
@@ -166,6 +166,35 @@ Con le 40 CU attive: **+85%** in FP32 sulla baseline (≈**11.3 TFLOPS**). A cal
 - **Vid massimo invalicabile: 1.325 V** (mai superato).
 - Cap termico **85 °C** su tutti i profili; ventola automatica; a riposo GPU **350 MHz / 700 mV**.
 
+## 🔓 Sblocco degli 8 core — +20% reale
+
+La BC-250 ha **due core spenti via software**: la maschera di abilitazione del SMU riporta 3 core su 4 per ogni CCX. SkillFishOS la riscrive e porta la CPU a **8 core / 16 thread**, senza BIOS modificati.
+
+Misurato sullo stesso avvio, spegnendo e riaccendendo i due core in più a caldo:
+
+| Carico | 6c/12t | 8c/16t | |
+|---|---|---|---|
+| Compressione `xz -T` | 6,41 s | **5,11 s** | **+20%** |
+| Inferenza LLM su CPU | 34,0 tok/s | **40,8 tok/s** | **+20%** |
+| Temperatura | 66 °C | 68 °C | +2 °C |
+
+È +20% e non il +33% teorico: banda di memoria e overhead dei thread si mangiano la differenza. Resta comunque **un quinto di prestazioni in più gratis**.
+
+### Overclock con tutti e 8 i core
+
+Rimisurato gradino per gradino, tutti **stabili con 0 MCE**:
+
+| Target | Raggiunti sotto carico | Punteggio | Temp | Ventola |
+|---|---|---|---|---|
+| 3500 (controllo) | 3475 | 5118 ev/s | 57 °C | — |
+| 3700 | 3673 | 5410 | 62 °C | 50% |
+| 3900 | 3872 | 5704 | 71 °C | 68% |
+| **4000** | **3971** | **5849** | **81 °C** | **93%** |
+
+**Massimo stabile: 4000 MHz**, +14% di punteggio rispetto a 3500 — raggiungibile solo dopo aver corretto il controllo della ventola. ⚠️ Sotto carico **combinato CPU+GPU** il clock si assesta a 3375–3492 MHz a 86 °C: oltre i ~3900 il limite è il dissipatore, non il silicio.
+
+---
+
 ## 🌡️ Validazione termica (stress test)
 
 Dati registrati durante la validazione automatica del Tuner (test-and-rollback).
@@ -173,7 +202,7 @@ Dati registrati durante la validazione automatica del Tuner (test-and-rollback).
 | Fase | Clock | Temperatura | Note |
 |---|---|---|---|
 | Idle | CPU ~2.5 GHz · GPU 350 MHz | k10 46 °C · GPU 45 °C | a riposo |
-| **CPU stress** (12 thread, 120 s) | CPU **3.68–3.69 GHz** | k10 **85 °C** (al cap) | GPU resta a 350 MHz/56 °C |
+| **CPU stress** (12 thread, 120 s) | CPU **3.68–3.69 GHz** | k10 **85 °C** (al cap) | misura storica, **prima** dello sblocco degli 8 core |
 | **GPU stress** (vkpeak loop, 120 s) | GPU **2000 MHz** | edge fino a **86 °C** | a 86 °C il governor scende a 1819–1900 MHz (thermal-guard); la CPU cala a ~2.2–2.4 GHz per il budget condiviso |
 
 ---

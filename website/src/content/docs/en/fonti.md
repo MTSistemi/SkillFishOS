@@ -55,7 +55,7 @@ SkillFishOS is an integration effort: it brings together the work of many open s
 
 ## Local AI
 
-- **[Ollama](https://ollama.com/)** · **[OpenWebUI](https://openwebui.com/)** · **[Dockge](https://github.com/louislam/dockge)**
+- **[Unsloth](https://unsloth.ai/)** · **[llama.cpp](https://github.com/ggml-org/llama.cpp)** · **[Hugging Face](https://huggingface.co/)**
 
 ## Tools and infrastructure
 
