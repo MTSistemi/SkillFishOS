@@ -1,0 +1,60 @@
+#!/bin/sh
+# steamos-session-select — il comando che mancava per uscire dalla console.
+#
+# IL PROBLEMA
+# La modalita' console lancia Steam con -steamos3, cioe' gli fa credere di
+# girare su SteamOS. Con quel flag il menu di spegnimento offre "Torna al
+# desktop", e premendolo Steam esegue:
+#
+#     steamos-session-select desktop
+#
+# Su SteamOS quel comando cambia sessione. Da noi non esisteva, quindi Steam
+# restava per sempre su "passaggio al desktop in corso". Dal log di Steam:
+#
+#     sh: riga 1: steamos-session-select: comando non trovato
+#
+# LA DIFFERENZA CON SteamOS
+# Li' il desktop e' una sessione che va avviata. Qui non se n'e' mai andato:
+# KDE resta acceso su :0 sotto gamescope, che gli sta sopra a schermo intero.
+# Quindi non c'e' nessuna sessione da selezionare — basta chiudere gamescope e
+# il desktop ricompare com'era, con le finestre aperte al loro posto.
+#
+# DOVE GIRA
+# Steam e' un flatpak, quindi questo script viene eseguito DENTRO il sandbox,
+# dove i processi dell'host non si vedono. Per agire fuori serve
+# flatpak-spawn --host, che a sua volta richiede il permesso di parlare con
+# org.freedesktop.Flatpak: lo concede l'override installato accanto a questo
+# file. Lo stesso script funziona anche lanciato dall'host, dove flatpak-spawn
+# non serve e i comandi si eseguono diretti.
+set -u
+
+target="${1:-desktop}"
+
+# dentro il sandbox passa dall'host, fuori esegui e basta
+run() {
+    if [ -n "${FLATPAK_ID:-}" ] && [ -x /usr/bin/flatpak-spawn ]; then
+        flatpak-spawn --host "$@"
+    else
+        "$@"
+    fi
+}
+
+case "$target" in
+    desktop | plasma | "")
+        # Chiudere gamescope fa tornare KDE, che non e' mai stato chiuso.
+        # Prima lo script, poi gamescope: cosi' non viene rilanciato.
+        run pkill -f skillfish-gaming-mode 2>/dev/null || true
+        run pkill -x gamescope 2>/dev/null || true
+        run pkill -x gamescopereaper 2>/dev/null || true
+        ;;
+    gamescope | gaming | steamos)
+        run /usr/local/bin/skillfish-gaming-mode >/dev/null 2>&1 &
+        ;;
+    *)
+        # Un target che non conosciamo: meglio non fare niente che fare la cosa
+        # sbagliata, ma non fallire, o Steam resta appeso ad aspettare.
+        echo "steamos-session-select: target '$target' non gestito" >&2
+        ;;
+esac
+
+exit 0

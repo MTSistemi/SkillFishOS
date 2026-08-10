@@ -218,7 +218,29 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 P=skillfish-console
 put $P 0755 system/usr/local/bin/skillfish-gaming-mode usr/local/bin/skillfish-gaming-mode
 put $P 0644 system/usr/share/wayland-sessions/skillfish-gaming.desktop usr/share/wayland-sessions/skillfish-gaming.desktop
+# Il comando che permette di USCIRE dalla console. Con -steamos3 Steam crede di
+# essere su SteamOS e per tornare al desktop esegue `steamos-session-select
+# desktop`: da noi non esisteva, quindi restava per sempre su "passaggio al
+# desktop in corso".
+#
+# Due copie: una sull'host, una in /opt perche' Steam e' un flatpak e lo esegue
+# DENTRO il sandbox. Non puo' stare sotto /usr — li' il sandbox ha gia' il
+# proprio runtime e flatpak si rifiuta di montarci sopra il percorso dell'host.
+put $P 0755 system/usr/local/bin/steamos-session-select usr/local/bin/steamos-session-select
+put $P 0755 system/usr/local/bin/steamos-session-select opt/skillfish/steam-bin/steamos-session-select
 ctrl $P "gamescope, flatpak" "SkillFishOS Console - SteamOS-style Big Picture session"
+# Steam deve poter trovare ed eseguire quel comando: la cartella, il PATH del
+# sandbox e il permesso di parlare col servizio Flatpak, che serve a
+# flatpak-spawn per agire sull'host.
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTCONS'
+#!/bin/sh
+set -e
+if command -v flatpak >/dev/null 2>&1; then
+  flatpak override --system com.valvesoftware.Steam       --filesystem=/opt/skillfish/steam-bin:ro       --talk-name=org.freedesktop.Flatpak       --env=PATH=/opt/skillfish/steam-bin:/app/bin:/app/utils/bin:/usr/bin 2>/dev/null || true
+fi
+exit 0
+POSTCONS
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-dashboard
 put $P 0755 apps/dashboard/skillfish-dashboardd      usr/local/bin/skillfish-dashboardd
@@ -320,6 +342,8 @@ check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication
 check skillfish-base_${VER}_all.deb          ./etc/systemd/coredump.conf.d/10-skillfish.conf ExternalSizeMax
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
+check skillfish-console_${VER}_all.deb       ./opt/skillfish/steam-bin/steamos-session-select flatpak-spawn
+check skillfish-console_${VER}_all.deb       ./usr/local/bin/skillfish-gaming-mode    /usr/games
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
