@@ -50,7 +50,20 @@ install -m0755 /dev/stdin /usr/local/bin/skillfish-unsloth <<EOF
 # l'accesso dalla LAN passa dalla dashboard (che autentica via PAM).
 export HOME=/root
 export UNSLOTH_FORCE_VULKAN=1
-exec $BIN studio -p ${PORT} -H 127.0.0.1
+# -H 0.0.0.0: raggiungibile dalla LAN. Serve, perche' la dashboard non puo'
+# fare da proxy: le pagine di Unsloth chiedono i propri pezzi con percorsi
+# ASSOLUTI (/assets/..., /favicon.png), quindi serviti sotto /unsloth/ finiscono
+# per cercarli sulla radice della dashboard, che non li ha. Da locale funziona,
+# da remoto no. Aprirlo direttamente sulla porta 8888 e' l'unica via pulita.
+#
+# --no-cloudflare NON e' pleonastico: con un bind wildcard Unsloth accende da
+# solo un tunnel Cloudflare che lo espone su un URL PUBBLICO di internet. Qui
+# vogliamo la LAN di casa e basta.
+#
+# La protezione resta la sua: Unsloth ha il proprio account e chiede la password
+# al primo accesso. Non e' aperto a chiunque, ma e' bene sapere che in LAN ci
+# arriva chiunque sia in LAN.
+exec $BIN studio -p ${PORT} -H 0.0.0.0 --no-cloudflare
 EOF
 cat > /etc/systemd/system/skillfish-unsloth.service <<EOF
 [Unit]
@@ -71,7 +84,11 @@ Nice=5
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable --now skillfish-unsloth.service
+# Abilitato ma NON avviato: il motore AI si accende quando serve, dal
+# pannello o dalla dashboard. Misurato: da fermo occupa 26 MB, in esecuzione
+# 1,68 GB — su una scheda con 7,5 GB visibili sono risorse tolte ai giochi.
+systemctl daemon-reload
+systemctl disable skillfish-unsloth.service 2>/dev/null || true
 
 echo "    attendo l'avvio..."
 for i in $(seq 1 30); do
