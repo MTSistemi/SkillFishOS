@@ -22,6 +22,16 @@ CONTAINER  = "skillfish-ollama"
 OLLAMA_API = "http://localhost:11434"
 WEBUI_URL  = "http://localhost:8080"
 DOCKGE_URL = "http://localhost:5001"
+
+# Unsloth Studio: the current engine. One native service runs GGUF models through
+# llama.cpp's Vulkan backend (the only GPU path on gfx1013) and serves both the chat
+# UI and an OpenAI-compatible API. Models are managed inside its own UI, which also
+# holds its own accounts — so this panel drives the service and opens the UI, and
+# never tries to mint credentials on the user's behalf.
+UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
+UNSLOTH_SVC = "skillfish-unsloth.service"
+UNSLOTH_URL = "http://localhost:8888"
+UNSLOTH_INSTALLER = "/usr/local/share/skillfish/install-unsloth.sh"
 ICON       = "/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png"
 CFG_DIR    = os.path.expanduser("~/.config/skillfishos")
 CFG_FILE   = os.path.join(CFG_DIR, "ai.json")
@@ -173,7 +183,18 @@ def ram_info():
 
 def gb(n): return "?" if n is None else f"{n/1e9:.1f} GB"
 
-# ---------- stack / ollama ----------
+# ---------- engine ----------
+def unsloth_installed():
+    return os.path.exists(UNSLOTH_BIN)
+
+def engine_kind():
+    """'unsloth' once it is installed, otherwise the legacy Docker stack."""
+    return "unsloth" if unsloth_installed() else "ollama"
+
+def unsloth_running():
+    rc, out, _ = sh(f"systemctl is-active {UNSLOTH_SVC}", 8)
+    return out.strip() == "active"
+
 def docker_ok():
     return shutil.which("docker") is not None
 
@@ -187,10 +208,16 @@ def stack_present():
     return any(os.path.exists(os.path.join(STACK_DIR, n)) for n in COMPOSE_NAMES)
 
 def engine_running():
+    if engine_kind() == "unsloth":
+        return unsloth_running()
     rc, out, _ = sh(f"docker inspect -f '{{{{.State.Running}}}}' {CONTAINER}", 8)
     return out == "true"
 
 def installed_models():
+    # Unsloth keeps its models behind its own authenticated API, so we don't list
+    # them here — its UI is the place to add and pick models.
+    if engine_kind() == "unsloth":
+        return []
     # prefer the HTTP API (works while the engine is up)
     try:
         with urllib.request.urlopen(OLLAMA_API + "/api/tags", timeout=4) as r:
@@ -213,13 +240,19 @@ def container_exists():
     return CONTAINER in out.split()
 
 def stack_installed():
-    """True when the stack is really installed (compose + docker + image/container).
-    The first-run wizard is shown ONLY when this is False."""
+    """True when an engine is really installed. The first-run wizard is shown ONLY
+    when this is False. Unsloth counts on its own — it needs no Docker at all."""
+    if unsloth_installed():
+        return True
     return stack_present() and docker_ok() and (docker_image_present() or container_exists())
 
 def is_configured():
     # wizard appears only if the stack is NOT already installed
     return stack_installed()
+
+# Which engine this run is about: Unsloth once installed, and for fresh setups when
+# its installer is present. A box that already runs the Docker stack keeps it.
+UNSLOTH_MODE = unsloth_installed() or (os.path.exists(UNSLOTH_INSTALLER) and not stack_present())
 
 DEFAULT_COMPOSE = """services:
   ollama:
@@ -282,18 +315,33 @@ class SetupWizard(QWizard):
         self.chosen_model = None
         self.addPage(self._welcome())
         self.install_page = InstallPage(); self.addPage(self.install_page)
-        self.model_page = ModelPage(self); self.addPage(self.model_page)
+        # Unsloth downloads models from its own UI, so the model-pull page would have
+        # nothing to do — it is only added for the legacy Ollama stack.
+        if not UNSLOTH_MODE:
+            self.model_page = ModelPage(self); self.addPage(self.model_page)
         self.addPage(self._finish())
 
     def _welcome(self):
         p = QWizardPage(); p.setTitle(L("Benvenuto in SkillFish AI", "Welcome to SkillFish AI"))
         v = QVBoxLayout(p)
-        t = QLabel(L("Questa procedura installa e avvia il motore LLM locale (Ollama + "
-                     "Vulkan) e ti fa scegliere un modello da scaricare.\n\nTutto gira "
-                     "in locale sulla GPU: nessun dato lascia il PC.",
-                     "This wizard installs and starts the local LLM engine (Ollama + "
-                     "Vulkan) and lets you choose a model to download.\n\nEverything runs "
-                     "locally on the GPU: no data leaves your PC."))
+        if UNSLOTH_MODE:
+            t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
+                         "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
+                         "ti chiederà di impostare una password: la scegli tu, non viene "
+                         "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
+                         "\n\nTutto gira in locale: nessun dato lascia il PC.",
+                         "This wizard installs and starts Unsloth Studio, the local LLM engine "
+                         "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
+                         "to set a password: you choose it, it is not created from here. Models "
+                         "are then downloaded from its own interface."
+                         "\n\nEverything runs locally: no data leaves your PC."))
+        else:
+            t = QLabel(L("Questa procedura installa e avvia il motore LLM locale (Ollama + "
+                         "Vulkan) e ti fa scegliere un modello da scaricare.\n\nTutto gira "
+                         "in locale sulla GPU: nessun dato lascia il PC.",
+                         "This wizard installs and starts the local LLM engine (Ollama + "
+                         "Vulkan) and lets you choose a model to download.\n\nEverything runs "
+                         "locally on the GPU: no data leaves your PC."))
         t.setWordWrap(True); v.addWidget(t)
         # hardware summary
         gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
@@ -316,12 +364,19 @@ class SetupWizard(QWizard):
 class InstallPage(QWizardPage):
     def __init__(self):
         super().__init__()
-        self.setTitle(L("Installazione dello stack", "Installing the stack"))
+        self.setTitle(L("Installazione del motore", "Installing the engine"))
         self.ok = False
         v = QVBoxLayout(self)
-        self.info = QLabel(L("Premi «Installa» per preparare docker, lo stack e l'immagine "
-                             "Ollama-Vulkan.", "Press “Install” to set up docker, the stack "
-                             "and the Ollama-Vulkan image."))
+        if UNSLOTH_MODE:
+            self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
+                                 "con il backend Vulkan. Sono circa 2 GB: può richiedere "
+                                 "qualche minuto.",
+                                 "Press “Install” to download and set up Unsloth Studio with the "
+                                 "Vulkan backend. It is about 2 GB: this may take a few minutes."))
+        else:
+            self.info = QLabel(L("Premi «Installa» per preparare docker, lo stack e l'immagine "
+                                 "Ollama-Vulkan.", "Press “Install” to set up docker, the stack "
+                                 "and the Ollama-Vulkan image."))
         self.info.setWordWrap(True); v.addWidget(self.info)
         self.btn = QPushButton(L("Installa / Avvia", "Install / Start")); self.btn.clicked.connect(self.run)
         v.addWidget(self.btn)
@@ -335,6 +390,11 @@ class InstallPage(QWizardPage):
         self.btn.setEnabled(False); self.bar.show()
         user = os.environ.get("USER") or os.environ.get("LOGNAME") or "skillfish"
         steps = []
+        if UNSLOTH_MODE:
+            # One privileged step: the installer fetches Unsloth, forces the Vulkan
+            # llama.cpp bundle and installs the systemd unit.
+            self.steps = [f"pkexec sh -c 'UNSLOTH_FORCE_VULKAN=1 bash {UNSLOTH_INSTALLER}'"]
+            self.i = 0; self._next(); return
         if not docker_ok():
             steps.append("pkexec sh -c 'apt-get update && apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker'")
         # add the desktop user to the docker group so `docker` works without sudo (needs re-login)
@@ -428,9 +488,11 @@ class Panel(QMainWindow):
         h.addLayout(tcol); h.addStretch(1); v.addLayout(h)
 
         # engine switch
-        g = QGroupBox(L("Motore AI (LLM)", "AI Engine (LLM)")); gv = QVBoxLayout(g)
-        self.cb = QCheckBox(L("Acceso — accende/spegne Ollama. Spegnilo prima di giocare.",
-                              "On — starts/stops Ollama. Turn it off before gaming."))
+        self.eng = engine_kind()
+        engname = "Unsloth Studio" if self.eng == "unsloth" else "Ollama"
+        g = QGroupBox(L(f"Motore AI (LLM) — {engname}", f"AI Engine (LLM) — {engname}")); gv = QVBoxLayout(g)
+        self.cb = QCheckBox(L(f"Acceso — accende/spegne {engname}. Spegnilo prima di giocare.",
+                              f"On — starts/stops {engname}. Turn it off before gaming."))
         self.cb.toggled.connect(self.on_toggle); gv.addWidget(self.cb)
         self.status = QLabel("…"); self.status.setWordWrap(True); gv.addWidget(self.status)
         v.addWidget(g)
@@ -445,6 +507,15 @@ class Panel(QMainWindow):
         mv.addWidget(self.bset, 0, 2); mv.addWidget(self.bpull, 0, 3)
         self.modelmsg = QLabel(""); self.modelmsg.setStyleSheet("color:#b9a07a;"); self.modelmsg.setWordWrap(True)
         mv.addWidget(self.modelmsg, 1, 0, 1, 4)
+        # Unsloth manages models in its own UI, so the pull/select row would be dead
+        # controls here — point the user at the right place instead of faking it.
+        if self.eng == "unsloth":
+            for wdg in (self.modelbox, self.bset, self.bpull):
+                wdg.setEnabled(False)
+            self.modelmsg.setText(L("I modelli si scaricano e si scelgono dentro Unsloth Studio "
+                                    "(pulsante «Apri Chat»).",
+                                    "Models are downloaded and selected inside Unsloth Studio "
+                                    "(“Open Chat” button)."))
         v.addWidget(gm)
 
         # hardware panel
@@ -480,10 +551,13 @@ class Panel(QMainWindow):
 
         # buttons
         b = QHBoxLayout()
-        bw = QPushButton(L("Apri Chat (web)", "Open Chat (web)")); bw.clicked.connect(lambda: sh(f"xdg-open {WEBUI_URL} &"))
-        bd = QPushButton(L("Dockge", "Dockge")); bd.clicked.connect(lambda: sh(f"xdg-open {DOCKGE_URL} &"))
+        chat_url = UNSLOTH_URL if self.eng == "unsloth" else WEBUI_URL
+        bw = QPushButton(L("Apri Chat (web)", "Open Chat (web)")); bw.clicked.connect(lambda: sh(f"xdg-open {chat_url} &"))
         br = QPushButton(L("Aggiorna", "Refresh")); br.clicked.connect(self.refresh_all)
-        for x in (bw, bd, br): b.addWidget(x)
+        b.addWidget(bw)
+        if self.eng != "unsloth":   # Dockge only makes sense for the Docker stack
+            bd = QPushButton("Dockge"); bd.clicked.connect(lambda: sh(f"xdg-open {DOCKGE_URL} &")); b.addWidget(bd)
+        b.addWidget(br)
         v.addLayout(b)
 
         self.statusBar()
@@ -498,10 +572,15 @@ class Panel(QMainWindow):
     def refresh_engine(self):
         run = engine_running()
         self.cb.blockSignals(True); self.cb.setChecked(run); self.cb.blockSignals(False)
-        self.sub.setText(L(f"Motore LLM locale · modello: {self.model}", f"Local LLM engine · model: {self.model}"))
+        if self.eng == "unsloth":
+            self.sub.setText(L("Motore LLM locale · Unsloth Studio · GPU Vulkan",
+                               "Local LLM engine · Unsloth Studio · Vulkan GPU"))
+        else:
+            self.sub.setText(L(f"Motore LLM locale · modello: {self.model}", f"Local LLM engine · model: {self.model}"))
+        api = UNSLOTH_URL + "/v1" if self.eng == "unsloth" else OLLAMA_API
         if run:
             self.status.setText(L("● Motore ACCESO — pronto", "● Engine ON — ready")
-                                + f"   ·   API {OLLAMA_API}")
+                                + f"   ·   API {api}")
             self.status.setStyleSheet("color:#9ccf6a;font-weight:600;")
         else:
             self.status.setText(L("○ Motore SPENTO — GPU/memoria libere per i giochi",
@@ -552,7 +631,11 @@ class Panel(QMainWindow):
         if self.busy: return
         self.busy = True; self.cb.setEnabled(False)
         self.status.setText(L("… operazione in corso …", "… working …"))
-        cmd = (f"cd {STACK_DIR} && docker compose up -d") if state else (f"cd {STACK_DIR} && docker compose stop")
+        if self.eng == "unsloth":
+            action = "start" if state else "stop"
+            cmd = f"pkexec systemctl {action} {UNSLOTH_SVC}"
+        else:
+            cmd = (f"cd {STACK_DIR} && docker compose up -d") if state else (f"cd {STACK_DIR} && docker compose stop")
         self._t = Worker(cmd, 180); self._t.done.connect(self._toggled); self._t.start()
     def _toggled(self, rc):
         self.busy = False; self.cb.setEnabled(True); self.refresh_engine()
