@@ -15,18 +15,18 @@ Description: SkillFish AI - on-device LLM control panel
  built from git by CI.
 
 Package: skillfish-base
-Version: 26.08.2
+Version: 26.08.7
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.2_all.deb
-Size: 9800
-SHA256: 71ac8c68f7e72c4d6218079b576b696571676f23a91f8bd855e023606f5a1df5
-SHA1: f8743a28ebddb60454c290246e860625d4904374
-MD5sum: ffd94453fb5d2cd444fce826bd7264d2
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.7_all.deb
+Size: 10116
+SHA256: 41f27a245d3c029dd45037342198f6ffff7cdb249eab42b93eae96ec7c615239
+SHA1: 461d17b9e13bcecd3323419ef4c82f4f1ab7b54c
+MD5sum: 1a44c806fc3d316391152718e7d6af05
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  built from git by CI.
 
@@ -49,7 +49,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Quitting Steam returns to the login screen.
 
 Package: skillfish-dashboard
-Version: 26.08.6
+Version: 26.08.7
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
@@ -58,11 +58,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.6_all.deb
-Size: 55744
-SHA256: 30d47dec02d46fce53446d22029f2991a27b53934286d07034a01007c629a22a
-SHA1: 5709aff18dcd2b12b3322eba8e9e0cdabe74d5cf
-MD5sum: c75b174d639cf5a495c062abd25e988f
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.7_all.deb
+Size: 56004
+SHA256: fb8980f047b42f062a97409c6ce2afdb1b7860152407ffcf915671e26705c5ab
+SHA1: 06ba613687aae97ffa2b158f897d3d87e8474092
+MD5sum: 1a460416eed0dbcdf6503943251503b3
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
