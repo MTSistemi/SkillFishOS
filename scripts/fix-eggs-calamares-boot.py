@@ -28,6 +28,11 @@
 # DENTRO btrfs: gli snapshot continuano a comprenderlo e il rollback resta
 # possibile, che era il requisito.
 #
+# Il lavoro lo fa /usr/local/bin/skillfish-fix-boot-extents, spedito da
+# skillfish-base. NON si puo' mettere il ciclo di shell direttamente nello
+# YAML: il modulo shellprocess di Calamares espande i $... come proprie
+# variabili e l'installazione muore con "variabili mancanti: f,f,f,f,f".
+#
 # B) #20 - il fallback EFI removibile e' incompleto
 # --------------------------------------------------
 # Il firmware della BC-250 avvia molto spesso dal percorso EFI *removibile*
@@ -89,10 +94,7 @@ script:
     - chmod 644 /boot/vmlinuz-`uname -r`
     - chown 0:0 /boot/vmlinuz-`uname -r`
     - INITRD=No dpkg-reconfigure -fnoninteractive linux-image-`uname -r`
-    - >-
-      for f in /boot/vmlinuz-* /boot/initrd.img-*; do [ -f "$f" ] || continue;
-      cp --reflink=never --preserve=all "$f" "$f.sfxnew" && sync &&
-      mv -f "$f.sfxnew" "$f"; done; sync
+    - /usr/local/bin/skillfish-fix-boot-extents
     - >-
       grub-install --target=x86_64-efi --efi-directory=/boot/efi
       --bootloader-id=skillfishos --recheck || true
@@ -190,7 +192,7 @@ def verify():
             print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
         with open(path, encoding="utf-8") as f:
             t = f.read()
-        miss = [k for k in ("reflink=never", "--removable", "update-grub") if k not in t]
+        miss = [k for k in ("skillfish-fix-boot-extents", "--removable", "update-grub") if k not in t]
         if miss:
             print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
         else:
