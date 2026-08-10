@@ -61,7 +61,23 @@
 import os
 import shutil
 
+# ATTENZIONE: `eggs produce` RIGENERA /etc/calamares dai propri template e
+# butta via qualunque modifica fatta a mano al file generato. Verificato il
+# 10/08/2026 ispezionando la ISO prodotta: dentro c'era la versione di eggs.
+# Quindi la correzione va scritta nel TEMPLATE, che e' quello che finisce
+# davvero nell'immagine. Il file generato lo aggiorniamo comunque, cosi' la
+# configurazione viva e quella della ISO restano coerenti.
 MODDIR = "/etc/calamares/modules"
+
+# Il template GIUSTO non e' quello in /usr/lib (che e' solo la copia di
+# riferimento del pacchetto). eggs legge da:
+#     /etc/penguins-eggs.d/distros/<distroUniqueId>/calamares/modules
+# come si vede in dist/classes/incubation/installer.js. Sulla nostra immagine
+# distroUniqueId e' "forky". Cercarlo con una glob invece di scriverlo fisso:
+# cambiera' quando cambiera' la base Debian.
+import glob as _glob
+_c = _glob.glob("/etc/penguins-eggs.d/distros/*/calamares/modules")
+TPLDIRS = _c if _c else []
 
 # --- 1. il passo post-bootloader ------------------------------------------
 RECONF = os.path.join(MODDIR, "shellprocess@boot_reconfigure.conf")
@@ -111,6 +127,18 @@ def main():
     if not os.path.isdir(MODDIR):
         raise SystemExit("FATAL: %s non esiste — eggs ha gia' generato la config?" % MODDIR)
 
+    # 1) i template di eggs: sono questi che finiscono nella ISO
+    if not TPLDIRS:
+        print("ATTENZIONE: nessun template sotto /etc/penguins-eggs.d/distros/*/calamares/modules")
+        print("            senza il template la correzione NON entrera' nella ISO")
+    for d in TPLDIRS:
+        tpl = os.path.join(d, "shellprocess@boot_reconfigure.yaml")
+        backup(tpl)
+        with open(tpl, "w", encoding="utf-8") as f:
+            f.write(RECONF_BODY)
+        print("OK  : scritto il TEMPLATE", tpl)
+
+    # 2) e la configurazione viva, per coerenza
     backup(RECONF)
     with open(RECONF, "w", encoding="utf-8") as f:
         f.write(RECONF_BODY)
@@ -151,5 +179,26 @@ def main():
             print("OK  : boot_reconfigure viene dopo bootloader nella sequenza")
 
 
+def verify():
+    """Ricontrolla che la correzione sia dove serve. Fidarsi non basta: la prima
+    volta eggs aveva sovrascritto tutto e me ne sono accorto solo aprendo la ISO."""
+    ok = True
+    targets = [(os.path.join(d, "shellprocess@boot_reconfigure.yaml"), "template eggs")
+               for d in TPLDIRS] + [(RECONF, "config viva")]
+    for path, what in targets:
+        if not os.path.exists(path):
+            print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
+        with open(path, encoding="utf-8") as f:
+            t = f.read()
+        miss = [k for k in ("reflink=never", "--removable", "update-grub") if k not in t]
+        if miss:
+            print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
+        else:
+            print("OK  : %s (%s) contiene tutte le correzioni" % (path, what))
+    return ok
+
+
 if __name__ == "__main__":
     main()
+    print()
+    raise SystemExit(0 if verify() else 1)
