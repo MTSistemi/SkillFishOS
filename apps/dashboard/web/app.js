@@ -356,10 +356,25 @@ const RENDER = {
       // Unsloth serves its own UI and manages models there; the legacy Ollama stack
       // exposes them through the dashboard, so only that one gets the model list/pull.
       const uns = s.engine === "unsloth";
+      const fl = s.first_login || {};
       const engName = uns ? "Unsloth Studio" : "Ollama";
       const uiName = uns ? "Unsloth Studio" : "OpenWebUI";
       $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (it ? "Motore" : "Engine") + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
         (uns ? '<div class="r"><span>' + (it ? "Accelerazione" : "Acceleration") + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
+        // Le credenziali del primo accesso. Unsloth non ha una password fissa:
+        // ne genera una a caso a ogni installazione, la annuncia una volta sola
+        // in un log e poi si SPEGNE dopo un'ora se non viene cambiata. Senza
+        // questo riquadro l'utente cerca su internet una risposta che non esiste,
+        // e intanto il motore gli muore addosso. Sparisce da solo appena la
+        // password viene cambiata.
+        (fl.password
+          ? '<div class="gl" style="margin-top:12px">' + (it ? "Primo accesso a Unsloth Studio" : "First sign-in to Unsloth Studio") + '</div>' +
+            '<div class="rows"><div class="r"><span>' + (it ? "Utente" : "User") + '</span><span><code>' + fl.user + '</code></span></div>' +
+            '<div class="r"><span>' + (it ? "Password iniziale" : "Initial password") + '</span><span><code>' + fl.password + '</code></span></div></div>' +
+            '<div style="margin-top:6px;font-size:12px;opacity:.75">' +
+            (it ? "Cambiala al primo accesso: se resta questa, Unsloth si spegne da solo dopo un'ora."
+                : "Change it on first sign-in: left as is, Unsloth shuts itself down after an hour.") + "</div>"
+          : "") +
         '<div class="brow" style="margin-top:10px">' + (s.running ? '<button class="dbtn danger" id="aistop">' + T("ai_stop") + "</button>" : '<button class="dbtn" id="aistart">' + T("ai_start") + "</button>") +
         '<button class="dbtn" id="aichat"' + (s.running ? "" : " disabled") + ">💬 " + (it ? "Chat" : "Chat") + "</button>" +
         '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (it ? "Apri " : "Open ") + uiName + " ↗</button></div>" +
