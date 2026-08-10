@@ -1,8 +1,35 @@
 #!/usr/bin/env python3
 # Rende affidabile l'avvio dopo l'installazione da Calamares.
 #
-# IL PROBLEMA (issue #12 btrfs e #20 ext4, stessa causa)
-# ------------------------------------------------------
+# DUE PROBLEMI DISTINTI, non uno solo (verificati in VM il 10/08/2026)
+# =====================================================================
+#
+# A) #12 - btrfs: GRUB non riesce a leggere il kernel
+# ---------------------------------------------------
+# Sintomo: il menu GRUB compare, poi "fine prematura del file
+# /@/boot/vmlinuz-...". Quindi NON e' un problema di bootloader installato
+# male: GRUB ha trovato grub.cfg e ha risolto correttamente il sottovolume.
+#
+# Causa misurata: i file del kernel scritti da `unpackfs` hanno una mappa
+# degli extent che NON copre la dimensione dichiarata. Mancano gli ultimi
+# 512 byte, e filefrag mostra l'ultimo extent senza il flag `eof`. GRUB
+# legge l'albero degli extent e si ferma li': ha ragione a lamentarsi, il
+# file su disco e' davvero incompleto. Il kernel Linux lo legge lo stesso,
+# quindi il problema si vede solo all'avvio.
+#
+# Prova nella stessa installazione: il kernel copiato con `cp` dal modulo
+# boot_deploy risulta sano (`last,eof`), quelli usciti da unpackfs no.
+# Su un sistema sano ogni modo di scrivere (cp, dd, cat, unsquashfs) con
+# qualunque opzione di mount (defaults, zstd, zlib) produce file corretti.
+#
+# Correzione: riscrivere kernel e initrd dopo l'installazione, con
+# --reflink=never (senza, btrfs riusa gli stessi extent rotti e non ripara
+# niente - errore in cui sono cascato al primo tentativo). Cosi' /boot resta
+# DENTRO btrfs: gli snapshot continuano a comprenderlo e il rollback resta
+# possibile, che era il requisito.
+#
+# B) #20 - il fallback EFI removibile e' incompleto
+# --------------------------------------------------
 # Il firmware della BC-250 avvia molto spesso dal percorso EFI *removibile*
 # \EFI\BOOT\BOOTX64.EFI invece che dalla voce NVRAM della distribuzione.
 # Con `installEFIFallback: true` Calamares ci copia shim + grubx64, ma NON
@@ -41,11 +68,15 @@ RECONF = os.path.join(MODDIR, "shellprocess@boot_reconfigure.conf")
 RECONF_BODY = """---
 message: Final reconfiguration of the kernel and bootloader...
 dontChroot: false
-timeout: 600
+timeout: 900
 script:
     - chmod 644 /boot/vmlinuz-`uname -r`
     - chown 0:0 /boot/vmlinuz-`uname -r`
     - INITRD=No dpkg-reconfigure -fnoninteractive linux-image-`uname -r`
+    - >-
+      for f in /boot/vmlinuz-* /boot/initrd.img-*; do [ -f "$f" ] || continue;
+      cp --reflink=never --preserve=all "$f" "$f.sfxnew" && sync &&
+      mv -f "$f.sfxnew" "$f"; done; sync
     - >-
       grub-install --target=x86_64-efi --efi-directory=/boot/efi
       --bootloader-id=skillfishos --recheck || true
