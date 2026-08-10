@@ -1,20 +1,18 @@
 Package: skillfish-ai-panel
-Maintainer: SkillFishOS <info@skillfishos.com>
+Version: 26.08
 Architecture: all
-Version: 26.06.5
+Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
-Recommends: docker.io | docker-ce, ollama
+Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.06.5_all.deb
-Size: 189992
-SHA256: 860d6e841b333915c371ef2684f67ecaf052f10cc66ae914991361d5af519084
-SHA1: 4c93960a2fcdcb34015df9005b88a8589813ea86
-MD5sum: 0463905ff551962da830d8ba1754ee89
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.08_all.deb
+Size: 44388
+SHA256: c5d175051ca2948477a255a166767ffc7c9bdb56163ecdf0b943b030fff2425a
+SHA1: 060e5a896a238cc6441c4f1a97183b40c351ea8d
+MD5sum: 74f8fa9be1e902dd25a665ab4d7f7d99
 Description: SkillFish AI - on-device LLM control panel
- PyQt6 panel: first-run setup wizard, model manager (38 models <=14B), live
- hardware panel (GPU/CPU/VRAM/RAM) and shared-memory (GTT) control.
-Homepage: https://skillfishos.com
+ built from git by CI.
 
 Package: skillfish-base
 Version: 26.08.1
