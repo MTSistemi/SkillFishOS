@@ -405,6 +405,47 @@ def fan_curve_loop():
         time.sleep(3)
 
 
+_TOPO = {}
+
+
+def cpu_threads():
+    """[[cpu, core, MHz|None], ...] for the telemetry stream.
+
+    MHz is None when the thread is parked (Tuner core toggle): an offline CPU
+    disappears from /proc/cpuinfo and loses its topology/ dir, so the physical
+    core comes from the map cached while it was still up."""
+    base = "/sys/devices/system/cpu"
+    mhz = {}
+    try:
+        cur = None
+        with open("/proc/cpuinfo") as f:
+            for ln in f:
+                if ln.startswith("processor"):
+                    cur = int(ln.split(":")[1])
+                elif ln.lower().startswith("cpu mhz") and cur is not None:
+                    mhz[cur] = round(float(ln.split(":")[1]))
+    except Exception:
+        return []
+    try:
+        cpus = sorted(int(d[3:]) for d in os.listdir(base) if re.match(r"cpu\d+$", d))
+    except Exception:
+        return []
+    out = []
+    for c in cpus:
+        try:
+            with open("%s/cpu%d/online" % (base, c)) as f:
+                on = f.read().strip() == "1"
+        except Exception:
+            on = True                      # cpu0 exposes no 'online' node
+        try:
+            with open("%s/cpu%d/topology/core_id" % (base, c)) as f:
+                _TOPO[c] = int(f.read().strip())
+        except Exception:
+            pass
+        out.append([c, _TOPO.get(c, c // 2), mhz.get(c) if on else None])
+    return out
+
+
 def cpu_coremap():
     """Physical CPU core layout + live per-core MHz (for affinity / pinning)."""
     base = "/sys/devices/system/cpu"
@@ -1798,6 +1839,7 @@ class Handler(BaseHTTPRequestHandler):
             while True:
                 vals = read_all()
                 vals["cpu_load"] = cpu_load(st)
+                vals["cpu_threads"] = cpu_threads()
                 vals["_t"] = round(time.time(), 1)
                 self.wfile.write(("data: %s\n\n" % json.dumps(vals)).encode())
                 self.wfile.flush()
