@@ -30,7 +30,7 @@ What changes in practice:
 - **Models come from Hugging Face.** Unsloth pulls **GGUF** files straight from the full Hugging Face catalogue rather than a curated registry, so the range of available models and quantisations is vastly wider — including the builds the Unsloth team publishes themselves.
 - **It listens on loopback only.** From outside you reach it through the dashboard, which authenticates over PAM: no AI port is exposed to the network.
 
-> Older Ollama installs keep working: the dashboard detects which engine is present on its own and adapts. No configuration needed.
+> From 26.06.3 the dashboard and the AI panel drive **only** Unsloth: the branches that commanded Ollama through Docker are gone, and so is Docker itself, which is no longer installed. Anyone still holding Ollama containers from an earlier install keeps them running as long as they keep Docker, but no longer manages them from here. No configuration needed.
 
 ## Models
 

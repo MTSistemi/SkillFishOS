@@ -36,7 +36,19 @@ The venv is built against **uv's bundled Python**, deliberately: an earlier inst
 
 ### Superseded: the Ollama + OpenWebUI stack
 
-Earlier releases ran Ollama (`:11434`) plus OpenWebUI (`:8080`) as a docker‑compose stack with a custom Vulkan image. It still works and the dashboard **auto‑detects** which engine is present, so existing installs keep running untouched. Two notes if you are still on it: use `OLLAMA_FLASH_ATTENTION=1`, and **never** a quantized KV cache — `q4_0` corrupts output on RADV, use `f16`.
+Earlier releases ran Ollama (`:11434`) plus OpenWebUI (`:8080`) as a docker-compose
+stack with a custom Vulkan image, managed through Dockge.
+
+As of 26.06.3 none of that is here any more. The dashboard and the AI panel drive
+only Unsloth: every `docker compose` and `docker exec ollama` path was removed, and
+Docker itself was uninstalled — it was running exactly one container, Dockge, whose
+stack directory was empty once the AI moved to a native service. That is a daemon at
+every boot, a bridge, iptables rules and a container-management panel listening on
+`0.0.0.0:5001`, all for nothing.
+
+An existing installation that still has Docker keeps its Ollama containers running;
+they simply are not managed from our tools any more. New installations start with
+Unsloth and nothing else.
 
 ## One‑click panel
 

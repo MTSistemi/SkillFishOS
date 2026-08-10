@@ -30,7 +30,7 @@ Cosa cambia in pratica:
 - **I modelli sono quelli di Hugging Face.** Unsloth scarica direttamente i **GGUF** dal catalogo completo di Hugging Face, invece di un registro curato: la scelta di modelli e di quantizzazioni disponibili è enormemente più ampia, comprese le build che il team Unsloth pubblica per conto proprio.
 - **Ascolta solo su localhost.** Da fuori ci si arriva attraverso la dashboard, che autentica via PAM: nessuna porta AI esposta sulla rete.
 
-> Le installazioni più vecchie con Ollama continuano a funzionare: la dashboard riconosce da sola quale motore è presente e adatta i comandi. Il rilevamento non richiede configurazione.
+> Dalla 26.06.3 la dashboard e il pannello AI pilotano **solo** Unsloth: i rami che comandavano Ollama via Docker sono stati rimossi, insieme a Docker stesso, che non è più installato. Chi ha ancora i container di Ollama da un'installazione precedente se li ritrova funzionanti finché ha Docker, ma non li gestisce più da qui: adatta i comandi. Il rilevamento non richiede configurazione.
 
 ## I modelli
 

@@ -8,7 +8,7 @@ Small native apps shipped with SkillFishOS (KDE Plasma), all themed by Kvantum.
   is the GUI (→ `/usr/local/bin/`); `skillfish-tuner-helper` is the privileged
   daemon (JSON-per-line over a single `pkexec`).
 - **`ai-panel/`** — **SkillFish AI** (PyQt6): one-click on/off for the on-device
-  LLM stack (Ollama + Vulkan), freeing the GPU/RAM for gaming. See [../docs/AI.md](../docs/AI.md).
+  LLM engine (Unsloth Studio, Vulkan), freeing the GPU/RAM for gaming. See [../docs/AI.md](../docs/AI.md).
 - **`iso-mount/`** — native KDE ISO mounting via udisks2 (no GNOME). See its README.
 
 The Tuner/AI panels were originally GTK4/libadwaita; they were rewritten in PyQt6
