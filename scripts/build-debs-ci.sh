@@ -97,6 +97,7 @@ put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/module
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
 put $P 0755 system/usr/local/bin/skillfish-fix-boot-extents         usr/local/bin/skillfish-fix-boot-extents
 put $P 0755 system/usr/local/bin/skillfish-is-bc250                usr/local/bin/skillfish-is-bc250
+put $P 0644 system/etc/systemd/system/skillfish-sshd-keygen.service etc/systemd/system/skillfish-sshd-keygen.service
 put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
 put $P 0644 system/etc/systemd/system/skillfish-gpu-freq.service      etc/systemd/system/skillfish-gpu-freq.service
@@ -115,6 +116,9 @@ cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 set -e
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
+  # senza chiavi host ssh.service fallisce all'infinito su installazione fresca
+  systemctl enable skillfish-sshd-keygen.service || true
+  [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
   systemctl enable skillfish-core-unlock.service || true
   # ntsync serve a Proton: caricalo subito, non al prossimo riavvio
@@ -258,6 +262,7 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlo
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents reflink=never
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
