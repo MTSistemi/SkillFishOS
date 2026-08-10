@@ -24,7 +24,7 @@ Thank you for being here. SkillFishOS is a community project and it only grows i
 1. Fork the repo and create a branch (`fix/display-hpd`, `feat/tuner-fan-curve`, …).
 2. Make your change. Keep commits clean; reference issues (`Fixes #12`).
 3. Open a Pull Request describing **what** changed and **why**, and **how you tested it**.
-4. A maintainer reviews. Iterate if needed. 🎉
+4. A maintainer reviews. Iterate if needed.
 
 ## Good first issues
 
@@ -48,4 +48,4 @@ Never commit passwords, tokens, or private keys. If you find a security issue, p
 
 ---
 
-Not sure where to start? Open a discussion or a draft PR and ask. We'd rather help you land a contribution than have you give up. **Welcome aboard.** 🐟
+Not sure where to start? Open a discussion or a draft PR and ask. We'd rather help you land a contribution than have you give up. **Welcome aboard.**

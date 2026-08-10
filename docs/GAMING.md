@@ -2,7 +2,7 @@
 
 Gaming is the carrot that makes the whole project worthwhile. SkillFishOS ships a complete, pre‑configured gaming stack — **the tools, not the games.**
 
-> ⚖️ **SkillFishOS does not include any games, ROMs, BIOS files or copyrighted emulator content.** It ships the open‑source tooling to install and run them. **You bring your own games.** Please respect the law and only use content you own.
+> **SkillFishOS does not include any games, ROMs, BIOS files or copyrighted emulator content.** It ships the open‑source tooling to install and run them. **You bring your own games.** Please respect the law and only use content you own.
 
 ## PC gaming
 

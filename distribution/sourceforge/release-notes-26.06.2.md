@@ -31,4 +31,4 @@ znver2), **Generic** (`7.0.11-skillfishos-generic`, any x86-64 PC/VM) and **Slim
 sha256sum -c SkillFishOS-26.06.2-Aetherium-<edition>-amd64.iso.sha256
 ```
 
-Thanks to **@SwiatLinuksa** for the precise bug reports. 🐟
+Thanks to **@SwiatLinuksa** for the precise bug reports.

@@ -28,7 +28,7 @@ so the download is hosted on SourceForge (no size limit).
      scp /home/eggs/mnt/SkillFishOS-26.06-Aetherium-BC250-amd64.iso* \
        <SFUSER>,skillfishos@frs.sourceforge.net:/home/frs/project/skillfishos/26.06-Aetherium/
      ```
-3. Click the `.iso` → **⚙ → "Select as default download for: Linux"**.
+3. Click the `.iso` → **→ "Select as default download for: Linux"**.
 4. Paste the release notes (`release-notes-26.06.md`) into the folder's README / project News.
 5. **This is the URL to give DistroWatch** (transparent, non-cloud → rule-compliant):
    ```

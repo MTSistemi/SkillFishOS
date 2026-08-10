@@ -58,14 +58,14 @@ Three refreshed installable editions — **BC-250**, **Generic x86-64** and **Sl
 - the **safe GPU presets and multi-point voltage curve** (max 2200 MHz @ 1000 mV) and the safe **Stock CPU profile** (3500 MHz);
 - **`skillfish-base`**: the SP5100 **hardware watchdog** (auto-reboot on hard hangs) and the boot-time **freeze detector** with desktop notification;
 - **`skillfish-console`**: the SteamOS-style **"SkillFishOS Console (Big Picture)"** login session (and the PATH fix that made the old session bounce back to login);
-- the full updated app suite: Tuner 26.06.8 (🎰 find-my-max wizards CPU+GPU, "My silicon" panel), Hub 26.06.9, Monitor 26.06.5 (REC), Kernel Manager 26.06.1, AI 26.06.4 — each with its MetaInfo app page.
+- the full updated app suite: Tuner 26.06.8 (find-my-max wizards CPU+GPU, "My silicon" panel), Hub 26.06.9, Monitor 26.06.5 (REC), Kernel Manager 26.06.1, AI 26.06.4 — each with its MetaInfo app page.
 
 Existing 26.06 installations get everything via `apt full-upgrade` — no reinstall needed.
 
 ### Added
 - **`skillfish-base` 26.06 (new package)** — the safety net: enables the AMD SP5100 **hardware watchdog** (the board reboots itself on a hard hang instead of needing a physical power-cycle) and a boot-time **freeze detector** that logs an unclean previous shutdown and notifies the desktop user that their overclock/undervolt profile may be unstable.
 - **`skillfish-console` 26.06 (new package)** — a SteamOS-style **"SkillFishOS Console (Big Picture)"** session on the SDDM login screen: boots straight into Steam's gamepad UI inside gamescope; quitting Steam returns to the login screen. (Also fixes the pre-existing session, which called a bare `gamescope` not on SDDM's PATH and silently bounced back to login.)
-- **Tuner 26.06.7/26.06.8** — 🎰 **"Find my max" wizards for CPU and GPU** (stepped benchmark-and-rollback validation that applies the highest stable point for *your* board), a **"My silicon" status panel** (validated profile + freeze counter + one-click sharing), and the **silicon-lottery community database** (prefilled GitHub issue reports, zero backend).
+- **Tuner 26.06.7/26.06.8** — **"Find my max" wizards for CPU and GPU** (stepped benchmark-and-rollback validation that applies the highest stable point for *your* board), a **"My silicon" status panel** (validated profile + freeze counter + one-click sharing), and the **silicon-lottery community database** (prefilled GitHub issue reports, zero backend).
 - **Monitor 26.06.5** — **REC** button: record telemetry to CSV (`~/SkillFishOS-benchmarks/`) with min/avg/max stats on stop.
 - **Hub 26.06.9** — 24-hour on-disk cache for ODRS ratings (faster launches, stars work offline).
 - Infrastructure: a third APT mirror on **SourceForge Project Web**, an **`aetherium-proposed`** staging suite, CI that **builds every package from git and verifies the packaged content**, ruff + shellcheck quality gates, encrypted SFTP deploys, an off-site backup of the repo signing key, and GitHub Discussions.

@@ -15,7 +15,7 @@ At login (handled by **SDDM**, with autologin) several sessions are available:
 - **KDE Plasma Wayland** — selectable;
 - **Gaming** — a [gamescope](https://github.com/ValveSoftware/gamescope) session in Big Picture style (see [Gaming](/en/docs/gaming)).
 
-## ⚠️ Anti-suspend (critical)
+## **Warning:** Anti-suspend (critical)
 
 The BC-250 has **broken ACPI suspend**: if it sleeps, it **won't wake up** and needs a reset (see [hardware](/en/docs/hardware-bc250)). For this reason SkillFishOS **permanently disables** all sleep states:
 

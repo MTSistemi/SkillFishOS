@@ -7,7 +7,7 @@ order: 2
 
 On a normal APU you tune clocks through the `amdgpu` sysfs. On the BC-250 **that doesn't work**: control goes through the **SMU** (System Management Unit) and needs dedicated tools. SkillFishOS bundles them all, pre-configured with safe profiles and a thermal-protection system.
 
-> ⚠️ **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/docs/app-native), which validates each preset **on your card** with an automatic test and rollback.
+> **Warning:** **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/docs/app-native), which validates each preset **on your card** with an automatic test and rollback.
 
 ## The four profiles
 
@@ -51,7 +51,7 @@ The BC-250 has **40 CUs** (20 WGP, 1 WGP = 2 CU), but the driver enables **24** 
 
 With all 40 CUs enabled the GPU measures **11385 GFLOPS** FP32 (vkpeak) cold, versus ~**6141** for a 24-CU baseline: **+85%**. Under sustained stress (hot) it settles around **10214 GFLOPS**. Measured memory bandwidth (clpeak) is **~350–367 GB/s**.
 
-> 🔬 **Silicon lottery.** On salvaged/"discard" chips some CUs may be marginal. The [Tuner](/en/docs/app-native) has a **"CU test"** that stresses each pair and flags GPU faults/hangs, so you can confirm your chip sustains all 40 CUs. (Mechanism via `umr`, writing the WGP masks — credit to [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), clean-room reimplementation.)
+> **Silicon lottery.** On salvaged/"discard" chips some CUs may be marginal. The [Tuner](/en/docs/app-native) has a **"CU test"** that stresses each pair and flags GPU faults/hangs, so you can confirm your chip sustains all 40 CUs. (Mechanism via `umr`, writing the WGP masks — credit to [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), clean-room reimplementation.)
 
 ## Thermal protection — the 85 °C cap
 

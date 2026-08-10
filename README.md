@@ -6,7 +6,7 @@
 
 [**skillfishos.com**](https://skillfishos.com) · Based on Debian · KDE Plasma · GPL-3.0
 
-**Release 26.06 "Aetherium"** — three editions: **BC-250**, **Generic x86-64** (PCs & VMs) and **Slim** (BC-250, ultra-lean) · boots in English, language chosen at install
+**Release 26.06.3 "Aetherium"** — two editions: **BC-250** and **Generic x86-64** (PCs & VMs) · boots in English, language chosen at install
 
 ![SkillFishOS desktop](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/desktop.jpg)
 
@@ -20,7 +20,7 @@ SkillFishOS takes the cheap, abundant **AMD BC-250** compute board — a semi-cu
 
 **The whole point: a ready-to-use system, no tinkering required.** Every governor, kernel patch, overclock profile, thermal guard and driver workaround is already configured and tested — you turn it on and it runs at full speed. Everything is documented here so the community can understand it, reproduce it, and make it better.
 
-> 🤝 **This is a community open-source project and we want it to grow.** Contributions of every kind are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+> **This is a community open-source project and we want it to grow.** Contributions of every kind are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -40,18 +40,19 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 ## Highlights
 
-- 🐧 **Custom `linux-tkg` kernel** `7.0.11-skillfishos` — BORE scheduler, GCC `-O3`, 1000 Hz, NTsync + fsync, with BC-250 patches: GPU clock range unlocked **350–2230 MHz**, **40-CU unlock** (opt-in), and the cosmetic *"RDSEED is not reliable…"* boot spam silenced. Built in **three flavours**: **main** (`-march=znver2`, BC-250), **generic** (`-march=x86-64`, PCs/VMs) and **slim** (BC-250-only, lean module set). Prebuilt `.deb` in [**Releases**](../../releases/tag/kernel-7.0.11-skillfishos) or `apt install skillfishos-kernel` — see [docs/BUILD.md](docs/BUILD.md).
-- ⚡ **Real clock control** — the `cyan-skillfish-governor` drives the GPU to its safe-point and idles it at 350 MHz; an SMU **CPU overclock & undervolt** reaches **4.0 GHz** (validated) under an 85 °C thermal guard. **~11,330 GFLOPS** fp32 with the 40-CU unlock (≈1.8× a stock build). The ISO ships the safe **Stock** profile; users opt into more from the Tuner.
-- 🎛️ **SkillFishOS Tuner** — a native **PyQt6** app to overclock & undervolt CPU and GPU, control the fan, resize the UMA VRAM split, and manage **Compute Units live** — a grid of CU squares (green = on, red = off, 24/32/40 presets, **no reboot**) with a **CU health test** for the silicon lottery. Four ready presets (Stock · Performance · Turbo · Crazy), *benchmark-and-rollback* testing, and a pop-up **live monitor** (temperature / frequency / voltage / fan charts) during any test. Bilingual **IT/EN**. No terminal needed.
-- ⚙️ **Live Compute Units** — boots at the 24-CU driver baseline and routes up to **40 CUs at runtime** (via `umr`, no kernel param), restored at boot by a systemd service. Toggle/test from the Tuner or `skillfish-cu`.
-- 📊 **Live system HUD** — a translucent overlay with per-core CPU load, clocks, temps, power draw, VRAM/RAM, **active CUs**, fan RPM and Bluetooth controller battery, all from real sensors.
-- 📸 **Btrfs + Snapper + grub-btrfs** — automatic pre/post-apt snapshots and bootable rollbacks straight from the GRUB menu, with `@home` kept separate so a rollback never touches user data.
-- 🎮 **Gaming, ready** — Steam, Heroic, Proton, gamescope (+ FSR 1), GameMode, MangoHud, plus **EmuDeck** and the **ES-DE** frontend to install and configure emulators in a few clicks. *(SkillFishOS ships the tools, not the games — you bring your own games and ROMs.)*
-- 🧠 **On-device AI** — **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU (**5.1×** faster than CPU, measured), serving both a chat UI and an OpenAI-compatible API, with a one-click panel that frees the GPU when you want to play. Models are GGUF pulled straight from Hugging Face.
-- 🧩 **Native PyQt6 app suite** — grouped under a dedicated **"SkillFishOS"** menu: **Tuner**, **AI Panel**, **Monitor** (live sensor charts with a labelled axis and **per core/thread CPU frequency**), **Kernel Manager** (pick the boot kernel and uninstall old ones), **ISO Mount**, and **Hub** — a Discover-style software centre: browse by category, search, read app pages with screenshots, and install/remove/update across **APT** (incl. the signed [`aetherium`](https://mtsistemi.github.io/SkillFishOS/) repo), **Flatpak** and **Snap**, plus add/remove software sources. Every app ships as an updatable `.deb` — including **`skillfish-base`** (hardware **watchdog** + boot-time **freeze detector**: the board recovers from hard hangs by itself and warns you if your profile is unstable) and **`skillfish-console`** (a SteamOS-style **"SkillFishOS Console (Big Picture)"** session on the login screen).
-- 📡 **Remote Manager — web control dashboard** — a modular, self-hosted dashboard to drive the board from any browser or phone: **live telemetry** (including per core/thread CPU frequency), a software **KVM** (noVNC) and **web terminal** (ttyd), the **Tuner** on the web (CPU/GPU + live Compute-Unit control), a **full Hub app store** (AppStream + Flatpak + Snap, with the SkillFishOS apps featured), **local AI**, logs, auto-rules, Wake-on-LAN and **ZeroTier** for access from anywhere. PAM login over HTTPS, LAN-first by design; off by default and toggled per-module from the native **Remote Manager** app. `apt install skillfish-dashboard` — see the [remote-control guide](https://skillfishos.com/docs/controllo-remoto/).
-- 🎨 **End-to-end steampunk theme** — GRUB, Plymouth, SDDM, the KDE Plasma desktop, icons, cursors, Kvantum and wallpaper. The theme lives in [`theme/`](theme/).
-- 🖨️ Driverless printing (CUPS + IPP Everywhere + Avahi), Bluetooth controllers, broken-HPD display hot-swap, and a fully localized desktop.
+- **All 8 CPU cores, unlocked** — the BC-250 is sold as 6 cores / 12 threads, but the two missing ones are switched off by product configuration, not by defect: the presence mask reads a symmetric `0x77` on virtually every board. SkillFishOS writes that mask through the SMU at boot and comes up as **8 cores / 16 threads**, **+20% measured** on multi-threaded work. No modified BIOS, no soldering. It refuses any mask that is not `0x77` — a different pattern would suggest genuinely harvested cores — and only reboots after confirming the write, so it cannot loop.
+- **Custom `linux-tkg` kernel** `7.1.7-skillfishos` — BORE scheduler, GCC `-O3`, 1000 Hz, NTsync + fsync, with BC-250 patches: GPU clock range unlocked **350–2230 MHz**, **40-CU unlock** (opt-in), and the cosmetic *"RDSEED is not reliable…"* boot spam silenced. Built in **three flavours**: **main** (`-march=znver2`, BC-250), **generic** (`-march=x86-64`, PCs/VMs) and **slim** (BC-250-only, lean module set). Prebuilt `.deb` in [**Releases**](../../releases/tag/kernel-7.0.11-skillfishos) or `apt install skillfishos-kernel` — see [docs/BUILD.md](docs/BUILD.md).
+- **Real clock control** — the `cyan-skillfish-governor` drives the GPU to its safe-point and idles it at 350 MHz; an SMU **CPU overclock & undervolt** reaches **4.0 GHz** (validated) under an 85 °C thermal guard. **~11,330 GFLOPS** fp32 with the 40-CU unlock (≈1.8× a stock build). The ISO ships the safe **Stock** profile; users opt into more from the Tuner.
+- **SkillFishOS Tuner** — a native **PyQt6** app to overclock & undervolt CPU and GPU, control the fan, resize the UMA VRAM split, and manage **Compute Units live** — a grid of CU squares (green = on, red = off, 24/32/40 presets, **no reboot**) with a **CU health test** for the silicon lottery. Four ready presets (Stock · Performance · Turbo · Crazy), *benchmark-and-rollback* testing, and a pop-up **live monitor** (temperature / frequency / voltage / fan charts) during any test. Bilingual **IT/EN**. No terminal needed.
+- **Live Compute Units** — boots at the 24-CU driver baseline and routes up to **40 CUs at runtime** (via `umr`, no kernel param), restored at boot by a systemd service. Toggle/test from the Tuner or `skillfish-cu`.
+- **Live system HUD** — a translucent overlay with per-core CPU load, clocks, temps, power draw, VRAM/RAM, **active CUs**, fan RPM and Bluetooth controller battery, all from real sensors.
+- **Btrfs + Snapper + grub-btrfs** — automatic pre/post-apt snapshots and bootable rollbacks straight from the GRUB menu, with `@home` kept separate so a rollback never touches user data.
+- **Gaming, ready** — Steam, Heroic, Proton, gamescope (+ FSR 1), GameMode, MangoHud, plus **EmuDeck** and the **ES-DE** frontend to install and configure emulators in a few clicks. *(SkillFishOS ships the tools, not the games — you bring your own games and ROMs.)*
+- **On-device AI** — **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU (**5.1×** faster than CPU, measured), serving both a chat UI and an OpenAI-compatible API, with a one-click panel that frees the GPU when you want to play. Models are GGUF pulled straight from Hugging Face.
+- **Native PyQt6 app suite** — grouped under a dedicated **"SkillFishOS"** menu: **Tuner**, **AI Panel**, **Monitor** (live sensor charts with a labelled axis and **per core/thread CPU frequency**), **Kernel Manager** (pick the boot kernel and uninstall old ones), **ISO Mount**, and **Hub** — a Discover-style software centre: browse by category, search, read app pages with screenshots, and install/remove/update across **APT** (incl. the signed [`aetherium`](https://mtsistemi.github.io/SkillFishOS/) repo), **Flatpak** and **Snap**, plus add/remove software sources. Every app ships as an updatable `.deb` — including **`skillfish-base`** (hardware **watchdog** + boot-time **freeze detector**: the board recovers from hard hangs by itself and warns you if your profile is unstable) and **`skillfish-console`** (a SteamOS-style **"SkillFishOS Console (Big Picture)"** session on the login screen).
+- **Remote Manager — web control dashboard** — a modular, self-hosted dashboard to drive the board from any browser or phone: **live telemetry** (including per core/thread CPU frequency), a software **KVM** (noVNC) and **web terminal** (ttyd), the **Tuner** on the web (CPU/GPU + live Compute-Unit control), a **full Hub app store** (AppStream + Flatpak + Snap, with the SkillFishOS apps featured), **local AI**, logs, auto-rules, Wake-on-LAN and **ZeroTier** for access from anywhere. PAM login over HTTPS, LAN-first by design; off by default and toggled per-module from the native **Remote Manager** app. `apt install skillfish-dashboard` — see the [remote-control guide](https://skillfishos.com/docs/controllo-remoto/).
+- **End-to-end steampunk theme** — GRUB, Plymouth, SDDM, the KDE Plasma desktop, icons, cursors, Kvantum and wallpaper. The theme lives in [`theme/`](theme/).
+- Driverless printing (CUPS + IPP Everywhere + Avahi), Bluetooth controllers, broken-HPD display hot-swap, and a fully localized desktop.
 
 ---
 
@@ -69,7 +70,7 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 ## Performance
 
-> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.0.11-skillfishos, Mesa 26.0.8 — re-measured on 7.1.7 within ±2%). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
+> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.1.7-skillfishos, Mesa 26.0.8 — 7.0.11 and 7.1.7 measure within ±2% of each other). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
 
 ### Real benchmarks
 
@@ -114,24 +115,24 @@ Prebuilt kernel `.deb`s (three flavours) are published under [**Releases**](../.
 # main BC-250 kernel (znver2)
 sudo dpkg -i linux-image-7.1.7-skillfishos_7.1.7-1_amd64.deb
 # …or generic (PCs/VMs): linux-image-7.1.7-skillfishos-generic_7.1.7-1_amd64.deb
-# …or slim (lean, BC-250): linux-image-7.1.7-skillfishos-slim_7.1.7-1_amd64.deb
 ```
 
 Or, from the signed APT repo, simply `sudo apt install skillfishos-kernel` (a thin wrapper that fetches the full kernel `.deb` from the GitHub Release). To build it yourself, see [docs/BUILD.md](docs/BUILD.md) and [`kernel-build/`](kernel-build/).
 
-### Installable ISOs — **26.06 "Aetherium"** (three editions)
+### Installable ISOs — **26.06.3 "Aetherium"** (two editions)
 
-Each live ISO (~6.2 GB) is captured from the real system with [penguins-eggs](https://github.com/pieroproietti/penguins-eggs): KDE Plasma steampunk desktop, Btrfs + Snapper + grub-btrfs, the native PyQt6 app suite, the signed `aetherium` APT repo, and the **Calamares** installer. They **boot in English** and let you pick your **language and keyboard** at install; the bilingual apps and HUD follow the chosen locale.
+Each live ISO (~4.6 GB) is captured from the real system with [penguins-eggs](https://github.com/pieroproietti/penguins-eggs): KDE Plasma steampunk desktop, Btrfs + Snapper + grub-btrfs, the native PyQt6 app suite, the signed `aetherium` APT repo, and the **Calamares** installer. They **boot in English** and let you pick your **language and keyboard** at install; the bilingual apps and HUD follow the chosen locale.
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-BC250-amd64.iso/download) | `7.0.11-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Generic-amd64.iso/download) | `7.0.11-skillfishos-generic` | any x86-64 PC / VM |
-| [**Slim**](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/SkillFishOS-26.06.2-Aetherium-Slim-BC250-amd64.iso/download) | `7.0.11-skillfishos-slim` | BC-250, ultra-lean |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso/download) | `7.1.7-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso/download) | `7.1.7-skillfishos-generic` | any x86-64 PC / VM |
 
-Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.2-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
+The **Slim** edition of 26.06 is not part of this release: it was a third kernel flavour of the 7.0.11 series and has not been rebuilt for 7.1.7.
 
-> The signed **APT repo is live** at <https://mtsistemi.github.io/SkillFishOS/>. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
+Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
+
+> The signed **APT repo is live** at <https://mtsistemi.github.io/SkillFishOS/>, mirrored at <https://skillfishos.com/apt>. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
 
 ---
 

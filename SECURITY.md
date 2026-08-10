@@ -10,11 +10,12 @@ report those to their respective projects.
 
 | Component | Version | Supported |
 |---|---|---|
-| SkillFishOS release | **26.06 "Aetherium"** | ✅ security fixes |
-| SkillFishOS release | < 26.06 (pre-release) | ❌ |
-| Kernel | `7.0.11-skillfishos` (+ `-generic` / `-slim`) | ✅ |
-| Kernel | `7.0.10-skillfishos` | ✅ (previous, best-effort) |
-| Apps | `skillfish-*` `26.06` | ✅ |
+| SkillFishOS release | **26.06.3 "Aetherium"** | security fixes |
+| SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 | best effort, upgrade advised |
+| SkillFishOS release | < 26.06 (pre-release) | no |
+| Kernel | `7.1.7-skillfishos` (+ `-generic`) | yes |
+| Kernel | `7.0.11-skillfishos` | previous series, best effort |
+| Apps | `skillfish-*` `26.08.10` | yes |
 
 Fixes are delivered through the signed APT repository
 (<https://mtsistemi.github.io/SkillFishOS>) — `sudo apt update && sudo apt upgrade`.
