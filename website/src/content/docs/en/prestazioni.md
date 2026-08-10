@@ -166,6 +166,35 @@ With the 40 CUs active: **+85%** FP32 over baseline (≈**11.3 TFLOPS**). When h
 - **Hard maximum Vid: 1.325 V** (never exceeded).
 - 85 °C thermal cap on all profiles; fan on auto; at idle the GPU sits at **350 MHz / 700 mV**.
 
+## 🔓 The 8-core unlock — a real +20%
+
+The BC-250 ships with **two cores disabled in software**: the SMU's core-enable mask reads 3 of 4 cores per CCX. SkillFishOS rewrites it and brings the CPU to **8 cores / 16 threads**, with no patched BIOS.
+
+Measured on the same boot, toggling the two extra cores off and on at runtime:
+
+| Workload | 6c/12t | 8c/16t | |
+|---|---|---|---|
+| `xz -T` compression | 6.41 s | **5.11 s** | **+20%** |
+| CPU LLM inference | 34.0 tok/s | **40.8 tok/s** | **+20%** |
+| Temperature | 66 °C | 68 °C | +2 °C |
+
+It's +20% rather than the theoretical +33%: memory bandwidth and thread overhead eat the difference. Still **a fifth more performance for free**.
+
+### Overclocking with all 8 cores
+
+Re-measured step by step, every rung **stable with 0 MCEs**:
+
+| Target | Reached under load | Score | Temp | Fan |
+|---|---|---|---|---|
+| 3500 (control) | 3475 | 5118 ev/s | 57 °C | — |
+| 3700 | 3673 | 5410 | 62 °C | 50% |
+| 3900 | 3872 | 5704 | 71 °C | 68% |
+| **4000** | **3971** | **5849** | **81 °C** | **93%** |
+
+**Stable maximum: 4000 MHz**, +14% on the score over 3500 — only reachable once the fan control was fixed. ⚠️ Under a **combined CPU+GPU** load the clock settles at 3375–3492 MHz at 86 °C: past ~3900 the limiter is the heatsink, not the silicon.
+
+---
+
 ## 🌡️ Thermal validation (stress test)
 
 Data recorded during the Tuner's automatic validation (test-and-rollback).
@@ -173,7 +202,7 @@ Data recorded during the Tuner's automatic validation (test-and-rollback).
 | Phase | Clock | Temperature | Notes |
 |---|---|---|---|
 | Idle | CPU ~2.5 GHz · GPU 350 MHz | k10 46 °C · GPU 45 °C | at rest |
-| **CPU stress** (12 threads, 120 s) | CPU **3.68–3.69 GHz** | k10 **85 °C** (at the cap) | GPU stays at 350 MHz/56 °C |
+| **CPU stress** (12 threads, 120 s) | CPU **3.68–3.69 GHz** | k10 **85 °C** (at the cap) | historical figure, taken **before** the 8-core unlock |
 | **GPU stress** (vkpeak loop, 120 s) | GPU **2000 MHz** | edge up to **86 °C** | at 86 °C the governor drops to 1819–1900 MHz (thermal-guard); the CPU falls to ~2.2–2.4 GHz due to the shared budget |
 
 ---

@@ -47,9 +47,9 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 - 📊 **Live system HUD** — a translucent overlay with per-core CPU load, clocks, temps, power draw, VRAM/RAM, **active CUs**, fan RPM and Bluetooth controller battery, all from real sensors.
 - 📸 **Btrfs + Snapper + grub-btrfs** — automatic pre/post-apt snapshots and bootable rollbacks straight from the GRUB menu, with `@home` kept separate so a rollback never touches user data.
 - 🎮 **Gaming, ready** — Steam, Heroic, Proton, gamescope (+ FSR 1), GameMode, MangoHud, plus **EmuDeck** and the **ES-DE** frontend to install and configure emulators in a few clicks. *(SkillFishOS ships the tools, not the games — you bring your own games and ROMs.)*
-- 🧠 **On-device AI** — an Ollama + OpenWebUI stack accelerated in **Vulkan** on the integrated GPU, with a one-click panel that frees the GPU when you want to play.
+- 🧠 **On-device AI** — **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU (**5.1×** faster than CPU, measured), serving both a chat UI and an OpenAI-compatible API, with a one-click panel that frees the GPU when you want to play. Models are GGUF pulled straight from Hugging Face.
 - 🧩 **Native PyQt6 app suite** — grouped under a dedicated **"SkillFishOS"** menu: **Tuner**, **AI Panel**, **Monitor** (live sensor charts with a labelled axis and **per core/thread CPU frequency**), **Kernel Manager** (pick the boot kernel and uninstall old ones), **ISO Mount**, and **Hub** — a Discover-style software centre: browse by category, search, read app pages with screenshots, and install/remove/update across **APT** (incl. the signed [`aetherium`](https://mtsistemi.github.io/SkillFishOS/) repo), **Flatpak** and **Snap**, plus add/remove software sources. Every app ships as an updatable `.deb` — including **`skillfish-base`** (hardware **watchdog** + boot-time **freeze detector**: the board recovers from hard hangs by itself and warns you if your profile is unstable) and **`skillfish-console`** (a SteamOS-style **"SkillFishOS Console (Big Picture)"** session on the login screen).
-- 📡 **Remote Manager — web control dashboard** — a modular, self-hosted dashboard to drive the board from any browser or phone: **live telemetry** (including per core/thread CPU frequency), a software **KVM** (noVNC) and **web terminal** (ttyd), the **Tuner** on the web (CPU/GPU + live Compute-Unit control), a **full Hub app store** (AppStream + Flatpak + Snap, with the SkillFishOS apps featured), **AI/OpenWebUI**, logs, auto-rules, Wake-on-LAN and **ZeroTier** for access from anywhere. PAM login over HTTPS, LAN-first by design; off by default and toggled per-module from the native **Remote Manager** app. `apt install skillfish-dashboard` — see the [remote-control guide](https://skillfishos.com/docs/controllo-remoto/).
+- 📡 **Remote Manager — web control dashboard** — a modular, self-hosted dashboard to drive the board from any browser or phone: **live telemetry** (including per core/thread CPU frequency), a software **KVM** (noVNC) and **web terminal** (ttyd), the **Tuner** on the web (CPU/GPU + live Compute-Unit control), a **full Hub app store** (AppStream + Flatpak + Snap, with the SkillFishOS apps featured), **local AI**, logs, auto-rules, Wake-on-LAN and **ZeroTier** for access from anywhere. PAM login over HTTPS, LAN-first by design; off by default and toggled per-module from the native **Remote Manager** app. `apt install skillfish-dashboard` — see the [remote-control guide](https://skillfishos.com/docs/controllo-remoto/).
 - 🎨 **End-to-end steampunk theme** — GRUB, Plymouth, SDDM, the KDE Plasma desktop, icons, cursors, Kvantum and wallpaper. The theme lives in [`theme/`](theme/).
 - 🖨️ Driverless printing (CUPS + IPP Everywhere + Avahi), Bluetooth controllers, broken-HPD display hot-swap, and a fully localized desktop.
 
@@ -145,7 +145,7 @@ docs/              full documentation
   OPTIMIZATIONS.md   kernel patches, governor, OC/UV, 40-CU, VRAM/GTT, audio/display, controllers
   DESKTOP.md         KDE Plasma, steampunk theme, HUD, Tuner, AI panel
   GAMING.md          Steam, EmuDeck, ES-DE, emulators (bring your own games)
-  AI.md              the local Ollama + OpenWebUI Vulkan stack
+  AI.md              the local Unsloth Studio Vulkan engine
   BUILD.md           building the kernel and the ISO
 kernel-build/      linux-tkg recipe (customization.cfg + BC-250 userpatches)
 apps/              native PyQt6 apps: tuner, ai-panel, iso-mount, kernel-switch, monitor, hub (+ menu)
@@ -189,7 +189,7 @@ Built on the shoulders of:
 - [Frogging-Family/linux-tkg](https://github.com/Frogging-Family/linux-tkg) — the kernel build system
 - [Magnap/cyan-skillfish-governor](https://github.com/Magnap/cyan-skillfish-governor) — GPU SMU clock control
 - [bc250-collective/bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc) · [fanoush/bc250_memcfg](https://github.com/fanoush/bc250_memcfg) · [duggasco/bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock)
-- [EmuDeck](https://www.emudeck.com/) · [ES-DE](https://es-de.org/) · [Ollama](https://ollama.com/)
+- [EmuDeck](https://www.emudeck.com/) · [ES-DE](https://es-de.org/) · [Unsloth](https://unsloth.ai/)
 - BC-250 community docs: [bc250.info](https://bc250.info) · [elektricm.github.io/amd-bc250-docs](https://elektricm.github.io/amd-bc250-docs) · [mothenjoyer69/bc250-documentation](https://github.com/mothenjoyer69/bc250-documentation)
 
 ## License

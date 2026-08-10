@@ -23,7 +23,7 @@ I termini che ricorrono nella documentazione, spiegati in una riga. In ordine al
 
 **RDNA 2** — l'architettura grafica AMD della GPU (stessa famiglia delle console attuali).
 
-**Zen 2** — l'architettura CPU AMD dell'APU (6 core / 12 thread).
+**Zen 2** — l'architettura CPU AMD dell'APU (**8 core / 16 thread**: la scheda ne espone 6, SkillFishOS sblocca gli altri due via SMU).
 
 **GDDR6** — il tipo di memoria della scheda: veloce, qui **condivisa** tra CPU e GPU.
 
@@ -63,7 +63,7 @@ I termini che ricorrono nella documentazione, spiegati in una riga. In ordine al
 
 **ROCm** — lo stack di calcolo "ufficiale" AMD: **non** supporta gfx1013, quindi non si usa.
 
-**Vulkan** — l'API grafica/di calcolo usata sia per il gaming sia per l'**AI** (Ollama) sulla BC-250.
+**Vulkan** — l'API grafica/di calcolo usata sia per il gaming sia per l'**AI** (Unsloth Studio) sulla BC-250.
 
 **Btrfs** — il filesystem con snapshot copy-on-write che dà la "rete di sicurezza" (vedi [Storage e snapshot](/docs/storage-snapshot)).
 
@@ -91,7 +91,7 @@ I termini che ricorrono nella documentazione, spiegati in una riga. In ordine al
 
 **FSR / OptiScaler** — tecnologie di **upscaling**. FSR 4 non è disponibile (richiede RDNA 4); si usano FSR1/NIS o OptiScaler.
 
-**Ollama / OpenWebUI** — backend ed interfaccia dell'AI locale.
+**Unsloth Studio** — motore e interfaccia dell'AI locale: esegue modelli GGUF sulla GPU ed espone un'API compatibile OpenAI.
 
 **qwen3:14b** — il modello AI di riferimento, che gira interamente su GPU.
 

@@ -46,7 +46,7 @@ Il Tuner **testa ogni profilo sulla tua BC-250** e fa il *rollback* automatico s
 
 ## 6. (Opzionale) Accendi l'AI locale
 
-Quando ti serve un assistente AI offline, apri il **pannello AI** e accendi lo stack [Ollama + OpenWebUI](/docs/ai-locale). Ricorda: AI e giochi pesanti **non** vanno usati insieme (stessa GPU e memoria). A stack spento la GPU torna tutta al gaming.
+Quando ti serve un assistente AI offline, apri il **pannello AI** e accendi [Unsloth Studio](/docs/ai-locale). Ricorda: AI e giochi pesanti **non** vanno usati insieme (stessa GPU e memoria). A motore spento la GPU torna tutta al gaming.
 
 ## Cose da sapere subito
 
