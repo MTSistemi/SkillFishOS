@@ -7,7 +7,7 @@ order: 3
 
 This is the **complete benchmark section**: every run was done on **our own BC-250** with SkillFishOS, with real screenshots, **all the settings used**, and the telemetry of **clocks, voltages, temperatures, power and fan** recorded during the run.
 
-> ⚠️ **Silicon lottery + cooling.** The numbers hold for *this* chip with adequate cooling. The stock cooler is marginal: "back-to-back" comparisons without pauses are skewed by *heat-soak* — let the card cool a few minutes between runs.
+> **Warning:** **Silicon lottery + cooling.** The numbers hold for *this* chip with adequate cooling. The stock cooler is marginal: "back-to-back" comparisons without pauses are skewed by *heat-soak* — let the card cool a few minutes between runs.
 
 ## Test conditions (test rig)
 
@@ -29,7 +29,7 @@ Apply to **all** benchmarks below unless stated otherwise.
 
 ---
 
-## 🎮 Black Myth: Wukong — 112 FPS (1080p)
+## Black Myth: Wukong — 112 FPS (1080p)
 
 ![Black Myth: Wukong — 112 FPS average at 1080p on the AMD BC-250](/img/benchmarks/wukong-112fps.jpg)
 
@@ -70,7 +70,7 @@ The benchmark tool's *flythrough* is **GPU-bound**, so there the clock matters. 
 
 ---
 
-## 🧪 Unigine Superposition — 1080p HIGH: 12938
+## Unigine Superposition — 1080p HIGH: 12938
 
 ![Unigine Superposition 1080p High — score 12938 on the BC-250](/img/benchmarks/superposition-high.jpg)
 
@@ -89,7 +89,7 @@ The benchmark tool's *flythrough* is **GPU-bound**, so there the clock matters. 
 
 ---
 
-## 🧪 Unigine Superposition — 1080p EXTREME: 5513
+## Unigine Superposition — 1080p EXTREME: 5513
 
 ![Unigine Superposition 1080p Extreme — score 5513 on the BC-250](/img/benchmarks/superposition-extreme.jpg)
 
@@ -110,7 +110,7 @@ The benchmark tool's *flythrough* is **GPU-bound**, so there the clock matters. 
 
 ---
 
-## 🏔️ Unigine Heaven 4.0 — 113.7 FPS · score 2865
+## Unigine Heaven 4.0 — 113.7 FPS · score 2865
 
 ![Unigine Heaven 4.0 — 113.7 FPS, score 2865 on the BC-250](/img/benchmarks/heaven-113fps.jpg)
 
@@ -130,7 +130,7 @@ The benchmark tool's *flythrough* is **GPU-bound**, so there the clock matters. 
 
 ---
 
-## ⚙️ GPU compute — vkpeak (synthetic)
+## GPU compute — vkpeak (synthetic)
 
 Vulkan compute throughput on the **same** board, before and after unlocking the 40 CUs.
 
@@ -144,7 +144,7 @@ Vulkan compute throughput on the **same** board, before and after unlocking the 
 
 With the 40 CUs active: **+85%** FP32 over baseline (≈**11.3 TFLOPS**). When hot, under sustained stress, it settles around **10,214 GFLOPS**. At idle the governor drops to 350 MHz, edge ~54 °C after the load.
 
-## 📦 Memory bandwidth — clpeak
+## Memory bandwidth — clpeak
 
 | Metric | Value |
 |---|---|
@@ -154,7 +154,7 @@ With the 40 CUs active: **+85%** FP32 over baseline (≈**11.3 TFLOPS**). When h
 
 ---
 
-## 🔧 Tuner profiles — clocks, voltages, temperatures
+## Tuner profiles — clocks, voltages, temperatures
 
 | Profile | CPU | CPU voltage | GPU | Peak temp |
 |---|---|---|---|---|
@@ -166,7 +166,7 @@ With the 40 CUs active: **+85%** FP32 over baseline (≈**11.3 TFLOPS**). When h
 - **Hard maximum Vid: 1.325 V** (never exceeded).
 - 85 °C thermal cap on all profiles; fan on auto; at idle the GPU sits at **350 MHz / 700 mV**.
 
-## 🔓 The 8-core unlock — a real +20%
+## The 8-core unlock — a real +20%
 
 The BC-250 ships with **two cores disabled in software**: the SMU's core-enable mask reads 3 of 4 cores per CCX. SkillFishOS rewrites it and brings the CPU to **8 cores / 16 threads**, with no patched BIOS.
 
@@ -191,11 +191,11 @@ Re-measured step by step, every rung **stable with 0 MCEs**:
 | 3900 | 3872 | 5704 | 71 °C | 68% |
 | **4000** | **3971** | **5849** | **81 °C** | **93%** |
 
-**Stable maximum: 4000 MHz**, +14% on the score over 3500 — only reachable once the fan control was fixed. ⚠️ Under a **combined CPU+GPU** load the clock settles at 3375–3492 MHz at 86 °C: past ~3900 the limiter is the heatsink, not the silicon.
+**Stable maximum: 4000 MHz**, +14% on the score over 3500 — only reachable once the fan control was fixed. **Warning:** Under a **combined CPU+GPU** load the clock settles at 3375–3492 MHz at 86 °C: past ~3900 the limiter is the heatsink, not the silicon.
 
 ---
 
-## 🌡️ Thermal validation (stress test)
+## Thermal validation (stress test)
 
 Data recorded during the Tuner's automatic validation (test-and-rollback).
 
@@ -207,7 +207,7 @@ Data recorded during the Tuner's automatic validation (test-and-rollback).
 
 ---
 
-## 📊 Comparisons
+## Comparisons
 
 **Same hardware, just changing the OS** — Superposition 1080p Extreme on the **same** BC-250:
 
@@ -222,7 +222,7 @@ Data recorded during the Tuner's automatic validation (test-and-rollback).
 
 ---
 
-## 🛠️ Tools and method
+## Tools and method
 
 | Tool | What it measures |
 |---|---|

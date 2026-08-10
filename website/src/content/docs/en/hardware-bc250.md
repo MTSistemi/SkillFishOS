@@ -20,6 +20,18 @@ The **AMD BC-250** is a compact board based on a **semi-custom APU** codenamed *
 
 Memory is **unified**: the GDDR6 is shared between system and graphics. By default about 8 GB is assigned as VRAM, but on Linux the video space can be extended via the **GTT** (Graphics Translation Table), letting Vulkan see ~13 GiB of memory — especially useful for AI models.
 
+## Unlocking the 8 CPU cores
+
+The board presents itself as **6 cores / 12 threads**, but there are **eight** physical cores: the two missing ones are not defective, they are switched off by product configuration. The core presence mask gives it away — on virtually every board it reads `0x77`, a **symmetric** value: four cores per complex with the fourth disabled in both. A genuine manufacturing harvest would leave an asymmetric pattern, because defects do not distribute themselves that neatly.
+
+SkillFishOS rewrites that mask through the **SMU** at boot and the board comes back up as **8 cores / 16 threads**. No modified BIOS, no soldering.
+
+Two safeguards are wired into the service: if the mask is **not** `0x77` it touches nothing, since a different pattern may mean cores really were disabled at the factory; and the warm reboot happens **only after** the write has been read back and confirmed, so it cannot start a reboot loop.
+
+> Measured on our own board: **+20%** on multi-threaded work. On lightly threaded loads it changes nothing, as you would expect — two extra cores do not make a single thread run faster.
+
+The reverse-engineering is [bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock): without that work this feature would not exist.
+
 ## Unlocking the 40 CUs
 
 The GPU has 40 CUs but the driver enables only **24** by default. SkillFishOS **routes them up to 40 live** (no reboot): it boots at the driver baseline and a service brings it to 40 at startup, adjustable from the [Tuner](/en/docs/app-native). The reverse-engineering of the unlock is documented by [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); the runtime control via `umr` is inspired by [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (clean-room reimplementation).

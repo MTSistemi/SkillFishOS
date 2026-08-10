@@ -7,7 +7,7 @@ order: 2
 
 Su una APU normale le frequenze si regolano via sysfs `amdgpu`. Sulla BC-250 **non funziona così**: il controllo passa per l'**SMU** (System Management Unit) e richiede strumenti dedicati. SkillFishOS li integra tutti, già configurati con profili sicuri e un sistema di protezione termica.
 
-> ⚠️ **Silicon lottery.** Tutti i valori di questa pagina sono **misurati sulla nostra BC-250**. Ogni esemplare è diverso: una scheda può reggere un undervolt più spinto, un'altra meno. Per questo SkillFishOS **parte sempre in profilo Stock** e ti lascia salire con il [Tuner](/docs/app-native), che valida ogni preset **sulla tua scheda** con test automatico e rollback.
+> **Attenzione:** **Silicon lottery.** Tutti i valori di questa pagina sono **misurati sulla nostra BC-250**. Ogni esemplare è diverso: una scheda può reggere un undervolt più spinto, un'altra meno. Per questo SkillFishOS **parte sempre in profilo Stock** e ti lascia salire con il [Tuner](/docs/app-native), che valida ogni preset **sulla tua scheda** con test automatico e rollback.
 
 ## I quattro profili
 
@@ -51,7 +51,7 @@ La BC-250 ha **40 CU** (20 WGP, 1 WGP = 2 CU), ma il driver ne attiva di default
 
 Con le 40 CU attive la GPU misura **11385 GFLOPS** FP32 (vkpeak) da freddo, contro i ~**6141** di una baseline a 24 CU: **+85%**. Sotto stress prolungato (a caldo) si assesta intorno a **10214 GFLOPS**. La banda di memoria misurata (clpeak) è **~350–367 GB/s**.
 
-> 🔬 **Lotteria del silicio.** Su esemplari "discarto" qualche CU può essere marginale. Il [Tuner](/docs/app-native) ha un **«Test CU»** che mette sotto sforzo ogni coppia e segnala errori/blocchi GPU, così verifichi che il tuo chip regga le 40 CU. (Meccanismo via `umr`, scrittura delle mask WGP — credito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementato clean-room.)
+> **Lotteria del silicio.** Su esemplari "discarto" qualche CU può essere marginale. Il [Tuner](/docs/app-native) ha un **«Test CU»** che mette sotto sforzo ogni coppia e segnala errori/blocchi GPU, così verifichi che il tuo chip regga le 40 CU. (Meccanismo via `umr`, scrittura delle mask WGP — credito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementato clean-room.)
 
 ## Protezione termica — il cap a 85 °C
 

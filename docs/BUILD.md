@@ -25,7 +25,7 @@ cd linux-tkg
 cp /path/to/kernel-build/customization.cfg .
 
 # 2. Drop the BC-250 userpatches into the version's userpatches dir
-#    (e.g. linux70-tkg-userpatches/ for the 7.0 series):
+# (e.g. linux70-tkg-userpatches/ for the 7.0 series):
 cp /path/to/kernel-build/userpatches/*.mypatch linux70-tkg-userpatches/
 
 # 3. Build the .deb packages
@@ -40,7 +40,7 @@ The three userpatches:
 | 40‑CU unlock | enables all 40 compute units (opt‑in) |
 | RDSEED‑quiet | removes the cosmetic `RDSEED is not reliable…` boot spam (keeps RDSEED correctly disabled) |
 
-> ⚠️ `.mypatch` files **must stay LF**. A `.gitattributes` (`*.mypatch text eol=lf`) enforces this — CRLF from Windows would break `patch`.
+> **Warning:** `.mypatch` files **must stay LF**. A `.gitattributes` (`*.mypatch text eol=lf`) enforces this — CRLF from Windows would break `patch`.
 
 Output `.deb`s land in `DEBS/`. Install:
 

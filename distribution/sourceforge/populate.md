@@ -59,13 +59,13 @@ built and dogfooded directly on the real **AMD BC-250** — the cheap, salvaged 
 a console-class Zen 2 + RDNA 2 APU.
 
 **What's inside**
-- 🐧 Custom **linux-tkg 7.0.10** kernel with the **40 Compute Unit unlock** (+85% FP32:
+- Custom **linux-tkg 7.0.10** kernel with the **40 Compute Unit unlock** (+85% FP32:
   11,385 vs 6,141 GFLOPS measured) and BC-250 quirk fixes (DisplayPort hot-swap, suspend, IOMMU).
-- ⚡ **SMU governor** + CPU/GPU **overclock & undervolt** with four Tuner presets
+- **SMU governor** + CPU/GPU **overclock & undervolt** with four Tuner presets
   (Stock → Crazy, up to 4.0 GHz CPU / 2230 MHz GPU) and an 85 °C thermal-guard.
-- 🎨 End-to-end **steampunk** KDE Plasma 6 desktop, live system HUD (bilingual IT/EN).
-- 📸 **Btrfs** snapshots with one-click rollback from GRUB.
-- 🎮 Steam, EmuDeck, ES-DE, Heroic, Proton-GE · 🧠 on-device Vulkan AI (Ollama + OpenWebUI).
+- End-to-end **steampunk** KDE Plasma 6 desktop, live system HUD (bilingual IT/EN).
+- **Btrfs** snapshots with one-click rollback from GRUB.
+- Steam, EmuDeck, ES-DE, Heroic, Proton-GE · on-device Vulkan AI (Ollama + OpenWebUI).
 
 **Get it:** boots in English, pick your language at install. Download on the Files page.
 **Updates:** signed APT repo (`aetherium`) — `apt install skillfishos-kernel`.
@@ -82,12 +82,12 @@ Join the discussion on the Forum and at https://github.com/MTSistemi/SkillFishOS
 Welcome! This is the place to ask questions, share your BC-250 builds (cases, fans, cooling),
 report issues and suggest features for **SkillFishOS**.
 
-- 📖 Docs: https://skillfishos.com/docs
-- 🐛 Bugs: https://github.com/MTSistemi/SkillFishOS/issues
-- 💬 Also on GitHub Discussions: https://github.com/MTSistemi/SkillFishOS/discussions
-- 🔧 Hardware help (3D-printable cases, recommended fans): see the Hardware doc.
+- Docs: https://skillfishos.com/docs
+- Bugs: https://github.com/MTSistemi/SkillFishOS/issues
+- Also on GitHub Discussions: https://github.com/MTSistemi/SkillFishOS/discussions
+- Hardware help (3D-printable cases, recommended fans): see the Hardware doc.
 
-Tell us about your setup: which BC-250, your cooling solution, and what you're playing. 🎮
+Tell us about your setup: which BC-250, your cooling solution, and what you're playing.
 
 ---
 

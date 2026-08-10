@@ -62,7 +62,7 @@ Then publish `dists/`, `pool/` and the keyring to the `gh-pages` branch (Pages s
 A `.gitattributes` of `* -text` on that branch keeps the **GPG-signed** files byte-exact.
 `build-repo.sh` automates keygen / add / export for a generic `public/` layout.
 
-> ⚠️ Never commit the **private** signing key. It is backed up off-tree
+> **Warning:** Never commit the **private** signing key. It is backed up off-tree
 > (`/root/skillfishos-apt-private.asc` on the build box) — keep an offline copy.
 
 ## What's published now

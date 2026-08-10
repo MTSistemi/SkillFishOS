@@ -20,6 +20,18 @@ La **AMD BC-250** è una scheda compatta basata su un'**APU semi-custom** chiama
 
 La memoria è **unificata**: la GDDR6 è condivisa tra sistema e grafica. Di default circa 8 GB sono assegnati come VRAM, ma su Linux si può estendere lo spazio video sfruttando il **GTT** (Graphics Translation Table), arrivando a far vedere a Vulkan ~13 GiB di memoria — utile soprattutto per i modelli AI.
 
+## Lo sblocco degli 8 core CPU
+
+La scheda si presenta come **6 core / 12 thread**, ma i core fisici sono **otto**: i due mancanti non sono difettosi, sono spenti dalla configurazione di prodotto. Lo si vede dalla maschera di presenza dei core, che sulla quasi totalità delle schede vale `0x77` — un valore **simmetrico**, quattro core per complesso con il quarto spento in entrambi. Uno scarto reale di produzione lascerebbe un motivo asimmetrico, perché i difetti non si distribuiscono con quella regolarità.
+
+SkillFishOS riscrive quella maschera attraverso l'**SMU** all'avvio e la scheda riparte come **8 core / 16 thread**. Non serve un BIOS modificato, non serve saldare niente.
+
+Due cautele sono cablate nel servizio: se la maschera **non** è `0x77` non tocca nulla, perché un motivo diverso può indicare core davvero disabilitati in fabbrica; e il riavvio a caldo avviene **solo dopo** aver riletto e confermato la scrittura, così non può innescare un ciclo di riavvii.
+
+> Guadagno **misurato sulla nostra scheda: +20%** nei carichi multi-thread. Sui carichi a pochi thread non cambia nulla, come è logico aspettarsi: i due core in più non fanno andare più veloce un thread solo.
+
+Il reverse engineering è di [bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock): senza quel lavoro questa funzione non esisterebbe.
+
 ## Lo sblocco delle 40 CU
 
 La GPU ha 40 CU ma il driver ne attiva solo **24** di default. SkillFishOS le **instrada fino a 40 a caldo** (senza riavvio): si parte dalla baseline driver e un servizio porta a 40 all'avvio, regolabili dal [Tuner](/docs/app-native). Il reverse engineering dello sblocco è documentato da [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); il controllo a runtime via `umr` si ispira a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (reimplementato clean-room).

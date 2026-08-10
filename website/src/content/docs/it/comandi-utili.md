@@ -7,7 +7,7 @@ order: 4
 
 SkillFishOS è pensato per **non** richiedere il terminale: il [Tuner](/docs/app-native) e le app grafiche bastano per l'uso normale. Questa pagina è per chi vuole **smanettare** o diagnosticare. Comandi privilegiati = con `sudo`.
 
-> 🛟 Prima di esperimenti rischiosi, ricorda la rete di sicurezza: snapshot Btrfs e rollback dal menu GRUB (vedi [Storage e snapshot](/docs/storage-snapshot)).
+> Prima di esperimenti rischiosi, ricorda la rete di sicurezza: snapshot Btrfs e rollback dal menu GRUB (vedi [Storage e snapshot](/docs/storage-snapshot)).
 
 ## Sistema e kernel
 

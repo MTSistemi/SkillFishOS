@@ -22,7 +22,7 @@ A coherent brass/steampunk look across the entire boot‑to‑desktop chain — 
 
 The theme is shipped in this repo under [`theme/`](../theme/) — see [theme/README.md](../theme/README.md) for install notes (including the cursor‑symlink gotcha).
 
-> ⚠️ The icon theme must provide `inode-directory` (not just `folder`) or KDE shows generic folders in the base theme's blue — SkillFishOS copies `folder.svg` → `inode-directory.svg` to fix this.
+> **Warning:** The icon theme must provide `inode-directory` (not just `folder`) or KDE shows generic folders in the base theme's blue — SkillFishOS copies `folder.svg` → `inode-directory.svg` to fix this.
 
 ## Live system HUD
 

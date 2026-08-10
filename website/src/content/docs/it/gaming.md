@@ -21,9 +21,9 @@ SkillFishOS nasce per giocare. Tutto lo stack di gaming è preinstallato e confi
 
 In SkillFishOS la cartella `~/Emulation` può puntare a un **NAS di rete** (BIOS, ROM e salvataggi condivisi tra più macchine).
 
-> ⚠️ ES-DE riscrive il proprio file di impostazioni all'uscita: vanno modificate a programma **chiuso**.
+> **Attenzione:** ES-DE riscrive il proprio file di impostazioni all'uscita: vanno modificate a programma **chiuso**.
 >
-> ⚠️ Per **Ryujinx** il firmware e le chiavi vanno importati dall'utente: il firmware richiede ogni NCA come directory. **Giochi, ROM, BIOS e chiavi non sono inclusi** nel sistema — è una scelta legale: SkillFishOS offre gli strumenti, i contenuti li metti tu.
+> **Attenzione:** Per **Ryujinx** il firmware e le chiavi vanno importati dall'utente: il firmware richiede ogni NCA come directory. **Giochi, ROM, BIOS e chiavi non sono inclusi** nel sistema — è una scelta legale: SkillFishOS offre gli strumenti, i contenuti li metti tu.
 
 ## Android e altro
 

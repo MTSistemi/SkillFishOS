@@ -9,13 +9,13 @@ of that page (distro@distrowatch.com). A copy-paste-ready email is at the end of
 > `sourceforge.net/projects/skillfishos/files/latest/download` redirects to it. This satisfies
 > DistroWatch's "no cloud-storage downloads" rule. Ready to send.
 
-## ⚠️ Read this first — alignment with DistroWatch's rules
+## **Warning:** Read this first — alignment with DistroWatch's rules
 
 DistroWatch only needs **four** things in the submission: project name, website URL, a short
 description (incl. the base distro), and **a link to the installation media (ISO)**. But two
 of its stated rules affect us directly:
 
-1. **No cloud-storage downloads.** ✅ **Resolved.** DistroWatch rejects Google Drive / MEGA /
+1. **No cloud-storage downloads.** yes **Resolved.** DistroWatch rejects Google Drive / MEGA /
    "other cloud storage" downloads. We now host the ISO on **SourceForge** (a proper, accepted
    mirror) — submit the SourceForge URL, **not** the Dropbox-masked `skillfishos.com/dl/…`
    (which is fine for the website only).
@@ -38,7 +38,7 @@ of its stated rules affect us directly:
 | **Project / distribution name** | SkillFishOS |
 | **Website URL** | https://skillfishos.com |
 | **Description (with base)** | Steampunk gaming Linux for the AMD BC-250, based on **Debian sid** + KDE Plasma 6 (see 100-word version below) |
-| **ISO download link** | ✅ **LIVE** — `https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-BC250-amd64.iso/download` (6.0 GB, default download for Linux) |
+| **ISO download link** | yes **LIVE** — `https://sourceforge.net/projects/skillfishos/files/26.06-Aetherium/SkillFishOS-26.06-Aetherium-BC250-amd64.iso/download` (6.0 GB, default download for Linux) |
 
 ## Useful extra context (DistroWatch fills the DB entry themselves)
 
@@ -61,7 +61,7 @@ planned. Not affiliated with AMD or any console manufacturer.
 
 ---
 
-## ✉️ Ready-to-send email
+## Ready-to-send email
 
 > **To:** distro@distrowatch.com (Jesse Smith / DistroWatch)
 > **Subject:** New distribution submission — SkillFishOS

@@ -15,7 +15,7 @@ Al login (gestito da **SDDM**, con autologin dell'utente) sono disponibili più 
 - **KDE Plasma Wayland** — selezionabile;
 - **Gaming** — una sessione [gamescope](https://github.com/ValveSoftware/gamescope) in stile Big Picture (vedi [Gaming](/docs/gaming)).
 
-## ⚠️ Anti-suspend (critico)
+## **Attenzione:** Anti-suspend (critico)
 
 La BC-250 ha la **sospensione ACPI rotta**: se si sospende, **non si risveglia** e serve un reset (vedi [hardware](/docs/hardware-bc250)). Per questo SkillFishOS **disabilita in modo permanente** tutti gli stati di sospensione:
 

@@ -16,6 +16,7 @@ SkillFishOS è un lavoro di integrazione: mette insieme il lavoro di tante comun
 
 - **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — governor SMU per le frequenze GPU.
 - **[bc250_smu_oc (bc250-collective)](https://github.com/bc250-collective/bc250_smu_oc)** — overclock/undervolt via SMU.
+- **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — sblocco degli 8 core della CPU.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — sblocco delle 40 Compute Unit.
 - **[bc250_memcfg (fanoush)](https://github.com/fanoush/bc250_memcfg)** — configurazione della memoria.
 
