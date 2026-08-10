@@ -291,10 +291,26 @@ def set_cu(unlock):
     return sh("update-grub", t=120).returncode==0
 
 # ---------- BENCHMARK / TEST ----------
+def _govs_get():
+    return {p: _rd(p).strip() for p in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")}
+
+def _govs_set(val):
+    for p in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
+        _wr(p, val)
+
 def bench_cpu(secs=60):
-    """sysbench multi-thread per >=60s (temp realistica); campiona min-freq e temp max sotto carico."""
+    """sysbench multi-thread per >=60s (temp realistica); campiona min-freq e temp max sotto carico.
+
+    Since the ACPI P-state tables landed, this box finally has cpufreq — and with an
+    idling governor a core legitimately drops to 800 MHz between sysbench phases.
+    The min-freq sample then looked like an unstable overclock and every candidate
+    was rejected. Pin the governor to performance for the measurement and put the
+    user's choice back afterwards.
+    """
     nth=os.cpu_count() or 6
     import threading
+    prev_govs=_govs_get()
+    if prev_govs: _govs_set("performance")
     samp={"minf":99999,"maxt":0}
     stop=threading.Event()
     def mon():
@@ -306,6 +322,7 @@ def bench_cpu(secs=60):
     th=threading.Thread(target=mon,daemon=True); th.start()
     r=sh("sysbench cpu --threads=%d --time=%d --cpu-max-prime=20000 run"%(nth,secs), t=secs+30)
     stop.set(); th.join(timeout=3)
+    for p,g in prev_govs.items(): _wr(p,g)   # restore the user's governor
     m=re.search(r'events per second:\s*([\d.]+)', r.stdout)
     eps=float(m.group(1)) if m else 0
     minf=samp["minf"] if samp["minf"]<99999 else cpu_min_freq()
