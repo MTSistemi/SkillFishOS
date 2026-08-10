@@ -49,7 +49,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Quitting Steam returns to the login screen.
 
 Package: skillfish-dashboard
-Version: 26.08.2
+Version: 26.08.4
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
@@ -58,11 +58,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.2_all.deb
-Size: 52364
-SHA256: e4e103fa5121c8dc03cbc42a453ffb29565c6855a08de75945045e7903122e39
-SHA1: 862e9346a5da097874fadb1fa7af08b0705a8843
-MD5sum: a97a104790ae11b763c7d9a6a807061c
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.4_all.deb
+Size: 53276
+SHA256: d9b869b7e1e44ab4f8886fe2ed5288f284f86801e748542b727921b6d460bff8
+SHA1: aeea5068cebae7cbee7c525bfa12a61b0dd4f1a7
+MD5sum: 7303fc7276926b454b851e980d5a37fb
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -182,18 +182,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  built from git by CI.
 
 Package: skillfish-tuner
-Version: 26.08.3
+Version: 26.08.4
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.3_all.deb
-Size: 367228
-SHA256: a1a5a56362ffd38a4ab7bf4bd11333b2b8175066d090530fe0b1a5f98bc904a1
-SHA1: 490a56916afbcba436bf74b3dffaf819e3eabc8a
-MD5sum: 66249ad49395d88a396a732f1c018c0d
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.4_all.deb
+Size: 369464
+SHA256: a18acdb172769c909ff0ffadb5640056099c5944916a383b062808778cead1a8
+SHA1: 68782491ee172036aea8c17dded4c7cfc5cc8434
+MD5sum: 9db84c15dd02e2551e77d240daca59fe
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  built from git by CI.
 
