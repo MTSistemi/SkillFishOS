@@ -30,7 +30,7 @@ MODULE_META = {
     "launcher":   {"icon": "🚀", "name": "Avvio app",       "name_en": "Launcher"},
     "kvm":        {"icon": "🖥️", "name": "Desktop (KVM)",   "name_en": "Desktop (KVM)"},
     "terminal":   {"icon": "⌨️", "name": "Terminale",       "name_en": "Terminal"},
-    "ai":         {"icon": "🧠", "name": "AI / OpenWebUI",  "name_en": "AI / OpenWebUI"},
+    "ai":         {"icon": "🧠", "name": "AI locale",       "name_en": "On-device AI"},
     "gamestream": {"icon": "🎮", "name": "Game streaming",  "name_en": "Game streaming"},
     "aiops":      {"icon": "🩺", "name": "AI-Ops",          "name_en": "AI-Ops"},
     "rules":      {"icon": "⚙️", "name": "Regole auto",     "name_en": "Auto rules"},
@@ -1010,17 +1010,23 @@ def ai_tune_status():
             swap_mb = int(m.group(1)) // 1024 if m else 0
     except Exception:
         pass
-    kv = _compose_env("OLLAMA_KV_CACHE_TYPE")
-    ctx = _compose_env("OLLAMA_CONTEXT_LENGTH")
+    # Le voci KV-cache/contesto vivono nel compose di Ollama: con Unsloth non
+    # esistono (i parametri stanno dentro Studio), quindi restano solo le leve di
+    # sistema - cap GTT e swap - che valgono per entrambi i motori.
+    eng = ai_engine()
+    kv = _compose_env("OLLAMA_KV_CACHE_TYPE") if eng == "ollama" else ""
+    ctx = _compose_env("OLLAMA_CONTEXT_LENGTH") if eng == "ollama" else ""
     recs = []
     if kv and kv != "q8_0":
         recs.append("kv_q8")
     if gtt_cap:
         recs.append("gtt_unlock")
-    return {"ok": True, "gtt_cap_mb": int(gtt_cap) if (gtt_cap or "").isdigit() else gtt_cap,
+    return {"ok": True, "engine": eng,
+            "gtt_cap_mb": int(gtt_cap) if (gtt_cap or "").isdigit() else gtt_cap,
             "swap_mb": swap_mb, "kv_cache": kv, "context": ctx,
-            "vulkan": _compose_env("OLLAMA_VULKAN") == "1",
-            "flash_attention": _compose_env("OLLAMA_FLASH_ATTENTION") == "1",
+            # Con Unsloth la GPU la usa llama.cpp col backend Vulkan, non il compose.
+            "vulkan": True if eng == "unsloth" else _compose_env("OLLAMA_VULKAN") == "1",
+            "flash_attention": (_compose_env("OLLAMA_FLASH_ATTENTION") == "1") if eng == "ollama" else None,
             "recommend": recs}
 
 
@@ -1035,6 +1041,8 @@ def _ollama_recreate():
 
 def ai_tune_apply(action):
     try:
+        if action in ("kv_q8", "kv_f16") and ai_engine() != "ollama":
+            return {"ok": False, "error": "KV cache: parametro del solo stack Ollama"}
         if action in ("kv_q8", "kv_f16"):
             val = "q8_0" if action == "kv_q8" else "f16"
             with open(AI_COMPOSE) as f:

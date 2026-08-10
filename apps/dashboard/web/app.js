@@ -52,9 +52,9 @@ const STR = {
   term_open: { it: "▶ Apri terminale", en: "▶ Open terminal" },
   term_hint: { it: "Shell della scheda — stessa sessione, nessuna password in più.", en: "Board shell — same session, no extra password." },
   // ai
-  ai_engine: { it: "Motore (Ollama)", en: "Engine (Ollama)" }, ai_on: { it: "● acceso", en: "● on" }, ai_off: { it: "○ spento", en: "○ off" },
+  ai_engine: { it: "Motore", en: "Engine" }, ai_on: { it: "● acceso", en: "● on" }, ai_off: { it: "○ spento", en: "○ off" },
   ai_start: { it: "▶ Accendi AI", en: "▶ Turn on AI" }, ai_stop: { it: "■ Spegni AI", en: "■ Turn off AI" },
-  ai_open: { it: "Apri OpenWebUI ↗", en: "Open OpenWebUI ↗" }, ai_ready: { it: "● pronto", en: "● ready" },
+  ai_open: { it: "Apri l’interfaccia ↗", en: "Open the UI ↗" }, ai_ready: { it: "● pronto", en: "● ready" },
   ai_hint: { it: "Lo stack gira sulla GPU: spegnilo quando giochi.", en: "The stack runs on the GPU: turn it off when gaming." },
   ai_starting: { it: "Avvio AI… (può richiedere un minuto)", en: "Starting AI… (may take a minute)" }, ai_stopping: { it: "Spengo AI", en: "Stopping AI" },
   // wol
@@ -73,7 +73,7 @@ const STR = {
   // aiops
   ao_q: { it: "Domanda (opzionale): perché si è bloccata?", en: "Question (optional): why did it freeze?" },
   ao_btn: { it: "Diagnostica", en: "Diagnose" }, ao_running: { it: "Analisi in corso col modello locale… (può richiedere un minuto)", en: "Analyzing with the local model… (may take a minute)" },
-  ao_hint: { it: "Il modello locale (Ollama) legge log e telemetria e spiega cosa succede. Richiede il motore AI acceso.", en: "The local model (Ollama) reads logs and telemetry and explains what's going on. Needs the AI engine on." },
+  ao_hint: { it: "Il modello locale legge log e telemetria e spiega cosa succede. Richiede il motore AI acceso.", en: "The local model reads logs and telemetry and explains what's going on. Needs the AI engine on." },
   ao_none: { it: "(nessuna risposta)", en: "(no answer)" }, err: { it: "Errore: ", en: "Error: " },
 };
 function T(k, vars) {
@@ -117,12 +117,15 @@ async function aiTune(card, it) {
   box.innerHTML = '<div class="stub">…</div>';
   let s; try { s = await (await api("/api/ai/tune")).json(); } catch (e) { box.innerHTML = '<div class="stub">errore</div>'; return; }
   const row = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+  // KV cache, contesto e flash-attention sono parametri del compose di Ollama:
+  // con Unsloth stanno dentro Studio, quindi qui restano solo le leve di sistema.
+  const uns = s.engine === "unsloth";
   let h = '<div class="rows" style="margin-top:8px">' +
-    row("KV cache", s.kv_cache || "-") +
-    row(it ? "Contesto" : "Context", s.context || "-") +
+    (uns ? "" : row("KV cache", s.kv_cache || "-") + row(it ? "Contesto" : "Context", s.context || "-")) +
     row(it ? "Cap GTT" : "GTT cap", s.gtt_cap_mb ? (s.gtt_cap_mb + " MB") : (it ? "sbloccato" : "unlocked")) +
     row("Swap", (s.swap_mb || 0) + " MB") +
-    row("Vulkan / Flash-Attn", (s.vulkan ? "✓" : "✗") + " / " + (s.flash_attention ? "✓" : "✗")) +
+    row(uns ? "Vulkan" : "Vulkan / Flash-Attn",
+        uns ? "✓" : ((s.vulkan ? "✓" : "✗") + " / " + (s.flash_attention ? "✓" : "✗"))) +
     '</div><div class="brow" style="margin-top:8px">';
   const recs = s.recommend || [];
   if (recs.includes("kv_q8")) h += '<button class="dbtn" data-tune="kv_q8">' + (it ? "KV cache q8_0" : "KV cache q8_0") + "</button>";
@@ -347,7 +350,7 @@ const RENDER = {
   },
   ai(card) {
     const it = LANG === "it";
-    card.innerHTML = "<h3>🧠 AI / OpenWebUI</h3><div id=\"ai\">…</div>";
+    card.innerHTML = "<h3>🧠 " + (it ? "AI locale" : "On-device AI") + "</h3><div id=\"ai\">…</div>";
     const refresh = async () => { let s; try { s = await (await api("/api/ai")).json(); } catch (e) { return; }
       const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${it ? "nessun modello installato" : "no models installed"}</span>`;
       // Unsloth serves its own UI and manages models there; the legacy Ollama stack

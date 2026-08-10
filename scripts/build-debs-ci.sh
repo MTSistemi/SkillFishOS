@@ -93,6 +93,7 @@ put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/syst
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
 put $P 0644 system/etc/systemd/system/skillfish-wol.service          etc/systemd/system/skillfish-wol.service
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
+put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
 put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
@@ -114,6 +115,8 @@ if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
   systemctl enable --now skillfish-freeze-check.service || true
   systemctl enable skillfish-core-unlock.service || true
+  # ntsync serve a Proton: caricalo subito, non al prossimo riavvio
+  modprobe ntsync 2>/dev/null || true
   systemctl enable --now skillfish-gpu-freq.service || true
   systemctl enable --now skillfish-wol.service || true
   modprobe sp5100_tco 2>/dev/null || true
@@ -236,6 +239,7 @@ check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-m
 check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel       skillfish
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
+check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
