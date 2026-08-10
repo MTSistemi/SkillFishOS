@@ -28,11 +28,22 @@ def sh(cmd, t=120):
         return R()
 
 def nct_dir():
-    for h in glob.glob("/sys/class/hwmon/hwmon*"):
+    """hwmon of the NCT6686 SuperIO that can actually drive the fan.
+
+    Two drivers bind to this chip on the BC-250: the mainline nct6683 (forced) and
+    the out-of-tree nct6687. Both register an hwmon named "nct6686", but only one
+    exposes pwm2_enable — and which of the two gets the lower hwmon number varies
+    between boots. Taking the first match silently wrote fan settings into the
+    read-only node, so the fan never moved. Prefer the controllable one.
+    """
+    cands = []
+    for h in sorted(glob.glob("/sys/class/hwmon/hwmon*")):
         try:
-            if _rd(h+"/name").strip()=="nct6686": return h
+            if _rd(h+"/name").strip() == "nct6686": cands.append(h)
         except Exception: pass  # best-effort: skip hwmon nodes we can't read
-    return None
+    for h in cands:
+        if os.path.exists(h+"/pwm2_enable"): return h
+    return cands[0] if cands else None
 
 def temp(name):
     for h in glob.glob("/sys/class/hwmon/hwmon*"):

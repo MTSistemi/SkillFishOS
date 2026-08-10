@@ -320,8 +320,12 @@ def cu_profile_op(action, name, rows):
 
 # ---- temperature -> fan% curve (#3) ----
 FAN_CURVE_F = "/etc/skillfish/fan-curve.json"
-FAN_CURVE_DEFAULT = {"enabled": False, "source": "max",
-                     "points": [[40, 20], [55, 35], [70, 55], [80, 80], [90, 100]]}
+# On by default: left to itself the board's EC parks the fan at a flat ~50% duty
+# whatever the temperature, which caps sustained CPU/GPU clocks. Measured on the
+# board, 100% duty holds the CPU 4 °C cooler than 31% under the same load, so the
+# curve reaches 100% before the 85 °C thermal cap rather than at 90 °C.
+FAN_CURVE_DEFAULT = {"enabled": True, "source": "max",
+                     "points": [[40, 25], [55, 40], [68, 60], [76, 85], [83, 100]]}
 _FAN = {"last_pct": None, "was_enabled": False}
 
 
