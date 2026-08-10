@@ -49,7 +49,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Quitting Steam returns to the login screen.
 
 Package: skillfish-dashboard
-Version: 26.08.4
+Version: 26.08.6
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
@@ -58,11 +58,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.4_all.deb
-Size: 53276
-SHA256: d9b869b7e1e44ab4f8886fe2ed5288f284f86801e748542b727921b6d460bff8
-SHA1: aeea5068cebae7cbee7c525bfa12a61b0dd4f1a7
-MD5sum: 7303fc7276926b454b851e980d5a37fb
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.6_all.deb
+Size: 55744
+SHA256: 30d47dec02d46fce53446d22029f2991a27b53934286d07034a01007c629a22a
+SHA1: 5709aff18dcd2b12b3322eba8e9e0cdabe74d5cf
+MD5sum: c75b174d639cf5a495c062abd25e988f
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -151,19 +151,20 @@ Description: SkillFishOS application menu group
  X-SkillFishOS desktop category, so they are easy to find in one place.
 
 Package: skillfish-monitor
-Maintainer: SkillFishOS <info@skillfishos.com>
+Version: 26.08.6
 Architecture: all
-Version: 26.06.5
-Depends: python3, python3-pyqt6, skillfish-tuner
+Maintainer: SkillFishOS <info@skillfishos.com>
+Depends: python3, python3-pyqt6
+Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.06.5_all.deb
-Size: 56752
-SHA256: 828a6479f4ccdc0780ed9bd55ad8cd180e9a86bfbbe5165039f5ef937c6a18dd
-SHA1: 37d504e9561322120400264af1061f3a0caf1f91
-MD5sum: 921ed71aeeeae9344859210a86be498d
-Description: SkillFishOS Monitor - live temperature/frequency/voltage/fan charts
-Homepage: https://skillfishos.com
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.08.6_all.deb
+Size: 61444
+SHA256: 2241ea8bcd42c83dff9da3545b57ec42df0dea087fdabc73c18c94eb5a1b0c47
+SHA1: e0333c83c201c791660e1da5cb7555b53c74b3de
+MD5sum: 5f67f662791c905f4596188fff1e9676
+Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer
+ built from git by CI.
 
 Package: skillfish-theme
 Version: 26.06.1
