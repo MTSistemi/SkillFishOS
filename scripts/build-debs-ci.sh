@@ -77,6 +77,8 @@ ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Mana
 P=skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-gtt      usr/local/bin/skillfish-gtt
+# the setup wizard shells out to this to install the Unsloth engine
+put $P 0755 scripts/install-unsloth.sh       usr/local/share/skillfish/install-unsloth.sh
 put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/applications/os.skillfish.ai.desktop
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
