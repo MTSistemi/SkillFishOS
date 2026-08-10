@@ -4,6 +4,19 @@
 # returns to the login screen.
 # NOTE: Debian installs gamescope in /usr/games, which is NOT on the PATH of
 # SDDM-launched sessions — the absolute path here is load-bearing.
+# /usr/games nel PATH, non solo il percorso assoluto di gamescope.
+#
+# Avevamo gia' corretto il percorso dell'eseguibile, ma non bastava: gamescope
+# avvia i propri aiutanti chiamandoli PER NOME, e li cerca nel PATH. Lanciato
+# dalla dashboard, che ha un ambiente minimo senza /usr/games, moriva con
+#
+#   Failed to start process "gamescopereaper": No such file or directory
+#   Primary child shut down!
+#
+# gamescopereaper e' installato regolarmente in /usr/games: mancava solo la
+# strada per arrivarci.
+PATH="/usr/games:$PATH"; export PATH
+
 GS=/usr/games/gamescope
 [ -x "$GS" ] || GS=$(command -v gamescope || echo /usr/games/gamescope)
 W="${GAMESCOPE_W:-1920}"; H="${GAMESCOPE_H:-1080}"; R="${GAMESCOPE_R:-60}"

@@ -932,7 +932,7 @@ def ai_engine():
 def ai_status():
     running = _port_open(UNSLOTH_PORT)
     return {"ok": True, "engine": "unsloth", "running": running,
-            "webui": running, "webui_path": "/unsloth",
+            "webui": running, "webui_path": "/unsloth", "port": UNSLOTH_PORT,
             # I modelli li serve Unsloth dalla sua interfaccia autenticata, quindi
             # la dashboard non li elenca: servirebbe la API key dell'utente.
             "models": []}
