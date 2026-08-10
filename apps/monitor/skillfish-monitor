@@ -46,25 +46,52 @@ def _num(s):
     return float(m.group()) if m else None
 
 
-def _nice_scale(lo, hi, ticks=3):
-    """Snap an axis to human numbers (50/60/70, not 50.6/60.5).
-
-    Picks a step of 1/2/2.5/5 times a power of ten and rounds the ends to it,
-    otherwise the tick labels are unreadable."""
-    raw = (hi - lo) / float(max(1, ticks))
+def _nice_step(raw):
+    """Round a raw step up to 1/2/2.5/5 times a power of ten."""
     if raw <= 0:
-        return lo, lo + 1.0, 1.0
+        return 1.0
     mag = 10.0 ** math.floor(math.log10(raw))
     n = raw / mag
-    step = (1 if n <= 1 else 2 if n <= 2 else 2.5 if n <= 2.5 else 5 if n <= 5 else 10) * mag
-    return math.floor(lo / step) * step, math.ceil(hi / step) * step, step
+    return (1 if n <= 1 else 2 if n <= 2 else 2.5 if n <= 2.5 else 5 if n <= 5 else 10) * mag
+
+
+def _nice_scale(lo, hi, ticks=4):
+    """Snap an axis to human numbers (0/1000/2000, not -160/1394/2948).
+
+    Two rules beyond plain rounding: zero becomes the floor when the data sits
+    near it (a MHz or RPM chart must never show a negative baseline), and the
+    step is taken from the *unpadded* range, otherwise the padding inflates the
+    step and a 3992 MHz peak ends up on a 0-6000 axis."""
+    # a dead-flat series must not get a wildly zoomed axis: 800/800 MHz would
+    # otherwise be drawn on a 799.8-801.2 scale, amplifying nothing into noise
+    if hi - lo < max(1e-9, abs(hi) * 0.005):
+        if hi == 0:
+            lo, hi = 0.0, 1.0
+        else:
+            band = abs(hi) * 0.05
+            lo, hi = hi - band, hi + band
+    nonneg = lo >= 0
+    if nonneg and lo < (hi - lo):
+        lo = 0.0
+    span = hi - lo
+    step = _nice_step(span / float(max(1, ticks)))
+    pad = span * 0.06
+    if nonneg and lo == 0.0:
+        nlo = 0.0
+    else:
+        nlo = math.floor((lo - pad) / step) * step
+        if nonneg:
+            nlo = max(0.0, nlo)
+    return nlo, math.ceil((hi + pad) / step) * step, step
 
 
 def _fmt_axis(v, step):
-    """Tick label with just enough decimals for the chosen step."""
-    if step >= 1:   return "%d" % round(v)
-    if step >= 0.1: return "%.1f" % v
-    return "%.2f" % v
+    """Tick label with exactly the decimals the step needs (0.25 -> "0.25",
+    never "0.2", which would print two different ticks with the same label)."""
+    d = 0
+    while d < 3 and abs(round(step, d) - step) > 1e-9:
+        d += 1
+    return "%.*f" % (d, v)
 
 
 def cpu_mhz_per():
@@ -253,10 +280,7 @@ class Chart(QWidget):
             allv = [v for d in cols for v in d if v is not None]
             if not allv:
                 return
-            lo, hi = min(allv), max(allv)
-            if hi - lo < 1e-6: hi = lo + 1.0
-            m = (hi - lo) * 0.14; lo -= m; hi += m
-            lo, hi, astep = _nice_scale(lo, hi, 3)
+            lo, hi, astep = _nice_scale(min(allv), max(allv), 4)   # padding included
             span = (hi - lo) or 1.0
             fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
             # y axis: gridlines with their value, so the scale is readable
