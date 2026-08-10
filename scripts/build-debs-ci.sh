@@ -91,6 +91,7 @@ put $P 0644 system/etc/xdg/autostart/skillfish-freeze-notify.desktop  etc/xdg/au
 put $P 0644 system/etc/modules-load.d/skillfish-watchdog.conf         etc/modules-load.d/skillfish-watchdog.conf
 put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/systemd/system.conf.d/10-skillfish-watchdog.conf
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
+put $P 0644 system/etc/systemd/system/skillfish-wol.service          etc/systemd/system/skillfish-wol.service
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
 put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/systemd/system/skillfish-core-unlock.service
@@ -114,8 +115,9 @@ if [ -d /run/systemd/system ]; then
   systemctl enable --now skillfish-freeze-check.service || true
   systemctl enable skillfish-core-unlock.service || true
   systemctl enable --now skillfish-gpu-freq.service || true
+  systemctl enable --now skillfish-wol.service || true
   modprobe sp5100_tco 2>/dev/null || true
-  modprobe nct6683 force=1 2>/dev/null || true
+  modprobe nct6687 force=1 2>/dev/null || true
   systemctl daemon-reexec || true
 fi
 
