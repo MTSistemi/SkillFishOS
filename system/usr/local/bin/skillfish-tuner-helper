@@ -4,11 +4,36 @@ Reads one JSON command per line on stdin, writes one JSON reply per line on stdo
 This way the user authenticates ONCE at startup, not per-action."""
 import sys, os, json, subprocess, re, glob, time
 
-OC_DIR  = "/root/bc250_smu_oc"
+# Gli strumenti di overclock vanno cercati in /opt, non in /root.
+#
+# Avevano il percorso /root/... scritto dentro, e funzionavano solo sulla
+# scheda di sviluppo: eggs esclude /root dall'immagine (root/* e root/.* sono
+# fra le sue esclusioni predefinite, a meno di --includeRootHome, che noi non
+# passiamo). Verificato montando la 26.06.3-rc2: dentro lo squashfs /root e'
+# vuota. Quindi su OGNI sistema installato bc250_apply.py e bc250memcfg non
+# esistevano, e il pulsante "applica" del Tuner falliva in silenzio.
+#
+# bc250-smu-oc.service era gia' stato spostato su /opt e infatti l'overclock
+# all'avvio funzionava: era rimasto indietro solo il percorso di qui.
+#
+# /root resta come ricaduta per le macchine gia' installate che ce l'hanno.
+def _first_dir(*paths):
+    for p in paths:
+        if os.path.isdir(p):
+            return p
+    return paths[0]
+
+def _first_file(*paths):
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+OC_DIR  = _first_dir("/opt/bc250_smu_oc", "/root/bc250_smu_oc")
 OC_CONF = "/etc/bc250-smu-oc.conf"
 GOV_CONF= "/etc/cyan-skillfish-governor/config.toml"
-MEMCFG  = "/root/bc250_memcfg/bc250memcfg"
-VKPEAK  = glob.glob("/root/bench/vkpeak*/vkpeak")
+MEMCFG  = _first_file("/opt/bc250_memcfg/bc250memcfg", "/root/bc250_memcfg/bc250memcfg")
+VKPEAK  = glob.glob("/opt/bench/vkpeak*/vkpeak") or glob.glob("/root/bench/vkpeak*/vkpeak")
 VKPEAK  = VKPEAK[0] if VKPEAK else None
 
 def _rd(path, mode="r"):
@@ -479,7 +504,10 @@ def test_gpu(minmhz,minmv,maxmhz,maxmv):
 
 def thermal_guard(limit):
     script="/usr/local/bin/skillfish-thermal-guard.sh"
-    body="#!/bin/sh\nLIMIT=%d\nwhile true; do\n t=0\n for h in /sys/class/hwmon/hwmon*; do [ \"$(cat $h/name 2>/dev/null)\" = k10temp ] && t=$(awk '{printf \"%%d\",$1/1000}' \"$h/temp1_input\"); done\n cur=$(awk -F= '/frequency/{print $2}' /etc/bc250-smu-oc.conf|tr -d ' '|head -1)\n if [ \"$t\" -gt \"$LIMIT\" ] && [ -n \"$cur\" ] && [ \"$cur\" -gt 3500 ]; then new=$((cur-100)); sed -i \"s/^frequency = .*/frequency = $new/\" /etc/bc250-smu-oc.conf; systemctl stop cyan-skillfish-governor 2>/dev/null; python3 /root/bc250_smu_oc/bc250_apply.py --apply /etc/bc250-smu-oc.conf 2>/dev/null; systemctl start cyan-skillfish-governor 2>/dev/null; fi\n sleep 10\ndone\n"%int(limit)
+    # APPLY si risolve a ogni avvio dello script: /opt e' dove stanno gli
+    # strumenti sui sistemi installati, /root solo sulla scheda di sviluppo e
+    # sulle installazioni vecchie.
+    body="#!/bin/sh\nAPPLY=/opt/bc250_smu_oc/bc250_apply.py\n[ -f \"$APPLY\" ] || APPLY=/root/bc250_smu_oc/bc250_apply.py\nLIMIT=%d\nwhile true; do\n t=0\n for h in /sys/class/hwmon/hwmon*; do [ \"$(cat $h/name 2>/dev/null)\" = k10temp ] && t=$(awk '{printf \"%%d\",$1/1000}' \"$h/temp1_input\"); done\n cur=$(awk -F= '/frequency/{print $2}' /etc/bc250-smu-oc.conf|tr -d ' '|head -1)\n if [ \"$t\" -gt \"$LIMIT\" ] && [ -n \"$cur\" ] && [ \"$cur\" -gt 3500 ]; then new=$((cur-100)); sed -i \"s/^frequency = .*/frequency = $new/\" /etc/bc250-smu-oc.conf; systemctl stop cyan-skillfish-governor 2>/dev/null; python3 \"$APPLY\" --apply /etc/bc250-smu-oc.conf 2>/dev/null; systemctl start cyan-skillfish-governor 2>/dev/null; fi\n sleep 10\ndone\n"%int(limit)
     _wr(script,body); os.chmod(script,0o700)  # owner-only: privileged root helper
     _wr("/etc/systemd/system/skillfish-thermal-guard.service","[Unit]\nDescription=SkillFishOS thermal guard\n[Service]\nExecStart=%s\nRestart=always\n[Install]\nWantedBy=multi-user.target\n"%script)
     sh("systemctl daemon-reload; systemctl enable --now skillfish-thermal-guard.service")
