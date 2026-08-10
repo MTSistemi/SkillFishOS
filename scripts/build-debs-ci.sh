@@ -268,8 +268,13 @@ check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor  
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
+put skillfish-theme 0644 system/usr/share/wallpapers/SkillFishOS/metadata.json                        usr/share/wallpapers/SkillFishOS/metadata.json
+put skillfish-theme 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png             usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
+put skillfish-theme 0644 system/usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults   usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults
 check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampunk/index.theme        SkillFish
 # guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)
 check skillfish-theme_${VER}_all.deb ./usr/share/icons/SkillFishSteampunk/scalable/actions/document-open.svg document_open_copper
+check skillfish-theme_${VER}_all.deb ./usr/share/wallpapers/SkillFishOS/metadata.json SkillFishOS
+check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults usr/share/wallpapers/SkillFishOS
 echo "ALL DEBS VERIFIED"

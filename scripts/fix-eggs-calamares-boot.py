@@ -104,6 +104,17 @@ script:
     - update-grub || true
 """
 
+# --- 1b. partizionamento predefinito: btrfs con swap su file --------------
+# Il template di eggs propone ext4 e nessuno swap. Noi vogliamo btrfs (serve
+# per snapshot e rollback, che sono un pezzo dell'identita' del sistema) e lo
+# swap su FILE invece che su partizione: su btrfs si ridimensiona senza
+# ripartizionare, e non sporca la tabella delle partizioni.
+PART_SUBS = [
+    ('defaultFileSystemType:  "ext4"', 'defaultFileSystemType:  "btrfs"'),
+    ("defaultFileSystemType: \"ext4\"", 'defaultFileSystemType:  "btrfs"'),
+    ("initialSwapChoice: none", "initialSwapChoice: file"),
+]
+
 # --- 2. layout dei sottovolumi sicuro per GRUB ----------------------------
 # Nessun @boot: /boot resta dentro @, cosi' GRUB non deve attraversare un
 # secondo sottovolume per trovare la propria configurazione (era l'errore
@@ -146,6 +157,27 @@ def main():
         f.write(RECONF_BODY)
     print("OK  : scritto", RECONF)
 
+    # partizionamento: sia nel template sia nella config viva
+    for d in TPLDIRS + [MODDIR]:
+        for name in ("partition.yaml", "partition.conf"):
+            f = os.path.join(d, name)
+            if not os.path.exists(f):
+                continue
+            with open(f, encoding="utf-8") as fh:
+                t = fh.read()
+            orig = t
+            for a, b in PART_SUBS:
+                if a in t:
+                    t = t.replace(a, b)
+            if t != orig:
+                backup(f)
+                with open(f, "w", encoding="utf-8") as fh:
+                    fh.write(t)
+                print("OK  : partizionamento corretto in", f)
+            fs = "btrfs" if 'defaultFileSystemType:  "btrfs"' in t or "defaultFileSystemType: btrfs" in t else "?"
+            sw = "file" if "initialSwapChoice: file" in t else "?"
+            print("      %s -> filesystem=%s swap=%s" % (name, fs, sw))
+
     mount = os.path.join(MODDIR, "mount.conf")
     if os.path.exists(mount):
         with open(mount, encoding="utf-8") as f:
@@ -185,6 +217,23 @@ def verify():
     """Ricontrolla che la correzione sia dove serve. Fidarsi non basta: la prima
     volta eggs aveva sovrascritto tutto e me ne sono accorto solo aprendo la ISO."""
     ok = True
+    for d in TPLDIRS + [MODDIR]:
+        for name in ("partition.yaml", "partition.conf"):
+            f = os.path.join(d, name)
+            if not os.path.exists(f):
+                continue
+            with open(f, encoding="utf-8") as fh:
+                t = fh.read()
+            bad = []
+            if '"ext4"' in t and 'defaultFileSystemType:  "ext4"' in t:
+                bad.append("filesystem ancora ext4")
+            if "initialSwapChoice: none" in t:
+                bad.append("swap ancora none")
+            print(("KO  : %s -> %s" % (f, ", ".join(bad))) if bad
+                  else "OK  : %s -> btrfs + swap su file" % f)
+            if bad:
+                ok = False
+
     targets = [(os.path.join(d, "shellprocess@boot_reconfigure.yaml"), "template eggs")
                for d in TPLDIRS] + [(RECONF, "config viva")]
     for path, what in targets:
