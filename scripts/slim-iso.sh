@@ -2,23 +2,50 @@
 # Toglie dalla ISO quello che non c'entra niente con SkillFishOS.
 #
 # PERCHE'
-# La 26.06.3 pesa 9,5 GB contro i 6,3 GB della precedente. Cercando il motivo
-# avevo dato la colpa ai flatpak: sbagliato. La causa vera e' che eggs copia
-# nell'immagine anche **/root**, e nella /root della scheda di sviluppo ci sono
-# 5,0 GB di /root/.unsloth (l'ambiente Python di Unsloth Studio) e 1,1 GB di
-# /root/models (i pesi degli LLM con cui abbiamo fatto le prove). Roba nostra da
-# banco di lavoro, spedita a tutti quelli che scaricano la ISO.
+# La 26.06.3-rc2 pesa 10,19 GB contro i 6,66 GB della 26.06. Ho dato la colpa
+# prima ai flatpak e poi a /root: sbagliato tutte e due le volte. La risposta e'
+# arrivata solo montando le due immagini e confrontandone il contenuto:
 #
-# E C'E' DI PEGGIO
-# Sotto /root ci sono 146 script di prova, 18 dei quali contengono la password
-# della scheda e quelle di SourceForge/OVH in chiaro. La ISO e' pubblica: quelle
-# credenziali sarebbero finite su SourceForge dentro l'immagine. Insieme a
-# /root/.ssh e a /root/.bash_history.
+#   +3,10 GB  /var/lib/systemd     <- la causa
+#   +0,68 GB  /usr/libexec/gcc
+#   +0,19 GB  /usr/lib/jvm
+#   +0,15 GB  /var/lib/flatpak     <- non erano loro
 #
-# Unsloth non serve nell'immagine: si installa a richiesta con
-# scripts/install-unsloth.sh, che se lo scarica da unsloth.ai. I modelli li
-# sceglie l'utente. Quindi qui non si perde nessuna funzione, si smette solo di
-# spedire il nostro disco fisso.
+# In /var/lib/systemd/coredump c'erano cinque core dump lasciati dai nostri test
+# degli emulatori: 1,6 GB di Ryujinx, 826 e 767 MB di eden, piu' python3 e
+# plasmashell. La configurazione predefinita di systemd li tiene fino al 10% del
+# disco senza limite per singolo file, e siccome l'immagine si costruisce dal
+# sistema vivo, quei gigabyte finiscono nella ISO di tutti.
+#
+# La cura vera e' il tetto in system/etc/systemd/coredump.conf.d/10-skillfish.conf,
+# spedito da skillfish-base, che impedisce che si riaccumulino. Qui li togliamo
+# dall'immagine e basta.
+#
+# LA CACHE DI APT, CHE EGGS CREDE DI ESCLUDERE E NON ESCLUDE
+# Nella exclude.list predefinita di eggs c'e' questa riga:
+#
+#     var/cache/* var/lib/aide/*
+#
+# due pattern sulla stessa riga. mksquashfs legge il file una riga per pattern,
+# quindi cerca un percorso che si chiama letteralmente "var/cache/* var/lib/aide/*"
+# e non lo trova mai: /var/cache finisce intero nell'immagine, 601 MB di cui 509
+# di cache di apt. Qui riscriviamo le voci che contano una per riga.
+#
+# Non escludiamo tutto /var/cache: swcatalog (47 MB) e' il catalogo di AppStream
+# che riempie il negozio software. Toglierlo farebbe aprire un negozio vuoto a
+# chi avvia la live senza rete, che e' un peggioramento visibile per risparmiare
+# 47 MB.
+#
+# LE REGOLE SU /root SONO RIDONDANTI, E RESTANO APPOSTA
+# eggs esclude gia' root/* e root/.* da solo, a meno che non gli si passi
+# --includeRootHome, e noi lanciamo `eggs produce -n -N -K ... --basename=...`
+# senza quel flag: verificato montando la ISO, dentro /root e' vuota. Le regole
+# qui sotto non recuperano quindi nemmeno un byte. Le lascio come rete: se un
+# giorno qualcuno aggiunge -i alla riga di comando per qualsiasi motivo, senza
+# queste regole si ritroverebbe nell'immagine pubblica 5 GB di ambiente Unsloth,
+# i pesi degli LLM, /root/.ssh, la cronologia della shell e una ventina di
+# script di prova con dentro in chiaro le password della scheda, di SourceForge
+# e di OVH. Costano niente e coprono un errore che sarebbe grave.
 #
 # COSA **NON** SI TOCCA
 # /root/bc250_smu_oc, /root/bc250_memcfg e /root/bench NON vanno esclusi:
@@ -42,6 +69,14 @@ MARK_B="# --- fine SkillFishOS ---"
 
 # I percorsi sono relativi alla radice, come tutti gli altri in exclude.list.
 read -r -d '' RULES <<'EOF'
+var/lib/systemd/coredump/*
+var/cache/apt/archives/*
+var/cache/apt/apt-file/*
+var/cache/apt/pkgcache.bin
+var/cache/apt/srcpkgcache.bin
+var/cache/cups/*
+var/cache/man/*
+var/cache/snapd/*
 root/.unsloth/*
 root/.unsloth
 root/models/*
@@ -70,19 +105,30 @@ home/*/.bash_history
 home/*/.python_history
 EOF
 
-echo "=== quanto pesa oggi quello che stiamo per escludere ==="
+echo "=== quello che togliamo DAVVERO dall'immagine ==="
 tot=0
-for p in /root/.unsloth /root/models /root/.npm /root/.bun /root/sfx-src \
-         /root/waydroid_script /root/skillfish-apt /root/cyan-skillfish-governor; do
+for p in /var/lib/systemd/coredump; do
     [ -e "$p" ] || continue
     kb=$(du -sx -k "$p" 2>/dev/null | cut -f1)
     tot=$((tot + kb))
     printf "   %-38s %8s\n" "$p" "$(du -sxh "$p" 2>/dev/null | cut -f1)"
 done
+printf "   recuperato:                            %s\n" \
+    "$(awk -v k=$tot 'BEGIN{printf "%.2f GB", k/1048576}')"
+
+echo
+echo "=== e quello che eggs escludeva gia' da solo (regole di scorta) ==="
+red=0
+for p in /root/.unsloth /root/models /root/.npm /root/.bun \
+         /root/sfx-src /root/waydroid_script /root/skillfish-apt /root/cyan-skillfish-governor; do
+    [ -e "$p" ] || continue
+    red=$((red + $(du -sx -k "$p" 2>/dev/null | cut -f1)))
+    printf "   %-38s %8s\n" "$p" "$(du -sxh "$p" 2>/dev/null | cut -f1)"
+done
 n=$(ls -1 /root/*.sh 2>/dev/null | wc -l)
 echo "   script di prova sotto /root:            $n file"
-printf "   TOTALE recuperato dal sorgente:        %s\n" \
-    "$(awk -v k=$tot 'BEGIN{printf "%.1f GB", k/1048576}')"
+printf "   gia' fuori dall'immagine:              %s (nessun guadagno, e' una rete)\n" \
+    "$(awk -v k=$red 'BEGIN{printf "%.1f GB", k/1048576}')"
 
 echo
 echo "=== metto al riparo gli script che contengono credenziali ==="
