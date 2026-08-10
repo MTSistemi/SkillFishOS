@@ -50,6 +50,31 @@ if [ ! -f "/boot/vmlinuz-$KVER" ]; then
     echo "FAIL-NOKERNEL" > "$ST"; exit 1
 fi
 
+# --- profilo di overclock di sicurezza, per la durata della build ----------
+# L'immagine si costruisce dal sistema vivo, quindi /etc/bc250-smu-oc.conf ci
+# finisce COM'E'. Sulla scheda di sviluppo c'e' il profilo di Mattia, che e'
+# tarato su QUESTO esemplare: spedirlo vorrebbe dire applicare il suo overclock
+# alla scheda di chiunque installi, e la lotteria del silicio non la si vince
+# per procura. La ISO 26.06.3 costruita senza questo accorgimento imbarcava
+# frequency = 3600.
+#
+# Il trap fa il ripristino anche se la build fallisce a meta' o viene
+# interrotta: senza, la scheda resterebbe a 3500 e ce ne accorgeremmo tardi.
+OCF=/etc/bc250-smu-oc.conf
+OCBAK=/root/oc.conf.user
+restore_oc() {
+    if [ -f "$OCBAK" ]; then
+        mv -f "$OCBAK" "$OCF"
+        echo "profilo overclock dell'utente ripristinato: $(grep -h frequency "$OCF" 2>/dev/null | tr -d ' ')"
+    fi
+}
+if [ -f "$OCF" ]; then
+    cp -f "$OCF" "$OCBAK"
+    trap restore_oc EXIT INT TERM
+    printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 85\n' > "$OCF"
+    echo "profilo overclock: messo quello di sicurezza (3500) per la durata della build"
+fi
+
 rm -f /home/eggs/mnt/*.iso 2>/dev/null
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
@@ -76,10 +101,18 @@ WALL=$(echo "$L" | grep -c 'usr/share/wallpapers/SkillFishOS/metadata.json')
 ROOTH=$(echo "$L" | grep -cE '^squashfs-root/root/.')
 DUMPS=$(echo "$L" | grep -c 'var/lib/systemd/coredump/core')
 COMP=$(unsquashfs -s "$SQ" 2>/dev/null | grep -i '^Compression' | awk '{print $2}')
+unsquashfs -n -d /tmp/ocheck-$$ -f "$SQ" etc/bc250-smu-oc.conf >/dev/null 2>&1
+OCFREQ=$(grep -h 'frequency' /tmp/ocheck-$$/etc/bc250-smu-oc.conf 2>/dev/null | tr -d ' ')
+rm -rf /tmp/ocheck-$$
 umount "$M" 2>/dev/null; rmdir "$M" 2>/dev/null
 
 echo "size=$SZ  compressione=$COMP  kernel=[$VK]"
 echo "app=$APPS  menu=$MENU  wallpaper=$WALL  file-in-root=$ROOTH  coredump=$DUMPS"
+echo "overclock spedito: $OCFREQ"
+case "$OCFREQ" in
+    *3500*) ;;
+    *) echo "ATTENZIONE: l'immagine NON ha il profilo di sicurezza 3500 ma [$OCFREQ]" ;;
+esac
 [ "$WALL" -lt 1 ]  && echo "ATTENZIONE: manca il pacchetto wallpaper"
 [ "$ROOTH" -gt 0 ] && echo "ATTENZIONE: dentro /root ci sono $ROOTH file, non dovrebbe essercene nessuno"
 [ "$DUMPS" -gt 0 ] && echo "ATTENZIONE: ci sono $DUMPS core dump nell'immagine"
