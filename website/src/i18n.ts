@@ -84,7 +84,7 @@ export const strings: Record<string, Entry> = {
   'f5.t': { it: "Snapshot Btrfs", en: "Btrfs snapshots" },
   'f5.d': { it: "Smanetta senza paura: ogni modifica è protetta da snapshot automatici. Qualcosa va storto? <b>Rollback in un clic</b> dal menu di avvio.", en: "Tinker fearlessly: every change is protected by automatic snapshots. Something broke? <b>One-click rollback</b> from the boot menu." },
   'f6.t': { it: "AI in locale", en: "On-device AI" },
-  'f6.d': { it: "Stack Ollama + OpenWebUI accelerato in <b>Vulkan</b> sulla GPU integrata. Modelli di chat e coding che girano in casa, senza cloud.", en: "An Ollama + OpenWebUI stack accelerated in <b>Vulkan</b> on the integrated GPU. Chat and coding models running at home, no cloud." },
+  'f6.d': { it: "<b>Unsloth Studio</b> accelerato in <b>Vulkan</b> sulla GPU integrata: <b>5,1×</b> più veloce della CPU, misurato. Modelli di chat e coding che girano in casa, senza cloud.", en: "<b>Unsloth Studio</b> accelerated in <b>Vulkan</b> on the integrated GPU: <b>5.1×</b> faster than CPU, measured. Chat and coding models running at home, no cloud." },
   'f7.t': { it: "Controllo remoto", en: "Remote control" },
   'f7.d': { it: "<b>Remote Manager</b>: dashboard web per controllare la board dal browser o dal telefono — telemetria, KVM, terminale, Tuner, app store e AI. Login di sistema su HTTPS, e da ovunque con ZeroTier.", en: "<b>Remote Manager</b>: a web dashboard to control the board from your browser or phone — telemetry, KVM, terminal, Tuner, app store and AI. System login over HTTPS, and from anywhere with ZeroTier." },
 
