@@ -109,7 +109,7 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
-ctrl $P "systemd, libnotify-bin, python3, cpio" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
@@ -170,6 +170,37 @@ open(p, 'w', encoding='utf-8').write(t.replace(oa, na).replace(ob, nb))
 PY
   echo "skillfish-base: HUD aggiornato a 16 thread in $cfg"
 done
+
+# Le quattro lingue di SkillFishOS.
+#
+# Le traduzioni polacche (di cyryllo) sono nelle app da mesi, ma sull'immagine
+# risultavano generati solo en_US e it_IT: senza il locale generato, KDE non
+# mostra la lingua nel menu delle impostazioni e SDDM non la offre. Il polacco
+# era quindi presente nel codice e irraggiungibile per l'utente. Verificato
+# sulla scheda con `locale -a`: due voci in tutto.
+#
+# Qui li abilitiamo tutti e quattro in locale.gen e rigeneriamo, ma solo se
+# qualcosa e' davvero cambiato: locale-gen ci mette parecchio e non ha senso
+# rifarlo a ogni aggiornamento del pacchetto.
+if [ -f /etc/locale.gen ]; then
+  need=0
+  for l in en_US.UTF-8 it_IT.UTF-8 pl_PL.UTF-8 uk_UA.UTF-8; do
+    if grep -qE "^${l} UTF-8" /etc/locale.gen; then
+      continue
+    elif grep -qE "^[#[:space:]]*${l} UTF-8" /etc/locale.gen; then
+      sed -i "s|^[#[:space:]]*\(${l} UTF-8\)|\1|" /etc/locale.gen
+      need=1
+    else
+      echo "${l} UTF-8" >> /etc/locale.gen
+      need=1
+    fi
+  done
+  if [ "$need" = 1 ]; then
+    echo "skillfish-base: genero i locale it/en/pl/uk (ci vuole qualche secondo)"
+    locale-gen >/dev/null 2>&1 || true
+  fi
+fi
+
 exit 0
 POSTINST
 # On removal the SSDT would vanish while GRUB still referenced it, so undo the

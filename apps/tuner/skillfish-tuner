@@ -23,6 +23,9 @@ def _detect_lang():
     v = val.lower()
     if v.startswith("it"): return "it"
     if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
     return "en"
 
 LANG = _detect_lang()
@@ -125,8 +128,133 @@ PL = {
     "Authentication cancelled or helper not started.\nRestart the program and authorize the operation.": "Uwierzytelnienie anulowane lub pomocnik nie został uruchomiony.\nUruchom program ponownie i autoryzuj operację.",
 }
 
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+# Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
+# a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
+UK = {
+    "Max CPU frequency": "Максимальна частота ЦП",
+    "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.":
+        "Обмеження буст-частоти ЦП у МГц.\n\n• 3500 = безпечна база\n• 3700 = перевірено стабільно на цьому чипі\n• 3800-3900 = за межами норми, можливий тепловий тротлінг\n\nНапруга (Vid) задля безпеки завжди залишається нижче 1,325 В.",
+    "Undervolt (scale)": "Зниження напруги (шкала)",
+    "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.":
+        "Знижує напругу ЦП відносно заводської кривої.\n\n• 0 = без зниження (типово)\n• від’ємні значення (-1, -2 ...) = менша напруга\n\nЗниження напруги зменшує температуру і споживання, але надмірне робить систему нестабільною. Скористайтеся «Тест», щоб перевірити.",
+    "CPU temperature limit": "Обмеження температури ЦП",
+    "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.":
+        "Тепловий поріг, вище якого SMU знижує частоту.\n\nРекомендовано 85 °C. Вище цього значення система автоматично знижує частоту, щоб захистити обладнання.",
+    "Max GPU frequency": "Максимальна частота ГП",
+    "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced (safe on every board)\n• 2200 = max stable at 1000 mV on stock cooling\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle. Above 2200 MHz at 1000 mV the BC-250 can hard-freeze: it needs more voltage and depends on the silicon lottery.":
+        "Максимальна частота ГП (регулятор SMU).\n\n• 1500 = енергозбереження\n• 2000 = збалансовано (безпечно на будь-якій платі)\n• 2200 = максимум стабільно за 1000 мВ зі штатним охолодженням\n\nГП досягає цієї частоти лише під навантаженням, а в спокої повертається до 350 МГц. Вище 2200 МГц за 1000 мВ BC-250 може повністю зависнути: потрібна більша напруга, і багато залежить від кремнієвої лотереї.",
+    "Max GPU voltage": "Максимальна напруга ГП",
+    "Voltage tied to the max GPU frequency (mV).\n\nHigher = more stable at high frequency but hotter. Range 700-1129 mV.":
+        "Напруга, прив’язана до максимальної частоти ГП (мВ).\n\nБільше = стабільніше на високій частоті, але гарячіше. Діапазон 700-1129 мВ.",
+    "GPU governor mode": "Режим регулятора ГП",
+    "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nBoth modes use the governor's safe SMU path.":
+        "Як регулятор обирає частоту ГП під навантаженням:\n\n• Збалансований: піднімає частоту лише настільки, наскільки потрібно — прохолодніше і тихіше (типово).\n• Продуктивність: тримає ГП на максимальній частоті за будь-якого ігрового навантаження (найкращий FPS в іграх, обмежених ГП, більше тепла і споживання). У спокої так само повертається до 350 МГц.\n\nОбидва режими використовують безпечний шлях SMU регулятора.",
+    "Fan": "Вентилятор",
+    "Manual control: you set the speed in %.\nAutomatic: the chip's curve manages the speed based on temperature.\n\nUse «Test» to hear the fan at the chosen speed for a few seconds.":
+        "Ручне керування: ви задаєте швидкість у %.\nАвтоматичне: швидкістю залежно від температури керує крива самого чипа.\n\nСкористайтеся «Тест», щоб кілька секунд послухати вентилятор на обраній швидкості.",
+    "VRAM (graphics memory)": "VRAM (графічна пам’ять)",
+    "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.":
+        "Обсяг системної пам’яті, зарезервований для ГП (UMA).\n\n⚠ Записується у CMOS BIOS і потребує ПЕРЕЗАВАНТАЖЕННЯ. Скасовується очищенням CMOS (перемичка на платі).\n\nНе задавайте значень, після яких системі залишається замало пам’яті.",
+    "Compute Units (CU)": "Обчислювальні блоки (CU)",
+    "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).":
+        "CU — це обчислювальні ядра ГП. Тут ви вмикаєте й вимикаєте їх НАЖИВО, без перезавантаження.\n\n• Кожен квадрат = 1 CU: ЗЕЛЕНИЙ = активний, ЧЕРВОНИЙ = вимкнений.\n• НАТИСНІТЬ на пару, щоб перемкнути її вручну (пари керуються по 2 CU = 1 WGP).\n• Або скористайтеся ЗАГОТОВКАМИ (24 / 32 / 40 CU).\n• Перші 3 пари в рядку (24 CU) — це мінімум драйвера, вони завжди увімкнені.\n• Натисніть «Застосувати наживо», щоб вибір набув чинності.\n\nБільше CU = більше графічної потужності, але й більше тепла та споживання.\n\nСкористайтеся «Тест CU», щоб перевірити, чи активні CU стабільні й без дефектів (кремнієва лотерея).",
+    "daemon not running": "служба не запущена",
+    "locked (always on)": "заблоковано (завжди увімкнено)",
+    "on": "увімк.",
+    "off": "вимк.",
+    "◉  LIVE MONITOR": "◉  МОНІТОР НАЖИВО",
+    "Temperature (°C)": "Температура (°C)",
+    "Frequency (MHz)": "Частота (МГц)",
+    "GPU voltage (mV)": "Напруга ГП (мВ)",
+    "Fan (RPM)": "Вентилятор (об/хв)",
+    "SkillFishOS — Monitor · %s": "SkillFishOS — Монітор · %s",
+    "Help": "Довідка",
+    "Presets": "Заготовки",
+    "Apply": "Застосувати",
+    "Extreme preset": "Екстремальна заготовка",
+    "🎰 My silicon": "🎰 Мій кремній",
+    "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d":
+        "ЦП %d МГц @ %d  ·  ГП %d МГц @ %d мВ  ·  Активних CU: %d  ·  Виявлено зависань: %d",
+    "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.":
+        "⚠ Останнє зависання: %s — якщо повториться, знизьте на один щабель за допомогою майстрів 🎰.",
+    "Share to the silicon DB": "Поділитися в базі кремнію",
+    "Max frequency": "Максимальна частота",
+    "Undervolt": "Зниження напруги",
+    "Temperature limit": "Обмеження температури",
+    "🎰 Find my max": "🎰 Знайти мій максимум",
+    "Suggest UV": "Порадити зниження",
+    "Test (benchmark)": "Тест (бенчмарк)",
+    "CPU applied": "ЦП застосовано",
+    "Save at boot": "Зберегти для завантаження",
+    "CPU saved at boot": "ЦП збережено для завантаження",
+    "CPU test: applying and benchmarking 60s (for a realistic temp)…":
+        "Тест ЦП: застосування і бенчмарк 60 с (для реалістичної температури)…",
+    "test failed": "тест не вдався",
+    "Max voltage": "Максимальна напруга",
+    "Balanced": "Збалансований",
+    "Performance": "Продуктивність",
+    "Governor: Balanced": "Регулятор: збалансований",
+    "Governor: Performance — 2230 MHz under load":
+        "Регулятор: продуктивність — 2230 МГц під навантаженням",
+    "Governor mode": "Режим регулятора",
+    "GPU applied": "ГП застосовано",
+    "Find my max": "Знайти мій максимум",
+    "The wizard steps the GPU up (2000 → 2200 MHz at 1000 mV), validating each step with a benchmark and rolling back if unstable.\n\n~2 minutes per step under full GPU load: set the fan high first.\nWhen done it applies the highest stable point for YOUR board.\n\nProceed?":
+        "Майстер піднімає ГП щабель за щаблем (2000 → 2200 МГц за 1000 мВ), перевіряючи кожен щабель бенчмарком і відкочуючи його, якщо нестабільно.\n\n~2 хвилини на щабель за повного навантаження ГП: спершу виставте вентилятор на високу швидкість.\nНаприкінці застосовується найвища стабільна точка саме ВАШОЇ плати.\n\nПродовжити?",
+    "✗ Not even 2000 MHz is stable on this board: keeping the current profile.":
+        "✗ Навіть 2000 МГц не є стабільними на цій платі: залишаємо поточний профіль.",
+    "Highest stable point: %d MHz @ 1000 mV%s (already applied).":
+        "Найвища стабільна точка: %d МГц @ 1000 мВ%s (уже застосовано).",
+    "Share the result (anonymous) in the silicon-lottery database on GitHub?":
+        "Поділитися результатом (анонімно) у базі кремнієвої лотереї на GitHub?",
+    "Wizard result": "Результат майстра",
+    "Find my max (CPU)": "Знайти мій максимум (ЦП)",
+    "The wizard steps the CPU up (3600 → 4000 MHz with progressive undervolt), validating each step with a benchmark and stopping at the first unstable one.\n\n⚠ The last step can freeze some boards: the watchdog then reboots automatically and the last stable value is restored at boot.\n\nNote: the test validates UNDER-LOAD stability; idle stability over days is confirmed by regular use.\n\nProceed?":
+        "Майстер піднімає ЦП щабель за щаблем (3600 → 4000 МГц із поступовим зниженням напруги), перевіряючи кожен щабель бенчмарком і зупиняючись на першому нестабільному.\n\n⚠ Останній щабель може завісити деякі плати: тоді сторожовий таймер автоматично перезавантажує систему, а при завантаженні відновлюється останнє стабільне значення.\n\nПримітка: тест перевіряє стабільність ПІД НАВАНТАЖЕННЯМ; стабільність у спокої протягом днів підтверджується звичайним користуванням.\n\nПродовжити?",
+    "✗ Not even 3600 MHz is stable: keeping the current profile.":
+        "✗ Навіть 3600 МГц не є стабільними: залишаємо поточний профіль.",
+    "Tip: run the system for a few days; if a freeze appears, step down one notch.\n\nShare the result (anonymous) in the silicon-lottery database?":
+        "Порада: покористуйтеся системою кілька днів; якщо з’явиться зависання, знизьте на один щабель.\n\nПоділитися результатом (анонімно) у базі кремнієвої лотереї?",
+    "CPU wizard result": "Результат майстра ЦП",
+    "GPU test: applying and running vkpeak…": "Тест ГП: застосування і запуск vkpeak…",
+    "Compute Units (CU) — live": "Обчислювальні блоки (CU) — наживо",
+    "40 CU (max)": "40 CU (макс.)",
+    "Test CU": "Тест CU",
+    "Active CUs: %d / 40": "Активних CU: %d / 40",
+    "CUs applied: %s/40 (live)": "CU застосовано: %s/40 (наживо)",
+    "CU error: %s": "Помилка CU: %s",
+    "CU test": "Тест CU",
+    "Tests the extra CUs (WGP3-4) one by one to catch defects (silicon lottery): enables each pair alone, stresses it with vkpeak and checks for GPU errors/hangs.\n\nTakes ~2-3 minutes and the GPU will be under load. Proceed?":
+        "Перевіряє додаткові CU (WGP3-4) по одному, щоб виявити дефекти (кремнієва лотерея): вмикає кожну пару окремо, навантажує її через vkpeak і перевіряє помилки та зависання ГП.\n\nТриває ~2-3 хвилини, ГП буде під навантаженням. Продовжити?",
+    "CU test running (~2-3 min)…": "Виконується тест CU (~2-3 хв)…",
+    "CU test failed: %s": "Тест CU не вдався: %s",
+    "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU під навантаженням (vkpeak): %s GFLOPS%s",
+    "Baseline 24 CU: %s GFLOPS": "База 24 CU: %s GFLOPS",
+    "(expected ~11300 at 40 CU)": "(очікується ~11300 на 40 CU)",
+    "Per extra-CU-pair stability:": "Стабільність кожної додаткової пари CU:",
+    "⚠ GPU problems under load detected: possible defective CU (silicon lottery). Consider keeping fewer CUs.":
+        "⚠ Виявлено проблеми ГП під навантаженням: можливий дефектний CU (кремнієва лотерея). Варто залишити менше CU.",
+    "✓ No defects: all CUs sustain the load with no GPU errors.":
+        "✓ Дефектів немає: усі CU витримують навантаження без помилок ГП.",
+    "CU test result": "Результат тесту CU",
+    "Manual control (off = automatic curve)": "Ручне керування (вимкнено = автоматична крива)",
+    "Speed": "Швидкість",
+    "Test": "Тест",
+    "Fan error": "Помилка вентилятора",
+    "New allocation": "Новий обсяг",
+    "Set (reboot)": "Встановити (перезавантаження)",
+    "Writes to the BIOS CMOS. A reboot is needed to apply.":
+        "Записується у CMOS BIOS. Для застосування потрібне перезавантаження.",
+    "Authentication cancelled or helper not started.\nRestart the program and authorize the operation.":
+        "Автентифікацію скасовано або службу-помічника не запущено.\nПерезапустіть програму й дозвольте виконання операції.",
+}
+
+
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
     if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
     return en
