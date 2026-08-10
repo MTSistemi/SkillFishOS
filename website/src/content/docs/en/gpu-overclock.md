@@ -30,7 +30,7 @@ GPU clocks are driven by the **[cyan-skillfish-governor](https://github.com/Magn
 
 ## CPU overclocking and undervolting
 
-The CPU (6× Zen 2 "Oberon" cores) is handled by a one-shot service **`bc250-smu-oc.service`** that applies the values from `/etc/bc250-smu-oc.conf` via the [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc) project. It shows as *inactive* after applying — that's normal (it's one-shot).
+The CPU (**8 cores / 16 threads** of Zen 2 "Oberon", two of them unlocked by SkillFishOS via the SMU) is handled by a one-shot service **`bc250-smu-oc.service`** that applies the values from `/etc/bc250-smu-oc.conf` via the [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc) project. It shows as *inactive* after applying — that's normal (it's one-shot).
 
 What we measured pushing **our** card:
 

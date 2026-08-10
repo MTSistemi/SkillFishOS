@@ -30,7 +30,7 @@ Le frequenze GPU sono gestite dal **[cyan-skillfish-governor](https://github.com
 
 ## Overclock e undervolt della CPU
 
-La CPU (6 core Zen 2 "Oberon") è gestita da un servizio one-shot **`bc250-smu-oc.service`** che applica i valori da `/etc/bc250-smu-oc.conf` tramite il progetto [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc). Risulta *inactive* dopo l'applicazione: è normale (è "one-shot").
+La CPU (**8 core / 16 thread** Zen 2 "Oberon", due sbloccati da SkillFishOS via SMU) è gestita da un servizio one-shot **`bc250-smu-oc.service`** che applica i valori da `/etc/bc250-smu-oc.conf` tramite il progetto [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc). Risulta *inactive* dopo l'applicazione: è normale (è "one-shot").
 
 Cosa abbiamo misurato spingendo la **nostra** scheda:
 

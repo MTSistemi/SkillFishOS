@@ -84,10 +84,10 @@ bluetoothctl                         # scan on / pair / connect / trust
 
 ```bash
 # lo stack gira in container Docker (vedi pannello AI)
-docker ps                            # container attivi (ollama, openwebui, dockge)
+systemctl status skillfish-unsloth   # stato del motore AI
 docker compose -f <stack> up -d      # avvia lo stack
 docker compose -f <stack> down       # ferma e libera GPU/RAM
-ollama list                          # modelli installati (es. qwen3:14b)
+curl -s localhost:8888/              # l’interfaccia di Unsloth Studio (solo da locale)
 ```
 
 ## Snapshot e rollback (Btrfs)
