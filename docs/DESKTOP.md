@@ -58,6 +58,14 @@ controls — to control the hardware with no terminal:
 
 A polkit policy lets the active local user run the privileged helper (a personal machine — no password prompts for the kids).
 
+## SkillFishOS Telemetry (Monitor)
+
+Live charts of temperature, frequency, CPU/GPU load, voltages, power and fan — opened automatically during Tuner tests, and a standalone app otherwise. **REC** records a session to a `.sfmon` file under `~/SkillFishOS-benchmarks/`; re‑opening that file turns Telemetry into an analyzer with a time scrubber.
+
+Each chart carries a **gridline scale with values**, snapped to human numbers (`0 / 1000 / 2000`, never `-160 / 1394 / 2948`): zero becomes the floor for quantities that can't go negative, and a flat line is not zoomed until noise looks like a mountain.
+
+A **per core/thread frequency** panel draws one bar per logical CPU, paired by physical core and labelled `core·thread`, with the MHz on each bar and min/avg/max/online in the header. Threads parked from the Tuner stay visible as a dashed **"off"** slot. This matters on this board: with 8 cores unlocked the sixteen threads idle at 800, 1775 and 3990 MHz at the same time, so a single "CPU MHz" number tells you almost nothing — see [OPTIMIZATIONS.md](OPTIMIZATIONS.md#11-telemetry--what-this-apu-will-and-wont-tell-you).
+
 ## Local AI panel
 
 A matching brass PyQt6 panel to turn the on‑device LLM stack on and off with one click — it frees the GPU/RAM when you want to game. See [AI.md](AI.md).
