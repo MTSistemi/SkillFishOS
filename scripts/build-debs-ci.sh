@@ -267,6 +267,19 @@ putdir $P theme/plasma-theme/SkillFishSteampunk       usr/share/plasma/desktopth
 putdir $P theme/look-and-feel/org.skillfish.steampunk usr/share/plasma/look-and-feel/org.skillfish.steampunk
 putdir $P theme/Kvantum/SkillFishSteampunk            usr/share/Kvantum/SkillFishSteampunk
 put $P 0644 theme/color-scheme/SkillFishSteampunk.colors usr/share/color-schemes/SkillFishSteampunk.colors
+# Lo sfondo come vero PACCHETTO wallpaper, non come PNG sciolto.
+# Plasma, nella chiave Image= del look-and-feel, si aspetta una cartella con
+# metadata.json e contents/images/: davanti a un file singolo non lo risolve e
+# ricade sullo sfondo predefinito. Ecco perche' nessuno vedeva il nostro sfondo
+# ne' nella live ne' dopo l'installazione. Il percorso e' dichiarato in
+# theme/look-and-feel/org.skillfish.steampunk/contents/defaults.
+#
+# Queste righe stavano piu' in basso, in mezzo ai controlli: giravano dopo
+# dpkg-deb e i file non entravano mai nel pacchetto.
+put $P 0644 system/usr/share/wallpapers/SkillFishOS/metadata.json \
+    usr/share/wallpapers/SkillFishOS/metadata.json
+put $P 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png \
+    usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
@@ -303,9 +316,6 @@ check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor  
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
-put skillfish-theme 0644 system/usr/share/wallpapers/SkillFishOS/metadata.json                        usr/share/wallpapers/SkillFishOS/metadata.json
-put skillfish-theme 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png             usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
-put skillfish-theme 0644 system/usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults   usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults
 check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampunk/index.theme        SkillFish
 # guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)
