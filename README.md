@@ -29,8 +29,8 @@ SkillFishOS takes the cheap, abundant **AMD BC-250** compute board — a semi-cu
 | | |
 |---|---|
 | Board | AMD BC-250 (*Cyan Skillfish*, `GFX1013`) |
-| CPU | AMD Zen 2 (*Oberon*), 6 cores active — OC to **3.9 GHz** (Turbo), **4.0 GHz** validated |
-| GPU | RDNA 2, 24 CUs default → **40 CUs unlockable** |
+| CPU | AMD Zen 2 (*Oberon*), **8 cores / 16 threads** — the board exposes 6, SkillFishOS unlocks the other two via the SMU (**+20%** measured); **4.0 GHz** all-core validated |
+| GPU | RDNA 2, 24 CUs at the driver baseline → **all 40 CUs unlockable** |
 | Memory | 16 GB GDDR6 (shared / UMA) |
 | Base distro | Debian **sid** |
 
@@ -69,7 +69,7 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 ## Performance
 
-> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.0.11-skillfishos, Mesa 26.0.8). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
+> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.0.11-skillfishos, Mesa 26.0.8 — re-measured on 7.1.7 within ±2%). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
 
 ### Real benchmarks
 
@@ -108,13 +108,13 @@ CPU OC validated up to **4.0 GHz** (~1224 mV, 120 s stress, 83 °C peak) on the 
 
 ### Prebuilt kernel
 
-Prebuilt kernel `.deb`s (three flavours) are published under [**Releases**](../../releases/tag/kernel-7.0.11-skillfishos):
+Prebuilt kernel `.deb`s (three flavours) are published under [**Releases**](../../releases/tag/kernel-7.1.7-skillfishos):
 
 ```sh
 # main BC-250 kernel (znver2)
-sudo dpkg -i linux-image-7.0.11-skillfishos_7.0.11-1_amd64.deb
-# …or generic (PCs/VMs): linux-image-7.0.11-skillfishos-generic_7.0.11-1_amd64.deb
-# …or slim (lean, BC-250): linux-image-7.0.11-skillfishos-slim_7.0.11-2_amd64.deb
+sudo dpkg -i linux-image-7.1.7-skillfishos_7.1.7-1_amd64.deb
+# …or generic (PCs/VMs): linux-image-7.1.7-skillfishos-generic_7.1.7-1_amd64.deb
+# …or slim (lean, BC-250): linux-image-7.1.7-skillfishos-slim_7.1.7-1_amd64.deb
 ```
 
 Or, from the signed APT repo, simply `sudo apt install skillfishos-kernel` (a thin wrapper that fetches the full kernel `.deb` from the GitHub Release). To build it yourself, see [docs/BUILD.md](docs/BUILD.md) and [`kernel-build/`](kernel-build/).
