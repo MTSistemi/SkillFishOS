@@ -1,0 +1,10 @@
+[Unit]
+Description=SkillFishOS - arm Wake-on-LAN on the primary NIC
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'n=$(ip -o route get 1.1.1.1 | grep -oP "dev \K\S+"); exec /usr/sbin/ethtool -s "$n" wol g'
+[Install]
+WantedBy=multi-user.target
