@@ -142,6 +142,54 @@ def btrfs_first(text):
     block = "".join("%s- %s\n" % (indent, i) for i in ordered)
     return text[:m.start(1)] + block + text[m.end(1):], ordered
 
+
+# --- 1c. il menu del filesystem deve proporre per primo il predefinito -------
+# Verificato avviando la ISO: il menu mostrava ext4 mentre l'anteprima delle
+# partizioni sotto diceva Btrfs. I due leggono cose diverse — l'anteprima usa
+# defaultFileSystemType, il menu preseleziona il PRIMO di availableFileSystemTypes.
+#
+# E la lista non viene dal template: la costruisce eggs a ogni produce, in
+# customize-partitions.js, partendo da ['ext4'] e aggiungendo gli altri. Anche
+# defaultFileSystemType lo decide lui, leggendo `df -T /`, cioe' il filesystem
+# della macchina su cui si costruisce. Correggere il template non serviva a
+# niente: viene sovrascritto.
+#
+# La patch non caccia btrfs a forza: mette in cima QUELLO che eggs ha scelto
+# come predefinito, cosi' menu e anteprima concordano sempre. Se un giorno
+# costruissimo da una macchina ext4, il menu proporrebbe ext4 — coerente.
+#
+# ATTENZIONE: e' un file del pacchetto penguins-eggs. Un aggiornamento di eggs
+# lo sovrascrive, come per branding.js. Va rilanciato dopo ogni apt upgrade.
+CUSTPART = "/usr/lib/penguins-eggs/dist/classes/incubation/customize/customize-partitions.js"
+CUSTPART_MARK = "SkillFishOS: il predefinito per primo"
+CUSTPART_PATCH = """    // %s
+    if (partition.availableFileSystemTypes.includes(partition.defaultFileSystemType)) {
+        partition.availableFileSystemTypes = [partition.defaultFileSystemType].concat(
+            partition.availableFileSystemTypes.filter(function (f) { return f !== partition.defaultFileSystemType; }));
+    }
+""" % CUSTPART_MARK
+
+
+def patch_eggs_fslist():
+    if not os.path.exists(CUSTPART):
+        print("ATTENZIONE: manca", CUSTPART)
+        return False
+    with open(CUSTPART, encoding="utf-8") as f:
+        t = f.read()
+    if CUSTPART_MARK in t:
+        print("OK  : customize-partitions.js gia' corretto")
+        return True
+    anchor = "    fs.writeFileSync(filePartition, yaml.dump(partition), 'utf-8');"
+    if anchor not in t:
+        print("KO  : customize-partitions.js non ha la forma attesa, non lo tocco")
+        return False
+    backup(CUSTPART)
+    with open(CUSTPART, "w", encoding="utf-8") as f:
+        f.write(t.replace(anchor, CUSTPART_PATCH + anchor, 1))
+    print("OK  : customize-partitions.js -> il predefinito va in cima al menu")
+    return True
+
+
 # --- 2. layout dei sottovolumi sicuro per GRUB ----------------------------
 # Nessun @boot: /boot resta dentro @, cosi' GRUB non deve attraversare un
 # secondo sottovolume per trovare la propria configurazione (era l'errore
@@ -164,6 +212,7 @@ def backup(path):
 
 
 def main():
+    patch_eggs_fslist()
     if not os.path.isdir(MODDIR):
         raise SystemExit("FATAL: %s non esiste — eggs ha gia' generato la config?" % MODDIR)
 
@@ -265,6 +314,14 @@ def verify():
             print(("KO  : %s -> %s" % (f, ", ".join(bad))) if bad
                   else "OK  : %s -> btrfs + swap su file" % f)
             if bad:
+                ok = False
+
+    if os.path.exists(CUSTPART):
+        with open(CUSTPART, encoding="utf-8") as f:
+            if CUSTPART_MARK in f.read():
+                print("OK  : eggs mettera' il filesystem predefinito in cima al menu")
+            else:
+                print("KO  : customize-partitions.js NON corretto: il menu proporra' ext4")
                 ok = False
 
     targets = [(os.path.join(d, "shellprocess@boot_reconfigure.yaml"), "template eggs")
