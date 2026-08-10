@@ -169,9 +169,23 @@ fi
 
 echo
 echo "=== compressione dell'immagine ==="
-# eggs passa a mksquashfs solo `-comp xz`, cioe' xz con le impostazioni
-# predefinite: blocco da 128 KB e nessun filtro. Misurato sulla scheda su un
-# campione di 641 MB di binari (/usr/bin):
+# ATTENZIONE: la chiave `compression:` di eggs.yaml NON conta.
+#
+# Ci sono cascato: l'avevo impostata a "xz -Xbcj x86 -b 1M" e il comando che
+# eggs ha davvero eseguito era `-comp zstd -b 1M -Xcompression-level 3`. La
+# compressione la decide un FLAG di `eggs produce`, non il file di configurazione:
+#
+#   (nessun flag)   zstd -Xcompression-level 3      veloce e grosso
+#   -S --standard   xz -b 1M
+#   -p --pendrive   zstd -b 1M -Xcompression-level 15
+#   -m --max        xz -Xbcj x86 -b 1M              <- quello che vogliamo
+#
+# Quindi la riga che conta e' in scripts/build-iso.sh: `eggs produce -n -N -m`.
+# Il valore in eggs.yaml lo scriviamo lo stesso, per coerenza e per il caso in
+# cui qualcuno lanci eggs a mano senza flag, ma non e' lui a decidere.
+#
+# La misura che ha portato a scegliere -m, fatta sulla scheda su un campione di
+# 641 MB di binari (/usr/bin):
 #
 #   -comp xz                       190,0 MB   14 s   <- quello che facciamo ora
 #   -comp xz -Xbcj x86             180,0 MB   28 s   -5,5%
@@ -186,10 +200,6 @@ echo "=== compressione dell'immagine ==="
 #
 # zstd al massimo livello non serve: comprime come xz predefinito ma non come
 # xz regolato. Va bene per chi vuole un boot piu' rapido, non per la dimensione.
-#
-# In eggs il valore finisce dentro `-comp ${compression}`, e la variabile
-# `limit` che segue e' vuota (verificato in make-squashfs.js), quindi si possono
-# infilare li' anche le opzioni: mksquashfs le legge come argomenti separati.
 Y=/etc/penguins-eggs.d/eggs.yaml
 WANT='compression: xz -Xbcj x86 -b 1M'
 if [ -f "$Y" ]; then
