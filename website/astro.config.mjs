@@ -29,8 +29,13 @@ export default defineConfig({
     format: 'directory',
   },
   redirects: {
+    // Senza queste voci /<lang>/docs non genera un index.html e il server
+    // risponde con l'elenco delle cartelle. PL e UK hanno l'interfaccia
+    // tradotta ma i documenti in inglese, quindi puntano alle stesse pagine.
     '/docs': '/docs/introduzione',
     '/en/docs': '/en/docs/introduzione',
+    '/pl/docs': '/pl/docs/introduzione',
+    '/uk/docs': '/uk/docs/introduzione',
   },
   vite: {
     cacheDir: viteCacheDir,
