@@ -5,7 +5,7 @@
 # Viewer mode: `skillfish-monitor file.sfmon` loads a recording and shows the whole
 #   run with a time scrubber to analyze it second by second.
 # KDE-native PyQt6, brass/steampunk look. Bilingual (IT/EN). Sensors via skillfish-hud-val.
-import sys, os, re, signal, subprocess, collections, csv, time, datetime, shutil
+import sys, os, re, math, signal, subprocess, collections, csv, time, datetime, shutil
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -46,6 +46,169 @@ def _num(s):
     return float(m.group()) if m else None
 
 
+def _nice_scale(lo, hi, ticks=3):
+    """Snap an axis to human numbers (50/60/70, not 50.6/60.5).
+
+    Picks a step of 1/2/2.5/5 times a power of ten and rounds the ends to it,
+    otherwise the tick labels are unreadable."""
+    raw = (hi - lo) / float(max(1, ticks))
+    if raw <= 0:
+        return lo, lo + 1.0, 1.0
+    mag = 10.0 ** math.floor(math.log10(raw))
+    n = raw / mag
+    step = (1 if n <= 1 else 2 if n <= 2 else 2.5 if n <= 2.5 else 5 if n <= 5 else 10) * mag
+    return math.floor(lo / step) * step, math.ceil(hi / step) * step, step
+
+
+def _fmt_axis(v, step):
+    """Tick label with just enough decimals for the chosen step."""
+    if step >= 1:   return "%d" % round(v)
+    if step >= 0.1: return "%.1f" % v
+    return "%.2f" % v
+
+
+def cpu_mhz_per():
+    """{cpu_id: MHz} from /proc/cpuinfo. Offline CPUs simply aren't listed there."""
+    out = {}
+    try:
+        cur = None
+        with open("/proc/cpuinfo") as fh:
+            for ln in fh:
+                if ln.startswith("processor"):
+                    cur = int(ln.split(":")[1])
+                elif ln.lower().startswith("cpu mhz") and cur is not None:
+                    out[cur] = float(ln.split(":")[1])
+    except Exception:
+        pass
+    return out
+
+
+_TOPO = {}
+
+
+def cpu_threads():
+    """[(cpu, core, mhz|None)] for every logical CPU, mhz None when it is offline.
+
+    An offline CPU drops its topology/ directory, so its physical core is taken
+    from the cached map built while it was still up (SMT pairing as a fallback)."""
+    base = "/sys/devices/system/cpu"
+    try:
+        cpus = sorted(int(d[3:]) for d in os.listdir(base) if re.match(r"cpu\d+$", d))
+    except Exception:
+        return []
+    mhz = cpu_mhz_per()
+    out = []
+    for c in cpus:
+        try:
+            with open("%s/cpu%d/online" % (base, c)) as fh:
+                on = fh.read().strip() == "1"
+        except Exception:
+            on = True                       # cpu0 exposes no 'online' node
+        try:
+            with open("%s/cpu%d/topology/core_id" % (base, c)) as fh:
+                _TOPO[c] = int(fh.read().strip())
+        except Exception:
+            pass
+        out.append((c, _TOPO.get(c, c // 2), mhz.get(c) if on else None))
+    return out
+
+
+class CoreBars(QWidget):
+    """Live per-thread CPU frequency: one bar per logical CPU, grouped by core."""
+    def __init__(self):
+        super().__init__()
+        self.threads = []            # [(cpu, core, mhz|None)]
+        self.setMinimumHeight(150)
+
+    def push(self, threads):
+        self.threads = threads or []
+        self.update()
+
+    def _color(self, t):
+        """Brass -> amber -> ember as the thread climbs its share of the peak."""
+        a, b = ((0x6b, 0x5a, 0x34), (0xd8, 0xa8, 0x49)) if t < 0.5 else \
+               ((0xd8, 0xa8, 0x49), (0xe0, 0x6b, 0x39))
+        k = (t / 0.5) if t < 0.5 else ((t - 0.5) / 0.5)
+        return QColor(*[int(a[i] + (b[i] - a[i]) * k) for i in range(3)])
+
+    def paintEvent(self, _e):
+        w, h = self.width(), self.height()
+        if w <= 2 or h <= 2:
+            return
+        p = QPainter()
+        if not p.begin(self):
+            return
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            p.setPen(QPen(QColor(216, 168, 73, 80), 1)); p.setBrush(QColor(18, 15, 9, 240))
+            p.drawRoundedRect(1, 1, w - 2, h - 2, 14, 14)
+
+            live = [m for (_c, _k, m) in self.threads if m is not None]
+            f = QFont("Inter"); f.setBold(True); f.setPointSize(10); p.setFont(f)
+            p.setPen(QColor(216, 168, 73))
+            p.drawText(14, 22, L("Frequenza per core/thread (MHz)",
+                                 "Per core/thread frequency (MHz)"))
+            if live:
+                fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
+                p.setFont(fv); p.setPen(QColor(185, 160, 122))
+                s = "%s %d   %s %d   %s %d   %s %d/%d" % (
+                    L("min", "min"), round(min(live)), L("med", "avg"), round(sum(live) / len(live)),
+                    L("max", "max"), round(max(live)), L("attivi", "online"),
+                    len(live), len(self.threads))
+                p.drawText(w - 14 - p.fontMetrics().horizontalAdvance(s), 22, s)
+            if not self.threads:
+                return
+
+            gx0, gy0, gx1, gy1 = 50, 36, w - 14, h - 20
+            gw, gh = gx1 - gx0, gy1 - gy0
+            hi = max(1000.0, max(live) if live else 0.0)
+            hi = math.ceil(hi / 500.0) * 500.0          # bars share a stable, round scale
+            ft = QFont("DejaVu Sans Mono"); ft.setPointSize(8); p.setFont(ft)
+            for i in range(5):
+                yy = int(gy0 + gh * i / 4)
+                p.setPen(QPen(QColor(216, 168, 73, 26), 1)); p.drawLine(gx0, yy, gx1, yy)
+                txt = "%d" % round(hi - hi * i / 4.0)
+                p.setPen(QColor(185, 160, 122, 190))
+                p.drawText(gx0 - 6 - p.fontMetrics().horizontalAdvance(txt), yy + 3, txt)
+
+            n = len(self.threads)
+            # a wider gap between physical cores makes the SMT pairs obvious
+            slot = gw / float(n)
+            bw = max(4.0, slot * 0.62)
+            for i, (cpu, core, mhz) in enumerate(self.threads):
+                pair_shift = (slot * 0.10) * (1 if (i % 2) else -1) if n > 4 else 0.0
+                x = gx0 + slot * i + (slot - bw) / 2.0 + pair_shift
+                if mhz is None:                          # core parked by the Tuner
+                    p.setBrush(Qt.BrushStyle.NoBrush)
+                    p.setPen(QPen(QColor(216, 168, 73, 55), 1, Qt.PenStyle.DashLine))
+                    p.drawRoundedRect(int(x), gy1 - 14, int(bw), 14, 3, 3)
+                else:
+                    t = max(0.0, min(1.0, mhz / hi))
+                    bh = max(2.0, gh * t)
+                    col = self._color(t)
+                    grad = QLinearGradient(0, gy1 - bh, 0, gy1)
+                    c0 = QColor(col); c0.setAlpha(235); c1 = QColor(col); c1.setAlpha(110)
+                    grad.setColorAt(0, c0); grad.setColorAt(1, c1)
+                    p.setPen(Qt.PenStyle.NoPen); p.setBrush(QBrush(grad))
+                    p.drawRoundedRect(int(x), int(gy1 - bh), int(bw), int(bh), 3, 3)
+                    p.setPen(QPen(col, 1)); p.setBrush(Qt.BrushStyle.NoBrush)
+                    p.drawRoundedRect(int(x), int(gy1 - bh), int(bw), int(bh), 3, 3)
+                    if bw >= 26:
+                        p.setFont(ft); p.setPen(QColor(232, 200, 120))
+                        v = "%d" % round(mhz)
+                        p.drawText(int(x + (bw - p.fontMetrics().horizontalAdvance(v)) / 2),
+                                   int(max(gy0 + 9, gy1 - bh - 3)), v)
+                lab = "%d" % cpu if bw < 26 else "%d·%d" % (core, cpu)
+                p.setFont(ft)
+                p.setPen(QColor(150, 130, 100) if mhz is not None else QColor(120, 100, 76))
+                p.drawText(int(x + (bw - p.fontMetrics().horizontalAdvance(lab)) / 2), gy1 + 14, lab)
+        except Exception:
+            pass
+        finally:
+            if p.isActive():
+                p.end()
+
+
 class Chart(QWidget):
     """Live (rolling) or static (full recording + scrubber) line chart, brass look."""
     def __init__(self, title, unit, series):
@@ -81,7 +244,7 @@ class Chart(QWidget):
             p.setRenderHint(QPainter.RenderHint.Antialiasing)
             p.setPen(QPen(QColor(216, 168, 73, 80), 1)); p.setBrush(QColor(18, 15, 9, 240))
             p.drawRoundedRect(1, 1, w - 2, h - 2, 14, 14)
-            gx0, gy0, gx1, gy1 = 14, 34, w - 14, h - 16
+            gx0, gy0, gx1, gy1 = 50, 34, w - 14, h - 16   # left gutter holds the y-axis values
             gw, gh = gx1 - gx0, gy1 - gy0
             f = QFont("Inter"); f.setBold(True); f.setPointSize(10); p.setFont(f)
             p.setPen(QColor(216, 168, 73)); p.drawText(14, 22, "%s (%s)" % (self.title, self.unit))
@@ -93,11 +256,20 @@ class Chart(QWidget):
             lo, hi = min(allv), max(allv)
             if hi - lo < 1e-6: hi = lo + 1.0
             m = (hi - lo) * 0.14; lo -= m; hi += m
+            lo, hi, astep = _nice_scale(lo, hi, 3)
             span = (hi - lo) or 1.0
-            p.setPen(QPen(QColor(216, 168, 73, 26), 1))
-            for i in range(4):
-                yy = int(gy0 + gh * i / 3); p.drawLine(gx0, yy, gx1, yy)
             fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
+            # y axis: gridlines with their value, so the scale is readable
+            ft = QFont("DejaVu Sans Mono"); ft.setPointSize(8)
+            p.setFont(ft)
+            v = lo
+            while v <= hi + astep / 2.0:
+                yy = int(gy1 - gh * (v - lo) / span)
+                p.setPen(QPen(QColor(216, 168, 73, 26), 1)); p.drawLine(gx0, yy, gx1, yy)
+                txt = _fmt_axis(v, astep)
+                p.setPen(QColor(185, 160, 122, 190))
+                p.drawText(gx0 - 6 - p.fontMetrics().horizontalAdvance(txt), yy + 3, txt)
+                v += astep
 
             n = len(cols[0]) if cols else 0
             # vertical time cursor (viewer mode)
@@ -202,6 +374,7 @@ class Sampler(QThread):
             vals = read_all()
             pct, self._cpu_prev = cpu_load_pct(self._cpu_prev)
             vals["cpu_load"] = pct
+            vals["_threads"] = cpu_threads()
             if self._stop:
                 break
             self.sample.emit(vals)
@@ -214,7 +387,7 @@ class Monitor(QMainWindow):
     def __init__(self, recording=None):
         super().__init__()
         self.setWindowIcon(QIcon(ICON))
-        self.resize(1060, 720)
+        self.resize(1060, 880)
         w = QWidget(); self.setCentralWidget(w)
         w.setStyleSheet("QWidget{background:#0d0b06;color:#cbb98f;}"
                         "QLabel{color:#b9a07a;} QComboBox{background:#1a140b;color:#e8c878;"
@@ -263,6 +436,8 @@ class Monitor(QMainWindow):
         top.addWidget(self.iv)
         self.v.addLayout(top)
         self.v.addLayout(grid)
+        self.cores = CoreBars()
+        self.v.addWidget(self.cores)
 
         self.sampler = Sampler()
         self.sampler.setIntervalMs(self.iv.currentData())
@@ -275,6 +450,8 @@ class Monitor(QMainWindow):
                 "QPushButton:hover{color:#fff;}")
 
     def _apply(self, vals):
+        if getattr(self, "cores", None) is not None:
+            self.cores.push(vals.get("_threads"))
         for c in self.charts:
             c.push([vals.get(k) for (_lab, _col, k) in c.series])
         if self._rec:
