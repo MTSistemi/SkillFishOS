@@ -374,10 +374,10 @@ const RENDER = {
       if ($("#aistop", card)) $("#aistop", card).onclick = async () => { await action("/api/ai/stop", {}, T("ai_stopping")); setTimeout(refresh, 2000); };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
       if ($("#aiweb", card)) $("#aiweb", card).onclick = () => {
-        // Unsloth listens on loopback only, so it is reached through the dashboard's
-        // authenticated reverse proxy; OpenWebUI keeps its own LAN port.
-        if (uns) openFrame("Unsloth Studio", "/unsloth/");
-        else window.open("http://" + location.hostname + ":" + s.webui_port, "_blank");
+        // Unsloth ascolta solo su loopback: ci si arriva dal proxy autenticato
+        // della dashboard. Il ramo per OpenWebUI e la sua porta in LAN non c'e'
+        // piu': quello stack girava su Docker, che abbiamo rimosso.
+        openFrame("Unsloth Studio", "/unsloth/");
       };
       if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, it ? "Download avviato…" : "Download started…"); $("#aipm", card).value = ""; } };
       if ($("#aitunebtn", card)) $("#aitunebtn", card).onclick = () => aiTune(card, it);
