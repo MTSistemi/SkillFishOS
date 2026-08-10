@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SkillFishOS Tuner — KDE-native (PyQt6/Qt Widgets). Themed by Kvantum/Breeze.
 # The GUI talks to the root daemon skillfish-tuner-helper (pkexec, one auth at start).
-# Bilingual UI (IT/EN), auto-detected from the LANG/LC_* environment.
+# Interfaccia in IT/EN/PL/UK, scelta dal locale (LANG/LC_*).
 import sys, os, json, subprocess, re, collections
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont
@@ -16,17 +16,275 @@ ICON    = "/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png"
 
 # ---------- i18n ----------
 def _detect_lang():
-    # Standard locale precedence: LC_ALL overrides LC_MESSAGES overrides LANG.
-    # LANGUAGE (gettext colon-list) is the last fallback. First non-empty wins.
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
     val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
            or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if val.lower().startswith("it") else "en"
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
+    # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
+    return "en"
 
 LANG = _detect_lang()
 
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene la
+# stessa firma e tutte le chiamate esistenti restano valide. Una stringa non
+# ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    "Max CPU frequency": "Maksymalna częstotliwość CPU",
+    "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.": "Limit boostu CPU w MHz.\n\n• 3500 = bezpieczna baza\n• 3700 = zweryfikowana stabilność na tym układzie\n• 3800-3900 = poza limitami, możliwy throttling termiczny\n\nNapięcie (Vid) zawsze pozostaje poniżej 1,325 V dla bezpieczeństwa.",
+    "Undervolt (scale)": "Undervolt (skala)",
+    "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.": "Obniża napięcie CPU względem fabrycznej krzywej.\n\n• 0 = brak undervoltu (domyślnie)\n• wartości ujemne (-1, -2 ...) = mniej napięcia\n\nUndervolt obniża temperatury i pobór mocy, ale zbyt duży czyni system niestabilnym. Użyj «Test», aby sprawdzić.",
+    "CPU temperature limit": "Limit temperatury CPU",
+    "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.": "Próg termiczny, powyżej którego SMU ogranicza częstotliwość.\n\nZalecane 85 °C. Powyżej tej wartości system automatycznie obniża zegar, aby chronić sprzęt.",
+    "Max GPU frequency": "Maksymalna częstotliwość GPU",
+    "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced (safe on every board)\n• 2200 = max stable at 1000 mV on stock cooling\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle. Above 2200 MHz at 1000 mV the BC-250 can hard-freeze: it needs more voltage and depends on the silicon lottery.": "Maksymalny zegar GPU (governor SMU).\n\n• 1500 = oszczędzanie energii\n• 2000 = zbalansowany (bezpieczny na każdej płycie)\n• 2200 = maksimum stabilne przy 1000 mV na chłodzeniu fabrycznym\n\nGPU osiąga tę częstotliwość tylko pod obciążeniem, a w spoczynku wraca do 350 MHz. Powyżej 2200 MHz przy 1000 mV BC-250 może się całkowicie zawiesić: potrzeba wyższego napięcia, a wynik zależy od loterii krzemowej.",
+    "Max GPU voltage": "Maksymalne napięcie GPU",
+    "Voltage tied to the max GPU frequency (mV).\n\nHigher = more stable at high frequency but hotter. Range 700-1129 mV.": "Napięcie powiązane z maksymalną częstotliwością GPU (mV).\n\nWyższe = większa stabilność przy wysokiej częstotliwości, ale wyższa temperatura. Zakres 700-1129 mV.",
+    "GPU governor mode": "Tryb governora GPU",
+    "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nBoth modes use the governor's safe SMU path.": "Jak governor dobiera zegar GPU pod obciążeniem:\n\n• Zbalansowany: podnosi zegar tylko na tyle, na ile potrzeba — chłodniej i ciszej (domyślnie).\n• Performance: utrzymuje GPU na maksymalnym zegarze pod każdym obciążeniem w grach (najlepsze FPS w grach ograniczanych przez GPU, więcej ciepła i poboru mocy). W spoczynku i tak wraca do 350 MHz.\n\nOba tryby korzystają z bezpiecznej ścieżki SMU governora.",
+    "Fan": "Wentylator",
+    "Manual control: you set the speed in %.\nAutomatic: the chip's curve manages the speed based on temperature.\n\nUse «Test» to hear the fan at the chosen speed for a few seconds.": "Kontrola ręczna: sam ustawiasz prędkość w %.\nAutomatyczna: krzywa układu zarządza prędkością na podstawie temperatury.\n\nUżyj «Test», aby usłyszeć wentylator przy wybranej prędkości przez kilka sekund.",
+    "VRAM (graphics memory)": "VRAM (pamięć graficzna)",
+    "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.": "Ilość pamięci RAM systemu zarezerwowanej dla GPU (UMA).\n\n⚠ Zapisuje w CMOS-ie BIOS-u i wymaga PONOWNEGO URUCHOMIENIA, aby zastosować zmiany. Odwracalne przez wyzerowanie CMOS-u (zworka na płycie).\n\nNie przekraczaj wartości, które zostawiają systemowi zbyt mało RAM-u.",
+    "Compute Units (CU)": "Jednostki obliczeniowe (CU)",
+    "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).": "CU to rdzenie obliczeniowe GPU. Tutaj włączasz/wyłączasz je NA ŻYWO, bez restartu.\n\n• Każdy kwadracik = 1 CU: ZIELONY = aktywna, CZERWONY = wyłączona.\n• KLIKNIJ parę, aby przełączyć ją ręcznie (pary zarządzane są po 2 CU naraz = 1 WGP).\n• Albo użyj PRESETÓW (24 / 32 / 40 CU).\n• Pierwsze 3 pary w każdym rzędzie (24 CU) to minimum sterownika i zawsze pozostają aktywne.\n• Naciśnij «Zastosuj na żywo», aby uaktywnić wybór.\n\nWięcej CU = więcej mocy graficznej, ale też więcej ciepła i poboru energii.\n\nUżyj «Test CU», aby sprawdzić, czy aktywne CU są stabilne i wolne od defektów (loteria krzemowa).",
+    "daemon not running": "demon nie działa",
+    "locked (always on)": "zablokowana (zawsze aktywna)",
+    "on": "aktywna",
+    "off": "wyłączona",
+    "◉  LIVE MONITOR": "◉  MONITOR NA ŻYWO",
+    "Temperature (°C)": "Temperatura (°C)",
+    "Frequency (MHz)": "Częstotliwość (MHz)",
+    "GPU voltage (mV)": "Napięcie GPU (mV)",
+    "Fan (RPM)": "Wentylator (RPM)",
+    "SkillFishOS — Monitor · %s": "SkillFishOS — Monitor · %s",
+    "Help": "Pomoc",
+    "Presets": "Presety",
+    "Apply": "Zastosuj",
+    "Extreme preset": "Ekstremalny preset",
+    "🎰 My silicon": "🎰 Mój krzem",
+    "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d": "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Aktywne CU: %d  ·  Wykryte zawieszenia: %d",
+    "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.": "⚠ Ostatnie zawieszenie: %s — jeśli powtórzy się, zejdź o jeden poziom niżej za pomocą kreatorów 🎰.",
+    "Share to the silicon DB": "Udostępnij w bazie krzemu",
+    "Max frequency": "Maksymalna częstotliwość",
+    "Undervolt": "Undervolt",
+    "Temperature limit": "Limit temperatury",
+    "🎰 Find my max": "🎰 Znajdź maksimum",
+    "Suggest UV": "Zasugeruj UV",
+    "Test (benchmark)": "Test (benchmark)",
+    "CPU applied": "CPU zastosowane",
+    "Save at boot": "Zapisz przy starcie",
+    "CPU saved at boot": "CPU zapisane przy starcie",
+    "CPU test: applying and benchmarking 60s (for a realistic temp)…": "Test CPU: stosuję ustawienia i uruchamiam benchmark 60 s (dla realistycznej temperatury)…",
+    "test failed": "test nieudany",
+    "Max voltage": "Maksymalne napięcie",
+    "Balanced": "Zbalansowany",
+    "Performance": "Performance",
+    "Governor: Balanced": "Governor: Zbalansowany",
+    "Governor: Performance — 2230 MHz under load": "Governor: Performance — 2230 MHz pod obciążeniem",
+    "Governor mode": "Tryb governora",
+    "GPU applied": "GPU zastosowane",
+    "Find my max": "Znajdź maksimum",
+    "The wizard steps the GPU up (2000 → 2200 MHz at 1000 mV), validating each step with a benchmark and rolling back if unstable.\n\n~2 minutes per step under full GPU load: set the fan high first.\nWhen done it applies the highest stable point for YOUR board.\n\nProceed?": "Kreator zwiększa zegar GPU krok po kroku (2000 → 2200 MHz przy 1000 mV), sprawdzając każdy krok benchmarkiem i cofając się w razie niestabilności.\n\n~2 minuty na krok przy pełnym obciążeniu GPU: najpierw ustaw wysokie obroty wentylatora.\nPo zakończeniu zastosuje najwyższy stabilny punkt dla TWOJEJ płyty.\n\nKontynuować?",
+    "✗ Not even 2000 MHz is stable on this board: keeping the current profile.": "✗ Nawet 2000 MHz nie jest stabilne na tej płycie: zachowuję bieżący profil.",
+    "Highest stable point: %d MHz @ 1000 mV%s (already applied).": "Najwyższy stabilny punkt: %d MHz @ 1000 mV%s (już zastosowano).",
+    "Share the result (anonymous) in the silicon-lottery database on GitHub?": "Udostępnić wynik (anonimowo) w bazie loterii krzemowej na GitHubie?",
+    "Wizard result": "Wynik kreatora",
+    "Find my max (CPU)": "Znajdź maksimum (CPU)",
+    "The wizard steps the CPU up (3600 → 4000 MHz with progressive undervolt), validating each step with a benchmark and stopping at the first unstable one.\n\n⚠ The last step can freeze some boards: the watchdog then reboots automatically and the last stable value is restored at boot.\n\nNote: the test validates UNDER-LOAD stability; idle stability over days is confirmed by regular use.\n\nProceed?": "Kreator zwiększa zegar CPU krok po kroku (3600 → 4000 MHz z progresywnym undervoltem), sprawdzając każdy krok benchmarkiem i zatrzymując się na pierwszym niestabilnym.\n\n⚠ Ostatni krok może zawiesić niektóre płyty: watchdog wtedy automatycznie uruchamia system ponownie, a przy starcie przywracana jest ostatnia stabilna wartość.\n\nUwaga: test sprawdza stabilność POD OBCIĄŻENIEM; stabilność w spoczynku przez kilka dni potwierdza dopiero codzienne użytkowanie.\n\nKontynuować?",
+    "✗ Not even 3600 MHz is stable: keeping the current profile.": "✗ Nawet 3600 MHz nie jest stabilne: zachowuję bieżący profil.",
+    "Tip: run the system for a few days; if a freeze appears, step down one notch.\n\nShare the result (anonymous) in the silicon-lottery database?": "Wskazówka: używaj systemu przez kilka dni; jeśli pojawi się zawieszenie, zejdź o jeden poziom niżej.\n\nUdostępnić wynik (anonimowo) w bazie loterii krzemowej?",
+    "CPU wizard result": "Wynik kreatora CPU",
+    "GPU test: applying and running vkpeak…": "Test GPU: stosuję ustawienia i uruchamiam vkpeak…",
+    "Compute Units (CU) — live": "Jednostki obliczeniowe (CU) — na żywo",
+    "40 CU (max)": "40 CU (maks.)",
+    "Test CU": "Test CU",
+    "Active CUs: %d / 40": "Aktywne CU: %d / 40",
+    "CUs applied: %s/40 (live)": "CU zastosowane: %s/40 (na żywo)",
+    "CU error: %s": "Błąd CU: %s",
+    "CU test": "Test CU",
+    "Tests the extra CUs (WGP3-4) one by one to catch defects (silicon lottery): enables each pair alone, stresses it with vkpeak and checks for GPU errors/hangs.\n\nTakes ~2-3 minutes and the GPU will be under load. Proceed?": "Testuje dodatkowe CU (WGP3-4) pojedynczo, aby wykryć defekty (loteria krzemowa): włącza każdą parę osobno, obciąża ją vkpeak i sprawdza błędy/zawieszenia GPU.\n\nZajmuje ~2-3 minuty, a GPU będzie pod obciążeniem. Kontynuować?",
+    "CU test running (~2-3 min)…": "Test CU w toku (~2-3 min)…",
+    "CU test failed: %s": "Test CU nieudany: %s",
+    "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU pod obciążeniem (vkpeak): %s GFLOPS%s",
+    "Baseline 24 CU: %s GFLOPS": "Bazowo 24 CU: %s GFLOPS",
+    "(expected ~11300 at 40 CU)": "(oczekiwane ~11300 przy 40 CU)",
+    "Per extra-CU-pair stability:": "Stabilność wg pary dodatkowych CU:",
+    "⚠ GPU problems under load detected: possible defective CU (silicon lottery). Consider keeping fewer CUs.": "⚠ Wykryto problemy GPU pod obciążeniem: możliwa wadliwa CU (loteria krzemowa). Rozważ pozostawienie mniejszej liczby CU.",
+    "✓ No defects: all CUs sustain the load with no GPU errors.": "✓ Brak defektów: wszystkie CU wytrzymują obciążenie bez błędów GPU.",
+    "CU test result": "Wynik testu CU",
+    "Manual control (off = automatic curve)": "Kontrola ręczna (wyłączone = krzywa automatyczna)",
+    "Speed": "Prędkość",
+    "Test": "Test",
+    "Fan error": "Błąd wentylatora",
+    "New allocation": "Nowy przydział",
+    "Set (reboot)": "Ustaw (restart)",
+    "Writes to the BIOS CMOS. A reboot is needed to apply.": "Zapisuje w CMOS-ie BIOS-u. Aby zastosować, wymagany jest restart.",
+    "Authentication cancelled or helper not started.\nRestart the program and authorize the operation.": "Uwierzytelnienie anulowane lub pomocnik nie został uruchomiony.\nUruchom program ponownie i autoryzuj operację.",
+    # pannello core CPU: mancava nella versione da cui e' stata
+    # fatta la traduzione, queste stringhe sono mie
+    "CPU cores": "Rdzenie CPU",
+    "Turn CPU cores on and off LIVE, no reboot — just like the GPU's CUs.\n\n• Each box = 1 physical core with its 2 threads: GREEN = on, RED = off.\n• CLICK a core to toggle it, then «Apply».\n• Core 0 is FIXED GREEN: it holds the boot CPU and the kernel cannot offline it.\n• «SMT» toggles multi-threading: 2 threads per core, or 1.\n\nWhy: switching cores off frees thermal and power budget so the remaining cores can clock higher — handy for games that use few threads. Fewer cores = less heat, but less multi-threaded power.\n\nThe choice is NOT permanent: everything comes back on at reboot.":
+        "Włączaj i wyłączaj rdzenie CPU NA ŻYWO, bez restartu — tak jak jednostki CU w GPU.\n\n• Każdy kwadrat = 1 rdzeń fizyczny z jego 2 wątkami: ZIELONY = włączony, CZERWONY = wyłączony.\n• KLIKNIJ rdzeń, aby go przełączyć, a potem «Zastosuj».\n• Rdzeń 0 jest ZAWSZE ZIELONY: obsługuje procesor rozruchowy i jądro nie może go wyłączyć.\n• «SMT» przełącza wielowątkowość: 2 wątki na rdzeń albo 1.\n\nPo co: wyłączenie rdzeni zwalnia budżet cieplny i energetyczny, dzięki czemu pozostałe rdzenie mogą osiągnąć wyższe taktowanie — przydatne w grach używających niewielu wątków. Mniej rdzeni = mniej ciepła, ale mniejsza moc w zadaniach wielowątkowych.\n\nWybór NIE jest trwały: po restarcie wszystkie wracają.",
+    "CPU cores — live": "Rdzenie CPU — na żywo",
+    "Multi-threading: 2 threads per core. Off = 1 thread per core.":
+        "Wielowątkowość: 2 wątki na rdzeń. Wyłączone = 1 wątek na rdzeń.",
+    "boot core (always on)": "rdzeń rozruchowy (zawsze włączony)",
+    "All": "Wszystkie",
+    "Active cores: %d / %d  ·  %d threads": "Aktywne rdzenie: %d / %d  ·  %d wątków",
+    "SMT %s — %d threads": "SMT %s — %d wątków",
+    "SMT: %s": "SMT: %s",
+    "Cores applied — %d active threads": "Zastosowano rdzenie — %d aktywnych wątków",
+    "Core error: %s": "Błąd rdzenia: %s",
+}
+
+# Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
+# rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
+UK = {
+    "Max CPU frequency": "Максимальна частота ЦП",
+    "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.":
+        "Обмеження буст-частоти ЦП у МГц.\n\n• 3500 = безпечна база\n• 3700 = перевірено стабільно на цьому чипі\n• 3800-3900 = за межами норми, можливий тепловий тротлінг\n\nНапруга (Vid) задля безпеки завжди залишається нижче 1,325 В.",
+    "Undervolt (scale)": "Зниження напруги (шкала)",
+    "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.":
+        "Знижує напругу ЦП відносно заводської кривої.\n\n• 0 = без зниження (типово)\n• від’ємні значення (-1, -2 ...) = менша напруга\n\nЗниження напруги зменшує температуру і споживання, але надмірне робить систему нестабільною. Скористайтеся «Тест», щоб перевірити.",
+    "CPU temperature limit": "Обмеження температури ЦП",
+    "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.":
+        "Тепловий поріг, вище якого SMU знижує частоту.\n\nРекомендовано 85 °C. Вище цього значення система автоматично знижує частоту, щоб захистити обладнання.",
+    "Max GPU frequency": "Максимальна частота ГП",
+    "Maximum GPU clock (SMU governor).\n\n• 1500 = power saving\n• 2000 = balanced (safe on every board)\n• 2200 = max stable at 1000 mV on stock cooling\n\nThe GPU reaches this frequency only under load, then returns to 350 MHz at idle. Above 2200 MHz at 1000 mV the BC-250 can hard-freeze: it needs more voltage and depends on the silicon lottery.":
+        "Максимальна частота ГП (регулятор SMU).\n\n• 1500 = енергозбереження\n• 2000 = збалансовано (безпечно на будь-якій платі)\n• 2200 = максимум стабільно за 1000 мВ зі штатним охолодженням\n\nГП досягає цієї частоти лише під навантаженням, а в спокої повертається до 350 МГц. Вище 2200 МГц за 1000 мВ BC-250 може повністю зависнути: потрібна більша напруга, і багато залежить від кремнієвої лотереї.",
+    "Max GPU voltage": "Максимальна напруга ГП",
+    "Voltage tied to the max GPU frequency (mV).\n\nHigher = more stable at high frequency but hotter. Range 700-1129 mV.":
+        "Напруга, прив’язана до максимальної частоти ГП (мВ).\n\nБільше = стабільніше на високій частоті, але гарячіше. Діапазон 700-1129 мВ.",
+    "GPU governor mode": "Режим регулятора ГП",
+    "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nBoth modes use the governor's safe SMU path.":
+        "Як регулятор обирає частоту ГП під навантаженням:\n\n• Збалансований: піднімає частоту лише настільки, наскільки потрібно — прохолодніше і тихіше (типово).\n• Продуктивність: тримає ГП на максимальній частоті за будь-якого ігрового навантаження (найкращий FPS в іграх, обмежених ГП, більше тепла і споживання). У спокої так само повертається до 350 МГц.\n\nОбидва режими використовують безпечний шлях SMU регулятора.",
+    "Fan": "Вентилятор",
+    "Manual control: you set the speed in %.\nAutomatic: the chip's curve manages the speed based on temperature.\n\nUse «Test» to hear the fan at the chosen speed for a few seconds.":
+        "Ручне керування: ви задаєте швидкість у %.\nАвтоматичне: швидкістю залежно від температури керує крива самого чипа.\n\nСкористайтеся «Тест», щоб кілька секунд послухати вентилятор на обраній швидкості.",
+    "VRAM (graphics memory)": "VRAM (графічна пам’ять)",
+    "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.":
+        "Обсяг системної пам’яті, зарезервований для ГП (UMA).\n\n⚠ Записується у CMOS BIOS і потребує ПЕРЕЗАВАНТАЖЕННЯ. Скасовується очищенням CMOS (перемичка на платі).\n\nНе задавайте значень, після яких системі залишається замало пам’яті.",
+    "Compute Units (CU)": "Обчислювальні блоки (CU)",
+    "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).":
+        "CU — це обчислювальні ядра ГП. Тут ви вмикаєте й вимикаєте їх НАЖИВО, без перезавантаження.\n\n• Кожен квадрат = 1 CU: ЗЕЛЕНИЙ = активний, ЧЕРВОНИЙ = вимкнений.\n• НАТИСНІТЬ на пару, щоб перемкнути її вручну (пари керуються по 2 CU = 1 WGP).\n• Або скористайтеся ЗАГОТОВКАМИ (24 / 32 / 40 CU).\n• Перші 3 пари в рядку (24 CU) — це мінімум драйвера, вони завжди увімкнені.\n• Натисніть «Застосувати наживо», щоб вибір набув чинності.\n\nБільше CU = більше графічної потужності, але й більше тепла та споживання.\n\nСкористайтеся «Тест CU», щоб перевірити, чи активні CU стабільні й без дефектів (кремнієва лотерея).",
+    "daemon not running": "служба не запущена",
+    "locked (always on)": "заблоковано (завжди увімкнено)",
+    "on": "увімк.",
+    "off": "вимк.",
+    "◉  LIVE MONITOR": "◉  МОНІТОР НАЖИВО",
+    "Temperature (°C)": "Температура (°C)",
+    "Frequency (MHz)": "Частота (МГц)",
+    "GPU voltage (mV)": "Напруга ГП (мВ)",
+    "Fan (RPM)": "Вентилятор (об/хв)",
+    "SkillFishOS — Monitor · %s": "SkillFishOS — Монітор · %s",
+    "Help": "Довідка",
+    "Presets": "Заготовки",
+    "Apply": "Застосувати",
+    "Extreme preset": "Екстремальна заготовка",
+    "🎰 My silicon": "🎰 Мій кремній",
+    "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d":
+        "ЦП %d МГц @ %d  ·  ГП %d МГц @ %d мВ  ·  Активних CU: %d  ·  Виявлено зависань: %d",
+    "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.":
+        "⚠ Останнє зависання: %s — якщо повториться, знизьте на один щабель за допомогою майстрів 🎰.",
+    "Share to the silicon DB": "Поділитися в базі кремнію",
+    "Max frequency": "Максимальна частота",
+    "Undervolt": "Зниження напруги",
+    "Temperature limit": "Обмеження температури",
+    "🎰 Find my max": "🎰 Знайти мій максимум",
+    "Suggest UV": "Порадити зниження",
+    "Test (benchmark)": "Тест (бенчмарк)",
+    "CPU applied": "ЦП застосовано",
+    "Save at boot": "Зберегти для завантаження",
+    "CPU saved at boot": "ЦП збережено для завантаження",
+    "CPU test: applying and benchmarking 60s (for a realistic temp)…":
+        "Тест ЦП: застосування і бенчмарк 60 с (для реалістичної температури)…",
+    "test failed": "тест не вдався",
+    "Max voltage": "Максимальна напруга",
+    "Balanced": "Збалансований",
+    "Performance": "Продуктивність",
+    "Governor: Balanced": "Регулятор: збалансований",
+    "Governor: Performance — 2230 MHz under load":
+        "Регулятор: продуктивність — 2230 МГц під навантаженням",
+    "Governor mode": "Режим регулятора",
+    "GPU applied": "ГП застосовано",
+    "Find my max": "Знайти мій максимум",
+    "The wizard steps the GPU up (2000 → 2200 MHz at 1000 mV), validating each step with a benchmark and rolling back if unstable.\n\n~2 minutes per step under full GPU load: set the fan high first.\nWhen done it applies the highest stable point for YOUR board.\n\nProceed?":
+        "Майстер піднімає ГП щабель за щаблем (2000 → 2200 МГц за 1000 мВ), перевіряючи кожен щабель бенчмарком і відкочуючи його, якщо нестабільно.\n\n~2 хвилини на щабель за повного навантаження ГП: спершу виставте вентилятор на високу швидкість.\nНаприкінці застосовується найвища стабільна точка саме ВАШОЇ плати.\n\nПродовжити?",
+    "✗ Not even 2000 MHz is stable on this board: keeping the current profile.":
+        "✗ Навіть 2000 МГц не є стабільними на цій платі: залишаємо поточний профіль.",
+    "Highest stable point: %d MHz @ 1000 mV%s (already applied).":
+        "Найвища стабільна точка: %d МГц @ 1000 мВ%s (уже застосовано).",
+    "Share the result (anonymous) in the silicon-lottery database on GitHub?":
+        "Поділитися результатом (анонімно) у базі кремнієвої лотереї на GitHub?",
+    "Wizard result": "Результат майстра",
+    "Find my max (CPU)": "Знайти мій максимум (ЦП)",
+    "The wizard steps the CPU up (3600 → 4000 MHz with progressive undervolt), validating each step with a benchmark and stopping at the first unstable one.\n\n⚠ The last step can freeze some boards: the watchdog then reboots automatically and the last stable value is restored at boot.\n\nNote: the test validates UNDER-LOAD stability; idle stability over days is confirmed by regular use.\n\nProceed?":
+        "Майстер піднімає ЦП щабель за щаблем (3600 → 4000 МГц із поступовим зниженням напруги), перевіряючи кожен щабель бенчмарком і зупиняючись на першому нестабільному.\n\n⚠ Останній щабель може завісити деякі плати: тоді сторожовий таймер автоматично перезавантажує систему, а при завантаженні відновлюється останнє стабільне значення.\n\nПримітка: тест перевіряє стабільність ПІД НАВАНТАЖЕННЯМ; стабільність у спокої протягом днів підтверджується звичайним користуванням.\n\nПродовжити?",
+    "✗ Not even 3600 MHz is stable: keeping the current profile.":
+        "✗ Навіть 3600 МГц не є стабільними: залишаємо поточний профіль.",
+    "Tip: run the system for a few days; if a freeze appears, step down one notch.\n\nShare the result (anonymous) in the silicon-lottery database?":
+        "Порада: покористуйтеся системою кілька днів; якщо з’явиться зависання, знизьте на один щабель.\n\nПоділитися результатом (анонімно) у базі кремнієвої лотереї?",
+    "CPU wizard result": "Результат майстра ЦП",
+    "GPU test: applying and running vkpeak…": "Тест ГП: застосування і запуск vkpeak…",
+    "Compute Units (CU) — live": "Обчислювальні блоки (CU) — наживо",
+    "40 CU (max)": "40 CU (макс.)",
+    "Test CU": "Тест CU",
+    "Active CUs: %d / 40": "Активних CU: %d / 40",
+    "CUs applied: %s/40 (live)": "CU застосовано: %s/40 (наживо)",
+    "CU error: %s": "Помилка CU: %s",
+    "CU test": "Тест CU",
+    "Tests the extra CUs (WGP3-4) one by one to catch defects (silicon lottery): enables each pair alone, stresses it with vkpeak and checks for GPU errors/hangs.\n\nTakes ~2-3 minutes and the GPU will be under load. Proceed?":
+        "Перевіряє додаткові CU (WGP3-4) по одному, щоб виявити дефекти (кремнієва лотерея): вмикає кожну пару окремо, навантажує її через vkpeak і перевіряє помилки та зависання ГП.\n\nТриває ~2-3 хвилини, ГП буде під навантаженням. Продовжити?",
+    "CU test running (~2-3 min)…": "Виконується тест CU (~2-3 хв)…",
+    "CU test failed: %s": "Тест CU не вдався: %s",
+    "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU під навантаженням (vkpeak): %s GFLOPS%s",
+    "Baseline 24 CU: %s GFLOPS": "База 24 CU: %s GFLOPS",
+    "(expected ~11300 at 40 CU)": "(очікується ~11300 на 40 CU)",
+    "Per extra-CU-pair stability:": "Стабільність кожної додаткової пари CU:",
+    "⚠ GPU problems under load detected: possible defective CU (silicon lottery). Consider keeping fewer CUs.":
+        "⚠ Виявлено проблеми ГП під навантаженням: можливий дефектний CU (кремнієва лотерея). Варто залишити менше CU.",
+    "✓ No defects: all CUs sustain the load with no GPU errors.":
+        "✓ Дефектів немає: усі CU витримують навантаження без помилок ГП.",
+    "CU test result": "Результат тесту CU",
+    "Manual control (off = automatic curve)": "Ручне керування (вимкнено = автоматична крива)",
+    "Speed": "Швидкість",
+    "Test": "Тест",
+    "Fan error": "Помилка вентилятора",
+    "New allocation": "Новий обсяг",
+    "Set (reboot)": "Встановити (перезавантаження)",
+    "Writes to the BIOS CMOS. A reboot is needed to apply.":
+        "Записується у CMOS BIOS. Для застосування потрібне перезавантаження.",
+    "Authentication cancelled or helper not started.\nRestart the program and authorize the operation.":
+        "Автентифікацію скасовано або службу-помічника не запущено.\nПерезапустіть програму й дозвольте виконання операції.",
+    # pannello core CPU: mancava nella versione da cui e' stata
+    # fatta la traduzione, queste stringhe sono mie
+    "CPU cores": "Ядра ЦП",
+    "Turn CPU cores on and off LIVE, no reboot — just like the GPU's CUs.\n\n• Each box = 1 physical core with its 2 threads: GREEN = on, RED = off.\n• CLICK a core to toggle it, then «Apply».\n• Core 0 is FIXED GREEN: it holds the boot CPU and the kernel cannot offline it.\n• «SMT» toggles multi-threading: 2 threads per core, or 1.\n\nWhy: switching cores off frees thermal and power budget so the remaining cores can clock higher — handy for games that use few threads. Fewer cores = less heat, but less multi-threaded power.\n\nThe choice is NOT permanent: everything comes back on at reboot.":
+        "Вмикайте й вимикайте ядра ЦП НАЖИВО, без перезавантаження — так само, як CU у ГП.\n\n• Кожен квадрат = 1 фізичне ядро з його 2 потоками: ЗЕЛЕНИЙ = увімкнено, ЧЕРВОНИЙ = вимкнено.\n• НАТИСНІТЬ на ядро, щоб перемкнути його, потім «Застосувати».\n• Ядро 0 завжди ЗЕЛЕНЕ: на ньому працює завантажувальний процесор, і ядро системи не може його вимкнути.\n• «SMT» перемикає багатопотоковість: 2 потоки на ядро або 1.\n\nНавіщо: вимкнення ядер вивільняє тепловий та енергетичний бюджет, тож решта ядер можуть працювати на вищій частоті — корисно в іграх, що використовують мало потоків. Менше ядер = менше тепла, але менше потужності в багатопотокових задачах.\n\nВибір НЕ є постійним: після перезавантаження всі повертаються.",
+    "CPU cores — live": "Ядра ЦП — наживо",
+    "Multi-threading: 2 threads per core. Off = 1 thread per core.":
+        "Багатопотоковість: 2 потоки на ядро. Вимкнено = 1 потік на ядро.",
+    "boot core (always on)": "завантажувальне ядро (завжди увімкнене)",
+    "All": "Усі",
+    "Active cores: %d / %d  ·  %d threads": "Активних ядер: %d / %d  ·  %d потоків",
+    "SMT %s — %d threads": "SMT %s — %d потоків",
+    "SMT: %s": "SMT: %s",
+    "Cores applied — %d active threads": "Ядра застосовано — %d активних потоків",
+    "Core error: %s": "Помилка ядра: %s",
+}
+
 def L(it, en):
-    """Return the IT or EN string depending on the detected locale."""
-    return it if LANG == "it" else en
+    """Restituisce la stringa IT, PL, UK o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
+    return en
 
 
 HELP = {
@@ -54,6 +312,9 @@ HELP = {
  "vram": (L("VRAM (memoria grafica)", "VRAM (graphics memory)"),
    L("Quantità di RAM di sistema riservata alla GPU (UMA).\n\n⚠ Scrive nel CMOS del BIOS e richiede un RIAVVIO per applicare. Reversibile azzerando il CMOS (jumper sulla scheda).\n\nNon superare valori che lascino troppo poca RAM al sistema.",
      "Amount of system RAM reserved for the GPU (UMA).\n\n⚠ Writes to the BIOS CMOS and requires a REBOOT to apply. Reversible by clearing the CMOS (jumper on the board).\n\nDon't exceed values that leave too little RAM for the system.")),
+ "cpucores": (L("Core CPU", "CPU cores"),
+   L("Accendi e spegni i core della CPU A CALDO, senza riavvio — come per le CU della GPU.\n\n• Ogni riquadro = 1 core fisico con i suoi 2 thread: VERDE = acceso, ROSSO = spento.\n• CLIC su un core per accenderlo/spegnerlo, poi «Applica».\n• Il core 0 è VERDE FISSO: ospita la CPU di avvio e il kernel non può spegnerlo.\n• «SMT» accende/spegne il multi-threading: da 2 thread per core a 1.\n\nA cosa serve: spegnere core libera budget termico e di consumo per far salire la frequenza dei core rimasti — utile nei giochi che usano pochi thread. Meno core = meno calore, ma meno potenza nei carichi multi-thread.\n\nLa scelta NON è permanente: al riavvio tornano tutti accesi.",
+     "Turn CPU cores on and off LIVE, no reboot — just like the GPU's CUs.\n\n• Each box = 1 physical core with its 2 threads: GREEN = on, RED = off.\n• CLICK a core to toggle it, then «Apply».\n• Core 0 is FIXED GREEN: it holds the boot CPU and the kernel cannot offline it.\n• «SMT» toggles multi-threading: 2 threads per core, or 1.\n\nWhy: switching cores off frees thermal and power budget so the remaining cores can clock higher — handy for games that use few threads. Fewer cores = less heat, but less multi-threaded power.\n\nThe choice is NOT permanent: everything comes back on at reboot.")),
  "cu": (L("Compute Unit (CU)", "Compute Units (CU)"),
    L("Le CU sono i core di calcolo della GPU. Qui le attivi/disattivi A CALDO, senza riavvio.\n\n• Ogni quadratino = 1 CU: VERDE = attiva, ROSSO = spenta.\n• CLIC su una coppia per accenderla/spegnerla manualmente (le coppie si gestiscono a 2 CU per volta = 1 WGP).\n• Oppure usa i PRESET (24 / 32 / 40 CU).\n• Le prime 3 coppie per fila (24 CU) sono il minimo del driver e restano sempre attive.\n• Premi «Applica a caldo» per rendere effettiva la scelta.\n\nPiù CU = più potenza grafica ma anche più calore e consumo.\n\nUsa «Test CU» per verificare che le CU attive siano stabili e senza difetti (lotteria del silicio).",
      "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).")),
@@ -148,6 +409,38 @@ class CuWgp(QFrame):
         self.on = not self.on; self._paint(); self.on_toggle(self.on)
 
 
+class CpuCore(QFrame):
+    """One physical CPU core drawn as its two SMT threads, styled like the CU grid.
+
+    Core 0 is locked: it holds cpu0, the boot CPU, which this kernel cannot offline.
+    """
+    def __init__(self, core, on, locked, on_toggle):
+        super().__init__()
+        self.core = core; self.on = on; self.locked = locked; self.on_toggle = on_toggle
+        lay = QVBoxLayout(self); lay.setContentsMargins(1, 1, 1, 1); lay.setSpacing(2)
+        row = QHBoxLayout(); row.setSpacing(2)
+        self.sq = [QFrame(), QFrame()]
+        for s in self.sq:
+            s.setFixedSize(16, 16); row.addWidget(s)
+        rw = QWidget(); rw.setLayout(row); lay.addWidget(rw)
+        cap = QLabel("C%d" % core); cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        cap.setStyleSheet("color:#8f7c52;font-size:9px;"); lay.addWidget(cap)
+        if not self.locked:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._paint()
+    def _paint(self):
+        if self.locked:  col, bd = "#3f7a39", "#2c571f"
+        elif self.on:    col, bd = "#5fd24f", "#36862c"
+        else:            col, bd = "#7c2424", "#4d1414"
+        for s in self.sq:
+            s.setStyleSheet("background:%s;border:1px solid %s;border-radius:3px;" % (col, bd))
+        self.setToolTip(L("core di avvio (sempre attivo)", "boot core (always on)") if self.locked
+                        else (L("attivo", "on") if self.on else L("spento", "off")))
+    def mousePressEvent(self, e):
+        if self.locked: return
+        self.on = not self.on; self._paint(); self.on_toggle(self.core, self.on)
+
+
 class Chart(QWidget):
     """A live, custom-painted line chart panel (brass / steampunk look)."""
     def __init__(self, title, unit, series):
@@ -157,7 +450,7 @@ class Chart(QWidget):
         self.setMinimumSize(400, 190)
 
     def push(self, vals):
-        for d, v in zip(self.data, vals):
+        for d, v in zip(self.data, vals, strict=False):
             d.append(float(v) if v is not None else (d[-1] if d else 0.0))
         self.update()
 
@@ -274,6 +567,7 @@ class TunerWindow(QMainWindow):
         self.box.addWidget(self._gpu())
         self.box.addWidget(self._vram())
         self.box.addWidget(self._cu())
+        self.box.addWidget(self._sec_cpu_cores())
         self.box.addWidget(self._fan())
         self.box.addStretch(1)
 
@@ -653,6 +947,74 @@ class TunerWindow(QMainWindow):
         ba = QPushButton(L("Applica", "Apply")); ba.setDefault(True); ba.clicked.connect(self._apply_cu); pr.addWidget(ba)
         pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
         return g
+
+    def _sec_cpu_cores(self):
+        g, v = self._section(L("Core CPU — a caldo", "CPU cores — live"))
+        st = self.d.cmd(cmd="cpu-cores") or {}
+        self.cpu_cores = st.get("cores", [])
+        self.cpu_want = {c["core"]: c["online"] for c in self.cpu_cores}
+        grid = QGridLayout(); grid.setHorizontalSpacing(8); grid.setVerticalSpacing(5)
+        self.cpu_cells = {}
+        for i, c in enumerate(self.cpu_cores):
+            cell = CpuCore(c["core"], c["online"], not c.get("removable", True), self._cpu_toggle)
+            self.cpu_cells[c["core"]] = cell
+            grid.addWidget(cell, i // 8, i % 8)
+        gw = QWidget(); gw.setLayout(grid); v.addWidget(gw)
+        self.cpu_count_lbl = QLabel(); self.cpu_count_lbl.setStyleSheet("color:#d8a849;font-size:13px;")
+        v.addWidget(self.cpu_count_lbl); self._cpu_update_count()
+        pr = QHBoxLayout()
+        for lbl, n in ((L("Tutti", "All"), 99), ("6 core", 6), ("4 core", 4)):
+            b = QPushButton(lbl); b.clicked.connect(lambda _=False, k=n: self._cpu_preset(k)); pr.addWidget(b)
+        self.smt_cb = QCheckBox("SMT")
+        self.smt_cb.setChecked((st.get("smt") or "on") == "on")
+        self.smt_cb.setToolTip(L("Multi-threading: 2 thread per core. Spento = 1 thread per core.",
+                                 "Multi-threading: 2 threads per core. Off = 1 thread per core."))
+        self.smt_cb.toggled.connect(self._cpu_smt)
+        if not st.get("smt"): self.smt_cb.setEnabled(False)
+        pr.addWidget(self.smt_cb)
+        pr.addWidget(self._help_btn("cpucores"))
+        pr.addStretch(1)
+        ba = QPushButton(L("Applica", "Apply")); ba.clicked.connect(self._apply_cpu_cores); pr.addWidget(ba)
+        pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
+        return g
+
+    def _cpu_toggle(self, core, on):
+        self.cpu_want[core] = on; self._cpu_update_count()
+
+    def _cpu_update_count(self):
+        n = sum(1 for v in self.cpu_want.values() if v)
+        thr = n * (2 if getattr(self, "smt_cb", None) is None or self.smt_cb.isChecked() else 1)
+        self.cpu_count_lbl.setText(L("Core attivi: %d / %d  ·  %d thread", "Active cores: %d / %d  ·  %d threads")
+                                   % (n, len(self.cpu_want) or 8, thr))
+
+    def _cpu_preset(self, keep):
+        for c in self.cpu_cores:
+            want = True if keep >= len(self.cpu_cores) else (c["core"] < keep)
+            if not c.get("removable", True): want = True      # core 0 stays
+            self.cpu_want[c["core"]] = want
+            cell = self.cpu_cells.get(c["core"])
+            if cell and not cell.locked:
+                cell.on = want; cell._paint()
+        self._cpu_update_count()
+
+    def _cpu_smt(self, on):
+        res = self.d.cmd(cmd="cpu-smt", on=bool(on)) or {}
+        if res.get("ok"):
+            self.toast(L("SMT %s — %d thread", "SMT %s — %d threads")
+                       % (L("acceso", "on") if on else L("spento", "off"), res.get("nproc", 0)), 4)
+        else:
+            self.toast(L("SMT: %s", "SMT: %s") % res.get("err", "errore"), 6)
+        self._cpu_update_count()
+
+    def _apply_cpu_cores(self):
+        req = [{"core": k, "online": bool(v)} for k, v in self.cpu_want.items()]
+        res = self.d.cmd(cmd="cpu-cores-set", cores=req) or {}
+        if res.get("ok"):
+            self.cpu_cores = res.get("cores", self.cpu_cores)
+            self.toast(L("Core applicati — %d thread attivi", "Cores applied — %d active threads")
+                       % res.get("nproc", 0), 5)
+        else:
+            self.toast(L("Errore core: %s", "Core error: %s") % res.get("err", "apply failed"), 7)
 
     def _cu_toggle(self, rk, wgp, on):
         m = self.cu_rows.get(rk, 7)
