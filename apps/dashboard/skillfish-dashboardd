@@ -929,10 +929,47 @@ def ai_engine():
     return "unsloth"
 
 
+UNSLOTH_BOOTSTRAP = "/root/.unsloth/studio/auth/.bootstrap_password"
+
+
+def _unsloth_first_login():
+    """Utente e password iniziali di Unsloth, finche' non li ha cambiati.
+
+    Unsloth NON ha una password predefinita da pubblicare: ne genera una a caso
+    a ogni installazione e la scrive in un file leggibile dal solo root,
+    annunciandola una volta sola in un log che nessuno legge. Chi apre Studio si
+    trova davanti a una richiesta di accesso e finisce a cercare su internet una
+    risposta che non esiste.
+
+    E c'e' una scadenza: se la password non viene cambiata, Unsloth si spegne da
+    solo dopo un'ora. Chi non sa nemmeno di doverla cambiare vede il motore AI
+    morire senza motivo apparente.
+
+    Quindi la mostriamo qui, dietro il login PAM della dashboard, e sparisce da
+    sola nel momento in cui l'utente la cambia: `requires_password_change`
+    diventa falso e non abbiamo piu' niente da dire.
+    """
+    try:
+        req = urllib.request.Request("http://127.0.0.1:%d/api/auth/status" % UNSLOTH_PORT)
+        st = json.loads(urllib.request.urlopen(req, timeout=4).read().decode())
+    except Exception:
+        return {}
+    if not st.get("requires_password_change"):
+        return {"user": st.get("default_username", "")}
+    try:
+        with open(UNSLOTH_BOOTSTRAP) as f:
+            pw = f.read().strip()
+    except Exception:
+        pw = ""
+    return {"user": st.get("default_username", "unsloth"), "password": pw,
+            "must_change": True}
+
+
 def ai_status():
     running = _port_open(UNSLOTH_PORT)
     return {"ok": True, "engine": "unsloth", "running": running,
             "webui": running, "webui_path": "/unsloth", "port": UNSLOTH_PORT,
+            "first_login": _unsloth_first_login() if running else {},
             # I modelli li serve Unsloth dalla sua interfaccia autenticata, quindi
             # la dashboard non li elenca: servirebbe la API key dell'utente.
             "models": []}
