@@ -6,11 +6,14 @@
   <name>SkillFishOS Hub</name>
   <summary>A software centre for APT, Flatpak and Snap</summary>
   <summary xml:lang="it">Un centro software per APT, Flatpak e Snap</summary>
+  <summary xml:lang="pl">Centrum oprogramowania dla APT, Flatpak i Snap</summary>
   <description>
     <p>A Discover-style software centre: browse software by category, search, and read app pages with screenshots, ratings and reviews. Install, remove and update across APT (including the SkillFishOS repository), Flatpak and Snap, switch each backend on or off, and manage software sources.</p>
     <p>One place to keep the whole system up to date, with sort and filter controls and a one-click "update all" across every backend.</p>
     <p xml:lang="it">Un centro software in stile Discover: sfoglia per categoria, cerca e leggi le pagine app con screenshot, valutazioni e recensioni. Installa, rimuovi e aggiorna su APT (incluso il repository SkillFishOS), Flatpak e Snap, attiva o disattiva ogni backend e gestisci le sorgenti software.</p>
+    <p xml:lang="pl">Centrum oprogramowania w stylu Discover: przeglądaj oprogramowanie według kategorii, wyszukuj i czytaj strony aplikacji ze zrzutami ekranu, ocenami i recenzjami. Instaluj, usuwaj i aktualizuj w APT (w tym repozytorium SkillFishOS), Flatpak i Snap, włączaj lub wyłączaj każdy backend i zarządzaj źródłami oprogramowania.</p>
     <p xml:lang="it">Un solo posto per tenere tutto il sistema aggiornato, con filtri e ordinamento e un "aggiorna tutto" su ogni backend con un clic.</p>
+    <p xml:lang="pl">Jedno miejsce, by trzymać cały system aktualny, z sortowaniem, filtrami i jednoklikowym „zaktualizuj wszystko" dla każdego backendu.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.hub.desktop</launchable>
   <icon type="stock">skillfishos</icon>
@@ -34,6 +37,7 @@
     <screenshot type="default">
       <caption>Browse software by category</caption>
       <caption xml:lang="it">Sfoglia il software per categoria</caption>
+      <caption xml:lang="pl">Przeglądaj oprogramowanie według kategorii</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/hub.png</image>
     </screenshot>
   </screenshots>

@@ -6,11 +6,14 @@
   <name>SkillFishOS Kernel Manager</name>
   <summary>Choose the boot kernel and completely remove unused kernels</summary>
   <summary xml:lang="it">Scegli il kernel di avvio e rimuovi completamente quelli inutilizzati</summary>
+  <summary xml:lang="pl">Wybieraj jądro startowe i całkowicie usuwaj nieużywane jądra</summary>
   <description>
     <p>Lists every installed kernel with its flavour (BC-250, Generic, Slim), size and running/default badges. Set the permanent GRUB default, boot a kernel just once, or completely uninstall a kernel (image, headers and modules) so they don't pile up.</p>
     <p>Safe by design: it never removes the running kernel or the last remaining one, and moves the GRUB default off a kernel before removing it. Privileged actions go through an authenticated helper.</p>
     <p xml:lang="it">Elenca ogni kernel installato con il suo tipo (BC-250, Generic, Slim), la dimensione e i badge in esecuzione/predefinito. Imposta il default GRUB permanente, avvia un kernel una sola volta, o disinstalla completamente un kernel (immagine, header e moduli) così non si accumulano.</p>
+    <p xml:lang="pl">Wyświetla listę każdego zainstalowanego jądra z jego rodzajem (BC-250, Generic, Slim), rozmiarem oraz odznakami działające/domyślne. Ustawia trwały domyślny wpis GRUB, pozwala uruchomić jądro jednorazowo lub całkowicie odinstalować jądro (obraz, nagłówki i moduły), żeby się nie gromadziły.</p>
     <p xml:lang="it">Sicuro per progettazione: non rimuove mai il kernel in esecuzione né l'ultimo rimasto, e sposta il default GRUB prima di rimuoverlo. Le azioni privilegiate passano da un helper autenticato.</p>
+    <p xml:lang="pl">Bezpieczny z założenia: nigdy nie usuwa działającego jądra ani ostatniego pozostałego, a przed usunięciem jądra przenosi domyślny wpis GRUB na inne. Uprzywilejowane operacje przechodzą przez uwierzytelniony helper.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.kernel.desktop</launchable>
   <icon type="stock">skillfishos</icon>
@@ -33,6 +36,7 @@
     <screenshot type="default">
       <caption>Installed kernels with flavour and size</caption>
       <caption xml:lang="it">Kernel installati con tipo e dimensione</caption>
+      <caption xml:lang="pl">Zainstalowane jądra z rodzajem i rozmiarem</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/kernel-manager.png</image>
     </screenshot>
   </screenshots>

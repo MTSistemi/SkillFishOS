@@ -85,11 +85,27 @@ CATALOG = [
 ]
 
 def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
     val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
            or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if val.lower().startswith("it") else "en"
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    return "en"
 LANG = _detect_lang()
-def L(it, en): return it if LANG == "it" else en
+
+# Traduzione polacca: ancora da scrivere per questo pannello. Il meccanismo e'
+# quello delle altre app (chiavi = stringhe inglesi passate a L), cosi' basta
+# riempire il dizionario. Finche' e' vuoto un utente polacco vede l'inglese,
+# che e' comunque meglio dell'italiano.
+PL = {}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    return en
 
 def sh(cmd, t=60):
     try:

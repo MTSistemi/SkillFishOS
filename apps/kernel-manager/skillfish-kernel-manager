@@ -12,12 +12,59 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 HELPER = "/usr/local/bin/skillfish-kernel-helper"
 
-def _lang():
-    v = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
-         or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
-    return "it" if v.lower().startswith("it") else "en"
-LANG = _lang()
-def L(it, en): return it if LANG == "it" else en
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    return "en"
+
+LANG = _detect_lang()
+
+# Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
+# Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
+# la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
+# non ancora tradotta ricade sull'inglese invece di sparire.
+PL = {
+    "Generic · x86-64 · PCs & virtual machines": "Generic - x86-64 - PC i maszyny wirtualne",
+    "Slim · BC-250 · ultra-lean kernel": "Slim - BC-250 - kernel minimalny",
+    "BC-250 · znver2 · optimized": "BC-250 - znver2 - zoptymalizowany",
+    "external kernel (non-SkillFishOS)": "kernel zewnętrzny (spoza SkillFishOS)",
+    "SkillFishOS — Kernel Manager": "SkillFishOS — Menedżer Kerneli",
+    "Kernel Manager": "Menedżer Kerneli",
+    "Choose the boot kernel or remove the ones you don't need":
+        "Wybierz kernel startowy lub usuń te, które są niepotrzebne",
+    "Installed kernels": "Zainstalowane kernele",
+    "Set as default": "Ustaw jako domyślny",
+    "Boot once": "Uruchom raz",
+    "Uninstall": "Odinstaluj",
+    "Reboot now": "Uruchom ponownie",
+    "running": "uruchomiony",
+    "default": "domyślny",
+    "You can't uninstall the running kernel. Boot another kernel and try again.":
+        "Nie można odinstalować uruchomionego kernela. Uruchom inny kernel i spróbuj ponownie.",
+    "It's the only installed kernel: it can't be removed.":
+        "To jedyny zainstalowany kernel: nie można go usunąć.",
+    "vmlinuz, initrd and the modules will be removed (not dpkg-managed).":
+        "Zostaną usunięte vmlinuz, initrd i moduły (niezarządzane przez dpkg).",
+    "\n⚠ It's the default kernel: the default will move to the running one.":
+        "\n⚠ To domyślny kernel: domyślny zostanie ustawiony na uruchomiony.",
+    "\nThis cannot be undone. Continue?": "\nTej operacji nie można cofnąć. Kontynuować?",
+    "Uninstalling…": "Odinstalowywanie…",
+    "operation cancelled": "operacja anulowana",
+    "Reboot now?": "Uruchomić ponownie teraz?",
+    "operation failed": "operacja nie powiodła się",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    return en
 
 def sh(cmd, t=30):
     try:
