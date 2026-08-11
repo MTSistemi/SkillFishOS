@@ -14,6 +14,13 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QSizePolicy, QProgressBar, QAbstractButton, QLayout)
 
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+# L'icona dell'APPLICAZIONE non e' il logo qui sopra. Il logo SkillFishOS resta
+# nell'intestazione della finestra e come ripiego per i programmi senza icona,
+# ma nella barra l'Hub deve mostrare la borsa steampunk del nostro tema — la
+# stessa che il tema usa per Discover, di cui l'Hub prende il posto.
+# Senza questa distinzione il lanciatore mostrava la borsa e la finestra aperta
+# il pesce, cioe' due icone diverse per la stessa cosa.
+ICON_APP = "/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png"
 HELPER = "/usr/local/bin/skillfish-hub-helper"
 AETHERIUM = "aetherium"
 CFG_DIR = os.path.expanduser("~/.config/skillfishos")
@@ -901,7 +908,7 @@ class Hub(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SkillFishOS Hub — Software")
-        self.setWindowIcon(QIcon(ICON)); self.resize(1080, 740)
+        self.setWindowIcon(QIcon(ICON_APP)); self.resize(1080, 740)
         self.cat = None; self._op = None; self._hist = []
         self._subcat = None; self._last_cat = None; self._active_cat = None
         self.cfg = load_cfg()
@@ -1592,7 +1599,7 @@ class Hub(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv); app.setApplicationName("SkillFishOS Hub"); app.setDesktopFileName("os.skillfish.hub"); app.setWindowIcon(QIcon(ICON))
+    app = QApplication(sys.argv); app.setApplicationName("SkillFishOS Hub"); app.setDesktopFileName("os.skillfish.hub"); app.setWindowIcon(QIcon(ICON_APP))
     # Kvantum draws a frame around bare QLabels; keep our text boxes flat.
     app.setStyleSheet("QLabel{background:transparent;border:none;}")
     w = Hub(); w.show(); w.raise_(); w.activateWindow(); sys.exit(app.exec())
