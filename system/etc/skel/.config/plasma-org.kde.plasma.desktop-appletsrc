@@ -64,7 +64,7 @@ immutability=1
 plugin=org.kde.plasma.icontasks
 
 [Containments][2][Applets][5][Configuration][General]
-launchers=applications:systemsettings.desktop,applications:org.kde.discover.desktop
+launchers=applications:systemsettings.desktop,applications:os.skillfish.hub.desktop
 showToolTips=false
 
 [Containments][2][Applets][6]
