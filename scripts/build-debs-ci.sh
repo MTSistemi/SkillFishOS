@@ -345,6 +345,12 @@ put $P 0644 system/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc     
 # Lo sfondo va IMPOSTATO, non solo dichiarato: Plasma riscrive appletsrc al
 # primo accesso e butta via la nostra riga. Questo lo applica dopo.
 put $P 0755 system/usr/local/bin/skillfish-first-login-wallpaper usr/local/bin/skillfish-first-login-wallpaper
+# Il tema della schermata di accesso non apparteneva a NESSUN pacchetto: viveva
+# solo nel filesystem della ISO, quindi una correzione non poteva raggiungere
+# via apt chi aveva gia' installato. E ce n'era una da fare: le scritte erano
+# cablate in italiano ("Accedi") anche in polacco e ucraino — la primissima cosa
+# che si vede del sistema, nella lingua sbagliata.
+putdir $P system/usr/share/sddm/themes/skillfish-brass usr/share/sddm/themes/skillfish-brass
 put $P 0644 system/etc/skel/.config/autostart/skillfish-wallpaper.desktop etc/skel/.config/autostart/skillfish-wallpaper.desktop
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
@@ -416,6 +422,12 @@ check skillfish-emulators_${VER}_all.deb     ./usr/local/share/skillfish/install
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
 check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc os.skillfish.hub.desktop
+# La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
+# che il testo passi dalla funzione di traduzione e non sia piu' una costante.
+check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
+# I diacritici polacchi nei preset: "Wydajnosc" non esiste, si scrive
+# "Wydajnosc" con la n accentata. Senza questo controllo tornerebbero a perdersi.
+check skillfish-tuner_${VER}_all.deb         ./usr/share/skillfish/tuner-presets.json "Wydajność"
 check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampunk/index.theme        SkillFish
 # guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)

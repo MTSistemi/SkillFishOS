@@ -14,6 +14,41 @@ Rectangle {
     property color dark: "#0d0903"
     property color surf: "#20180b"
 
+    /*
+     * Le due scritte della schermata di accesso erano cablate in ITALIANO
+     * ("Accedi") anche in un'installazione polacca o ucraina: e' la primissima
+     * cosa che si vede del sistema, e diceva la lingua sbagliata a chiunque non
+     * fosse italiano.
+     *
+     * Un tema SDDM potrebbe usare i cataloghi .qm di Qt, ma vorrebbe dire
+     * introdurre lupdate/lrelease per due stringhe. Qui si usa lo stesso
+     * meccanismo gia' in opera nella presentazione di Calamares: si legge
+     * Qt.locale(), che nel greeter viene dal locale di sistema impostato
+     * dall'installazione. Se la lingua non e' fra le nostre si ricade
+     * sull'inglese, mai sull'italiano.
+     */
+    property string lang: {
+        var n = Qt.locale().name;          // es. "pl_PL"
+        if (n.indexOf("it") === 0) return "it";
+        if (n.indexOf("pl") === 0) return "pl";
+        if (n.indexOf("uk") === 0 || n.indexOf("ua") === 0) return "uk";
+        return "en";
+    }
+    function tr(s) { return s[root.lang] !== undefined ? s[root.lang] : s["en"]; }
+
+    property var txtLogin: {
+        "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти"
+    }
+    property var txtPassword: {
+        "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль"
+    }
+    property var txtShutdown: {
+        "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути"
+    }
+    property var txtReboot: {
+        "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити"
+    }
+
     // background image (brass wallpaper) with dark overlay
     Image {
         id: bg
@@ -95,7 +130,7 @@ Rectangle {
                 id: pw
                 Layout.fillWidth: true
                 echoMode: TextInput.Password
-                placeholderText: "Password"
+                placeholderText: root.tr(root.txtPassword)
                 focus: true
                 color: cream
                 background: Rectangle {
@@ -109,7 +144,7 @@ Rectangle {
             Button {
                 Layout.fillWidth: true
                 height: 46
-                text: "Accedi"
+                text: root.tr(root.txtLogin)
                 contentItem: Text {
                     text: parent.text; color: dark
                     font.bold: true; font.pixelSize: 16
@@ -143,17 +178,26 @@ Rectangle {
         anchors.right: parent.right; anchors.bottom: parent.bottom
         anchors.margins: 24
         spacing: 16
+        // I due pulsanti sono solo simboli: senza suggerimento chi non li
+        // riconosce non sa quale spegne e quale riavvia, e qui un clic
+        // sbagliato spegne la macchina.
         Button {
             text: "⏻"
             onClicked: sddm.powerOff()
             contentItem: Text { text: parent.text; color: copper; font.pixelSize: 24 }
             background: Rectangle { color: "transparent" }
+            hoverEnabled: true
+            ToolTip.visible: hovered
+            ToolTip.text: root.tr(root.txtShutdown)
         }
         Button {
             text: "⟳"
             onClicked: sddm.reboot()
             contentItem: Text { text: parent.text; color: brass; font.pixelSize: 24 }
             background: Rectangle { color: "transparent" }
+            hoverEnabled: true
+            ToolTip.visible: hovered
+            ToolTip.text: root.tr(root.txtReboot)
         }
     }
 
