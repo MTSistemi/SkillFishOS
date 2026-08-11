@@ -348,6 +348,11 @@ put $P 0755 apps/dashboard/skillfish-remote-ctl      usr/local/bin/skillfish-rem
 put $P 0755 apps/dashboard/skillfish-hub-catalog     usr/local/bin/skillfish-hub-catalog
 put $P 0644 apps/dashboard/web/index.html  usr/share/skillfish/dashboard/index.html
 put $P 0644 apps/dashboard/web/app.js      usr/share/skillfish/dashboard/app.js
+# i18n.js e' il dizionario condiviso delle pagine che NON caricano app.js
+# (tuner, hub, aichat). Se non viaggia nel pacchetto quelle tre pagine lo
+# chiedono, ricevono un 404 e restano senza traduzioni: il difetto sarebbe
+# passato inosservato perche' il testo statico resta comunque leggibile.
+put $P 0644 apps/dashboard/web/i18n.js     usr/share/skillfish/dashboard/i18n.js
 put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.html
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
@@ -532,6 +537,12 @@ check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor  
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
+# La dashboard web dev'essere in quattro lingue: il dizionario condiviso c'e', e
+# le pagine lo agganciano. Senza i18n.js le tre pagine che non caricano app.js
+# resterebbero in inglese fisso.
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/i18n.js  'uk:'
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/tuner.html data-i18n
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/app.js   'pl:'
 # Il HUD: il lanciatore deve esserci E deve contenere il controllo
 # sull'hardware, altrimenti partirebbe su PC dove la finestra collassa a 15x15.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-is-bc250
