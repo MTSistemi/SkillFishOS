@@ -193,24 +193,24 @@ async function aiTune(card, it) {
   // con Unsloth stanno dentro Studio, quindi qui restano solo le leve di sistema.
   const uns = s.engine === "unsloth";
   let h = '<div class="rows" style="margin-top:8px">' +
-    (uns ? "" : row("KV cache", s.kv_cache || "-") + row(S("x_ctx"), s.context || "-")) +
-    row(S("x_gttcap"), s.gtt_cap_mb ? (s.gtt_cap_mb + " MB") : (S("x_unlocked"))) +
+    (uns ? "" : row("KV cache", s.kv_cache || "-") + row(T("x_ctx"), s.context || "-")) +
+    row(T("x_gttcap"), s.gtt_cap_mb ? (s.gtt_cap_mb + " MB") : (T("x_unlocked"))) +
     row("Swap", (s.swap_mb || 0) + " MB") +
     row(uns ? "Vulkan" : "Vulkan / Flash-Attn",
         uns ? "✓" : ((s.vulkan ? "✓" : "✗") + " / " + (s.flash_attention ? "✓" : "✗"))) +
     '</div><div class="brow" style="margin-top:8px">';
   const recs = s.recommend || [];
-  if (recs.includes("kv_q8")) h += '<button class="dbtn" data-tune="kv_q8">' + (S("x_kv")) + "</button>";
-  if (recs.includes("gtt_unlock")) h += '<button class="dbtn" data-tune="gtt_unlock">' + (S("x_gttbtn")) + "</button>";
-  if (!recs.length) h += '<span class="stub">' + (S("x_optdone")) + "</span>";
-  h += '</div><div class="stub" style="margin-top:6px">' + (S("x_kvhint2")) + "</div>";
+  if (recs.includes("kv_q8")) h += '<button class="dbtn" data-tune="kv_q8">' + (T("x_kv")) + "</button>";
+  if (recs.includes("gtt_unlock")) h += '<button class="dbtn" data-tune="gtt_unlock">' + (T("x_gttbtn")) + "</button>";
+  if (!recs.length) h += '<span class="stub">' + (T("x_optdone")) + "</span>";
+  h += '</div><div class="stub" style="margin-top:6px">' + (T("x_kvhint2")) + "</div>";
   box.innerHTML = h;
   box.querySelectorAll("[data-tune]").forEach(b => b.onclick = async () => {
     const act = b.dataset.tune;
-    const msg = act === "gtt_unlock" ? (S("x_qgtt"))
-      : (S("x_qkv"));
+    const msg = act === "gtt_unlock" ? (T("x_qgtt"))
+      : (T("x_qkv"));
     if (!confirm(msg)) return;
-    await action("/api/ai/tune", { action: act }, S("x_applying"));
+    await action("/api/ai/tune", { action: act }, T("x_applying"));
     setTimeout(() => aiTune(card, it), 1500);
   });
 }
@@ -221,10 +221,10 @@ async function openSettings() {
   let m = $("#settings");
   if (!m) { m = document.createElement("div"); m.id = "settings"; m.className = "overlay"; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; }); }
   const rows = (d.catalogue || []).map(c => `<label class="setrow"><input type="checkbox" data-m="${c.id}" ${d.modules[c.id] ? "checked" : ""}> ${c.icon} ${it ? c.name : (c.name_en || c.name)}</label>`).join("");
-  m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (S("x_mods")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="set-x">✕</button></div><div class="setgrid">' + rows + "</div></div>";
+  m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (T("x_mods")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="set-x">✕</button></div><div class="setgrid">' + rows + "</div></div>";
   m.style.display = "flex";
   $("#set-x", m).onclick = () => m.style.display = "none";
-  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => { await action("/api/config", { module: cb.dataset.m, on: cb.checked }, S("x_updated")); buildDashboard(); });
+  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => { await action("/api/config", { module: cb.dataset.m, on: cb.checked }, T("x_updated")); buildDashboard(); });
 }
 function copyable(value) {
   return '<span class="cpw"><b style="user-select:all">' + value + '</b> <button class="cpy" type="button" data-cp="' +
@@ -342,13 +342,13 @@ let layout = (() => { try { return JSON.parse(localStorage.getItem("sflayout")) 
 layout.order = layout.order || []; layout.hidden = layout.hidden || []; layout.collapsed = layout.collapsed || [];
 function _toggleArr(a, id, on) { const i = a.indexOf(id); if (on && i < 0) a.push(id); if (!on && i >= 0) a.splice(i, 1); }
 function captureOrder() { const g = $("#grid"); if (g && g.children.length) layout.order = [...g.querySelectorAll(".mod")].map(c => c.dataset.mid); }
-function saveLayout() { captureOrder(); localStorage.setItem("sflayout", JSON.stringify(layout)); toast(S("ly_saved")); }
+function saveLayout() { captureOrder(); localStorage.setItem("sflayout", JSON.stringify(layout)); toast(T("ly_saved")); }
 function resetLayout() { localStorage.removeItem("sflayout"); layout = { order: [], hidden: [], collapsed: [] }; buildDashboard(); }
 
 const RENDER = {
   telemetry(card) {
     card.classList.add("span2");
-    card.innerHTML = '<h3>📊 ' + (S("m_telem")) + ' <span class="pill" id="tlive">' + T("live") + '</span></h3><div class="charts"></div>' +
+    card.innerHTML = '<h3>📊 ' + (T("m_telem")) + ' <span class="pill" id="tlive">' + T("live") + '</span></h3><div class="charts"></div>' +
       '<div class="cores"><div class="lab"><span>' + T("t_percore") + ' (MHz)</span><span class="cstat"></span></div>' +
       '<div class="cwrap"><div class="cax"><i></i><div class="cat"></div><i></i></div><div class="cgrid"></div><div class="cbars"></div></div></div>';
     const box = $(".charts", card); const charts = [];
@@ -367,7 +367,7 @@ const RENDER = {
     card._es = es;
   },
   status(card) {
-    card.innerHTML = "<h3>🧊 " + (S("m_sys")) + '</h3><div class="rows" id="srows">…</div>';
+    card.innerHTML = "<h3>🧊 " + (T("m_sys")) + '</h3><div class="rows" id="srows">…</div>';
     const fill = async () => { try { const s = await (await api("/api/status")).json();
       const row = (a, b) => `<div class="r"><span>${a}</span><span>${b || "–"}</span></div>`;
       $("#srows", card).innerHTML = row(T("s_you"), s.you) + row(T("s_host"), s.host) + row(T("s_ip"), s.ip) + row(T("s_kernel"), s.kernel) +
@@ -377,7 +377,7 @@ const RENDER = {
     fill(); card._iv = setInterval(fill, 5000);
   },
   async tuner(card) {
-    card.innerHTML = "<h3>🎛️ " + (S("m_ctrl")) + '</h3><div id="tk">…</div>';
+    card.innerHTML = "<h3>🎛️ " + (T("m_ctrl")) + '</h3><div id="tk">…</div>';
     let d; try { d = await (await api("/api/tuner")).json(); } catch (e) { return; }
     const presets = (d.presets || []).map(p => `<button class="dbtn" data-preset="${p.name}" title="${(p.desc || "").replace(/"/g, "")}">${p.name}</button>`).join("");
     $("#tk", card).innerHTML =
@@ -392,7 +392,7 @@ const RENDER = {
     card.querySelector("[data-fanmanual]").onclick = () => action("/api/tuner/fan", { mode: "manual", pct: +$("#fanp", card).value }, T("c_fan") + ": " + $("#fanp", card).value + "%");
   },
   async hub(card) {
-    card.innerHTML = "<h3>📦 " + (S("m_apps")) + '</h3><div id="hk">…</div>';
+    card.innerHTML = "<h3>📦 " + (T("m_apps")) + '</h3><div id="hk">…</div>';
     let upd = ""; try { const u = await (await api("/api/hub/updates")).json(); upd = (u.count || 0) + " " + T("h_updates"); } catch (e) {}
     $("#hk", card).innerHTML =
       `<div class="stub" style="margin-bottom:8px">${upd}</div>` +
@@ -406,7 +406,7 @@ const RENDER = {
     $("#lw", card).onchange = load; $("#lref", card).onclick = load; load();
   },
   launcher(card) {
-    card.innerHTML = "<h3>🚀 " + (S("m_launch")) + '</h3><div class="brow">' +
+    card.innerHTML = "<h3>🚀 " + (T("m_launch")) + '</h3><div class="brow">' +
       [["console", "🎮 Console"], ["monitor", "📊 Telemetry"], ["tuner", "🎛️ Tuner"], ["hub", "📦 Hub"], ["ai", "🧠 AI"]].map(([k, l]) => `<button class="dbtn" data-app="${k}">${l}</button>`).join("") + "</div>" +
       '<div class="stub" style="margin-top:8px">' + T("la_hint") + "</div>";
     card.querySelectorAll("[data-app]").forEach(b => b.onclick = () => action("/api/launch", { what: b.dataset.app }, T("la_started", { x: b.dataset.app })));
@@ -417,22 +417,22 @@ const RENDER = {
       if (j && j.password != null) { openFrame("Desktop (KVM)", "/kvm/vnc.html?autoconnect=1&resize=scale&reconnect=1&path=" + encodeURIComponent("kvm/websockify") + "&password=" + encodeURIComponent(j.password)); $("#kvmi", card).innerHTML = T("k_vncpw") + copyable(j.password); } };
   },
   terminal(card) {
-    card.innerHTML = "<h3>⌨️ " + (S("m_term")) + '</h3><div class="brow"><button class="dbtn" id="tgo">' + T("term_open") + '</button></div><div class="stub" style="margin-top:8px">' + T("term_hint") + "</div>";
-    $("#tgo", card).onclick = () => openFrame(S("m_term"), "/terminal/");
+    card.innerHTML = "<h3>⌨️ " + (T("m_term")) + '</h3><div class="brow"><button class="dbtn" id="tgo">' + T("term_open") + '</button></div><div class="stub" style="margin-top:8px">' + T("term_hint") + "</div>";
+    $("#tgo", card).onclick = () => openFrame(T("m_term"), "/terminal/");
   },
   ai(card) {
     const it = LANG === "it";
-    card.innerHTML = "<h3>🧠 " + (S("x_localai")) + "</h3><div id=\"ai\">…</div>";
+    card.innerHTML = "<h3>🧠 " + (T("x_localai")) + "</h3><div id=\"ai\">…</div>";
     const refresh = async () => { let s; try { s = await (await api("/api/ai")).json(); } catch (e) { return; }
-      const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${S("x_nomodels")}</span>`;
+      const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${T("x_nomodels")}</span>`;
       // Unsloth serves its own UI and manages models there; the legacy Ollama stack
       // exposes them through the dashboard, so only that one gets the model list/pull.
       const uns = s.engine === "unsloth";
       const fl = s.first_login || {};
       const engName = uns ? "Unsloth Studio" : "Ollama";
       const uiName = uns ? "Unsloth Studio" : "OpenWebUI";
-      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (S("x_engine")) + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
-        (uns ? '<div class="r"><span>' + (S("x_accel")) + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
+      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (T("x_engine")) + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
+        (uns ? '<div class="r"><span>' + (T("x_accel")) + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
         // Le credenziali del primo accesso. Unsloth non ha una password fissa:
         // ne genera una a caso a ogni installazione, la annuncia una volta sola
         // in un log e poi si SPEGNE dopo un'ora se non viene cambiata. Senza
@@ -444,28 +444,28 @@ const RENDER = {
         // chiave si crea dentro Studio e finora andava incollata a mano nel file
         // di configurazione via SSH, cioe' fuori portata per quasi tutti.
         (s.running && !s.has_key
-          ? '<div class="gl" style="margin-top:12px">' + (S("x_apikey")) + '</div>' +
+          ? '<div class="gl" style="margin-top:12px">' + (T("x_apikey")) + '</div>' +
             '<div style="font-size:12px;opacity:.75;margin:4px 0 6px">' +
             (it ? "Serve a Chat e AI-Ops. Creala in Studio: Impostazioni &rarr; API keys, poi incollala qui."
                 : "Needed by Chat and AI-Ops. Create it in Studio: Settings &rarr; API keys, then paste it here.") + "</div>" +
             '<div class="brow"><input id="aikey" class="dsel" placeholder="sk-unsloth-..." style="flex:1"/>' +
-            '<button class="dbtn" id="aikeysave">' + (S("x_save")) + "</button></div>"
+            '<button class="dbtn" id="aikeysave">' + (T("x_save")) + "</button></div>"
           : "") +
         (fl.password
-          ? '<div class="gl" style="margin-top:12px">' + (S("x_first")) + '</div>' +
-            '<div class="rows"><div class="r"><span>' + (S("x_user")) + '</span><span><code>' + fl.user + '</code></span></div>' +
-            '<div class="r"><span>' + (S("x_initpw")) + '</span><span><code>' + fl.password + '</code></span></div></div>' +
+          ? '<div class="gl" style="margin-top:12px">' + (T("x_first")) + '</div>' +
+            '<div class="rows"><div class="r"><span>' + (T("x_user")) + '</span><span><code>' + fl.user + '</code></span></div>' +
+            '<div class="r"><span>' + (T("x_initpw")) + '</span><span><code>' + fl.password + '</code></span></div></div>' +
             '<div style="margin-top:6px;font-size:12px;opacity:.75">' +
             (it ? "Cambiala al primo accesso: se resta questa, Unsloth si spegne da solo dopo un'ora."
                 : "Change it on first sign-in: left as is, Unsloth shuts itself down after an hour.") + "</div>"
           : "") +
         '<div class="brow" style="margin-top:10px">' + (s.running ? '<button class="dbtn danger" id="aistop">' + T("ai_stop") + "</button>" : '<button class="dbtn" id="aistart">' + T("ai_start") + "</button>") +
-        '<button class="dbtn" id="aichat"' + (s.running && s.has_key ? "" : " disabled") + ">💬 " + (S("x_chat")) + "</button>" +
-        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (S("x_open")) + uiName + " ↗</button></div>" +
+        '<button class="dbtn" id="aichat"' + (s.running && s.has_key ? "" : " disabled") + ">💬 " + (T("x_chat")) + "</button>" +
+        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (T("x_open")) + uiName + " ↗</button></div>" +
         (uns ? ""
-             : '<div class="gl" style="margin-top:12px">' + (S("x_models")) + '</div><div style="margin-top:4px">' + models + "</div>" +
-               '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (S("x_pullph")) + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (S("x_pull")) + "</button></div>") +
-        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + (S("x_optai")) + "</button></div><div id=\"aitune\"></div>" +
+             : '<div class="gl" style="margin-top:12px">' + (T("x_models")) + '</div><div style="margin-top:4px">' + models + "</div>" +
+               '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (T("x_pullph")) + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (T("x_pull")) + "</button></div>") +
+        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + (T("x_optai")) + "</button></div><div id=\"aitune\"></div>" +
         '<div class="stub" style="margin-top:8px">' + (uns ? (it ? "I modelli si scaricano dentro Unsloth Studio. Gira sulla GPU: spegnilo quando giochi."
                                                                 : "Models are downloaded inside Unsloth Studio. It runs on the GPU: turn it off when gaming.")
                                                           : T("ai_hint")) + "</div>";
@@ -474,7 +474,7 @@ const RENDER = {
       if ($("#aikeysave", card)) $("#aikeysave", card).onclick = async () => {
         const v = $("#aikey", card).value.trim();
         if (!v) return;
-        await action("/api/ai/key", { key: v }, S("x_keysaved"));
+        await action("/api/ai/key", { key: v }, T("x_keysaved"));
         setTimeout(refresh, 800);
       };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
@@ -486,7 +486,7 @@ const RENDER = {
         // Unsloth ha la propria autenticazione, quindi non resta scoperto.
         window.open("http://" + location.hostname + ":" + (s.port || 8888), "_blank");
       };
-      if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, S("x_dlstart")); $("#aipm", card).value = ""; } };
+      if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, T("x_dlstart")); $("#aipm", card).value = ""; } };
       if ($("#aitunebtn", card)) $("#aitunebtn", card).onclick = () => aiTune(card, it);
     };
     refresh(); card._iv = setInterval(refresh, 5000);
@@ -507,7 +507,7 @@ const RENDER = {
     refresh();
   },
   rules(card) {
-    card.innerHTML = "<h3>⚙️ " + (S("m_rules")) + '</h3><div id="ru">…</div>';
+    card.innerHTML = "<h3>⚙️ " + (T("m_rules")) + '</h3><div id="ru">…</div>';
     const refresh = async () => { let s; try { s = await (await api("/api/rules")).json(); } catch (e) { return; }
       $("#ru", card).innerHTML = '<div class="rows"><div class="r"><span>' + T("ru_throttle") + "</span><span>" + (s.enabled ? T("ru_on") : T("ru_off")) + '</span></div><div class="r"><span>' + T("ru_thresh") + "</span><span>" + s.temp_limit + " °C</span></div>" + (s.last_action ? '<div class="r"><span>' + T("ru_last") + "</span><span>" + s.last_action + "</span></div>" : "") + "</div>" +
         '<div class="brow" style="margin-top:10px"><button class="dbtn" id="rtog">' + (s.enabled ? T("ru_disable") : T("ru_enable")) + '</button><input id="rlim" class="dsel" type="number" min="70" max="100" value="' + s.temp_limit + '" style="width:64px"> °C <button class="dbtn" id="rset">' + T("ru_set") + "</button></div>";
@@ -531,27 +531,27 @@ const RENDER = {
         const ip = (n.ip && n.ip !== "-") ? copyable(n.ip.split(",")[0]) : "—";
         const ok = n.status === "OK";
         return `<div class="r"><span>${n.nwid} ${ok ? "●" : "○"} ${n.status}</span><span>${ip} <button class="dbtn" data-leave="${n.nwid}" style="padding:1px 8px">×</button></span></div>`;
-      }).join("") || `<div class="stub">${S("x_nonet")}</div>`;
+      }).join("") || `<div class="stub">${T("x_nonet")}</div>`;
       $("#zt", card).innerHTML =
-        '<div class="rows"><div class="r"><span>' + (S("x_node")) + "</span><span>" + copyable(s.address) + '</span></div><div class="r"><span>' + (S("x_state")) + "</span><span>" + (s.online ? "● ONLINE" : "○ offline") + "</span></div></div>" +
-        '<div class="gl" style="margin-top:10px">' + (S("x_nets")) + '</div><div class="rows">' + nets + "</div>" +
-        '<div class="brow" style="margin-top:8px"><input id="ztnw" class="dsel" placeholder="Network ID (16 hex)" style="flex:1"><button class="dbtn" id="ztj">' + (S("x_join")) + "</button></div>" +
-        '<div class="stub" style="margin-top:8px">' + S("x_zthint") + "</div>";
-      card.querySelectorAll("[data-leave]").forEach(b => b.onclick = async () => { await action("/api/zerotier/leave", { nwid: b.dataset.leave }, S("x_left")); setTimeout(refresh, 800); });
-      $("#ztj", card).onclick = async () => { await action("/api/zerotier/join", { nwid: $("#ztnw", card).value.trim() }, S("x_ztsent")); setTimeout(refresh, 1500); };
+        '<div class="rows"><div class="r"><span>' + (T("x_node")) + "</span><span>" + copyable(s.address) + '</span></div><div class="r"><span>' + (T("x_state")) + "</span><span>" + (s.online ? "● ONLINE" : "○ offline") + "</span></div></div>" +
+        '<div class="gl" style="margin-top:10px">' + (T("x_nets")) + '</div><div class="rows">' + nets + "</div>" +
+        '<div class="brow" style="margin-top:8px"><input id="ztnw" class="dsel" placeholder="Network ID (16 hex)" style="flex:1"><button class="dbtn" id="ztj">' + (T("x_join")) + "</button></div>" +
+        '<div class="stub" style="margin-top:8px">' + T("x_zthint") + "</div>";
+      card.querySelectorAll("[data-leave]").forEach(b => b.onclick = async () => { await action("/api/zerotier/leave", { nwid: b.dataset.leave }, T("x_left")); setTimeout(refresh, 800); });
+      $("#ztj", card).onclick = async () => { await action("/api/zerotier/join", { nwid: $("#ztnw", card).value.trim() }, T("x_ztsent")); setTimeout(refresh, 1500); };
     };
     refresh(); card._iv = setInterval(refresh, 8000);
   },
-  _stub(card, mod) { card.innerHTML = `<h3>${mod.icon} ${LANG === "it" ? mod.name : (mod.name_en || mod.name)}</h3><div class="stub">${S("m_soon")}</div>`; },
+  _stub(card, mod) { card.innerHTML = `<h3>${mod.icon} ${LANG === "it" ? mod.name : (mod.name_en || mod.name)}</h3><div class="stub">${T("m_soon")}</div>`; },
 };
 
 let MODS = {};
 function addCardTools(card, id) {
   const t = document.createElement("div"); t.className = "mod-tools";
   const collapsed = card.classList.contains("collapsed");
-  t.innerHTML = '<button class="mt drag-h" draggable="true" title="' + (S("w_move")) + '">⠿</button>' +
-    '<button class="mt" data-a="c" title="' + (S("w_coll")) + '">' + (collapsed ? "▸" : "▾") + '</button>' +
-    '<button class="mt" data-a="x" title="' + (S("w_close")) + '">✕</button>';
+  t.innerHTML = '<button class="mt drag-h" draggable="true" title="' + (T("w_move")) + '">⠿</button>' +
+    '<button class="mt" data-a="c" title="' + (T("w_coll")) + '">' + (collapsed ? "▸" : "▾") + '</button>' +
+    '<button class="mt" data-a="x" title="' + (T("w_close")) + '">✕</button>';
   card.appendChild(t);
   t.querySelector('[data-a="c"]').onclick = e => { e.stopPropagation(); const on = !card.classList.contains("collapsed"); card.classList.toggle("collapsed", on); _toggleArr(layout.collapsed, id, on); e.target.textContent = on ? "▸" : "▾"; };
   t.querySelector('[data-a="x"]').onclick = e => { e.stopPropagation(); captureOrder(); _toggleArr(layout.hidden, id, true); buildDashboard(); };
@@ -575,7 +575,7 @@ function renderHidden() {
   $("#hbtn").onclick = () => {
     const it = LANG === "it";
     let m = $("#hidden-menu"); if (!m) { m = document.createElement("div"); m.id = "hidden-menu"; m.className = "overlay"; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; }); }
-    m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (S("x_closed")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="hm-x">✕</button></div><div class="setgrid">' +
+    m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (T("x_closed")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="hm-x">✕</button></div><div class="setgrid">' +
       hid.map(id => `<button class="dbtn" data-r="${id}" style="text-align:left">${MODS[id].icon} ${it ? MODS[id].name : (MODS[id].name_en || MODS[id].name)}</button>`).join("") + "</div></div>";
     m.style.display = "flex"; $("#hm-x").onclick = () => m.style.display = "none";
     m.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { captureOrder(); _toggleArr(layout.hidden, b.dataset.r, false); m.style.display = "none"; buildDashboard(); });
@@ -620,7 +620,7 @@ $("#lform").addEventListener("submit", async ev => {
 $("#logout").addEventListener("click", async () => { await api("/api/logout", { method: "POST" }); location.reload(); });
 $("#settings-btn").addEventListener("click", openSettings);
 $("#save-btn").addEventListener("click", saveLayout);
-$("#reset-btn").addEventListener("click", () => { if (confirm(S("ly_reset"))) resetLayout(); });
+$("#reset-btn").addEventListener("click", () => { if (confirm(T("ly_reset"))) resetLayout(); });
 $("#reboot-top").addEventListener("click", () => { if (confirm(T("p_qreb"))) action("/api/power", { action: "reboot" }, T("p_rebing")); });
 $("#off-top").addEventListener("click", () => { if (confirm(T("p_qoff"))) action("/api/power", { action: "poweroff" }, T("p_offing")); });
 document.querySelectorAll(".lang-btn").forEach(b => b.addEventListener("click", () => setLang(b.dataset.l)));
