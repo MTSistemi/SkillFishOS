@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=Install emulators (choose them yourself)
+Name[it]=Installa emulatori (scegli tu)
+Name[pl]=Zainstaluj emulatory (wybierz sam)
+Name[uk]=Встановити емулятори (вибрати самому)
+GenericName=Emulator installer
+GenericName[it]=Installazione emulatori
+GenericName[pl]=Instalator emulatorow
+GenericName[uk]=Встановлення емуляторів
+Comment=Install single emulators from Flathub, without EmuDeck: pick only the ones you want
+Comment[it]=Installa singoli emulatori da Flathub, senza EmuDeck: prendi solo quelli che vuoi
+Comment[pl]=Instaluje pojedyncze emulatory z Flathuba, bez EmuDecka: tylko te, ktore chcesz
+Comment[uk]=Встановлює окремі емулятори з Flathub, без EmuDeck: лише ті, які потрібні
+# Terminal=true: lo script mostra l'elenco e aspetta che l'utente scriva quali
+# emulatori vuole.
+Exec=/usr/local/share/skillfish/install-emulators.sh
+Terminal=true
+Icon=applications-games
+Categories=Game;Emulator;
+Keywords=emulator;retroarch;dolphin;pcsx2;duckstation;ppsspp;giochi;emulatori;
