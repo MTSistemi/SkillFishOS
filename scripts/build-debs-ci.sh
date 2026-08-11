@@ -421,6 +421,10 @@ check() { dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep "$3" >/dev
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner-helper  gov-mode
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner         gov_perf
 check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub           "return None"
+# L'ambito dei flatpak va detto sempre: senza --system, con flathub configurato
+# sia a sistema sia per utente, ogni installazione dall'Hub falliva con
+# "Remote flathub found in multiple installations".
+check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub           '"--system", "flathub"' 
 check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-manager skillfish
 check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel       skillfish
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown

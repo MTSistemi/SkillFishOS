@@ -1350,7 +1350,13 @@ class Hub(QMainWindow):
             if app.backend == "flatpak":
                 rc, out, _ = run(["flatpak", "info", "--show-permissions", app.pkgid], 12) if app.installed else (1, "", "")
                 if rc != 0:
-                    rc, out, _ = run(["flatpak", "remote-info", "--show-metadata", "flathub", app.pkgid], 20)
+                    # Anche qui va detto l'ambito: nominare "flathub" quando il
+                    # remote esiste sia a sistema sia per utente fa fallire il
+                    # comando con "No remote chosen to resolve 'flathub' which
+                    # exists in multiple installations", e la scheda dell'app
+                    # restava senza l'elenco dei permessi.
+                    rc, out, _ = run(["flatpak", "remote-info", "--system",
+                                      "--show-metadata", "flathub", app.pkgid], 20)
                 share = re.search(r'shared=([^\n]+)', out); sock = re.search(r'sockets=([^\n]+)', out)
                 dev = re.search(r'devices=([^\n]+)', out); fs = re.search(r'filesystems=([^\n]+)', out)
                 bits = []
@@ -1401,16 +1407,52 @@ class Hub(QMainWindow):
         if not argv:
             self.statusBar().showMessage(L("Backend non supportato: ", "Unsupported backend: ") + app.backend, 5000); return
         self._run_op(argv, "%s %s…" % (verb, app.name))
+    # L'AMBITO DEI FLATPAK VA DETTO SEMPRE.
+    #
+    # Qui c'era `flatpak install -y --noninteractive flathub <id>`, senza
+    # --system ne' --user. Su questa macchina flathub e' configurato in
+    # ENTRAMBI gli ambiti, e flatpak si rifiuta:
+    #
+    #   error: Remote 'flathub' found in multiple installations,
+    #          unable to proceed in non-interactive mode
+    #
+    # Non poteva nemmeno chiedere all'utente quale usare, perche'
+    # --noninteractive glielo vieta. Risultato: nessuna installazione dall'Hub
+    # funzionava, e l'errore non era ovvio perche' parla di "installations"
+    # intendendo gli ambiti di flatpak, non i programmi.
+    #
+    # Si installa a SISTEMA, come gia' si fa per apt e snap: e' un centro
+    # software di macchina, non del singolo utente, e cosi' l'app la vedono
+    # tutti. Serve pkexec, esattamente come per gli altri due backend.
     def _install_cmd(self, app):
         if app.backend == "apt": return ["pkexec", HELPER, "apt-install", app.pkgid]
-        if app.backend == "flatpak": return ["flatpak", "install", "-y", "--noninteractive", "flathub", app.pkgid]
+        if app.backend == "flatpak":
+            return ["pkexec", "flatpak", "install", "-y", "--noninteractive",
+                    "--system", "flathub", app.pkgid]
         if app.backend == "snap":
             ch = getattr(self, "_snap_channel", None)
             return ["pkexec", "snap", "install", app.pkgid] + (["--channel", ch] if ch else [])
         return None
+
+    def _flatpak_scope(self, pkgid):
+        """Dove e' installato davvero: --user o --system.
+
+        Non si puo' rimuovere sempre da --system: sulla scheda ci sono 9 app
+        installate per utente (le ha messe EmuDeck) e 6 a sistema. Disinstallare
+        con l'ambito sbagliato fallisce dicendo che l'app non e' installata,
+        che per chi guarda e' semplicemente falso.
+        """
+        rc, _, _ = run(["flatpak", "info", "--user", pkgid], 10)
+        return "--user" if rc == 0 else "--system"
+
     def _remove_cmd(self, app):
         if app.backend == "apt": return ["pkexec", HELPER, "apt-remove", app.pkgid]
-        if app.backend == "flatpak": return ["flatpak", "uninstall", "-y", "--noninteractive", app.pkgid]
+        if app.backend == "flatpak":
+            scope = self._flatpak_scope(app.pkgid)
+            argv = ["flatpak", "uninstall", "-y", "--noninteractive", scope, app.pkgid]
+            # per l'ambito utente non serve nessun privilegio, e chiederlo
+            # sarebbe solo una richiesta di password in piu' senza motivo
+            return argv if scope == "--user" else ["pkexec"] + argv
         if app.backend == "snap": return ["pkexec", "snap", "remove", app.pkgid]
         return None
 
