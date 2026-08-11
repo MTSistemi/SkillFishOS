@@ -511,6 +511,8 @@ done
 [ "$manca" = 0 ] && echo "OK  tutti i pacchetti hanno changelog e copyright" || exit 1
 
 echo "== content verification (the bogus-deb guard) =="
+notcheck() { # come check, ma FALLISCE se il testo e' presente
+  dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep -F "$3" >/dev/null   && { echo "FAIL $1: $2 contiene '$3' e non dovrebbe" >&2; exit 1; }   || echo "OK  $1: $2 non contiene '$3'"; }
 check() { dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep "$3" >/dev/null \
   && echo "OK  $1: $2 contains '$3'" || { echo "FAIL $1: $2 missing '$3'" >&2; exit 1; }; }
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner-helper  gov-mode
@@ -543,6 +545,10 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/i18n.js  'uk:'
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/tuner.html data-i18n
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/app.js   'pl:'
+# app.js NON deve contenere S("...": la funzione di traduzione si chiama T().
+# I miei script ne avevano scritte 52, ReferenceError alla prima scheda e
+# dashboard con la pagina vuota. `node --check` non lo vede: e' sintassi valida.
+notcheck skillfish-dashboard_${VER}_all.deb  ./usr/share/skillfish/dashboard/app.js   'S("'
 # Il HUD: il lanciatore deve esserci E deve contenere il controllo
 # sull'hardware, altrimenti partirebbe su PC dove la finestra collassa a 15x15.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-is-bc250
