@@ -14,7 +14,9 @@ img{max-width:100%;display:block}
 
 header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(12,10,6,.72);border-bottom:1px solid var(--line)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:18px}
-.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.15rem}
+/* Anche il logo non si comprime: schiacciandosi finiva attaccato alla prima
+   voce del menu ("SkillFishOSFunzioni", senza spazio). */
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.15rem;flex-shrink:0}
 .logo img{width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(216,168,73,.4))}
 /* Lo spazio fra le voci si adatta alla lingua invece di essere fisso a 28px.
    In italiano le etichette sono piu' lunghe (Funzioni, Documentazione,
@@ -39,8 +41,12 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rg
 .nav-toggle:checked ~ .nav-burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .nav-toggle:checked ~ .nav-burger span:nth-child(2){opacity:0}
 .nav-toggle:checked ~ .nav-burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.lang-btn{background:none;border:none;color:var(--muted);padding:7px 12px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.2s;display:inline-block}
+/* flex-shrink:0 sul selettore lingua: ha overflow:hidden, quindi comprimendosi
+   non va a capo — TAGLIA. In italiano la "UK" spariva a meta'. Le quattro
+   sigle sono anche piu' strette di prima, cosi' la barra ci sta senza dover
+   sacrificare niente. */
+.lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-shrink:0}
+.lang-btn{background:none;border:none;color:var(--muted);padding:6px 9px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.2s;display:inline-block;white-space:nowrap}
 .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
 .btn{display:inline-block;padding:13px 26px;border-radius:12px;font-weight:600;font-size:.95rem;transition:transform .15s,box-shadow .25s,background .25s;cursor:pointer;border:none}
 .btn-primary{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;box-shadow:0 6px 24px rgba(216,168,73,.35)}
