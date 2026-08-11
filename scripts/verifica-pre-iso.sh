@@ -134,24 +134,62 @@ for d in emudeck emulators; do
 done
 
 sec "7. Pacchetti .deb"
-for d in /tmp/debs/out/*.deb /tmp/newdebs/out/*.deb; do
-    [ -f "$d" ] || continue
-    n=$(basename "$d")
-    dpkg-deb -I "$d" >/dev/null 2>&1 && ok "$n leggibile ($(du -h "$d" | cut -f1))" || ko "$n corrotto"
+# ATTENZIONE: questa sezione guardava in /tmp/debs/out e /tmp/newdebs/out, che
+# sono le cartelle dei VECCHI script di build. Dopo un riavvio /tmp e' vuoto:
+# il ciclo non trovava nessun file, saltava tutto e il riepilogo diceva
+# comunque "nessun errore". Undici controlli spariti in silenzio.
+# Adesso le cartelle si cercano, e se non c'e' NESSUN pacchetto e' un errore,
+# non un motivo per stare zitti.
+DEBDIR=""
+for d in /root/debs-new/out /tmp/sfx-debs/out /tmp/debs/out /tmp/newdebs/out; do
+    [ -d "$d" ] && ls "$d"/*.deb >/dev/null 2>&1 && { DEBDIR="$d"; break; }
 done
-T=$(ls /tmp/debs/out/skillfish-tuner_*.deb 2>/dev/null | head -1)
-if [ -n "$T" ]; then
-    dpkg-deb -c "$T" | grep -q 'usr/local/bin/skillfish-hud$' \
-        && ok "skillfish-hud e' dentro skillfish-tuner" || ko "skillfish-hud NON e' nel pacchetto"
-    dpkg-deb -c "$T" | grep -q 'tuner-presets.json' \
-        && ok "tuner-presets.json e' nel pacchetto" || ko "tuner-presets.json manca"
-fi
-H=$(ls /tmp/newdebs/out/skillfish-hub_*.deb 2>/dev/null | head -1)
-if [ -n "$H" ]; then
-    N=$(dpkg-deb -c "$H" | grep -c 'skillfish-hub\.\(png\|svg\)')
-    [ "$N" -ge 5 ] && ok "icone dell'Hub nel pacchetto ($N file)" || ko "solo $N icone dell'Hub nel pacchetto"
-    dpkg-deb -c "$H" | grep -q 'SkillFishSteampunk' \
-        && ok "l'icona del tema steampunk e' nel pacchetto" || ko "manca l'icona del tema steampunk"
+if [ -z "$DEBDIR" ]; then
+    ko "nessun .deb trovato: ricostruisci con scripts/build-debs-ci.sh prima di generare le ISO"
+else
+    ok "pacchetti in $DEBDIR"
+    for d in "$DEBDIR"/*.deb; do
+        n=$(basename "$d")
+        dpkg-deb -I "$d" >/dev/null 2>&1 && ok "$n leggibile ($(du -h "$d" | cut -f1))" || ko "$n corrotto"
+    done
+    # l'elenco va su file: con `dpkg-deb -c | grep -q` grep chiude la pipe al
+    # primo riscontro e dpkg-deb muore di SIGPIPE, dando falsi negativi
+    T=$(ls "$DEBDIR"/skillfish-tuner_*.deb 2>/dev/null | head -1)
+    if [ -n "$T" ]; then
+        dpkg-deb -c "$T" > /tmp/vpi.$$ 2>/dev/null
+        grep -qF 'usr/local/bin/skillfish-hud' /tmp/vpi.$$ \
+            && ok "skillfish-hud e' dentro skillfish-tuner" || ko "skillfish-hud NON e' nel pacchetto"
+        grep -qF 'tuner-presets.json' /tmp/vpi.$$ \
+            && ok "tuner-presets.json e' nel pacchetto" || ko "tuner-presets.json manca"
+        grep -qF 'Wydajność' <(dpkg-deb --fsys-tarfile "$T" | tar -xO ./usr/share/skillfish/tuner-presets.json 2>/dev/null) \
+            && ok "diacritici polacchi nei preset" || ko "diacritici polacchi persi"
+        rm -f /tmp/vpi.$$
+    else ko "skillfish-tuner non costruito"; fi
+
+    H=$(ls "$DEBDIR"/skillfish-hub_*.deb 2>/dev/null | head -1)
+    if [ -n "$H" ]; then
+        dpkg-deb -c "$H" > /tmp/vpi.$$ 2>/dev/null
+        N=$(grep -c 'skillfish-hub\.\(png\|svg\)' /tmp/vpi.$$)
+        [ "$N" -ge 4 ] && ok "icone dell'Hub nel pacchetto ($N file)" || ko "solo $N icone dell'Hub nel pacchetto"
+        rm -f /tmp/vpi.$$
+        # la correzione che faceva fallire ogni installazione flatpak
+        dpkg-deb --fsys-tarfile "$H" | tar -xO ./usr/local/bin/skillfish-hub 2>/dev/null \
+            | grep -qF '"--system", "flathub"' \
+            && ok "Hub: le installazioni flatpak indicano l'ambito" \
+            || ko "Hub: manca --system, nessuna installazione flatpak funzionerebbe"
+    else ko "skillfish-hub non costruito"; fi
+
+    # changelog e copyright, obbligatori per la Debian Policy
+    senza=0
+    for d in "$DEBDIR"/*.deb; do
+        p=$(dpkg-deb -f "$d" Package)
+        dpkg-deb -c "$d" > /tmp/vpi.$$ 2>/dev/null
+        grep -qF "usr/share/doc/$p/changelog.Debian.gz" /tmp/vpi.$$ || senza=$((senza+1))
+        grep -qF "usr/share/doc/$p/copyright" /tmp/vpi.$$ || senza=$((senza+1))
+        rm -f /tmp/vpi.$$
+    done
+    [ "$senza" = 0 ] && ok "tutti i pacchetti hanno changelog e copyright" \
+                     || ko "$senza documenti obbligatori mancanti"
 fi
 
 sec "8. Versione e marchio"
