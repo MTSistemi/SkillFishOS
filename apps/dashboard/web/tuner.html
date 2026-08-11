@@ -52,102 +52,103 @@
   <button class="btn sec" id="reload">⟳</button>
 </header>
 
-<div class="panel"><h3>⚡ Preset</h3>
-  <div class="brow" id="presets"><span class="stub">Carico…</span></div>
+<div class="panel"><h3 data-i18n="t_h_preset">⚡ Presets</h3>
+  <div class="brow" id="presets"><span class="stub" data-i18n="loading">Loading…</span></div>
   <div class="stub" id="presetdesc"></div>
 </div>
 
-<div class="panel"><h3>🧠 CPU</h3>
-  <div class="row"><label>Frequenza max</label><input type="range" id="cmhz" min="3500" max="4500" step="50"><span class="val" id="cmhzv"></span></div>
-  <div class="row"><label>Undervolt (scale)</label><input type="range" id="cscale" min="-50" max="0" step="1"><span class="val" id="cscalev"></span></div>
-  <div class="row"><label>Limite temperatura</label><input type="range" id="ctemp" min="60" max="95" step="1"><span class="val" id="ctempv"></span></div>
-  <div class="brow"><button class="btn" id="cpuapply">Applica</button><button class="btn sec" id="cpupersist">Salva al boot</button>
-    <button class="btn sec" id="cputest">Test (60s)</button><button class="btn sec" id="cpuuv">Suggerisci UV</button>
-    <button class="btn sec" id="cpuwiz">🎰 Trova il massimo</button></div>
-  <div class="stub">≥4000 MHz è solo da benchmark: su alcune board può causare freeze.</div>
+<div class="panel"><h3 data-i18n="t_h_cpu">🧠 CPU</h3>
+  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="cmhz" min="3500" max="4500" step="50"><span class="val" id="cmhzv"></span></div>
+  <div class="row"><label data-i18n="t_uv">Undervolt (scale)</label><input type="range" id="cscale" min="-50" max="0" step="1"><span class="val" id="cscalev"></span></div>
+  <div class="row"><label data-i18n="t_templim">Temperature limit</label><input type="range" id="ctemp" min="60" max="95" step="1"><span class="val" id="ctempv"></span></div>
+  <div class="brow"><button class="btn" id="cpuapply" data-i18n="apply">Apply</button><button class="btn sec" id="cpupersist" data-i18n="t_persist">Save at boot</button>
+    <button class="btn sec" id="cputest" data-i18n="t_test60">Test (60s)</button><button class="btn sec" id="cpuuv" data-i18n="t_uvsugg">Suggest UV</button>
+    <button class="btn sec" id="cpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button></div>
+  <div class="stub" data-i18n="t_hintcpu">≥4000 MHz is benchmark-only: on some boards it can cause freezes.</div>
   <pre class="log" id="cpulog"></pre>
 </div>
 
-<div class="panel"><h3>🎮 GPU</h3>
-  <div class="row"><label>Frequenza max</label><input type="range" id="gmhz" min="350" max="2200" step="10"><span class="val" id="gmhzv"></span></div>
-  <div class="row"><label>Voltaggio max</label><input type="range" id="gmv" min="700" max="1129" step="1"><span class="val" id="gmvv"></span></div>
-  <div class="row"><label>Governor</label>
-    <button class="btn sec" id="govbal" data-m="balanced">Bilanciato</button>
-    <button class="btn sec" id="govperf" data-m="performance">Prestazioni</button>
+<div class="panel"><h3 data-i18n="t_h_gpu">🎮 GPU</h3>
+  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="gmhz" min="350" max="2200" step="10"><span class="val" id="gmhzv"></span></div>
+  <div class="row"><label data-i18n="t_maxvolt">Max voltage</label><input type="range" id="gmv" min="700" max="1129" step="1"><span class="val" id="gmvv"></span></div>
+  <div class="row"><label data-i18n="t_gov">Governor</label>
+    <button class="btn sec" id="govbal" data-m="balanced" data-i18n="t_bal">Balanced</button>
+    <button class="btn sec" id="govperf" data-m="performance" data-i18n="t_perf">Performance</button>
   </div>
-  <div class="brow"><button class="btn" id="gpuapply">Applica</button>
-    <button class="btn sec" id="gputest">Test</button><button class="btn sec" id="gpuwiz">🎰 Trova il massimo</button></div>
-  <div class="stub">Oltre 2200 MHz con ≤1000 mV viene limitato a 2200 (anti-freeze).</div>
+  <div class="brow"><button class="btn" id="gpuapply" data-i18n="apply">Apply</button>
+    <button class="btn sec" id="gputest" data-i18n="test">Test</button><button class="btn sec" id="gpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button></div>
+  <div class="stub" data-i18n="t_hintgpu">Above 2200 MHz with ≤1000 mV it is capped at 2200 (anti-freeze).</div>
   <pre class="log" id="gpulog"></pre>
 </div>
 
-<div class="panel"><h3>🔢 Compute Unit (CU) — a caldo, senza riavvio</h3>
+<div class="panel"><h3 data-i18n="t_h_cu">🔢 Compute Units (CUs) — live, no reboot</h3>
   <div class="brow">
-    <span class="pill" id="cucount">– CU attive</span>
+    <span class="pill" id="cucount" data-i18n="t_activecu">– active CUs</span>
     <button class="btn sec" data-cu="7">24 CU</button>
     <button class="btn sec" data-cu="15">32 CU</button>
     <button class="btn sec" data-cu="31">40 CU</button>
   </div>
   <div class="cugrid" id="cugrid"></div>
-  <div class="brow"><button class="btn" id="cuapply">Applica CU</button><button class="btn danger" id="cutest">Test CU</button></div>
+  <div class="brow"><button class="btn" id="cuapply" data-i18n="t_applycu">Apply CUs</button><button class="btn danger" id="cutest" data-i18n="t_testcu">Test CUs</button></div>
   <div class="brow" style="margin-top:8px">
-    <span style="color:var(--muted);font-size:.85rem">Profili:</span>
+    <span style="color:var(--muted);font-size:.85rem" data-i18n="t_profiles">Profiles:</span>
     <select id="cuprof" style="background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:6px 9px"></select>
-    <button class="btn sec" id="cuprofapply">Carica</button>
-    <button class="btn sec" id="cuprofsave">Salva come…</button>
-    <button class="btn danger" id="cuprofdel">Elimina</button>
+    <button class="btn sec" id="cuprofapply" data-i18n="load">Load</button>
+    <button class="btn sec" id="cuprofsave" data-i18n="t_saveas">Save as…</button>
+    <button class="btn danger" id="cuprofdel" data-i18n="del">Delete</button>
   </div>
   <div class="stub">Le prime 3 colonne (24 CU) sono il minimo del driver e restano bloccate. 1 WGP = 2 CU. Salva la griglia come profilo per richiamarla al volo.</div>
   <pre class="log" id="cutestlog"></pre>
 </div>
 
-<div class="panel"><h3>🧩 Core CPU — a caldo, senza riavvio</h3>
+<div class="panel"><h3 data-i18n="t_h_cores">🧩 CPU cores — live, no reboot</h3>
   <div class="brow">
-    <span class="pill" id="cpucount">– core attivi</span>
-    <button class="btn sec" data-cores="99">Tutti</button>
-    <button class="btn sec" data-cores="6">6 core</button>
-    <button class="btn sec" data-cores="4">4 core</button>
+    <span class="pill" id="cpucount" data-i18n="t_activeco">– active cores</span>
+    <button class="btn sec" data-cores="99" data-i18n="all">All</button>
+    <button class="btn sec" data-cores="6" data-i18n="t_6core">6 cores</button>
+    <button class="btn sec" data-cores="4" data-i18n="t_4core">4 cores</button>
     <label class="pill" style="cursor:pointer"><input type="checkbox" id="smtcb" checked style="vertical-align:-2px"> SMT</label>
   </div>
   <div class="cugrid" id="cpugrid" style="grid-template-columns:repeat(8,1fr)"></div>
-  <div class="brow"><button class="btn" id="cpucoresapply">Applica core</button></div>
-  <div class="stub">Ogni riquadro = 1 core fisico con i suoi 2 thread. Il <b>core 0</b> resta sempre acceso: ospita la CPU di avvio, il kernel non può spegnerlo. Spegnere core libera budget termico per far salire la frequenza dei rimanenti. Al riavvio tornano tutti accesi.</div>
-  <div class="stub" style="margin-top:10px">Layout fisico dei core (per affinità/pinning dei giochi). MHz live per core.</div>
+  <div class="brow"><button class="btn" id="cpucoresapply" data-i18n="t_applyco">Apply cores</button></div>
+  <div class="stub" data-i18n="t_coreshint">Each box = 1 physical core with its 2 threads. Core 0 always stays on: it hosts the boot CPU and the kernel cannot switch it off. Turning cores off frees thermal budget so the remaining ones clock higher. A reboot brings them all back.</div>
+  <div class="stub" style="margin-top:10px" data-i18n="t_hintgrid">Physical core layout (for game affinity/pinning). Live MHz per core.</div>
   <div id="coremap" style="margin-top:8px"></div>
 </div>
 
-<div class="panel"><h3>🌀 Ventola</h3>
-  <div class="row"><label>Modalità</label>
-    <button class="btn sec" id="fanauto" data-m="auto">Auto</button>
-    <button class="btn sec" id="fanman" data-m="manual">Manuale</button>
+<div class="panel"><h3 data-i18n="t_h_fan">🌀 Fan</h3>
+  <div class="row"><label data-i18n="t_mode">Mode</label>
+    <button class="btn sec" id="fanauto" data-m="auto" data-i18n="auto">Auto</button>
+    <button class="btn sec" id="fanman" data-m="manual" data-i18n="manual">Manual</button>
   </div>
-  <div class="row"><label>Velocità</label><input type="range" id="fanpct" min="20" max="100" step="1"><span class="val" id="fanpctv"></span></div>
-  <div class="brow"><button class="btn" id="fanapply">Applica</button></div>
+  <div class="row"><label data-i18n="t_speed">Speed</label><input type="range" id="fanpct" min="20" max="100" step="1"><span class="val" id="fanpctv"></span></div>
+  <div class="brow"><button class="btn" id="fanapply" data-i18n="apply">Apply</button></div>
   <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
-    <div class="row"><label>Curva automatica</label>
-      <button class="btn sec" id="fcoff" data-fc="0">Off</button>
-      <button class="btn sec" id="fcon" data-fc="1">Curva attiva</button>
+    <div class="row"><label data-i18n="t_curveauto">Automatic curve</label>
+      <button class="btn sec" id="fcoff" data-fc="0" data-i18n="off">Off</button>
+      <button class="btn sec" id="fcon" data-fc="1" data-i18n="t_curve">Active curve</button>
       <select id="fcsrc" style="background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:6px 9px">
-        <option value="max">temp. max</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
+        <option value="max" data-i18n="t_tempmax">max temp.</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
       <span class="pill" id="fcnow">–</span>
     </div>
     <svg id="fcsvg" viewBox="0 0 320 120" style="width:100%;max-width:420px;height:120px;background:#0d0b06;border:1px solid var(--line);border-radius:8px"></svg>
     <div id="fcpts" style="margin-top:8px"></div>
-    <div class="brow"><button class="btn" id="fcsave">Salva curva</button><button class="btn sec" id="fcadd">+ punto</button></div>
+    <div class="brow"><button class="btn" id="fcsave" data-i18n="t_savecurve">Save curve</button><button class="btn sec" id="fcadd" data-i18n="t_addpoint">+ point</button></div>
     <div class="stub">Punti temperatura → % ventola. Tra un punto e l'altro la velocità è interpolata. "Off" restituisce la ventola al firmware.</div>
   </div>
 </div>
 
-<div class="panel"><h3>💾 VRAM (UMA)</h3>
-  <div class="row"><label>Memoria GPU</label>
+<div class="panel"><h3 data-i18n="t_h_vram">💾 VRAM (UMA)</h3>
+  <div class="row"><label data-i18n="t_gpumem">GPU memory</label>
     <select id="vram" style="background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></select>
-    <button class="btn" id="vramapply">Applica</button>
+    <button class="btn" id="vramapply" data-i18n="apply">Apply</button>
   </div>
-  <div class="stub">⚠ Richiede riavvio (scrive nel CMOS BIOS).</div>
+  <div class="stub" data-i18n="t_cmos">⚠ Needs a reboot (writes to the BIOS CMOS).</div>
 </div>
 
 </div>
 <div id="toast"></div>
+<script src="/static/i18n.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let STATE = null;
