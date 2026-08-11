@@ -375,6 +375,25 @@ printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Curso
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 echo "== building =="
+P=skillfish-iso-mount
+# Era rimasto nel vecchio apps/build-debs.sh, che prende i file dal disco della
+# scheda: fuori dalla catena automatica, quindi fermo a 26.06 mentre tutto il
+# resto avanzava, e una correzione qui non sarebbe mai arrivata a nessuno.
+put $P 0755 system/usr/local/bin/skillfish-iso-mount usr/local/bin/skillfish-iso-mount
+put $P 0644 system/usr/share/kio/servicemenus/skillfish-iso.desktop usr/share/kio/servicemenus/skillfish-iso.desktop
+put $P 0644 system/etc/polkit-1/rules.d/49-skillfish-udisks.rules etc/polkit-1/rules.d/49-skillfish-udisks.rules
+ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KDE"
+
+P=skillfish-menu
+# Questo non stava in NESSUNO script: esisteva solo come .deb costruito a mano
+# chissa' quando. Definisce la categoria "SkillFishOS" nel menu delle
+# applicazioni — i due .menu (uno per il menu XDG, uno per quello di Plasma) e
+# la voce di categoria con nome e descrizione.
+put $P 0644 system/etc/xdg/menus/applications-merged/skillfishos.menu etc/xdg/menus/applications-merged/skillfishos.menu
+put $P 0644 system/etc/xdg/menus/plasma-applications-merged/skillfishos.menu etc/xdg/menus/plasma-applications-merged/skillfishos.menu
+put $P 0644 system/usr/share/desktop-directories/skillfishos.directory usr/share/desktop-directories/skillfishos.directory
+ctrl $P "" "SkillFishOS application menu group"
+
 P=skillfish-emulators
 # Gli emulatori NON possono viaggiare nella ISO: EmuDeck installa tutto nella
 # home dell'utente (flatpak --user e AppImage in ~/Applications), e la ISO
@@ -390,7 +409,7 @@ put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/sha
 put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
 
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators; do
+for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-menu; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   dpkg-deb --root-owner-group --build "$OUT/$P" "$OUT/out/${P}_${VER}_all.deb" >/dev/null
 done
@@ -432,6 +451,13 @@ check skillfish-hub_${VER}_all.deb           ./usr/share/icons/hicolor/scalable/
 # quest'ultimo non ha allegati nelle release e lo scaricamento fallirebbe.
 check skillfish-emulators_${VER}_all.deb     ./usr/local/share/skillfish/install-emudeck.sh   emudeck-electron
 check skillfish-emulators_${VER}_all.deb     ./usr/local/share/skillfish/install-emulators.sh flathub
+# I due pacchetti rientrati oggi nella catena automatica: erano fermi a 26.06
+# perche' uno stava nel vecchio script e l'altro in nessuno.
+check skillfish-iso-mount_${VER}_all.deb    ./usr/local/bin/skillfish-iso-mount              udisks
+# Si cerca il TESTO polacco, non la chiave "Comment[pl]": quella passa a grep
+# come espressione regolare, dove [pl] vale "un carattere fra p e l" e non
+# combacia mai. Cercare la traduzione vera verifica anche di piu'.
+check skillfish-menu_${VER}_all.deb         ./usr/share/desktop-directories/skillfishos.directory "Narzędzia SkillFishOS"
 # Nella barra deve esserci il NOSTRO Hub. Il collegamento a Discover era rimasto
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
