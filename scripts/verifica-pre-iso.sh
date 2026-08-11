@@ -204,6 +204,24 @@ sec "9. Calamares"
 # contiene una vecchia versione italiana che non viene mai mostrata.
 BR=$(grep -m1 "^branding:" /etc/calamares/settings.conf | cut -d: -f2 | tr -d " ")
 ok "branding attivo: $BR"
+
+# LA SORGENTE, non solo il risultato.
+# eggs RIGENERA /etc/calamares/branding/*/show.qml a ogni produce, prendendola
+# dai propri addon. Controllare solo il file generato non dice niente su cosa
+# finira' nella ISO: e' l'errore che ci e' costato due immagini rifatte, con
+# l'installazione in polacco e le diapositive in italiano.
+n_sorg=0
+for f in /usr/lib/penguins-eggs/addons/*/theme/calamares/branding/show.qml; do
+    [ -f "$f" ] || continue
+    n_sorg=$((n_sorg + 1))
+    if grep -q 'Qt.locale()' "$f"; then
+        ok "sorgente eggs multilingua: $(basename "$(dirname "$(dirname "$(dirname "$(dirname "$f")")")")")"
+    else
+        ko "sorgente eggs A LINGUA FISSA: $f — la produce la rimettera' nella ISO"
+    fi
+done
+[ "$n_sorg" -gt 0 ] || ko "nessuna show.qml trovata negli addon di eggs: la produce usera' la sua"
+
 S=/etc/calamares/branding/$BR/show.qml
 if [ -f "$S" ]; then
     grep -q 'Qt.locale()' "$S" && ok "presentazione multilingua (legge la lingua scelta)" || ko "presentazione a lingua fissa"
