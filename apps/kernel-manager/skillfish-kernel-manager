@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # SkillFishOS Kernel Manager — list every installed kernel, choose the boot
 # kernel (permanent default / boot-once), and COMPLETELY uninstall kernels so
-# they don't pile up. KDE-native PyQt6, brass/steampunk themed. Bilingual IT/EN.
+# they don't pile up. KDE-native PyQt6, brass/steampunk themed.
+# Four languages: it / en / pl / uk, English being the fallback.
 import sys, os, glob, subprocess
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -33,6 +34,15 @@ LANG = _detect_lang()
 # la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
 # non ancora tradotta ricade sull'inglese invece di sparire.
 PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "%d installed kernels. The running kernel cannot be removed.": "Zainstalowane jądra: %d. Działającego jądra nie można usunąć.",
+    "%s will boot next time (once only). Reboot now?": "%s uruchomi się następnym razem (tylko raz). Uruchomić ponownie teraz?",
+    "COMPLETELY uninstall the kernel:\n  %s": "CAŁKOWICIE odinstalować jądro:\n  %s",
+    "Freed space: ~%.0f MB": "Zwolnione miejsce: ~%.0f MB",
+    "Packages removed: %s (+ headers/dbg if present)": "Usunięte pakiety: %s (+ headers/dbg, jeśli są)",
+    "✓ Default set to %s. Active on next reboot.": "✓ Domyślne ustawione na %s. Aktywne po ponownym uruchomieniu.",
+    "✓ Kernel %s uninstalled (~%.0f MB freed).": "✓ Jądro %s odinstalowane (zwolniono ~%.0f MB).",
+
     "Generic · x86-64 · PCs & virtual machines": "Generic - x86-64 - PC i maszyny wirtualne",
     "Slim · BC-250 · ultra-lean kernel": "Slim - BC-250 - kernel minimalny",
     "BC-250 · znver2 · optimized": "BC-250 - znver2 - zoptymalizowany",
@@ -68,6 +78,15 @@ PL = {
 # Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
 # a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
 UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "%d installed kernels. The running kernel cannot be removed.": "Встановлених ядер: %d. Активне ядро вилучити не можна.",
+    "%s will boot next time (once only). Reboot now?": "%s завантажиться наступного разу (лише один раз). Перезавантажити зараз?",
+    "COMPLETELY uninstall the kernel:\n  %s": "ПОВНІСТЮ вилучити ядро:\n  %s",
+    "Freed space: ~%.0f MB": "Звільнено місця: ~%.0f МБ",
+    "Packages removed: %s (+ headers/dbg if present)": "Вилучені пакунки: %s (+ headers/dbg, якщо є)",
+    "✓ Default set to %s. Active on next reboot.": "✓ Типовим призначено %s. Діє після перезавантаження.",
+    "✓ Kernel %s uninstalled (~%.0f MB freed).": "✓ Ядро %s вилучено (звільнено ~%.0f МБ).",
+
     "Generic · x86-64 · PCs & virtual machines": "Загальне · x86-64 · ПК та віртуальні машини",
     "Slim · BC-250 · ultra-lean kernel": "Полегшене · BC-250 · мінімальне ядро",
     "BC-250 · znver2 · optimized": "BC-250 · znver2 · оптимізоване",
@@ -100,7 +119,13 @@ UK = {
 
 
 def L(it, en):
-    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    """Restituisce la stringa in it, pl, uk o en secondo il locale rilevato.
+
+    Le due stringhe che arrivano qui devono essere COSTANTI: se il testo viene
+    formattato prima (una f-string, o un "%s" % x), la chiave cercata nei
+    dizionari contiene gia' il valore e non la si trova mai. Il segnaposto va
+    lasciato dentro e riempito dopo: L("Kernel %s", "Kernel %s") % nome.
+    """
     if LANG == "it": return it
     if LANG == "pl": return PL.get(en, en)
     if LANG == "uk": return UK.get(en, en)
@@ -256,8 +281,7 @@ class KernelManager(QMainWindow):
                 rb.setChecked(True)
         self.listlay.addStretch(1)
         n = len(self.kernels)
-        self.status.setText(L("%d kernel installati. Il kernel in esecuzione non è rimovibile." % n,
-                              "%d installed kernels. The running kernel cannot be removed." % n))
+        self.status.setText(L("%d kernel installati. Il kernel in esecuzione non è rimovibile.", "%d installed kernels. The running kernel cannot be removed.") % n)
         self.status.setStyleSheet("color:#b9a07a;")
         # uninstall is only possible when there is more than one kernel
         self.bdel.setEnabled(n > 1)
@@ -272,8 +296,7 @@ class KernelManager(QMainWindow):
         if not kv: return
         rc, out, err = sh(f"pkexec {HELPER} default {kv}", 120)
         if rc == 0:
-            self._ok(L(f"✓ Predefinito impostato a {kv}. Attivo al prossimo riavvio.",
-                       f"✓ Default set to {kv}. Active on next reboot."))
+            self._ok(L("✓ Predefinito impostato a %s. Attivo al prossimo riavvio.", "✓ Default set to %s. Active on next reboot.") % (kv,))
             self.reload()
         else:
             self._err(out or err)
@@ -284,8 +307,7 @@ class KernelManager(QMainWindow):
         rc, out, err = sh(f"pkexec {HELPER} once {kv}", 90)
         if rc == 0:
             if QMessageBox.question(self, "SkillFishOS",
-                    L(f"{kv} verrà avviato al prossimo riavvio (solo una volta). Riavviare ora?",
-                      f"{kv} will boot next time (once only). Reboot now?")) == QMessageBox.StandardButton.Yes:
+                    L("%s verrà avviato al prossimo riavvio (solo una volta). Riavviare ora?", "%s will boot next time (once only). Reboot now?") % (kv,)) == QMessageBox.StandardButton.Yes:
                 sh("pkexec systemctl reboot")
         else:
             self._err(out or err)
@@ -305,15 +327,13 @@ class KernelManager(QMainWindow):
             return
         pkg = kernel_pkg(kv); size = kernel_size_mb(kv)
         is_def = kv in self.default_raw
-        lines = [L(f"Disinstallare COMPLETAMENTE il kernel:\n  {kv}",
-                   f"COMPLETELY uninstall the kernel:\n  {kv}"), ""]
+        lines = [L("Disinstallare COMPLETAMENTE il kernel:\n  %s", "COMPLETELY uninstall the kernel:\n  %s") % (kv,), ""]
         if pkg:
-            lines.append(L(f"Pacchetti rimossi: {pkg} (+ headers/dbg se presenti)",
-                           f"Packages removed: {pkg} (+ headers/dbg if present)"))
+            lines.append(L("Pacchetti rimossi: %s (+ headers/dbg se presenti)", "Packages removed: %s (+ headers/dbg if present)") % (pkg,))
         else:
             lines.append(L("Verranno rimossi vmlinuz, initrd e i moduli (non gestito da dpkg).",
                            "vmlinuz, initrd and the modules will be removed (not dpkg-managed)."))
-        lines.append(L(f"Spazio liberato: ~{size:.0f} MB", f"Freed space: ~{size:.0f} MB"))
+        lines.append(L("Spazio liberato: ~%.0f MB", "Freed space: ~%.0f MB") % size)
         if is_def:
             lines.append(L("\n⚠ È il kernel predefinito: il default tornerà a quello in esecuzione.",
                            "\n⚠ It's the default kernel: the default will move to the running one."))
@@ -329,8 +349,8 @@ class KernelManager(QMainWindow):
         QApplication.processEvents()
         rc, out, err = sh(f"pkexec {HELPER} uninstall {kv}", 600)
         if rc == 0:
-            self._ok(L(f"✓ Kernel {kv} disinstallato (~{size:.0f} MB liberati).",
-                       f"✓ Kernel {kv} uninstalled (~{size:.0f} MB freed)."))
+            self._ok(L("✓ Kernel %s disinstallato (~%.0f MB liberati).",
+                       "✓ Kernel %s uninstalled (~%.0f MB freed).") % (kv, size))
         else:
             self._err(out or err or L("operazione annullata", "operation cancelled"))
         self.reload()

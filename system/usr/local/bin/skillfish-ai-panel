@@ -1,0 +1,694 @@
+#!/usr/bin/env python3
+# SkillFish AI - KDE-native panel + first-run setup wizard for the local LLM
+# stack (Unsloth Studio + Vulkan). Auto-themed by Kvantum/Breeze.
+# Four languages: it / en / pl / uk, English being the fallback.
+#
+# Features:
+#  - First-run wizard: installs/starts the stack and lets you pick a model.
+#  - Model manager (also after the wizard): list installed, pull new, set active.
+#  - Live hardware panel: GPU + CPU model, VRAM and RAM available.
+#  - GTT slider: tune how much system RAM the GPU/LLM may use (amdgpu.gttsize).
+#  - On the generic OS build the GPU is auto-detected (unknown hardware).
+# shutil e urllib.request servivano solo al vecchio stack Ollama: shutil.which
+# per cercare docker, urllib per interrogare la sua API sulla 11434. Rimossi
+# quelli, gli import restavano orfani e ruff (regola F, bloccante in CI) faceva
+# fallire la build.
+import sys, os, json, subprocess
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QGroupBox, QCheckBox, QPushButton, QComboBox, QSlider,
+                             QProgressBar, QWizard, QWizardPage, QTextEdit, QMessageBox,
+                             QGridLayout)
+
+WEBUI_URL  = "http://localhost:8080"
+
+# Unsloth Studio: the current engine. One native service runs GGUF models through
+# llama.cpp's Vulkan backend (the only GPU path on gfx1013) and serves both the chat
+# UI and an OpenAI-compatible API. Models are managed inside its own UI, which also
+# holds its own accounts — so this panel drives the service and opens the UI, and
+# never tries to mint credentials on the user's behalf.
+UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
+UNSLOTH_SVC = "skillfish-unsloth.service"
+UNSLOTH_URL = "http://localhost:8888"
+UNSLOTH_INSTALLER = "/usr/local/share/skillfish/install-unsloth.sh"
+ICON       = "/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png"
+CFG_DIR    = os.path.expanduser("~/.config/skillfishos")
+CFG_FILE   = os.path.join(CFG_DIR, "ai.json")
+
+# Curated models that run well on the BC-250 (16 GB shared) and most iGPUs.
+# Custom names are accepted too. The list is hand-kept rather than fetched:
+# Unsloth Studio manages models inside its own UI, and this panel is only the
+# shortcut to the ones we know fit in shared memory on this board.
+CATALOG = [
+    # --- reasoning / general chat (<= 14B, all fit the BC-250's shared memory) ---
+    ("qwen3:14b",            "~9 GB  · default, strong reasoning"),
+    ("qwen3:8b",             "~5.2 GB · reasoning, lighter"),
+    ("qwen3:4b",             "~2.6 GB · fast reasoning"),
+    ("qwen3:1.7b",           "~1.4 GB · tiny reasoning"),
+    ("qwen2.5:14b",          "~9 GB  · all-rounder"),
+    ("qwen2.5:7b",           "~4.7 GB · fast all-rounder"),
+    ("qwen2.5:3b",           "~1.9 GB · light"),
+    ("qwen2.5:1.5b",         "~1 GB  · very light"),
+    ("llama3.1:8b",          "~4.9 GB · Meta, general"),
+    ("llama3.2:3b",          "~2 GB  · light & quick"),
+    ("llama3.2:1b",          "~1.3 GB · ultra light"),
+    ("gemma2:9b",            "~5.4 GB · Google"),
+    ("gemma2:2b",            "~1.6 GB · Google, light"),
+    ("gemma3:12b",           "~8 GB  · Google, multimodal"),
+    ("gemma3:4b",            "~3.3 GB · Google, multimodal"),
+    ("phi4:14b",             "~9 GB  · Microsoft, sharp"),
+    ("phi3.5:3.8b",          "~2.2 GB · tiny, sharp"),
+    ("mistral:7b",           "~4.1 GB · classic"),
+    ("mistral-nemo:12b",     "~7 GB  · 128k context"),
+    ("deepseek-r1:14b",      "~9 GB  · reasoning (R1)"),
+    ("deepseek-r1:8b",       "~5 GB  · reasoning (R1)"),
+    ("deepseek-r1:7b",       "~4.7 GB · reasoning (R1)"),
+    ("deepseek-r1:1.5b",     "~1.1 GB · reasoning, tiny"),
+    ("granite3.1-dense:8b",  "~4.9 GB · IBM, business"),
+    ("olmo2:13b",            "~8 GB  · open, AllenAI"),
+    ("smollm2:1.7b",         "~1 GB  · very small"),
+    # --- coding ---
+    ("qwen2.5-coder:14b",    "~9 GB  · coding (best)"),
+    ("qwen2.5-coder:7b",     "~4.7 GB · coding"),
+    ("qwen2.5-coder:3b",     "~1.9 GB · coding, light"),
+    ("codellama:13b",        "~7.4 GB · coding"),
+    ("codellama:7b",         "~3.8 GB · coding"),
+    ("starcoder2:7b",        "~4 GB  · coding"),
+    ("starcoder2:3b",        "~1.7 GB · coding, light"),
+    # --- vision (image input) ---
+    ("llama3.2-vision:11b",  "~7.8 GB · vision"),
+    ("llava:13b",            "~8 GB  · vision"),
+    ("llava:7b",             "~4.7 GB · vision"),
+    ("minicpm-v:8b",         "~5.5 GB · vision, OCR"),
+    # --- embeddings (for RAG / web search) ---
+    ("nomic-embed-text",     "~0.3 GB · embeddings"),
+]
+
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"): return "it"
+    if v.startswith("pl"): return "pl"
+    # "uk" e' il codice ISO 639-1 della lingua ucraina; "ua" e' quello del paese.
+    if v.startswith("uk") or v.startswith("ua"): return "uk"
+    return "en"
+LANG = _detect_lang()
+
+# Le chiavi sono le stringhe INGLESI passate a L(), come nelle altre app.
+# Percio' una stringa formattata prima di arrivare a L() — l'errore che avevamo
+# qui — non si trova mai nel dizionario: il segnaposto va lasciato dentro il
+# testo tradotto e riempito dopo, L("Modello attivo: %s", "Active model: %s") % n.
+# Se una chiave manca si ricade sull'inglese, mai sull'italiano.
+PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! command failed (rc=%s) — continuing": "! polecenie nie powiodło się (rc=%s) — kontynuuję",
+    "! error pulling %s": "! błąd pobierania %s",
+    "%d models installed": "Zainstalowane modele: %d",
+    "no models installed": "brak zainstalowanych modeli",
+    "AI Engine (LLM) — %s": "Silnik AI (LLM) — %s",
+    "Active model: %s": "Aktywny model: %s",
+    "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s": "Wykryty GPU: %s\nCPU: %s\nRAM: %s wolne / %s",
+    "Local LLM engine · model: %s": "Lokalny silnik LLM · model: %s",
+    "Memory set to %s GB. Reboot now to apply it?": "Pamięć ustawiona na %s GB. Uruchomić ponownie teraz, aby zastosować?",
+    "On — starts/stops %s. Turn it off before gaming.": "Włączony — uruchamia/zatrzymuje %s. Wyłącz go przed graniem.",
+    "Set GTT to %s GB? A reboot is needed to apply.": "Ustawić GTT na %s GB? Do zastosowania potrzebne jest ponowne uruchomienie.",
+    "model budget ≈ %s": "budżet modelu ≈ %s",
+    "✓ %s pulled": "✓ pobrano %s",
+
+    "unknown": "nieznany",
+    "SkillFish AI - Setup": "SkillFish AI - Konfiguracja",
+    "Welcome to SkillFish AI": "Witamy w SkillFish AI",
+    "All set!": "Gotowe!",
+    "Installing the engine": "Instalowanie silnika",
+    "Install / Start": "Zainstaluj / Uruchom",
+    "Model": "Model",
+    "active model / name to pull": "aktywny model / nazwa do pobrania",
+    "Use": "Użyj",
+    "Pull": "Pobierz",
+    "Hardware": "Sprzęt",
+    "Shared memory for the model": "Pamięć współdzielona dla modelu",
+    "Apply and reboot": "Zastosuj i uruchom ponownie",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "Na BC-250 pamięć jest współdzielona GPU/CPU: to zwiększa część pamięci systemowej (GTT), której model może użyć poza VRAM, dzięki czemu mieszczą się większe modele. To parametr jądra → wymagany jest restart (zmiana na żywo nie jest możliwa na tym sprzęcie, zweryfikowane).",
+    "Open Chat (web)": "Otwórz czat (web)",
+    "Refresh": "Odśwież",
+    "… working …": "… pracuję …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Ten kreator instaluje i uruchamia Unsloth Studio, lokalny silnik LLM przyspieszany w Vulkan na GPU.\n\nPrzy pierwszym logowaniu Unsloth poprosi o ustawienie hasła: wybierasz je sam, nie jest tworzone stąd. Modele pobiera się później z jego własnego interfejsu.\n\nWszystko działa lokalnie: żadne dane nie opuszczają Twojego komputera.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Silnik AI jest gotowy. Modele i pamięć GPU (GTT) możesz zmienić w panelu w dowolnej chwili.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Naciśnij „Zainstaluj”, aby pobrać i skonfigurować Unsloth Studio z backendem Vulkan. To około 2 GB: może potrwać kilka minut.",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Modele pobiera się i wybiera wewnątrz Unsloth Studio (przycisk „Otwórz czat”).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Lokalny silnik LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Silnik WYŁ. — GPU/pamięć wolne dla gier",
+    "n/a (non-AMD GPU or shared VRAM)": "nd. (GPU inne niż AMD lub współdzielona VRAM)",
+    "not available on this GPU": "niedostępne na tym GPU",
+    "n/a": "nd.",
+    "● Engine ON — ready": "● Silnik WŁ. — gotowy",
+    "free": "wolne",
+    "operation cancelled": "operacja anulowana",
+    "Models are downloaded inside Unsloth Studio: open “Open Chat” and pick the model there.":
+        "Modele pobiera się wewnątrz Unsloth Studio: otwórz „Otwórz czat” i wybierz model tam.",
+    "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
+        "\n✓ Unsloth Studio zainstalowany i uruchomiony. Przy pierwszym logowaniu poprosi o ustawienie hasła: wybierasz je sam.",
+}
+
+# Polacco e ucraino di questo pannello: li ho scritti io, NON un madrelingua.
+# Il polacco delle altre app e' di cyryllo (github.com/cyryllo), qui il
+# dizionario era rimasto vuoto e quindi tutto restava in inglese.
+UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! command failed (rc=%s) — continuing": "! команда не вдалася (rc=%s) — продовжую",
+    "! error pulling %s": "! помилка завантаження %s",
+    "%d models installed": "Встановлено моделей: %d",
+    "no models installed": "моделі не встановлені",
+    "AI Engine (LLM) — %s": "Рушій ШІ (LLM) — %s",
+    "Active model: %s": "Активна модель: %s",
+    "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s": "Виявлено ГП: %s\nЦП: %s\nRAM: %s вільно / %s",
+    "Local LLM engine · model: %s": "Локальний рушій LLM · модель: %s",
+    "Memory set to %s GB. Reboot now to apply it?": "Пам'ять встановлено на %s ГБ. Перезавантажити зараз, щоб застосувати?",
+    "On — starts/stops %s. Turn it off before gaming.": "Увімкнено — запускає/зупиняє %s. Вимкніть перед грою.",
+    "Set GTT to %s GB? A reboot is needed to apply.": "Встановити GTT на %s ГБ? Щоб застосувати, потрібне перезавантаження.",
+    "model budget ≈ %s": "бюджет моделі ≈ %s",
+    "✓ %s pulled": "✓ %s завантажено",
+
+    "unknown": "невідомо",
+    "SkillFish AI - Setup": "SkillFish AI - Налаштування",
+    "Welcome to SkillFish AI": "Ласкаво просимо до SkillFish AI",
+    "All set!": "Готово!",
+    "Installing the engine": "Встановлення рушія",
+    "Install / Start": "Встановити / Запустити",
+    "Model": "Модель",
+    "active model / name to pull": "активна модель / назва для завантаження",
+    "Use": "Використати",
+    "Pull": "Завантажити",
+    "Hardware": "Обладнання",
+    "Shared memory for the model": "Спільна пам’ять для моделі",
+    "Apply and reboot": "Застосувати і перезавантажити",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM (GTT) the model may use on top of VRAM, so larger models fit. It is a kernel parameter → a reboot is required (a live change is not possible on this hardware, verified).":
+        "На BC-250 пам’ять спільна для ГП і ЦП: це збільшує частку системної пам’яті (GTT), яку модель може використати додатково до VRAM, тож поміщаються більші моделі. Це параметр ядра → потрібне перезавантаження (зміна наживо на цьому обладнанні неможлива, перевірено).",
+    "Open Chat (web)": "Відкрити чат (веб)",
+    "Refresh": "Оновити",
+    "… working …": "… виконується …",
+    "This wizard installs and starts Unsloth Studio, the local LLM engine accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you to set a password: you choose it, it is not created from here. Models are then downloaded from its own interface.\n\nEverything runs locally: no data leaves your PC.":
+        "Цей майстер встановлює і запускає Unsloth Studio — локальний рушій LLM з прискоренням через Vulkan на ГП.\n\nПри першому вході Unsloth попросить встановити пароль: ви обираєте його самі, звідси він не створюється. Моделі потім завантажуються з його власного інтерфейсу.\n\nУсе працює локально: жодні дані не залишають ваш комп’ютер.",
+    "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.":
+        "Рушій ШІ готовий. Змінювати моделі й налаштовувати пам’ять ГП (GTT) можна в панелі будь-коли.",
+    "Press “Install” to download and set up Unsloth Studio with the Vulkan backend. It is about 2 GB: this may take a few minutes.":
+        "Натисніть «Встановити», щоб завантажити і налаштувати Unsloth Studio з бекендом Vulkan. Це близько 2 ГБ: може зайняти кілька хвилин.",
+    "Models are downloaded and selected inside Unsloth Studio (“Open Chat” button).":
+        "Моделі завантажуються і обираються всередині Unsloth Studio (кнопка «Відкрити чат»).",
+    "Local LLM engine · Unsloth Studio · Vulkan GPU":
+        "Локальний рушій LLM · Unsloth Studio · Vulkan GPU",
+    "○ Engine OFF — GPU/memory free for games": "○ Рушій ВИМК. — ГП і пам’ять вільні для ігор",
+    "n/a (non-AMD GPU or shared VRAM)": "н/д (не AMD ГП або спільна VRAM)",
+    "not available on this GPU": "недоступно на цьому ГП",
+    "n/a": "н/д",
+    "● Engine ON — ready": "● Рушій УВІМК. — готовий",
+    "free": "вільно",
+    "operation cancelled": "операцію скасовано",
+    "Models are downloaded inside Unsloth Studio: open “Open Chat” and pick the model there.":
+        "Моделі завантажуються всередині Unsloth Studio: відкрийте «Відкрити чат» і виберіть модель там.",
+    "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
+        "\n✓ Unsloth Studio встановлено і запущено. При першому вході він попросить встановити пароль: ви обираєте його самі.",
+}
+
+def L(it, en):
+    """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
+    if LANG == "it": return it
+    if LANG == "pl": return PL.get(en, en)
+    if LANG == "uk": return UK.get(en, en)
+    return en
+
+def sh(cmd, t=60):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+        return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+# ---------- config ----------
+def load_cfg():
+    try:
+        with open(CFG_FILE) as f: return json.load(f)
+    except Exception:
+        return {}
+def save_cfg(d):
+    os.makedirs(CFG_DIR, exist_ok=True)
+    try:
+        with open(CFG_FILE, "w") as f: json.dump(d, f, indent=2)
+    except Exception:
+        pass  # best-effort: config save is non-critical
+
+# ---------- hardware ----------
+def cpu_model():
+    try:
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+    except Exception:
+        pass  # best-effort: /proc/cpuinfo unreadable
+    return "?"
+
+def gpu_model():
+    rc, out, _ = sh(r"lspci -nn 2>/dev/null | grep -E 'VGA|3D|Display' | head -1", 8)
+    if out:
+        # strip the leading 'xx:xx.x VGA compatible controller: '
+        if ":" in out:
+            out = out.split(":", 2)[-1].strip() if out.count(":") >= 2 else out
+        return out
+    return L("sconosciuta", "unknown")
+
+def _read_int(path):
+    try:
+        with open(path) as f:
+            return int(f.read().strip())
+    except Exception:
+        return None
+
+def _drm_device():
+    import glob
+    for p in sorted(glob.glob("/sys/class/drm/card[0-9]/device")):
+        if os.path.exists(os.path.join(p, "mem_info_vram_total")):
+            return p
+    return None
+
+def vram_info():
+    d = _drm_device()
+    if not d: return None
+    tot = _read_int(os.path.join(d, "mem_info_vram_total"))
+    used = _read_int(os.path.join(d, "mem_info_vram_used"))
+    if tot is None: return None
+    return (tot, used or 0)
+
+def gtt_info():
+    d = _drm_device()
+    tot = used = None
+    if d:
+        tot = _read_int(os.path.join(d, "mem_info_gtt_total"))
+        used = _read_int(os.path.join(d, "mem_info_gtt_used"))
+    # current boot value of amdgpu.gttsize (MB)
+    cur_mb = None
+    try:
+        with open("/proc/cmdline") as f:
+            for tok in f.read().split():
+                if tok.startswith("amdgpu.gttsize="):
+                    cur_mb = int(tok.split("=", 1)[1])
+    except Exception:
+        pass  # best-effort: cmdline unreadable
+    return tot, used, cur_mb
+
+def ram_info():
+    tot = avail = None
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal"):     tot = int(line.split()[1]) * 1024
+                elif line.startswith("MemAvailable"): avail = int(line.split()[1]) * 1024
+    except Exception:
+        pass  # best-effort: meminfo unreadable
+    return tot, avail
+
+def gb(n): return "?" if n is None else f"{n/1e9:.1f} GB"
+
+# ---------- engine ----------
+def unsloth_installed():
+    return os.path.exists(UNSLOTH_BIN)
+
+def engine_kind():
+    """Il motore e' uno solo: Unsloth Studio.
+
+    Qui c'era la scelta col vecchio stack Ollama su Docker. Docker e' stato
+    disinstallato e /opt/stacks rimossa, quindi quel ramo non era piu'
+    percorribile: restava solo a far credere che ci fosse un'alternativa.
+    """
+    return "unsloth"
+
+def unsloth_running():
+    rc, out, _ = sh(f"systemctl is-active {UNSLOTH_SVC}", 8)
+    return out.strip() == "active"
+
+def engine_running():
+    return unsloth_running()
+
+def installed_models():
+    # Unsloth tiene i modelli dietro la propria API autenticata: non li elenchiamo
+    # da qui, si scelgono dalla sua interfaccia.
+    return []
+
+def stack_installed():
+    """Vero quando il motore e' davvero installato: la procedura di primo avvio
+    compare SOLO quando e' falso."""
+    return unsloth_installed()
+
+def is_configured():
+    # wizard appears only if the stack is NOT already installed
+    return stack_installed()
+
+# ---------- worker threads ----------
+class Worker(QThread):
+    line = pyqtSignal(str)
+    done = pyqtSignal(int)
+    def __init__(self, cmd, t=1800):
+        super().__init__(); self.cmd = cmd; self.t = t
+    def run(self):
+        try:
+            p = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, text=True, bufsize=1)
+            for ln in iter(p.stdout.readline, ""):
+                if ln: self.line.emit(ln.rstrip())
+            p.wait(self.t); self.done.emit(p.returncode)
+        except Exception as e:
+            self.line.emit(str(e)); self.done.emit(1)
+
+
+# ======================= SETUP WIZARD =======================
+class SetupWizard(QWizard):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(L("SkillFish AI - Configurazione", "SkillFish AI - Setup"))
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(680, 520)
+        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
+        self.chosen_model = None
+        self.addPage(self._welcome())
+        self.install_page = InstallPage(); self.addPage(self.install_page)
+        # La pagina di scelta del modello non c'e': i modelli si scaricano dentro
+        # Unsloth Studio, che ha il proprio catalogo dietro la propria autenticazione.
+        self.addPage(self._finish())
+
+    def _welcome(self):
+        p = QWizardPage(); p.setTitle(L("Benvenuto in SkillFish AI", "Welcome to SkillFish AI"))
+        v = QVBoxLayout(p)
+        if True:
+            t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
+                         "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
+                         "ti chiederà di impostare una password: la scegli tu, non viene "
+                         "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
+                         "\n\nTutto gira in locale: nessun dato lascia il PC.",
+                         "This wizard installs and starts Unsloth Studio, the local LLM engine "
+                         "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
+                         "to set a password: you choose it, it is not created from here. Models "
+                         "are then downloaded from its own interface."
+                         "\n\nEverything runs locally: no data leaves your PC."))
+        t.setWordWrap(True); v.addWidget(t)
+        # hardware summary
+        gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
+        hw = QLabel(L("GPU rilevata: %s\nCPU: %s\nRAM: %s libera / %s", "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s") % (gm, cm, gb(ra), gb(rt)))
+        hw.setStyleSheet("color:#b9a07a;"); hw.setWordWrap(True); v.addWidget(hw)
+        v.addStretch(1)
+        return p
+
+    def _finish(self):
+        p = QWizardPage(); p.setTitle(L("Fatto!", "All set!"))
+        v = QVBoxLayout(p)
+        v.addWidget(QLabel(L("Il motore AI è pronto. Puoi cambiare modello e regolare la "
+                             "memoria GPU (GTT) dal pannello in qualsiasi momento.",
+                             "The AI engine is ready. You can switch models and tune the "
+                             "GPU memory (GTT) from the panel anytime.")))
+        v.addStretch(1)
+        return p
+
+class InstallPage(QWizardPage):
+    def __init__(self):
+        super().__init__()
+        self.setTitle(L("Installazione del motore", "Installing the engine"))
+        self.ok = False
+        v = QVBoxLayout(self)
+        if True:
+            self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
+                                 "con il backend Vulkan. Sono circa 2 GB: può richiedere "
+                                 "qualche minuto.",
+                                 "Press “Install” to download and set up Unsloth Studio with the "
+                                 "Vulkan backend. It is about 2 GB: this may take a few minutes."))
+        self.info.setWordWrap(True); v.addWidget(self.info)
+        self.btn = QPushButton(L("Installa / Avvia", "Install / Start")); self.btn.clicked.connect(self.run)
+        v.addWidget(self.btn)
+        self.bar = QProgressBar(); self.bar.setRange(0, 0); self.bar.hide(); v.addWidget(self.bar)
+        self.log = QTextEdit(); self.log.setReadOnly(True); self.log.setMinimumHeight(220)
+        v.addWidget(self.log)
+        self._w = None
+    def isComplete(self): return self.ok
+    def _append(self, s): self.log.append(s)
+    def run(self):
+        self.btn.setEnabled(False); self.bar.show()
+        # Un solo passo privilegiato: l'installer scarica Unsloth, forza il bundle
+        # llama.cpp con Vulkan e installa la unit systemd.
+        #
+        # ATTENZIONE, qui c'era un difetto: si impostava self.steps mentre _next()
+        # legge self._queue, che non veniva creato da nessuna parte. Premere
+        # «Installa» sollevava un AttributeError. Non si vedeva perche' questa
+        # procedura compare solo quando il motore NON e' ancora installato, e sulla
+        # macchina di sviluppo lo e' sempre stato.
+        self._queue = [f"pkexec sh -c 'UNSLOTH_FORCE_VULKAN=1 bash {UNSLOTH_INSTALLER}'"]
+        self._next()
+    def _next(self):
+        if not self._queue:
+            self._append(L("\n✓ Unsloth Studio installato e avviato. Al primo accesso ti chiedera' "
+                           "di impostare una password: la scegli tu.",
+                           "\n✓ Unsloth Studio installed and started. On first sign-in it will ask "
+                           "you to set a password: you choose it."))
+            self.bar.hide(); self.ok = True; self.completeChanged.emit(); return
+        cmd = self._queue.pop(0)
+        self._append("$ " + (cmd[:90] + ("…" if len(cmd) > 90 else "")))
+        self._w = Worker(cmd); self._w.line.connect(self._append)
+        self._w.done.connect(self._step_done); self._w.start()
+    def _step_done(self, rc):
+        if rc != 0:
+            self._append(L("! comando fallito (rc=%s) — continuo", "! command failed (rc=%s) — continuing") % (rc,))
+        self._next()
+
+# ======================= MAIN PANEL =======================
+class Panel(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SkillFish AI"); self.setWindowIcon(QIcon(ICON))
+        self.resize(620, 660); self.busy = False; self._t = None
+        cfg = load_cfg(); self.model = cfg.get("model", "qwen3:14b")
+
+        w = QWidget(); self.setCentralWidget(w)
+        v = QVBoxLayout(w); v.setContentsMargins(20, 16, 20, 16); v.setSpacing(12)
+
+        # header
+        h = QHBoxLayout()
+        img = QLabel(); pm = QPixmap(ICON)
+        if not pm.isNull():
+            img.setPixmap(pm.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        h.addWidget(img)
+        tcol = QVBoxLayout(); tcol.setSpacing(0)
+        title = QLabel("SkillFish AI"); title.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
+        self.sub = QLabel(""); self.sub.setStyleSheet("color:#b9a07a;")
+        tcol.addWidget(title); tcol.addWidget(self.sub)
+        h.addLayout(tcol); h.addStretch(1); v.addLayout(h)
+
+        # engine switch
+        self.eng = engine_kind()
+        engname = "Unsloth Studio"
+        g = QGroupBox(L("Motore AI (LLM) — %s", "AI Engine (LLM) — %s") % (engname,)); gv = QVBoxLayout(g)
+        self.cb = QCheckBox(L("Acceso — accende/spegne %s. Spegnilo prima di giocare.", "On — starts/stops %s. Turn it off before gaming.") % (engname,))
+        self.cb.toggled.connect(self.on_toggle); gv.addWidget(self.cb)
+        self.status = QLabel("…"); self.status.setWordWrap(True); gv.addWidget(self.status)
+        v.addWidget(g)
+
+        # model manager
+        gm = QGroupBox(L("Modello", "Model")); mv = QGridLayout(gm)
+        self.modelbox = QComboBox(); self.modelbox.setEditable(True)
+        self.modelbox.lineEdit().setPlaceholderText(L("modello attivo / nome da scaricare", "active model / name to pull"))
+        mv.addWidget(self.modelbox, 0, 0, 1, 2)
+        self.bset = QPushButton(L("Usa", "Use")); self.bset.clicked.connect(self.set_active)
+        self.bpull = QPushButton(L("Scarica", "Pull")); self.bpull.clicked.connect(self.pull_model)
+        mv.addWidget(self.bset, 0, 2); mv.addWidget(self.bpull, 0, 3)
+        self.modelmsg = QLabel(""); self.modelmsg.setStyleSheet("color:#b9a07a;"); self.modelmsg.setWordWrap(True)
+        mv.addWidget(self.modelmsg, 1, 0, 1, 4)
+        # Unsloth manages models in its own UI, so the pull/select row would be dead
+        # controls here — point the user at the right place instead of faking it.
+        if self.eng == "unsloth":
+            for wdg in (self.modelbox, self.bset, self.bpull):
+                wdg.setEnabled(False)
+            self.modelmsg.setText(L("I modelli si scaricano e si scelgono dentro Unsloth Studio "
+                                    "(pulsante «Apri Chat»).",
+                                    "Models are downloaded and selected inside Unsloth Studio "
+                                    "(“Open Chat” button)."))
+        v.addWidget(gm)
+
+        # hardware panel
+        gh = QGroupBox(L("Hardware", "Hardware")); hv = QGridLayout(gh)
+        self.l_gpu = QLabel("—"); self.l_cpu = QLabel("—"); self.l_vram = QLabel("—"); self.l_ram = QLabel("—")
+        for lbl in (self.l_gpu, self.l_cpu, self.l_vram, self.l_ram): lbl.setWordWrap(True)
+        hv.addWidget(QLabel("GPU:"), 0, 0); hv.addWidget(self.l_gpu, 0, 1)
+        hv.addWidget(QLabel("CPU:"), 1, 0); hv.addWidget(self.l_cpu, 1, 1)
+        hv.addWidget(QLabel("VRAM:"), 2, 0); hv.addWidget(self.l_vram, 2, 1)
+        hv.addWidget(QLabel("RAM:"), 3, 0); hv.addWidget(self.l_ram, 3, 1)
+        v.addWidget(gh)
+
+        # Shared memory for the model (GTT)
+        gg = QGroupBox(L("Memoria condivisa per il modello", "Shared memory for the model")); ggv = QVBoxLayout(gg)
+        self.gtt_lbl = QLabel("—"); self.gtt_lbl.setWordWrap(True); ggv.addWidget(self.gtt_lbl)
+        sr = QHBoxLayout()
+        self.gtt = QSlider(Qt.Orientation.Horizontal); self.gtt.setMinimum(2); self.gtt.setMaximum(14); self.gtt.setSingleStep(1)
+        self.gtt.valueChanged.connect(lambda x: self.gtt_val.setText(f"{x} GB"))
+        self.gtt_val = QLabel("— GB"); self.gtt_val.setMinimumWidth(56)
+        sr.addWidget(self.gtt); sr.addWidget(self.gtt_val); ggv.addLayout(sr)
+        self.gtt_apply = QPushButton(L("Applica e riavvia", "Apply and reboot"))
+        self.gtt_apply.clicked.connect(self.apply_gtt); ggv.addWidget(self.gtt_apply)
+        hint = QLabel(L("Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
+                        "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
+                        "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
+                        "possibile su questo hardware, verificato).",
+                        "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
+                        "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
+                        "parameter → a reboot is required (a live change is not possible on this "
+                        "hardware, verified)."))
+        hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
+        v.addWidget(gg)
+
+        # buttons
+        b = QHBoxLayout()
+        chat_url = UNSLOTH_URL if self.eng == "unsloth" else WEBUI_URL
+        bw = QPushButton(L("Apri Chat (web)", "Open Chat (web)")); bw.clicked.connect(lambda: sh(f"xdg-open {chat_url} &"))
+        br = QPushButton(L("Aggiorna", "Refresh")); br.clicked.connect(self.refresh_all)
+        b.addWidget(bw)
+        b.addWidget(br)
+        v.addLayout(b)
+
+        self.statusBar()
+        self.refresh_all()
+        self.timer = QTimer(self); self.timer.timeout.connect(self._tick); self.timer.start(5000)
+
+    # ---- refresh ----
+    def _tick(self):
+        if not self.busy: self.refresh_engine(); self.refresh_hw()
+    def refresh_all(self):
+        self.refresh_engine(); self.refresh_hw(); self.refresh_models()
+    def refresh_engine(self):
+        run = engine_running()
+        self.cb.blockSignals(True); self.cb.setChecked(run); self.cb.blockSignals(False)
+        if self.eng == "unsloth":
+            self.sub.setText(L("Motore LLM locale · Unsloth Studio · GPU Vulkan",
+                               "Local LLM engine · Unsloth Studio · Vulkan GPU"))
+        else:
+            self.sub.setText(L("Motore LLM locale · modello: %s", "Local LLM engine · model: %s") % (self.model,))
+        api = UNSLOTH_URL + "/v1"
+        if run:
+            self.status.setText(L("● Motore ACCESO — pronto", "● Engine ON — ready")
+                                + f"   ·   API {api}")
+            self.status.setStyleSheet("color:#9ccf6a;font-weight:600;")
+        else:
+            self.status.setText(L("○ Motore SPENTO — GPU/memoria libere per i giochi",
+                                  "○ Engine OFF — GPU/memory free for games"))
+            self.status.setStyleSheet("color:#cf8a6a;font-weight:600;")
+    def refresh_hw(self):
+        self.l_gpu.setText(gpu_model()); self.l_cpu.setText(cpu_model())
+        vr = vram_info()
+        if vr:
+            tot, used = vr; self.l_vram.setText(f"{gb(tot-used)} {L('libera','free')} / {gb(tot)}")
+        else:
+            self.l_vram.setText(L("n/d (GPU non-AMD o VRAM condivisa)", "n/a (non-AMD GPU or shared VRAM)"))
+        rt, ra = ram_info(); self.l_ram.setText(f"{gb(ra)} {L('libera','free')} / {gb(rt)}")
+        gt, gu, cur = gtt_info()
+        rt2, _ = ram_info(); vr2 = vram_info()
+        # GTT draws on system RAM -> cap the slider at total RAM minus headroom for the OS
+        ram_gb = int(rt2 / 1e9) if rt2 else 14
+        smax = max(4, min(60, ram_gb - 1)); self.gtt.setMaximum(smax)
+        budget = (vr2[0] + gt) if (vr2 and gt is not None) else None
+        parts = []
+        if budget is not None: parts.append(L("budget modello ≈ %s", "model budget ≈ %s") % (gb(budget),))
+        if gt is not None: parts.append(f"GTT {gb(gt)}")
+        if cur is not None: parts.append(f"amdgpu.gttsize={cur} MB")
+        self.gtt_lbl.setText("  ·  ".join(parts) if parts else L("non disponibile su questa GPU", "not available on this GPU"))
+        if cur is not None:
+            self.gtt.blockSignals(True); self.gtt.setValue(max(2, min(smax, round(cur/1024)))); self.gtt.blockSignals(False)
+            self.gtt_val.setText(f"{self.gtt.value()} GB")
+            self.gtt.setEnabled(True); self.gtt_apply.setEnabled(True)
+        else:
+            self.gtt.setEnabled(False); self.gtt_apply.setEnabled(False); self.gtt_val.setText(L("n/d","n/a"))
+    def refresh_models(self):
+        cur = self.modelbox.currentText()
+        self.modelbox.blockSignals(True); self.modelbox.clear()
+        inst = installed_models()
+        if inst: self.modelbox.addItems(inst)
+        else:
+            for name, _ in CATALOG: self.modelbox.addItem(name)
+        # select active model
+        i = self.modelbox.findText(self.model)
+        if i >= 0: self.modelbox.setCurrentIndex(i)
+        elif cur: self.modelbox.setEditText(cur)
+        self.modelbox.blockSignals(False)
+        self.modelmsg.setText(L("%d modelli installati", "%d models installed") % len(inst) if inst
+                              else L("nessun modello installato", "no models installed"))
+
+    # ---- engine ----
+    def on_toggle(self, state):
+        if self.busy: return
+        self.busy = True; self.cb.setEnabled(False)
+        self.status.setText(L("… operazione in corso …", "… working …"))
+        action = "start" if state else "stop"
+        cmd = f"pkexec systemctl {action} {UNSLOTH_SVC}"
+        self._t = Worker(cmd, 180); self._t.done.connect(self._toggled); self._t.start()
+    def _toggled(self, rc):
+        self.busy = False; self.cb.setEnabled(True); self.refresh_engine()
+
+    # ---- model actions ----
+    def set_active(self):
+        name = self.modelbox.currentText().strip()
+        if not name: return
+        self.model = name; cfg = load_cfg(); cfg["model"] = name; cfg["setup_done"] = True; save_cfg(cfg)
+        self.modelmsg.setText(L("Modello attivo: %s", "Active model: %s") % (name,)); self.refresh_engine()
+    def pull_model(self):
+        name = self.modelbox.currentText().strip()
+        if not name: return
+        # Scaricare il modello da qui era possibile con Ollama. Unsloth Studio ha il
+        # proprio catalogo dietro la propria autenticazione: non possiamo farlo al
+        # posto dell'utente, e dirglielo e' meglio che un pulsante che non fa nulla.
+        QMessageBox.information(self, "SkillFish AI",
+                                L("I modelli si scaricano dentro Unsloth Studio: apri «Apri Chat» "
+                                  "e scegli il modello da li'.",
+                                  "Models are downloaded inside Unsloth Studio: open “Open Chat” "
+                                  "and pick the model there."))
+        return
+    def _pulled(self, rc, name):
+        self.bpull.setEnabled(True)
+        self.modelmsg.setText(L("✓ %s scaricato", "✓ %s pulled") % name if rc == 0
+                              else L("! errore su %s", "! error pulling %s") % name)
+        self.refresh_models()
+
+    # ---- GTT ----
+    def apply_gtt(self):
+        mb = self.gtt.value() * 1024
+        if QMessageBox.question(self, "SkillFish AI",
+                L("Impostare GTT a %s GB? Serve un riavvio per applicare.", "Set GTT to %s GB? A reboot is needed to apply.") % (self.gtt.value(),)) != QMessageBox.StandardButton.Yes:
+            return
+        rc, out, err = sh(f"pkexec skillfish-gtt {mb}", 60)
+        if rc == 0:
+            if QMessageBox.question(self, "SkillFish AI",
+                    L("Memoria impostata a %s GB. Riavviare ora per applicarla?", "Memory set to %s GB. Reboot now to apply it?") % (self.gtt.value(),)) == QMessageBox.StandardButton.Yes:
+                sh("pkexec systemctl reboot")
+        else:
+            QMessageBox.warning(self, "SkillFish AI", (out or err or L("operazione annullata", "operation cancelled")))
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFish AI")
+    app.setDesktopFileName("os.skillfish.ai")
+    app.setWindowIcon(QIcon(ICON))
+    # First run: wizard (only if the stack/model isn't set up yet).
+    if not is_configured():
+        wiz = SetupWizard()
+        if wiz.exec():
+            cfg = load_cfg()
+            if wiz.chosen_model: cfg["model"] = wiz.chosen_model
+            cfg["setup_done"] = True; save_cfg(cfg)
+    p = Panel(); p.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

@@ -37,6 +37,9 @@ LANG = _detect_lang()
 # la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
 # non ancora tradotta ricade sull'inglese invece di sparire.
 PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "Recording: %.0f s, %d samples": "Nagrywanie: %.0f s, próbek: %d",
+
     "Temperature": "Temperatura",
     "Load": "Obciążenie",
     "Frequency": "Częstotliwość",
@@ -73,6 +76,9 @@ PL = {
 # Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
 # a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
 UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "Recording: %.0f s, %d samples": "Запис: %.0f с, вибірок: %d",
+
     "Temperature": "Температура",
     "Load": "Навантаження",
     "Frequency": "Частота",
@@ -595,8 +601,7 @@ class Monitor(QMainWindow):
                      "gpu_util": "GPU %", "cpu_mhz": "CPU MHz", "gpu_freq": "GPU MHz",
                      "gpu_power": "GPU W", "gpu_mv": "GPU mV", "cpu_mv": "CPU mV",
                      "fan": "Fan RPM", "vram": "VRAM MB"}
-            lines = [L("Registrazione: %.0f s, %d campioni" % (dur, len(rows)),
-                       "Recording: %.0f s, %d samples" % (dur, len(rows))), ""]
+            lines = [L("Registrazione: %.0f s, %d campioni", "Recording: %.0f s, %d samples") % (dur, len(rows)), ""]
             for i, k in enumerate(REC_KEYS, start=1):
                 series = [r[i] for r in rows if isinstance(r[i], (int, float))]
                 if series:
