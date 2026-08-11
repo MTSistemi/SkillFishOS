@@ -8,12 +8,19 @@ VER="${1:-0.0~ci$(date +%Y%m%d)}"
 OUT="${OUT:-/tmp/sfx-debs}"
 rm -rf "$OUT"; mkdir -p "$OUT/out"
 
+# Ogni put/opt/putdir annota la SORGENTE in .sources. Serve a generare il
+# changelog del pacchetto dai commit che toccano davvero i SUOI file, invece di
+# un testo generico uguale per tutti.
+note_src() { mkdir -p "$OUT/$1"; echo "$2" >> "$OUT/$1/.sources"; }
+
 put() { # put <pkg> <mode> <src> <dest-rel>
   [ -f "$3" ] || { echo "FATAL: missing source file $3" >&2; exit 1; }
   install -D -m "$2" "$3" "$OUT/$1/$4"
+  note_src "$1" "$3"
 }
 opt() { # like put, but optional
-  [ -f "$3" ] && install -D -m "$2" "$3" "$OUT/$1/$4" || echo "  (optional, skipped: $3)"
+  [ -f "$3" ] && { install -D -m "$2" "$3" "$OUT/$1/$4"; note_src "$1" "$3"; } \
+               || echo "  (optional, skipped: $3)"
 }
 putdir() { # putdir <pkg> <src-dir> <dest-rel-dir>: install a whole tree (0644)
   [ -d "$2" ] || { echo "FATAL: missing source dir $2" >&2; exit 1; }
@@ -21,9 +28,65 @@ putdir() { # putdir <pkg> <src-dir> <dest-rel-dir>: install a whole tree (0644)
   while IFS= read -r f; do
     install -D -m 0644 "$2/$f" "$OUT/$1/$3/$f"
   done < <(cd "$2" && find . -type f ! -name 'icon-theme.cache' -printf '%P\n')
+  note_src "$1" "$2"
 }
+# CHANGELOG E COPYRIGHT, che prima non c'erano affatto.
+#
+# I nostri .deb non avevano nemmeno la cartella /usr/share/doc/<pkg>/. Per la
+# Debian Policy changelog.Debian.gz e copyright sono OBBLIGATORI, non un
+# optional: senza, chi installa non ha modo di sapere cosa e' cambiato ne' con
+# quale licenza sta usando il software. Su un sistema che si scarica da mezzo
+# mondo e' una mancanza seria.
+#
+# Il changelog NON e' un testo di comodo: si genera dai commit git che toccano
+# i file di QUEL pacchetto (l'elenco lo ha accumulato note_src). Se un pacchetto
+# non e' cambiato, la sua voce lo dice invece di inventare una riga.
+docs() { # docs <pkg>
+  local p="$1" d="$OUT/$1/usr/share/doc/$1"
+  mkdir -p "$d"
+
+  # --- changelog dai commit veri ---
+  local righe=""
+  if [ -f "$OUT/$p/.sources" ] && git -C . rev-parse >/dev/null 2>&1; then
+    # shellcheck disable=SC2046
+    righe=$(git log -n 12 --no-merges --pretty=format:'%s' -- \
+              $(sort -u "$OUT/$p/.sources" | tr '\n' ' ') 2>/dev/null \
+            | sed 's/[[:space:]]*$//' | awk 'NF' | head -8)
+  fi
+  [ -n "$righe" ] || righe="Nessuna modifica ai file di questo pacchetto in questa versione."
+
+  {
+    printf '%s (%s) unstable; urgency=medium\n\n' "$p" "$VER"
+    printf '%s\n' "$righe" | sed 's/^/  * /'
+    printf '\n -- SkillFishOS <info@skillfishos.com>  %s\n' "$(date -R)"
+  } > "$d/changelog.Debian"
+  gzip -9n -f "$d/changelog.Debian"
+
+  # --- copyright ---
+  cat > "$d/copyright" <<COPY
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: SkillFishOS
+Source: https://github.com/skillfishos/SkillFishOS
+
+Files: *
+Copyright: 2026 Mattia Tadini e collaboratori SkillFishOS
+License: GPL-3+
+ Questo programma e' software libero: puoi ridistribuirlo e/o modificarlo nei
+ termini della GNU General Public License come pubblicata dalla Free Software
+ Foundation, versione 3 o (a tua scelta) una successiva.
+ .
+ E' distribuito nella speranza che sia utile, ma SENZA ALCUNA GARANZIA, senza
+ nemmeno la garanzia implicita di COMMERCIABILITA' o IDONEITA' PER UNO SCOPO
+ PARTICOLARE. Vedi la GNU General Public License per i dettagli.
+ .
+ Su un sistema Debian il testo completo della GPL versione 3 si trova in
+ /usr/share/common-licenses/GPL-3.
+COPY
+}
+
 ctrl() { # ctrl <pkg> <depends> <desc-first-line>
   mkdir -p "$OUT/$1/DEBIAN"
+  docs "$1"
   printf 'Package: %s\nVersion: %s\nArchitecture: all\nMaintainer: SkillFishOS <info@skillfishos.com>\nDepends: %s\nSection: utils\nPriority: optional\nHomepage: https://skillfishos.com\nDescription: %s\n built from git by CI.\n' \
     "$1" "$VER" "$2" "$3" > "$OUT/$1/DEBIAN/control"
   printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$1/DEBIAN/postinst"
@@ -293,6 +356,10 @@ put $P 0644 system/etc/systemd/system/skillfish-dashboard.service etc/systemd/sy
 put $P 0644 system/usr/share/applications/os.skillfish.remote-manager.desktop usr/share/applications/os.skillfish.remote-manager.desktop
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.remote-manager.policy usr/share/polkit-1/actions/os.skillfish.remote-manager.policy
 mkdir -p "$OUT/$P/DEBIAN"
+# Questo pacchetto scrive il proprio control a mano invece di usare ctrl(),
+# quindi va chiamata docs() esplicitamente: senza, era l'unico a restare senza
+# changelog e copyright.
+docs $P
 cat > "$OUT/$P/DEBIAN/control" <<EOF
 Package: skillfish-dashboard
 Version: $VER
@@ -411,9 +478,32 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
 
 for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-menu; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+  # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
+  # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
+  rm -f "$OUT/$P/.sources"
   dpkg-deb --root-owner-group --build "$OUT/$P" "$OUT/out/${P}_${VER}_all.deb" >/dev/null
 done
 ls -l "$OUT/out"
+
+echo "== ogni pacchetto ha changelog e copyright? =="
+# Debian Policy li rende obbligatori, e fino a oggi NON c'erano: i nostri .deb
+# non avevano nemmeno /usr/share/doc/<pkg>/. Qui si verifica che ci siano tutti,
+# perche' e' il tipo di cosa che si dimentica al primo pacchetto nuovo.
+manca=0
+for d in "$OUT"/out/*.deb; do
+  p=$(dpkg-deb -f "$d" Package)
+  # l'elenco si scrive su file: con `dpkg-deb -c | grep -q` grep esce al primo
+  # riscontro, chiude la pipe e dpkg-deb muore di SIGPIPE — con pipefail attivo
+  # il risultato e' un falso negativo su un pacchetto perfettamente a posto
+  # (successo davvero con skillfish-theme, 839 file).
+  dpkg-deb -c "$d" > /tmp/elenco.$$ 2>/dev/null || true
+  for f in "usr/share/doc/$p/changelog.Debian.gz" "usr/share/doc/$p/copyright"; do
+    grep -qF "$f" /tmp/elenco.$$ || { echo "FAIL $p: manca $f" >&2; manca=1; }
+  done
+  grep -qF '/.sources' /tmp/elenco.$$ && { echo "FAIL $p: .sources finito dentro il pacchetto" >&2; manca=1; }
+  rm -f /tmp/elenco.$$
+done
+[ "$manca" = 0 ] && echo "OK  tutti i pacchetti hanno changelog e copyright" || exit 1
 
 echo "== content verification (the bogus-deb guard) =="
 check() { dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep "$3" >/dev/null \
