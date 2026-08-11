@@ -24,7 +24,7 @@
       },
       "thermal_guard": 85,
       "name_pl": "Wydajny",
-      "desc_pl": "Zloty srodek przy 40 CU: niemal ten sam FPS co przy 2200 MHz, ale o 10 °C i 18 W mniej. Zmierzone: przy 2200 GPU i tak schodzi do ~1859 MHz.",
+      "desc_pl": "Złoty środek przy 40 CU: niemal ten sam FPS co przy 2200 MHz, ale o 10 °C i 18 W mniej. Zmierzone: przy 2200 GPU i tak schodzi do ~1859 MHz.",
       "name_uk": "Ефективний",
       "desc_uk": "Золота середина на 40 CU: майже той самий FPS, що й на 2200 МГц, але на 10 °C і 18 Вт менше. Виміряно: на 2200 ГП усе однознижується до ~1859 МГц."
     },
@@ -52,7 +52,7 @@
       },
       "thermal_guard": 85,
       "name_pl": "Fabryczny",
-      "desc_pl": "Bezpieczne wartosci wyjsciowe. CPU 3500 MHz, GPU 1500 MHz.",
+      "desc_pl": "Bezpieczne wartości wyjściowe. CPU 3500 MHz, GPU 1500 MHz.",
       "name_uk": "Заводський",
       "desc_uk": "Безпечні базові значення. ЦП 3500 МГц, ГП 1500 МГц."
     },
@@ -79,8 +79,8 @@
         "pct": 55
       },
       "thermal_guard": 85,
-      "name_pl": "Wydajnosc",
-      "desc_pl": "Zrownowazony, z obnizonym napieciem. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "name_pl": "Wydajność",
+      "desc_pl": "Zrównoważony, z obniżonym napięciem. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
       "name_uk": "Продуктивність",
       "desc_uk": "Збалансовано, зі зниженою напругою. ЦП 3700 МГц ~1106 мВ, ГП 2000 МГц."
     },
@@ -108,7 +108,7 @@
       },
       "thermal_guard": 85,
       "name_pl": "Turbo",
-      "desc_pl": "Mocne podkrecenie. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "desc_pl": "Mocne podkręcenie. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
       "name_uk": "Турбо",
       "desc_uk": "Сильний розгін. ЦП 3900 МГц ~1199 мВ (зниження напруги), ГП 2200 МГц."
     },
