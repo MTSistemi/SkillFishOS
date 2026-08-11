@@ -1,7 +1,11 @@
 [Desktop Entry]
 Type=Directory
+# Name resta uguale in tutte le lingue: e' il nome del prodotto, non si traduce.
+# Il Comment invece si vede passando sulla categoria nel menu, ed era solo in
+# italiano e inglese come tutto il resto prima di oggi.
 Name=SkillFishOS
-Name[it]=SkillFishOS
 Comment=SkillFishOS tools — kernel, monitor, tuner, AI, software hub
 Comment[it]=Strumenti SkillFishOS — kernel, monitor, tuner, AI, hub software
+Comment[pl]=Narzędzia SkillFishOS — jądro, monitor, tuner, AI, centrum oprogramowania
+Comment[uk]=Інструменти SkillFishOS — ядро, монітор, тюнер, ШІ, центр програм
 Icon=skillfishos
