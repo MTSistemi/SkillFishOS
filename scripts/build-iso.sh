@@ -96,6 +96,22 @@ if [ -f "$LOCF" ]; then
     echo "lingua: l'immagine partira' in inglese"
 fi
 
+# --- fix GRUB/Calamares (issue #12 btrfs, #20 ext4+btrfs) ------------------
+# eggs rigenera /etc/calamares dai propri template a OGNI produce, quindi la
+# correzione (secondo grub-install + update-grub dopo il modulo bootloader,
+# riparazione degli extent del kernel scritto da unpackfs) va riapplicata
+# prima di ogni build, non solo la prima volta. Un aggiornamento del pacchetto
+# penguins-eggs puo' anche sovrascrivere i template stessi (come e' successo a
+# customize-partitions.js e a show.qml), quindi non basta averla fatta una
+# volta: se lo script non riesce piu' a verificarla sul posto, la ISO uscirebbe
+# di nuovo con GRUB rotto e nessuno se ne accorgerebbe finche' qualcuno non
+# prova a installarla. Meglio fermare la build.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
+RC=$?
+echo "fix-eggs-calamares-boot rc=$RC"
+[ $RC -ne 0 ] && { echo "FAIL-BOOTFIX rc=$RC" > "$ST"; echo "==== FALLITA (fix GRUB non applicata) ===="; exit 1; }
+
 rm -f /home/eggs/mnt/*.iso 2>/dev/null
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
