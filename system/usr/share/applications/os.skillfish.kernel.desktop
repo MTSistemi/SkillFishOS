@@ -2,10 +2,16 @@
 Type=Application
 Name=SkillFishOS Kernel Manager
 Name[it]=SkillFishOS Gestore Kernel
+Name[pl]=SkillFishOS Menedzer jadra
+Name[uk]=SkillFishOS Менеджер ядер
 GenericName=Kernel Manager
 GenericName[it]=Gestore Kernel
+GenericName[pl]=Menedzer jadra
+GenericName[uk]=Менеджер ядер
 Comment=Choose the boot kernel and completely remove unused kernels
 Comment[it]=Scegli il kernel di avvio e rimuovi completamente i kernel inutilizzati
+Comment[pl]=Wybierz jadro startowe i calkowicie usun nieuzywane
+Comment[uk]=Виберіть ядро для завантаження і повністю вилучіть непотрібні
 Exec=/usr/local/bin/skillfish-kernel-manager
 Icon=skillfishos
 Terminal=false

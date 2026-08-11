@@ -1,10 +1,10 @@
 {
   "presets": [
     {
-      "name": "Efficiente",
+      "name": "Efficient",
       "name_it": "Efficiente",
       "name_en": "Efficient",
-      "desc": "Il punto dolce con 40 CU: quasi gli stessi FPS di 2200 MHz ma 10 °C e 18 W in meno. Misurato: a 2200 la GPU throttla comunque a ~1859 MHz.",
+      "desc": "The sweet spot with 40 CUs: nearly the same FPS as 2200 MHz for 10 °C and 18 W less. Measured: at 2200 the GPU throttles back to ~1859 MHz anyway.",
       "desc_it": "Il punto dolce con 40 CU: quasi gli stessi FPS di 2200 MHz ma 10 °C e 18 W in meno. Misurato: a 2200 la GPU throttla comunque a ~1859 MHz.",
       "desc_en": "The sweet spot with 40 CUs: nearly the same FPS as 2200 MHz for 10 °C and 18 W less. Measured: at 2200 the GPU throttles back to ~1859 MHz anyway.",
       "cpu": {
@@ -22,13 +22,17 @@
         "mode": "auto",
         "pct": 45
       },
-      "thermal_guard": 85
+      "thermal_guard": 85,
+      "name_pl": "Wydajny",
+      "desc_pl": "Zloty srodek przy 40 CU: niemal ten sam FPS co przy 2200 MHz, ale o 10 °C i 18 W mniej. Zmierzone: przy 2200 GPU i tak schodzi do ~1859 MHz.",
+      "name_uk": "Ефективний",
+      "desc_uk": "Золота середина на 40 CU: майже той самий FPS, що й на 2200 МГц, але на 10 °C і 18 Вт менше. Виміряно: на 2200 ГП усе однознижується до ~1859 МГц."
     },
     {
       "name": "Stock",
       "name_it": "Stock",
       "name_en": "Stock",
-      "desc": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz.",
+      "desc": "Safe baseline. CPU 3500 MHz, GPU 1500 MHz.",
       "desc_it": "Valori di base sicuri. CPU 3500 MHz, GPU 1500 MHz.",
       "desc_en": "Safe baseline. CPU 3500 MHz, GPU 1500 MHz.",
       "cpu": {
@@ -46,13 +50,17 @@
         "mode": "auto",
         "pct": 45
       },
-      "thermal_guard": 85
+      "thermal_guard": 85,
+      "name_pl": "Fabryczny",
+      "desc_pl": "Bezpieczne wartosci wyjsciowe. CPU 3500 MHz, GPU 1500 MHz.",
+      "name_uk": "Заводський",
+      "desc_uk": "Безпечні базові значення. ЦП 3500 МГц, ГП 1500 МГц."
     },
     {
       "name": "Performance",
       "name_it": "Performance",
       "name_en": "Performance",
-      "desc": "Equilibrato e undervoltato. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "desc": "Balanced + undervolted. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
       "desc_it": "Equilibrato e undervoltato. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
       "desc_en": "Balanced + undervolted. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
       "cpu": {
@@ -70,13 +78,17 @@
         "mode": "auto",
         "pct": 55
       },
-      "thermal_guard": 85
+      "thermal_guard": 85,
+      "name_pl": "Wydajnosc",
+      "desc_pl": "Zrownowazony, z obnizonym napieciem. CPU 3700 MHz ~1106 mV, GPU 2000 MHz.",
+      "name_uk": "Продуктивність",
+      "desc_uk": "Збалансовано, зі зниженою напругою. ЦП 3700 МГц ~1106 мВ, ГП 2000 МГц."
     },
     {
       "name": "Turbo",
       "name_it": "Turbo",
       "name_en": "Turbo",
-      "desc": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "desc": "High boost. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
       "desc_it": "Spinta alta. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
       "desc_en": "High boost. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
       "cpu": {
@@ -94,13 +106,17 @@
         "mode": "auto",
         "pct": 65
       },
-      "thermal_guard": 85
+      "thermal_guard": 85,
+      "name_pl": "Turbo",
+      "desc_pl": "Mocne podkrecenie. CPU 3900 MHz ~1199 mV (undervolt), GPU 2200 MHz.",
+      "name_uk": "Турбо",
+      "desc_uk": "Сильний розгін. ЦП 3900 МГц ~1199 мВ (зниження напруги), ГП 2200 МГц."
     },
     {
       "name": "Crazy",
       "name_it": "Crazy",
       "name_en": "Crazy",
-      "desc": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
+      "desc": "Validated maximum. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
       "desc_it": "Massimo validato. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
       "desc_en": "Validated maximum. CPU 4.0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
       "cpu": {
@@ -118,7 +134,11 @@
         "mode": "auto",
         "pct": 70
       },
-      "thermal_guard": 85
+      "thermal_guard": 85,
+      "name_pl": "Szalony",
+      "desc_pl": "Zwalidowane maksimum. CPU 4,0 GHz ~1224 mV (undervolt), GPU 2200 MHz.",
+      "name_uk": "Екстремальний",
+      "desc_uk": "Перевірений максимум. ЦП 4,0 ГГц ~1224 мВ (зниження напруги), ГП 2200 МГц."
     }
   ]
 }

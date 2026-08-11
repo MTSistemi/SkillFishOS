@@ -1,7 +1,13 @@
 [Desktop Entry]
 Name=SkillFish AI
-GenericName=Gestione stack AI
-Comment=Accendi/spegni il motore LLM locale (Ollama+Vulkan) e apri la chat web
+GenericName=Local AI engine
+GenericName[it]=Motore AI locale
+GenericName[pl]=Lokalny silnik AI
+GenericName[uk]=Локальний рушій ШІ
+Comment=Turn the local LLM engine (Unsloth, Vulkan) on and off, and open the chat
+Comment[it]=Accendi e spegni il motore LLM locale (Unsloth, Vulkan) e apri la chat
+Comment[pl]=Wlacz i wylacz lokalny silnik LLM (Unsloth, Vulkan) i otworz czat
+Comment[uk]=Вмикайте та вимикайте локальний рушій LLM (Unsloth, Vulkan) і відкривайте чат
 Exec=/usr/local/bin/skillfish-ai-panel
 Icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
 Terminal=false

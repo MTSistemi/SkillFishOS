@@ -2,8 +2,13 @@
 Type=Application
 Name=SkillFishOS Telemetry
 GenericName=System telemetry
+GenericName[it]=Telemetria di sistema
+GenericName[pl]=Telemetria systemu
+GenericName[uk]=Телеметрія системи
 Comment=Live sensor charts + benchmark recorder/analyzer (.sfmon)
 Comment[it]=Grafici live dei sensori + registratore/analizzatore di benchmark (.sfmon)
+Comment[pl]=Wykresy czujnikow na zywo + rejestrator i analizator testow (.sfmon)
+Comment[uk]=Графіки датчиків наживо + запис і аналіз тестів (.sfmon)
 Exec=/usr/local/bin/skillfish-monitor %f
 Icon=skillfishos
 Terminal=false

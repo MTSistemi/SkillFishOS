@@ -1,7 +1,13 @@
 [Desktop Entry]
 Type=Application
-Name=Monta immagine ISO
-Comment=Monta una immagine ISO con udisks2
+Name=Mount ISO image
+Name[it]=Monta immagine ISO
+Name[pl]=Zamontuj obraz ISO
+Name[uk]=Змонтувати образ ISO
+Comment=Mount an ISO image with udisks2
+Comment[it]=Monta una immagine ISO con udisks2
+Comment[pl]=Zamontuj obraz ISO za pomoca udisks2
+Comment[uk]=Змонтувати образ ISO через udisks2
 Exec=/usr/local/bin/skillfish-iso-mount %f
 Icon=media-optical
 NoDisplay=true
