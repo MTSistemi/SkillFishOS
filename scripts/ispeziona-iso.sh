@@ -93,6 +93,21 @@ echo
 echo "=== versioni dei nostri pacchetti nell'immagine ==="
 chroot "$S" dpkg -l 'skillfish-*' 2>/dev/null | awk '/^ii/{printf "  %-26s %s\n", $2, $3}'
 
+# Nessun pacchetto deve restare indietro. skillfish-iso-mount e skillfish-menu
+# erano fermi a 26.06 mentre tutti gli altri erano a 26.08.13: uno stava solo nel
+# vecchio script di build, l'altro in nessuno. Me ne sono accorto guardando
+# l'elenco a occhio, che non e' un modo di lavorare — qui la differenza la trova
+# lo script, confrontando ogni versione con quella piu' diffusa.
+COMUNE=$(chroot "$S" dpkg -l 'skillfish-*' 2>/dev/null | awk '/^ii/{print $3}' \
+         | sort | uniq -c | sort -rn | head -1 | awk '{print $2}')
+INDIETRO=$(chroot "$S" dpkg -l 'skillfish-*' 2>/dev/null \
+           | awk -v v="$COMUNE" '/^ii/ && $3 != v {printf "%s(%s) ", $2, $3}')
+if [ -n "$INDIETRO" ]; then
+  ko "versioni disallineate rispetto a $COMUNE: $INDIETRO"
+else
+  ok "tutti i pacchetti allineati a $COMUNE"
+fi
+
 echo
 printf '  superati %d, falliti %d\n' "$PASS" "$FAIL"
 umount "$S"; umount "$M"
