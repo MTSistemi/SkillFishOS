@@ -31,7 +31,11 @@ EOF
 
 build skillfish-kernel-switch "python3, python3-pyqt6, polkitd | policykit-1, grub2-common" \
   "SkillFishOS Kernel Switch - choose the boot kernel (GRUB default / boot-once)" \
-  /usr/local/bin/skillfish-kernel-switch /usr/local/bin/skillfish-grub-helper /usr/share/applications/os.skillfish.kernel.desktop
+  /usr/local/bin/skillfish-kernel-manager /usr/local/bin/skillfish-kernel-helper /usr/share/applications/os.skillfish.kernel.desktop
+# I due file si chiamavano skillfish-kernel-switch e skillfish-grub-helper, sono
+# stati rinominati e questo script non era stato aggiornato: la build si fermava
+# qui. Il NOME DEL PACCHETTO resta skillfish-kernel-switch di proposito, perche'
+# cambiarlo obbligherebbe chi lo ha gia' installato a reinstallarlo a mano.
 
 build skillfish-monitor "python3, python3-pyqt6, skillfish-tuner" \
   "SkillFishOS Monitor - live temperature/frequency/voltage/fan charts" \
