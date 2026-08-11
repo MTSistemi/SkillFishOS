@@ -1,0 +1,44 @@
+#!/bin/sh
+# Imposta lo sfondo di SkillFishOS al primo accesso di ogni utente.
+#
+# PERCHE' NON BASTA UN FILE DI CONFIGURAZIONE
+# Ci abbiamo provato in tre modi, tutti ragionevoli e tutti inutili:
+#   1. look-and-feel con Image=<percorso del PNG>  -> Plasma vuole un pacchetto
+#   2. pacchetto wallpaper vero + Image=<percorso> -> giusto, ma mai letto
+#   3. la stessa riga in /etc/skel/...appletsrc    -> Plasma RISCRIVE quel file
+#
+# Il punto e' il terzo: al primo accesso Plasma rigenera
+# `plasma-org.kde.plasma.desktop-appletsrc` e butta via la nostra sezione. Sul
+# sistema installato quella riga semplicemente non c'era piu'. E il `defaults`
+# del look-and-feel viene consultato solo quando il tema viene APPLICATO, non a
+# ogni nuovo utente.
+#
+# Verificato dal vivo sull'installato: `plasma-apply-wallpaperimage` con il
+# PERCORSO del pacchetto funziona ("Impostato correttamente lo sfondo per tutti
+# i desktop ... basato su KPackage"), mentre col solo nome no. Quindi il
+# pacchetto e' valido: mancava solo qualcuno che glielo dicesse al momento
+# giusto.
+#
+# Gira una volta sola: il file di controllo evita di sovrascrivere lo sfondo a
+# chi se n'e' scelto un altro.
+set -u
+
+STAMP="${XDG_CONFIG_HOME:-$HOME/.config}/skillfish-wallpaper-applied"
+PKG=/usr/share/wallpapers/SkillFishOS
+
+[ -f "$STAMP" ] && exit 0
+[ -d "$PKG" ] || exit 0
+command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || exit 0
+
+# Plasma potrebbe non aver ancora finito di avviarsi: qualche tentativo.
+i=0
+while [ $i -lt 10 ]; do
+    if plasma-apply-wallpaperimage "$PKG" >/dev/null 2>&1; then
+        mkdir -p "$(dirname "$STAMP")"
+        date -Is > "$STAMP"
+        exit 0
+    fi
+    i=$((i + 1))
+    sleep 3
+done
+exit 0

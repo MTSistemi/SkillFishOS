@@ -965,14 +965,38 @@ def _unsloth_first_login():
             "must_change": True}
 
 
+def _unsloth_models():
+    """I modelli che Unsloth ha caricato, chiesti alla sua API.
+
+    Prima restituivamo sempre una lista vuota, con la motivazione che i modelli
+    stanno dietro l'autenticazione di Unsloth. Vero, ma la conseguenza era un
+    menu a tendina vuoto nella chat: l'utente non poteva scegliere niente.
+    Ora che la chiave API si imposta dalla dashboard, quell'autenticazione ce
+    l'abbiamo e possiamo semplicemente chiedere.
+
+    Senza chiave restituisce comunque una lista vuota, che e' corretto: non
+    sapremmo nemmeno se il motore ha dei modelli.
+    """
+    key = _unsloth_key()
+    if not key or not _port_open(UNSLOTH_PORT):
+        return []
+    try:
+        req = urllib.request.Request("http://127.0.0.1:%d/v1/models" % UNSLOTH_PORT,
+                                     headers={"Authorization": "Bearer " + key})
+        out = json.loads(urllib.request.urlopen(req, timeout=8).read().decode())
+        return sorted(m.get("id", "") for m in out.get("data", []) if m.get("id"))
+    except Exception:
+        return []
+
+
 def ai_status():
     running = _port_open(UNSLOTH_PORT)
     return {"ok": True, "engine": "unsloth", "running": running,
             "webui": running, "webui_path": "/unsloth", "port": UNSLOTH_PORT,
             "first_login": _unsloth_first_login() if running else {},
-            # I modelli li serve Unsloth dalla sua interfaccia autenticata, quindi
-            # la dashboard non li elenca: servirebbe la API key dell'utente.
-            "models": []}
+            # solo se c'e' o non c'e': la chiave non esce MAI da qui
+            "has_key": bool(_unsloth_key()),
+            "models": _unsloth_models()}
 
 
 def ai_start():
@@ -1072,7 +1096,12 @@ def _unsloth_key():
     Unsloth Studio issues keys from its own UI (it has its own accounts), so we can
     only use one the user pasted into the dashboard config — we never mint it here.
     """
-    return (load_cfg().get("unsloth_api_key") or os.environ.get("UNSLOTH_API_KEY") or "").strip()
+    # NOTA: qui c'era load_cfg(), che in questo file non esiste — si chiama
+    # load_conf(). Chiunque avesse impostato la chiave avrebbe preso un
+    # NameError invece della chiave, quindi la chat non poteva funzionare in
+    # nessun caso. CONFIG e' il dizionario gia' in memoria, aggiornato da
+    # save_conf(): non serve rileggere il file.
+    return (CONFIG.get("unsloth_api_key") or os.environ.get("UNSLOTH_API_KEY") or "").strip()
 
 
 def ai_chat(model, messages):
@@ -1753,6 +1782,23 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_pull(data.get("model")))
+        if path == "/api/ai/key":
+            # Salvare la chiave API di Unsloth dalla dashboard invece che a mano
+            # in /etc/skillfish/dashboard.json via SSH. Senza chiave, Chat e
+            # AI-Ops prendono 401 da Unsloth e all'utente sembrano due pulsanti
+            # rotti: il messaggio d'errore diceva gia' cosa fare, ma nessuno
+            # arrivava a leggerlo.
+            if not self._guard("ai"):
+                return
+            k = (data.get("key") or "").strip()
+            if k and not re.match(r"^sk-[A-Za-z0-9._-]{8,200}$", k):
+                return self._json(400, {"ok": False, "error": "chiave non valida"})
+            if k:
+                CONFIG["unsloth_api_key"] = k
+            else:
+                CONFIG.pop("unsloth_api_key", None)
+            save_conf()
+            return self._json(200, {"ok": True, "has_key": bool(k)})
         if path == "/api/ai/chat":
             if not self._guard("ai"):
                 return

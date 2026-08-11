@@ -310,6 +310,10 @@ put $P 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.pn
 # cui il pacchetto wallpaper da solo non bastava: puntava ancora al PNG grezzo
 # e Plasma, davanti a un file singolo, ricade sul proprio sfondo predefinito.
 put $P 0644 system/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc     etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc
+# Lo sfondo va IMPOSTATO, non solo dichiarato: Plasma riscrive appletsrc al
+# primo accesso e butta via la nostra riga. Questo lo applica dopo.
+put $P 0755 system/usr/local/bin/skillfish-first-login-wallpaper usr/local/bin/skillfish-first-login-wallpaper
+put $P 0644 system/etc/skel/.config/autostart/skillfish-wallpaper.desktop etc/skel/.config/autostart/skillfish-wallpaper.desktop
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
@@ -354,5 +358,6 @@ check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampun
 check skillfish-theme_${VER}_all.deb ./usr/share/icons/SkillFishSteampunk/scalable/actions/document-open.svg document_open_copper
 check skillfish-theme_${VER}_all.deb ./usr/share/wallpapers/SkillFishOS/metadata.json SkillFishOS
 check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc usr/share/wallpapers/SkillFishOS
+check skillfish-theme_${VER}_all.deb ./usr/local/bin/skillfish-first-login-wallpaper plasma-apply-wallpaperimage
 check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults usr/share/wallpapers/SkillFishOS
 echo "ALL DEBS VERIFIED"
