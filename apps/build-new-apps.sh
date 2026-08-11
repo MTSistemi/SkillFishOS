@@ -60,4 +60,18 @@ build skillfish-hub "python3, python3-pyqt6, polkitd | policykit-1" \
   /usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg \
   /usr/share/icons/SkillFishSteampunk/scalable/apps/skillfish-hub.svg
 
+# Gli emulatori NON possono stare nella ISO: EmuDeck installa tutto nella home
+# dell'utente (flatpak --user e AppImage in ~/Applications), e la ISO replica
+# /etc/skel, non la home di chi ha costruito il sistema. Quindi vanno reinstallati
+# su ogni macchina, e servono due voci nel menu Giochi — che e' esattamente dove
+# la gente va a cercarli e non trova niente.
+# Pacchetto separato e non dentro un altro perche' non c'entra con nessuna delle
+# nostre app: sono due script e due voci di menu, pochi KB.
+build skillfish-emulators "flatpak, curl" \
+  "SkillFishOS Emulators - install emulators after the installation (EmuDeck or one by one)" \
+  /usr/local/share/skillfish/install-emudeck.sh \
+  /usr/local/share/skillfish/install-emulators.sh \
+  /usr/share/applications/os.skillfish.emudeck.desktop \
+  /usr/share/applications/os.skillfish.emulators.desktop
+
 echo "=== built debs ==="; ls -l "$OUT/out/"
