@@ -21,9 +21,10 @@
   button:disabled{opacity:.5;cursor:default}
 </style></head>
 <body>
-<header><b>🧠 SkillFishOS AI</b><span style="flex:1"></span><span style="color:var(--muted);font-size:.8rem">modello</span><select id="model"></select></header>
-<div id="log"><div class="m sys">Chiedi qualcosa al modello locale. Gira sulla GPU della BC-250, nessun cloud.</div></div>
-<form id="f"><textarea id="q" placeholder="Scrivi un messaggio…  (Invio per inviare)"></textarea><button id="send" type="submit">Invia</button></form>
+<header><b>🧠 SkillFishOS AI</b><span style="flex:1"></span><span style="color:var(--muted);font-size:.8rem" data-i18n="a_model">model</span><select id="model"></select></header>
+<div id="log"><div class="m sys" data-i18n="a_intro">Ask the local model something. It runs on the BC-250 GPU, no cloud.</div></div>
+<form id="f"><textarea id="q" placeholder="Scrivi un messaggio…  (Invio per inviare)"></textarea><button id="send" type="submit" data-i18n="a_send">Send</button></form>
+<script src="/static/i18n.js"></script>
 <script>
   const $ = s => document.querySelector(s);
   const log = $("#log"); const msgs = [];

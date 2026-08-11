@@ -84,14 +84,15 @@
 <div class="body">
   <div class="side">
     <div class="nav" id="nav"></div>
-    <div class="slabel">Categorie</div>
+    <div class="slabel" data-i18n="h_cats">Categories</div>
     <div class="nav" id="cats"></div>
   </div>
-  <div class="main" id="main"><div class="stub">Carico il catalogo…</div></div>
+  <div class="main" id="main"><div class="stub" data-i18n="h_loadcat">Loading the catalogue…</div></div>
 </div>
 <div id="job"><div class="jh"><span class="spin" id="jspin"></span><span class="jt" id="jtitle"></span><span class="sp"></span>
-  <button class="gbtn" id="jclose" style="display:none">Chiudi</button></div><pre id="joblog"></pre></div>
+  <button class="gbtn" id="jclose" style="display:none" data-i18n="close">Close</button></div><pre id="joblog"></pre></div>
 
+<script src="/static/i18n.js"></script>
 <script>
 const $=s=>document.querySelector(s), ce=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
 let ST={view:"home",cat:null,sub:null,sort:"rating",backend:null,page:0,q:""},jobPoll=null;
