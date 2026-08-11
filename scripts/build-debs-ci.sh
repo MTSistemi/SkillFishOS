@@ -167,8 +167,12 @@ if [ -d /run/systemd/system ]; then
     [ -n "$f" ] || continue
     grep -q 'ExecCondition=/usr/local/bin/skillfish-is-bc250' "$f" && continue
     grep -q '^ExecStart=' "$f" || continue
-    sed -i '0,/^ExecStart=/s##ExecCondition=/usr/local/bin/skillfish-is-bc250
-ExecStart=#' "$f" || true
+    # Il ritorno a capo va scritto come \n nella sostituzione. Prima c'era un
+    # a capo VERO dentro le virgolette singole, e sed rispondeva
+    #   sed: -e expression #1, char 65: unterminated `s' command
+    # cioe' non inseriva NIENTE: la guardia hardware non e' mai stata aggiunta a
+    # questi servizi, che e' proprio il guasto che doveva evitare.
+    sed -i '0,/^ExecStart=/s|^ExecStart=|ExecCondition=/usr/local/bin/skillfish-is-bc250\nExecStart=|' "$f" || true
   done
   systemctl daemon-reload || true
   systemctl enable --now skillfish-gpu-freq.service || true
