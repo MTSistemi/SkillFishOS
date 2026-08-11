@@ -1,6 +1,4 @@
 #!/bin/bash
-# STATO: NON FUNZIONANTE. Lo scaricamento fallisce, vedi il commento su URL
-# piu sotto. Non pubblicare finche non e risolto.
 # SkillFishOS - installazione di EmuDeck.
 #
 # COS'E' E PERCHE' CONVIENE
@@ -17,7 +15,7 @@
 # come funziona EmuDeck, e va rifatto su ogni macchina. Da qui questo script.
 #
 # COSA FA
-# Scarica l'AppImage ufficiale dal repository di EmuDeck su GitHub, lo mette in
+# Scarica l'AppImage ufficiale dal repository EmuDeck/emudeck-electron, lo mette in
 # ~/Applications, gli crea una voce di menu e lo avvia. Da li' in poi comanda
 # EmuDeck: sceglie tu quali emulatori installare e dove tenere le ROM.
 #
@@ -31,11 +29,18 @@ set -uo pipefail
 APPDIR="$HOME/Applications"
 APPIMG="$APPDIR/EmuDeck.AppImage"
 DESKTOP="$HOME/.local/share/applications/emudeck.desktop"
-# ATTENZIONE: questo indirizzo NON funziona. La release 2.3.8 di EmuDeck non ha
-# allegati su GitHub, quindi l AppImage non si distribuisce dalle release. La
-# fonte vera si ricava dalla copia gia presente sulla board in
-# /home/skillfish/Applications/EmuDeck.AppImage. Da sistemare prima di usarlo.
-API="https://api.github.com/repos/dragoonDorise/EmuDeck/releases/latest"
+# ATTENZIONE, ci ho sbagliato due volte di fila:
+#
+# 1) il repository NON e' dragoonDorise/EmuDeck. Quello contiene gli script del
+#    backend e le sue release non hanno nessun allegato. L'AppImage, che e' la
+#    GUI Electron, sta in EmuDeck/emudeck-electron.
+# 2) il file NON si chiama EmuDeck.AppImage ma EmuDeck-<versione>.AppImage
+#    (oggi EmuDeck-2.5.0.AppImage), quindi cercare il nome esatto non trova mai
+#    niente. Per questo il motivo cerca "EmuDeck" seguito da qualsiasi cosa.
+#
+# Ricavato leggendo l'installatore ufficiale, che fa esattamente questo:
+#   https://raw.githubusercontent.com/dragoonDorise/EmuDeck/main/install.sh
+API="https://api.github.com/repos/EmuDeck/emudeck-electron/releases/latest"
 
 ok()   { printf '  \033[32mOK\033[0m %s\n' "$1"; }
 ko()   { printf '  \033[31m!!\033[0m %s\n' "$1"; }
@@ -75,11 +80,11 @@ if [ -f "$APPIMG" ]; then
 fi
 
 info "Cerco l'ultima versione su GitHub..."
-URL=$(curl -fsSL "$API" | grep -o 'https://[^"]*EmuDeck\.AppImage' | head -1)
+URL=$(curl -fsSL "$API" | grep -o 'https://[^"]*EmuDeck[^"]*\.AppImage' | head -1)
 if [ -z "$URL" ]; then
     ko "non riesco a trovare l'AppImage nelle release."
     info "  Puo' essere GitHub che limita le richieste, o un cambio di nome del file."
-    info "  Scaricalo a mano da: https://github.com/dragoonDorise/EmuDeck/releases"
+    info "  Scaricalo a mano da: https://github.com/EmuDeck/emudeck-electron/releases"
     exit 1
 fi
 info "  $URL"
@@ -98,7 +103,9 @@ if ! head -c 4 "$TMP" | grep -q ELF; then
     exit 1
 fi
 mv "$TMP" "$APPIMG"; trap - EXIT
-chmod +x "$APPIMG"
+# 755 e non "chmod +x": mktemp crea a 600, e +x lasciava un 711 che funziona ma
+# e' scomodo da ispezionare
+chmod 755 "$APPIMG"
 ok "scaricato in $APPIMG ($(du -h "$APPIMG" | cut -f1))"
 
 # --- voce di menu ----------------------------------------------------------
@@ -135,6 +142,19 @@ info ""
 info "Sulla BC-250 vanno bene RetroArch, Dolphin, PCSX2, DuckStation, PPSSPP,"
 info "melonDS e Flycast. RPCS3 e Vita3K girano male su questo hardware."
 echo
+
+# EmuDeck e' una applicazione Electron: senza server grafico non parte e muore
+# con "Missing X server or $DISPLAY". Chi lancia questo script da SSH ha appena
+# scaricato 107 MB e se lo vedrebbe buttare via con un errore poco chiaro.
+if [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+    ok "installazione completata."
+    info "  Non avvio EmuDeck perche' qui non c'e' un server grafico"
+    info "  (nessun DISPLAY: probabilmente sei collegato via SSH)."
+    info "  Aprilo dal menu Giochi sul desktop della macchina, oppure esegui:"
+    info "    $APPIMG"
+    exit 0
+fi
+
 read -r -p "Avvio EmuDeck adesso? [S/n] " r
 case "$r" in
     n|N) info "Lo trovi nel menu sotto Giochi, o esegui: $APPIMG" ;;
