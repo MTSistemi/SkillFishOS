@@ -1,8 +1,14 @@
 [Desktop Entry]
 Type=Application
 Name=SkillFishOS Tuner
-GenericName=Controllo prestazioni
-Comment=Regola CPU, GPU, VRAM e ventola
+GenericName=Performance control
+GenericName[it]=Controllo prestazioni
+GenericName[pl]=Kontrola wydajnosci
+GenericName[uk]=Керування продуктивністю
+Comment=Tune CPU, GPU, VRAM and fan
+Comment[it]=Regola CPU, GPU, VRAM e ventola
+Comment[pl]=Dostosuj CPU, GPU, VRAM i wentylator
+Comment[uk]=Налаштуйте ЦП, ГП, VRAM і вентилятор
 Exec=/usr/local/bin/skillfish-tuner
 Icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
 Terminal=false
