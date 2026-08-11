@@ -1,0 +1,58 @@
+#!/bin/sh
+# Avvia il HUD (conky) con la nostra configurazione.
+#
+# PERCHE' ESISTE QUESTO SCRIPT invece di mettere il comando nel .desktop
+# L'autostart era scritto cosi':
+#
+#     Exec=sh -c 'env LANG=C.UTF-8 conky -p 8 -c "$HOME/.config/conky/skillfish.conf"'
+#
+# e non ha mai funzionato al login. KDE non esegue l'autostart direttamente:
+# lo converte in un servizio systemd (systemd-xdg-autostart-generator). In quel
+# passaggio le virgolette vengono interpretate secondo le regole dei file
+# .desktop, non secondo quelle della shell, e il risultato nel journal era:
+#
+#   Ignoring unknown escape sequences: "env LANG=C.UTF-8 conky -p 8 -c "$HOME/..."
+#   conky: cannot open $HOME/.config/conky/skillfish.conf: No such file or directory
+#
+# Cioe' $HOME finiva come stringa LETTERALE dentro argv, e a quel punto non lo
+# espandeva piu' nessuno: systemd non fa espansione di shell, e sh non la fa su
+# un argomento che ha gia' ricevuto come tale.
+#
+# Lanciato a mano funzionava, perche' li' le virgolette le interpreta la shell.
+# E' per questo che sembrava un problema di finestra o di tempi di avvio: il
+# processo lo vedevi vivo solo quando lo avviavo io dal terminale.
+#
+# Qui HOME lo risolve la shell, all'interno dello script, dove nessuno ha piu'
+# occasione di rimaneggiare le virgolette. Il .desktop chiama un percorso
+# assoluto e basta, senza argomenti e senza quoting.
+set -u
+
+# SOLO SULLA BC-250, e non e' una precauzione teorica.
+#
+# La configurazione di conky e' cablata su questo hardware: 16 barre CPU perche'
+# la BC-250 ha 16 thread, sensori amdgpu, ventola nct6687. Su un PC diverso
+# quelle voci tornano VUOTE, conky non riesce a calcolare l'ingombro del testo e
+# riduce la finestra a 15x15 pixel: un puntino invisibile nell'angolo. Non
+# degrada, sparisce — misurato su una VM a 4 core, dove la finestra minima
+# risultava 5x28 contro i 270x45 della stessa configurazione con testo valido.
+#
+# La ISO generic si installa su qualunque PC, quindi li' il HUD sarebbe rotto
+# per quasi tutti. Meglio non partire affatto che partire e non vedersi.
+#
+# Il controllo e' sull'HARDWARE, non sulla variante di ISO: chi installa la
+# generic su una BC-250 il HUD lo ha lo stesso, ed e' giusto cosi'.
+#
+# Un HUD configurabile che si adatta ai sensori veri e' previsto come app a se'.
+if [ -x /usr/local/bin/skillfish-is-bc250 ]; then
+    /usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1 || exit 0
+fi
+
+CONF="$HOME/.config/conky/skillfish.conf"
+[ -f "$CONF" ] || CONF=/etc/skel/.config/conky/skillfish.conf
+[ -f "$CONF" ] || exit 0          # niente configurazione: esci in silenzio
+
+# -p 8: aspetta che il desktop sia pronto prima di disegnare.
+# LANG=C.UTF-8: le date del HUD restano uniformi in tutte le lingue.
+# exec: il PID resta questo, cosi' systemd continua a sorvegliare conky invece
+# di vedere uscire il padre e ripulire tutto il gruppo.
+exec env LANG=C.UTF-8 conky -p 8 -c "$CONF"

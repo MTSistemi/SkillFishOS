@@ -37,19 +37,23 @@ build skillfish-monitor "python3, python3-pyqt6, skillfish-tuner" \
   "SkillFishOS Monitor - live temperature/frequency/voltage/fan charts" \
   /usr/local/bin/skillfish-monitor /usr/share/applications/os.skillfish.monitor.desktop
 
-# L'icona e' quella di Discover, ma COPIATA nel nostro namespace come
-# skillfish-hub invece di puntare a "plasmadiscover". Quel nome appartiene a
-# plasma-discover-common: se un domani togliamo Discover dalla ISO, l'icona
-# sparirebbe e l'Hub resterebbe con un quadrato vuoto nella barra. Cosi' invece
-# l'aspetto e' lo stesso e non dipende da un pacchetto che non e' nostro.
+# L'icona e' la borsa steampunk del NOSTRO tema — quella che SkillFishSteampunk
+# usa per Discover, di cui l'Hub prende il posto nella barra — copiata come
+# skillfish-hub invece di puntare al nome "plasmadiscover". Quel nome appartiene
+# a plasma-discover-common: se un domani togliamo Discover dalla ISO l'Hub
+# resterebbe con un quadrato vuoto.
+# Sta in due temi apposta: in SkillFishSteampunk, che e' quello attivo, e in
+# hicolor, che e' il ripiego per chi cambia tema — senza la copia in hicolor
+# ricadrebbe sulla borsa blu di KDE, che col nostro ottone non c'entra niente.
+# I PNG servono perche' nel codice l'icona della finestra e' un PERCORSO passato
+# a QPixmap, non un nome di tema.
 build skillfish-hub "python3, python3-pyqt6, polkitd | policykit-1" \
   "SkillFishOS Hub - install and update SkillFishOS software from our repo" \
   /usr/local/bin/skillfish-hub /usr/share/applications/os.skillfish.hub.desktop \
-  /usr/share/icons/hicolor/16x16/apps/skillfish-hub.png \
-  /usr/share/icons/hicolor/22x22/apps/skillfish-hub.png \
-  /usr/share/icons/hicolor/32x32/apps/skillfish-hub.png \
   /usr/share/icons/hicolor/48x48/apps/skillfish-hub.png \
   /usr/share/icons/hicolor/128x128/apps/skillfish-hub.png \
-  /usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg
+  /usr/share/icons/hicolor/256x256/apps/skillfish-hub.png \
+  /usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg \
+  /usr/share/icons/SkillFishSteampunk/scalable/apps/skillfish-hub.svg
 
 echo "=== built debs ==="; ls -l "$OUT/out/"
