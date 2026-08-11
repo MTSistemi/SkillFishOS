@@ -198,10 +198,23 @@ def patch_eggs_fslist():
 # solo), quindi bastava tradurli: ora il QML legge Qt.locale(), che Calamares
 # imposta quando l'utente sceglie la lingua nella prima pagina.
 #
-# Va copiato DOPO che eggs ha generato il branding, per lo stesso motivo di
-# branding.js: quella cartella la rigenera lui a ogni produce.
+# QUI C'ERA L'ERRORE, ed e' costato due ISO da rifare.
+#
+# Copiavo la presentazione solo in /etc/calamares/branding/*/show.qml. Quella e'
+# la cartella GENERATA: eggs la riscrive da capo a ogni `produce`, prendendo il
+# file dai propri addon. Risultato, nell'immagine finiva la sua versione italiana
+# da 4127 byte al posto della nostra multilingua da 9617 — e l'installazione in
+# polacco mostrava l'interfaccia in polacco e le diapositive in italiano.
+#
+# Stavamo correggendo il RISULTATO invece dell'ORIGINE. Adesso si scrive in
+# entrambi:
+#   /usr/lib/penguins-eggs/addons/*/theme/calamares/branding/show.qml   <- origine
+#   /etc/calamares/branding/*/show.qml                                  <- generato
+# La seconda serve solo perche' l'installer parta subito corretto anche senza
+# rigenerare; e' la prima che finisce nella ISO.
 SLIDESHOW_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "..", "theme", "calamares", "show.qml")
+SLIDESHOW_ADDONS = "/usr/lib/penguins-eggs/addons/*/theme/calamares/branding/show.qml"
 
 
 def install_slideshow():
@@ -209,16 +222,28 @@ def install_slideshow():
     if not os.path.exists(src):
         print("ATTENZIONE: manca", src)
         return False
-    done = 0
-    for d in _glob.glob("/etc/calamares/branding/*"):
-        dst = os.path.join(d, "show.qml")
-        if not os.path.isdir(d):
-            continue
+
+    sorgenti = 0
+    for dst in _glob.glob(SLIDESHOW_ADDONS):
         backup(dst)
         shutil.copy(src, dst)
-        done += 1
-    print("OK  : presentazione multilingua installata in %d branding" % done)
-    return done > 0
+        sorgenti += 1
+
+    generati = 0
+    for d in _glob.glob("/etc/calamares/branding/*"):
+        if not os.path.isdir(d):
+            continue
+        dst = os.path.join(d, "show.qml")
+        backup(dst)
+        shutil.copy(src, dst)
+        generati += 1
+
+    print("OK  : presentazione multilingua in %d sorgenti di eggs e %d branding generati"
+          % (sorgenti, generati))
+    if sorgenti == 0:
+        print("ATTENZIONE: nessun addon di eggs trovato in %s" % SLIDESHOW_ADDONS)
+        print("            senza quello, la produce la sovrascrivera' di nuovo")
+    return sorgenti > 0
 
 
 # --- 2. layout dei sottovolumi sicuro per GRUB ----------------------------
