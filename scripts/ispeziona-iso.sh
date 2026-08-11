@@ -50,6 +50,27 @@ done
 grep -q 'emudeck-electron' "$S/usr/local/share/skillfish/install-emudeck.sh" 2>/dev/null \
   && ok "emulatori: repository corretto" || ko "emulatori: repository sbagliato"
 
+# LA DASHBOARD WEB DENTRO L'IMMAGINE.
+# Due ISO l'hanno contenuta ROTTA: gli script di traduzione avevano scritto
+# S("chiave") dove la funzione si chiama T(), quindi ReferenceError alla prima
+# scheda e pagina vuota. E' sintatticamente valido, percio' node --check non lo
+# vedeva e io avevo scritto "JavaScript valido".
+D="$S/usr/share/skillfish/dashboard"
+if [ -f "$D/app.js" ]; then
+    n=$(grep -cF 'S("' "$D/app.js" 2>/dev/null || true)
+    [ "${n:-0}" = "0" ] && ok "dashboard: nessuna chiamata a S() (si chiama T)" \
+                        || ko "dashboard: $n chiamate a S() — la pagina restera' VUOTA"
+    grep -qF 'pl:' "$D/app.js" && ok "dashboard: app.js tradotto" \
+                               || ko "dashboard: app.js senza polacco"
+    [ -f "$D/i18n.js" ] && ok "dashboard: i18n.js presente" \
+                        || ko "dashboard: i18n.js ASSENTE (404 sulle tre pagine)"
+    grep -qF 'data-i18n' "$D/tuner.html" 2>/dev/null \
+        && ok "dashboard: tuner.html agganciato al dizionario" \
+        || ko "dashboard: tuner.html non tradotto"
+else
+    ko "dashboard: app.js non trovato nell'immagine"
+fi
+
 grep -q 'Wydajność' "$S/usr/share/skillfish/tuner-presets.json" 2>/dev/null \
   && ok "preset: diacritici polacchi" || ko "preset: diacritici persi"
 
