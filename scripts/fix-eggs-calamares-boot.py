@@ -190,6 +190,37 @@ def patch_eggs_fslist():
     return True
 
 
+
+# --- 1d. la presentazione durante l'installazione, in quattro lingue ---------
+# I testi erano cablati in italiano: chi installava in polacco si guardava
+# cinque schermate in una lingua che magari non conosce, proprio mentre il
+# sistema si presenta. Non sono immagini con il testo dentro (lo sfondo e' uno
+# solo), quindi bastava tradurli: ora il QML legge Qt.locale(), che Calamares
+# imposta quando l'utente sceglie la lingua nella prima pagina.
+#
+# Va copiato DOPO che eggs ha generato il branding, per lo stesso motivo di
+# branding.js: quella cartella la rigenera lui a ogni produce.
+SLIDESHOW_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "..", "theme", "calamares", "show.qml")
+
+
+def install_slideshow():
+    src = os.path.normpath(SLIDESHOW_SRC)
+    if not os.path.exists(src):
+        print("ATTENZIONE: manca", src)
+        return False
+    done = 0
+    for d in _glob.glob("/etc/calamares/branding/*"):
+        dst = os.path.join(d, "show.qml")
+        if not os.path.isdir(d):
+            continue
+        backup(dst)
+        shutil.copy(src, dst)
+        done += 1
+    print("OK  : presentazione multilingua installata in %d branding" % done)
+    return done > 0
+
+
 # --- 2. layout dei sottovolumi sicuro per GRUB ----------------------------
 # Nessun @boot: /boot resta dentro @, cosi' GRUB non deve attraversare un
 # secondo sottovolume per trovare la propria configurazione (era l'errore
@@ -213,6 +244,7 @@ def backup(path):
 
 def main():
     patch_eggs_fslist()
+    install_slideshow()
     if not os.path.isdir(MODDIR):
         raise SystemExit("FATAL: %s non esiste — eggs ha gia' generato la config?" % MODDIR)
 
@@ -323,6 +355,15 @@ def verify():
             else:
                 print("KO  : customize-partitions.js NON corretto: il menu proporra' ext4")
                 ok = False
+
+    for d in _glob.glob("/etc/calamares/branding/*/show.qml"):
+        with open(d, encoding="utf-8") as f:
+            t = f.read()
+        if '"pl":' in t and '"uk":' in t and "Qt.locale()" in t:
+            print("OK  : %s -> presentazione in quattro lingue" % d)
+        else:
+            print("KO  : %s -> presentazione ancora monolingua" % d)
+            ok = False
 
     targets = [(os.path.join(d, "shellprocess@boot_reconfigure.yaml"), "template eggs")
                for d in TPLDIRS] + [(RECONF, "config viva")]
