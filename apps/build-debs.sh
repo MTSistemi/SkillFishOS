@@ -20,6 +20,13 @@ cp_into $P /usr/local/bin/skillfish-tuner-helper  usr/local/bin/skillfish-tuner-
 cp_into $P /usr/local/bin/skillfish-cu            usr/local/bin/skillfish-cu           0755
 cp_into $P /usr/local/bin/skillfish-hud-val       usr/local/bin/skillfish-hud-val      0755
 cp_into $P /usr/local/bin/skillfish-hud-bt        usr/local/bin/skillfish-hud-bt       0755
+# Lanciatore del HUD. Sta qui e non in un pacchetto suo perche' gli helper che
+# legge (hud-val, hud-bt) sono gia' di questo pacchetto: separarli vorrebbe dire
+# poter installare il lanciatore senza i sensori che gli servono.
+# Deve essere un file eseguibile e non un comando nel .desktop: KDE converte
+# l'autostart in un servizio systemd e in quel passaggio $HOME non viene
+# espanso, quindi conky non trovava la configurazione e usciva con errore.
+cp_into $P /usr/local/bin/skillfish-hud           usr/local/bin/skillfish-hud          0755
 cp_into $P /usr/share/skillfish/tuner-presets.json usr/share/skillfish/tuner-presets.json
 cp_into $P /usr/share/applications/os.skillfish.Tuner.desktop usr/share/applications/os.skillfish.Tuner.desktop
 cp_into $P /usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
@@ -89,7 +96,10 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 P=skillfish-iso-mount; stage $P
 cp_into $P /usr/local/bin/skillfish-iso-mount usr/local/bin/skillfish-iso-mount 0755
 cp_into $P /usr/share/kio/servicemenus/skillfish-iso.desktop usr/share/kio/servicemenus/skillfish-iso.desktop
-install -D -m 0644 /tmp/49-skillfish-udisks.rules "$OUT/$P/etc/polkit-1/rules.d/49-skillfish-udisks.rules"
+# La regola si prende da dove e' INSTALLATA, non da /tmp. Prima la riga puntava
+# a /tmp/49-skillfish-udisks.rules, cioe' alla copia di lavoro di quando fu
+# scritta: bastava un riavvio a svuotare /tmp e la build si fermava qui.
+install -D -m 0644 /etc/polkit-1/rules.d/49-skillfish-udisks.rules "$OUT/$P/etc/polkit-1/rules.d/49-skillfish-udisks.rules"
 cat > "$OUT/$P/DEBIAN/control" <<EOF
 Package: skillfish-iso-mount
 Version: $VER
