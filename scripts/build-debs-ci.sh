@@ -42,6 +42,12 @@ put $P 0755 apps/tuner/skillfish-tuner-helper     usr/local/bin/skillfish-tuner-
 put $P 0755 system/usr/local/bin/skillfish-cu     usr/local/bin/skillfish-cu
 put $P 0755 system/usr/local/bin/skillfish-hud-val usr/local/bin/skillfish-hud-val
 put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
+# Il lanciatore del HUD sta qui e non in un pacchetto suo perche' legge i due
+# helper qui sopra: separarli permetterebbe di installarlo senza i sensori che
+# gli servono. Deve essere un file eseguibile e non un comando dentro il
+# .desktop: KDE converte l'autostart in un servizio systemd e in quel passaggio
+# $HOME resta letterale, quindi conky non trovava la configurazione.
+put $P 0755 system/usr/local/bin/skillfish-hud     usr/local/bin/skillfish-hud
 put $P 0644 system/usr/share/skillfish/tuner-presets.json usr/share/skillfish/tuner-presets.json
 put $P 0644 system/usr/share/applications/os.skillfish.Tuner.desktop usr/share/applications/os.skillfish.Tuner.desktop
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
@@ -54,6 +60,21 @@ P=skillfish-hub
 put $P 0755 apps/hub/skillfish-hub        usr/local/bin/skillfish-hub
 put $P 0755 apps/hub/skillfish-hub-helper usr/local/bin/skillfish-hub-helper
 put $P 0644 system/usr/share/applications/os.skillfish.hub.desktop usr/share/applications/os.skillfish.hub.desktop
+# L'icona e' la borsa steampunk del NOSTRO tema — quella che SkillFishSteampunk
+# usa per Discover, di cui l'Hub prende il posto nella barra — copiata come
+# skillfish-hub invece di puntare al nome "plasmadiscover", che appartiene a
+# plasma-discover-common: se togliessimo Discover dalla ISO l'Hub resterebbe con
+# un quadrato vuoto.
+# Qui vanno solo le copie in HICOLOR, che sono l'icona propria dell'Hub e
+# funzionano con qualunque tema. La variante steampunk la spedisce
+# skillfish-theme insieme al resto del tema: due pacchetti che scrivono nella
+# stessa cartella del tema sarebbero un guaio inutile.
+# I PNG servono perche' nel codice l'icona della finestra e' un PERCORSO passato
+# a QPixmap, non un nome di tema.
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-hub.png   usr/share/icons/hicolor/48x48/apps/skillfish-hub.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-hub.png usr/share/icons/hicolor/128x128/apps/skillfish-hub.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png usr/share/icons/hicolor/256x256/apps/skillfish-hub.png
 shot $P apps/hub/os.skillfish.hub.metainfo.xml
 ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1" "SkillFishOS Hub - Discover-style software centre"
 
@@ -104,6 +125,17 @@ put $P 0644 system/etc/systemd/system/skillfish-core-unlock.service   etc/system
 put $P 0755 system/usr/local/bin/skillfish-gpu-freq-sampler           usr/local/bin/skillfish-gpu-freq-sampler
 put $P 0644 system/etc/systemd/system/skillfish-gpu-freq.service      etc/systemd/system/skillfish-gpu-freq.service
 put $P 0644 system/etc/skel/.config/conky/skillfish.conf              etc/skel/.config/conky/skillfish.conf
+# L'autostart del HUD viaggia insieme alla configurazione conky qui sopra:
+# spedire l'una senza l'altro lascia il HUD che non parte, oppure un autostart
+# che punta a un file che non c'e'. Prima non apparteneva a NESSUN pacchetto,
+# quindi arrivava solo a chi installava dalla ISO.
+put $P 0644 system/etc/skel/.config/autostart/skillfish-conky.desktop etc/skel/.config/autostart/skillfish-conky.desktop
+# skillfish-info: fastfetch in un terminale che resta aperto. Anche questi due
+# non appartenevano a nessun pacchetto. Il comando sta in uno script perche' nel
+# campo Exec di un .desktop "%s" e' un codice di sostituzione riservato e il "$"
+# va raddoppiato: desktop-file-validate rifiutava la vecchia riga.
+put $P 0755 system/usr/local/bin/skillfish-info                       usr/local/bin/skillfish-info
+put $P 0644 system/usr/share/applications/skillfish-info.desktop      usr/share/applications/skillfish-info.desktop
 put $P 0755 system/usr/local/bin/skillfish-acpi-pstates               usr/local/bin/skillfish-acpi-pstates
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/skillfish/acpi/SSDT-PST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
@@ -323,7 +355,22 @@ printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Curso
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 echo "== building =="
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme; do
+P=skillfish-emulators
+# Gli emulatori NON possono viaggiare nella ISO: EmuDeck installa tutto nella
+# home dell'utente (flatpak --user e AppImage in ~/Applications), e la ISO
+# replica /etc/skel, non la home di chi ha costruito il sistema. Vanno quindi
+# reinstallati su ogni macchina, e servono due voci nel menu GIOCHI — che e'
+# esattamente dove si va a cercarli e non si trovava niente.
+# Due voci e non una perche' fanno cose diverse: EmuDeck configura anche
+# cartelle ROM, BIOS e controlli ma nasce per Steam Deck; l'altro prende singoli
+# emulatori da Flathub e basta.
+put $P 0755 scripts/install-emudeck.sh    usr/local/share/skillfish/install-emudeck.sh
+put $P 0755 scripts/install-emulators.sh  usr/local/share/skillfish/install-emulators.sh
+put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/share/applications/os.skillfish.emudeck.desktop
+put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
+ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
+
+for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   dpkg-deb --root-owner-group --build "$OUT/$P" "$OUT/out/${P}_${VER}_all.deb" >/dev/null
 done
@@ -352,6 +399,23 @@ check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor  
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
+# Il HUD: il lanciatore deve esserci E deve contenere il controllo
+# sull'hardware, altrimenti partirebbe su PC dove la finestra collassa a 15x15.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-is-bc250
+# L'autostart deve chiamare il percorso assoluto: con "sh -c" e le virgolette,
+# KDE lo converte in servizio systemd e $HOME resta letterale.
+check skillfish-base_${VER}_all.deb          ./etc/skel/.config/autostart/skillfish-conky.desktop "Exec=/usr/local/bin/skillfish-hud"
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-info           fastfetch
+# L'icona dell'Hub: che sia davvero un'immagine e non un file vuoto.
+check skillfish-hub_${VER}_all.deb           ./usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg "svg"
+# Gli emulatori: il repository giusto e' emudeck-electron, non dragoonDorise —
+# quest'ultimo non ha allegati nelle release e lo scaricamento fallirebbe.
+check skillfish-emulators_${VER}_all.deb     ./usr/local/share/skillfish/install-emudeck.sh   emudeck-electron
+check skillfish-emulators_${VER}_all.deb     ./usr/local/share/skillfish/install-emulators.sh flathub
+# Nella barra deve esserci il NOSTRO Hub. Il collegamento a Discover era rimasto
+# solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
+# stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
+check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc os.skillfish.hub.desktop
 check skillfish-theme_${VER}_all.deb         ./usr/share/icons/SkillFishSteampunk/index.theme        SkillFish
 # guard: the icon must paint with its OWN gradient — a dangling cross-icon ref
 # renders as an empty frame on qt6-svg >= 6.10.2-9 (see fix-icon-gradient-refs.py)

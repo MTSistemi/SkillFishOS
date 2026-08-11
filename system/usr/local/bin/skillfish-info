@@ -1,0 +1,36 @@
+#!/bin/sh
+# Mostra le informazioni di sistema (fastfetch) in un terminale che resta
+# aperto finche' l'utente non preme Invio.
+#
+# PERCHE' ESISTE QUESTO SCRIPT
+# Prima tutto questo stava dentro il campo Exec del .desktop:
+#
+#   Exec=alacritty -e sh -c "fastfetch; echo; printf '%s\n' \"$(gettext -s '...')\"; read x"
+#
+# e desktop-file-validate lo rifiutava con due errori veri:
+#   - "%s" nel campo Exec e' un CODICE DI SOSTITUZIONE riservato: la specifica
+#     ammette solo %f %F %u %U %i %c %k, e %s non esiste. Funzionava per pura
+#     tolleranza di KDE.
+#   - il "$" dentro le virgolette va raddoppiato ("\\$"), altrimenti il
+#     significato dipende da chi legge la riga.
+#
+# E' lo stesso errore del HUD: quoting di shell dentro un .desktop. Qui la
+# shell la fa la shell, e il .desktop chiama un percorso assoluto e basta.
+set -u
+
+# La frase e' tradotta qui invece che con gettext: non abbiamo cataloghi .mo
+# per queste app, usiamo dizionari nel codice. Stesse quattro lingue del resto
+# del sistema, con l'inglese come ripiego.
+LANG_CODE=$(printf '%s' "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" | cut -c1-2 | tr 'A-Z' 'a-z')
+case "$LANG_CODE" in
+    it) MSG="Premi Invio per chiudere" ;;
+    pl) MSG="Naciśnij Enter, aby zamknąć" ;;
+    uk) MSG="Натисніть Enter, щоб закрити" ;;
+    ua) MSG="Натисніть Enter, щоб закрити" ;;
+    *)  MSG="Press Enter to close" ;;
+esac
+
+fastfetch
+echo
+printf '%s\n' "$MSG"
+read -r _

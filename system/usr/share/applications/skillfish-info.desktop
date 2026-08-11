@@ -11,9 +11,14 @@ Comment=Show hardware and operating system information
 Comment[it]=Mostra informazioni su hardware e sistema operativo
 Comment[pl]=Pokaz informacje o sprzecie i systemie operacyjnym
 Comment[uk]=Показати відомості про обладнання та операційну систему
-Exec=alacritty -e sh -c "fastfetch; echo; printf '%s\n' \"$(gettext -s 'Press Enter to close' 2>/dev/null || echo 'Press Enter to close')\"; read x"
+# Qui c'era tutto il comando con dentro il quoting di shell, e
+# desktop-file-validate lo rifiutava: "%s" nel campo Exec e' un codice di
+# sostituzione riservato (validi solo %f %F %u %U %i %c %k) e il "$" andava
+# raddoppiato. Ora il comando sta in uno script e questo campo e' un semplice
+# percorso assoluto.
+Exec=alacritty -e /usr/local/bin/skillfish-info
 Icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
 Terminal=false
 Type=Application
 Categories=System;X-SkillFishOS;
-Keywords=info;sistema;about;hardware;
+Keywords=info;about;hardware;system;sistema;informacje;відомості;
