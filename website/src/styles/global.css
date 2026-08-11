@@ -16,11 +16,22 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rg
 .nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:18px}
 .logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.15rem}
 .logo img{width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(216,168,73,.4))}
-.navlinks{display:flex;gap:28px;font-size:.94rem;color:var(--muted);margin-left:auto}
-.navlinks a{transition:color .2s}
+/* Lo spazio fra le voci si adatta alla lingua invece di essere fisso a 28px.
+   In italiano le etichette sono piu' lunghe (Funzioni, Documentazione,
+   Contatti): con il gap fisso la barra non ci stava, gli elementi flex si
+   comprimevano e il testo andava A CAPO. Il pulsante "Sostienici" diventava un
+   ovale alto con l'icona sopra e la parola sotto, e "GitHub ↗" perdeva la
+   freccia su una seconda riga. In inglese non si vedeva perche' "Support us"
+   e' piu' corto. */
+.navlinks{display:flex;gap:clamp(14px,1.7vw,28px);font-size:.94rem;color:var(--muted);margin-left:auto;flex-wrap:nowrap;align-items:center}
+/* Nessuna voce di menu va mai a capo: sono etichette, non paragrafi. */
+.navlinks a{transition:color .2s;white-space:nowrap}
 .navlinks a:hover{color:var(--gold-lt)}
 .navlinks a.active{color:var(--gold-lt)}
-.navlinks a.donate-link{color:var(--gold-lt);border:1px solid rgba(216,168,73,.5);border-radius:999px;padding:6px 14px;background:rgba(216,168,73,.08);transition:background .2s,box-shadow .2s,transform .15s}
+/* flex-shrink:0 — il pulsante non si comprime mai: e' l'elemento con un bordo
+   visibile, ed e' quello in cui una compressione si nota subito (la pillola
+   diventa un ovale). Se lo spazio manca, a stringersi sono i distanziamenti. */
+.navlinks a.donate-link{color:var(--gold-lt);border:1px solid rgba(216,168,73,.5);border-radius:999px;padding:6px 14px;background:rgba(216,168,73,.08);transition:background .2s,box-shadow .2s,transform .15s;flex-shrink:0}
 .navlinks a.donate-link:hover{background:rgba(216,168,73,.2);box-shadow:0 4px 14px rgba(216,168,73,.3);transform:translateY(-1px)}
 .nav-toggle{display:none}
 .nav-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:32px;height:32px;margin-left:auto;cursor:pointer}
