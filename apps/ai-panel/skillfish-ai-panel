@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SkillFish AI - KDE-native panel + first-run setup wizard for the local LLM
-# stack (Ollama + Vulkan). Auto-themed by Kvantum/Breeze. Bilingual (IT/EN).
+# stack (Unsloth Studio + Vulkan). Auto-themed by Kvantum/Breeze.
+# Four languages: it / en / pl / uk, English being the fallback.
 #
 # Features:
 #  - First-run wizard: installs/starts the stack and lets you pick a model.
@@ -36,8 +37,9 @@ CFG_DIR    = os.path.expanduser("~/.config/skillfishos")
 CFG_FILE   = os.path.join(CFG_DIR, "ai.json")
 
 # Curated models that run well on the BC-250 (16 GB shared) and most iGPUs.
-# Custom names are accepted too. (Ollama has no stable public library API, so we
-# pair this curated catalogue with a live query of what is already installed.)
+# Custom names are accepted too. The list is hand-kept rather than fetched:
+# Unsloth Studio manages models inside its own UI, and this panel is only the
+# shortcut to the ones we know fit in shared memory on this board.
 CATALOG = [
     # --- reasoning / general chat (<= 14B, all fit the BC-250's shared memory) ---
     ("qwen3:14b",            "~9 GB  · default, strong reasoning"),
@@ -96,11 +98,27 @@ def _detect_lang():
     return "en"
 LANG = _detect_lang()
 
-# Traduzione polacca: ancora da scrivere per questo pannello. Il meccanismo e'
-# quello delle altre app (chiavi = stringhe inglesi passate a L), cosi' basta
-# riempire il dizionario. Finche' e' vuoto un utente polacco vede l'inglese,
-# che e' comunque meglio dell'italiano.
+# Le chiavi sono le stringhe INGLESI passate a L(), come nelle altre app.
+# Percio' una stringa formattata prima di arrivare a L() — l'errore che avevamo
+# qui — non si trova mai nel dizionario: il segnaposto va lasciato dentro il
+# testo tradotto e riempito dopo, L("Modello attivo: %s", "Active model: %s") % n.
+# Se una chiave manca si ricade sull'inglese, mai sull'italiano.
 PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! command failed (rc=%s) — continuing": "! polecenie nie powiodło się (rc=%s) — kontynuuję",
+    "! error pulling %s": "! błąd pobierania %s",
+    "%d models installed": "Zainstalowane modele: %d",
+    "no models installed": "brak zainstalowanych modeli",
+    "AI Engine (LLM) — %s": "Silnik AI (LLM) — %s",
+    "Active model: %s": "Aktywny model: %s",
+    "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s": "Wykryty GPU: %s\nCPU: %s\nRAM: %s wolne / %s",
+    "Local LLM engine · model: %s": "Lokalny silnik LLM · model: %s",
+    "Memory set to %s GB. Reboot now to apply it?": "Pamięć ustawiona na %s GB. Uruchomić ponownie teraz, aby zastosować?",
+    "On — starts/stops %s. Turn it off before gaming.": "Włączony — uruchamia/zatrzymuje %s. Wyłącz go przed graniem.",
+    "Set GTT to %s GB? A reboot is needed to apply.": "Ustawić GTT na %s GB? Do zastosowania potrzebne jest ponowne uruchomienie.",
+    "model budget ≈ %s": "budżet modelu ≈ %s",
+    "✓ %s pulled": "✓ pobrano %s",
+
     "unknown": "nieznany",
     "SkillFish AI - Setup": "SkillFish AI - Konfiguracja",
     "Welcome to SkillFish AI": "Witamy w SkillFish AI",
@@ -146,6 +164,21 @@ PL = {
 # Il polacco delle altre app e' di cyryllo (github.com/cyryllo), qui il
 # dizionario era rimasto vuoto e quindi tutto restava in inglese.
 UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! command failed (rc=%s) — continuing": "! команда не вдалася (rc=%s) — продовжую",
+    "! error pulling %s": "! помилка завантаження %s",
+    "%d models installed": "Встановлено моделей: %d",
+    "no models installed": "моделі не встановлені",
+    "AI Engine (LLM) — %s": "Рушій ШІ (LLM) — %s",
+    "Active model: %s": "Активна модель: %s",
+    "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s": "Виявлено ГП: %s\nЦП: %s\nRAM: %s вільно / %s",
+    "Local LLM engine · model: %s": "Локальний рушій LLM · модель: %s",
+    "Memory set to %s GB. Reboot now to apply it?": "Пам'ять встановлено на %s ГБ. Перезавантажити зараз, щоб застосувати?",
+    "On — starts/stops %s. Turn it off before gaming.": "Увімкнено — запускає/зупиняє %s. Вимкніть перед грою.",
+    "Set GTT to %s GB? A reboot is needed to apply.": "Встановити GTT на %s ГБ? Щоб застосувати, потрібне перезавантаження.",
+    "model budget ≈ %s": "бюджет моделі ≈ %s",
+    "✓ %s pulled": "✓ %s завантажено",
+
     "unknown": "невідомо",
     "SkillFish AI - Setup": "SkillFish AI - Налаштування",
     "Welcome to SkillFish AI": "Ласкаво просимо до SkillFish AI",
@@ -369,8 +402,7 @@ class SetupWizard(QWizard):
         t.setWordWrap(True); v.addWidget(t)
         # hardware summary
         gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
-        hw = QLabel(L(f"GPU rilevata: {gm}\nCPU: {cm}\nRAM: {gb(ra)} libera / {gb(rt)}",
-                      f"Detected GPU: {gm}\nCPU: {cm}\nRAM: {gb(ra)} free / {gb(rt)}"))
+        hw = QLabel(L("GPU rilevata: %s\nCPU: %s\nRAM: %s libera / %s", "Detected GPU: %s\nCPU: %s\nRAM: %s free / %s") % (gm, cm, gb(ra), gb(rt)))
         hw.setStyleSheet("color:#b9a07a;"); hw.setWordWrap(True); v.addWidget(hw)
         v.addStretch(1)
         return p
@@ -431,8 +463,7 @@ class InstallPage(QWizardPage):
         self._w.done.connect(self._step_done); self._w.start()
     def _step_done(self, rc):
         if rc != 0:
-            self._append(L(f"! comando fallito (rc={rc}) — continuo",
-                           f"! command failed (rc={rc}) — continuing"))
+            self._append(L("! comando fallito (rc=%s) — continuo", "! command failed (rc=%s) — continuing") % (rc,))
         self._next()
 
 # ======================= MAIN PANEL =======================
@@ -461,9 +492,8 @@ class Panel(QMainWindow):
         # engine switch
         self.eng = engine_kind()
         engname = "Unsloth Studio"
-        g = QGroupBox(L(f"Motore AI (LLM) — {engname}", f"AI Engine (LLM) — {engname}")); gv = QVBoxLayout(g)
-        self.cb = QCheckBox(L(f"Acceso — accende/spegne {engname}. Spegnilo prima di giocare.",
-                              f"On — starts/stops {engname}. Turn it off before gaming."))
+        g = QGroupBox(L("Motore AI (LLM) — %s", "AI Engine (LLM) — %s") % (engname,)); gv = QVBoxLayout(g)
+        self.cb = QCheckBox(L("Acceso — accende/spegne %s. Spegnilo prima di giocare.", "On — starts/stops %s. Turn it off before gaming.") % (engname,))
         self.cb.toggled.connect(self.on_toggle); gv.addWidget(self.cb)
         self.status = QLabel("…"); self.status.setWordWrap(True); gv.addWidget(self.status)
         v.addWidget(g)
@@ -545,7 +575,7 @@ class Panel(QMainWindow):
             self.sub.setText(L("Motore LLM locale · Unsloth Studio · GPU Vulkan",
                                "Local LLM engine · Unsloth Studio · Vulkan GPU"))
         else:
-            self.sub.setText(L(f"Motore LLM locale · modello: {self.model}", f"Local LLM engine · model: {self.model}"))
+            self.sub.setText(L("Motore LLM locale · modello: %s", "Local LLM engine · model: %s") % (self.model,))
         api = UNSLOTH_URL + "/v1"
         if run:
             self.status.setText(L("● Motore ACCESO — pronto", "● Engine ON — ready")
@@ -570,7 +600,7 @@ class Panel(QMainWindow):
         smax = max(4, min(60, ram_gb - 1)); self.gtt.setMaximum(smax)
         budget = (vr2[0] + gt) if (vr2 and gt is not None) else None
         parts = []
-        if budget is not None: parts.append(L(f"budget modello ≈ {gb(budget)}", f"model budget ≈ {gb(budget)}"))
+        if budget is not None: parts.append(L("budget modello ≈ %s", "model budget ≈ %s") % (gb(budget),))
         if gt is not None: parts.append(f"GTT {gb(gt)}")
         if cur is not None: parts.append(f"amdgpu.gttsize={cur} MB")
         self.gtt_lbl.setText("  ·  ".join(parts) if parts else L("non disponibile su questa GPU", "not available on this GPU"))
@@ -592,8 +622,8 @@ class Panel(QMainWindow):
         if i >= 0: self.modelbox.setCurrentIndex(i)
         elif cur: self.modelbox.setEditText(cur)
         self.modelbox.blockSignals(False)
-        self.modelmsg.setText(L(f"{len(inst)} modelli installati" if inst else "nessun modello installato",
-                                f"{len(inst)} models installed" if inst else "no models installed"))
+        self.modelmsg.setText(L("%d modelli installati", "%d models installed") % len(inst) if inst
+                              else L("nessun modello installato", "no models installed"))
 
     # ---- engine ----
     def on_toggle(self, state):
@@ -611,7 +641,7 @@ class Panel(QMainWindow):
         name = self.modelbox.currentText().strip()
         if not name: return
         self.model = name; cfg = load_cfg(); cfg["model"] = name; cfg["setup_done"] = True; save_cfg(cfg)
-        self.modelmsg.setText(L(f"Modello attivo: {name}", f"Active model: {name}")); self.refresh_engine()
+        self.modelmsg.setText(L("Modello attivo: %s", "Active model: %s") % (name,)); self.refresh_engine()
     def pull_model(self):
         name = self.modelbox.currentText().strip()
         if not name: return
@@ -626,22 +656,20 @@ class Panel(QMainWindow):
         return
     def _pulled(self, rc, name):
         self.bpull.setEnabled(True)
-        self.modelmsg.setText(L(f"✓ {name} scaricato" if rc == 0 else f"! errore su {name}",
-                                f"✓ {name} pulled" if rc == 0 else f"! error pulling {name}"))
+        self.modelmsg.setText(L("✓ %s scaricato", "✓ %s pulled") % name if rc == 0
+                              else L("! errore su %s", "! error pulling %s") % name)
         self.refresh_models()
 
     # ---- GTT ----
     def apply_gtt(self):
         mb = self.gtt.value() * 1024
         if QMessageBox.question(self, "SkillFish AI",
-                L(f"Impostare GTT a {self.gtt.value()} GB? Serve un riavvio per applicare.",
-                  f"Set GTT to {self.gtt.value()} GB? A reboot is needed to apply.")) != QMessageBox.StandardButton.Yes:
+                L("Impostare GTT a %s GB? Serve un riavvio per applicare.", "Set GTT to %s GB? A reboot is needed to apply.") % (self.gtt.value(),)) != QMessageBox.StandardButton.Yes:
             return
         rc, out, err = sh(f"pkexec skillfish-gtt {mb}", 60)
         if rc == 0:
             if QMessageBox.question(self, "SkillFish AI",
-                    L(f"Memoria impostata a {self.gtt.value()} GB. Riavviare ora per applicarla?",
-                      f"Memory set to {self.gtt.value()} GB. Reboot now to apply it?")) == QMessageBox.StandardButton.Yes:
+                    L("Memoria impostata a %s GB. Riavviare ora per applicarla?", "Memory set to %s GB. Reboot now to apply it?") % (self.gtt.value(),)) == QMessageBox.StandardButton.Yes:
                 sh("pkexec systemctl reboot")
         else:
             QMessageBox.warning(self, "SkillFish AI", (out or err or L("operazione annullata", "operation cancelled")))

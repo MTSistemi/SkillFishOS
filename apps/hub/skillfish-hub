@@ -43,6 +43,15 @@ LANG = _detect_lang()
 # la stessa firma e tutte le chiamate esistenti restano valide. Una stringa
 # non ancora tradotta ricade sull'inglese invece di sparire.
 PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! Operation failed (rc=%d)": "! Operacja nie powiodła się (rc=%d)",
+    "%d ratings": "%d ocen",
+    "%d updates available": "Dostępne aktualizacje: %d",
+    "Confinement: %s": "Izolacja: %s",
+    "Remove %s?": "Usunąć %s?",
+    "Remove the '%s' repository?": "Usunąć repozytorium „%s”?",
+    "Show more (%d left)": "Pokaż więcej (pozostało %d)",
+
     # top categories
     "Games": "Gry", "Development": "Programowanie", "Graphics": "Grafika",
     "Multimedia": "Multimedia", "Internet": "Internet", "Productivity": "Produktywność",
@@ -118,6 +127,15 @@ PL = {
 # Stesso meccanismo del dizionario PL: la chiave e' la stringa inglese passata
 # a L(), e una stringa non tradotta ricade sull'inglese invece di sparire.
 UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    "! Operation failed (rc=%d)": "! Операція не вдалася (rc=%d)",
+    "%d ratings": "%d оцінок",
+    "%d updates available": "Доступно оновлень: %d",
+    "Confinement: %s": "Ізоляція: %s",
+    "Remove %s?": "Вилучити %s?",
+    "Remove the '%s' repository?": "Вилучити репозиторій «%s»?",
+    "Show more (%d left)": "Показати ще (залишилось %d)",
+
     "Games": "Ігри",
     "Development": "Розробка",
     "Graphics": "Графіка",
@@ -1100,7 +1118,7 @@ class Hub(QMainWindow):
         self._page_shown += len(self._page_apps[self._page_shown:self._page_shown + CHUNK])
         rem = len(self._page_apps) - self._page_shown
         if rem > 0:
-            b = QPushButton(L("Mostra altri (%d rimanenti)" % rem, "Show more (%d left)" % rem))
+            b = QPushButton(L("Mostra altri (%d rimanenti)", "Show more (%d left)") % rem)
             b.clicked.connect(lambda: self._render_more(False))
             b.setStyleSheet("QPushButton{background:rgba(216,168,73,0.16);color:#f1e3c6;border-radius:10px;padding:9px 16px;}QPushButton:hover{background:rgba(216,168,73,0.26);}")
             self.p_lay.addWidget(b)
@@ -1120,7 +1138,7 @@ class Hub(QMainWindow):
 
     def card_remove(self, app):
         if QMessageBox.question(self, "SkillFishOS",
-                L(f"Rimuovere {app.name}?", f"Remove {app.name}?")) == QMessageBox.StandardButton.Yes:
+                L("Rimuovere %s?", "Remove %s?") % (app.name,)) == QMessageBox.StandardButton.Yes:
             self.do_op(app, "remove")
 
     def _section_title(self, text):
@@ -1235,7 +1253,7 @@ class Hub(QMainWindow):
             sm = QLabel(app.summary); sm.setStyleSheet("color:#cdbb95;font-size:14px;background:transparent;"); sm.setWordWrap(True); tcol.addWidget(sm)
         if app.rating_n:
             rr = QHBoxLayout(); rr.setSpacing(8); rr.addWidget(star_widget(app.rating, 0, 16))
-            rl = QLabel("%.1f · %s" % (app.rating, L("%d valutazioni" % app.rating_n, "%d ratings" % app.rating_n)))
+            rl = QLabel("%.1f · %s" % (app.rating, L("%d valutazioni", "%d ratings") % app.rating_n))
             rl.setStyleSheet("color:#b9a07a;font-size:13px;background:transparent;"); rr.addWidget(rl); rr.addStretch(1); tcol.addLayout(rr)
         hero.addLayout(tcol, 1)
         bc = QVBoxLayout(); bc.setSpacing(8)
@@ -1336,7 +1354,7 @@ class Hub(QMainWindow):
                 return "  ·  ".join(bits)
             if app.backend == "snap":
                 c = app.confinement or "strict"
-                return L("Confinamento: %s" % c, "Confinement: %s" % c)
+                return L("Confinamento: %s", "Confinement: %s") % c
         except Exception:
             return ""
         return ""
@@ -1399,7 +1417,7 @@ class Hub(QMainWindow):
         self._op.pct.connect(lambda p: (bar.setRange(0, 100), bar.setValue(p)))
         def fin(rc):
             bar.setRange(0, 100); bar.setValue(100); cb.setEnabled(True)
-            log.appendPlainText("\n" + (L("✓ Completato.", "✓ Done.") if rc == 0 else L("! Operazione fallita (rc=%d)" % rc, "! Operation failed (rc=%d)" % rc)))
+            log.appendPlainText("\n" + (L("✓ Completato.", "✓ Done.") if rc == 0 else L("! Operazione fallita (rc=%d)", "! Operation failed (rc=%d)") % rc))
             self.reload_catalog()
         self._op.done.connect(fin); self._op.start(); dlg.exec()
 
@@ -1414,7 +1432,8 @@ class Hub(QMainWindow):
         if tok != getattr(self, "_vtok", 0): return  # user navigated away
         ups = [u for u in ups if self.backend_on(u[0] if u[0] != "apt" else "apt")]
         self._clear(); top = QHBoxLayout(); n = len(ups)
-        t = QLabel(L("%d aggiornamenti disponibili" % n if n else "Tutto aggiornato ✓", "%d updates available" % n if n else "Everything is up to date ✓"))
+        t = QLabel(L("%d aggiornamenti disponibili", "%d updates available") % n if n
+                   else L("Tutto aggiornato ✓", "Everything is up to date ✓"))
         t.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;"); top.addWidget(t); top.addStretch(1)
         if n:
             allb = QPushButton(L("Aggiorna tutto", "Update all")); allb.clicked.connect(self.update_all)
@@ -1565,7 +1584,7 @@ class Hub(QMainWindow):
         content = "Types: deb\nURIs: %s\nSuites: %s\nComponents: %s\n%sEnabled: yes\n" % (uri.text().strip(), suite.text().strip(), comps.text().strip(), signed)
         self._run_op(["pkexec", HELPER, "repo-add", nm, base64.b64encode(content.encode()).decode()], L("Aggiungo il repository…", "Adding the repository…"))
     def repo_remove(self, name):
-        if QMessageBox.question(self, "SkillFishOS", L(f"Rimuovere il repository '{name}'?", f"Remove the '{name}' repository?")) == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, "SkillFishOS", L("Rimuovere il repository '%s'?", "Remove the '%s' repository?") % (name,)) == QMessageBox.StandardButton.Yes:
             self._run_op(["pkexec", HELPER, "repo-remove", name], L("Rimuovo il repository…", "Removing the repository…"))
     def repo_enable(self, name, en):
         run(["pkexec", HELPER, "repo-enable", name, "1" if en else "0"], 90)

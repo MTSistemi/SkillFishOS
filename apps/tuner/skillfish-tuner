@@ -35,6 +35,28 @@ LANG = _detect_lang()
 # stessa firma e tutte le chiamate esistenti restano valide. Una stringa non
 # ancora tradotta ricade sull'inglese invece di sparire.
 PL = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    " · %d GPU errors": " · %d błędów GPU",
+    "(%d MHz @ %d failed the test and was rolled back.)": "(%d MHz @ %d nie przeszło testu i zostało cofnięte.)",
+    "(%d MHz failed the test and was rolled back.)": "(%d MHz nie przeszło testu i zostało cofnięte.)",
+    "CPU wizard: testing %d MHz @ %d…": "Kreator CPU: test %d MHz @ %d…",
+    "Current allocation: %d MB (%.1f GB)": "Bieżący przydział: %d MB (%.1f GB)",
+    "Fan at %s%%: %s RPM": "Wentylator na %s%%: %s obr/min",
+    "Fan test at %s%%…": "Test wentylatora na %s%%…",
+    "Fan: %s RPM": "Wentylator: %s obr/min",
+    "Highest load-stable CPU point: %d MHz @ undervolt %d (already applied and saved at boot).": "Najwyższy punkt CPU stabilny pod obciążeniem: %d MHz @ undervolt %d (już zastosowany i zapisywany przy starcie).",
+    "Preset «%s» applied": "Zastosowano profil «%s»",
+    "Searching the optimal undervolt for %s MHz (may take ~1 min)…": "Szukanie optymalnego undervoltu dla %s MHz (może potrwać ~1 min)…",
+    "Suggested undervolt for %s MHz: scale %s (set, press Apply)": "Sugerowany undervolt dla %s MHz: skala %s (ustawiony, naciśnij Zastosuj)",
+    "VRAM %s MB — reboot": "VRAM %s MB — ponowne uruchomienie",
+    "VRAM to %s MB?": "Ustawić VRAM na %s MB?",
+    "Wizard: testing %d MHz…": "Kreator: test %d MHz…",
+    "“%s” is meant ONLY for benchmark sessions with very good cooling.\n\nIt stays applied across reboots and on some boards causes sudden total freezes (even at idle). Switch back to Turbo or Performance after benchmarking.\n\nApply anyway?": "„%s” jest przeznaczony WYŁĄCZNIE do sesji benchmarkowych z bardzo dobrym chłodzeniem.\n\nPozostaje aktywny po ponownym uruchomieniu, a na niektórych płytach powoduje nagłe całkowite zawieszenia (nawet na biegu jałowym). Po benchmarku wróć do Turbo lub Wydajność.\n\nZastosować mimo to?",
+    "✓ %d MHz @ %d stable": "✓ %d MHz @ %d stabilne",
+    "✓ %d MHz stable": "✓ %d MHz stabilne",
+    "✓ CPU OK and applied — %s %s, %s°C": "✓ CPU OK i zastosowane — %s %s, %s°C",
+    "✓ GPU OK and applied — %s %s, %s°C": "✓ GPU OK i zastosowane — %s %s, %s°C",
+
     "Max CPU frequency": "Maksymalna częstotliwość CPU",
     "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.": "Limit boostu CPU w MHz.\n\n• 3500 = bezpieczna baza\n• 3700 = zweryfikowana stabilność na tym układzie\n• 3800-3900 = poza limitami, możliwy throttling termiczny\n\nNapięcie (Vid) zawsze pozostaje poniżej 1,325 V dla bezpieczeństwa.",
     "Undervolt (scale)": "Undervolt (skala)",
@@ -146,6 +168,28 @@ PL = {
 # Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
 # rivista da chi parla ucraino, come il polacco e' stato rivisto da cyryllo.
 UK = {
+    # stringhe con segnaposto (il valore entra dopo la traduzione)
+    " · %d GPU errors": " · %d помилок ГП",
+    "(%d MHz @ %d failed the test and was rolled back.)": "(%d МГц @ %d не пройшло перевірку і було скасовано.)",
+    "(%d MHz failed the test and was rolled back.)": "(%d МГц не пройшло перевірку і було скасовано.)",
+    "CPU wizard: testing %d MHz @ %d…": "Майстер ЦП: перевірка %d МГц @ %d…",
+    "Current allocation: %d MB (%.1f GB)": "Поточний обсяг: %d МБ (%.1f ГБ)",
+    "Fan at %s%%: %s RPM": "Вентилятор на %s%%: %s об/хв",
+    "Fan test at %s%%…": "Перевірка вентилятора на %s%%…",
+    "Fan: %s RPM": "Вентилятор: %s об/хв",
+    "Highest load-stable CPU point: %d MHz @ undervolt %d (already applied and saved at boot).": "Найвища стабільна під навантаженням точка ЦП: %d МГц @ undervolt %d (уже застосовано і зберігається при завантаженні).",
+    "Preset «%s» applied": "Застосовано профіль «%s»",
+    "Searching the optimal undervolt for %s MHz (may take ~1 min)…": "Пошук оптимального undervolt для %s МГц (може зайняти ~1 хв)…",
+    "Suggested undervolt for %s MHz: scale %s (set, press Apply)": "Рекомендований undervolt для %s МГц: шкала %s (встановлено, натисніть Застосувати)",
+    "VRAM %s MB — reboot": "VRAM %s МБ — перезавантаження",
+    "VRAM to %s MB?": "Встановити VRAM на %s МБ?",
+    "Wizard: testing %d MHz…": "Майстер: перевірка %d МГц…",
+    "“%s” is meant ONLY for benchmark sessions with very good cooling.\n\nIt stays applied across reboots and on some boards causes sudden total freezes (even at idle). Switch back to Turbo or Performance after benchmarking.\n\nApply anyway?": "«%s» призначено ВИКЛЮЧНО для тестових сесій з дуже добрим охолодженням.\n\nПрофіль зберігається після перезавантаження, а на деяких платах спричиняє раптові повні зависання (навіть у простої). Після тестів поверніться до Turbo або Продуктивність.\n\nВсе одно застосувати?",
+    "✓ %d MHz @ %d stable": "✓ %d МГц @ %d стабільно",
+    "✓ %d MHz stable": "✓ %d МГц стабільно",
+    "✓ CPU OK and applied — %s %s, %s°C": "✓ ЦП OK і застосовано — %s %s, %s°C",
+    "✓ GPU OK and applied — %s %s, %s°C": "✓ ГП OK і застосовано — %s %s, %s°C",
+
     "Max CPU frequency": "Максимальна частота ЦП",
     "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.":
         "Обмеження буст-частоти ЦП у МГц.\n\n• 3500 = безпечна база\n• 3700 = перевірено стабільно на цьому чипі\n• 3800-3900 = за межами норми, можливий тепловий тротлінг\n\nНапруга (Vid) задля безпеки завжди залишається нижче 1,325 В.",
@@ -667,12 +711,7 @@ class TunerWindow(QMainWindow):
             # the Crazy-class presets are benchmark-only: 4000 @ heavy undervolt was
             # traced to repeated whole-machine hard-freezes when left applied 24/7
             if QMessageBox.warning(self, L("Preset estremo", "Extreme preset"),
-                L("«%s» è pensato SOLO per sessioni di benchmark con ottimo raffreddamento.\n\n"
-                  "Resta attivo anche dopo il riavvio e su alcune schede causa blocchi totali "
-                  "improvvisi (anche a riposo). Dopo i benchmark torna a Turbo o Performance.\n\nApplicare comunque?" % self._pname(p),
-                  "“%s” is meant ONLY for benchmark sessions with very good cooling.\n\n"
-                  "It stays applied across reboots and on some boards causes sudden total "
-                  "freezes (even at idle). Switch back to Turbo or Performance after benchmarking.\n\nApply anyway?" % self._pname(p)),
+                L("«%s» è pensato SOLO per sessioni di benchmark con ottimo raffreddamento.\n\nResta attivo anche dopo il riavvio e su alcune schede causa blocchi totali improvvisi (anche a riposo). Dopo i benchmark torna a Turbo o Performance.\n\nApplicare comunque?", "“%s” is meant ONLY for benchmark sessions with very good cooling.\n\nIt stays applied across reboots and on some boards causes sudden total freezes (even at idle). Switch back to Turbo or Performance after benchmarking.\n\nApply anyway?") % self._pname(p),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
                 return
@@ -681,7 +720,7 @@ class TunerWindow(QMainWindow):
         f = p["fan"]; self.d.cmd(cmd="apply-fan", mode=f["mode"], pct=f.get("pct", 50))
         if p.get("thermal_guard"):
             self.d.cmd(cmd="thermal-guard", limit=p["thermal_guard"])
-        self.toast(L(f"Preset «{self._pname(p)}» applicato", f"Preset «{self._pname(p)}» applied"))
+        self.toast(L("Preset «%s» applicato", "Preset «%s» applied") % (self._pname(p),))
 
     # ---------- silicon status ----------
     def _silicon(self):
@@ -730,20 +769,17 @@ class TunerWindow(QMainWindow):
 
     def _suggest_uv(self, mhz):
         self._run_async(lambda: self.d.cmd(cmd="suggest-uv", mhz=mhz), self._uv_done,
-                        L(f"Cerco l'undervolt ottimale per {mhz} MHz (può durare ~1 min)…",
-                          f"Searching the optimal undervolt for {mhz} MHz (may take ~1 min)…"))
+                        L("Cerco l'undervolt ottimale per %s MHz (può durare ~1 min)…", "Searching the optimal undervolt for %s MHz (may take ~1 min)…") % (mhz,))
     def _uv_done(self, r):
         s = r.get("suggested_scale", 0); self.cs.s.setValue(s)
-        self.toast(L(f"Undervolt suggerito per {r.get('mhz',0)} MHz: scale {s} (impostato, premi Applica)",
-                     f"Suggested undervolt for {r.get('mhz',0)} MHz: scale {s} (set, press Apply)"), 6)
+        self.toast(L("Undervolt suggerito per %s MHz: scale %s (impostato, premi Applica)", "Suggested undervolt for %s MHz: scale %s (set, press Apply)") % (r.get('mhz', 0), s), 6)
     def _test_cpu(self, mhz, scale, tmp):
         self._run_async(lambda: self.d.cmd(cmd="test-cpu", mhz=mhz, scale=scale, temp=tmp),
                         self._cpu_done, L("Test CPU: applico e benchmark 60s (per temp realistica)…",
                                           "CPU test: applying and benchmarking 60s (for a realistic temp)…"))
     def _cpu_done(self, r):
         if r.get("ok"):
-            b = r["bench"]; self.toast(L(f"✓ CPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C",
-                                         f"✓ CPU OK and applied — {b['score']} {b['unit']}, {b['temp']}°C"), 6)
+            b = r["bench"]; self.toast(L("✓ CPU OK e applicata — %s %s, %s°C", "✓ CPU OK and applied — %s %s, %s°C") % (b['score'], b['unit'], b['temp']), 6)
         else:
             self.toast(f"✗ {r.get('err', L('test fallito', 'test failed'))}", 7)
 
@@ -802,12 +838,12 @@ class TunerWindow(QMainWindow):
         f = self._wiz_queue.pop(0)
         self._run_async(lambda f=f: self.d.cmd(cmd="test-gpu", minmhz=350, minmv=700, maxmhz=f, maxmv=1000),
                         lambda r, f=f: self._wiz_step(f, r),
-                        L("Wizard: provo %d MHz…" % f, "Wizard: testing %d MHz…" % f))
+                        L("Wizard: provo %d MHz…", "Wizard: testing %d MHz…") % f)
 
     def _wiz_step(self, f, r):
         if r.get("ok"):
             self._wiz_good = f; self._wiz_bench = r.get("bench")
-            self.toast(L("✓ %d MHz stabile" % f, "✓ %d MHz stable" % f), 4)
+            self.toast(L("✓ %d MHz stabile", "✓ %d MHz stable") % f, 4)
             self._wiz_next()
         else:
             self._wiz_done(failed_at=f)
@@ -823,8 +859,7 @@ class TunerWindow(QMainWindow):
         msg = (L("Massimo stabile trovato: %d MHz @ 1000 mV%s (già applicato).",
                  "Highest stable point: %d MHz @ 1000 mV%s (already applied).") % (self._wiz_good, extra))
         if failed_at:
-            msg += "\n" + L("(%d MHz non ha superato il test ed è stato annullato.)" % failed_at,
-                            "(%d MHz failed the test and was rolled back.)" % failed_at)
+            msg += "\n" + L("(%d MHz non ha superato il test ed è stato annullato.)", "(%d MHz failed the test and was rolled back.)") % failed_at
         msg += "\n\n" + L("Vuoi condividere il risultato (anonimo) nel database della lotteria del silicio su GitHub?",
                           "Share the result (anonymous) in the silicon-lottery database on GitHub?")
         if QMessageBox.question(self, L("Risultato wizard", "Wizard result"), msg) == QMessageBox.StandardButton.Yes:
@@ -874,12 +909,12 @@ class TunerWindow(QMainWindow):
         f, s = self._cwiz_queue.pop(0)
         self._run_async(lambda f=f, s=s: self.d.cmd(cmd="test-cpu", mhz=f, scale=s, temp=85),
                         lambda r, f=f, s=s: self._cwiz_step(f, s, r),
-                        L("Wizard CPU: provo %d MHz @ %d…" % (f, s), "CPU wizard: testing %d MHz @ %d…" % (f, s)))
+                        L("Wizard CPU: provo %d MHz @ %d…", "CPU wizard: testing %d MHz @ %d…") % (f, s))
 
     def _cwiz_step(self, f, s, r):
         if r.get("ok"):
             self._cwiz_good = (f, s)
-            self.toast(L("✓ %d MHz @ %d stabile" % (f, s), "✓ %d MHz @ %d stable" % (f, s)), 4)
+            self.toast(L("✓ %d MHz @ %d stabile", "✓ %d MHz @ %d stable") % (f, s), 4)
             self._cwiz_next()
         else:
             self._cwiz_done(failed_at=(f, s))
@@ -891,11 +926,9 @@ class TunerWindow(QMainWindow):
             return
         f, s = self._cwiz_good
         self.cf.s.setValue(f); self.cs.s.setValue(s)
-        msg = L("Massimo CPU stabile sotto carico: %d MHz @ undervolt %d (già applicato e salvato al boot)." % (f, s),
-                "Highest load-stable CPU point: %d MHz @ undervolt %d (already applied and saved at boot)." % (f, s))
+        msg = L("Massimo CPU stabile sotto carico: %d MHz @ undervolt %d (già applicato e salvato al boot).", "Highest load-stable CPU point: %d MHz @ undervolt %d (already applied and saved at boot).") % (f, s)
         if failed_at:
-            msg += "\n" + L("(%d MHz @ %d non ha superato il test ed è stato annullato.)" % failed_at,
-                            "(%d MHz @ %d failed the test and was rolled back.)" % failed_at)
+            msg += "\n" + L("(%d MHz @ %d non ha superato il test ed è stato annullato.)", "(%d MHz @ %d failed the test and was rolled back.)") % failed_at
         msg += "\n\n" + L("Consiglio: usa il sistema qualche giorno; se compare un blocco, scendi di uno scalino.\n\n"
                           "Vuoi condividere il risultato (anonimo) nel database della lotteria del silicio?",
                           "Tip: run the system for a few days; if a freeze appears, step down one notch.\n\n"
@@ -909,8 +942,7 @@ class TunerWindow(QMainWindow):
                         self._gpu_done, L("Test GPU: applico e avvio vkpeak…", "GPU test: applying and running vkpeak…"))
     def _gpu_done(self, r):
         if r.get("ok"):
-            b = r["bench"]; self.toast(L(f"✓ GPU OK e applicata — {b['score']} {b['unit']}, {b['temp']}°C",
-                                         f"✓ GPU OK and applied — {b['score']} {b['unit']}, {b['temp']}°C"), 6)
+            b = r["bench"]; self.toast(L("✓ GPU OK e applicata — %s %s, %s°C", "✓ GPU OK and applied — %s %s, %s°C") % (b['score'], b['unit'], b['temp']), 6)
         else:
             self.toast(f"✗ {r.get('err', L('test fallito', 'test failed'))}", 7)
 
@@ -1062,7 +1094,7 @@ class TunerWindow(QMainWindow):
         lines = [L("40 CU sotto sforzo (vkpeak): %s GFLOPS%s",
                    "40 CU under load (vkpeak): %s GFLOPS%s") % (
                    res.get("full40", "?"),
-                   (L(" · %d errori GPU" % f_err, " · %d GPU errors" % f_err) if f_err else "")),
+                   (L(" · %d errori GPU", " · %d GPU errors") % f_err if f_err else "")),
                  L("Baseline 24 CU: %s GFLOPS", "Baseline 24 CU: %s GFLOPS") % res.get("baseline", "?"),
                  L("(atteso ~11300 a 40 CU)", "(expected ~11300 at 40 CU)"), "",
                  L("Stabilità per coppia di CU extra:", "Per extra-CU-pair stability:")]
@@ -1098,19 +1130,18 @@ class TunerWindow(QMainWindow):
     def _apply_fan(self):
         mode = "manual" if self.fan_manual.isChecked() else "auto"
         r = self.d.cmd(cmd="apply-fan", mode=mode, pct=self.fp.value())
-        self.toast(L(f"Ventola: {r.get('rpm',0)} RPM", f"Fan: {r.get('rpm',0)} RPM") if r.get("ok")
+        self.toast(L("Ventola: %s RPM", "Fan: %s RPM") % (r.get('rpm', 0),) if r.get("ok")
                    else L("Errore ventola", "Fan error"))
     def _test_fan(self, pct):
         self._run_async(lambda: self.d.cmd(cmd="apply-fan", mode="manual", pct=pct),
-                        lambda r: self.toast(L(f"Ventola al {pct}%: {r.get('rpm',0)} RPM",
-                                               f"Fan at {pct}%: {r.get('rpm',0)} RPM")),
-                        L(f"Test ventola al {pct}%…", f"Fan test at {pct}%…"))
+                        lambda r: self.toast(L("Ventola al %s%%: %s RPM", "Fan at %s%%: %s RPM") % (pct, r.get('rpm', 0))),
+                        L("Test ventola al %s%%…", "Fan test at %s%%…") % (pct,))
 
     # ---------- VRAM ----------
     def _vram(self):
         g, v = self._section("VRAM"); cur = self.cfg.get("vram", {}).get("uma_mb", 0)
-        info = QLabel(L(f"Allocazione attuale: {cur} MB ({cur/1024.0:.1f} GB)",
-                        f"Current allocation: {cur} MB ({cur/1024.0:.1f} GB)"))
+        info = QLabel(L("Allocazione attuale: %d MB (%.1f GB)",
+                        "Current allocation: %d MB (%.1f GB)") % (cur, cur / 1024.0))
         info.setStyleSheet("color:#d8a849;font-weight:bold;")
         hh = QHBoxLayout(); hw = QWidget(); hw.setLayout(hh); hh.setContentsMargins(0, 0, 0, 0)
         hh.addWidget(info); hh.addWidget(self._help_btn("vram")); hh.addStretch(1)
@@ -1129,11 +1160,11 @@ class TunerWindow(QMainWindow):
 
     def _set_vram(self):
         mb = self.vv[self.vram_combo.currentIndex()]
-        if QMessageBox.question(self, L(f"VRAM a {mb} MB?", f"VRAM to {mb} MB?"),
+        if QMessageBox.question(self, L("VRAM a %s MB?", "VRAM to %s MB?") % (mb,),
                                 L("Scrive nel CMOS del BIOS. Serve un riavvio per applicare.",
                                   "Writes to the BIOS CMOS. A reboot is needed to apply.")) != QMessageBox.StandardButton.Yes:
             return
-        self.d.cmd(cmd="set-vram", mb=mb); self.toast(L(f"VRAM {mb} MB — riavvia", f"VRAM {mb} MB — reboot"))
+        self.d.cmd(cmd="set-vram", mb=mb); self.toast(L("VRAM %s MB — riavvia", "VRAM %s MB — reboot") % (mb,))
 
 
 def main():
