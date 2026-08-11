@@ -367,6 +367,18 @@ const RENDER = {
         // questo riquadro l'utente cerca su internet una risposta che non esiste,
         // e intanto il motore gli muore addosso. Sparisce da solo appena la
         // password viene cambiata.
+        // La chiave API. Chat e AI-Ops parlano con Unsloth attraverso la sua API,
+        // che senza chiave risponde 401: i due pulsanti sembravano rotti. La
+        // chiave si crea dentro Studio e finora andava incollata a mano nel file
+        // di configurazione via SSH, cioe' fuori portata per quasi tutti.
+        (s.running && !s.has_key
+          ? '<div class="gl" style="margin-top:12px">' + (it ? "Chiave API di Unsloth" : "Unsloth API key") + '</div>' +
+            '<div style="font-size:12px;opacity:.75;margin:4px 0 6px">' +
+            (it ? "Serve a Chat e AI-Ops. Creala in Studio: Impostazioni &rarr; API keys, poi incollala qui."
+                : "Needed by Chat and AI-Ops. Create it in Studio: Settings &rarr; API keys, then paste it here.") + "</div>" +
+            '<div class="brow"><input id="aikey" class="dsel" placeholder="sk-unsloth-..." style="flex:1"/>' +
+            '<button class="dbtn" id="aikeysave">' + (it ? "Salva" : "Save") + "</button></div>"
+          : "") +
         (fl.password
           ? '<div class="gl" style="margin-top:12px">' + (it ? "Primo accesso a Unsloth Studio" : "First sign-in to Unsloth Studio") + '</div>' +
             '<div class="rows"><div class="r"><span>' + (it ? "Utente" : "User") + '</span><span><code>' + fl.user + '</code></span></div>' +
@@ -376,7 +388,7 @@ const RENDER = {
                 : "Change it on first sign-in: left as is, Unsloth shuts itself down after an hour.") + "</div>"
           : "") +
         '<div class="brow" style="margin-top:10px">' + (s.running ? '<button class="dbtn danger" id="aistop">' + T("ai_stop") + "</button>" : '<button class="dbtn" id="aistart">' + T("ai_start") + "</button>") +
-        '<button class="dbtn" id="aichat"' + (s.running ? "" : " disabled") + ">💬 " + (it ? "Chat" : "Chat") + "</button>" +
+        '<button class="dbtn" id="aichat"' + (s.running && s.has_key ? "" : " disabled") + ">💬 " + (it ? "Chat" : "Chat") + "</button>" +
         '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (it ? "Apri " : "Open ") + uiName + " ↗</button></div>" +
         (uns ? ""
              : '<div class="gl" style="margin-top:12px">' + (it ? "Modelli installati" : "Installed models") + '</div><div style="margin-top:4px">' + models + "</div>" +
@@ -387,6 +399,12 @@ const RENDER = {
                                                           : T("ai_hint")) + "</div>";
       if ($("#aistart", card)) $("#aistart", card).onclick = async () => { await action("/api/ai/start", {}, T("ai_starting")); setTimeout(refresh, 4000); };
       if ($("#aistop", card)) $("#aistop", card).onclick = async () => { await action("/api/ai/stop", {}, T("ai_stopping")); setTimeout(refresh, 2000); };
+      if ($("#aikeysave", card)) $("#aikeysave", card).onclick = async () => {
+        const v = $("#aikey", card).value.trim();
+        if (!v) return;
+        await action("/api/ai/key", { key: v }, it ? "Chiave salvata" : "Key saved");
+        setTimeout(refresh, 800);
+      };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
       if ($("#aiweb", card)) $("#aiweb", card).onclick = () => {
         // Si apre l'indirizzo DIRETTO, non il proxy della dashboard.

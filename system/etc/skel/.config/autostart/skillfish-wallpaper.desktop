@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS wallpaper
+Comment=Applica lo sfondo di SkillFishOS al primo accesso
+Exec=/usr/local/bin/skillfish-first-login-wallpaper
+X-KDE-autostart-phase=2
+NoDisplay=true
