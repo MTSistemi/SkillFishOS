@@ -5,76 +5,148 @@ const api = (p, opt) => fetch(p, Object.assign({ credentials: "same-origin" }, o
 const post = (p, body) => api(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
 
 // ---------------- i18n ----------------
-let LANG = localStorage.getItem("sflang") || ((navigator.language || "en").toLowerCase().startsWith("it") ? "it" : "en");
+// Il rilevamento riconosceva SOLO l'italiano e mandava tutti gli altri
+// sull'inglese, polacchi e ucraini compresi. Ora si guarda il prefisso della
+// lingua del browser; se non e' una delle nostre resta l'inglese, che e' il
+// ripiego giusto.
+let LANG = localStorage.getItem("sflang") || (function () {
+  var n = (navigator.language || "en").toLowerCase();
+  if (n.startsWith("it")) return "it";
+  if (n.startsWith("pl")) return "pl";
+  if (n.startsWith("uk") || n.startsWith("ua")) return "uk";
+  return "en";
+})();
 const STR = {
-  login_sub: { it: "SkillFishOS · accedi con le credenziali di sistema", en: "SkillFishOS · sign in with your system credentials" },
-  user: { it: "Utente", en: "User" }, pass: { it: "Password", en: "Password" },
-  enter: { it: "Entra", en: "Sign in" }, denied: { it: "accesso negato", en: "access denied" },
-  logout: { it: "Esci", en: "Log out" }, neterr: { it: "errore di rete", en: "network error" },
-  copied: { it: "Copiato", en: "Copied" }, done: { it: "fatto", en: "done" },
-  g_monitor: { it: "Monitoraggio", en: "Monitoring" }, g_control: { it: "Controllo", en: "Control" },
-  g_remote: { it: "Accesso remoto", en: "Remote access" }, g_ai: { it: "Intelligenza artificiale", en: "AI" },
-  g_other: { it: "Altro", en: "Other" },
+  x_zthint: { it: "Dopo «Entra», autorizza il nodo su my.zerotier.com. Poi raggiungi la dashboard da ovunque: https://&lt;IP ZeroTier&gt;:8443",
+              en: "After Join, authorize the node on my.zerotier.com. Then reach the dashboard from anywhere: https://&lt;ZeroTier IP&gt;:8443",
+              pl: "Po «Dołącz» autoryzuj węzeł na my.zerotier.com. Potem otwórz panel z dowolnego miejsca: https://&lt;IP ZeroTier&gt;:8443",
+              uk: "Після «Приєднатися» авторизуйте вузол на my.zerotier.com. Далі відкривайте панель звідусіль: https://&lt;IP ZeroTier&gt;:8443" },
+  x_ztsent: { it: "Richiesta inviata — autorizza su my.zerotier.com",
+              en: "Request sent — authorize on my.zerotier.com",
+              pl: "Wysłano prośbę — autoryzuj na my.zerotier.com",
+              uk: "Запит надіслано — авторизуйте на my.zerotier.com" },
+  x_kvhint2: { it: "q8_0 dimezza la KV cache (più contesto). Sbloccare la GTT permette modelli più grandi ma richiede il riavvio.", en: "q8_0 halves the KV cache (more context). Unlocking GTT allows bigger models but needs a reboot.", pl: "q8_0 zmniejsza KV cache o połowę (więcej kontekstu). Odblokowanie GTT pozwala na większe modele, ale wymaga restartu.", uk: "q8_0 зменшує KV cache удвічі (більше контексту). Розблокування GTT дозволяє більші моделі, але потребує перезавантаження." },
+  x_qgtt: { it: "Sbloccare la GTT? Modifica il boot e richiede il RIAVVIO.", en: "Unlock GTT? Edits boot config, needs a REBOOT.", pl: "Odblokować GTT? Zmienia konfigurację startu i wymaga RESTARTU.", uk: "Розблокувати GTT? Змінює конфігурацію завантаження і потребує ПЕРЕЗАВАНТАЖЕННЯ." },
+  x_qkv: { it: "KV cache → q8_0? Riavvia il motore AI locale.", en: "KV cache → q8_0? Restarts the local AI engine.", pl: "KV cache → q8_0? Uruchamia ponownie lokalny silnik SI.", uk: "KV cache → q8_0? Перезапускає локальний рушій ШІ." },
+  x_open: { it: "Apri ", en: "Open ", pl: "Otwórz ", uk: "Відкрити " },
+  // Chiavi arrivate dallo schema `const it = LANG === "it"` + `it ? ... : ...`,
+  // che era testo fuori dal dizionario: chi non usava italiano o inglese
+  // vedeva l'inglese comunque, qualunque lingua avesse scelto.
+  x_ctx: { it: "Contesto", en: "Context", pl: "Kontekst", uk: "Контекст" },
+  x_gttcap: { it: "Cap GTT", en: "GTT cap", pl: "Limit GTT", uk: "Ліміт GTT" },
+  x_unlocked: { it: "sbloccato", en: "unlocked", pl: "odblokowane", uk: "розблоковано" },
+  x_kv: { it: "KV cache q8_0", en: "KV cache q8_0", pl: "KV cache q8_0", uk: "KV cache q8_0" },
+  x_gttbtn: { it: "Sblocca GTT (riavvio)", en: "Unlock GTT (reboot)", pl: "Odblokuj GTT (restart)", uk: "Розблокувати GTT (перезавантаження)" },
+  x_optdone: { it: "Già ottimizzato ✓", en: "Already optimized ✓", pl: "Już zoptymalizowane ✓", uk: "Уже оптимізовано ✓" },
+  x_applying: { it: "Applico…", en: "Applying…", pl: "Stosowanie…", uk: "Застосування…" },
+  x_mods: { it: "Moduli esposti", en: "Exposed modules", pl: "Udostępnione moduły", uk: "Відкриті модулі" },
+  x_updated: { it: "Aggiornato", en: "Updated", pl: "Zaktualizowano", uk: "Оновлено" },
+  x_localai: { it: "AI locale", en: "On-device AI", pl: "SI lokalna", uk: "Локальний ШІ" },
+  x_nomodels: { it: "nessun modello installato", en: "no models installed", pl: "brak zainstalowanych modeli", uk: "моделі не встановлені" },
+  x_engine: { it: "Motore", en: "Engine", pl: "Silnik", uk: "Рушій" },
+  x_accel: { it: "Accelerazione", en: "Acceleration", pl: "Akceleracja", uk: "Прискорення" },
+  x_apikey: { it: "Chiave API di Unsloth", en: "Unsloth API key", pl: "Klucz API Unsloth", uk: "Ключ API Unsloth" },
+  x_save: { it: "Salva", en: "Save", pl: "Zapisz", uk: "Зберегти" },
+  x_first: { it: "Primo accesso a Unsloth Studio", en: "First sign-in to Unsloth Studio", pl: "Pierwsze logowanie do Unsloth Studio", uk: "Перший вхід до Unsloth Studio" },
+  x_user: { it: "Utente", en: "User", pl: "Użytkownik", uk: "Користувач" },
+  x_initpw: { it: "Password iniziale", en: "Initial password", pl: "Hasło początkowe", uk: "Початковий пароль" },
+  x_chat: { it: "Chat", en: "Chat", pl: "Czat", uk: "Чат" },
+  x_models: { it: "Modelli installati", en: "Installed models", pl: "Zainstalowane modele", uk: "Встановлені моделі" },
+  x_pullph: { it: "scarica modello (es. qwen3:14b)", en: "pull model (e.g. qwen3:14b)", pl: "pobierz model (np. qwen3:14b)", uk: "завантажити модель (напр. qwen3:14b)" },
+  x_pull: { it: "Scarica", en: "Pull", pl: "Pobierz", uk: "Завантажити" },
+  x_optai: { it: "Ottimizza per AI", en: "Optimize for AI", pl: "Zoptymalizuj pod SI", uk: "Оптимізувати для ШІ" },
+  x_keysaved: { it: "Chiave salvata", en: "Key saved", pl: "Zapisano klucz", uk: "Ключ збережено" },
+  x_dlstart: { it: "Download avviato…", en: "Download started…", pl: "Rozpoczęto pobieranie…", uk: "Завантаження розпочато…" },
+  x_nonet: { it: "Nessuna rete.", en: "No networks.", pl: "Brak sieci.", uk: "Немає мереж." },
+  x_node: { it: "Nodo", en: "Node", pl: "Węzeł", uk: "Вузол" },
+  x_state: { it: "Stato", en: "Status", pl: "Stan", uk: "Стан" },
+  x_nets: { it: "Reti", en: "Networks", pl: "Sieci", uk: "Мережі" },
+  x_join: { it: "Entra", en: "Join", pl: "Dołącz", uk: "Приєднатися" },
+  x_left: { it: "Uscito dalla rete", en: "Left network", pl: "Opuszczono sieć", uk: "Мережу покинуто" },
+  x_closed: { it: "Schede chiuse", en: "Closed cards", pl: "Zamknięte karty", uk: "Закриті картки" },
+  // Chiavi arrivate dai ternari LANG === "it" ? ... : ... , che erano
+  // testo fuori dal dizionario e quindi NON traducibile in altre lingue.
+  ly_saved: { it: "Disposizione salvata", en: "Layout saved", pl: "Zapisano układ", uk: "Розташування збережено" },
+  m_telem: { it: "Telemetria", en: "Telemetry", pl: "Telemetria", uk: "Телеметрія" },
+  m_sys: { it: "Stato sistema", en: "System status", pl: "Stan systemu", uk: "Стан системи" },
+  m_ctrl: { it: "Controlli", en: "Controls", pl: "Sterowanie", uk: "Керування" },
+  m_apps: { it: "App e pacchetti", en: "Apps & packages", pl: "Aplikacje i pakiety", uk: "Програми та пакунки" },
+  m_launch: { it: "Avvio app", en: "Launcher", pl: "Uruchamianie aplikacji", uk: "Запуск програм" },
+  m_term: { it: "Terminale", en: "Terminal", pl: "Terminal", uk: "Термінал" },
+  m_rules: { it: "Regole auto", en: "Auto rules", pl: "Reguły automatyczne", uk: "Автоматичні правила" },
+  m_soon: { it: "Modulo attivo — interfaccia in arrivo.", en: "Module on — UI coming soon.", pl: "Moduł włączony — interfejs wkrótce.", uk: "Модуль увімкнено — інтерфейс незабаром." },
+  w_move: { it: "Sposta", en: "Move", pl: "Przenieś", uk: "Перемістити" },
+  w_coll: { it: "Comprimi", en: "Collapse", pl: "Zwiń", uk: "Згорнути" },
+  w_close: { it: "Chiudi", en: "Close", pl: "Zamknij", uk: "Закрити" },
+  ly_reset: { it: "Ripristinare la disposizione predefinita?", en: "Reset to the default layout?", pl: "Przywrócić domyślny układ?", uk: "Відновити типове розташування?" },
+  login_sub: { it: "SkillFishOS · accedi con le credenziali di sistema", en: "SkillFishOS · sign in with your system credentials", pl: "SkillFishOS · zaloguj się danymi systemowymi", uk: "SkillFishOS · увійдіть за системними обліковими даними" },
+  user: { it: "Utente", en: "User", pl: "Użytkownik", uk: "Користувач" }, pass: { it: "Password", en: "Password", pl: "Hasło", uk: "Пароль" },
+  enter: { it: "Entra", en: "Sign in", pl: "Zaloguj się", uk: "Увійти" }, denied: { it: "accesso negato", en: "access denied", pl: "odmowa dostępu", uk: "доступ заборонено" },
+  logout: { it: "Esci", en: "Log out", pl: "Wyloguj", uk: "Вийти" }, neterr: { it: "errore di rete", en: "network error", pl: "błąd sieci", uk: "помилка мережі" },
+  copied: { it: "Copiato", en: "Copied", pl: "Skopiowano", uk: "Скопійовано" }, done: { it: "fatto", en: "done", pl: "gotowe", uk: "готово" },
+  g_monitor: { it: "Monitoraggio", en: "Monitoring", pl: "Monitorowanie", uk: "Моніторинг" }, g_control: { it: "Controllo", en: "Control", pl: "Sterowanie", uk: "Керування" },
+  g_remote: { it: "Accesso remoto", en: "Remote access", pl: "Dostęp zdalny", uk: "Віддалений доступ" }, g_ai: { it: "Intelligenza artificiale", en: "AI", pl: "SI", uk: "ШІ" },
+  g_other: { it: "Altro", en: "Other", pl: "Inne", uk: "Інше" },
   // telemetry
-  t_temp: { it: "Temperatura", en: "Temperature" }, t_load: { it: "Carico", en: "Load" },
-  t_freq: { it: "Frequenza", en: "Frequency" }, t_pow: { it: "Potenza", en: "Power" },
-  t_volt: { it: "Voltaggio", en: "Voltage" }, t_fan: { it: "Ventola", en: "Fan" }, live: { it: "live", en: "live" },
-  t_percore: { it: "Frequenza per core/thread", en: "Per core/thread frequency" },
-  c_off: { it: "off", en: "off" }, c_avg: { it: "med", en: "avg" }, c_online: { it: "attivi", en: "online" },
+  t_temp: { it: "Temperatura", en: "Temperature", pl: "Temperatura", uk: "Температура" }, t_load: { it: "Carico", en: "Load", pl: "Obciążenie", uk: "Навантаження" },
+  t_freq: { it: "Frequenza", en: "Frequency", pl: "Częstotliwość", uk: "Частота" }, t_pow: { it: "Potenza", en: "Power", pl: "Moc", uk: "Потужність" },
+  t_volt: { it: "Voltaggio", en: "Voltage", pl: "Napięcie", uk: "Напруга" }, t_fan: { it: "Ventola", en: "Fan", pl: "Wentylator", uk: "Вентилятор" }, live: { it: "live", en: "live", pl: "na żywo", uk: "наживо" },
+  t_percore: { it: "Frequenza per core/thread", en: "Per core/thread frequency", pl: "Częstotliwość na rdzeń/wątek", uk: "Частота на ядро/потік" },
+  c_off: { it: "off", en: "off", pl: "wył.", uk: "вимк." }, c_avg: { it: "med", en: "avg", pl: "śr.", uk: "сер." }, c_online: { it: "attivi", en: "online", pl: "aktywne", uk: "активні" },
   // status
-  s_you: { it: "Sei connesso a", en: "Connected to" }, s_host: { it: "Host", en: "Host" },
-  s_ip: { it: "IP (rotta)", en: "IP (route)" }, s_kernel: { it: "Kernel", en: "Kernel" },
-  s_up: { it: "Uptime", en: "Uptime" }, s_cu: { it: "CU attive", en: "Active CUs" }, s_ram: { it: "RAM", en: "RAM" },
-  s_disk: { it: "Disco /", en: "Disk /" }, s_frz: { it: "Freeze rilevati", en: "Freezes detected" },
+  s_you: { it: "Sei connesso a", en: "Connected to", pl: "Połączono z", uk: "З'єднано з" }, s_host: { it: "Host", en: "Host", pl: "Host", uk: "Вузол" },
+  s_ip: { it: "IP (rotta)", en: "IP (route)", pl: "IP (trasa)", uk: "IP (маршрут)" }, s_kernel: { it: "Kernel", en: "Kernel", pl: "Jądro", uk: "Ядро" },
+  s_up: { it: "Uptime", en: "Uptime", pl: "Czas działania", uk: "Час роботи" }, s_cu: { it: "CU attive", en: "Active CUs", pl: "Aktywne CU", uk: "Активні CU" }, s_ram: { it: "RAM", en: "RAM", pl: "RAM", uk: "RAM" },
+  s_disk: { it: "Disco /", en: "Disk /", pl: "Dysk /", uk: "Диск /" }, s_frz: { it: "Freeze rilevati", en: "Freezes detected", pl: "Wykryte zawieszenia", uk: "Виявлені зависання" },
   // tuner
-  c_preset: { it: "Preset", en: "Presets" }, c_gov: { it: "Governor GPU", en: "GPU governor" },
-  c_bal: { it: "Bilanciato", en: "Balanced" }, c_perf: { it: "Performance", en: "Performance" },
-  c_fan: { it: "Ventola", en: "Fan" }, c_auto: { it: "Auto", en: "Auto" }, c_man: { it: "Manuale", en: "Manual" },
-  c_applied: { it: "Preset {x} applicato", en: "Preset {x} applied" },
-  c_full: { it: "Apri Tuner completo", en: "Open full Tuner" },
+  c_preset: { it: "Preset", en: "Presets", pl: "Profile", uk: "Профілі" }, c_gov: { it: "Governor GPU", en: "GPU governor", pl: "Regulator GPU", uk: "Регулятор ГП" },
+  c_bal: { it: "Bilanciato", en: "Balanced", pl: "Zrównoważony", uk: "Збалансований" }, c_perf: { it: "Performance", en: "Performance", pl: "Wydajność", uk: "Продуктивність" },
+  c_fan: { it: "Ventola", en: "Fan", pl: "Wentylator", uk: "Вентилятор" }, c_auto: { it: "Auto", en: "Auto", pl: "Auto", uk: "Авто" }, c_man: { it: "Manuale", en: "Manual", pl: "Ręcznie", uk: "Вручну" },
+  c_applied: { it: "Preset {x} applicato", en: "Preset {x} applied", pl: "Zastosowano profil {x}", uk: "Застосовано профіль {x}" },
+  c_full: { it: "Apri Tuner completo", en: "Open full Tuner", pl: "Otwórz pełny Tuner", uk: "Відкрити повний Tuner" },
   // hub
-  h_open: { it: "Apri Hub", en: "Open Hub" }, h_updates: { it: "aggiornamenti", en: "updates" },
+  h_open: { it: "Apri Hub", en: "Open Hub", pl: "Otwórz Hub", uk: "Відкрити Hub" }, h_updates: { it: "aggiornamenti", en: "updates", pl: "aktualizacji", uk: "оновлень" },
   // power
-  p_reboot: { it: "Riavvia", en: "Reboot" }, p_off: { it: "Spegni", en: "Shut down" },
-  p_conf: { it: "Richiede conferma.", en: "Asks for confirmation." },
-  p_qreb: { it: "Riavviare la BC-250?", en: "Reboot the BC-250?" }, p_qoff: { it: "Spegnere la BC-250?", en: "Shut down the BC-250?" },
-  p_rebing: { it: "Riavvio…", en: "Rebooting…" }, p_offing: { it: "Spegnimento…", en: "Shutting down…" },
+  p_reboot: { it: "Riavvia", en: "Reboot", pl: "Uruchom ponownie", uk: "Перезавантажити" }, p_off: { it: "Spegni", en: "Shut down", pl: "Wyłącz", uk: "Вимкнути" },
+  p_conf: { it: "Richiede conferma.", en: "Asks for confirmation.", pl: "Poprosi o potwierdzenie.", uk: "Запитає підтвердження." },
+  p_qreb: { it: "Riavviare la BC-250?", en: "Reboot the BC-250?", pl: "Uruchomić ponownie BC-250?", uk: "Перезавантажити BC-250?" }, p_qoff: { it: "Spegnere la BC-250?", en: "Shut down the BC-250?", pl: "Wyłączyć BC-250?", uk: "Вимкнути BC-250?" },
+  p_rebing: { it: "Riavvio…", en: "Rebooting…", pl: "Ponowne uruchamianie…", uk: "Перезавантаження…" }, p_offing: { it: "Spegnimento…", en: "Shutting down…", pl: "Wyłączanie…", uk: "Вимкнення…" },
   // logs / launcher / rec
-  l_refresh: { it: "aggiorna", en: "refresh" }, empty: { it: "(vuoto)", en: "(empty)" },
-  la_hint: { it: "Si apre sullo schermo della scheda.", en: "Opens on the board's screen." },
-  la_started: { it: "Avviato: {x}", en: "Launched: {x}" },
-  r_none: { it: "Nessuna registrazione.", en: "No recordings." }, r_saved: { it: "Registrazione salvata", en: "Recording saved" },
-  r_started: { it: "Registrazione avviata", en: "Recording started" },
+  l_refresh: { it: "aggiorna", en: "refresh", pl: "odśwież", uk: "оновити" }, empty: { it: "(vuoto)", en: "(empty)", pl: "(pusto)", uk: "(порожньо)" },
+  la_hint: { it: "Si apre sullo schermo della scheda.", en: "Opens on the board's screen.", pl: "Otwiera się na ekranie płyty.", uk: "Відкриється на екрані плати." },
+  la_started: { it: "Avviato: {x}", en: "Launched: {x}", pl: "Uruchomiono: {x}", uk: "Запущено: {x}" },
+  r_none: { it: "Nessuna registrazione.", en: "No recordings.", pl: "Brak nagrań.", uk: "Немає записів." }, r_saved: { it: "Registrazione salvata", en: "Recording saved", pl: "Nagranie zapisane", uk: "Запис збережено" },
+  r_started: { it: "Registrazione avviata", en: "Recording started", pl: "Rozpoczęto nagrywanie", uk: "Запис розпочато" },
   // kvm / terminal
-  k_open: { it: "▶ Apri desktop remoto", en: "▶ Open remote desktop" },
-  k_hint: { it: "Schermo, tastiera e mouse della scheda — stessa sessione, nessuna password in più.", en: "Screen, keyboard and mouse of the board — same session, no extra password." },
-  k_ready: { it: "Desktop pronto", en: "Desktop ready" }, k_vncpw: { it: "Aperto. Password VNC (se richiesta): ", en: "Opened. VNC password (if asked): " },
-  term_open: { it: "▶ Apri terminale", en: "▶ Open terminal" },
-  term_hint: { it: "Shell della scheda — stessa sessione, nessuna password in più.", en: "Board shell — same session, no extra password." },
+  k_open: { it: "▶ Apri desktop remoto", en: "▶ Open remote desktop", pl: "▶ Otwórz zdalny pulpit", uk: "▶ Відкрити віддалений робочий стіл" },
+  k_hint: { it: "Schermo, tastiera e mouse della scheda — stessa sessione, nessuna password in più.", en: "Screen, keyboard and mouse of the board — same session, no extra password.", pl: "Ekran, klawiatura i mysz płyty — ta sama sesja, bez dodatkowego hasła.", uk: "Екран, клавіатура і миша плати — та сама сесія, без додаткового пароля." },
+  k_ready: { it: "Desktop pronto", en: "Desktop ready", pl: "Pulpit gotowy", uk: "Робочий стіл готовий" }, k_vncpw: { it: "Aperto. Password VNC (se richiesta): ", en: "Opened. VNC password (if asked): ", pl: "Otwarto. Hasło VNC (jeśli zapyta): ", uk: "Відкрито. Пароль VNC (якщо запитає): " },
+  term_open: { it: "▶ Apri terminale", en: "▶ Open terminal", pl: "▶ Otwórz terminal", uk: "▶ Відкрити термінал" },
+  term_hint: { it: "Shell della scheda — stessa sessione, nessuna password in più.", en: "Board shell — same session, no extra password.", pl: "Powłoka płyty — ta sama sesja, bez dodatkowego hasła.", uk: "Оболонка плати — та сама сесія, без додаткового пароля." },
   // ai
-  ai_engine: { it: "Motore", en: "Engine" }, ai_on: { it: "● acceso", en: "● on" }, ai_off: { it: "○ spento", en: "○ off" },
-  ai_start: { it: "▶ Accendi AI", en: "▶ Turn on AI" }, ai_stop: { it: "■ Spegni AI", en: "■ Turn off AI" },
-  ai_open: { it: "Apri l’interfaccia ↗", en: "Open the UI ↗" }, ai_ready: { it: "● pronto", en: "● ready" },
-  ai_hint: { it: "Lo stack gira sulla GPU: spegnilo quando giochi.", en: "The stack runs on the GPU: turn it off when gaming." },
-  ai_starting: { it: "Avvio AI… (può richiedere un minuto)", en: "Starting AI… (may take a minute)" }, ai_stopping: { it: "Spengo AI", en: "Stopping AI" },
+  ai_engine: { it: "Motore", en: "Engine", pl: "Silnik", uk: "Рушій" }, ai_on: { it: "● acceso", en: "● on", pl: "● wł.", uk: "● увімк." }, ai_off: { it: "○ spento", en: "○ off", pl: "○ wył.", uk: "○ вимк." },
+  ai_start: { it: "▶ Accendi AI", en: "▶ Turn on AI", pl: "▶ Włącz SI", uk: "▶ Увімкнути ШІ" }, ai_stop: { it: "■ Spegni AI", en: "■ Turn off AI", pl: "■ Wyłącz SI", uk: "■ Вимкнути ШІ" },
+  ai_open: { it: "Apri l’interfaccia ↗", en: "Open the UI ↗", pl: "Otwórz interfejs ↗", uk: "Відкрити інтерфейс ↗" }, ai_ready: { it: "● pronto", en: "● ready", pl: "● gotowy", uk: "● готово" },
+  ai_hint: { it: "Lo stack gira sulla GPU: spegnilo quando giochi.", en: "The stack runs on the GPU: turn it off when gaming.", pl: "Silnik działa na GPU: wyłącz go przed graniem.", uk: "Рушій працює на ГП: вимкніть його перед грою." },
+  ai_starting: { it: "Avvio AI… (può richiedere un minuto)", en: "Starting AI… (may take a minute)", pl: "Uruchamianie SI… (może potrwać minutę)", uk: "Запуск ШІ… (може зайняти хвилину)" }, ai_stopping: { it: "Spengo AI", en: "Stopping AI", pl: "Zatrzymywanie SI", uk: "Зупинка ШІ" },
   // wol
-  w_wol: { it: "Wake-on-LAN", en: "Wake-on-LAN" }, w_en: { it: "● abilitato", en: "● enabled" }, w_dis: { it: "○ disabilitato", en: "○ disabled" },
-  w_enbtn: { it: "Abilita WoL", en: "Enable WoL" }, w_disbtn: { it: "Disabilita WoL", en: "Disable WoL" },
-  w_wake: { it: "Sveglia un altro dispositivo", en: "Wake another device" }, w_send: { it: "Invia", en: "Send" }, w_sent: { it: "Magic packet inviato", en: "Magic packet sent" },
-  w_sched: { it: "Programma spegnimento/riavvio", en: "Schedule power off/reboot" }, w_cancel: { it: "Annulla", en: "Cancel" },
-  w_qreb: { it: "Riavviare tra {x} min?", en: "Reboot in {x} min?" }, w_qoff: { it: "Spegnere tra {x} min?", en: "Shut down in {x} min?" },
-  w_updated: { it: "WoL aggiornato", en: "WoL updated" }, w_rsched: { it: "Riavvio programmato", en: "Reboot scheduled" }, w_osched: { it: "Spegnimento programmato", en: "Shutdown scheduled" }, w_canc: { it: "Programmazione annullata", en: "Schedule cancelled" },
+  w_wol: { it: "Wake-on-LAN", en: "Wake-on-LAN", pl: "Wake-on-LAN", uk: "Wake-on-LAN" }, w_en: { it: "● abilitato", en: "● enabled", pl: "● włączone", uk: "● увімкнено" }, w_dis: { it: "○ disabilitato", en: "○ disabled", pl: "○ wyłączone", uk: "○ вимкнено" },
+  w_enbtn: { it: "Abilita WoL", en: "Enable WoL", pl: "Włącz WoL", uk: "Увімкнути WoL" }, w_disbtn: { it: "Disabilita WoL", en: "Disable WoL", pl: "Wyłącz WoL", uk: "Вимкнути WoL" },
+  w_wake: { it: "Sveglia un altro dispositivo", en: "Wake another device", pl: "Obudź inne urządzenie", uk: "Розбудити інший пристрій" }, w_send: { it: "Invia", en: "Send", pl: "Wyślij", uk: "Надіслати" }, w_sent: { it: "Magic packet inviato", en: "Magic packet sent", pl: "Wysłano magic packet", uk: "Magic packet надіслано" },
+  w_sched: { it: "Programma spegnimento/riavvio", en: "Schedule power off/reboot", pl: "Zaplanuj wyłączenie/restart", uk: "Запланувати вимкнення/перезавантаження" }, w_cancel: { it: "Annulla", en: "Cancel", pl: "Anuluj", uk: "Скасувати" },
+  w_qreb: { it: "Riavviare tra {x} min?", en: "Reboot in {x} min?", pl: "Uruchomić ponownie za {x} min?", uk: "Перезавантажити через {x} хв?" }, w_qoff: { it: "Spegnere tra {x} min?", en: "Shut down in {x} min?", pl: "Wyłączyć za {x} min?", uk: "Вимкнути через {x} хв?" },
+  w_updated: { it: "WoL aggiornato", en: "WoL updated", pl: "Zaktualizowano WoL", uk: "WoL оновлено" }, w_rsched: { it: "Riavvio programmato", en: "Reboot scheduled", pl: "Zaplanowano ponowne uruchomienie", uk: "Перезавантаження заплановано" }, w_osched: { it: "Spegnimento programmato", en: "Shutdown scheduled", pl: "Zaplanowano wyłączenie", uk: "Вимкнення заплановано" }, w_canc: { it: "Programmazione annullata", en: "Schedule cancelled", pl: "Anulowano plan", uk: "Планування скасовано" },
   // rules
-  ru_throttle: { it: "Auto-throttle a Stock se troppo caldo", en: "Auto-throttle to Stock when too hot" },
-  ru_thresh: { it: "Soglia", en: "Threshold" }, ru_last: { it: "Ultima azione", en: "Last action" },
-  ru_on: { it: "● attivo", en: "● on" }, ru_off: { it: "○ spento", en: "○ off" }, ru_enable: { it: "Attiva", en: "Enable" }, ru_disable: { it: "Disattiva", en: "Disable" },
-  ru_set: { it: "Imposta", en: "Set" }, ru_updated: { it: "Regola aggiornata", en: "Rule updated" }, ru_setdone: { it: "Soglia impostata", en: "Threshold set" },
-  ru_frame: { it: "Ultimo fotogramma dello schermo", en: "Last screen frame" }, ru_noframe: { it: "Nessun fotogramma ancora (attiva il modulo e attendi ~20s).", en: "No frame yet (enable the module and wait ~20s)." },
+  ru_throttle: { it: "Auto-throttle a Stock se troppo caldo", en: "Auto-throttle to Stock when too hot", pl: "Automatycznie na Stock przy przegrzaniu", uk: "Автоматично на Stock при перегріві" },
+  ru_thresh: { it: "Soglia", en: "Threshold", pl: "Próg", uk: "Поріг" }, ru_last: { it: "Ultima azione", en: "Last action", pl: "Ostatnia akcja", uk: "Остання дія" },
+  ru_on: { it: "● attivo", en: "● on", pl: "● wł.", uk: "● увімк." }, ru_off: { it: "○ spento", en: "○ off", pl: "○ wył.", uk: "○ вимк." }, ru_enable: { it: "Attiva", en: "Enable", pl: "Włącz", uk: "Увімкнути" }, ru_disable: { it: "Disattiva", en: "Disable", pl: "Wyłącz", uk: "Вимкнути" },
+  ru_set: { it: "Imposta", en: "Set", pl: "Ustaw", uk: "Встановити" }, ru_updated: { it: "Regola aggiornata", en: "Rule updated", pl: "Zaktualizowano regułę", uk: "Правило оновлено" }, ru_setdone: { it: "Soglia impostata", en: "Threshold set", pl: "Ustawiono próg", uk: "Поріг встановлено" },
+  ru_frame: { it: "Ultimo fotogramma dello schermo", en: "Last screen frame", pl: "Ostatnia klatka ekranu", uk: "Останній кадр екрана" }, ru_noframe: { it: "Nessun fotogramma ancora (attiva il modulo e attendi ~20s).", en: "No frame yet (enable the module and wait ~20s).", pl: "Brak klatki (włącz moduł i poczekaj ~20 s).", uk: "Кадру ще немає (увімкніть модуль і зачекайте ~20 с)." },
   // aiops
-  ao_q: { it: "Domanda (opzionale): perché si è bloccata?", en: "Question (optional): why did it freeze?" },
-  ao_btn: { it: "Diagnostica", en: "Diagnose" }, ao_running: { it: "Analisi in corso col modello locale… (può richiedere un minuto)", en: "Analyzing with the local model… (may take a minute)" },
-  ao_hint: { it: "Il modello locale legge log e telemetria e spiega cosa succede. Richiede il motore AI acceso.", en: "The local model reads logs and telemetry and explains what's going on. Needs the AI engine on." },
-  ao_none: { it: "(nessuna risposta)", en: "(no answer)" }, err: { it: "Errore: ", en: "Error: " },
+  ao_q: { it: "Domanda (opzionale): perché si è bloccata?", en: "Question (optional): why did it freeze?", pl: "Pytanie (opcjonalnie): dlaczego się zawiesiło?", uk: "Питання (необов'язково): чому воно зависло?" },
+  ao_btn: { it: "Diagnostica", en: "Diagnose", pl: "Diagnozuj", uk: "Діагностувати" }, ao_running: { it: "Analisi in corso col modello locale… (può richiedere un minuto)", en: "Analyzing with the local model… (may take a minute)", pl: "Analiza modelem lokalnym… (może potrwać minutę)", uk: "Аналіз локальною моделлю… (може зайняти хвилину)" },
+  ao_hint: { it: "Il modello locale legge log e telemetria e spiega cosa succede. Richiede il motore AI acceso.", en: "The local model reads logs and telemetry and explains what's going on. Needs the AI engine on.", pl: "Model lokalny czyta logi i telemetrię i wyjaśnia, co się dzieje. Wymaga włączonego silnika SI.", uk: "Локальна модель читає журнали й телеметрію і пояснює, що відбувається. Потрібен увімкнений рушій ШІ." },
+  ao_none: { it: "(nessuna risposta)", en: "(no answer)", pl: "(brak odpowiedzi)", uk: "(немає відповіді)" }, err: { it: "Errore: ", en: "Error: ", pl: "Błąd:", uk: "Помилка:" },
 };
 function T(k, vars) {
   let s = (STR[k] && STR[k][LANG]) || (STR[k] && STR[k].en) || k;
@@ -121,24 +193,24 @@ async function aiTune(card, it) {
   // con Unsloth stanno dentro Studio, quindi qui restano solo le leve di sistema.
   const uns = s.engine === "unsloth";
   let h = '<div class="rows" style="margin-top:8px">' +
-    (uns ? "" : row("KV cache", s.kv_cache || "-") + row(it ? "Contesto" : "Context", s.context || "-")) +
-    row(it ? "Cap GTT" : "GTT cap", s.gtt_cap_mb ? (s.gtt_cap_mb + " MB") : (it ? "sbloccato" : "unlocked")) +
+    (uns ? "" : row("KV cache", s.kv_cache || "-") + row(S("x_ctx"), s.context || "-")) +
+    row(S("x_gttcap"), s.gtt_cap_mb ? (s.gtt_cap_mb + " MB") : (S("x_unlocked"))) +
     row("Swap", (s.swap_mb || 0) + " MB") +
     row(uns ? "Vulkan" : "Vulkan / Flash-Attn",
         uns ? "✓" : ((s.vulkan ? "✓" : "✗") + " / " + (s.flash_attention ? "✓" : "✗"))) +
     '</div><div class="brow" style="margin-top:8px">';
   const recs = s.recommend || [];
-  if (recs.includes("kv_q8")) h += '<button class="dbtn" data-tune="kv_q8">' + (it ? "KV cache q8_0" : "KV cache q8_0") + "</button>";
-  if (recs.includes("gtt_unlock")) h += '<button class="dbtn" data-tune="gtt_unlock">' + (it ? "Sblocca GTT (riavvio)" : "Unlock GTT (reboot)") + "</button>";
-  if (!recs.length) h += '<span class="stub">' + (it ? "Già ottimizzato ✓" : "Already optimized ✓") + "</span>";
-  h += '</div><div class="stub" style="margin-top:6px">' + (it ? "q8_0 dimezza la KV cache (più contesto). Sbloccare la GTT permette modelli più grandi ma richiede il riavvio." : "q8_0 halves the KV cache (more context). Unlocking GTT allows bigger models but needs a reboot.") + "</div>";
+  if (recs.includes("kv_q8")) h += '<button class="dbtn" data-tune="kv_q8">' + (S("x_kv")) + "</button>";
+  if (recs.includes("gtt_unlock")) h += '<button class="dbtn" data-tune="gtt_unlock">' + (S("x_gttbtn")) + "</button>";
+  if (!recs.length) h += '<span class="stub">' + (S("x_optdone")) + "</span>";
+  h += '</div><div class="stub" style="margin-top:6px">' + (S("x_kvhint2")) + "</div>";
   box.innerHTML = h;
   box.querySelectorAll("[data-tune]").forEach(b => b.onclick = async () => {
     const act = b.dataset.tune;
-    const msg = act === "gtt_unlock" ? (it ? "Sbloccare la GTT? Modifica il boot e richiede il RIAVVIO." : "Unlock GTT? Edits boot config, needs a REBOOT.")
-      : (it ? "KV cache → q8_0? Ricrea il contenitore Ollama." : "KV cache → q8_0? Recreates the Ollama container.");
+    const msg = act === "gtt_unlock" ? (S("x_qgtt"))
+      : (S("x_qkv"));
     if (!confirm(msg)) return;
-    await action("/api/ai/tune", { action: act }, it ? "Applico…" : "Applying…");
+    await action("/api/ai/tune", { action: act }, S("x_applying"));
     setTimeout(() => aiTune(card, it), 1500);
   });
 }
@@ -149,10 +221,10 @@ async function openSettings() {
   let m = $("#settings");
   if (!m) { m = document.createElement("div"); m.id = "settings"; m.className = "overlay"; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; }); }
   const rows = (d.catalogue || []).map(c => `<label class="setrow"><input type="checkbox" data-m="${c.id}" ${d.modules[c.id] ? "checked" : ""}> ${c.icon} ${it ? c.name : (c.name_en || c.name)}</label>`).join("");
-  m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (it ? "Moduli esposti" : "Exposed modules") + '</span><span class="fr-sp"></span><button class="fr-btn" id="set-x">✕</button></div><div class="setgrid">' + rows + "</div></div>";
+  m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (S("x_mods")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="set-x">✕</button></div><div class="setgrid">' + rows + "</div></div>";
   m.style.display = "flex";
   $("#set-x", m).onclick = () => m.style.display = "none";
-  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => { await action("/api/config", { module: cb.dataset.m, on: cb.checked }, it ? "Aggiornato" : "Updated"); buildDashboard(); });
+  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => { await action("/api/config", { module: cb.dataset.m, on: cb.checked }, S("x_updated")); buildDashboard(); });
 }
 function copyable(value) {
   return '<span class="cpw"><b style="user-select:all">' + value + '</b> <button class="cpy" type="button" data-cp="' +
@@ -270,13 +342,13 @@ let layout = (() => { try { return JSON.parse(localStorage.getItem("sflayout")) 
 layout.order = layout.order || []; layout.hidden = layout.hidden || []; layout.collapsed = layout.collapsed || [];
 function _toggleArr(a, id, on) { const i = a.indexOf(id); if (on && i < 0) a.push(id); if (!on && i >= 0) a.splice(i, 1); }
 function captureOrder() { const g = $("#grid"); if (g && g.children.length) layout.order = [...g.querySelectorAll(".mod")].map(c => c.dataset.mid); }
-function saveLayout() { captureOrder(); localStorage.setItem("sflayout", JSON.stringify(layout)); toast(LANG === "it" ? "Disposizione salvata" : "Layout saved"); }
+function saveLayout() { captureOrder(); localStorage.setItem("sflayout", JSON.stringify(layout)); toast(S("ly_saved")); }
 function resetLayout() { localStorage.removeItem("sflayout"); layout = { order: [], hidden: [], collapsed: [] }; buildDashboard(); }
 
 const RENDER = {
   telemetry(card) {
     card.classList.add("span2");
-    card.innerHTML = '<h3>📊 ' + (LANG === "it" ? "Telemetria" : "Telemetry") + ' <span class="pill" id="tlive">' + T("live") + '</span></h3><div class="charts"></div>' +
+    card.innerHTML = '<h3>📊 ' + (S("m_telem")) + ' <span class="pill" id="tlive">' + T("live") + '</span></h3><div class="charts"></div>' +
       '<div class="cores"><div class="lab"><span>' + T("t_percore") + ' (MHz)</span><span class="cstat"></span></div>' +
       '<div class="cwrap"><div class="cax"><i></i><div class="cat"></div><i></i></div><div class="cgrid"></div><div class="cbars"></div></div></div>';
     const box = $(".charts", card); const charts = [];
@@ -295,7 +367,7 @@ const RENDER = {
     card._es = es;
   },
   status(card) {
-    card.innerHTML = "<h3>🧊 " + (LANG === "it" ? "Stato sistema" : "System status") + '</h3><div class="rows" id="srows">…</div>';
+    card.innerHTML = "<h3>🧊 " + (S("m_sys")) + '</h3><div class="rows" id="srows">…</div>';
     const fill = async () => { try { const s = await (await api("/api/status")).json();
       const row = (a, b) => `<div class="r"><span>${a}</span><span>${b || "–"}</span></div>`;
       $("#srows", card).innerHTML = row(T("s_you"), s.you) + row(T("s_host"), s.host) + row(T("s_ip"), s.ip) + row(T("s_kernel"), s.kernel) +
@@ -305,7 +377,7 @@ const RENDER = {
     fill(); card._iv = setInterval(fill, 5000);
   },
   async tuner(card) {
-    card.innerHTML = "<h3>🎛️ " + (LANG === "it" ? "Controlli" : "Controls") + '</h3><div id="tk">…</div>';
+    card.innerHTML = "<h3>🎛️ " + (S("m_ctrl")) + '</h3><div id="tk">…</div>';
     let d; try { d = await (await api("/api/tuner")).json(); } catch (e) { return; }
     const presets = (d.presets || []).map(p => `<button class="dbtn" data-preset="${p.name}" title="${(p.desc || "").replace(/"/g, "")}">${p.name}</button>`).join("");
     $("#tk", card).innerHTML =
@@ -320,7 +392,7 @@ const RENDER = {
     card.querySelector("[data-fanmanual]").onclick = () => action("/api/tuner/fan", { mode: "manual", pct: +$("#fanp", card).value }, T("c_fan") + ": " + $("#fanp", card).value + "%");
   },
   async hub(card) {
-    card.innerHTML = "<h3>📦 " + (LANG === "it" ? "App e pacchetti" : "Apps & packages") + '</h3><div id="hk">…</div>';
+    card.innerHTML = "<h3>📦 " + (S("m_apps")) + '</h3><div id="hk">…</div>';
     let upd = ""; try { const u = await (await api("/api/hub/updates")).json(); upd = (u.count || 0) + " " + T("h_updates"); } catch (e) {}
     $("#hk", card).innerHTML =
       `<div class="stub" style="margin-bottom:8px">${upd}</div>` +
@@ -334,7 +406,7 @@ const RENDER = {
     $("#lw", card).onchange = load; $("#lref", card).onclick = load; load();
   },
   launcher(card) {
-    card.innerHTML = "<h3>🚀 " + (LANG === "it" ? "Avvio app" : "Launcher") + '</h3><div class="brow">' +
+    card.innerHTML = "<h3>🚀 " + (S("m_launch")) + '</h3><div class="brow">' +
       [["console", "🎮 Console"], ["monitor", "📊 Telemetry"], ["tuner", "🎛️ Tuner"], ["hub", "📦 Hub"], ["ai", "🧠 AI"]].map(([k, l]) => `<button class="dbtn" data-app="${k}">${l}</button>`).join("") + "</div>" +
       '<div class="stub" style="margin-top:8px">' + T("la_hint") + "</div>";
     card.querySelectorAll("[data-app]").forEach(b => b.onclick = () => action("/api/launch", { what: b.dataset.app }, T("la_started", { x: b.dataset.app })));
@@ -345,22 +417,22 @@ const RENDER = {
       if (j && j.password != null) { openFrame("Desktop (KVM)", "/kvm/vnc.html?autoconnect=1&resize=scale&reconnect=1&path=" + encodeURIComponent("kvm/websockify") + "&password=" + encodeURIComponent(j.password)); $("#kvmi", card).innerHTML = T("k_vncpw") + copyable(j.password); } };
   },
   terminal(card) {
-    card.innerHTML = "<h3>⌨️ " + (LANG === "it" ? "Terminale" : "Terminal") + '</h3><div class="brow"><button class="dbtn" id="tgo">' + T("term_open") + '</button></div><div class="stub" style="margin-top:8px">' + T("term_hint") + "</div>";
-    $("#tgo", card).onclick = () => openFrame(LANG === "it" ? "Terminale" : "Terminal", "/terminal/");
+    card.innerHTML = "<h3>⌨️ " + (S("m_term")) + '</h3><div class="brow"><button class="dbtn" id="tgo">' + T("term_open") + '</button></div><div class="stub" style="margin-top:8px">' + T("term_hint") + "</div>";
+    $("#tgo", card).onclick = () => openFrame(S("m_term"), "/terminal/");
   },
   ai(card) {
     const it = LANG === "it";
-    card.innerHTML = "<h3>🧠 " + (it ? "AI locale" : "On-device AI") + "</h3><div id=\"ai\">…</div>";
+    card.innerHTML = "<h3>🧠 " + (S("x_localai")) + "</h3><div id=\"ai\">…</div>";
     const refresh = async () => { let s; try { s = await (await api("/api/ai")).json(); } catch (e) { return; }
-      const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${it ? "nessun modello installato" : "no models installed"}</span>`;
+      const models = (s.models || []).map(mn => `<span class="pill" style="display:inline-block;margin:2px">${mn}</span>`).join(" ") || `<span class="stub">${S("x_nomodels")}</span>`;
       // Unsloth serves its own UI and manages models there; the legacy Ollama stack
       // exposes them through the dashboard, so only that one gets the model list/pull.
       const uns = s.engine === "unsloth";
       const fl = s.first_login || {};
       const engName = uns ? "Unsloth Studio" : "Ollama";
       const uiName = uns ? "Unsloth Studio" : "OpenWebUI";
-      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (it ? "Motore" : "Engine") + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
-        (uns ? '<div class="r"><span>' + (it ? "Accelerazione" : "Acceleration") + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
+      $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (S("x_engine")) + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
+        (uns ? '<div class="r"><span>' + (S("x_accel")) + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
         // Le credenziali del primo accesso. Unsloth non ha una password fissa:
         // ne genera una a caso a ogni installazione, la annuncia una volta sola
         // in un log e poi si SPEGNE dopo un'ora se non viene cambiata. Senza
@@ -372,28 +444,28 @@ const RENDER = {
         // chiave si crea dentro Studio e finora andava incollata a mano nel file
         // di configurazione via SSH, cioe' fuori portata per quasi tutti.
         (s.running && !s.has_key
-          ? '<div class="gl" style="margin-top:12px">' + (it ? "Chiave API di Unsloth" : "Unsloth API key") + '</div>' +
+          ? '<div class="gl" style="margin-top:12px">' + (S("x_apikey")) + '</div>' +
             '<div style="font-size:12px;opacity:.75;margin:4px 0 6px">' +
             (it ? "Serve a Chat e AI-Ops. Creala in Studio: Impostazioni &rarr; API keys, poi incollala qui."
                 : "Needed by Chat and AI-Ops. Create it in Studio: Settings &rarr; API keys, then paste it here.") + "</div>" +
             '<div class="brow"><input id="aikey" class="dsel" placeholder="sk-unsloth-..." style="flex:1"/>' +
-            '<button class="dbtn" id="aikeysave">' + (it ? "Salva" : "Save") + "</button></div>"
+            '<button class="dbtn" id="aikeysave">' + (S("x_save")) + "</button></div>"
           : "") +
         (fl.password
-          ? '<div class="gl" style="margin-top:12px">' + (it ? "Primo accesso a Unsloth Studio" : "First sign-in to Unsloth Studio") + '</div>' +
-            '<div class="rows"><div class="r"><span>' + (it ? "Utente" : "User") + '</span><span><code>' + fl.user + '</code></span></div>' +
-            '<div class="r"><span>' + (it ? "Password iniziale" : "Initial password") + '</span><span><code>' + fl.password + '</code></span></div></div>' +
+          ? '<div class="gl" style="margin-top:12px">' + (S("x_first")) + '</div>' +
+            '<div class="rows"><div class="r"><span>' + (S("x_user")) + '</span><span><code>' + fl.user + '</code></span></div>' +
+            '<div class="r"><span>' + (S("x_initpw")) + '</span><span><code>' + fl.password + '</code></span></div></div>' +
             '<div style="margin-top:6px;font-size:12px;opacity:.75">' +
             (it ? "Cambiala al primo accesso: se resta questa, Unsloth si spegne da solo dopo un'ora."
                 : "Change it on first sign-in: left as is, Unsloth shuts itself down after an hour.") + "</div>"
           : "") +
         '<div class="brow" style="margin-top:10px">' + (s.running ? '<button class="dbtn danger" id="aistop">' + T("ai_stop") + "</button>" : '<button class="dbtn" id="aistart">' + T("ai_start") + "</button>") +
-        '<button class="dbtn" id="aichat"' + (s.running && s.has_key ? "" : " disabled") + ">💬 " + (it ? "Chat" : "Chat") + "</button>" +
-        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (it ? "Apri " : "Open ") + uiName + " ↗</button></div>" +
+        '<button class="dbtn" id="aichat"' + (s.running && s.has_key ? "" : " disabled") + ">💬 " + (S("x_chat")) + "</button>" +
+        '<button class="dbtn" id="aiweb"' + (s.webui ? "" : " disabled") + ">" + (S("x_open")) + uiName + " ↗</button></div>" +
         (uns ? ""
-             : '<div class="gl" style="margin-top:12px">' + (it ? "Modelli installati" : "Installed models") + '</div><div style="margin-top:4px">' + models + "</div>" +
-               '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (it ? "scarica modello (es. qwen3:14b)" : "pull model (e.g. qwen3:14b)") + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (it ? "Scarica" : "Pull") + "</button></div>") +
-        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + (it ? "Ottimizza per AI" : "Optimize for AI") + "</button></div><div id=\"aitune\"></div>" +
+             : '<div class="gl" style="margin-top:12px">' + (S("x_models")) + '</div><div style="margin-top:4px">' + models + "</div>" +
+               '<div class="brow" style="margin-top:10px"><input id="aipm" class="dsel" placeholder="' + (S("x_pullph")) + '" style="flex:1"><button class="dbtn" id="aipull"' + (s.running ? "" : " disabled") + ">" + (S("x_pull")) + "</button></div>") +
+        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + (S("x_optai")) + "</button></div><div id=\"aitune\"></div>" +
         '<div class="stub" style="margin-top:8px">' + (uns ? (it ? "I modelli si scaricano dentro Unsloth Studio. Gira sulla GPU: spegnilo quando giochi."
                                                                 : "Models are downloaded inside Unsloth Studio. It runs on the GPU: turn it off when gaming.")
                                                           : T("ai_hint")) + "</div>";
@@ -402,7 +474,7 @@ const RENDER = {
       if ($("#aikeysave", card)) $("#aikeysave", card).onclick = async () => {
         const v = $("#aikey", card).value.trim();
         if (!v) return;
-        await action("/api/ai/key", { key: v }, it ? "Chiave salvata" : "Key saved");
+        await action("/api/ai/key", { key: v }, S("x_keysaved"));
         setTimeout(refresh, 800);
       };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
@@ -414,7 +486,7 @@ const RENDER = {
         // Unsloth ha la propria autenticazione, quindi non resta scoperto.
         window.open("http://" + location.hostname + ":" + (s.port || 8888), "_blank");
       };
-      if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, it ? "Download avviato…" : "Download started…"); $("#aipm", card).value = ""; } };
+      if ($("#aipull", card)) $("#aipull", card).onclick = async () => { if ($("#aipm", card).value.trim()) { await action("/api/ai/pull", { model: $("#aipm", card).value }, S("x_dlstart")); $("#aipm", card).value = ""; } };
       if ($("#aitunebtn", card)) $("#aitunebtn", card).onclick = () => aiTune(card, it);
     };
     refresh(); card._iv = setInterval(refresh, 5000);
@@ -435,7 +507,7 @@ const RENDER = {
     refresh();
   },
   rules(card) {
-    card.innerHTML = "<h3>⚙️ " + (LANG === "it" ? "Regole auto" : "Auto rules") + '</h3><div id="ru">…</div>';
+    card.innerHTML = "<h3>⚙️ " + (S("m_rules")) + '</h3><div id="ru">…</div>';
     const refresh = async () => { let s; try { s = await (await api("/api/rules")).json(); } catch (e) { return; }
       $("#ru", card).innerHTML = '<div class="rows"><div class="r"><span>' + T("ru_throttle") + "</span><span>" + (s.enabled ? T("ru_on") : T("ru_off")) + '</span></div><div class="r"><span>' + T("ru_thresh") + "</span><span>" + s.temp_limit + " °C</span></div>" + (s.last_action ? '<div class="r"><span>' + T("ru_last") + "</span><span>" + s.last_action + "</span></div>" : "") + "</div>" +
         '<div class="brow" style="margin-top:10px"><button class="dbtn" id="rtog">' + (s.enabled ? T("ru_disable") : T("ru_enable")) + '</button><input id="rlim" class="dsel" type="number" min="70" max="100" value="' + s.temp_limit + '" style="width:64px"> °C <button class="dbtn" id="rset">' + T("ru_set") + "</button></div>";
@@ -459,27 +531,27 @@ const RENDER = {
         const ip = (n.ip && n.ip !== "-") ? copyable(n.ip.split(",")[0]) : "—";
         const ok = n.status === "OK";
         return `<div class="r"><span>${n.nwid} ${ok ? "●" : "○"} ${n.status}</span><span>${ip} <button class="dbtn" data-leave="${n.nwid}" style="padding:1px 8px">×</button></span></div>`;
-      }).join("") || `<div class="stub">${it ? "Nessuna rete." : "No networks."}</div>`;
+      }).join("") || `<div class="stub">${S("x_nonet")}</div>`;
       $("#zt", card).innerHTML =
-        '<div class="rows"><div class="r"><span>' + (it ? "Nodo" : "Node") + "</span><span>" + copyable(s.address) + '</span></div><div class="r"><span>' + (it ? "Stato" : "Status") + "</span><span>" + (s.online ? "● ONLINE" : "○ offline") + "</span></div></div>" +
-        '<div class="gl" style="margin-top:10px">' + (it ? "Reti" : "Networks") + '</div><div class="rows">' + nets + "</div>" +
-        '<div class="brow" style="margin-top:8px"><input id="ztnw" class="dsel" placeholder="Network ID (16 hex)" style="flex:1"><button class="dbtn" id="ztj">' + (it ? "Entra" : "Join") + "</button></div>" +
-        '<div class="stub" style="margin-top:8px">' + (it ? "Dopo «Entra», autorizza il nodo su my.zerotier.com. Poi raggiungi la dashboard da ovunque: https://&lt;IP ZeroTier&gt;:8443" : "After Join, authorize the node on my.zerotier.com. Then reach the dashboard from anywhere: https://&lt;ZeroTier IP&gt;:8443") + "</div>";
-      card.querySelectorAll("[data-leave]").forEach(b => b.onclick = async () => { await action("/api/zerotier/leave", { nwid: b.dataset.leave }, it ? "Uscito dalla rete" : "Left network"); setTimeout(refresh, 800); });
-      $("#ztj", card).onclick = async () => { await action("/api/zerotier/join", { nwid: $("#ztnw", card).value.trim() }, it ? "Richiesta inviata — autorizza su my.zerotier.com" : "Request sent — authorize on my.zerotier.com"); setTimeout(refresh, 1500); };
+        '<div class="rows"><div class="r"><span>' + (S("x_node")) + "</span><span>" + copyable(s.address) + '</span></div><div class="r"><span>' + (S("x_state")) + "</span><span>" + (s.online ? "● ONLINE" : "○ offline") + "</span></div></div>" +
+        '<div class="gl" style="margin-top:10px">' + (S("x_nets")) + '</div><div class="rows">' + nets + "</div>" +
+        '<div class="brow" style="margin-top:8px"><input id="ztnw" class="dsel" placeholder="Network ID (16 hex)" style="flex:1"><button class="dbtn" id="ztj">' + (S("x_join")) + "</button></div>" +
+        '<div class="stub" style="margin-top:8px">' + S("x_zthint") + "</div>";
+      card.querySelectorAll("[data-leave]").forEach(b => b.onclick = async () => { await action("/api/zerotier/leave", { nwid: b.dataset.leave }, S("x_left")); setTimeout(refresh, 800); });
+      $("#ztj", card).onclick = async () => { await action("/api/zerotier/join", { nwid: $("#ztnw", card).value.trim() }, S("x_ztsent")); setTimeout(refresh, 1500); };
     };
     refresh(); card._iv = setInterval(refresh, 8000);
   },
-  _stub(card, mod) { card.innerHTML = `<h3>${mod.icon} ${LANG === "it" ? mod.name : (mod.name_en || mod.name)}</h3><div class="stub">${LANG === "it" ? "Modulo attivo — interfaccia in arrivo." : "Module on — UI coming soon."}</div>`; },
+  _stub(card, mod) { card.innerHTML = `<h3>${mod.icon} ${LANG === "it" ? mod.name : (mod.name_en || mod.name)}</h3><div class="stub">${S("m_soon")}</div>`; },
 };
 
 let MODS = {};
 function addCardTools(card, id) {
   const t = document.createElement("div"); t.className = "mod-tools";
   const collapsed = card.classList.contains("collapsed");
-  t.innerHTML = '<button class="mt drag-h" draggable="true" title="' + (LANG === "it" ? "Sposta" : "Move") + '">⠿</button>' +
-    '<button class="mt" data-a="c" title="' + (LANG === "it" ? "Comprimi" : "Collapse") + '">' + (collapsed ? "▸" : "▾") + '</button>' +
-    '<button class="mt" data-a="x" title="' + (LANG === "it" ? "Chiudi" : "Close") + '">✕</button>';
+  t.innerHTML = '<button class="mt drag-h" draggable="true" title="' + (S("w_move")) + '">⠿</button>' +
+    '<button class="mt" data-a="c" title="' + (S("w_coll")) + '">' + (collapsed ? "▸" : "▾") + '</button>' +
+    '<button class="mt" data-a="x" title="' + (S("w_close")) + '">✕</button>';
   card.appendChild(t);
   t.querySelector('[data-a="c"]').onclick = e => { e.stopPropagation(); const on = !card.classList.contains("collapsed"); card.classList.toggle("collapsed", on); _toggleArr(layout.collapsed, id, on); e.target.textContent = on ? "▸" : "▾"; };
   t.querySelector('[data-a="x"]').onclick = e => { e.stopPropagation(); captureOrder(); _toggleArr(layout.hidden, id, true); buildDashboard(); };
@@ -503,7 +575,7 @@ function renderHidden() {
   $("#hbtn").onclick = () => {
     const it = LANG === "it";
     let m = $("#hidden-menu"); if (!m) { m = document.createElement("div"); m.id = "hidden-menu"; m.className = "overlay"; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; }); }
-    m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (it ? "Schede chiuse" : "Closed cards") + '</span><span class="fr-sp"></span><button class="fr-btn" id="hm-x">✕</button></div><div class="setgrid">' +
+    m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (S("x_closed")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="hm-x">✕</button></div><div class="setgrid">' +
       hid.map(id => `<button class="dbtn" data-r="${id}" style="text-align:left">${MODS[id].icon} ${it ? MODS[id].name : (MODS[id].name_en || MODS[id].name)}</button>`).join("") + "</div></div>";
     m.style.display = "flex"; $("#hm-x").onclick = () => m.style.display = "none";
     m.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { captureOrder(); _toggleArr(layout.hidden, b.dataset.r, false); m.style.display = "none"; buildDashboard(); });
@@ -548,7 +620,7 @@ $("#lform").addEventListener("submit", async ev => {
 $("#logout").addEventListener("click", async () => { await api("/api/logout", { method: "POST" }); location.reload(); });
 $("#settings-btn").addEventListener("click", openSettings);
 $("#save-btn").addEventListener("click", saveLayout);
-$("#reset-btn").addEventListener("click", () => { if (confirm(LANG === "it" ? "Ripristinare la disposizione predefinita?" : "Reset to the default layout?")) resetLayout(); });
+$("#reset-btn").addEventListener("click", () => { if (confirm(S("ly_reset"))) resetLayout(); });
 $("#reboot-top").addEventListener("click", () => { if (confirm(T("p_qreb"))) action("/api/power", { action: "reboot" }, T("p_rebing")); });
 $("#off-top").addEventListener("click", () => { if (confirm(T("p_qoff"))) action("/api/power", { action: "poweroff" }, T("p_offing")); });
 document.querySelectorAll(".lang-btn").forEach(b => b.addEventListener("click", () => setLang(b.dataset.l)));
