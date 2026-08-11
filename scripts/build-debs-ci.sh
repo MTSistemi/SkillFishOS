@@ -360,8 +360,18 @@ for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
 ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours"
-# refresh the icon cache of our own themes (and drop any stale one we replaced)
-printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  [ -d "/usr/share/icons/$t" ] || continue\n  gtk-update-icon-cache -q -f "/usr/share/icons/$t" 2>/dev/null || rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+# NON generare una icon-theme.cache per i nostri temi: TOGLIERLA.
+#
+# Qui c'era `gtk-update-icon-cache -f` sul tema, con `|| rm -f` come ripiego.
+# L'intenzione era "costruisci la cache, e se non ci riesci togli quella
+# vecchia". Ma il comando RIESCE, e la cache che produce Qt non la sa usare:
+# risultato, tutti i lanciatori della barra diventano fogli bianchi. Successo
+# davvero l'11/08/2026 sulla scheda, e sarebbe ricapitato su OGNI macchina a
+# ogni aggiornamento del pacchetto.
+#
+# Senza cache Qt legge direttamente le cartelle del tema, che funziona sempre.
+# La cache di hicolor invece va aggiornata, e la fa gia' ctrl().
+printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 echo "== building =="
