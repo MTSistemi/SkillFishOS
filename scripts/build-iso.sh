@@ -129,6 +129,28 @@ case "$KVER" in
     ;;
 esac
 
+# --- correzione di GRUB prima di ogni produce (issue #12 e #20) --------------
+# eggs rigenera /etc/calamares dai propri modelli a OGNI produce, quindi la
+# correzione (secondo grub-install piu' update-grub dopo il modulo bootloader,
+# e riparazione degli extent del kernel scritto da unpackfs) va riapplicata
+# ogni volta, non solo la prima. Un aggiornamento del pacchetto penguins-eggs
+# puo' perfino sovrascrivere i modelli stessi: e' gia' successo a show.qml e a
+# customize-partitions.js.
+#
+# Prima questo passaggio andava ricordato a mano. Se qualcuno se lo dimentica,
+# la ISO esce con GRUB rotto e nessuno se ne accorge finche' non prova a
+# installarla: meglio fermare la build. Segnalato da Cyryl Sochacki (cyryllo)
+# nella PR #26.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
+RC=$?
+echo "fix GRUB rc=$RC"
+if [ $RC -ne 0 ]; then
+    echo "FAIL-BOOTFIX rc=$RC" > "$ST"
+    echo "==== FALLITA (la correzione di GRUB non regge) ===="
+    exit 1
+fi
+
 rm -f /home/eggs/mnt/*.iso 2>/dev/null
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
