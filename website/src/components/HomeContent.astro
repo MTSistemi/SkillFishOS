@@ -1,5 +1,6 @@
 ---
 import { t, localePath, type Lang } from '../i18n';
+import Icona from './Icona.astro';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const dl = localePath('/download', lang);
@@ -41,13 +42,13 @@ const dl = localePath('/download', lang);
       <p>{t('feat.sub', lang)}</p>
     </div>
     <div class="grid">
-      <div class="card"><span class="ico">🎮</span><h3>{t('f1.t', lang)}</h3><p set:html={t('f1.d', lang)} /></div>
-      <div class="card"><span class="ico">⚙️</span><h3>{t('f2.t', lang)}</h3><p set:html={t('f2.d', lang)} /></div>
-      <div class="card"><span class="ico">✅</span><h3>{t('f3.t', lang)}</h3><p set:html={t('f3.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="giochi" /></span><h3>{t('f1.t', lang)}</h3><p set:html={t('f1.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="tuning" /></span><h3>{t('f2.t', lang)}</h3><p set:html={t('f2.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="pronto" /></span><h3>{t('f3.t', lang)}</h3><p set:html={t('f3.d', lang)} /></div>
       <div class="card"><span class="ico"><img src="/img/logo.png" alt="" style="width:34px;height:34px;vertical-align:middle" /></span><h3>{t('f4.t', lang)}</h3><p set:html={t('f4.d', lang)} /></div>
-      <div class="card"><span class="ico">📸</span><h3>{t('f5.t', lang)}</h3><p set:html={t('f5.d', lang)} /></div>
-      <div class="card"><span class="ico">🧠</span><h3>{t('f6.t', lang)}</h3><p set:html={t('f6.d', lang)} /></div>
-      <div class="card"><span class="ico">📡</span><h3>{t('f7.t', lang)}</h3><p set:html={t('f7.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="schermate" /></span><h3>{t('f5.t', lang)}</h3><p set:html={t('f5.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="ai" /></span><h3>{t('f6.t', lang)}</h3><p set:html={t('f6.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="remoto" /></span><h3>{t('f7.t', lang)}</h3><p set:html={t('f7.d', lang)} /></div>
     </div>
   </div>
 </section>

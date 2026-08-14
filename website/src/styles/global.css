@@ -117,12 +117,21 @@ footer{border-top:1px solid var(--line);padding:46px 0;background:#0a0805}
 .foot .logo{font-size:1rem}
 .based{font-size:.84rem;color:var(--muted);opacity:.85}
 
-@media(max-width:860px){
+/* Il menu a panino scatta a 1150px, non a 860.
+   Le voci sono nove, e in italiano sono anche le piu' lunghe: "Documentazione",
+   "Sostienici", "Novita'". Sommando logo, voci, spazi e selettore lingua si
+   superano i 1100px, e con flex-wrap:nowrap quello che avanza esce dallo
+   schermo invece di andare a capo. Fra 860 e 1150 la barra sbordava gia' prima
+   di aggiungere "Novita'": il panino risolve senza sacrificare nessuna voce. */
+@media(max-width:1150px){
   .nav-burger{display:flex}
   .navlinks{position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:0;margin-left:0;display:none;
     background:rgba(12,10,6,.98);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.5)}
   .nav-toggle:checked ~ .navlinks{display:flex}
   .navlinks a{padding:15px 24px;font-size:1rem;border-top:1px solid var(--line)}
+}
+
+@media(max-width:860px){
   .intro-grid,.shot,.shot:nth-child(even){grid-template-columns:1fr}
   .shot:nth-child(even) .shot-txt{order:0}
   .foot{flex-direction:column;text-align:center}

@@ -1,0 +1,195 @@
+#!/bin/bash
+# SkillFishOS — riporta il sistema a uno snapshot, per davvero.
+#
+# IL PROBLEMA CHE RISOLVE
+# Dal menu di avvio si entra in uno snapshot, ma in SOLA LETTURA: e' un
+# ambiente di soccorso, ci si guarda dentro e si recuperano file, non ci si
+# lavora. E `snapper rollback` qui non serve a niente, perche' cambia il
+# sottovolume predefinito mentre la riga del kernel in grub.cfg dice
+# rootflags=subvol=@ e vince lei: il kernel monterebbe comunque @.
+#
+# La strada che funziona e' un'altra: si sposta @ da parte e si crea un @ nuovo
+# e SCRIVIBILE a partire dallo snapshot scelto. Al riavvio GRUB monta subvol=@
+# come ha sempre fatto, e si riparte da li'. Niente da toccare in grub.cfg.
+#
+# LE DUE TRAPPOLE, gestite qui sotto
+# 1. /.snapshots e' un sottovolume ANNIDATO dentro @, e btrfs non copia i
+#    sottovolumi annidati quando fa uno snapshot: il nuovo @ si ritroverebbe un
+#    .snapshots vuoto e tutta la cronologia resterebbe prigioniera del vecchio
+#    @. Qui il sottovolume viene spostato nel nuovo @.
+# 2. @home e' separato e NON viene toccato: si torna indietro col sistema e si
+#    tengono i propri file. E' il comportamento giusto, ma va detto a chi lo usa,
+#    perche' chi si aspetta di recuperare un documento cancellato resta deluso.
+#
+# Funziona sia dal sistema normale sia da dentro uno snapshot avviato in sola
+# lettura: si lavora sempre sul livello superiore del filesystem, montato a
+# parte, quindi la radice in sola lettura non da' fastidio.
+set -u
+
+PROG=$(basename "$0")
+CIMA=$(mktemp -d /tmp/skillfish-rollback.XXXXXX)
+FATTO_MOUNT=0
+
+pulisci() {
+    [ "$FATTO_MOUNT" = 1 ] && umount "$CIMA" 2>/dev/null
+    rmdir "$CIMA" 2>/dev/null
+}
+trap pulisci EXIT
+
+errore() { echo "$PROG: $*" >&2; exit 1; }
+
+uso() {
+    cat <<FINE
+uso:
+  $PROG --elenco              mostra gli snapshot disponibili
+  $PROG <numero>              riporta il sistema a quello snapshot
+  $PROG --annulla             torna al sistema com'era prima dell'ultimo ripristino
+  $PROG --pulisci             cancella i vecchi sistemi messi da parte
+
+Il ripristino ha effetto al riavvio successivo. La cartella personale (/home)
+non viene toccata: torna indietro il sistema, i tuoi file restano quelli di
+adesso.
+FINE
+}
+
+# L'aiuto non deve montare niente: la prima versione lo chiedeva dopo il mount e
+# falliva prima di stampare una riga.
+case "${1:-}" in
+    ""|-h|--help|--aiuto) uso; exit 0 ;;
+esac
+
+[ "$(id -u)" = 0 ] || errore "serve essere root (usa sudo)"
+
+DISPOSITIVO=$(findmnt -no SOURCE / | sed 's/\[.*//')
+[ -n "$DISPOSITIVO" ] || errore "non riesco a capire su quale disco sta la radice"
+[ "$(findmnt -no FSTYPE /)" = "btrfs" ] || errore "la radice non e' su btrfs: qui non c'e' niente da ripristinare"
+
+# Il nome del sottovolume di sistema NON e' sempre "@": Calamares crea @, ma la
+# scheda di sviluppo ha @rootfs, e altre installazioni possono avere altro
+# ancora. Lo si ricava da dove e' montata la radice:
+#     /dev/sda2[/@]                        -> @
+#     /dev/sda2[/@/.snapshots/4/snapshot]  -> @   (avviati dentro uno snapshot)
+SOTTOVOL=$(findmnt -no SOURCE / | sed -n 's/.*\[\/\([^]]*\)\].*/\1/p' | cut -d/ -f1)
+[ -n "$SOTTOVOL" ] || errore "la radice non sta su un sottovolume: non so cosa ripristinare"
+
+mount -o subvolid=5 "$DISPOSITIVO" "$CIMA" 2>/dev/null || errore "non riesco a montare il livello superiore di $DISPOSITIVO"
+FATTO_MOUNT=1
+
+RADICE="$CIMA/$SOTTOVOL"
+[ -d "$RADICE" ] || errore "non trovo il sottovolume «$SOTTOVOL» su $DISPOSITIVO"
+CARTELLA_SNAP="$RADICE/.snapshots"
+
+elenco() {
+    [ -d "$CARTELLA_SNAP" ] || errore "non ci sono snapshot"
+    printf '  %-5s %-20s %-8s %s\n' "num" "data" "tipo" "descrizione"
+    # ordine NUMERICO: col glob semplice usciva 1, 10, 11, 2, 3...
+    for n in $(ls -1 "$CARTELLA_SNAP" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
+        d="$CARTELLA_SNAP/$n"
+        [ -d "$d/snapshot" ] || continue
+        info="$d/info.xml"
+        data=$(sed -n 's:.*<date>\(.*\)</date>.*:\1:p' "$info" 2>/dev/null)
+        tipo=$(sed -n 's:.*<type>\(.*\)</type>.*:\1:p' "$info" 2>/dev/null)
+        desc=$(sed -n 's:.*<description>\(.*\)</description>.*:\1:p' "$info" 2>/dev/null)
+        printf '  %-5s %-20s %-8s %s\n' "$n" "${data:-—}" "${tipo:-—}" "${desc:-—}"
+    done
+}
+
+DAPARTE_GLOB="$CIMA/${SOTTOVOL}-rotto-*"
+
+case "${1:-}" in
+    --elenco|--list)
+        echo "sottovolume di sistema: $SOTTOVOL   su $DISPOSITIVO"
+        echo "snapshot disponibili:"
+        elenco
+        echo
+        echo "sistemi messi da parte da ripristini precedenti:"
+        ls -1d $DAPARTE_GLOB 2>/dev/null | sed 's|.*/|  |' || echo "  nessuno"
+        exit 0 ;;
+
+    --annulla|--undo)
+        ULTIMO=$(ls -1d $DAPARTE_GLOB 2>/dev/null | sort | tail -1)
+        [ -n "$ULTIMO" ] || errore "non c'e' nessun sistema messo da parte da recuperare"
+        echo "torno a $(basename "$ULTIMO")"
+        RIMESSO="$CIMA/${SOTTOVOL}-annullato-$(date +%Y%m%d-%H%M%S)"
+        mv "$RADICE" "$RIMESSO" || errore "non riesco a spostare il sottovolume di sistema attuale"
+        # la cronologia degli snapshot segue il sistema, non resta indietro
+        if [ -d "$RIMESSO/.snapshots" ] && [ ! -d "$ULTIMO/.snapshots" ]; then
+            mv "$RIMESSO/.snapshots" "$ULTIMO/.snapshots"
+        fi
+        mv "$ULTIMO" "$RADICE" || errore "non riesco a rimettere al suo posto $ULTIMO"
+        echo "fatto. Riavvia per tornare al sistema di prima."
+        echo "Il sistema ripristinato resta da parte come $(basename "$RIMESSO")."
+        exit 0 ;;
+
+    --pulisci|--clean)
+        n=0; falliti=0
+        for v in $DAPARTE_GLOB "$CIMA/${SOTTOVOL}-annullato-"*; do
+            [ -d "$v" ] || continue
+            if btrfs subvolume delete "$v" >/dev/null 2>&1; then
+                echo "cancellato $(basename "$v")"
+                n=$((n+1))
+            else
+                # succede quando dentro c'e' ancora un sottovolume annidato
+                echo "non sono riuscito a cancellare $(basename "$v"):" >&2
+                btrfs subvolume list -o "$v" 2>/dev/null | awk '{print "   contiene ancora: " $NF}' >&2
+                falliti=$((falliti+1))
+            fi
+        done
+        [ "$n" = 0 ] && [ "$falliti" = 0 ] && echo "non c'era niente da cancellare"
+        exit 0 ;;
+esac
+
+NUM="$1"
+case "$NUM" in
+    ''|*[!0-9]*) errore "«$NUM» non e' un numero di snapshot. Prova: $PROG --elenco" ;;
+esac
+
+ORIGINE="$CARTELLA_SNAP/$NUM/snapshot"
+[ -d "$ORIGINE" ] || errore "lo snapshot $NUM non esiste. Prova: $PROG --elenco"
+
+DESC=$(sed -n 's:.*<description>\(.*\)</description>.*:\1:p' "$CARTELLA_SNAP/$NUM/info.xml" 2>/dev/null)
+DATA=$(sed -n 's:.*<date>\(.*\)</date>.*:\1:p' "$CARTELLA_SNAP/$NUM/info.xml" 2>/dev/null)
+
+echo "Sto per riportare il sistema allo snapshot $NUM"
+echo "   data:        ${DATA:-sconosciuta}"
+echo "   descrizione: ${DESC:-nessuna}"
+echo
+echo "La cartella personale (/home) NON viene toccata."
+echo "Il sistema attuale non viene cancellato: resta da parte, e con --annulla si torna indietro."
+echo
+
+if [ "${2:-}" != "--si" ] && [ "${2:-}" != "--yes" ]; then
+    printf "Procedo? scrivi «si» per confermare: "
+    read -r risposta
+    case "$risposta" in si|SI|Si|sì|Sì|s|S|y|yes) ;; *) echo "annullato."; exit 1 ;; esac
+fi
+
+DAPARTE="$CIMA/${SOTTOVOL}-rotto-$(date +%Y%m%d-%H%M%S)"
+
+mv "$RADICE" "$DAPARTE" || errore "non riesco a spostare «$SOTTOVOL» da parte"
+# Da qui in poi il sistema NON e' avviabile finche' non ricreiamo il sottovolume:
+# se qualcosa fallisce, rimettiamo tutto com'era prima di uscire.
+ripara() { mv "$DAPARTE" "$RADICE" 2>/dev/null; }
+
+if ! btrfs subvolume snapshot "$DAPARTE/.snapshots/$NUM/snapshot" "$RADICE" >/dev/null 2>&1; then
+    ripara
+    errore "non riesco a creare il nuovo «$SOTTOVOL» dallo snapshot $NUM"
+fi
+
+# La trappola numero uno: il .snapshots dentro il sottovolume nuovo e' solo una
+# cartella vuota, perche' btrfs non copia i sottovolumi annidati. Se lo
+# lasciassimo cosi', ci saremmo ripristinati buttando via tutta la cronologia.
+if [ -d "$RADICE/.snapshots" ] && [ -z "$(ls -A "$RADICE/.snapshots" 2>/dev/null)" ]; then
+    rmdir "$RADICE/.snapshots"
+fi
+if [ -d "$DAPARTE/.snapshots" ]; then
+    mv "$DAPARTE/.snapshots" "$RADICE/.snapshots" \
+        || echo "$PROG: attenzione, non ho potuto spostare la cronologia degli snapshot" >&2
+fi
+
+echo
+echo "Fatto. Al prossimo riavvio parte il sistema dello snapshot $NUM."
+echo "Il sistema di prima e' da parte come $(basename "$DAPARTE"):"
+echo "   per tornare indietro:  $PROG --annulla"
+echo "   per cancellarlo:       $PROG --pulisci"
+exit 0

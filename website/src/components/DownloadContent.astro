@@ -1,5 +1,6 @@
 ---
 import { t, localePath, SITE, type Lang } from '../i18n';
+import Icona from './Icona.astro';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const hasIso = SITE.isoUrl !== '';
@@ -7,9 +8,9 @@ const sizeLine = t('dl.size', lang).replace('{size}', SITE.isoSizeGb);
 const issues = `${SITE.github}/issues`;
 const donatePage = localePath('/donate', lang);
 const comm = [
-  { i: '⭐', t: 'comm.star.t', d: 'comm.star.d', btn: 'comm.star.btn', href: SITE.ghStar },
-  { i: '★', t: 'comm.review.t', d: 'comm.review.d', btn: 'comm.review.btn', href: SITE.reviews },
-  { i: '💡', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
+  { i: 'stella', t: 'comm.star.t', d: 'comm.star.d', btn: 'comm.star.btn', href: SITE.ghStar },
+  { i: 'recensione', t: 'comm.review.t', d: 'comm.review.d', btn: 'comm.review.btn', href: SITE.reviews },
+  { i: 'idea', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
 ];
 ---
 <section class="hero" style="padding-bottom:30px">
@@ -17,19 +18,51 @@ const comm = [
     <div class="soon"><span class="dot"></span><span>{t('dl.badge', lang)}</span></div>
     <h1 style="font-size:clamp(2.2rem,6vw,4rem)" set:html={t('dl.h2', lang)} />
     <p class="sub" style="margin-bottom:30px">{t('dl.sub', lang)}</p>
+    {/* Internet Archive per primo: dall'Europa e' circa dieci volte piu' veloce
+        di SourceForge, che serve tutto da San Diego. E' lo stesso file. */}
     <div class="hero-btns">
       {hasIso ? (
         <>
-          <a class="btn btn-primary dl-go" href={SITE.isoUrl} target="_blank" rel="noopener" set:html={t('dl.ed.bc250', lang)} />
-          <a class="btn dl-go" href={SITE.isoUrlGeneric} target="_blank" rel="noopener" set:html={t('dl.ed.generic', lang)} />
-          <a class="btn dl-go" href={SITE.isoUrlSlim} target="_blank" rel="noopener" set:html={t('dl.ed.slim', lang)} />
+          <a class="btn btn-primary dl-go" href="/go.php?f=ia-bc250" target="_blank" rel="noopener">
+            <Icona nome="scarica" dim={20} classe="in-riga" />
+            <span set:html={t('dl.fast.bc250', lang)} />
+          </a>
+          <a class="btn dl-go" href="/go.php?f=ia-generic" target="_blank" rel="noopener">
+            <Icona nome="scarica" dim={20} classe="in-riga" />
+            <span set:html={t('dl.fast.generic', lang)} />
+          </a>
         </>
       ) : (
         <span class="btn btn-primary" style="cursor:default;opacity:.85" set:html={t('dl.btnsoon', lang)} />
       )}
     </div>
     {hasIso && (
-      <p class="sub" style="margin-top:14px;font-size:.92rem"><a href={SITE.isoFilesUrl} target="_blank" rel="noopener" set:html={t('dl.ed.all', lang)} /></p>
+      <p class="sub fastnote" set:html={t('dl.fast.sub', lang)} />
+    )}
+    {hasIso && (
+      <div class="altbox">
+        <div class="torh">{t('dl.sf.h', lang)}</div>
+        <p class="sub tors">{t('dl.sf.sub', lang)}</p>
+        <div class="torrow">
+          <a class="btn btn-ghost dl-go" href="/go.php?f=bc250" target="_blank" rel="noopener" set:html={t('dl.ed.bc250', lang)} />
+          <a class="btn btn-ghost dl-go" href="/go.php?f=generic" target="_blank" rel="noopener" set:html={t('dl.ed.generic', lang)} />
+        </div>
+      </div>
+    )}
+    {hasIso && (
+      <div class="torbox">
+        <div class="torh" set:html={t('dl.tor.h', lang)} />
+        <p class="sub tors" set:html={t('dl.tor.sub', lang)} />
+        <div class="torrow">
+          <a class="btn btn-ghost dl-tor" href="/go.php?f=tor-bc250" set:html={t('dl.tor.bc250', lang)} />
+          <a class="magnet" href={SITE.magnetBc250} title="BC-250" data-conta="magnet-bc250">{t('dl.tor.magnet', lang)}</a>
+          <a class="btn btn-ghost dl-tor" href="/go.php?f=tor-generic" set:html={t('dl.tor.generic', lang)} />
+          <a class="magnet" href={SITE.magnetGeneric} title="Generic" data-conta="magnet-generic">{t('dl.tor.magnet', lang)}</a>
+        </div>
+      </div>
+    )}
+    {hasIso && (
+      <p class="sub" style="margin-top:14px;font-size:.92rem"><a href="/go.php?f=tutti" target="_blank" rel="noopener" set:html={t('dl.ed.all', lang)} /></p>
     )}
     <div class="pill" style="margin-top:24px">{sizeLine}</div>
     <p class="sub" style="margin-top:14px;font-size:.95rem" set:html={t('dl.ver', lang)} />
@@ -40,9 +73,9 @@ const comm = [
 <section class="features" style="padding-top:30px">
   <div class="wrap">
     <div class="grid">
-      <div class="card"><span class="ico">🖥️</span><h3>{t('dl.req.h', lang)}</h3><p set:html={t('dl.req.d', lang)} /></div>
-      <div class="card"><span class="ico">📦</span><h3>{t('dl.inc.h', lang)}</h3><p set:html={t('dl.inc.d', lang)} /></div>
-      <div class="card"><span class="ico">🔄</span><h3>{t('dl.repo.h', lang)}</h3><p set:html={t('dl.repo.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="requisiti" /></span><h3>{t('dl.req.h', lang)}</h3><p set:html={t('dl.req.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="contenuto" /></span><h3>{t('dl.inc.h', lang)}</h3><p set:html={t('dl.inc.d', lang)} /></div>
+      <div class="card"><span class="ico"><Icona nome="aggiornamenti" /></span><h3>{t('dl.repo.h', lang)}</h3><p set:html={t('dl.repo.d', lang)} /></div>
     </div>
   </div>
 </section>
@@ -83,7 +116,7 @@ const comm = [
               <span class="amt-eur">€{a}</span>
             </a>
           ))}
-          <a class="amt amt-more" href={donatePage}>♾️</a>
+          <a class="amt amt-more" href={donatePage}>{t('don.give.custom', lang)}</a>
         </div>
         <p class="muted" style="font-size:.86rem;margin-top:14px" set:html={t('don.give.note', lang)} />
       </div>
@@ -102,6 +135,18 @@ const comm = [
       setTimeout(() => { window.location.href = donatePage; }, 600);
     });
   });
+
+  // A magnet link never reaches our server: the click goes straight to the
+  // torrent program. Without this, magnet users are invisible in the stats.
+  // The href stays a real magnet, so copying it or opening it in a new tab
+  // keeps working; we only send a fire-and-forget ping alongside the click.
+  document.querySelectorAll('[data-conta]').forEach((a) => {
+    a.addEventListener('click', () => {
+      const url = '/go.php?f=' + encodeURIComponent(a.dataset.conta) + '&b=1';
+      if (navigator.sendBeacon) navigator.sendBeacon(url);
+      else fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+    });
+  });
 </script>
 
 <!-- Free ways to help -->
@@ -111,7 +156,7 @@ const comm = [
     <div class="grid">
       {comm.map((c) => (
         <div class="card comm-card">
-          <span class="ico">{c.i}</span>
+          <span class="ico"><Icona nome={c.i} /></span>
           <h3>{t(c.t, lang)}</h3>
           <p>{t(c.d, lang)}</p>
           <a class="btn btn-ghost" href={c.href} target="_blank" rel="noopener">{t(c.btn, lang)}</a>
@@ -140,4 +185,22 @@ const comm = [
   .comm-card{display:flex;flex-direction:column;align-items:flex-start}
   .comm-card p{flex:1;margin-bottom:18px;color:var(--muted)}
   @media(max-width:760px){.dl-donate{grid-template-columns:1fr;text-align:center}.dl-donate .muted{margin-left:auto;margin-right:auto}.dl-donate .amounts{justify-content:center}.dl-qr{order:-1}}
+</style>
+
+<style>
+  /* La nota sotto ai pulsanti principali: spiega perche' consigliamo
+     Internet Archive, con i numeri misurati invece che con un aggettivo. */
+  .fastnote{max-width:640px;margin:14px auto 0;font-size:.92rem}
+
+  /* SourceForge e il torrent sono alternative, non l'opzione principale:
+     stanno sotto, con un contorno leggero invece che in evidenza. */
+  .altbox,
+  .torbox{margin:26px auto 0;max-width:640px;padding:18px 20px;border:1px solid rgba(216,168,73,.22);border-radius:12px;background:rgba(255,255,255,.02)}
+  .altbox .torh{color:var(--gold-lt);font-weight:700;margin-bottom:6px}
+  .torh{color:var(--gold-lt);font-weight:700;margin-bottom:6px}
+  .tors{font-size:.9rem;margin:0 auto 14px;max-width:560px}
+  .torrow{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+  .torrow .btn{padding:9px 16px;font-size:.9rem}
+  .magnet{font-size:.82rem;color:var(--muted);border-bottom:1px dotted rgba(216,168,73,.5);padding-bottom:1px}
+  .magnet:hover{color:var(--gold-lt)}
 </style>

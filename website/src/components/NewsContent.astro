@@ -1,0 +1,97 @@
+---
+import { t, type Lang } from '../i18n';
+import { news, roadmap, pick, type Stato } from '../news';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+// Le voci fatte vanno in fondo: chi apre questa pagina vuole sapere cosa arriva,
+// non cosa è già arrivato. Quelle fatte restano perché rispondono alla domanda
+// che ci fanno più spesso, cioè se il progetto è vivo.
+const ordine: Record<Stato, number> = { corso: 0, previsto: 1, fatto: 2 };
+const voci = [...roadmap].sort((a, b) => ordine[a.stato] - ordine[b.stato]);
+
+const etichettaStato: Record<Stato, Record<string, string>> = {
+  corso:    { it: 'in corso',  en: 'in progress', pl: 'w toku',        uk: 'у роботі' },
+  previsto: { it: 'previsto',  en: 'planned',     pl: 'planowane',     uk: 'заплановано' },
+  fatto:    { it: 'fatto',     en: 'done',        pl: 'zrobione',      uk: 'зроблено' },
+};
+const st = (s: Stato) => etichettaStato[s][lang] ?? etichettaStato[s].en;
+---
+<section class="hero" style="padding-bottom:24px">
+  <div class="wrap">
+    <div class="soon"><span class="dot"></span><span>{t('news.eye', lang)}</span></div>
+    <h1 style="font-size:clamp(2.1rem,5.5vw,3.6rem)" set:html={t('news.h1', lang)} />
+    <p class="sub" style="max-width:720px" set:html={t('news.sub', lang)} />
+  </div>
+</section>
+
+<section class="features" style="padding-top:10px">
+  <div class="wrap">
+    <h2 class="sec-title" set:html={t('news.h.news', lang)} />
+
+    <div class="newslist">
+      {news.map((p) => (
+        <article class="newsitem">
+          <div class="newsmeta">
+            <time datetime={p.data}>{pick(p.quando, lang)}</time>
+            {p.etichetta && <span class="newstag">{pick(p.etichetta, lang)}</span>}
+          </div>
+          <h3 set:html={pick(p.titolo, lang)} />
+          <p set:html={pick(p.testo, lang)} />
+        </article>
+      ))}
+    </div>
+
+    <h2 class="sec-title" style="margin-top:56px" set:html={t('news.h.road', lang)} />
+    <p class="sub" style="max-width:720px;margin-bottom:26px" set:html={t('news.road.sub', lang)} />
+
+    <div class="roadlist">
+      {voci.map((v) => (
+        <article class={`roaditem stato-${v.stato}`}>
+          <div class="roadmeta">
+            <span class={`roadbadge b-${v.stato}`}>{st(v.stato)}</span>
+            {v.quando && <span class="roadwhen">{pick(v.quando, lang)}</span>}
+          </div>
+          <h3 set:html={pick(v.titolo, lang)} />
+          <p set:html={pick(v.testo, lang)} />
+        </article>
+      ))}
+    </div>
+
+    <p class="sub" style="margin-top:36px;max-width:720px" set:html={t('news.foot', lang)} />
+  </div>
+</section>
+
+<style>
+  .newslist, .roadlist { display: grid; gap: 18px; margin-top: 24px; }
+  .newsitem, .roaditem {
+    border: 1px solid rgba(216,168,73,.22);
+    border-radius: 12px;
+    padding: 20px 22px;
+    background: rgba(255,255,255,.02);
+  }
+  .newsitem h3, .roaditem h3 { margin: 6px 0 10px; font-size: 1.16rem; color: var(--gold-lt); }
+  .newsitem p, .roaditem p { margin: 0; line-height: 1.65; opacity: .92; }
+  .newsmeta, .roadmeta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .newsmeta time { font-size: .82rem; opacity: .7; letter-spacing: .3px; }
+  .newstag {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .6px;
+    padding: 2px 8px; border-radius: 999px;
+    border: 1px solid rgba(216,168,73,.35); color: var(--gold-lt);
+  }
+  .roadbadge {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .6px;
+    padding: 3px 10px; border-radius: 999px; font-weight: 700;
+  }
+  /* in corso = ottone acceso, previsto = contorno, fatto = spento */
+  .b-corso    { background: var(--gold-lt); color: #1c150c; }
+  .b-previsto { border: 1px solid rgba(216,168,73,.5); color: var(--gold-lt); }
+  .b-fatto    { border: 1px solid rgba(255,255,255,.18); color: rgba(255,255,255,.55); }
+  .roadwhen { font-size: .82rem; opacity: .7; }
+  .stato-fatto { opacity: .72; }
+  .stato-fatto h3 { color: rgba(255,255,255,.72); }
+  @media (min-width: 900px) {
+    .newslist, .roadlist { grid-template-columns: 1fr 1fr; }
+    .newsitem:first-child { grid-column: 1 / -1; }
+  }
+</style>

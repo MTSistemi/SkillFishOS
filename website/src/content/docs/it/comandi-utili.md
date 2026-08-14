@@ -83,10 +83,10 @@ bluetoothctl                         # scan on / pair / connect / trust
 ## AI locale
 
 ```bash
-# lo stack gira in container Docker (vedi pannello AI)
+# un solo servizio nativo: niente container, Docker non e' installato
 systemctl status skillfish-unsloth   # stato del motore AI
-docker compose -f <stack> up -d      # avvia lo stack
-docker compose -f <stack> down       # ferma e libera GPU/RAM
+sudo systemctl start skillfish-unsloth   # avvialo
+sudo systemctl stop skillfish-unsloth    # fermalo e libera GPU/RAM
 curl -s localhost:8888/              # l’interfaccia di Unsloth Studio (solo da locale)
 ```
 
@@ -95,8 +95,16 @@ curl -s localhost:8888/              # l’interfaccia di Unsloth Studio (solo d
 ```bash
 sudo snapper list                    # elenco snapshot
 sudo snapper create -d "prima di X"  # snapshot manuale
-sudo btrfs subvolume list /          # sottovolumi (@rootfs, @home)
-# il rollback più semplice è dal menu GRUB → "SkillFishOS snapshots"
+sudo btrfs subvolume list /          # sottovolumi (@, @home, @log, @cache)
+
+# tornare a uno snapshot davvero (ha effetto al riavvio successivo)
+sudo skillfish-rollback --elenco     # quali snapshot ci sono
+sudo skillfish-rollback 12           # fai diventare lo snapshot 12 il sistema
+sudo skillfish-rollback --annulla    # ci hai ripensato: rimetti quello di prima
+sudo skillfish-rollback --pulisci    # butta i sistemi messi da parte dai ripristini
+
+# dal menu GRUB → "SkillFishOS snapshots" entri nello stesso snapshot ma in
+# SOLA LETTURA: serve a guardare e recuperare file, poi usi il comando qui sopra
 ```
 
 ## Aggiornamenti e repository

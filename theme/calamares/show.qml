@@ -11,8 +11,24 @@ import calamares.slideshow 1.0;
  * Le diapositive NON sono immagini con il testo dentro (lo sfondo e' uno solo,
  * background.png): i testi stanno qui, quindi bastava tradurli.
  *
- * La lingua si legge da Qt.locale(), che Calamares imposta quando l'utente la
- * sceglie nella prima pagina — cioe' molto prima che la presentazione parta.
+ * PERCHE' USCIVA COMUNQUE IN INGLESE
+ * Prima la lingua stava in un binding scritto cosi':
+ *
+ *     property string lang: { var n = Qt.locale().name; ... }
+ *
+ * Qt.locale() NON e' una proprieta' reattiva: il binding si calcola una volta
+ * sola, alla creazione del componente. E il componente nasce all'avvio di
+ * Calamares, cioe' PRIMA che l'utente scelga la lingua. Il valore restava
+ * inchiodato alla lingua della sessione live (inglese) e non cambiava piu',
+ * qualunque cosa scegliesse l'utente. Le traduzioni c'erano tutte: nessuno le
+ * andava mai a prendere.
+ *
+ * Adesso la lingua si ricava da due fonti indipendenti:
+ *   1. Qt.uiLanguage — questa SI' che e' reattiva: quando Calamares installa il
+ *      traduttore della lingua scelta, i binding che la leggono si ricalcolano;
+ *   2. una nuova lettura dentro onActivate(), che Calamares chiama quando la
+ *      presentazione parte davvero, cioe' a scelta ormai fatta.
+ *
  * Regola uguale a quella delle app: se una lingua manca, si ricade sull'inglese
  * invece di mostrare una stringa vuota.
  *
@@ -22,11 +38,15 @@ Presentation {
     id: presentation
 
     // it / pl / uk / en, con l'inglese come base
-    property string lang: {
-        var n = Qt.locale().name;          // es. "pl_PL"
-        if (n.indexOf("it") === 0) return "it";
-        if (n.indexOf("pl") === 0) return "pl";
-        if (n.indexOf("uk") === 0 || n.indexOf("ua") === 0) return "uk";
+    property string lang: presentation.linguaDa(Qt.uiLanguage ? Qt.uiLanguage : Qt.locale().name)
+
+    // accetta sia "pl_PL" sia "pl-PL" sia "pl"
+    function linguaDa(n) {
+        if (!n) return "en";
+        var s = String(n).replace("-", "_");
+        if (s.indexOf("it") === 0) return "it";
+        if (s.indexOf("pl") === 0) return "pl";
+        if (s.indexOf("uk") === 0 || s.indexOf("ua") === 0) return "uk";
         return "en";
     }
 
@@ -99,5 +119,12 @@ Presentation {
             text: presentation.tr(presentation.s5) }
     }
 
-    function onActivate() { presentation.currentSlide = 0; }
+    // Calamares chiama onActivate() quando la presentazione entra in scena:
+    // l'installazione sta partendo, quindi la lingua e' gia' stata scelta da un
+    // pezzo. E' il momento buono per rileggerla. L'assegnazione rompe il binding
+    // qui sopra, ed e' voluto: da qui in poi la lingua non cambia piu'.
+    function onActivate() {
+        presentation.lang = presentation.linguaDa(Qt.uiLanguage ? Qt.uiLanguage : Qt.locale().name);
+        presentation.currentSlide = 0;
+    }
 }

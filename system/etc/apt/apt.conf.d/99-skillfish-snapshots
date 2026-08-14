@@ -1,0 +1,11 @@
+// SkillFishOS: dopo ogni transazione apt riuscita, rimetti in pari le voci di
+// ripristino nel menu di avvio.
+//
+// Non e' ridondante rispetto a grub-btrfsd: quel demone, misurato, non
+// rigenera il menu (durante apt fallisce, a riposo non reagisce). Senza questa
+// riga lo snapshot creato PRIMA dell'aggiornamento non compare fra le voci di
+// avvio, cioe' proprio quello che serve se l'aggiornamento rompe qualcosa.
+//
+// Lo script esce subito se non c'e' niente di cambiato, quindi il costo reale
+// e' quasi sempre zero.
+DPkg::Post-Invoke { "if [ -x /usr/local/bin/skillfish-snapshot-menu ]; then /usr/local/bin/skillfish-snapshot-menu || true; fi"; };

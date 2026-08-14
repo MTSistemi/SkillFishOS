@@ -83,7 +83,7 @@ Il **pannello AI** accende e spegne lo stack LLM locale con un clic, liberando G
 
 ## Perché esistono
 
-L'obiettivo di SkillFishOS è che **chiunque** — compresi i più piccoli — possa usare e regolare il sistema senza dover imparare comandi da terminale. Queste app traducono operazioni complesse (governor SMU, parametri del kernel, container Docker) in pochi clic, mantenendo le **protezioni** (thermal-guard, test-and-rollback) sempre attive.
+L'obiettivo di SkillFishOS è che **chiunque** — compresi i più piccoli — possa usare e regolare il sistema senza dover imparare comandi da terminale. Queste app traducono operazioni complesse (governor SMU, parametri del kernel, snapshot e ripristino) in pochi clic, mantenendo le **protezioni** (thermal-guard, test-and-rollback) sempre attive.
 
 ## Fonti
 

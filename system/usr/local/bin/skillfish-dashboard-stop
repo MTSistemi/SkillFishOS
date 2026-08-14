@@ -1,0 +1,31 @@
+#!/bin/sh
+# Chiude i processi ausiliari della dashboard: il terminale web, il ponte VNC e
+# il server VNC. Girano fuori dal cgroup del servizio, quindi systemd da solo non
+# li porta via.
+#
+# PERCHE' NON STA PIU' DENTRO LA UNIT
+# Prima era una riga sola in ExecStopPost:
+#
+#     /bin/sh -c 'pkill -f "ttyd -i lo"; pkill -f "websockify --web"; ...'
+#
+# `pkill -f` confronta il pattern con la riga di comando INTERA di ogni processo,
+# e la riga di comando di quella shell contiene per forza il pattern che sta per
+# cercare. Quindi la shell ammazzava se stessa al primo pkill: systemd vedeva
+# "Control process exited, code=killed, status=15/TERM" e marcava il servizio
+# come FAILED. Ogni volta che si spegneva la dashboard dal Remote Manager,
+# restava una riga rossa in `systemctl --failed` su un sistema perfettamente sano.
+#
+# Qui la riga di comando del processo e' solo il percorso di questo script: il
+# pattern non ci compare, e il suicidio non e' piu' possibile.
+#
+# Uscita sempre 0: se un processo ausiliario non c'era, non e' un errore.
+
+for pattern in \
+    "ttyd -i lo" \
+    "websockify --web" \
+    "x11vnc -display :0 -rfbport 5901"
+do
+    pkill -f "$pattern" 2>/dev/null
+done
+
+exit 0

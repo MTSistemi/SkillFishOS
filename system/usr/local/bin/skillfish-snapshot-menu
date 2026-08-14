@@ -1,0 +1,45 @@
+#!/bin/bash
+# Rigenera le voci di ripristino nel menu di avvio, se sono cambiate.
+#
+# PERCHE' ESISTE
+# Il demone grub-btrfsd dovrebbe farlo da solo, e non lo fa. Misurato sulla
+# 26.06.3 installata in macchina virtuale:
+#   - durante un `apt upgrade` ha scritto nel log
+#       [!] Error during grub menu creation (grub/ grub-btrfs error)
+#   - a riposo, creato uno snapshot e aspettati 90 secondi: niente.
+# Il risultato e' che lo snapshot PRE-aggiornamento non compare nel menu di
+# avvio, cioe' manca proprio nel momento in cui serve. Il generatore a mano
+# invece funziona benissimo: il problema e' solo chi lo chiama.
+#
+# Qui non ci fidiamo del demone: questo script viene richiamato da apt a fine
+# transazione (/etc/apt/apt.conf.d/99-skillfish-snapshots), quando le snapshot
+# pre e post esistono gia'.
+#
+# Costa una decina di secondi, quindi non lo si esegue a vuoto: si confronta lo
+# stato degli snapshot con un'impronta salvata, e si rigenera solo se e'
+# cambiato qualcosa.
+set -u
+
+MARCA=/var/lib/skillfish/.menu-snapshot
+GRUBCFG=/boot/grub/grub.cfg
+
+# niente da fare se non siamo su btrfs con gli snapshot configurati
+[ "$(findmnt -no FSTYPE / 2>/dev/null)" = "btrfs" ] || exit 0
+btrfs subvolume show /.snapshots >/dev/null 2>&1 || exit 0
+command -v grub-mkconfig >/dev/null 2>&1 || exit 0
+[ -w "$(dirname "$GRUBCFG")" ] || exit 0     # sola lettura: siamo dentro uno snapshot
+
+# impronta: l'elenco degli snapshot presenti. Cambia quando ne nasce o ne muore uno.
+impronta=$(ls -1 /.snapshots 2>/dev/null | sort | tr '\n' ' ')
+vecchia=$(cat "$MARCA" 2>/dev/null || true)
+[ "$impronta" = "$vecchia" ] && exit 0
+
+mkdir -p "$(dirname "$MARCA")"
+if grub-mkconfig -o "$GRUBCFG" >/dev/null 2>&1; then
+    printf '%s' "$impronta" > "$MARCA"
+    n=$(grep -c 'menuentry' /boot/grub/grub-btrfs.cfg 2>/dev/null || echo 0)
+    echo "SkillFishOS: menu di ripristino aggiornato ($n voci)"
+else
+    echo "SkillFishOS: non sono riuscito ad aggiornare il menu di ripristino" >&2
+fi
+exit 0

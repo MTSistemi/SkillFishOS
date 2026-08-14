@@ -1,8 +1,8 @@
 ---
 import { t, SITE, type Lang } from '../i18n';
+import Icona from './Icona.astro';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
-const amtLabel: Record<string, string> = { '1': '☕', '2': '☕☕', '5': '⚙️', '10': '🔧' };
 const amtSub: Record<string, Record<Lang, string>> = {
   '1': { it: 'un sorso', en: 'a sip' },
   '2': { it: 'un caffè', en: 'a coffee' },
@@ -10,15 +10,15 @@ const amtSub: Record<string, Record<Lang, string>> = {
   '10': { it: 'verso una scheda', en: 'toward a board' },
 };
 const uses = [
-  { i: '🧩', t: 'don.u1.t', d: 'don.u1.d' },
-  { i: '❄️', t: 'don.u2.t', d: 'don.u2.d' },
-  { i: '🌐', t: 'don.u3.t', d: 'don.u3.d' },
-  { i: '⏱️', t: 'don.u4.t', d: 'don.u4.d' },
+  { i: 'requisiti', t: 'don.u1.t', d: 'don.u1.d' },
+  { i: 'tuning', t: 'don.u2.t', d: 'don.u2.d' },
+  { i: 'lingue', t: 'don.u3.t', d: 'don.u3.d' },
+  { i: 'prestazioni', t: 'don.u4.t', d: 'don.u4.d' },
 ];
 const comm = [
-  { i: '⭐', t: 'comm.star.t', d: 'comm.star.d', btn: 'comm.star.btn', href: SITE.ghStar },
-  { i: '★', t: 'comm.review.t', d: 'comm.review.d', btn: 'comm.review.btn', href: SITE.reviews },
-  { i: '💡', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
+  { i: 'stella', t: 'comm.star.t', d: 'comm.star.d', btn: 'comm.star.btn', href: SITE.ghStar },
+  { i: 'recensione', t: 'comm.review.t', d: 'comm.review.d', btn: 'comm.review.btn', href: SITE.reviews },
+  { i: 'idea', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
 ];
 ---
 <section class="hero" style="padding-bottom:24px">
@@ -50,13 +50,12 @@ const comm = [
         <div class="amounts">
           {SITE.donateAmounts.map((a) => (
             <a class="amt" href={`${SITE.donateUrl}/${a}EUR`} target="_blank" rel="noopener">
-              <span class="amt-ico">{amtLabel[a] ?? '☕'}</span>
               <span class="amt-eur">€{a}</span>
               <span class="amt-sub">{amtSub[a]?.[lang] ?? ''}</span>
             </a>
           ))}
         </div>
-        <a class="btn btn-ghost amt-custom" href={SITE.donateUrl} target="_blank" rel="noopener">♾️ {t('don.give.custom', lang)} →</a>
+        <a class="btn btn-ghost amt-custom" href={SITE.donateUrl} target="_blank" rel="noopener">{t('don.give.custom', lang)} →</a>
         <p class="muted note" set:html={t('don.give.note', lang)} />
       </div>
       <div class="donate-qr">
@@ -77,7 +76,7 @@ const comm = [
     <div class="sec-head"><div class="eyebrow">{t('don.use.h', lang)}</div><p>{t('don.use.sub', lang)}</p></div>
     <div class="grid">
       {uses.map((u) => (
-        <div class="card"><span class="ico">{u.i}</span><h3>{t(u.t, lang)}</h3><p>{t(u.d, lang)}</p></div>
+        <div class="card"><span class="ico"><Icona nome={u.i} /></span><h3>{t(u.t, lang)}</h3><p>{t(u.d, lang)}</p></div>
       ))}
     </div>
   </div>
@@ -90,7 +89,7 @@ const comm = [
     <div class="grid">
       {comm.map((c) => (
         <div class="card comm-card">
-          <span class="ico">{c.i}</span>
+          <span class="ico"><Icona nome={c.i} /></span>
           <h3>{t(c.t, lang)}</h3>
           <p>{t(c.d, lang)}</p>
           <a class="btn btn-ghost" href={c.href} target="_blank" rel="noopener">{t(c.btn, lang)}</a>

@@ -1,5 +1,6 @@
 ---
 import { t, localePath, type Lang } from '../i18n';
+import Icona from './Icona.astro';
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const specs = [
@@ -84,7 +85,7 @@ const cmpGPU = { max: 16500, bars: [
 
 <section class="features" style="padding-top:10px">
   <div class="wrap" style="max-width:880px">
-    <div class="sec-head"><div class="eyebrow">⚙️ Tuning</div><h2>{t('oc.h', lang)}</h2><p set:html={t('oc.sub', lang)} /></div>
+    <div class="sec-head"><div class="eyebrow"><Icona nome="tuning" dim={18} classe="in-riga" /> Tuning</div><h2>{t('oc.h', lang)}</h2><p set:html={t('oc.sub', lang)} /></div>
     <div class="chips">
       <div class="chip"><div class="big">{t('oc.cpu.v', lang)}</div><div class="lbl" set:html={t('oc.cpu.l', lang)} /></div>
       <div class="chip"><div class="big">{t('oc.uv.v', lang)}</div><div class="lbl" set:html={t('oc.uv.l', lang)} /></div>
@@ -119,7 +120,7 @@ const cmpGPU = { max: 16500, bars: [
     <p class="bm-note" set:html={t('bm.note', lang)} />
     <p class="bm-note" style="opacity:.8">{t('bm.src', lang)} <a href={localePath('/docs/gpu-overclock', lang)}>{t('bm.gpulink', lang)}</a> · <a href={localePath('/docs/kernel', lang)}>kernel</a>.</p>
 
-    <h3 style="text-align:center;margin:48px 0 6px;color:var(--gold-lt);font-size:1.2rem">🎮 {t('wk.h', lang)}</h3>
+    <h3 style="text-align:center;margin:48px 0 6px;color:var(--gold-lt);font-size:1.2rem"><Icona nome="giochi" dim={22} classe="in-riga" /> {t('wk.h', lang)}</h3>
     <div class="chips" style="margin-top:18px">
       {wkstats.map((s) => (
         <div class="chip"><div class="big">{s.v}</div><div class="lbl">{t(s.l, lang)}</div></div>
@@ -131,7 +132,7 @@ const cmpGPU = { max: 16500, bars: [
 
 <section class="features" style="padding-top:0">
   <div class="wrap" style="max-width:1000px">
-    <div class="sec-head"><div class="eyebrow">📸 Benchmark</div><h2>{t('bs.h', lang)}</h2><p set:html={t('bs.sub', lang)} /></div>
+    <div class="sec-head"><div class="eyebrow"><Icona nome="prestazioni" dim={18} classe="in-riga" /> Benchmark</div><h2>{t('bs.h', lang)}</h2><p set:html={t('bs.sub', lang)} /></div>
     <div class="shotgrid">
       <a class="shot shot-wide" href="/img/benchmarks/wukong-112fps.jpg" target="_blank" rel="noopener">
         <img src="/img/benchmarks/wukong-112fps.jpg" alt="Black Myth: Wukong benchmark — 112 FPS average on AMD BC-250 with SkillFishOS" loading="lazy" width="1280" height="720" />
@@ -151,14 +152,14 @@ const cmpGPU = { max: 16500, bars: [
 
 <section class="features" style="padding-top:0">
   <div class="wrap" style="max-width:920px">
-    <div class="sec-head"><div class="eyebrow">🎮 Gaming</div><h2>{t('gb.h', lang)}</h2><p set:html={t('gb.sub', lang)} /></div>
+    <div class="sec-head"><div class="eyebrow"><Icona nome="giochi" dim={18} classe="in-riga" /> Gaming</div><h2>{t('gb.h', lang)}</h2><p set:html={t('gb.sub', lang)} /></div>
     <div class="chips">
       {gbench.map((g) => (
         <div class="chip"><div class="big">{t(g.v, lang)}</div><div class="lbl" set:html={t(g.l, lang)} /></div>
       ))}
     </div>
 
-    <h3 style="text-align:center;margin:54px 0 6px;color:var(--gold-lt);font-size:1.25rem">⚡ {t('cmp.os.h', lang)}</h3>
+    <h3 style="text-align:center;margin:54px 0 6px;color:var(--gold-lt);font-size:1.25rem"><Icona nome="energia" dim={22} classe="in-riga" /> {t('cmp.os.h', lang)}</h3>
     <p style="text-align:center;color:var(--muted);max-width:680px;margin:0 auto 22px" set:html={t('cmp.os.sub', lang)} />
     <div class="bm-chart">
       {cmpOS.bars.map((b) => (
@@ -171,7 +172,7 @@ const cmpGPU = { max: 16500, bars: [
     </div>
     <p class="bm-note" set:html={t('cmp.os.note', lang)} />
 
-    <h3 style="text-align:center;margin:54px 0 6px;color:var(--gold-lt);font-size:1.25rem">🏆 {t('cmp.gpu.h', lang)}</h3>
+    <h3 style="text-align:center;margin:54px 0 6px;color:var(--gold-lt);font-size:1.25rem"><Icona nome="prestazioni" dim={22} classe="in-riga" /> {t('cmp.gpu.h', lang)}</h3>
     <p style="text-align:center;color:var(--muted);max-width:680px;margin:0 auto 22px" set:html={t('cmp.gpu.sub', lang)} />
     <div class="bm-chart">
       {cmpGPU.bars.map((b) => (

@@ -23,6 +23,7 @@ skillfish-gpu-freq.service
 skillfish-gpu-util.service
 skillfish-thermal-guard.service
 skillfish-dp-hotswap.service
+bc250-smu-oc.service
 "
 
 if [ ! -x "$GUARD" ]; then

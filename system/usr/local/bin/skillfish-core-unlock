@@ -77,4 +77,12 @@ if st != 0x01 or (rd(MASK_REG) & 0xFF) != 0xFF:
 
 os.close(fd)
 sys.stderr.write("skillfish-core-unlock: mask set to 0xFF, warm-rebooting for 8c/16t\n")
-os.system("systemctl reboot")
+# --no-block: senza, systemctl resta in attesa che systemd esegua il
+# riavvio, ma il riavvio non puo' partire finche' questo servizio non
+# finisce — e questo servizio sta aspettando systemctl. Il risultato
+# misurato erano 85-90 secondi di stallo a ogni avvio, con la riga
+# "Call to Reboot failed: Transport endpoint is not connected" nel log,
+# e un riavvio sporco che non conservava la maschera: due giri invece
+# di uno. Cosi' il comando torna subito, il servizio chiude, l'avvio
+# prosegue e systemd riavvia appena puo'.
+os.system("systemctl --no-block reboot")

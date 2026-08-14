@@ -1,8 +1,14 @@
-
 [Unit]
 Description=AMD BC-250 CPU Overclock
+Documentation=https://skillfishos.com
 
 [Service]
+# Senza guardia questo servizio parte anche su un PC normale o in una macchina
+# virtuale: bc250_apply.py cerca l'SMU, non lo trova e muore con un traceback
+# ("unexpected test response 1, expected 124"), lasciando una riga rossa in
+# `systemctl --failed` su ogni avvio dell'edizione Generic.
+# ExecCondition diverso da zero fa SALTARE l'unita', non fallire.
+ExecCondition=/usr/local/bin/skillfish-is-bc250
 ExecStart=/usr/bin/python3 /opt/bc250_smu_oc/bc250_apply.py --apply /etc/bc250-smu-oc.conf
 Restart=no
 

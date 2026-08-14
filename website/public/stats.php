@@ -266,5 +266,224 @@ foreach ($recent as $r) {
 }
 echo '</table></div>';
 
+// ---------------------------------------------------------------- download ---
+// Due fonti, e vanno lette insieme:
+//   - i nostri clic sui pulsanti (go.php): dicono chi ha AVVIATO un download e
+//     da che paese e lingua arrivava;
+//   - i numeri di SourceForge: dicono quanti download sono andati a buon fine
+//     davvero, compresi quelli di chi arriva da fuori dal nostro sito.
+// Il primo numero e' sempre piu' basso: chi cambia idea a meta' non conta.
+$dl_tot = array(); $dl_day = array(); $dl_paese = array(); $dl_lingua = array();
+try {
+    $db->exec('CREATE TABLE IF NOT EXISTS dl(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts INTEGER NOT NULL, day TEXT NOT NULL,
+        file TEXT NOT NULL, kind TEXT NOT NULL DEFAULT "iso",
+        vis TEXT NOT NULL, bot INTEGER NOT NULL DEFAULT 0,
+        country TEXT NOT NULL DEFAULT "", cname TEXT NOT NULL DEFAULT "",
+        lang TEXT NOT NULL DEFAULT "")');
+    $dl_tot = $db->query('SELECT file, kind, COUNT(*) c, COUNT(DISTINCT vis) u
+                          FROM dl WHERE bot=0 GROUP BY file ORDER BY c DESC')->fetchAll();
+    $dl_day = $db->query('SELECT day, COUNT(*) c FROM dl WHERE bot=0
+                          GROUP BY day ORDER BY day DESC LIMIT 14')->fetchAll();
+    $dl_paese = $db->query('SELECT country, cname, COUNT(*) c FROM dl
+                            WHERE bot=0 AND country<>"" GROUP BY country
+                            ORDER BY c DESC LIMIT 8')->fetchAll();
+    $dl_lingua = $db->query('SELECT lang, COUNT(*) c FROM dl WHERE bot=0 AND lang<>""
+                             GROUP BY lang ORDER BY c DESC')->fetchAll();
+} catch (Throwable $e) { }
+
+$etichetta = array(
+    'bc250' => 'ISO BC-250', 'generic' => 'ISO Generic',
+    'tor-bc250' => 'torrent BC-250', 'tor-generic' => 'torrent Generic',
+    'magnet-bc250' => 'magnet BC-250', 'magnet-generic' => 'magnet Generic',
+    'sha-bc250' => 'sha256 BC-250', 'sha-generic' => 'sha256 Generic',
+    'note' => 'note di rilascio', 'tutti' => 'elenco file',
+);
+
+echo '<div class="panel"><h3>Download avviati dal sito</h3>';
+echo '<table><tr><th>File</th><th class="r">Clic</th><th class="r">Persone</th></tr>';
+if (!$dl_tot) echo '<tr><td class="muted" colspan="3">Nessun download ancora registrato.</td></tr>';
+$dl_max = 0; foreach ($dl_tot as $r) $dl_max = max($dl_max, (int)$r['c']);
+foreach ($dl_tot as $r) {
+    $nome = $etichetta[$r['file']] ?? $r['file'];
+    $pct = $dl_max ? round(100 * $r['c'] / $dl_max) : 0;
+    echo '<tr><td>' . h($nome)
+       . '<div class="bar" style="width:' . $pct . '%;margin-top:4px"></div></td>'
+       . '<td class="r">' . (int)$r['c'] . '</td><td class="r">' . (int)$r['u'] . '</td></tr>';
+}
+echo '</table>';
+
+if ($dl_day) {
+    echo '<h3 style="margin-top:18px">Ultimi giorni</h3><table><tr><th>Giorno</th><th class="r">Download</th></tr>';
+    $m = 0; foreach ($dl_day as $r) $m = max($m, (int)$r['c']);
+    foreach ($dl_day as $r) {
+        $pct = $m ? round(100 * $r['c'] / $m) : 0;
+        echo '<tr><td>' . h($r['day']) . '<div class="bar" style="width:' . $pct . '%;margin-top:4px"></div></td>'
+           . '<td class="r">' . (int)$r['c'] . '</td></tr>';
+    }
+    echo '</table>';
+}
+
+if ($dl_paese || $dl_lingua) {
+    echo '<h3 style="margin-top:18px">Da dove, e in che lingua</h3><table><tr><th>Paese</th><th class="r">Download</th></tr>';
+    foreach ($dl_paese as $r)
+        echo '<tr><td>' . sfstats_flag($r['country']) . ' ' . h($r['cname'] ?: $r['country'])
+           . '</td><td class="r">' . (int)$r['c'] . '</td></tr>';
+    foreach ($dl_lingua as $r)
+        echo '<tr><td class="muted">pagina in ' . h(strtoupper($r['lang']))
+           . '</td><td class="r">' . (int)$r['c'] . '</td></tr>';
+    echo '</table>';
+}
+echo '</div>';
+
+// --- i numeri veri, presi da SourceForge -------------------------------------
+// Si interroga una volta all'ora e si tiene in cache: l'API e' pubblica ma non
+// va martellata, e questa pagina si ricarica spesso.
+$sf = null; $sf_err = '';
+try {
+    $cache = sfstats_dir() . '/sf-downloads.json';
+    if (is_file($cache) && (time() - filemtime($cache) < 3600)) {
+        $sf = json_decode((string)file_get_contents($cache), true);
+    } else {
+        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
+             . '?start_date=' . gmdate('Y-m-d', time() - 30 * 86400)
+             . '&end_date=' . gmdate('Y-m-d');
+        $ctx = stream_context_create(array('http' => array(
+            'timeout' => 8, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
+        $raw = @file_get_contents($url, false, $ctx);
+        if ($raw) { @file_put_contents($cache, $raw); $sf = json_decode($raw, true); }
+        else $sf_err = 'SourceForge non ha risposto';
+    }
+} catch (Throwable $e) { $sf_err = 'errore nella lettura'; }
+
+// --- il totale da sempre -----------------------------------------------------
+// L'API accetta qualunque data d'inizio e taglia da sola al primo caricamento,
+// quindi partiamo da prima che il progetto esistesse e lasciamo fare a lei.
+// Si aggiorna ogni sei ore: e' un numero che cresce piano, non ha senso
+// richiederlo a ogni ricarica della pagina.
+$sf_tot = null; $sf_dal = '';
+try {
+    $cache_tot = sfstats_dir() . '/sf-downloads-sempre.json';
+    $d = null;
+    if (is_file($cache_tot) && (time() - filemtime($cache_tot) < 21600)) {
+        $d = json_decode((string)file_get_contents($cache_tot), true);
+    } else {
+        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
+             . '?start_date=2026-01-01&end_date=' . gmdate('Y-m-d');
+        $ctx = stream_context_create(array('http' => array(
+            'timeout' => 12, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
+        $raw = @file_get_contents($url, false, $ctx);
+        if ($raw) { @file_put_contents($cache_tot, $raw); $d = json_decode($raw, true); }
+        elseif (is_file($cache_tot)) {
+            // se SourceForge non risponde meglio un numero vecchio che nessun numero
+            $d = json_decode((string)file_get_contents($cache_tot), true);
+        }
+    }
+    if (is_array($d) && isset($d['total'])) {
+        $sf_tot = (int)$d['total'];
+        foreach ((array)($d['downloads'] ?? array()) as $g) {
+            if (is_array($g) && (int)$g[1] > 0) { $sf_dal = substr((string)$g[0], 0, 10); break; }
+        }
+    }
+} catch (Throwable $e) { }
+
+// --- il dettaglio file per file ----------------------------------------------
+// Lo raccoglie il container una volta al giorno (skillfish-stat-sourceforge):
+// sono quasi trenta file e ognuno vuole una richiesta all'API, farlo mentre la
+// pagina si carica vorrebbe dire mezzo minuto di attesa a ogni apertura.
+$det = null;
+$f_det = sfstats_dir() . '/sf-dettaglio.json';
+if (is_file($f_det)) {
+    $d2 = json_decode((string)file_get_contents($f_det), true);
+    if (is_array($d2) && isset($d2['totale'])) {
+        $det = $d2;
+        $sf_tot = (int)$d2['totale'];              // piu' attendibile: e' la stessa fonte
+        if (!empty($d2['dal'])) $sf_dal = (string)$d2['dal'];
+    }
+}
+
+echo '<div class="panel"><h3>Download completati su SourceForge</h3>';
+if ($sf_tot !== null) {
+    echo '<div class="kpis">';
+    echo '<div class="kpi"><div class="n">' . number_format($sf_tot, 0, ',', '.') . '</div>'
+       . '<div class="l">totale da sempre'
+       . ($sf_dal ? ' · dal ' . h(date('d/m/Y', strtotime($sf_dal))) : '') . '</div></div>';
+    if ($sf && isset($sf['total']))
+        echo '<div class="kpi"><div class="n">' . number_format((int)$sf['total'], 0, ',', '.') . '</div>'
+           . '<div class="l">ultimi 30 giorni</div></div>';
+    if ($det && !empty($det['per_tipo'])) {
+        $iso = 0;
+        foreach ($det['per_tipo'] as $tp => $n) if (strpos($tp, 'ISO') === 0) $iso += (int)$n;
+        echo '<div class="kpi"><div class="n">' . number_format($iso, 0, ',', '.') . '</div>'
+           . '<div class="l">solo immagini ISO</div></div>';
+    }
+    echo '</div>';
+}
+
+if ($det) {
+    // Per tipo: dice cosa scarica davvero la gente. Le firme sha256 quasi a zero
+    // rispetto alle ISO significano che quasi nessuno verifica il file.
+    if (!empty($det['per_tipo'])) {
+        $tp = $det['per_tipo']; arsort($tp);
+        $max = max(array_map('intval', $tp)) ?: 1;
+        echo '<h3 style="margin-top:4px">Per tipo di file <span class="muted" style="font-weight:400">· da sempre</span></h3>';
+        echo '<table><tr><th>Tipo</th><th class="r">Download</th><th class="r">%</th></tr>';
+        foreach ($tp as $nome => $n) {
+            $pct = $sf_tot ? round(100 * $n / $sf_tot) : 0;
+            echo '<tr><td>' . h($nome)
+               . '<div class="bar" style="width:' . round(100 * $n / $max) . '%;margin-top:4px"></div></td>'
+               . '<td class="r">' . number_format((int)$n, 0, ',', '.') . '</td>'
+               . '<td class="r muted">' . $pct . '%</td></tr>';
+        }
+        echo '</table>';
+    }
+
+    if (!empty($det['per_rilascio'])) {
+        $rl = $det['per_rilascio']; krsort($rl);
+        echo '<h3 style="margin-top:18px">Per versione <span class="muted" style="font-weight:400">· da sempre</span></h3>';
+        echo '<table><tr><th>Rilascio</th><th class="r">Download</th></tr>';
+        foreach ($rl as $nome => $n)
+            echo '<tr><td>' . h($nome) . '</td><td class="r">' . number_format((int)$n, 0, ',', '.') . '</td></tr>';
+        echo '</table>';
+    }
+
+    if (!empty($det['file'])) {
+        echo '<h3 style="margin-top:18px">File per file <span class="muted" style="font-weight:400">· da sempre</span></h3>';
+        echo '<table><tr><th>File</th><th class="r">Download</th></tr>';
+        foreach ($det['file'] as $v) {
+            if ((int)$v['totale'] <= 0) continue;   // i file mai scaricati non dicono niente
+            echo '<tr><td>' . h($v['nome'])
+               . ' <span class="muted" style="font-size:.8rem">' . h($v['tipo']) . '</span></td>'
+               . '<td class="r">' . number_format((int)$v['totale'], 0, ',', '.') . '</td></tr>';
+        }
+        echo '</table>';
+        $zero = 0;
+        foreach ($det['file'] as $v) if ((int)$v['totale'] <= 0) $zero++;
+        if ($zero) echo '<p class="muted" style="font-size:.82rem;margin-top:8px">'
+                      . $zero . ' file non ancora scaricati da nessuno.</p>';
+    }
+    echo '<p class="muted" style="font-size:.8rem;margin-top:10px">Dettaglio aggiornato il '
+       . h(date('d/m/Y \a\l\l\e H:i', (int)$det['aggiornato'])) . ', una volta al giorno.</p>';
+}
+
+echo '<h3 style="margin-top:18px">Ultimi 30 giorni <span class="muted" style="font-weight:400">· da dove arrivano</span></h3>';
+if ($sf && isset($sf['total'])) {
+    echo '<table><tr><th>Voce</th><th class="r">Download</th></tr>';
+    echo '<tr><td><strong>Totale</strong></td><td class="r"><strong>' . (int)$sf['total'] . '</strong></td></tr>';
+    if (!empty($sf['countries'])) {
+        $cs = $sf['countries']; arsort($cs); $i = 0;
+        foreach ($cs as $cc => $n) {
+            if ($i++ >= 8) break;
+            echo '<tr><td>' . sfstats_flag($cc) . ' ' . h($cc) . '</td><td class="r">' . (int)$n . '</td></tr>';
+        }
+    }
+    echo '</table>';
+} else {
+    echo '<p class="muted">' . h($sf_err ?: 'nessun dato disponibile') . '. I numeri completi restano su '
+       . '<a href="https://sourceforge.net/projects/skillfishos/files/stats/timeline" target="_blank" rel="noopener">SourceForge</a>.</p>';
+}
+echo '</div>';
+
 echo '<div class="foot">Dati anonimi (cookieless, IP non memorizzato) · solo sul tuo hosting · SkillFishOS</div>';
 echo '</div></body></html>';

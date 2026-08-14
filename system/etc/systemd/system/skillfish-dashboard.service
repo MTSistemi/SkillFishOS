@@ -6,7 +6,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/skillfish-dashboardd
-ExecStopPost=/bin/sh -c 'pkill -f "ttyd -i lo"; pkill -f "websockify --web"; pkill -f "x11vnc -display :0 -rfbport 5901"; true'
+# Sta in uno script: scritto qui dentro, il pkill trovava la riga di comando
+# della propria shell e la ammazzava, e il servizio finiva in stato failed a ogni
+# spegnimento regolare.
+ExecStopPost=/usr/local/bin/skillfish-dashboard-stop
 Restart=on-failure
 RestartSec=3
 # LAN control panel: needs PAM auth and system actions, so it runs as root.

@@ -1,7 +1,10 @@
 [Unit]
 Description=SkillFishOS first-boot snapper + grub-btrfs setup (installed system only)
 Documentation=https://skillfishos.com
-ConditionPathExists=!/var/lib/skillfish/.snapshots-setup-done
+# Niente ConditionPathExists sul marcatore: la ISO si porta dietro il marcatore
+# della macchina di build, quindi la condizione era sempre falsa e il servizio
+# non partiva su nessuna installazione. Adesso decide lo script, guardando se
+# /.snapshots e' davvero un sottovolume btrfs.
 DefaultDependencies=no
 After=local-fs.target
 Before=display-manager.service multi-user.target

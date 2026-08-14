@@ -176,6 +176,23 @@ put $P 0644 system/etc/modules-load.d/skillfish-watchdog.conf         etc/module
 put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/systemd/system.conf.d/10-skillfish-watchdog.conf
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
 put $P 0644 system/etc/systemd/system/skillfish-wol.service          etc/systemd/system/skillfish-wol.service
+put $P 0755 system/usr/local/bin/skillfish-wol-arm                    usr/local/bin/skillfish-wol-arm
+# Snapshot Btrfs del primo avvio. Questi due file non appartenevano a NESSUN
+# pacchetto: arrivavano solo dentro la ISO, quindi non potevamo correggerli con
+# un aggiornamento. E c'era da correggere: il marcatore
+# /var/lib/skillfish/.snapshots-setup-done finiva nel squashfs preso dalla
+# macchina di build, la condizione della unit lo trovava e il servizio veniva
+# saltato su OGNI installazione. Nessun sottovolume /.snapshots, nessun punto di
+# ripristino, snapper-boot in failed.
+put $P 0755 system/usr/local/bin/skillfish-firstboot-snapshots.sh     usr/local/bin/skillfish-firstboot-snapshots.sh
+put $P 0644 system/etc/systemd/system/skillfish-firstboot-snapshots.service etc/systemd/system/skillfish-firstboot-snapshots.service
+# Il menu di ripristino: grub-btrfsd non lo aggiorna (durante apt fallisce, a
+# riposo non reagisce), quindi lo rigeneriamo noi a fine transazione apt.
+put $P 0755 system/usr/local/bin/skillfish-snapshot-menu               usr/local/bin/skillfish-snapshot-menu
+put $P 0644 system/etc/apt/apt.conf.d/99-skillfish-snapshots           etc/apt/apt.conf.d/99-skillfish-snapshots
+# Tornare a uno snapshot per davvero: dal menu di avvio ci si entra in sola
+# lettura, e `snapper rollback` non funziona perche' grub.cfg fissa subvol=@.
+put $P 0755 system/usr/local/bin/skillfish-rollback                    usr/local/bin/skillfish-rollback
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
 put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
@@ -222,7 +239,7 @@ if [ -d /run/systemd/system ]; then
   modprobe ntsync 2>/dev/null || true
   # guardia hardware sui servizi specifici della BC-250: senza, su un PC
   # normale ripartono ogni 5 secondi all'infinito
-  for u in cyan-skillfish-governor skillfish-core-unlock skillfish-cu            skillfish-gpu-freq skillfish-gpu-util skillfish-thermal-guard            skillfish-dp-hotswap; do
+  for u in cyan-skillfish-governor skillfish-core-unlock skillfish-cu            skillfish-gpu-freq skillfish-gpu-util skillfish-thermal-guard            skillfish-dp-hotswap bc250-smu-oc; do
     f=""
     for d in /etc/systemd/system /usr/lib/systemd/system; do
       [ -f "$d/$u.service" ] && { f="$d/$u.service"; break; }
@@ -239,7 +256,35 @@ if [ -d /run/systemd/system ]; then
   done
   systemctl daemon-reload || true
   systemctl enable --now skillfish-gpu-freq.service || true
+  # lo stato failed di prima resta appiccicato anche dopo la correzione
+  systemctl reset-failed skillfish-wol.service bc250-smu-oc.service 2>/dev/null || true
   systemctl enable --now skillfish-wol.service || true
+  # Snapshot Btrfs: abilita il servizio e falli adesso, non al prossimo riavvio.
+  # Chi ha installato da una ISO precedente non ha /.snapshots come sottovolume e
+  # quindi non ha nemmeno un punto di ripristino: con questo aggiornamento lo
+  # ottiene subito. Sulla macchina di build lo script vede che c'e' gia' tutto ed
+  # esce in un istante.
+  systemctl enable skillfish-firstboot-snapshots.service || true
+  if [ -x /usr/local/bin/skillfish-firstboot-snapshots.sh ]; then
+    /usr/local/bin/skillfish-firstboot-snapshots.sh || true
+  fi
+  # Accesso automatico rimasto dalla sessione live. Sul sistema installato punta
+  # a un utente che li' non esiste: SDDM ci prova a ogni avvio, fallisce con
+  # "could not identify user" e ripiega sulla schermata di accesso. Nessun danno,
+  # ma una riga rossa nel journal a ogni avvio.
+  # La condizione e' precisa: si tocca il file SOLO se l'utente indicato non
+  # esiste. Sulla sessione live l'utente c'e' e il file resta dov'e', che e'
+  # esattamente quello che serve perche' la live parta senza chiedere nulla.
+  AL=/etc/sddm.conf.d/autologin.conf
+  if [ -f "$AL" ]; then
+    u=$(sed -n 's/^ *User *= *//p' "$AL" | head -1)
+    if [ -n "$u" ] && ! id "$u" >/dev/null 2>&1; then
+      rm -f "$AL"
+      echo "SkillFishOS: tolto l'accesso automatico dell'utente «$u», che su questo sistema non esiste"
+    fi
+  fi
+  # e le voci di ripristino nel menu, subito
+  [ -x /usr/local/bin/skillfish-snapshot-menu ] && /usr/local/bin/skillfish-snapshot-menu || true
   modprobe sp5100_tco 2>/dev/null || true
   modprobe nct6687 force=1 2>/dev/null || true
   systemctl daemon-reexec || true
@@ -248,7 +293,12 @@ fi
 # ACPI P-states: the BC-250 firmware exposes no _PSS, so Linux has no cpufreq at all.
 # The helper injects an SSDT via GRUB's early initrd and no-ops on anything that is
 # not a BC-250. It only rewrites the GRUB config — the change lands on next boot.
-/usr/local/bin/skillfish-acpi-pstates enable || true
+# "auto", non "enable": su una macchina che non e' una BC-250 la tabella non va
+# solo "non attivata", va TOLTA, perche' l'immagine se la porta dietro dalla
+# scheda di sviluppo dove era attiva. Con "enable" lo script si limitava a dire
+# "non e' una BC-250" e se ne andava, lasciando l'iniezione al suo posto e 32
+# errori ACPI a ogni avvio.
+/usr/local/bin/skillfish-acpi-pstates auto || true
 
 # HUD migration: the desktop widget was wired for 6c/12t. Now that the 8 cores are
 # unlocked it needs 16 bars. Only the two cpubar rows are rewritten, and only when
@@ -345,6 +395,7 @@ P=skillfish-dashboard
 put $P 0755 apps/dashboard/skillfish-dashboardd      usr/local/bin/skillfish-dashboardd
 put $P 0755 apps/dashboard/skillfish-remote-manager  usr/local/bin/skillfish-remote-manager
 put $P 0755 apps/dashboard/skillfish-remote-ctl      usr/local/bin/skillfish-remote-ctl
+put $P 0755 system/usr/local/bin/skillfish-dashboard-stop usr/local/bin/skillfish-dashboard-stop
 put $P 0755 apps/dashboard/skillfish-hub-catalog     usr/local/bin/skillfish-hub-catalog
 put $P 0644 apps/dashboard/web/index.html  usr/share/skillfish/dashboard/index.html
 put $P 0644 apps/dashboard/web/app.js      usr/share/skillfish/dashboard/app.js
@@ -532,6 +583,48 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250 
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication
 check skillfish-base_${VER}_all.deb          ./etc/systemd/coredump.conf.d/10-skillfish.conf ExternalSizeMax
+# I tre guasti trovati installando la 26.06.4 in macchina virtuale.
+# 1. Il servizio degli snapshot deve decidere guardando il filesystem: se torna a
+#    fidarsi del solo marcatore, la ISO se lo porta dietro dalla macchina di
+#    build e nessuno ha piu' i punti di ripristino.
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-firstboot-snapshots.sh 'btrfs subvolume show /.snapshots'
+notcheck skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-firstboot-snapshots.service 'ConditionPathExists=!/var/lib/skillfish/.snapshots-setup-done'
+# 2. Il Wake-on-LAN non deve stare dentro la unit: systemd si mangia \K e \S.
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-wol-arm 'Supports Wake-on'
+check    skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-wol.service '/usr/local/bin/skillfish-wol-arm'
+notcheck skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-wol.service 'grep -oP'
+# 9. Lo sblocco degli otto core deve chiedere il riavvio SENZA restare in attesa:
+#    con `systemctl reboot` e basta, il servizio aspetta systemd e systemd aspetta
+#    il servizio — 90 secondi di stallo per avvio, misurati, e un riavvio sporco
+#    che non conservava la maschera (quindi due giri invece di uno).
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'systemctl --no-block reboot'
+notcheck skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'os.system("systemctl reboot")'
+# 7. Il menu di ripristino non deve dipendere da grub-btrfsd, che non lo aggiorna.
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'grub-mkconfig'
+check    skillfish-base_${VER}_all.deb ./etc/apt/apt.conf.d/99-skillfish-snapshots 'DPkg::Post-Invoke'
+# 8. Il ripristino permanente: deve spostare anche il sottovolume .snapshots,
+#    altrimenti si torna indietro buttando via tutta la cronologia.
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'btrfs subvolume snapshot'
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'mv "$DAPARTE/.snapshots"'
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'annulla|--undo)'
+# 4. Lo spegnimento della dashboard non deve stare dentro la unit: il pkill
+#    trovava la propria shell e si ammazzava, lasciando il servizio in failed.
+check    skillfish-dashboard_${VER}_all.deb ./usr/local/bin/skillfish-dashboard-stop 'ttyd -i lo'
+check    skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/usr/local/bin/skillfish-dashboard-stop'
+notcheck skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/bin/sh'
+# 5. La tabella ACPI della BC-250 va TOLTA sulle macchine che non lo sono, non
+#    solo "non attivata": l'immagine se la porta dietro gia' attiva.
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-acpi-pstates '  auto)'
+# 6. Categorie dei menu: una sola categoria principale, o la voce compare piu' volte.
+notcheck skillfish-dashboard_${VER}_all.deb ./usr/share/applications/os.skillfish.remote-manager.desktop 'Categories=System;Settings;Network'
+# 3. La guardia hardware deve coprire anche bc250-smu-oc, l'ottavo servizio.
+#    Sta nel postinst, che vive nell'archivio di controllo e non in quello dei
+#    dati: --fsys-tarfile non lo vedrebbe, serve `dpkg-deb -I`.
+if dpkg-deb -I "$OUT/out/skillfish-base_${VER}_all.deb" postinst 2>/dev/null | grep -q 'bc250-smu-oc'; then
+  echo "OK  skillfish-base: la guardia hardware copre anche bc250-smu-oc"
+else
+  echo "FAIL skillfish-base: bc250-smu-oc non e' nell'elenco della guardia hardware" >&2; exit 1
+fi
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-console_${VER}_all.deb       ./opt/skillfish/steam-bin/steamos-session-select flatpak-spawn
 check skillfish-console_${VER}_all.deb       ./usr/local/bin/skillfish-gaming-mode    /usr/games

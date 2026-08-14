@@ -1,0 +1,40 @@
+#!/bin/sh
+# Arma il Wake-on-LAN (magic packet) sulla scheda di rete predefinita.
+#
+# Perche' uno script e non una riga dentro la unit: systemd interpreta le
+# sequenze di escape nei campi Exec*, e si mangiava \K e \S della vecchia
+# ExecStart
+#     n=$(ip -o route get 1.1.1.1 | grep -oP "dev \K\S+")
+# lasciando nel journal "Ignoring unknown escape sequences". Il comando che
+# arrivava a sh non era piu' quello scritto.
+#
+# Secondo motivo: non tutte le schede sanno fare il Wake-on-LAN (le VM quasi
+# mai). Prima il fallimento lasciava skillfish-wol.service in stato failed, cioe'
+# una riga rossa in `systemctl --failed` su un'installazione appena fatta. Qui
+# usciamo sempre con 0: il Wake-on-LAN e' una comodita', non un requisito.
+set -u
+
+n=$(ip -o route get 1.1.1.1 2>/dev/null | sed -n 's/.*dev \([^ ]*\).*/\1/p' | head -1)
+if [ -z "$n" ]; then
+    echo "nessuna interfaccia di uscita predefinita: niente da armare"
+    exit 0
+fi
+
+if ! command -v ethtool >/dev/null 2>&1; then
+    echo "ethtool non installato: salto"
+    exit 0
+fi
+
+# "Supports Wake-on: <lettere>" - la 'g' e' il magic packet, l'unica che ci serve
+if ! ethtool "$n" 2>/dev/null | sed -n 's/.*Supports Wake-on: *//p' | grep -q g; then
+    echo "$n non dichiara il magic packet fra le modalita' supportate: salto"
+    exit 0
+fi
+
+if out=$(ethtool -s "$n" wol g 2>&1); then
+    echo "Wake-on-LAN armato su $n"
+else
+    # succede sulle schede virtuali: dichiarano il supporto e poi rifiutano
+    echo "impossibile armare il Wake-on-LAN su $n: ${out:-errore sconosciuto} (ignoro)"
+fi
+exit 0

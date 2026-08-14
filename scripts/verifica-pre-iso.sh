@@ -230,6 +230,38 @@ if [ -f "$S" ]; then
     done
 else warn "show.qml non trovato in $S"; fi
 
+printf '\n\033[1m== 10. Roba della scheda che non deve finire nell'"'"'immagine ==\033[0m\n'
+# L'immagine si costruisce dal sistema vivo: tutto quello che sta sulla scheda ci
+# finisce dentro. Qui elenchiamo cio' che va tolto PRIMA della produce.
+n=$(find /usr/local/bin /usr/share/skillfish /etc/calamares /etc/skillfish \
+      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' \) \
+      2>/dev/null | wc -l)
+if [ "$n" = 0 ]; then
+    ok "nessun file di scarto sulla scheda"
+else
+    ko "$n file di scarto: finirebbero nell'immagine di tutti"
+    find /usr/local/bin /usr/share/skillfish /etc/calamares /etc/skillfish \
+      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' \) \
+      2>/dev/null | head -12 | sed 's/^/       /'
+fi
+
+# La presentazione deve rileggere la lingua quando parte, non alla creazione del
+# componente: era la ragione per cui usciva sempre in inglese.
+for f in /usr/lib/penguins-eggs/addons/*/theme/calamares/branding/show.qml; do
+    [ -f "$f" ] || continue
+    grep -q 'presentation.lang = ' "$f" \
+      && ok "presentazione: rilegge la lingua in onActivate()" \
+      || ko "presentazione: lingua letta una volta sola, restera' in inglese"
+done
+
+grep -q '^  auto)' /usr/local/bin/skillfish-acpi-pstates 2>/dev/null \
+  && ok "skillfish-acpi-pstates ha la modalita' auto" \
+  || ko "skillfish-acpi-pstates senza modalita' auto: la Generic imbarchera' la tabella della BC-250"
+
+grep -q 'skillfish-dashboard-stop' /etc/systemd/system/skillfish-dashboard.service 2>/dev/null \
+  && ok "spegnimento dashboard in uno script" \
+  || ko "ExecStopPost ancora dentro la unit: la dashboard restera' in failed"
+
 printf '\n\033[1m== RIEPILOGO ==\033[0m\n'
 printf '  superati %d   falliti %d   da guardare %d\n' "$PASS" "$FAIL" "$WARN"
 [ "$FAIL" -eq 0 ] && echo "  Nessun errore bloccante." || echo "  CI SONO ERRORI: non generare le ISO prima di averli risolti."

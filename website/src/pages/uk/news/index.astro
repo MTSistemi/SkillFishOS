@@ -1,0 +1,8 @@
+---
+import Base from '../../../layouts/Base.astro';
+import NewsContent from '../../../components/NewsContent.astro';
+import { t } from '../../../i18n';
+---
+<Base lang="uk" page="/news" title={t('news.title', 'uk')}>
+  <NewsContent lang="uk" />
+</Base>

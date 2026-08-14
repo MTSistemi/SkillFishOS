@@ -1,0 +1,47 @@
+---
+/**
+ * Un'icona del tema SkillFish Steampunk.
+ *
+ * Sono le stesse icone che l'utente si trova sul desktop della distribuzione,
+ * prese dal pacchetto skillfish-theme. Prima qui c'erano delle emoji: le
+ * emoji le disegna il sistema operativo di chi guarda, quindi il sito cambiava
+ * faccia a seconda del browser e non aveva niente a che vedere con SkillFishOS.
+ *
+ * Il file sta in /icone/<nome>.svg. Restano immagini e non SVG in linea perche'
+ * cosi' il browser le mette in cache una volta sola anche se compaiono in
+ * pagine diverse.
+ */
+interface Props {
+  nome: string;
+  /** dimensione in pixel; 44 nelle schede, 20 quando sta dentro una riga di testo */
+  dim?: number;
+  /** testo alternativo: vuoto se l'icona e' solo decorativa, come nelle schede */
+  alt?: string;
+  classe?: string;
+}
+const { nome, dim = 44, alt = '', classe = '' } = Astro.props;
+---
+<img
+  class={`sf-ico ${classe}`}
+  src={`/icone/${nome}.svg`}
+  alt={alt}
+  width={dim}
+  height={dim}
+  loading="lazy"
+  decoding="async"
+  aria-hidden={alt === '' ? 'true' : undefined}
+/>
+
+<style>
+  .sf-ico {
+    display: inline-block;
+    vertical-align: middle;
+    filter: drop-shadow(0 2px 6px rgba(216, 168, 73, 0.28));
+  }
+  /* dentro una riga di testo l'icona va allineata all'altezza delle lettere */
+  .sf-ico.in-riga {
+    margin-right: 0.45em;
+    position: relative;
+    top: -1px;
+  }
+</style>

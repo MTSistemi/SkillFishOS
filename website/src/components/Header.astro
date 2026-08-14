@@ -15,9 +15,10 @@ const active = (p: string) => (page === p || (p === '/docs' && page.startsWith('
       <a href={localePath('/gallery', lang)} class={active('/gallery')}>{t('nav.gallery', lang)}</a>
       <a href={localePath('/hardware', lang)} class={active('/hardware')}>{t('nav.hw', lang)}</a>
       <a href={localePath('/docs', lang)} class={active('/docs')}>{t('nav.docs', lang)}</a>
+      <a href={localePath('/news', lang)} class={active('/news')}>{t('nav.news', lang)}</a>
       <a href={localePath('/download', lang)} class={active('/download')}>{t('nav.download', lang)}</a>
       <a href={localePath('/contact', lang)} class={active('/contact')}>{t('nav.contact', lang)}</a>
-      <a href={localePath('/donate', lang)} class={`donate-link ${active('/donate')}`}>☕ {t('nav.donate', lang)}</a>
+      <a href={localePath('/donate', lang)} class={`donate-link ${active('/donate')}`}>{t('nav.donate', lang)}</a>
       <a href={SITE.github} target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
     <div class="lang">

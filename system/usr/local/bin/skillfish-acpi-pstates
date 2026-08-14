@@ -17,9 +17,20 @@
 # "Could not resolve symbol \_PR.C000" messages in dmesg are NOT from these tables:
 # they still appear with CST removed, so they come from the board's own firmware.
 #
+#   skillfish-acpi-pstates auto     <- attiva sulla BC-250, TOGLIE altrove
 #   skillfish-acpi-pstates enable   (default)
 #   skillfish-acpi-pstates disable
 #   skillfish-acpi-pstates status
+#
+# PERCHE' ESISTE "auto"
+# "enable" su una macchina che non e' una BC-250 si limita a non fare nulla. Non
+# basta: la ISO e' un'istantanea della scheda di sviluppo, dove la tabella E'
+# attiva, quindi arriva gia' installata e gia' scritta in /etc/default/grub. Su
+# un PC normale la guardia non entra mai in gioco perche' non c'e' niente da
+# attivare — c'e' da TOGLIERE. Misurato installando la Generic in macchina
+# virtuale: 32 righe di
+#   ACPI BIOS Error (bug): Could not resolve symbol [\_PR.P000], AE_NOT_FOUND
+# a ogni avvio, perche' la tabella si aggancia a P000..P00F che li' non esistono.
 set -e
 AMLDIR=/usr/share/skillfish/acpi
 AML="$AMLDIR/SSDT-PST.aml"
@@ -35,6 +46,20 @@ need_root() { [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }; }
 is_bc250() { grep -q 'AMD BC-250' /proc/cpuinfo 2>/dev/null; }
 
 case "$ACTION" in
+  auto)
+    need_root
+    if is_bc250; then
+      exec "$0" enable
+    fi
+    # Non e' una BC-250. Se la tabella non c'e', non c'e' niente da fare e usciamo
+    # in silenzio; se c'e' (arrivata con l'immagine), va tolta.
+    if [ -f "$CPIO" ] || grep -q '^GRUB_EARLY_INITRD_LINUX_CUSTOM=' "$GRUBDEF" 2>/dev/null; then
+      echo "non e' una BC-250: tolgo la tabella ACPI arrivata con l'immagine"
+      exec "$0" disable
+    fi
+    exit 0
+    ;;
+
   status)
     if [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
       echo "cpufreq: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver) / $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
@@ -72,5 +97,5 @@ case "$ACTION" in
     echo "P-states ACPI disattivati — al prossimo riavvio si torna al comportamento del firmware."
     ;;
 
-  *) echo "uso: $0 [enable|disable|status]" >&2; exit 2 ;;
+  *) echo "uso: $0 [auto|enable|disable|status]" >&2; exit 2 ;;
 esac

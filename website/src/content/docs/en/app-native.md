@@ -83,7 +83,7 @@ The **AI panel** turns the local LLM stack on and off with one click, freeing GP
 
 ## Why they exist
 
-SkillFishOS's goal is that **anyone** — including the youngest — can use and tune the system without having to learn terminal commands. These apps translate complex operations (SMU governor, kernel parameters, Docker containers) into a few clicks, while keeping the **safeguards** (thermal-guard, test-and-rollback) always active.
+SkillFishOS's goal is that **anyone** — including the youngest — can use and tune the system without having to learn terminal commands. These apps translate complex operations (SMU governor, kernel parameters, snapshots and rollback) into a few clicks, while keeping the **safeguards** (thermal-guard, test-and-rollback) always active.
 
 ## Sources
 

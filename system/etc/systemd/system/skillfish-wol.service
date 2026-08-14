@@ -1,10 +1,16 @@
 [Unit]
 Description=SkillFishOS - arm Wake-on-LAN on the primary NIC
+Documentation=https://skillfishos.com
 After=network-online.target
 Wants=network-online.target
+
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/sh -c 'n=$(ip -o route get 1.1.1.1 | grep -oP "dev \K\S+"); exec /usr/sbin/ethtool -s "$n" wol g'
+# La logica sta in uno script: dentro la unit systemd si mangiava gli escape
+# della regex (\K e \S) e il comando arrivava storpiato a sh. Lo script esce
+# sempre con 0, cosi' una scheda senza Wake-on-LAN non lascia un servizio rosso.
+ExecStart=/usr/local/bin/skillfish-wol-arm
+
 [Install]
 WantedBy=multi-user.target

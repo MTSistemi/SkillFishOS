@@ -183,6 +183,18 @@ We genuinely want this project to take off, and that needs people. Whether you c
 
 Work in progress, dogfooded daily on real BC-250 hardware. An independent community project — **not affiliated with AMD or any other vendor.**
 
+## Contributors & thanks
+
+People who made this better without being asked:
+
+- **Bartek** ([Świat Linuksa](https://www.youtube.com/@SwiatLinuksa)) — reviewed SkillFishOS
+  over ten days on real hardware, ran an **independent security audit** of the installed
+  system (services, processes, network traffic with tcpdump and nmap) and found no
+  unexpected connections. He also reported four bugs on the tracker — the btrfs/GRUB
+  install failure, the Italian locale on a non-Italian install, the missing `docker`
+  group, and the local AI falling back to the CPU — all fixed in 26.06.3.
+- **cyryllo** — Polish translation and a polonisation script for earlier releases.
+
 ## Credits & references
 
 Built on the shoulders of:
