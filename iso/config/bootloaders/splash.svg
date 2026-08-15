@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Immagine del menu di avvio della ISO SkillFishOS.
+
+  Prende il posto di quella di live-build, che disegna l'elmetto giallo di
+  Debian e scrive "Debian GNU/Linux none (sid) amd64": corretto per Debian,
+  sbagliato per noi, ed e' la prima cosa che si vede accendendo la macchina.
+
+  live-build la cerca in config/bootloaders/splash.svg e la converte con
+  rsvg-convert DENTRO il chroot, a 640x480: niente font esterni e niente
+  immagini collegate, solo forme e testo.
+
+  ATTENZIONE ALL'IMPAGINAZIONE. Questa immagine e' lo sfondo, non la
+  schermata: sopra ci scrive GRUB. Nel tema di live-build
+  (bootloaders/grub-pc/live-theme/theme.txt) il riquadro delle voci parte da
+  top = 52%, la barra di avanzamento da 100%-80 e la riga di aiuto da 100%-50.
+  Tradotto su 640x480: dalla riga 250 in giu' e' tutto occupato. Tutto quello
+  che si vuole far vedere deve stare SOPRA, altrimenti finisce sotto le voci
+  di avvio. Il primo tentativo aveva il nome a meta' altezza e spariva.
+
+  I segnaposto scritti fra chiocciole li sostituisce live-build prima della
+  conversione; l'elenco di quelli validi sta in
+  /usr/lib/live/build/binary_bootloader_splash. E' LINUX_VERSIONS al plurale:
+  il singolare non esiste e resterebbe scritto tale e quale sullo schermo.
+
+  Nei commenti XML non puo' comparire un doppio trattino: rsvg-convert si
+  ferma con "Double hyphen within comment" e la costruzione della ISO muore.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"
+     viewBox="0 0 640 480" version="1.1">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#1b1512"/>
+      <stop offset="0.55" stop-color="#120e0c"/>
+      <stop offset="1"    stop-color="#070606"/>
+    </linearGradient>
+    <linearGradient id="ottone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#f0d79a"/>
+      <stop offset="0.45" stop-color="#c9a227"/>
+      <stop offset="0.8"  stop-color="#8a6230"/>
+      <stop offset="1"    stop-color="#5c3f1e"/>
+    </linearGradient>
+    <radialGradient id="alone" cx="0.5" cy="0.22" r="0.55">
+      <stop offset="0" stop-color="#c9a227" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#c9a227" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="640" height="480" fill="url(#fondo)"/>
+  <ellipse cx="320" cy="105" rx="300" ry="150" fill="url(#alone)"/>
+
+  <!-- ingranaggio stilizzato: otto denti attorno a due anelli. Niente immagini
+       esterne, cosi' rsvg-convert nel chroot non ha nulla da cercare. -->
+  <g transform="translate(320,74) scale(0.58)" fill="url(#ottone)">
+    <g>
+      <rect x="-9" y="-84" width="18" height="26" rx="3"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(45)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(90)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(135)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(180)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(225)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(270)"/>
+      <rect x="-9" y="-84" width="18" height="26" rx="3" transform="rotate(315)"/>
+    </g>
+    <circle cx="0" cy="0" r="62" fill="none" stroke="url(#ottone)" stroke-width="16"/>
+    <circle cx="0" cy="0" r="26" fill="none" stroke="url(#ottone)" stroke-width="10"/>
+  </g>
+
+  <text x="320" y="156" text-anchor="middle" font-family="sans-serif"
+        font-size="38" font-weight="bold" fill="url(#ottone)">SkillFishOS</text>
+  <text x="320" y="178" text-anchor="middle" font-family="sans-serif"
+        font-size="12" fill="#b9a07a" letter-spacing="3">AMD BC-250 GAMING LINUX</text>
+
+  <line x1="200" y1="196" x2="440" y2="196" stroke="#7a5a2c" stroke-width="1"/>
+
+  <text x="320" y="216" text-anchor="middle" font-family="sans-serif"
+        font-size="12" fill="#8e8378">@ARCHITECTURE@ &#183; @DISTRIBUTION@ &#183; kernel @LINUX_VERSIONS@</text>
+  <text x="320" y="232" text-anchor="middle" font-family="sans-serif"
+        font-size="11" fill="#6f665d">Built: @YEAR@-@MONTH@-@DAY@ @HOUR@:@MINUTE@:@SECOND@ @TIMEZONE@ &#183; skillfishos.com</text>
+</svg>
