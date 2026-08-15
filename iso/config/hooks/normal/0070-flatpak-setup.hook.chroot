@@ -1,24 +1,42 @@
 #!/bin/bash
 set -e
 
-# Configure Flathub remote (system-wide)
-flatpak remote-add --system --if-not-exists flathub     https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+# Flathub configurato in tutto il sistema, e le applicazioni scaricate al primo
+# avvio invece che infilate nella ISO: Steam da solo pesa 600 MB compresso.
+#
+# ⚠️ MAI NELLA SESSIONE LIVE (trovato il 15/08/2026)
+# Nella live il disco di scrittura e' un tmpfs, cioe' RAM. Questo servizio
+# partiva anche li' e si scaricava Steam, Heroic, Ryujinx, OnlyOffice e
+# ProtonUp: **3,3 GB dentro la memoria**. Su una macchina con 4 GB la live
+# finiva la RAM in pochi minuti, apt rispondeva "No space left on device",
+# sshd smetteva di rispondere e l'orologio sulla scrivania si congelava.
+# Sembrava un guasto misterioso; era questo servizio.
+#
+# Peggio: chi prova la live vuole PROVARE, non aspettare tre gigabyte di
+# scaricamento che verranno buttati via allo spegnimento. Le applicazioni
+# servono sul sistema installato, ed e' li' che si scaricano.
+#
+# La guardia e' doppia: la condizione di systemd e un controllo nello script,
+# perche' qualcuno prima o poi lanchera' lo script a mano.
 
-# Create a first-boot service that installs all Flatpak apps
-# This keeps the ISO lean (Steam alone is ~600MB compressed)
+# Flathub, per tutto il sistema
+flatpak remote-add --system --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+
 cat > /etc/systemd/system/skillfish-firstboot-flatpaks.service << 'UNIT'
 [Unit]
-Description=SkillFish OS — Install Flatpak apps on first boot
+Description=SkillFishOS - installa le applicazioni Flatpak al primo avvio
 After=network-online.target flatpak-system-helper.service
 Wants=network-online.target
 ConditionPathExists=!/var/lib/skillfish/.flatpaks-installed
+# In una live il disco di scrittura e' RAM: scaricare qui gigabyte di
+# applicazioni riempie la memoria e blocca la macchina.
+ConditionKernelCommandLine=!boot=live
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/bin/skillfish-install-flatpaks
-ExecStartPost=/bin/mkdir -p /var/lib/skillfish
-ExecStartPost=/bin/touch /var/lib/skillfish/.flatpaks-installed
 
 [Install]
 WantedBy=multi-user.target
@@ -26,8 +44,23 @@ UNIT
 
 cat > /usr/local/bin/skillfish-install-flatpaks << 'SCRIPT'
 #!/bin/bash
-set -e
+# Installa le applicazioni Flatpak. Solo su un sistema installato.
+set -u
+SEGNA=/var/lib/skillfish/.flatpaks-installed
 log() { echo "[skillfish-flatpaks] $*" | tee -a /var/log/skillfish-flatpaks.log; }
+
+if grep -qw 'boot=live' /proc/cmdline 2>/dev/null; then
+    log "sessione live: non scarico niente, la memoria serve per provare il sistema"
+    exit 0
+fi
+
+# Servono alcuni gigabyte veri. Se non ci sono, meglio dirlo e riprovare dopo
+# che riempire il disco a meta' installazione.
+LIBERI=$(df -BM --output=avail /var/lib/flatpak 2>/dev/null | tail -1 | tr -dc '0-9')
+if [ -n "$LIBERI" ] && [ "$LIBERI" -lt 6000 ]; then
+    log "solo ${LIBERI} MB liberi: ne servono almeno 6000, riprovo al prossimo avvio"
+    exit 0
+fi
 
 APPS=(
     "org.onlyoffice.desktopeditors"
@@ -37,16 +70,32 @@ APPS=(
     "net.davidotek.pupgui2"
 )
 
+MANCATE=0
 for app in "${APPS[@]}"; do
-    log "Installing $app ..."
-    if flatpak install -y --system --noninteractive flathub "$app" 2>&1 | tee -a /var/log/skillfish-flatpaks.log; then
-        log "$app installed successfully."
+    log "installo $app ..."
+    if flatpak install -y --system --noninteractive flathub "$app" 2>&1 \
+        | tee -a /var/log/skillfish-flatpaks.log; then
+        log "$app installato."
     else
-        log "WARNING: Failed to install $app — will retry on next boot."
+        log "ATTENZIONE: $app non si e' installato, ci riprovo al prossimo avvio."
+        MANCATE=$((MANCATE + 1))
     fi
 done
+
+# Il segnaposto lo scrive lo script, non systemd con un ExecStartPost.
+# Prima veniva scritto SEMPRE, anche quando tutti gli scaricamenti erano
+# falliti: il registro prometteva "riprovo al prossimo avvio" e invece il
+# servizio non ripartiva mai piu'. Adesso si segna fatto solo se e' vero.
+if [ "$MANCATE" -eq 0 ]; then
+    mkdir -p "$(dirname "$SEGNA")"
+    touch "$SEGNA"
+    log "tutte installate."
+else
+    log "$MANCATE non installate: non segno il lavoro come concluso."
+fi
+exit 0
 SCRIPT
 chmod +x /usr/local/bin/skillfish-install-flatpaks
 
 systemctl enable skillfish-firstboot-flatpaks.service
-echo "Flatpak first-boot service configured."
+echo "Servizio Flatpak di primo avvio configurato (non gira da live)."
