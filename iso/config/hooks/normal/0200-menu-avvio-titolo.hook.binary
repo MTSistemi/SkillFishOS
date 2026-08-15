@@ -1,0 +1,32 @@
+#!/bin/sh
+# Toglie dal tema del menu di avvio il titolo "Live Boot Menu with GRUB".
+#
+# PERCHE' SERVE UN GANCIO E NON BASTA IL FILE DEL TEMA
+# live-build azzera quel titolo da solo, ma SOLO quando usa la propria immagine
+# di ripiego (binary_bootloader_splash, riga 28: la condizione confronta la
+# sorgente con _FALLBACK_SPLASH_LOCATION). Dal momento in cui gli diamo il
+# nostro config/bootloaders/splash.svg, la condizione e' falsa e il titolo
+# resta: una scritta bianca in inglese stampata sopra il nostro ingranaggio.
+#
+# E non si puo' correggere mettendo il nostro live-theme/theme.txt dentro
+# config/bootloaders/grub-pc/, perche' binary_grub_cfg fa
+#     cp -af config/bootloaders/grub-pc/* binary/boot/grub/
+# e `cp -a` di una CARTELLA dentro una cartella che esiste gia' non la
+# sostituisce: la annida. Si otterrebbe live-theme/live-theme, e il tema vero
+# resterebbe quello di Debian. Sui FILE in cima funziona, sulle cartelle no.
+#
+# I ganci .binary girano al momento giusto: binary_grub_cfg e
+# binary_bootloader_splash hanno gia' scritto il tema, e binary_iso non ha
+# ancora chiuso l'immagine. La cartella di lavoro e' binary/.
+set -e
+
+TEMA=boot/grub/live-theme/theme.txt
+
+if [ -f "$TEMA" ]; then
+    sed -i 's|^title-text:.*|title-text: ""|' "$TEMA"
+    echo "[menu di avvio] titolo tolto: l'immagine parla da sola"
+else
+    # Non e' un errore da fermare tutto: senza tema grafico GRUB mostra il
+    # menu testuale, che funziona lo stesso.
+    echo "[menu di avvio] nessun tema in $TEMA, non c'e' niente da togliere"
+fi
