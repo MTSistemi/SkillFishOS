@@ -222,6 +222,7 @@ put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modpro
 put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
 put $P 0755 system/usr/local/bin/skillfish-fix-boot-extents         usr/local/bin/skillfish-fix-boot-extents
+put $P 0755 system/usr/local/bin/skillfish-clean-live-autologin   usr/local/bin/skillfish-clean-live-autologin
 put $P 0755 system/usr/local/bin/skillfish-is-bc250                usr/local/bin/skillfish-is-bc250
 put $P 0644 system/etc/systemd/system/skillfish-sshd-keygen.service etc/systemd/system/skillfish-sshd-keygen.service
 put $P 0644 system/etc/ssh/sshd_config.d/10-skillfish.conf        etc/ssh/sshd_config.d/10-skillfish.conf
@@ -631,7 +632,8 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswa
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
-check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents reflink=never
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents sparse=never
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-clean-live-autologin '\[Autologin\]'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication
