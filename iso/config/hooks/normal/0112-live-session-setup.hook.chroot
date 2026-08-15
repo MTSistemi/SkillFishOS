@@ -1,0 +1,117 @@
+#!/bin/sh
+set -e
+# Prepara la sessione live: accesso automatico, niente blocco schermo, icona
+# per installare sulla scrivania.
+#
+# PERCHE' UN SERVIZIO E NON DEI FILE
+# Tutto quello che si scrive qui dentro finisce nel quadrato che diventa il
+# sistema installato: unpackfs copia l'immagine cosi' com'e'. Un file in
+# /etc/skel o in /etc con queste impostazioni arriverebbe anche sul computer
+# dell'utente, e spegnere il blocco schermo su un sistema installato sarebbe
+# un regalo a chiunque passi davanti alla macchina. Quindi si fa a tempo di
+# avvio, e SOLO se si sta girando da live.
+#
+# COSA HA INSEGNATO LA PROVA DEL 15/08/2026
+# 1. L'utente live NON si chiama "live". Con live-build il predefinito di
+#    live-config e' "user"; era eggs a usare "live". La nostra impostazione
+#    di accesso automatico nominava un utente inesistente, quindi non valeva
+#    niente e vinceva quella scritta da live-config, che avvia Plasma in
+#    WAYLAND. Da qui in poi il nome si legge da /etc/passwd invece di
+#    indovinarlo.
+# 2. Il salvaschermo di KDE si accendeva dopo cinque minuti e chiedeva una
+#    password che nessuno puo' sapere: la live restava murata.
+# 3. Nel menu c'era la voce per installare, ma sulla scrivania non c'era
+#    niente, e la scrivania e' il primo posto dove uno guarda.
+
+cat > /etc/systemd/system/skillfish-live-session.service <<'UNIT'
+[Unit]
+Description=SkillFish - prepara la sessione live (accesso, blocco schermo, icona)
+After=live-config.service
+Before=display-manager.service sddm.service
+ConditionKernelCommandLine=boot=live
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-prepara-live
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat > /usr/local/bin/skillfish-prepara-live <<'SCR'
+#!/bin/sh
+# Vale solo da live. La condizione c'e' gia' nel servizio, ma un secondo
+# controllo qui costa nulla e protegge chi lancia lo script a mano.
+set -e
+grep -qw 'boot=live' /proc/cmdline || exit 0
+
+# --- chi e' l'utente live -----------------------------------------------------
+# Lo crea live-config e il nome dipende dalla configurazione: "user" con
+# live-build, "live" con eggs, o quello passato con username= sulla riga di
+# avvio. Si prende il primo utente vero, cioe' il 1000.
+UTENTE=$(awk -F: '$3 == 1000 { print $1; exit }' /etc/passwd)
+[ -n "$UTENTE" ] || exit 0
+CASA=$(awk -F: -v u="$UTENTE" '$1 == u { print $6 }' /etc/passwd)
+[ -d "$CASA" ] || exit 0
+
+# --- accesso automatico su Plasma X11 ----------------------------------------
+# X11 e non Wayland: e' quello che gira davvero sulla BC-250, la console di
+# gioco parte in X11 e con Wayland quella GPU ha dato grattacapi.
+SESSIONE=plasmax11
+[ -f /usr/share/xsessions/plasmax11.desktop ] || SESSIONE=plasma
+
+mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf.d/01-live-autologin.conf <<CONF
+[Autologin]
+User=$UTENTE
+Session=$SESSIONE
+Relogin=false
+CONF
+
+# live-config scrive anche /etc/sddm.conf, e su questo SDDM quel file ha avuto
+# la meglio sulla cartella conf.d: se c'e', gli si mette dentro la stessa cosa.
+if [ -f /etc/sddm.conf ] && grep -q '^\[Autologin\]' /etc/sddm.conf; then
+    sed -i -e "s/^User=.*/User=$UTENTE/" \
+           -e "s/^Session=.*/Session=$SESSIONE/" /etc/sddm.conf
+fi
+
+# --- niente blocco schermo in una live ---------------------------------------
+# Il predefinito di KDE blocca dopo cinque minuti e chiede la password
+# dell'utente live, che nessuno conosce: la sessione diventa irrecuperabile.
+mkdir -p "$CASA/.config"
+cat > "$CASA/.config/kscreenlockerrc" <<'CONF'
+[Daemon]
+Autolock=false
+LockOnResume=false
+CONF
+
+# e nemmeno lo schermo che si spegne da solo mentre si legge una guida
+cat > "$CASA/.config/powermanagementprofilesrc" <<'CONF'
+[AC][DPMSControl]
+idleTime=0
+lockBeforeTurnOff=0
+
+[AC][DimDisplay]
+idleTime=0
+
+[AC][SuspendSession]
+idleTime=0
+suspendType=0
+CONF
+
+# --- l'icona per installare, sulla scrivania ---------------------------------
+# Nel menu c'era gia'; sulla scrivania e' il primo posto dove uno guarda.
+# KDE esegue un .desktop sulla scrivania solo se ha il permesso di esecuzione,
+# altrimenti chiede conferma con un avviso che spaventa.
+if [ -f /usr/share/applications/calamares.desktop ]; then
+    mkdir -p "$CASA/Desktop"
+    cp /usr/share/applications/calamares.desktop "$CASA/Desktop/"
+    chmod 755 "$CASA/Desktop/calamares.desktop"
+fi
+
+chown -R "$UTENTE:$UTENTE" "$CASA/.config" "$CASA/Desktop" 2>/dev/null || true
+SCR
+chmod 755 /usr/local/bin/skillfish-prepara-live
+
+systemctl enable skillfish-live-session.service
