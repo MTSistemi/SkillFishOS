@@ -1,0 +1,17 @@
+# Repository dei pacchetti SkillFishOS.
+#
+# Sta su GitHub Pages e non sul nostro dominio per un motivo pratico: le
+# macchine installate aggiornano da qui, e GitHub regge un picco di traffico
+# senza battere ciglio, mentre l'hosting del sito ha una quota che si e' gia'
+# riempita una volta lasciando il repository monco a meta' pubblicazione.
+# Su https://skillfishos.com/apt c'e' la stessa roba, come riserva.
+#
+# La firma e' verificata con la chiave installata da questo stesso pacchetto:
+# senza Signed-By apt accetterebbe qualunque firma conosciuta, e non e' quello
+# che vogliamo per un archivio che installa componenti di sistema.
+Types: deb
+URIs: https://mtsistemi.github.io/SkillFishOS/
+Suites: aetherium
+Components: main
+Signed-By: /usr/share/keyrings/skillfishos-archive-keyring.gpg
+Enabled: yes

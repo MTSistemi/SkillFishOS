@@ -103,6 +103,10 @@ P=skillfish-tuner
 put $P 0755 apps/tuner/skillfish-tuner            usr/local/bin/skillfish-tuner
 put $P 0755 apps/tuner/skillfish-tuner-helper     usr/local/bin/skillfish-tuner-helper
 put $P 0755 system/usr/local/bin/skillfish-cu     usr/local/bin/skillfish-cu
+# Configurazione della memoria: nostra, GPL-3.0. Prima il Tuner cercava uno
+# strumento di terzi in /opt che non e' ridistribuibile e che su una macchina
+# installata da apt non esisteva: la voce della VRAM era li' e non funzionava.
+put $P 0755 system/usr/local/bin/skillfish-memcfg usr/local/bin/skillfish-memcfg
 put $P 0755 system/usr/local/bin/skillfish-hud-val usr/local/bin/skillfish-hud-val
 put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
 # Il lanciatore del HUD sta qui e non in un pacchetto suo perche' legge i due
@@ -167,7 +171,28 @@ put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/appl
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
 
+P=skillfishos-archive-keyring
+# La sorgente apt e la chiave di firma erano gli ultimi due file di sistema che
+# non appartenevano a nessun pacchetto: scritti a mano sulla scheda, copiati
+# nella ISO, e da li' in poi immutabili. Se un giorno la chiave scade o cambia
+# indirizzo il repository, oggi non avremmo nessun modo di aggiornarli sulle
+# macchine gia' installate — proprio lo strumento che serve per rimediare
+# passerebbe da un repository che non si riesce piu' a verificare.
+#
+# Come per debian-archive-keyring: il pacchetto porta chiave e sorgente, e da
+# quel momento si aggiornano da soli con un apt upgrade.
+put $P 0644 system/usr/share/keyrings/skillfishos-archive-keyring.gpg usr/share/keyrings/skillfishos-archive-keyring.gpg
+put $P 0644 system/etc/apt/sources.list.d/skillfishos.sources          etc/apt/sources.list.d/skillfishos.sources
+ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source"
+
 P=skillfish-base
+# Script nostri che stavano solo dentro l'immagine e non in un pacchetto: una
+# correzione a uno di questi non poteva raggiungere chi ha gia' installato.
+put $P 0755 system/usr/local/bin/skillfish-dp-hotswap.sh    usr/local/bin/skillfish-dp-hotswap.sh
+put $P 0755 system/usr/local/bin/skillfish-thermal-guard.sh usr/local/bin/skillfish-thermal-guard.sh
+put $P 0755 system/usr/local/bin/skillfish-gpu-util.sh      usr/local/bin/skillfish-gpu-util.sh
+put $P 0755 system/usr/local/bin/skillfish-kde-firstrun.sh  usr/local/bin/skillfish-kde-firstrun.sh
+put $P 0755 system/usr/local/bin/skillfish-x11vnc.sh        usr/local/bin/skillfish-x11vnc.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillfish-freeze-check.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-notify.sh usr/local/bin/skillfish-freeze-notify.sh
 put $P 0644 system/etc/systemd/system/skillfish-freeze-check.service etc/systemd/system/skillfish-freeze-check.service
@@ -532,7 +557,7 @@ put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/sha
 put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
 
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-menu; do
+for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-menu skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -575,6 +600,34 @@ check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub      
 check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub           '"--system", "flathub"' 
 check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-manager skillfish
 check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel       skillfish
+# Il portachiavi deve contenere la chiave GIUSTA: nel repository ne girava una
+# RSA che NON firma l'archivio, e chi l'avesse usata si sarebbe trovato apt che
+# rifiuta il repository senza capire perche'. L'impronta e' quella della ed25519
+# con cui reprepro firma davvero.
+# Il portachiavi deve contenere la chiave GIUSTA: nel repository ne girava una
+# RSA che NON firma l'archivio, e chi l'avesse usata si sarebbe trovato apt che
+# rifiuta il repository senza capire perche'.
+#
+# Due trappole, in cui sono cascato scrivendo questo controllo:
+#  - con pipefail, `... | grep -q` esce al primo riscontro e fa morire dpkg-deb
+#    di SIGPIPE: falso negativo su un pacchetto perfetto (la stessa cosa gia'
+#    documentata piu' sopra per `dpkg-deb -c`). Si passa da un file temporaneo.
+#  - gpg, in forma leggibile a occhio, stampa l'impronta a gruppi di quattro:
+#    il confronto non tornerebbe mai. Serve --with-colons.
+dpkg-deb --fsys-tarfile "$OUT/out/skillfishos-archive-keyring_${VER}_all.deb" > /tmp/kr.$$ 2>/dev/null || true
+tar -xOf /tmp/kr.$$ ./usr/share/keyrings/skillfishos-archive-keyring.gpg > /tmp/krg.$$ 2>/dev/null || true
+gpg --show-keys --with-colons /tmp/krg.$$ 2>/dev/null | grep "^fpr" > /tmp/krf.$$ || true
+if grep -q "AD1BF591E4DF48164D93BF8A567685099ACF0C94" /tmp/krf.$$; then
+  echo "OK  keyring: contiene la chiave che firma davvero l archivio"
+else
+  echo "FAIL keyring: la chiave non e quella che firma l archivio" >&2
+  cat /tmp/krf.$$ >&2 || true
+  rm -f /tmp/kr.$$ /tmp/krg.$$ /tmp/krf.$$; exit 1
+fi
+rm -f /tmp/kr.$$ /tmp/krg.$$ /tmp/krf.$$
+check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Signed-By: /usr/share/keyrings/skillfishos-archive-keyring.gpg'
+check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Suites: aetherium'
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswap.sh compositore
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync

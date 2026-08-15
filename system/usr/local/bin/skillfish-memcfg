@@ -1,0 +1,394 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Mattia Tadini e collaboratori SkillFishOS
+"""Legge e cambia la configurazione della memoria della BC-250.
+
+A COSA SERVE
+La BC-250 riserva alla GPU una fetta fissa di memoria (UMA_SIZE), impostata di
+fabbrica a 8192 MB. Su Linux quella fetta e' un MINIMO, non un tetto: amdgpu
+prende comunque altra memoria dal GTT quando serve. Abbassarla non toglie nulla
+ai giochi e restituisce quei giga al sistema, che e' la differenza fra caricare
+un modello di intelligenza artificiale e non caricarlo. Il valore vive nella
+CMOS estesa e sopravvive allo spegnimento: si applica al riavvio successivo.
+
+DA DOVE VENGONO LE INFORMAZIONI (nessuna riga presa da codice altrui)
+- L'esistenza del blocco e il modo di arrivarci — CMOS estesa dietro le porte
+  di I/O 0x72 (indice) e 0x73 (dato), blocco 0x90-0xAB piu' un checksum — sono
+  descritti nella documentazione pubblica della community BC-250
+  (elektricM/amd-bc250-docs, docs/bios/vram.md, licenza CC BY-SA 4.0), che
+  elenca anche i valori ammessi e avverte che 2048 MB impedisce l'avvio.
+- I nomi e l'ordine dei parametri di temporizzazione vengono dalla stessa
+  famiglia di documentazione pubblica: sono dati di fatto, non espressione.
+- I VALORI di questa scheda e la posizione di UMA_SIZE vengono da un dump letto
+  da noi, con riscontro incrociato: ClockSpeed 1750 combacia con
+  "dmidecode -t 17", e UMA_SIZE 8192 combacia con mem_info_vram_total
+  (8589934592 byte) esposto da amdgpu.
+- La regola del checksum l'abbiamo dedotta con l'aritmetica, non leggendola
+  altrove: la somma a 16 bit dei 22 byte da 0x96 a 0xAB fa 1048, cioe' 0x0418,
+  che e' esattamente la parola little-endian scritta in 0x94-0x95. Gli altri
+  intervalli plausibili non tornano (0x96-0xA9 da' 0x03F8, 0x90-0xAB da' 0x0559).
+  Chiunque puo' rifare dump e somma e ottenere lo stesso risultato.
+
+PERCHE' NON DIPENDIAMO DALLO STRUMENTO CHE GIRAVA IN /opt
+Quello che c'era prima non dichiara alcuna licenza, quindi non e' ridistribuibile
+dentro la nostra ISO. E nessun software libero esistente copre questa funzione
+(controllati LACT, CoreCtrl, amdgpu_top, ryzen_smu, RyzenAdj): non e' pigrizia
+loro, e' che UMA_SIZE non e' un registro della GPU ne' un messaggio SMU, sta in
+un blocco di configurazione che il firmware rilegge a ogni accensione.
+
+PRUDENZA
+Le temporizzazioni si leggono ma NON si scrivono. Non ci servono — il Tuner
+tocca solo UMA_SIZE — e sono la parte che, sbagliata, impedisce l'accensione.
+Su una macchina sola, che e' anche la console di casa, non vale il rischio.
+"""
+
+import argparse
+import fcntl
+import json
+import os
+import re
+import shutil
+import sys
+import time
+
+PORTA_INDICE = 0x72          # banco alto della CMOS estesa
+PORTA_DATO = 0x73
+FIRMA = b"CMSB"
+AREA = (0x80, 0x100)         # dove cercare la firma
+PAYLOAD = (6, 0x1C)          # rispetto alla firma: byte coperti dal checksum
+OFF_CHECKSUM = 4
+OFF_CLOCK = 6
+OFF_UMA = 0x1A
+
+# Dalla documentazione pubblica: valori confermati funzionanti.
+UMA_CONFERMATI = (256, 512, 1024, 3072, 4096, 6144, 8192, 10240, 12288)
+UMA_VIETATI = {2048: "con 2048 MB il sistema non si avvia (guasto noto e documentato)"}
+UMA_MIN, UMA_MAX, UMA_PASSO = 256, 12288, 16
+
+BACKUP = "/var/lib/skillfish/memcfg"
+LUCCHETTO = "/run/lock/skillfish-memcfg.lock"
+
+# Nomi in ordine, per la sola lettura. Sono dati di fatto pubblici.
+TIMING = ["tCL", "tRCDRD", "tRCDWR", "tRP", "tRAS", "tRC", "tRFC", "tRRDS",
+          "tRRDL", "tFAW", "tWTRS", "tWTRL", "tWR", "tRTP", "tCWL"]
+
+
+class Cmos:
+    """Accesso alla CMOS estesa tramite /dev/port.
+
+    Si usa /dev/port e non /dev/mem perche' il kernel lo compila con
+    CONFIG_STRICT_DEVMEM e /dev/mem non e' una strada. /dev/nvram non basta:
+    espone solo il banco basso, fino a 0x7F, e a noi serve 0x90 e oltre.
+    """
+
+    def __init__(self, sola_lettura=True):
+        # Si apre SEMPRE in lettura e scrittura, anche per il solo "get".
+        # Non e' una svista: la CMOS si interroga in due tempi, prima si scrive
+        # l'indice sulla porta 0x72 e poi si legge il dato dalla 0x73. Quindi
+        # anche una lettura richiede una scrittura, e con O_RDONLY la prima
+        # pwrite fallisce con "Bad file descriptor" — come e' successo alla
+        # prima prova su hardware.
+        # La distinzione fra lettura e scrittura la fa il COMANDO, non il modo
+        # di apertura: sola_lettura resta come promemoria di cosa sta facendo
+        # chi chiama, e per non aprire in scrittura quando basta guardare.
+        self.sola_lettura = sola_lettura
+        try:
+            self.fd = os.open("/dev/port", os.O_RDWR)
+        except PermissionError:
+            sys.exit("skillfish-memcfg: servono i privilegi di root")
+        except FileNotFoundError:
+            sys.exit("skillfish-memcfg: /dev/port non esiste (kernel senza CONFIG_DEVPORT)")
+        except OSError as e:
+            if _lockdown_attivo():
+                sys.exit("skillfish-memcfg: il kernel e' in lockdown (Secure Boot): "
+                         "l'accesso alle porte di I/O e' vietato, e questo strumento "
+                         "non puo' funzionare finche' resta attivo")
+            sys.exit("skillfish-memcfg: non riesco ad aprire /dev/port (%s)" % e)
+
+    def leggi(self, indice):
+        os.pwrite(self.fd, bytes([indice]), PORTA_INDICE)
+        return os.pread(self.fd, 1, PORTA_DATO)[0]
+
+    def scrivi(self, indice, valore):
+        # Rete di sicurezza contro me stesso: se un percorso di sola lettura
+        # provasse a scrivere davvero nella CMOS, meglio un'eccezione qui che
+        # una macchina che non si accende.
+        if self.sola_lettura:
+            raise RuntimeError("tentata scrittura in una sessione di sola lettura")
+        os.pwrite(self.fd, bytes([indice]), PORTA_INDICE)
+        os.pwrite(self.fd, bytes([valore & 0xFF]), PORTA_DATO)
+
+    def blocco(self, da, a):
+        return bytes(self.leggi(i) for i in range(da, a))
+
+    def chiudi(self):
+        os.close(self.fd)
+
+
+def _lockdown_attivo():
+    try:
+        with open("/sys/kernel/security/lockdown") as f:
+            return "[none]" not in f.read()
+    except OSError:
+        return False
+
+
+def e_bc250():
+    """La guardia hardware: su un'altra macchina queste porte vogliono dire
+    tutt'altro, e scriverci sarebbe un ottimo modo per rovinare la giornata a
+    qualcuno."""
+    guardia = "/usr/local/bin/skillfish-is-bc250"
+    if os.access(guardia, os.X_OK):
+        return os.system(guardia + " >/dev/null 2>&1") == 0
+    # ripiego: l'identificativo PCI della APU della BC-250
+    for d in ("/sys/bus/pci/devices/" + x for x in os.listdir("/sys/bus/pci/devices")):
+        try:
+            with open(d + "/vendor") as f:
+                ven = f.read().strip()
+            with open(d + "/device") as f:
+                dev = f.read().strip()
+        except OSError:
+            continue
+        if (ven, dev) == ("0x1002", "0x13fe"):
+            return True
+    return False
+
+
+def trova_blocco(dati, base_area):
+    """Cerca la firma invece di dare per scontato che stia a 0x90: le versioni
+    di firmware della BC-250 non sono tutte uguali, e un indirizzo cablato e' il
+    genere di cosa che si rompe in silenzio sulla macchina di qualcun altro."""
+    i = dati.find(FIRMA)
+    if i < 0:
+        return None
+    return base_area + i
+
+
+def somma16(dati):
+    return sum(dati) & 0xFFFF
+
+
+def leggi_config(cmos):
+    grezzo = cmos.blocco(*AREA)
+    base = trova_blocco(grezzo, AREA[0])
+    if base is None:
+        return None, grezzo, None
+    off = base - AREA[0]
+    blocco = grezzo[off:off + 0x20]
+    payload = blocco[PAYLOAD[0]:PAYLOAD[1]]
+    dichiarato = int.from_bytes(blocco[OFF_CHECKSUM:OFF_CHECKSUM + 2], "little")
+    calcolato = somma16(payload)
+    cfg = {
+        "base": base,
+        "uma_size_mb": int.from_bytes(blocco[OFF_UMA:OFF_UMA + 2], "little"),
+        "clock_speed": int.from_bytes(blocco[OFF_CLOCK:OFF_CLOCK + 2], "little"),
+        "checksum_dichiarato": dichiarato,
+        "checksum_calcolato": calcolato,
+        "checksum_ok": dichiarato == calcolato,
+        "timing": {},
+    }
+    for n, nome in enumerate(TIMING):
+        p = 8 + n
+        if p < len(blocco):
+            cfg["timing"][nome] = blocco[p]
+    return cfg, grezzo, blocco
+
+
+def valida_uma(mb):
+    if mb in UMA_VIETATI:
+        return UMA_VIETATI[mb]
+    if mb < UMA_MIN or mb > UMA_MAX:
+        return "fuori intervallo: ammessi da %d a %d MB" % (UMA_MIN, UMA_MAX)
+    if mb % UMA_PASSO:
+        return "deve essere un multiplo di %d MB" % UMA_PASSO
+    if mb not in UMA_CONFERMATI:
+        return ("valore non fra quelli confermati %s; se sai quel che fai usa --forza"
+                % (", ".join(str(x) for x in UMA_CONFERMATI)))
+    return None
+
+
+def salva_backup(grezzo, etichetta):
+    os.makedirs(BACKUP, exist_ok=True)
+    nome = os.path.join(BACKUP, "cmos-%s-%s.bin" % (etichetta, time.strftime("%Y%m%d-%H%M%S")))
+    with open(nome, "wb") as f:
+        f.write(grezzo)
+    buono = os.path.join(BACKUP, "known-good.bin")
+    if not os.path.exists(buono):
+        shutil.copy2(nome, buono)
+    return nome
+
+
+def cmd_get(args):
+    cmos = Cmos(sola_lettura=True)
+    cfg, _, _ = leggi_config(cmos)
+    cmos.chiudi()
+    if cfg is None:
+        sys.exit("skillfish-memcfg: blocco di configurazione non trovato")
+    if args.json:
+        print(json.dumps(cfg, indent=1))
+    else:
+        # Formato volutamente identico a quello di prima: chi lo legge (il
+        # Tuner) usa una espressione regolare che cosi' non va toccata.
+        print("UMA_SIZE=%d" % cfg["uma_size_mb"])
+    return 0
+
+
+def cmd_dump(args):
+    cmos = Cmos(sola_lettura=True)
+    cfg, grezzo, blocco = leggi_config(cmos)
+    cmos.chiudi()
+    print("=== CMOS estesa 0x%02X-0x%02X ===" % (AREA[0], AREA[1] - 1))
+    for r in range(0, len(grezzo), 16):
+        print("  %02X: %s" % (AREA[0] + r,
+                              " ".join("%02X" % b for b in grezzo[r:r + 16])))
+    if cfg is None:
+        print("\nFirma 'CMSB' non trovata: questo firmware non lo conosciamo.")
+        return 1
+    print("\n=== blocco riconosciuto a 0x%02X ===" % cfg["base"])
+    print("  memoria alla GPU (UMA_SIZE) : %d MB" % cfg["uma_size_mb"])
+    print("  frequenza memoria           : %d" % cfg["clock_speed"])
+    print("  checksum                    : dichiarato 0x%04X, calcolato 0x%04X  %s"
+          % (cfg["checksum_dichiarato"], cfg["checksum_calcolato"],
+             "combacia" if cfg["checksum_ok"] else "NON COMBACIA"))
+    print("  temporizzazioni (sola lettura):")
+    print("    " + "  ".join("%s=%d" % (k, v) for k, v in cfg["timing"].items()))
+    return 0
+
+
+def cmd_set(args):
+    if not args.forza and not e_bc250():
+        sys.exit("skillfish-memcfg: questa non sembra una BC-250. Con --forza si insiste, "
+                 "ma su un'altra scheda quelle porte vogliono dire altro.")
+    problema = valida_uma(args.mb)
+    if problema and not args.forza:
+        sys.exit("skillfish-memcfg: %d MB rifiutato: %s" % (args.mb, problema))
+    if problema:
+        print("skillfish-memcfg: ATTENZIONE, %s (proseguo per --forza)" % problema,
+              file=sys.stderr)
+
+    os.makedirs(os.path.dirname(LUCCHETTO), exist_ok=True)
+    lucchetto = open(LUCCHETTO, "w")
+    try:
+        fcntl.flock(lucchetto, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit("skillfish-memcfg: un'altra istanza sta gia' scrivendo")
+
+    cmos = Cmos(sola_lettura=False)
+    cfg, grezzo, blocco = leggi_config(cmos)
+    if cfg is None:
+        cmos.chiudi()
+        sys.exit("skillfish-memcfg: blocco non trovato, non scrivo niente")
+
+    # Se il checksum attuale non torna, il nostro modello NON descrive questo
+    # firmware. Scrivere sarebbe tirare a indovinare su una macchina che poi
+    # magari non si accende.
+    if not cfg["checksum_ok"]:
+        cmos.chiudi()
+        sys.exit("skillfish-memcfg: il checksum attuale non torna (dichiarato 0x%04X, "
+                 "calcolato 0x%04X). Questo firmware non corrisponde a quello che "
+                 "conosciamo: non scrivo niente." % (cfg["checksum_dichiarato"],
+                                                     cfg["checksum_calcolato"]))
+
+    if cfg["uma_size_mb"] == args.mb:
+        cmos.chiudi()
+        print("UMA_SIZE=%d (era gia' cosi', non tocco niente)" % args.mb)
+        return 0
+
+    copia = salva_backup(grezzo, "prima-di-%d" % args.mb)
+    print("copia di sicurezza: %s" % copia)
+
+    base = cfg["base"]
+    nuovo = bytearray(blocco)
+    nuovo[OFF_UMA:OFF_UMA + 2] = int(args.mb).to_bytes(2, "little")
+    atteso = somma16(bytes(nuovo[PAYLOAD[0]:PAYLOAD[1]]))
+
+    # Ordine di scrittura scelto apposta: prima si INVALIDA il checksum, poi si
+    # scrive il contenuto, e solo alla fine il checksum giusto. Se qualcosa si
+    # interrompe a meta' — un blackout, un kernel che va in panico — il blocco
+    # resta con un checksum che non torna, cioe' nello stato che il firmware
+    # dovrebbe scartare, invece che con dati a meta' dichiarati validi.
+    cmos.scrivi(base + OFF_CHECKSUM, 0xFF)
+    cmos.scrivi(base + OFF_CHECKSUM + 1, 0xFF)
+    cmos.scrivi(base + OFF_UMA, nuovo[OFF_UMA])
+    cmos.scrivi(base + OFF_UMA + 1, nuovo[OFF_UMA + 1])
+    cmos.scrivi(base + OFF_CHECKSUM, atteso & 0xFF)
+    cmos.scrivi(base + OFF_CHECKSUM + 1, (atteso >> 8) & 0xFF)
+
+    # Rileggi e confronta: non ci si fida di una scrittura che non si e' letta.
+    cfg2, grezzo2, _ = leggi_config(cmos)
+    if cfg2 is None or cfg2["uma_size_mb"] != args.mb or not cfg2["checksum_ok"]:
+        print("skillfish-memcfg: la rilettura non torna, ripristino la copia",
+              file=sys.stderr)
+        for i, b in enumerate(grezzo):
+            if grezzo2 is None or i >= len(grezzo2) or grezzo2[i] != b:
+                cmos.scrivi(AREA[0] + i, b)
+        cmos.chiudi()
+        sys.exit("skillfish-memcfg: scrittura fallita, stato precedente ripristinato")
+
+    cmos.chiudi()
+    print("UMA_SIZE=%d" % args.mb)
+    print("Il valore si applica al prossimo avvio: la memoria si assegna all'accensione.")
+    return 0
+
+
+def cmd_backup(args):
+    cmos = Cmos(sola_lettura=True)
+    grezzo = cmos.blocco(*AREA)
+    cmos.chiudi()
+    with open(args.file, "wb") as f:
+        f.write(grezzo)
+    print("salvati %d byte in %s" % (len(grezzo), args.file))
+    return 0
+
+
+def cmd_restore(args):
+    with open(args.file, "rb") as f:
+        dati = f.read()
+    if len(dati) != AREA[1] - AREA[0]:
+        sys.exit("skillfish-memcfg: il file dovrebbe essere di %d byte, ne ha %d"
+                 % (AREA[1] - AREA[0], len(dati)))
+    if trova_blocco(dati, AREA[0]) is None:
+        sys.exit("skillfish-memcfg: nel file non c'e' la firma, non lo scrivo")
+    cmos = Cmos(sola_lettura=False)
+    for i, b in enumerate(dati):
+        cmos.scrivi(AREA[0] + i, b)
+    cmos.chiudi()
+    print("ripristinato da %s; effetto al prossimo avvio" % args.file)
+    return 0
+
+
+def main():
+    p = argparse.ArgumentParser(
+        prog="skillfish-memcfg",
+        description="Configurazione della memoria della BC-250 (CMOS estesa)")
+    sub = p.add_subparsers(dest="comando", required=True)
+
+    g = sub.add_parser("get", help="quanta memoria e' riservata alla GPU")
+    g.add_argument("--json", action="store_true")
+    g.set_defaults(func=cmd_get)
+
+    d = sub.add_parser("dump", help="mostra il blocco per intero, decodificato")
+    d.set_defaults(func=cmd_dump)
+
+    s = sub.add_parser("set", help="cambia la memoria riservata alla GPU (MB)")
+    s.add_argument("mb", type=int)
+    s.add_argument("--forza", action="store_true",
+                   help="accetta valori non confermati e salta la guardia hardware")
+    s.set_defaults(func=cmd_set)
+
+    b = sub.add_parser("backup", help="salva su file il blocco grezzo")
+    b.add_argument("file")
+    b.set_defaults(func=cmd_backup)
+
+    r = sub.add_parser("restore", help="riscrive il blocco da un file di backup")
+    r.add_argument("file")
+    r.set_defaults(func=cmd_restore)
+
+    args = p.parse_args()
+    if args.comando in ("set", "restore") and os.geteuid() != 0:
+        sys.exit("skillfish-memcfg: servono i privilegi di root per scrivere")
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

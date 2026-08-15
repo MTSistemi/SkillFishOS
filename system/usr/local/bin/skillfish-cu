@@ -3,9 +3,33 @@
 # Routes GPU Compute Units at runtime by writing the SPI/CC/RLC WGP masks via umr.
 # 1 WGP = 2 CU; 5 WGP per shader array x 4 arrays (2 SE x 2 SH) = 40 CU.
 # Driver floor = WGP0-2 (24 CU) are locked on at boot and always kept.
-# Clean-room implementation. Mechanism credit: WinnieLV/bc250-cu-live-manager.
+# Implementazione nostra. I fatti su cui si regge — nomi e campi dei registri,
+# la regola che 1 WGP vale 2 CU, il pavimento di WGP0-2 imposto dal driver —
+# stanno negli header AMD (licenza MIT) e in gfx_v10_0.c del kernel Linux.
 set -u
 UMR=/usr/local/bin/umr
+
+# SENZA umr QUESTO STRUMENTO NON PUO' FARE NIENTE, E DEVE DIRLO.
+#
+# Prima non lo diceva, ed e' il guasto peggiore che si possa avere: ogni
+# chiamata a umr qui sotto ha 2>/dev/null, quindi se il programma manca la
+# lettura torna vuota, il conteggio fa zero e lo script stampava "0/40"
+# USCENDO CON SUCCESSO. Il servizio risultava "active (exited)", il HUD
+# mostrava 0/40, e l'utente restava a 24 CU convinto di averne 40 — cioe' senza
+# la caratteristica principale della distribuzione, e senza un solo messaggio
+# che glielo dicesse.
+#
+# Non e' un caso di scuola: umr NON esiste nei repository Debian (apt-cache
+# policy umr non trova niente). Sulla BC-250 di sviluppo sta in /usr/local/bin
+# e non appartiene a nessun pacchetto, quindi ci finisce nelle immagini fatte
+# con eggs, che clonano quella macchina. Chi invece installa i nostri .deb da
+# apt su un altro sistema, o costruisce la ISO con live-build, non ce l'ha.
+if [ ! -x "$UMR" ]; then
+    echo "skillfish-cu: manca $UMR, senza il quale non si possono instradare le CU." >&2
+    echo "              umr non e' nei repository Debian: va installato a parte." >&2
+    echo "              Le CU restano quelle imposte dal driver (24 su 40)." >&2
+    exit 3
+fi
 INST=0
 ASIC=cyan_skillfish.gfx1013
 CC=mmCC_GC_SHADER_ARRAY_CONFIG
@@ -61,12 +85,30 @@ update_state(){
 
 need_root(){ [ "$(id -u)" = 0 ] || { echo "skillfish-cu: needs root" >&2; exit 1; }; }
 
+# Secondo presidio: umr puo' esserci ed essere comunque inutile — driver diverso,
+# scheda che non e' una BC-250, registri non accessibili. Anche in quel caso
+# prima si usciva con successo dichiarando un numero sbagliato. Qui il numero
+# ottenuto si confronta con quello chiesto, e se non torna lo si dice.
+riporta(){ # riporta <cu_attese>
+    local ottenute; ottenute=$(read_total)
+    echo "$ottenute/40"
+    if [ "$ottenute" -lt 1 ]; then
+        echo "skillfish-cu: nessuna CU leggibile: umr non sta parlando con la GPU." >&2
+        exit 4
+    fi
+    if [ -n "${1:-}" ] && [ "$ottenute" -lt "$1" ]; then
+        echo "skillfish-cu: chieste $1 CU, ottenute $ottenute." >&2
+        exit 5
+    fi
+    return 0
+}
+
 case "${1:-}" in
   get)              cmd_get ;;
-  max|enable-all)   need_root; apply_uniform $FULL;  echo "$(read_total)/40" ;;
-  stock|disable-extra) need_root; apply_uniform $FLOOR; echo "$(read_total)/40" ;;
-  set)              need_root; apply_uniform "${2:?mask}"; echo "$(read_total)/40" ;;     # 0x07..0x1f, all rows
-  set-rows)         need_root; apply_rows "${2:?}" "${3:?}" "${4:?}" "${5:?}"; echo "$(read_total)/40" ;;
+  max|enable-all)   need_root; apply_uniform $FULL;  riporta 40 ;;
+  stock|disable-extra) need_root; apply_uniform $FLOOR; riporta 24 ;;
+  set)              need_root; apply_uniform "${2:?mask}"; riporta ;;     # 0x07..0x1f, all rows
+  set-rows)         need_root; apply_rows "${2:?}" "${3:?}" "${4:?}" "${5:?}"; riporta ;;
   state)            need_root; update_state; cat "$STATE" ;;
   *) echo "usage: skillfish-cu {get|max|stock|set <0x07..0x1f>|set-rows m00 m01 m10 m11|state}"; exit 1 ;;
 esac

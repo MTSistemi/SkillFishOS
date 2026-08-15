@@ -32,7 +32,14 @@ def _first_file(*paths):
 OC_DIR  = _first_dir("/opt/bc250_smu_oc", "/root/bc250_smu_oc")
 OC_CONF = "/etc/bc250-smu-oc.conf"
 GOV_CONF= "/etc/cyan-skillfish-governor/config.toml"
-MEMCFG  = _first_file("/opt/bc250_memcfg/bc250memcfg", "/root/bc250_memcfg/bc250memcfg")
+# skillfish-memcfg e' NOSTRO (GPL-3.0) e sta in un pacchetto, mentre lo
+# strumento che stava in /opt era di terzi, senza licenza dichiarata e
+# quindi non ridistribuibile: non poteva stare nella ISO e su una macchina
+# installata da apt non c'era proprio. I due percorsi vecchi restano come
+# ripiego per le schede aggiornate da una versione precedente.
+MEMCFG  = _first_file("/usr/local/bin/skillfish-memcfg",
+                      "/opt/bc250_memcfg/bc250memcfg",
+                      "/root/bc250_memcfg/bc250memcfg")
 VKPEAK  = glob.glob("/opt/bench/vkpeak*/vkpeak") or glob.glob("/root/bench/vkpeak*/vkpeak")
 VKPEAK  = VKPEAK[0] if VKPEAK else None
 
@@ -111,7 +118,7 @@ def get():
     out["gpu"]=gpu
     vram={"uma_mb":0}
     if os.path.exists(MEMCFG):
-        m=re.search(r'UMA_SIZE=(\d+)', sh(MEMCFG).stdout)
+        m=re.search(r'UMA_SIZE=(\d+)', sh(MEMCFG + ' get').stdout)
         if m: vram["uma_mb"]=int(m.group(1))
     out["vram"]=vram
     fan={"mode":"auto","pct":50,"rpm":0}
@@ -231,7 +238,7 @@ def fan_set(mode,pct):
 
 def set_vram(mb):
     if not os.path.exists(MEMCFG): return False
-    return sh("%s UMA_SIZE %d"%(MEMCFG,max(256,int(mb)))).returncode==0
+    return sh("%s set %d"%(MEMCFG,max(256,int(mb)))).returncode==0
 
 def cu_test():
     """Health-test each extra CU pair (WGP3-4 on every SE/SH) for the silicon
