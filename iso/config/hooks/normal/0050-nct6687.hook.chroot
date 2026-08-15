@@ -1,33 +1,85 @@
 #!/bin/bash
-# nct6687 sensors DKMS module. Built against the installed (tkg) kernel. Best-effort.
+# Modulo DKMS nct6687 per i sensori e la ventola. Costruito contro il kernel
+# tkg installato. Se non riesce, non e' un guaio: si va avanti.
+#
+# ⚠️ MANCAVA Kbuild, ED E' PER QUESTO CHE NON COMPILAVA (15/08/2026)
+# Il progetto di partenza tiene l'`obj-m := nct6687.o` in un file `Kbuild`
+# separato, non nel Makefile. Noi copiavamo `*.c`, `*.h`, `Makefile` e
+# `dkms.conf` e ci fermavamo li'. Senza Kbuild kbuild non sa COSA compilare:
+# make attraversa la cartella, non trova moduli, scrive un Module.symvers
+# vuoto ed esce con **successo**. Nel registro si legge "exit code: 0" e
+# subito sotto "Error! Build of nct6687.ko failed": sembra assurdo, ma e'
+# esattamente questo. Cercare l'errore nel compilatore era tempo perso,
+# perche' il compilatore non era mai stato chiamato.
+#
+# ⚠️ E SE NON RIESCE, IL MODULO VA TOLTO DAL REGISTRO DI DKMS
+# Un modulo registrato che non compila non fa danni oggi, ma fa restituire 1
+# al postinst del kernel a OGNI aggiornamento futuro sul computer di chi ci
+# usa. E' cosi' che una cosa cosmetica ha fatto fallire un'installazione
+# intera. Meglio nessun modulo che un modulo rotto.
 set +e
 KVER=$(ls /lib/modules 2>/dev/null | sort -V | tail -1)
-echo "[nct6687] target kernel: ${KVER:-unknown}"
+echo "[nct6687] kernel di destinazione: ${KVER:-sconosciuto}"
+
+costruisci_e_verifica() {
+    # $1 = versione DKMS. Ritorna 0 solo se il .ko esiste davvero.
+    local V="$1"
+    [ -n "$V" ] && [ -n "$KVER" ] || return 1
+    dkms build   -m nct6687d -v "$V" -k "$KVER" --force
+    dkms install -m nct6687d -v "$V" -k "$KVER" --force
+    # dkms puo' dire di aver finito senza aver prodotto niente: si guarda il file
+    find "/lib/modules/$KVER" -name 'nct6687.ko*' -print -quit 2>/dev/null | grep -q .
+}
+
+rinuncia() {
+    local V="$1"
+    echo "[nct6687] ATTENZIONE: il modulo non si costruisce, lo tolgo da DKMS."
+    echo "[nct6687] Un modulo rotto nel registro farebbe fallire ogni futuro"
+    echo "[nct6687] aggiornamento del kernel sul computer dell'utente."
+    [ -n "$V" ] && dkms remove -m nct6687d -v "$V" --all >/dev/null 2>&1
+    rm -rf "/usr/src/nct6687d-$V" 2>/dev/null
+    sed -i '/^nct6687$/d' /etc/modules 2>/dev/null
+}
+
+# ⚠️ Questo indirizzo risponde 404, e non per un guasto passeggero: il
+# progetto a monte non pubblica NESSUN rilascio (l'API /releases/latest
+# risponde 404 a sua volta, verificato il 15/08/2026). In pratica si passa
+# sempre dai sorgenti. Il tentativo resta perche' costa un istante e perche'
+# se un giorno pubblicheranno un pacchetto sara' la strada migliore.
 DEB="https://github.com/Fred78290/nct6687d/releases/latest/download/nct6687d-dkms_all.deb"
+V=""
 if curl -fsSL "$DEB" -o /tmp/nct6687-dkms.deb; then
     dpkg -i /tmp/nct6687-dkms.deb || apt-get -f install -y
     rm -f /tmp/nct6687-dkms.deb
-    # force-build for the installed kernel (DKMS in chroot won't auto-target it)
+    # in un chroot DKMS non prende di mira da solo il kernel installato
     V=$(dkms status 2>/dev/null | grep -oiP 'nct6687d?[/, ]\K[0-9][^,: ]*' | head -1)
-    if [ -n "$V" ] && [ -n "$KVER" ]; then
-        dkms build  -m nct6687d -v "$V" -k "$KVER" --force
-        dkms install -m nct6687d -v "$V" -k "$KVER" --force
-    fi
-    echo "[nct6687] DKMS .deb path done"
+    costruisci_e_verifica "$V" && echo "[nct6687] costruito dal pacchetto .deb"
 else
-    echo "[nct6687] .deb unavailable, trying source"
+    echo "[nct6687] .deb non disponibile, provo dai sorgenti"
     git clone --depth 1 https://github.com/Fred78290/nct6687d /tmp/nct6687d
     if [ -d /tmp/nct6687d ]; then
         V=$(grep -oP '(?<=VERSION = ).*' /tmp/nct6687d/Makefile 2>/dev/null || echo 1.0)
-        mkdir -p /usr/src/nct6687d-$V
-        cp /tmp/nct6687d/*.c /tmp/nct6687d/*.h /tmp/nct6687d/Makefile /tmp/nct6687d/dkms.conf /usr/src/nct6687d-$V/ 2>/dev/null
+        mkdir -p "/usr/src/nct6687d-$V"
+        # Kbuild e' obbligatorio: e' li' che sta obj-m
+        cp /tmp/nct6687d/Kbuild /tmp/nct6687d/Makefile /tmp/nct6687d/dkms.conf \
+           "/usr/src/nct6687d-$V/" 2>/dev/null
+        cp /tmp/nct6687d/*.c "/usr/src/nct6687d-$V/" 2>/dev/null
+        cp /tmp/nct6687d/*.h "/usr/src/nct6687d-$V/" 2>/dev/null
+        if [ ! -f "/usr/src/nct6687d-$V/Kbuild" ]; then
+            echo "[nct6687] ATTENZIONE: Kbuild non c'e' nemmeno a monte, non si puo' costruire"
+        fi
         dkms add -m nct6687d -v "$V"
-        [ -n "$KVER" ] && dkms build -m nct6687d -v "$V" -k "$KVER" --force && dkms install -m nct6687d -v "$V" -k "$KVER" --force
+        costruisci_e_verifica "$V" && echo "[nct6687] costruito dai sorgenti"
         rm -rf /tmp/nct6687d
-        echo "[nct6687] source build attempted"
     else
-        echo "[nct6687] WARNING: source fetch failed (non-fatal)"
+        echo "[nct6687] ATTENZIONE: non sono riuscito a scaricare i sorgenti"
     fi
 fi
-grep -qx nct6687 /etc/modules 2>/dev/null || echo nct6687 >> /etc/modules
+
+if [ -n "$KVER" ] && find "/lib/modules/$KVER" -name 'nct6687.ko*' -print -quit 2>/dev/null | grep -q .; then
+    grep -qx nct6687 /etc/modules 2>/dev/null || echo nct6687 >> /etc/modules
+    echo "[nct6687] a posto: il modulo c'e' e verra' caricato all'avvio"
+else
+    rinuncia "$V"
+fi
 exit 0

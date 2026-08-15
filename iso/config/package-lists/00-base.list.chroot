@@ -90,3 +90,7 @@ xdg-desktop-portal
 openssh-server
 user-setup
 sudo
+
+# Serve a update-initramfs: senza, ripiega su gzip e lo dice
+# ("W: No zstd in /usr/bin:/sbin:/bin, using gzip").
+zstd
