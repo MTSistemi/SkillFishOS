@@ -1,0 +1,18 @@
+# Artefatti prodotti da live-build durante la costruzione: non sono sorgenti.
+#
+# Erano finiti nel repository per sbaglio, e non erano pochi: chroot.files da
+# solo faceva 225.390 righe, cioe' l'elenco di ogni file dentro il chroot di una
+# build di maggio. Roba che invecchia il giorno dopo, che nessuno rilegge mai e
+# che sporca ogni ricerca nel codice.
+chroot.files
+chroot.packages.install
+chroot.packages.live
+chroot.build
+binary.modified_timestamps
+binary.packages
+*.iso
+*.log
+cache/
+chroot/
+binary/
+.build/

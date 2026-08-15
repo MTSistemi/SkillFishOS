@@ -1,32 +1,38 @@
-#!/bin/bash
+#!/bin/sh
 set -e
-
-# SDDM configuration: dark Breeze theme, Hyprland as default session
+# Configurazione di SDDM: tema scuro e Plasma come sessione predefinita.
+#
+# Prima qui c'era Hyprland. SkillFishOS gira su KDE Plasma, quindi la sessione
+# predefinita e' plasma: il nome del file .desktop e' quello che SDDM cerca in
+# /usr/share/wayland-sessions e /usr/share/xsessions.
+#
+# Si sceglie X11 (plasmax11) e non Wayland perche' e' quello che usiamo davvero
+# sulla BC-250: la GPU di quella scheda con Wayland dava grattacapi, e la
+# console di gioco parte in X11.
 
 mkdir -p /etc/sddm.conf.d
 
 cat > /etc/sddm.conf.d/00-skillfish.conf << 'SDDM'
 [Theme]
-CursorSize=24
+Current=breeze
+CursorTheme=SkillFish-Steampunk-Cursors
 
 [General]
-HaltCommand=/usr/bin/systemctl poweroff
-RebootCommand=/usr/bin/systemctl reboot
+InputMethod=
 
 [Users]
-DefaultPath=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MaximumUid=60000
 MinimumUid=1000
-MaximumUid=65000
-HideUsers=
-HideShells=
 SDDM
 
-# Live session autologin — enabled for the live image
+# Accesso automatico: vale SOLO per l'immagine live, dove l'utente si chiama
+# "live". Sul sistema installato quell'utente non esiste e questa impostazione
+# non deve sopravvivere: se ci arriva, SDDM registra un errore PAM a ogni avvio
+# (vedi issue #28). Il file sta a parte proprio per poter essere rimosso da
+# Calamares a fine installazione.
 cat > /etc/sddm.conf.d/01-live-autologin.conf << 'SDDM'
 [Autologin]
-Session=hyprland
-User=user
+User=live
+Session=plasmax11
+Relogin=false
 SDDM
-
-systemctl enable sddm.service
-echo "SDDM enabled with Hyprland default session."

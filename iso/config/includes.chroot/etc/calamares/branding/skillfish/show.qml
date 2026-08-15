@@ -6,5 +6,5 @@ Presentation {
     Slide { Rectangle { anchors.fill: parent; color: "#101418" }
         Text { anchors.centerIn: parent; color: "#1fb6ff"; font.pixelSize: 42; text: "SkillFishOS" } }
     Slide { Rectangle { anchors.fill: parent; color: "#101418" }
-        Text { anchors.centerIn: parent; color: "white"; font.pixelSize: 22; text: "Kernel 7.0.10-tkg - Mesa - Hyprland - btrfs snapshots" } }
+        Text { anchors.centerIn: parent; color: "white"; font.pixelSize: 22; text: "Kernel 7.1.7-tkg - Mesa - KDE Plasma 6 - btrfs snapshots" } }
 }

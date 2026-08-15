@@ -1,0 +1,87 @@
+# Desktop: KDE Plasma 6.
+#
+# Sostituisce la vecchia lista Hyprland. SkillFishOS gira su KDE da parecchio:
+# i motivi stanno in docs/DESKTOP.md, in sintesi Plasma risolve da solo le cose
+# che con Hyprland andavano cucite a mano (pannelli di rete e Bluetooth, sfondo,
+# menu col tasto destro) ed e' Qt come il nostro tema Kvantum.
+#
+# I nomi qui sotto non sono scelti a tavolino: sono i pacchetti che risultano
+# installati esplicitamente sulla BC-250 di sviluppo, cioe' quelli che compongono
+# davvero il sistema che pubblichiamo.
+
+# --- Plasma ---
+kde-plasma-desktop
+plasma-workspace
+plasma-desktop
+kwin-wayland
+plasma-nm
+plasma-pa
+plasma-systemmonitor
+
+# --- Display manager ---
+sddm
+
+# --- Applicazioni KDE di base ---
+dolphin
+konsole
+ark
+gwenview
+okular
+kcalc
+kde-spectacle
+
+# --- Aspetto: il tema steampunk e' Qt/Kvantum ---
+qt6-style-kvantum
+qt6-image-formats-plugins
+qt6-wayland
+qt6-xdgdesktopportal-platformtheme
+kde-config-gtk-style
+
+# --- Terminale alternativo (lo usa la nostra console di gioco) ---
+alacritty
+
+# --- Archivi ---
+7zip
+unrar-free
+
+# --- Portali XDG ---
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-user-dirs
+xdg-utils
+
+# --- Audio ---
+pipewire
+pipewire-audio
+pipewire-alsa
+pipewire-pulse
+wireplumber
+
+# --- Rete e Bluetooth ---
+network-manager
+blueman
+
+# --- Sessione e autenticazione ---
+polkitd
+gnome-keyring
+libpam-gnome-keyring
+
+# --- Caratteri ---
+fonts-noto
+fonts-noto-cjk
+fonts-noto-color-emoji
+fonts-liberation
+fonts-dejavu
+fonts-font-awesome
+
+# --- Icone ---
+papirus-icon-theme
+hicolor-icon-theme
+adwaita-icon-theme
+
+# --- Applicazioni ---
+flatpak
+plasma-discover-backend-flatpak
+
+# --- Dischi ---
+gparted

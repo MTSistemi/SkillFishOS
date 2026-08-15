@@ -35,7 +35,7 @@ while true; do
     if [ "$(edid_size)" -gt 0 ]; then
       do_trig            # monitor presente e diverso -> 1 blink, il compositore cambia risoluzione
       sleep 1; do_trig   # secondo trigger: assicura la rilettura dopo stabilizzazione EDID
-      sleep 3            # lascia che Hyprland ri-crei l'output e chiuda l'HUD
+      sleep 3            # lascia che il compositore ri-crei l'output e chiuda l'HUD
       reopen_hud         # poi riapri l'HUD (lo swap ha distrutto la finestra layer-shell)
     fi
     last="$cur"

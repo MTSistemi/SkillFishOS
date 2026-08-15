@@ -1,0 +1,50 @@
+#!/bin/sh
+# Riscrive kernel e initrd in /boot perche' GRUB riesca a leggerli.
+#
+# PERCHE' SERVE
+# I file scritti da unpackfs durante l'installazione hanno una mappa degli
+# extent che non copre la dimensione dichiarata: mancano gli ultimi byte e
+# l'ultimo extent e' privo del flag `eof`. GRUB legge l'albero degli extent e
+# si ferma li', quindi all'avvio esce "premature end of file" e il sistema non
+# parte. Linux invece il file lo legge lo stesso, per questo il difetto si vede
+# solo al boot. E' la causa della issue #12.
+#
+# Riscrivere il file gli restituisce una mappa corretta. Serve
+# --reflink=never: senza, su btrfs la copia riusa gli STESSI extent rotti e non
+# ripara niente.
+#
+# Sta in uno script invece che dentro il YAML di Calamares perche' il modulo
+# shellprocess espande le variabili $... come proprie e fallisce con
+# "variabili mancanti: f,f,f,f,f" appena vede un ciclo di shell.
+#
+# Idempotente e innocuo su un sistema sano: riscrive e basta.
+set -u
+
+BOOT=/boot
+[ -d "$BOOT" ] || exit 0
+
+changed=0
+for f in "$BOOT"/vmlinuz-* "$BOOT"/initrd.img-*; do
+    [ -f "$f" ] || continue
+    tmp="$f.sfxnew"
+    rm -f "$tmp"
+    if cp --reflink=never --preserve=all "$f" "$tmp" 2>/dev/null; then
+        sync
+        if mv -f "$tmp" "$f" 2>/dev/null; then
+            changed=$((changed + 1))
+        else
+            rm -f "$tmp"
+        fi
+    else
+        # se cp non conosce --reflink (non-GNU), ripiega su una copia semplice
+        if cat "$f" > "$tmp" 2>/dev/null; then
+            sync
+            mv -f "$tmp" "$f" 2>/dev/null && changed=$((changed + 1)) || rm -f "$tmp"
+        else
+            rm -f "$tmp"
+        fi
+    fi
+done
+sync
+echo "skillfish-fix-boot-extents: riscritti $changed file in $BOOT"
+exit 0
