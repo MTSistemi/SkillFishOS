@@ -6,11 +6,14 @@ set -e
 # This hook enables the systemd timers so they activate after install.
 
 # Enable snapper timers
-systemctl enable snapper-timeline.timer 2>/dev/null || true
+# niente snapper-timeline.timer: la linea temporale e' spenta apposta,
+# altrimenti il disco si riempie di snapshot orari
+systemctl disable snapper-timeline.timer 2>/dev/null || true
 systemctl enable snapper-cleanup.timer 2>/dev/null || true
 
 # Enable grub-btrfs path unit (watches for new snapshots → regenerates GRUB entries)
-systemctl enable grub-btrfs.path 2>/dev/null || true
+# nemmeno grub-btrfs.path: e' l'innesco dello stesso demone che fallisce
+systemctl disable grub-btrfs.path 2>/dev/null || true
 
 # Snapper default config template for root (applied by Calamares post-install script)
 mkdir -p /etc/snapper/config-templates

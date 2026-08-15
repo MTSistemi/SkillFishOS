@@ -1,41 +1,124 @@
 # Desktop: KDE Plasma 6.
 #
-# Sostituisce la vecchia lista Hyprland. SkillFishOS gira su KDE da parecchio:
-# i motivi stanno in docs/DESKTOP.md, in sintesi Plasma risolve da solo le cose
-# che con Hyprland andavano cucite a mano (pannelli di rete e Bluetooth, sfondo,
-# menu col tasto destro) ed e' Qt come il nostro tema Kvantum.
+# PERCHE' la lista e' rifatta da capo.
+# La versione precedente nasceva da "apt-mark showmanual" sulla BC-250, ed e' un
+# metodo sbagliato: showmanual riporta solo cio' che qualcuno ha installato a
+# mano, mentre sulla scheda meta' del desktop e' entrata da sola come Recommends
+# di kde-plasma-desktop e di plasma-workspace. In auto/config c'e'
+# "--apt-recommends false", quindi in una ISO quei pacchetti non rientrano da
+# nessuna parte e il desktop arriva monco senza che nessuno se ne accorga in
+# fase di build.
 #
-# I nomi qui sotto non sono scelti a tavolino: sono i pacchetti che risultano
-# installati esplicitamente sulla BC-250 di sviluppo, cioe' quelli che compongono
-# davvero il sistema che pubblichiamo.
+# Questa lista e' costruita al contrario: si parte dai pacchetti davvero
+# installati sulla scheda (dpkg -l, stato ii) e si sottrae la chiusura dei soli
+# Depends dei metapacchetti. Resta scritto qui solo cio' che senza Recommends
+# non arriverebbe in nessun altro modo. Tutto verificato su 192.168.5.40
+# (SkillFishOS 26.06.3, Debian sid, Plasma 6.7.4, kernel 7.1.7-skillfishos).
 
-# --- Plasma ---
+# --- Il metapacchetto ---
+# I suoi Depends portano gia' dentro plasma-desktop, plasma-workspace,
+# kwin-wayland, kwin-common, dolphin, kdialog, drkonqi, plasma-integration,
+# plasma-desktoptheme, polkitd, polkit-kde-agent-1, kwallet6, qt6-wayland,
+# hicolor-icon-theme, upower e udisks2. Ripeterli qui sarebbe solo rumore:
+# erano nella vecchia lista e li ho tolti.
 kde-plasma-desktop
-plasma-workspace
-plasma-desktop
-kwin-wayland
+
+# --- Schermata di accesso e sessione X11 ---
+# Di kde-plasma-desktop questi sono solo Recommends (sddm, kwin-x11,
+# xserver-xorg), quindi senza Recommends sparirebbero tutti e tre.
+# kwin-x11 e' il punto piu' delicato: la sessione predefinita e' plasmax11
+# (la scrive l'hook 0110-sddm-config e la conferma 0112), e senza kwin-x11
+# quella sessione parte senza alcun gestore finestre - finestre senza bordi,
+# niente alt-tab, niente pannello utilizzabile.
+# sddm-theme-breeze serve perche' l'hook 0110 imposta [Theme] Current=breeze:
+# il tema skillfish-brass che usa la scheda arriva dal pacchetto skillfish-theme
+# del repository aetherium, che in questa ISO non e' configurato.
+sddm
+sddm-theme-breeze
+xserver-xorg
+kwin-x11
+kwin-style-aurorae
+
+# --- Pezzi di Plasma che plasma-workspace si limita a raccomandare ---
+# Recommends dichiarati da plasma-workspace: kde-cli-tools, kio-extras,
+# kio-fuse, ksystemstats, plasma-workspace-doc, powerdevil, systemsettings.
+# kde-cli-tools arriva comunque come Depends, la documentazione non ci serve,
+# il resto va scritto a mano o non c'e'.
+# Senza systemsettings non esistono le Impostazioni di sistema; senza powerdevil
+# non c'e' gestione dell'energia ne' luminosita'; senza kscreen non si configura
+# il monitor; senza ksystemstats i sensori del pannello restano vuoti.
+systemsettings
+powerdevil
+kscreen
+ksystemstats
+kinfocenter
+kmenuedit
+kwrited
+kde-config-screenlocker
+kde-config-sddm
+
+# --- KIO: senza questi Dolphin perde meta' dei protocolli ---
+# kio-extras porta sftp://, smb://, mtp://, fish://; kio-fuse fa vedere quelle
+# posizioni anche alle applicazioni non KDE (per esempio i Flatpak).
+kio-extras
+kio-fuse
+
+# --- Portali XDG ---
+# xdg-desktop-portal-kde e' quello che dava le finestre di dialogo native ai
+# Flatpak e alla condivisione schermo: mancava del tutto, quindi Steam e le
+# altre applicazioni Flatpak ricadevano sul portale GTK.
+xdg-desktop-portal-kde
+xdg-desktop-portal-gtk
+xdg-user-dirs
+xdg-utils
+
+# --- Applet del pannello ---
+# bluedevil e' il Bluetooth di KDE ed e' Recommends: mancava. Per questo in
+# 00-base ho tolto blueman, che e' l'equivalente GTK e in una ISO solo KDE
+# avrebbe messo una seconda icona nel vassoio a fare la stessa cosa.
 plasma-nm
 plasma-pa
+bluedevil
 plasma-systemmonitor
 
-# --- Display manager ---
-sddm
-
-# --- Applicazioni KDE di base ---
-dolphin
+# --- Applicazioni KDE ---
+# konsole, kfind, keditbookmarks e kwrite sono Recommends di kde-baseapps:
+# di quel gruppo tengo konsole (il terminale predefinito di Plasma), kfind e
+# keditbookmarks. Come editor prendo kate, che sulla scheda c'e' ed e' un
+# soprainsieme di kwrite.
 konsole
+kate
 ark
 gwenview
 okular
 kcalc
 kde-spectacle
+kfind
+keditbookmarks
+
+# --- Portachiavi: KWallet, non gnome-keyring ---
+# plasma-workspace dipende gia' da kwallet6, quindi il portachiavi c'e'.
+# gnome-keyring e libpam-gnome-keyring erano nella vecchia lista ma sulla
+# scheda risultano "un", cioe' mai installati: due portachiavi in parallelo
+# si litigano le richieste di sblocco. Qui resta solo l'interfaccia grafica.
+kwalletmanager
+ksshaskpass
+
+# --- Estensioni di Dolphin ---
+# Anteprime di video e PDF e le voci di menu per Git/Btrfs: tutti Recommends.
+dolphin-plugins
+ffmpegthumbs
+kdegraphics-thumbnailers
 
 # --- Aspetto: il tema steampunk e' Qt/Kvantum ---
+# breeze-gtk-theme e' Recommends: senza, kde-config-gtk-style non ha nulla da
+# applicare e le applicazioni GTK restano col tema Adwaita chiaro in mezzo a un
+# desktop scuro.
 qt6-style-kvantum
 qt6-image-formats-plugins
-qt6-wayland
 qt6-xdgdesktopportal-platformtheme
 kde-config-gtk-style
+breeze-gtk-theme
 
 # --- Terminale alternativo (lo usa la nostra console di gioco) ---
 alacritty
@@ -43,28 +126,6 @@ alacritty
 # --- Archivi ---
 7zip
 unrar-free
-
-# --- Portali XDG ---
-xdg-desktop-portal
-xdg-desktop-portal-gtk
-xdg-user-dirs
-xdg-utils
-
-# --- Audio ---
-pipewire
-pipewire-audio
-pipewire-alsa
-pipewire-pulse
-wireplumber
-
-# --- Rete e Bluetooth ---
-network-manager
-blueman
-
-# --- Sessione e autenticazione ---
-polkitd
-gnome-keyring
-libpam-gnome-keyring
 
 # --- Caratteri ---
 fonts-noto
@@ -75,12 +136,13 @@ fonts-dejavu
 fonts-font-awesome
 
 # --- Icone ---
+# adwaita-icon-theme resta come ripiego per le applicazioni GTK; il tema di
+# sistema hicolor-icon-theme arriva gia' come Depends di kde-plasma-desktop.
 papirus-icon-theme
-hicolor-icon-theme
 adwaita-icon-theme
 
-# --- Applicazioni ---
-flatpak
+# --- Centro software ---
+# plasma-discover arriva come Depends del backend.
 plasma-discover-backend-flatpak
 
 # --- Dischi ---

@@ -1,0 +1,72 @@
+# SkillFishOS - i pacchetti che fanno di questa immagine il prodotto e non un
+# Debian sid con KDE sopra.
+#
+# Da dove viene l'elenco: sono i pacchetti che risultano installati a mano
+# sulla BC-250 di sviluppo (192.168.5.40), la macchina che cloniamo per fare
+# la release, incrociati con quelli davvero pubblicati nell'archivio
+# (dists/aetherium/main/binary-amd64/Packages.gz). Verificati il 15/08/2026:
+# sono tutti alla versione 26.08.23. Arrivano da config/archives/aetherium.*.
+
+# --- Sistema e hardware BC-250 ---
+# skillfish-base e' il cuore: sblocco 8 core via SMU, watchdog hardware,
+# rilevatore di freeze, campionatore di frequenza GPU, WoL, tabelle ACPI
+# P-state/C-state, blacklist di nct6683 con force=1 su nct6687 (senza la quale
+# il PWM della ventola viene rifiutato in silenzio), aggancio apt che rigenera
+# le voci di ripristino nel menu di avvio.
+skillfish-base
+
+# --- Aspetto ---
+# Tema steampunk: icone, cursori, schema colori, Kvantum, sfondo al primo
+# accesso. Il motore Kvantum arriva da 10-desktop-kde.list.chroot
+# (qt6-style-kvantum), qui c'e' solo il tema.
+skillfish-theme
+# Gruppo "SkillFishOS" nel menu applicazioni: senza, le nostre app finiscono
+# sparpagliate nelle categorie generiche di Plasma.
+skillfish-menu
+
+# --- Applicazioni native ---
+skillfish-monitor
+skillfish-tuner
+skillfish-hub
+skillfish-dashboard
+skillfish-ai-panel
+skillfish-kernel-manager
+skillfish-iso-mount
+
+# --- Sessione di gioco ---
+# Fornisce /usr/share/wayland-sessions/skillfish-gaming.desktop,
+# skillfish-gaming-mode e steamos-session-select.
+skillfish-console
+# Installatore degli emulatori (post-installazione, via flatpak).
+skillfish-emulators
+
+# --- NOTA: skillfishos-kernel NON va qui ---
+# E' un metapacchetto il cui postinst scarica da GitHub e installa
+# linux-image-7.1.7-skillfishos (la variante BC-250, senza suffisso). Il
+# kernel dell'immagine lo mette gia' l'hook 0005, che sceglie la variante
+# -generic dichiarata in auto/config (--linux-flavours
+# "7.1.7-skillfishos-generic"). Metterlo in elenco vorrebbe dire due kernel
+# diversi nella stessa ISO e un apt-mark hold su quello sbagliato.
+
+# --- Dipendenze consigliate che apt qui NON tira dentro da solo ---
+# auto/config imposta --apt-recommends false, quindi i Recommends dei nostri
+# .deb vengono ignorati. Questi sono i Recommends di skillfish-dashboard, e
+# risultano tutti installati sulla BC-250: senza, la dashboard si avvia ma i
+# riquadri corrispondenti restano morti.
+ttyd
+novnc
+websockify
+x11vnc
+ethtool
+wakeonlan
+# Backend snap dell'Hub. Se un domani l'ISO deve dimagrire, questo e' il primo
+# candidato: e' l'unica riga qui dentro che non serve a far funzionare
+# qualcosa, solo ad ampliare il catalogo.
+snapd
+
+# --- Conky ---
+# skillfish-base installa /etc/skel/.config/autostart/skillfish-conky.desktop
+# e la configurazione, ma non dichiara la dipendenza. Sulla BC-250 conky-all
+# risulta installato a mano e nessun altro pacchetto lo tira dentro: se manca,
+# ogni nuovo utente si ritrova un autostart che punta a un binario assente.
+conky-all

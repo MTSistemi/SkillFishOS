@@ -1,7 +1,11 @@
 # --- Kernel ---
-# NOTE: The kernel is NOT installed from apt. The custom linux-tkg 7.0.10
-# (BORE + znver2 + BC-250 patches) .deb is downloaded from the GitHub release
-# MTSistemi/SkillFishOS by hook 0005-install-tkg-kernel.hook.chroot.
+# Qui non si elenca nessun kernel apposta: auto/config ha
+# "--linux-packages none" e il nostro linux-tkg (BORE + znver2 + patch BC-250)
+# arriva come .deb dalla release GitHub MTSistemi/SkillFishOS, installato
+# dall'hook 0005-install-tkg-kernel.hook.chroot.
+# La versione la decide quell'hook (oggi il tag kernel-7.1.7-skillfishos,
+# variante -generic): non va scritta qui, o le due indicazioni divergono come
+# e' gia' successo quando questo commento diceva ancora 7.0.10.
 
 # --- Firmware ---
 firmware-linux-free
@@ -10,21 +14,40 @@ firmware-amd-graphics
 amd64-microcode
 
 # --- Network ---
+# Wi-Fi: si sceglie wpasupplicant, non iwd.
+# wpasupplicant e' un Recommends di network-manager, quindi con
+# "--apt-recommends false" restava fuori e la ISO non aveva Wi-Fi affatto.
+# La scheda di sviluppo 192.168.5.40 ha wpasupplicant installato e
+# wpa_supplicant.service attivo, mentre iwd non e' mai stato installato: iwd
+# era elencato qui ma non corrisponde a niente di collaudato, e per usarlo
+# servirebbe comunque un /etc/NetworkManager/conf.d che imposti wifi.backend.
+# Si tiene quindi il backend che il sistema pubblicato usa davvero.
 network-manager
-iwd
+wpasupplicant
+# wireless-regdb porta regulatory.db: senza, il kernel resta sul dominio
+# normativo minimo e alcuni canali Wi-Fi non sono utilizzabili. La BC-250 non
+# ha Wi-Fi, quindi qui la scheda non puo' fare da riferimento, ma la ISO gira
+# anche su portatili.
+wireless-regdb
+# nmtui: unica via per configurare la rete se la sessione grafica non parte.
+network-manager-tui
 rfkill
 
 # --- Audio (PipeWire stack) ---
+# pipewire-audio e' il metapacchetto che dipende da pipewire-pulse,
+# pipewire-alsa, wireplumber e libspa-0.2-bluetooth: elencarlo al posto dei
+# singoli pezzi evita di dimenticarne uno e garantisce l'audio Bluetooth, che
+# con i soli pacchetti sciolti dipendeva da chi altro tirava libspa-bluetooth.
 pipewire
-pipewire-pulse
-pipewire-alsa
-wireplumber
+pipewire-audio
 pavucontrol
 gstreamer1.0-pipewire
 
 # --- Bluetooth ---
+# L'applet e' bluedevil, in 10-desktop-kde: e' quello nativo di Plasma.
+# blueman era qui, ma e' l'equivalente GTK e in una ISO solo KDE aggiungeva
+# una seconda icona nel vassoio che fa esattamente le stesse cose.
 bluez
-blueman
 
 # --- Filesystem tools ---
 btrfs-progs

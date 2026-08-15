@@ -3,6 +3,11 @@ cups
 cups-browsed
 cups-filters
 system-config-printer
+# cups-pk-helper e' un Recommends: senza, system-config-printer non riesce ad
+# autenticarsi via polkit e aggiungere una stampante fallisce in silenzio.
+# Sulla scheda 192.168.5.40 risulta installato proprio perche' li' i Recommends
+# sono attivi.
+cups-pk-helper
 ipp-usb
 foomatic-db
 printer-driver-cups-pdf

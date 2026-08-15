@@ -7,3 +7,9 @@ apps/iso-mount/** text eol=lf
 apps/**/skillfish-* text eol=lf
 
 system/** text=auto eol=lf
+
+# L'albero live-build finisce su una macchina Linux anche per copia diretta,
+# non solo con git clone. Con i fine riga di Windows auto/config muore alla
+# prima riga (#!/bin/bash seguito da CR) e gli script della ISO escono con lo
+# shebang rotto.
+iso/** text=auto eol=lf

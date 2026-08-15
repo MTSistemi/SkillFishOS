@@ -1,29 +1,63 @@
+# branding.desc - SkillFishOS
+#
+# PERCHE' E' STATO RIALLINEATO
+# Questo file era rimasto alla fase di prototipo: prodotto "SkillFish OS" con lo
+# spazio, numero di versione da prototipo e indirizzi che puntavano a bc250.info,
+# che non e' il sito del progetto. Soprattutto dichiarava come immagine di
+# benvenuto languages.png, un segnaposto 360x200 con la sola scritta bianca su
+# fondo scuro: al posto del logo l'utente si trovava un rettangolo vuoto.
+# Il contenuto qui sotto e' quello che gira davvero sulla BC-250 di sviluppo, in
+# /etc/calamares/branding/skillfish/branding.desc, cioe' la macchina che viene
+# clonata per produrre le immagini: cosi' la ISO di live-build e quella di eggs
+# mostrano la stessa installazione, non due prodotti diversi.
+#
+# ATTENZIONE ALLE VERSIONI
+# version/shortVersion si vedono nel titolo della finestra e nella schermata
+# finale: vanno tenute in passo con VERSION_ID di /etc/os-release. Sulla board le
+# riscrive scripts/set-release-branding.sh; qui vanno cambiate a mano a ogni
+# rilascio. Il numero di versione sta SOLO nelle chiavi qui sotto, mai nei
+# commenti: quello script cerca il numero in tutto il file e segnala come
+# incoerente qualunque occorrenza diversa da quella del rilascio in corso.
 ---
 componentName: skillfish
 
-strings:
-    productName:         "SkillFish OS"
-    version:             "1.0"
-    shortVersion:        "1.0"
-    versionedName:       "SkillFish OS 1.0"
-    shortProductName:    "SkillFish OS"
-    bootloaderEntryName: "SkillFish OS"
-    productUrl:          "https://bc250.info/"
-    supportUrl:          "https://bc250.info/"
-    knownIssuesUrl:      "https://github.com/bc250-collective"
-    releaseNotesUrl:     "https://bc250.info/"
-    donateUrl:           ""
-
 images:
-    productLogo:     "logo.png"
-    productIcon:     "logo.png"
-    productWelcome:  "languages.png"
+  productIcon: logo.png
+  productLogo: logo.png
+  # il pesce steampunk a piena risoluzione, non piu' il segnaposto languages.png
+  productWelcome: welcome.png
 
-slideshow: "show.qml"
+slideshow: show.qml
+# API 2: la presentazione e' un componente vivo e Calamares le chiama
+# onActivate(), che e' il punto in cui show.qml rilegge la lingua scelta.
+# Con l'API 1 quella funzione non verrebbe mai invocata e le diapositive
+# resterebbero in inglese.
 slideshowAPI: 2
 
+strings:
+  bootloaderEntryName: SkillFishOS
+  knownIssuesUrl: https://github.com/MTSistemi/SkillFishOS/issues
+  productName: SkillFishOS
+  productUrl: https://skillfishos.com
+  releaseNotesUrl: https://github.com/MTSistemi/SkillFishOS/releases
+  shortProductName: SkillFishOS
+  shortVersion: '26.06.3'
+  shortVersionedName: SkillFishOS 26.06.3 Aetherium
+  supportUrl: https://skillfishos.com
+  version: '26.06.3'
+  versionedName: SkillFishOS 26.06.3 Aetherium
+
+# Le chiavi dello stile sono ripetute con e senza maiuscola perche' Calamares ha
+# cambiato convenzione fra la 3.2 e la 3.3: tenendole entrambe la barra laterale
+# resta ottone su bruno con qualunque delle due versioni finisca nell'immagine.
 style:
-    sidebarBackground:    "#1e1e2e"
-    sidebarText:          "#cdd6f4"
-    sidebarTextSelect:    "#89b4fa"
-    sidebarTextHighlight: "#89b4fa"
+  SidebarBackground: '#16100a'
+  sidebarBackground: '#16100a'
+  SidebarBackgroundCurrent: '#d8a849'
+  sidebarBackgroundCurrent: '#d8a849'
+  SidebarText: '#f1e3c6'
+  sidebarText: '#f1e3c6'
+  SidebarTextCurrent: '#16100a'
+  sidebarTextCurrent: '#16100a'
+
+welcomeStyleCalamares: false

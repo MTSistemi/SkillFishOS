@@ -1,0 +1,22 @@
+# Variante .chroot: vale mentre live-build popola il chroot, cioe' quando
+# installa 70-skillfish.list.chroot. A fine costruzione live-build la toglie
+# da sola, per questo accanto c'e' anche la variante .binary.
+
+# Archivio APT di SkillFishOS - suite "aetherium", componente "main".
+#
+# Senza questa riga la ISO che esce da qui e' un Debian sid con KDE: il
+# prodotto (tema, sblocco degli 8 core, Monitor, Tuner, Hub, Dashboard,
+# console di gioco, strumenti degli snapshot, traduzioni) vive tutto nei
+# nostri .deb firmati, non nell'albero live-build.
+#
+# La riga e' copiata parola per parola dalla BC-250 di sviluppo
+# (/etc/apt/sources.list.d/skillfishos.sources: URIs, Suites, Components),
+# cioe' dalla macchina che cloniamo per fare la release.
+#
+# Niente [arch=...]: l'archivio pubblica sia binary-amd64 sia binary-i386, e
+# l'hook 0008 abilita i386 per le librerie a 32 bit di Steam. Restringendo
+# l'architettura apt smetterebbe di vedere meta' dell'archivio.
+#
+# Deve restare https: mtsistemi.github.io e' GitHub Pages, che su http
+# risponde solo con un redirect.
+deb https://mtsistemi.github.io/SkillFishOS/ aetherium main

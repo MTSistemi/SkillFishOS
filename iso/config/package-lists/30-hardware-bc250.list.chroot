@@ -12,6 +12,8 @@ spirv-cross
 # --- Sensors ---
 lm-sensors
 
-# --- DKMS (for nct6687 and other out-of-tree modules) ---
-dkms
-build-essential
+# --- DKMS ---
+# dkms e build-essential erano elencati sia qui sia in 00-base. Restano in
+# 00-base perche' non servono solo a nct6687: servono a ricompilare qualunque
+# modulo esterno contro il kernel tkg, che e' una scelta di base, non hardware
+# specifica della BC-250.

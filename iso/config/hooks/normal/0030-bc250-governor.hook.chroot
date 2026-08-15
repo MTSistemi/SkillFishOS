@@ -22,6 +22,11 @@ Wants=graphical.target
 
 [Service]
 Type=simple
+# Guardia hardware: su un PC che non e' una BC-250 il governor non deve
+# nemmeno partire. ExecCondition con esito diverso da zero fa SALTARE
+# l'unita', non fallire, quindi non sporca lo stato dei servizi.
+# scripts/ispeziona-iso.sh boccia le ISO che ne sono prive.
+ExecCondition=/usr/local/bin/skillfish-is-bc250
 ExecStart=/usr/local/bin/cyan-skillfish-governor-smu
 Restart=on-failure
 RestartSec=5
