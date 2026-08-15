@@ -1,17 +1,34 @@
 #!/bin/sh
 # Riscrive kernel e initrd in /boot perche' GRUB riesca a leggerli.
 #
-# PERCHE' SERVE
-# I file scritti da unpackfs durante l'installazione hanno una mappa degli
-# extent che non copre la dimensione dichiarata: mancano gli ultimi byte e
-# l'ultimo extent e' privo del flag `eof`. GRUB legge l'albero degli extent e
-# si ferma li', quindi all'avvio esce "premature end of file" e il sistema non
-# parte. Linux invece il file lo legge lo stesso, per questo il difetto si vede
-# solo al boot. E' la causa della issue #12.
+# LA CAUSA VERA, TROVATA IL 15/08/2026
+# Calamares copia il sistema con `rsync -aHAXSr`. Quella **S** e' `--sparse`:
+# rsync riconosce le lunghe sequenze di zeri e invece di scriverle scava un
+# buco nel file. Il nostro vmlinuz finisce con 512 byte a zero, quindi sul
+# disco arriva con un buco in coda.
 #
-# Riscrivere il file gli restituisce una mappa corretta. Serve
-# --reflink=never: senza, su btrfs la copia riusa gli STESSI extent rotti e non
-# ripara niente.
+# Su btrfs un buco non ha extent. La mappa del file copre 3685 blocchi su
+# 3686, e all'ultimo extent manca il flag `eof`. Linux il file lo legge lo
+# stesso (dove c'e' il buco restituisce zeri, che e' esattamente il contenuto
+# giusto), ma GRUB legge l'albero degli extent, vede che finisce prima della
+# dimensione dichiarata e si ferma:
+#
+#     error: premature end of file /@/boot/vmlinuz-...
+#     error: you need to load the kernel first.
+#
+# ed e' la issue #12: installazione perfetta, sistema che non parte.
+#
+# ⚠️ PERCHE' LA VERSIONE PRECEDENTE NON RIPARAVA NIENTE
+# Riscriveva i file con `cp --reflink=never`, ma senza `--sparse=never`. GNU cp
+# di suo e' "sparse=auto": riconosce il buco nell'originale e lo **riproduce
+# fedelmente** nella copia. Lo script girava, diceva di aver riscritto due file,
+# e lasciava il difetto esattamente com'era. Verificato: dopo la riscrittura la
+# mappa era ancora 3685 blocchi senza `eof`; aggiungendo --sparse=never diventa
+# 3686 con `eof`, e la macchina si avvia.
+#
+# Si vede solo su alcuni file perche' dipende da come finiscono: l'initrd, che
+# non termina con zeri, e' sempre stato a posto. Ed e' un problema solo di
+# btrfs: su ext4 GRUB non usa una mappa di extent fatta cosi'.
 #
 # Sta in uno script invece che dentro il YAML di Calamares perche' il modulo
 # shellprocess espande le variabili $... come proprie e fallisce con
@@ -23,28 +40,60 @@ set -u
 BOOT=/boot
 [ -d "$BOOT" ] || exit 0
 
-changed=0
+# Un file "pieno" occupa almeno tanti settori da 512 quanti ne servono per la
+# sua dimensione. Se ne occupa meno, ha dei buchi: e' il controllo che prima
+# mancava, ed e' il motivo per cui il guasto e' passato inosservato.
+ha_buchi() {
+    _s=$(stat -c%s "$1" 2>/dev/null) || return 1
+    _b=$(stat -c%b "$1" 2>/dev/null) || return 1
+    _servono=$(( (_s + 511) / 512 ))
+    [ "$_b" -lt "$_servono" ]
+}
+
+riscritti=0
+sospetti=0
 for f in "$BOOT"/vmlinuz-* "$BOOT"/initrd.img-*; do
     [ -f "$f" ] || continue
     tmp="$f.sfxnew"
     rm -f "$tmp"
-    if cp --reflink=never --preserve=all "$f" "$tmp" 2>/dev/null; then
-        sync
-        if mv -f "$tmp" "$f" 2>/dev/null; then
-            changed=$((changed + 1))
-        else
-            rm -f "$tmp"
-        fi
+    # --sparse=never e' il punto di tutto lo script: senza, i buchi passano
+    # nella copia e non si ripara niente.
+    if cp --reflink=never --sparse=never --preserve=all "$f" "$tmp" 2>/dev/null; then
+        :
+    elif cat "$f" > "$tmp" 2>/dev/null; then
+        # ripiego per un cp non-GNU: cat scrive tutti i byte, zeri compresi
+        touch -r "$f" "$tmp" 2>/dev/null
+        chmod --reference="$f" "$tmp" 2>/dev/null
     else
-        # se cp non conosce --reflink (non-GNU), ripiega su una copia semplice
-        if cat "$f" > "$tmp" 2>/dev/null; then
-            sync
-            mv -f "$tmp" "$f" 2>/dev/null && changed=$((changed + 1)) || rm -f "$tmp"
-        else
-            rm -f "$tmp"
-        fi
+        rm -f "$tmp"
+        echo "skillfish-fix-boot-extents: non sono riuscito a riscrivere $f" >&2
+        sospetti=$((sospetti + 1))
+        continue
+    fi
+    sync
+    if mv -f "$tmp" "$f" 2>/dev/null; then
+        riscritti=$((riscritti + 1))
+    else
+        rm -f "$tmp"
+        sospetti=$((sospetti + 1))
+        continue
+    fi
+    # Si controlla il risultato invece di darlo per buono: e' proprio la
+    # verifica che mancava, e per mesi lo script ha "funzionato" senza fare
+    # niente.
+    if ha_buchi "$f"; then
+        echo "skillfish-fix-boot-extents: ATTENZIONE, $f ha ancora dei buchi:" >&2
+        echo "   GRUB potrebbe non riuscire ad avviarlo (issue #12)." >&2
+        sospetti=$((sospetti + 1))
     fi
 done
 sync
-echo "skillfish-fix-boot-extents: riscritti $changed file in $BOOT"
+
+echo "skillfish-fix-boot-extents: riscritti $riscritti file in $BOOT"
+if [ "$sospetti" -gt 0 ]; then
+    echo "skillfish-fix-boot-extents: $sospetti file restano sospetti" >&2
+fi
+# Si esce comunque bene: se qui si fallisse, l'installazione morirebbe subito
+# dopo e l'utente si ritroverebbe con meno di quanto ha adesso. Il messaggio
+# sul registro basta a capire cosa e' andato storto.
 exit 0

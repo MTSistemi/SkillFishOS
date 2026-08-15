@@ -12,9 +12,9 @@ cat > /usr/share/applications/calamares.desktop << 'DESKTOP'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install SkillFish OS
+Name=Install SkillFishOS
 GenericName=System Installer
-Comment=Install SkillFish OS to disk
+Comment=Install SkillFishOS to disk
 Exec=pkexec calamares
 Icon=calamares
 Terminal=false
