@@ -103,6 +103,7 @@ script:
       grub-install --target=x86_64-efi --efi-directory=/boot/efi
       --removable --recheck || true
     - update-grub || true
+    - /usr/local/bin/skillfish-clean-live-autologin || true
 """
 
 # --- 1b. partizionamento predefinito: btrfs con swap su file --------------

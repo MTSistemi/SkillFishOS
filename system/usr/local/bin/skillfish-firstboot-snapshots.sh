@@ -90,9 +90,22 @@ snapper --no-dbus -c root set-config $LIMITI >/dev/null 2>&1 || true
 
 # 3. enable the snapshot services on the installed system
 # Niente snapper-timeline.timer: la linea temporale e' spenta apposta.
-systemctl enable --now snapperd.service snapper-cleanup.timer \
-  grub-btrfsd.service >/dev/null 2>&1 || true
+systemctl enable --now snapperd.service snapper-cleanup.timer >/dev/null 2>&1 || true
 systemctl disable --now snapper-timeline.timer >/dev/null 2>&1 || true
+
+# grub-btrfsd resta SPENTO, apposta (issue #29).
+# Dovrebbe aggiornare da solo le voci di ripristino nel menu di avvio, e non lo
+# fa: su una 26.06.3 installata in macchina virtuale scriveva a ogni avvio
+#   grub-btrfsd: [!] Error during grub menu creation (grub/ grub-btrfs error)
+# e lo snapshot PRE-aggiornamento non compariva nel menu, cioe' mancava proprio
+# quando serve. Il menu lo rigeneriamo noi con skillfish-snapshot-menu, chiamato
+# dall'hook apt 99-skillfish-snapshots e qui sotto al primo avvio: il generatore
+# funziona, il problema era solo chi lo chiamava.
+# Lo si maschera invece di limitarsi a disabilitarlo perche' un aggiornamento del
+# pacchetto grub-btrfs lo riabiliterebbe, e ci ritroveremmo l'errore a ogni avvio
+# senza capire da dove arriva.
+systemctl disable --now grub-btrfsd.service >/dev/null 2>&1 || true
+systemctl mask grub-btrfsd.service >/dev/null 2>&1 || true
 
 # 4. first restore point + regenerate GRUB so grub-btrfs shows it
 snapper --no-dbus -c root create -d "SkillFishOS - clean install" >/dev/null 2>&1 || true

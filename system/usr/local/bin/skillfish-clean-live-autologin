@@ -1,0 +1,80 @@
+#!/bin/bash
+# Toglie dal sistema appena installato l'accesso automatico dell'utente live.
+#
+# IL PROBLEMA (issue #28)
+# L'immagine live entra da sola nel desktop come utente "live". Quella
+# configurazione sta in /etc/sddm.conf.d/ dentro il squashfs, e Calamares copia
+# il squashfs sul disco: sul sistema installato ci finisce pari pari, ma l'utente
+# "live" li' non esiste. Risultato, a ogni avvio:
+#
+#   sddm-helper: pam_unix(sddm-autologin:account): could not identify user
+#                (from getpwnam(live))
+#
+# Misurato su una installazione pulita della 26.06.3 in macchina virtuale:
+# /etc/sddm.conf.d/autologin.conf con User=live, e l'unico utente vero era
+# quello creato in installazione.
+#
+# COME DECIDE COSA TOGLIERE
+# Non si va per nome di file, che cambia tra una versione e l'altra di eggs e di
+# live-config. Si guarda il contenuto: se una sezione [Autologin] nomina un
+# utente che in /etc/passwd non c'e', quella configurazione e' spazzatura
+# ereditata dalla live e va via. Se invece l'utente esiste, e' una scelta di chi
+# ha installato (in Calamares si puo' spuntare l'accesso automatico) e non si
+# tocca: cancellarla sarebbe peggio del problema che stiamo risolvendo.
+set -u
+export LC_ALL=C
+
+RADICE="${1:-}"                       # per le prove: una radice alternativa
+SDDMD="$RADICE/etc/sddm.conf.d"
+SDDMC="$RADICE/etc/sddm.conf"
+PASSWD="$RADICE/etc/passwd"
+
+esiste_utente() {
+    [ -n "$1" ] && cut -d: -f1 "$PASSWD" 2>/dev/null | grep -qx "$1"
+}
+
+# l'utente nominato in [Autologin], se c'e'
+utente_di() {
+    awk '
+        /^\[/                { dentro = ($0 ~ /^\[Autologin\]/) }
+        dentro && /^[[:space:]]*User[[:space:]]*=/ {
+            sub(/^[^=]*=[[:space:]]*/, ""); gsub(/[[:space:]]+$/, ""); print; exit
+        }
+    ' "$1" 2>/dev/null
+}
+
+tolti=0
+
+for f in "$SDDMD"/*.conf; do
+    [ -f "$f" ] || continue
+    u=$(utente_di "$f")
+    [ -n "$u" ] || continue
+    if esiste_utente "$u"; then
+        echo "skillfish: $(basename "$f") accede come '$u', che esiste: lo lascio"
+    else
+        rm -f "$f"
+        tolti=$((tolti + 1))
+        echo "skillfish: tolto $(basename "$f"): accesso automatico per '$u', utente inesistente"
+    fi
+done
+
+# /etc/sddm.conf a volte resta con una sezione [Autologin] monca, scritta da
+# live-config: niente utente, solo la sessione. Non fa danni ma confonde chi
+# legge, e SDDM ci prova comunque.
+if [ -f "$SDDMC" ]; then
+    u=$(utente_di "$SDDMC")
+    if [ -n "$u" ] && ! esiste_utente "$u"; then
+        sed -i '/^\[Autologin\]/,/^\[/{ /^\[Autologin\]/d; /^User[[:space:]]*=/d; /^Session[[:space:]]*=/d; /^Relogin[[:space:]]*=/d }' "$SDDMC"
+        tolti=$((tolti + 1))
+        echo "skillfish: ripulita la sezione [Autologin] di sddm.conf (utente '$u' inesistente)"
+    elif [ -z "$u" ] && grep -q '^\[Autologin\]' "$SDDMC" 2>/dev/null; then
+        sed -i '/^\[Autologin\]/,/^\[/{ /^\[Autologin\]/d; /^Session[[:space:]]*=/d; /^Relogin[[:space:]]*=/d }' "$SDDMC"
+        tolti=$((tolti + 1))
+        echo "skillfish: ripulita la sezione [Autologin] senza utente in sddm.conf"
+    fi
+fi
+
+if [ "$tolti" -eq 0 ]; then
+    echo "skillfish: nessun accesso automatico da ripulire"
+fi
+exit 0
