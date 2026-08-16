@@ -60,7 +60,12 @@
 #       sudo bash slim-iso.sh --dry    mostra soltanto
 set -u
 
-EXCL=/etc/penguins-eggs.d/exclude.list
+# ⚠️ NON /etc/penguins-eggs.d/exclude.list: eggs lo RIGENERA dal proprio
+# modello a ogni produce, e quello che ci si aggiunge sparisce. Verificato
+# il 16/08/2026 nel modo peggiore: le regole c'erano, il file risultava
+# giusto, e nella ISO prodotta il codice escluso c'era ancora. I file di
+# exclude.list.d/ invece eggs li concatena e sopravvivono.
+EXCL=/etc/penguins-eggs.d/exclude.list.d/skillfish.list
 DRY=0
 [ "${1:-}" = "--dry" ] && DRY=1
 

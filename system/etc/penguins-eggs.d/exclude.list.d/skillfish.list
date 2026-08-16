@@ -1,0 +1,61 @@
+# Esclusioni di SkillFishOS per le immagini prodotte con eggs.
+#
+# ⚠️ QUESTO E' IL FILE GIUSTO. NON scrivere in /etc/penguins-eggs.d/exclude.list:
+# eggs lo RIGENERA dal proprio modello a ogni `produce`, e tutto quello che ci
+# si aggiunge sparisce. Verificato il 16/08/2026 nel modo peggiore: le regole
+# per il codice di terzi erano state scritte li', il file risultava corretto
+# subito dopo, e nella ISO prodotta il codice c'era ancora. eggs concatena
+# invece i file di exclude.list.d/, e questi sopravvivono.
+#
+# I percorsi sono relativi alla radice, senza barra iniziale.
+
+# --- Roba pesante e di servizio ---------------------------------------------
+opt/stacks/skillfish-ai/ollama_data/*
+opt/stacks/skillfish-ai/openwebui_data/*
+var/lib/docker/*
+var/lib/waydroid/*
+var/cache/apt/archives/*.deb
+.snapshots/*
+
+# --- Identita' della macchina di build: non deve essere clonata --------------
+# Le chiavi host di ssh, se restassero, sarebbero le stesse su ogni
+# installazione al mondo. Le rigenera skillfish-sshd-keygen al primo avvio.
+etc/ssh/ssh_host_*
+etc/systemd/system/multi-user.target.wants/ssh.service
+etc/sddm.conf.d/10-skillfish.conf
+
+# --- L'account personale, con giochi, ROM, Steam, modelli e profilo Chrome ---
+# L'utente della live viene creato da zero a partire da /etc/skel.
+home/skillfish/*
+home/skillfish/.*
+
+# --- Segnaposto "gia' fatto" della macchina di build -------------------------
+# Sono file che dicono "questo lavoro e' gia' stato svolto". Clonati dentro
+# un'immagine mentono a ogni macchina che la installa.
+var/lib/skillfish/.snapshots-setup-done
+# ⚠️ E questo e' peggio degli altri: la sua presenza ACCENDE lo sblocco degli
+# 8 core, che costa un riavvio a ogni accensione a freddo. Sulla scheda di
+# sviluppo c'e' apposta, perche' li' gli 8 core li vogliamo; in un'immagine
+# vorrebbe dire accenderli a tutti senza che nessuno li abbia chiesti, che e'
+# esattamente il difetto della issue #31 preso dalla parte opposta.
+etc/skillfish/core-unlock.abilitato
+
+# --- Codice di terzi senza licenza: non si ridistribuisce --------------------
+# bc250_memcfg non ha licenza e l'autore attribuisce lui stesso il sorgente
+# iniziale a un terzo: nessuno puo' concederla a posteriori. Al suo posto c'e'
+# skillfish-memcfg, riscritto da noi, GPL-3.0, dentro skillfish-base, che il
+# tuner-helper preferisce gia'. bc250-cu-ref deriva dallo stesso progetto.
+opt/bc250_memcfg/*
+opt/bc250-cu-ref/*
+root/bc250_memcfg/*
+
+# --- Ambiente di sviluppo sulla scheda: non e' prodotto ----------------------
+opt/aider-venv/*
+opt/dockge/*
+opt/realesrgan/*
+
+# ⚠️ COSA NON VA ESCLUSO, e perche' (per chi un giorno vorra' snellire):
+#   opt/umr           senza, skillfish-cu non fa assolutamente niente
+#   opt/google        e' Chrome, che e' prodotto
+#   opt/bench         il Tuner ci cerca vkpeak per il benchmark GPU
+#   opt/bc250_smu_oc  MIT, ridistribuibile, e serve all'overclock
