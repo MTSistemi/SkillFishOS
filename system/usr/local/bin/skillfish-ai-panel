@@ -7,7 +7,7 @@
 #  - First-run wizard: installs/starts the stack and lets you pick a model.
 #  - Model manager (also after the wizard): list installed, pull new, set active.
 #  - Live hardware panel: GPU + CPU model, VRAM and RAM available.
-#  - GTT slider: tune how much system RAM the GPU/LLM may use (amdgpu.gttsize).
+#  - GTT slider: tune how much system RAM the GPU/LLM may use (ttm.pages_limit).
 #  - On the generic OS build the GPU is auto-detected (unknown hardware).
 # shutil e urllib.request servivano solo al vecchio stack Ollama: shutil.which
 # per cercare docker, urllib per interrogare la sua API sulla 11434. Rimossi
