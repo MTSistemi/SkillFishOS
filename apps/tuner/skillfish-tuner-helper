@@ -520,6 +520,46 @@ def thermal_guard(limit):
     sh("systemctl daemon-reload; systemctl enable --now skillfish-thermal-guard.service")
     return True
 
+SEGNAPOSTO_CORE = "/etc/skillfish/core-unlock.abilitato"
+
+
+def core_unlock_get():
+    """Stato dello sblocco degli 8 core (6c/12t -> 8c/16t).
+
+    Lo sblocco non e' piu' automatico dal 16/08/2026: scrive la maschera SMU e
+    poi RIAVVIA, e una accensione a freddo la azzera, quindi il riavvio si
+    ripete a ogni avvio da spenta. Sulla ISO rilasciata partiva da solo anche
+    nella live e uccideva l'installazione a meta'. Adesso decide l'utente.
+    """
+    # niente shell: sched_getaffinity conta i thread davvero ONLINE, che e'
+    # esattamente il numero che l'utente vede (12 bloccato, 16 sbloccato)
+    try:
+        n = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        n = os.cpu_count() or 0
+    return {"ok": True,
+            "abilitato": os.path.exists(SEGNAPOSTO_CORE),
+            "thread": n,
+            "supportato": os.path.exists("/sys/bus/pci/devices/0000:00:00.0/config")}
+
+
+def core_unlock_set(on):
+    """Accende o spegne lo sblocco. Ha effetto dal prossimo avvio."""
+    try:
+        if on:
+            os.makedirs("/etc/skillfish", exist_ok=True)
+            _wr(SEGNAPOSTO_CORE,
+                "# La presenza di questo file accende lo sblocco degli 8 core.\n"
+                "# Lo gestisce SkillFishOS Tuner.\n")
+        elif os.path.exists(SEGNAPOSTO_CORE):
+            os.remove(SEGNAPOSTO_CORE)
+    except OSError as e:
+        return {"ok": False, "err": str(e)}
+    d = core_unlock_get()
+    d["riavvio"] = True
+    return d
+
+
 def handle(req):
     c=req.get("cmd")
     if c=="ping": return {"ok":True}
@@ -536,6 +576,8 @@ def handle(req):
     if c=="cpu-cores": return cpu_cores_get()
     if c=="cpu-cores-set": return cpu_cores_set(req.get("cores",[]))
     if c=="cpu-smt": return cpu_smt_set(bool(req.get("on",True)))
+    if c=="core-unlock": return core_unlock_get()
+    if c=="core-unlock-set": return core_unlock_set(bool(req.get("on",False)))
     if c=="cu-test": return cu_test()
     if c=="thermal-guard": return {"ok":thermal_guard(req["limit"])}
     if c=="test-cpu": return test_cpu(req["mhz"],req["scale"],req["temp"])
