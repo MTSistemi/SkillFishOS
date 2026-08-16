@@ -57,6 +57,23 @@ for S in $SERVIZI; do
         continue
     fi
 
+    # ⚠️ Lo sblocco degli 8 core si abilita SOLO se l'unita' presente
+    # nell'immagine sa fermarsi da sola. I file arrivano dal .deb pubblicato,
+    # non dal nostro albero: se skillfish-base e' piu' vecchio delle guardie,
+    # abilitarlo vorrebbe dire costruire una ISO che riavvia la scheda durante
+    # l'installazione. Non si perde niente a lasciarlo spento: dal 16/08/2026
+    # lo sblocco e' comunque su richiesta.
+    if [ "$S" = "skillfish-core-unlock.service" ]; then
+        U=$(find /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system \
+                 -maxdepth 1 -name "$S" -type f 2>/dev/null | head -1)
+        if ! grep -q 'ConditionKernelCommandLine=!boot=live' "$U" 2>/dev/null; then
+            echo "[servizi] $S NON abilitato: l'unita' nell'immagine e' anteriore"
+            echo "[servizi] alle guardie del 16/08 e riavvierebbe la scheda anche"
+            echo "[servizi] dalla live. Serve un skillfish-base ripubblicato."
+            continue
+        fi
+    fi
+
     systemctl enable "$S" >/dev/null 2>&1 || true
 
     # La verifica e' il punto di tutto il gancio: `systemctl enable` puo'
