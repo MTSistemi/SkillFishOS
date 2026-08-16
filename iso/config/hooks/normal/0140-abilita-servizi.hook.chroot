@@ -23,6 +23,12 @@
 # semplicemente spenta, e nessuno se ne sarebbe accorto guardando il codice,
 # perche' il codice e' giusto.
 #
+# ⚠️ skillfish-core-unlock viene ABILITATO ma di serie NON PARTE: dal 16/08 e'
+# subordinato al segnaposto /etc/skillfish/core-unlock.abilitato, che crea
+# SkillFishOS Tuner quando l'utente lo chiede. Un'unita' abilitata e ferma per
+# condizione e' lo stato giusto, non un difetto: cosi' basta creare il file per
+# accenderlo, senza dover anche abilitare il servizio.
+#
 # I servizi hardware hanno gia' la loro guardia (ExecCondition con
 # skillfish-is-bc250): abilitarli su un computer che non e' una BC-250 non fa
 # danni, l'unita' viene semplicemente saltata.

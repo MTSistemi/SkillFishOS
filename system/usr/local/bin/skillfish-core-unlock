@@ -26,6 +26,36 @@ if os.geteuid() != 0:
 if not os.path.exists(CFG):
     sys.exit(0)  # not a BC-250 / no PCI root complex
 
+# --- Le due guardie decise il 16/08/2026 -------------------------------------
+# Lo sblocco funziona scrivendo la maschera e poi RIAVVIANDO: e' il modo in cui
+# la scheda rilegge la presenza dei core. Sono due condizioni gia' scritte
+# anche nell'unita' systemd; qui si ripetono perche' prima o poi qualcuno
+# lancera' questo script a mano, ed e' proprio allora che i guasti fanno male.
+#
+# 1. MAI da live. Nella live il riavvio arrivava pochi secondi dopo
+#    l'accensione e, se capitava durante l'installazione, la faceva morire a
+#    meta'. Segnalato da un utente sulla 26.06.3: "l'installer crasha e la
+#    board si riavvia una volta al primo avvio" - due sintomi, un fatto solo.
+try:
+    if "boot=live" in open("/proc/cmdline").read().split():
+        sys.stderr.write("skillfish-core-unlock: sessione live, non tocco i core "
+                         "(il riavvio ucciderebbe l'installazione)\n")
+        sys.exit(0)
+except OSError:
+    pass
+
+# 2. Solo se l'utente l'ha chiesto. Una accensione a freddo azzera la maschera,
+#    quindi la macchina si riavvia una volta a OGNI avvio da spenta: e' un
+#    prezzo che ha senso pagare, ma dev'essere una scelta, non una sorpresa.
+#    Il segnaposto lo crea SkillFishOS Tuner. Con --adesso si salta il
+#    controllo, ed e' proprio quello che fa il Tuner quando l'utente accende
+#    l'interruttore e non vuole aspettare il prossimo avvio.
+SEGNAPOSTO = "/etc/skillfish/core-unlock.abilitato"
+if "--adesso" not in sys.argv and not os.path.exists(SEGNAPOSTO):
+    sys.stderr.write("skillfish-core-unlock: sblocco non attivato "
+                     "(manca %s) - si accende da SkillFishOS Tuner\n" % SEGNAPOSTO)
+    sys.exit(0)
+
 fd = os.open(CFG, os.O_RDWR)
 
 

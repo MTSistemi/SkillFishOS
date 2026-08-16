@@ -1,11 +1,32 @@
 [Unit]
-Description=SkillFishOS — unlock the 2 disabled BC-250 CPU cores (8c/16t)
+Description=SkillFishOS - sblocca i 2 core disattivati della BC-250 (8c/16t)
 Documentation=https://github.com/rw-r-r-0644/bc250-core-unlock
 DefaultDependencies=no
 After=sysinit.target
 Before=basic.target cyan-skillfish-governor.service
 Conflicts=shutdown.target
 ConditionPathExists=/sys/bus/pci/devices/0000:00:00.0/config
+
+# ⚠️ MAI DENTRO UNA SESSIONE LIVE (16/08/2026)
+# Lo sblocco funziona scrivendo la maschera e poi RIAVVIANDO la macchina: e' il
+# modo in cui la BC-250 rilegge la presenza dei core. Nella live questo voleva
+# dire che la scheda si riavviava da sola pochi secondi dopo l'accensione e, se
+# capitava mentre Calamares stava copiando, **l'installazione moriva a meta'**.
+# Segnalato da un utente sulla 26.06.3: "l'installer crasha e la board si
+# riavvia una volta al primo avvio". Erano due sintomi dello stesso fatto.
+#
+# In macchina virtuale non si e' mai visto: la scrittura SMU li' fallisce, lo
+# script esce con 1 e non riavvia. Ecco perche' tutte le nostre prove
+# passavano e il guasto colpiva solo l'hardware vero.
+ConditionKernelCommandLine=!boot=live
+
+# ⚠️ E SOLO SE L'UTENTE L'HA CHIESTO
+# Lo sblocco non e' gratis: una accensione a freddo azzera la maschera, quindi
+# la macchina si riavvia una volta a ogni avvio da spenta. E' un prezzo che ha
+# senso pagare, ma deve essere una scelta consapevole, non una sorpresa al
+# primo avvio di un sistema appena installato.
+# Il segnaposto lo crea SkillFishOS Tuner.
+ConditionPathExists=/etc/skillfish/core-unlock.abilitato
 
 [Service]
 Type=oneshot
