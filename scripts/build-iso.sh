@@ -174,11 +174,21 @@ DAPARTE=/root/.identita-macchina
 
 # Cartelle che non devono uscire di casa, per due motivi diversi.
 #
-# Licenza: bc250_memcfg non ha licenza e l'autore attribuisce lui stesso il
-# sorgente iniziale a un terzo; bc250-cu-ref deriva dallo stesso progetto. Al
-# loro posto c'e' skillfish-memcfg, nostro e GPL-3.0, che il Tuner preferisce
-# gia'. Ambiente di sviluppo: aider-venv, dockge, realesrgan sono roba della
-# scheda, non prodotto.
+# Licenza: bc250-cu-ref deriva da un progetto senza licenza e qui non si perde
+# niente a toglierlo, perche' skillfish-cu e' nostro e lavora con umr.
+#
+# ⚠️ bc250_memcfg NON e' in questa lista, ed e' una scelta consapevole. Non ha
+# licenza - gliela abbiamo chiesta e aspettiamo risposta - ma e' l'unico modo
+# che c'e' oggi per cambiare lo split della RAM, cioe' per dare memoria all'AI.
+# skillfish-memcfg, che avevamo scritto per sostituirlo, SCRIVE il blocco CMOS
+# correttamente ma il firmware lo rimette identico al riavvio (misurato il
+# 15/08): quel blocco e' dove il firmware SCRIVE, non da dove legge. Togliere
+# una funzione che funziona per rimpiazzarla con una che non funziona sarebbe
+# una regressione con una buona motivazione. La via d'uscita e' scrivere
+# qualcosa di nostro che funzioni davvero, non togliere e basta.
+#
+# Ambiente di sviluppo: aider-venv, dockge, realesrgan sono roba della scheda,
+# non prodotto.
 #
 # ⚠️ Perche' non bastano le regole di esclusione: mksquashfs riceve un solo
 # file (-ef /etc/penguins-eggs.d/exclude.list) e eggs quel file lo rigenera dal
@@ -187,7 +197,6 @@ DAPARTE=/root/.identita-macchina
 # le regole scritte in entrambi i posti, nella ISO /opt/bc250_memcfg aveva
 # ancora 48 file dentro.
 FUORI_IMMAGINE="
-/opt/bc250_memcfg
 /opt/bc250-cu-ref
 /opt/aider-venv
 /opt/dockge

@@ -45,9 +45,7 @@ etc/skillfish/core-unlock.abilitato
 # iniziale a un terzo: nessuno puo' concederla a posteriori. Al suo posto c'e'
 # skillfish-memcfg, riscritto da noi, GPL-3.0, dentro skillfish-base, che il
 # tuner-helper preferisce gia'. bc250-cu-ref deriva dallo stesso progetto.
-opt/bc250_memcfg/*
 opt/bc250-cu-ref/*
-root/bc250_memcfg/*
 
 # --- Ambiente di sviluppo sulla scheda: non e' prodotto ----------------------
 opt/aider-venv/*
