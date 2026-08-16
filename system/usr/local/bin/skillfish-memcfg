@@ -53,7 +53,19 @@ import time
 
 PORTA_INDICE = 0x72          # banco alto della CMOS estesa
 PORTA_DATO = 0x73
-FIRMA = b"CMSB"
+# Il campo firma e' un dialogo col firmware, non un'etichetta. Noi scriviamo
+# APCB per dire "applica questa richiesta"; il firmware risponde sovrascrivendo
+# con l'esito. Leggerlo dopo un riavvio e' l'unico modo di sapere se ci ha dato
+# retta - ed e' un riscontro che lo strumento di riferimento non offre.
+FIRMA_RICHIESTA = b"APCB"
+FIRME = {
+    b"APCB": "richiesta da applicare (scritta da uno strumento, non ancora letta dal firmware)",
+    b"$ABL": "richiesta ACCETTATA dal firmware",
+    b"CMSB": "il firmware considera la CMOS non valida e usa i predefiniti",
+    b"CHKE": "il firmware ha rifiutato: checksum sbagliato",
+    b"SIGE": "il firmware ha rifiutato: firma non riconosciuta",
+    b"WDTF": "il watchdog e' scattato: avvio precedente non riuscito",
+}
 AREA = (0x80, 0x100)         # dove cercare la firma
 PAYLOAD = (6, 0x1C)          # rispetto alla firma: byte coperti dal checksum
 OFF_CHECKSUM = 4
@@ -69,8 +81,12 @@ BACKUP = "/var/lib/skillfish/memcfg"
 LUCCHETTO = "/run/lock/skillfish-memcfg.lock"
 
 # Nomi in ordine, per la sola lettura. Sono dati di fatto pubblici.
-TIMING = ["tCL", "tRCDRD", "tRCDWR", "tRP", "tRAS", "tRC", "tRFC", "tRRDS",
-          "tRRDL", "tFAW", "tWTRS", "tWTRL", "tWR", "tRTP", "tCWL"]
+# 12 byte singoli da 0x98 a 0xA3, e POI tre parole da 16 bit. Prima erano
+# elencati come 15 byte consecutivi e i valori stampati erano inventati: quello
+# che chiamavamo tWR era il byte basso di tREF.
+TIMING_BYTE = ["tCL", "tRAS", "tRCDRD", "tRCDWR", "tRCAb", "tRCPb",
+               "tRPAb", "tRPPb", "tRRDS", "tRRDL", "tRTP", "tFAW"]
+TIMING_WORD = [("tREF", 0x14), ("RFCPb", 0x16), ("tRFC", 0x18)]
 
 
 class Cmos:
@@ -158,10 +174,14 @@ def trova_blocco(dati, base_area):
     """Cerca la firma invece di dare per scontato che stia a 0x90: le versioni
     di firmware della BC-250 non sono tutte uguali, e un indirizzo cablato e' il
     genere di cosa che si rompe in silenzio sulla macchina di qualcun altro."""
-    i = dati.find(FIRMA)
-    if i < 0:
-        return None
-    return base_area + i
+    # Il blocco sta a 0x90 su tutti i firmware visti finora, ma la firma cambia
+    # a seconda di come e' finito l'ultimo avvio: cercarne UNA sola voleva dire
+    # non trovare piu' il blocco appena ci scrivevamo dentro la nostra.
+    for firma in FIRME:
+        i = dati.find(firma)
+        if i >= 0:
+            return base_area + i
+    return None
 
 
 def somma16(dati):
@@ -187,10 +207,16 @@ def leggi_config(cmos):
         "checksum_ok": dichiarato == calcolato,
         "timing": {},
     }
-    for n, nome in enumerate(TIMING):
+    # I dodici byte singoli, e poi le tre parole da 16 bit. Leggerle tutte come
+    # byte consecutivi - com'era prima - restituiva numeri che non esistono:
+    # il byte basso di tREF spacciato per tWR.
+    for n, nome in enumerate(TIMING_BYTE):
         p = 8 + n
         if p < len(blocco):
             cfg["timing"][nome] = blocco[p]
+    for nome, off in TIMING_WORD:
+        if off + 1 < len(blocco):
+            cfg["timing"][nome] = int.from_bytes(blocco[off:off + 2], "little")
     return cfg, grezzo, blocco
 
 
@@ -307,10 +333,20 @@ def cmd_set(args):
     # interrompe a meta' — un blackout, un kernel che va in panico — il blocco
     # resta con un checksum che non torna, cioe' nello stato che il firmware
     # dovrebbe scartare, invece che con dati a meta' dichiarati validi.
+    # ⚠️ LA FIRMA E' IL PUNTO DI TUTTO. Senza APCB il firmware legge il proprio
+    # rapporto d'errore e ricostruisce i predefiniti: e' quello che e' successo
+    # il 15/08, quando scrivevamo solo checksum e UMA e al riavvio ritrovavamo
+    # il blocco identico. Si riscrivono tutti e 28 i byte, come fa lo strumento
+    # di riferimento: se si copia un comportamento che funziona, lo si copia
+    # intero.
+    nuovo[0:4] = FIRMA_RICHIESTA
+
     cmos.scrivi(base + OFF_CHECKSUM, 0xFF)
     cmos.scrivi(base + OFF_CHECKSUM + 1, 0xFF)
-    cmos.scrivi(base + OFF_UMA, nuovo[OFF_UMA])
-    cmos.scrivi(base + OFF_UMA + 1, nuovo[OFF_UMA + 1])
+    for i in range(len(nuovo)):
+        if i in (OFF_CHECKSUM, OFF_CHECKSUM + 1):
+            continue
+        cmos.scrivi(base + i, nuovo[i])
     cmos.scrivi(base + OFF_CHECKSUM, atteso & 0xFF)
     cmos.scrivi(base + OFF_CHECKSUM + 1, (atteso >> 8) & 0xFF)
 
@@ -327,7 +363,35 @@ def cmd_set(args):
 
     cmos.chiudi()
     print("UMA_SIZE=%d" % args.mb)
+    print("Firma scritta: APCB (richiesta da applicare).")
     print("Il valore si applica al prossimo avvio: la memoria si assegna all'accensione.")
+    print("Dopo il riavvio, `skillfish-memcfg stato` dice se il firmware ha accettato.")
+    return 0
+
+
+def cmd_stato(args):
+    """Dice se il firmware ha accettato l'ultima richiesta.
+
+    E' l'informazione che finora non avevamo: dopo un riavvio la firma non e'
+    piu' quella che abbiamo scritto noi, e' la risposta. Senza leggerla, un
+    tentativo fallito e uno riuscito si assomigliano.
+    """
+    cmos = Cmos(sola_lettura=True)
+    cfg, _, blocco = leggi_config(cmos)
+    cmos.chiudi()
+    if cfg is None:
+        sys.exit("skillfish-memcfg: blocco di configurazione non trovato")
+    firma = bytes(blocco[0:4])
+    print("firma      : %s" % firma.decode("ascii", "replace"))
+    print("significato: %s" % FIRME.get(firma, "sconosciuta"))
+    print("UMA_SIZE   : %d MB" % cfg["uma_size_mb"])
+    print("checksum   : %s" % ("torna" if cfg["checksum_ok"] else "NON torna"))
+    if firma == b"APCB":
+        print("La richiesta non e' ancora passata dal firmware: manca un riavvio.")
+    elif firma == b"$ABL":
+        print("Il firmware ha applicato la richiesta.")
+    elif firma in (b"CHKE", b"SIGE"):
+        print("Il firmware ha RIFIUTATO la richiesta e ne ha detto il motivo.")
     return 0
 
 
@@ -375,6 +439,9 @@ def main():
     s.add_argument("--forza", action="store_true",
                    help="accetta valori non confermati e salta la guardia hardware")
     s.set_defaults(func=cmd_set)
+
+    st = sub.add_parser("stato", help="dice se il firmware ha accettato l'ultima richiesta")
+    st.set_defaults(func=cmd_stato)
 
     b = sub.add_parser("backup", help="salva su file il blocco grezzo")
     b.add_argument("file")

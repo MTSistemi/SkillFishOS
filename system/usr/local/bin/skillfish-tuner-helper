@@ -237,8 +237,26 @@ def fan_set(mode,pct):
     except Exception: return True,0
 
 def set_vram(mb):
+    """Cambia la memoria riservata alla GPU. Ha effetto al prossimo avvio.
+
+    ⚠️ Ogni strumento ha la SUA sintassi giusta: il nostro skillfish-memcfg
+    vuole `set 4096`, quello di terzi vuole `UMA_SIZE 4096`. Chiamare il
+    secondo con la sintassi del primo non da' errore: non riconosce gli
+    argomenti, non scrive niente ed esce con 0. Cosi' rispondevamo "fatto" su
+    un lavoro mai svolto.
+    """
     if not os.path.exists(MEMCFG): return False
-    return sh("%s set %d"%(MEMCFG,max(256,int(mb)))).returncode==0
+    mb = max(256, int(mb))
+    nostro = MEMCFG.endswith("skillfish-memcfg")
+    cmd = "%s set %d" % (MEMCFG, mb) if nostro else "%s UMA_SIZE %d" % (MEMCFG, mb)
+    if sh(cmd).returncode != 0:
+        return False
+    # E si rilegge: il codice di uscita dice che il programma non e' morto,
+    # non che il valore sia cambiato.
+    letto = sh("%s %s" % (MEMCFG, "get" if nostro else "")).stdout or ""
+    import re as _re
+    m = _re.search(r"UMA_SIZE\s*[=:]?\s*(\d+)", letto)
+    return bool(m) and int(m.group(1)) == mb
 
 def cu_test():
     """Health-test each extra CU pair (WGP3-4 on every SE/SH) for the silicon
