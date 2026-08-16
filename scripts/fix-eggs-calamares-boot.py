@@ -94,7 +94,8 @@ timeout: 900
 script:
     - chmod 644 /boot/vmlinuz-`uname -r`
     - chown 0:0 /boot/vmlinuz-`uname -r`
-    - INITRD=No dpkg-reconfigure -fnoninteractive linux-image-`uname -r`
+    - INITRD=No dpkg-reconfigure -fnoninteractive linux-image-`uname -r` || true
+    - test -s /boot/initrd.img-`uname -r` || update-initramfs -c -k `uname -r`
     - /usr/local/bin/skillfish-fix-boot-extents
     - >-
       grub-install --target=x86_64-efi --efi-directory=/boot/efi
@@ -398,7 +399,12 @@ def verify():
             print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
         with open(path, encoding="utf-8") as f:
             t = f.read()
-        miss = [k for k in ("skillfish-fix-boot-extents", "--removable", "update-grub") if k not in t]
+        # ⚠️ Qui prima si cercavano tre stringhe che c'erano comunque, quindi il
+        #    controllo passava anche quando mancava la correzione che conta.
+        #    Un controllo che non puo' fallire non e' un controllo.
+        miss = [k for k in ("skillfish-fix-boot-extents", "--removable", "update-grub",
+                            "dpkg-reconfigure -fnoninteractive linux-image-`uname -r` || true",
+                            "update-initramfs -c -k") if k not in t]
         if miss:
             print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
         else:

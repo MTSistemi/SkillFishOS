@@ -1004,6 +1004,24 @@ class TunerWindow(QMainWindow):
         self.smt_cb.toggled.connect(self._cpu_smt)
         if not st.get("smt"): self.smt_cb.setEnabled(False)
         pr.addWidget(self.smt_cb)
+
+        # Sblocco degli 8 core: spento di serie dal 16/08/2026. Sulla ISO
+        # rilasciata partiva da solo e riavviava la scheda anche nella live,
+        # uccidendo l'installazione a meta'. Qui l'utente sceglie, sapendo
+        # quanto costa.
+        cu = self.d.cmd(cmd="core-unlock") or {}
+        self.core8_cb = QCheckBox(L("8 core", "8 cores"))
+        self.core8_cb.setChecked(bool(cu.get("abilitato")))
+        self.core8_cb.setToolTip(L(
+            "Sblocca i 2 core che la BC-250 tiene spenti (6c/12t diventa 8c/16t).\n\n"
+            "Costa un riavvio in piu' a ogni accensione da spenta: e' il modo in cui\n"
+            "la scheda rilegge quanti core ha. Ha effetto dal prossimo avvio.",
+            "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\n"
+            "Costs one extra reboot on every cold start: that is how the board\n"
+            "re-reads how many cores it has. Takes effect from the next boot."))
+        self.core8_cb.toggled.connect(self._core8)
+        if not cu.get("supportato"): self.core8_cb.setEnabled(False)
+        pr.addWidget(self.core8_cb)
         pr.addWidget(self._help_btn("cpucores"))
         pr.addStretch(1)
         ba = QPushButton(L("Applica", "Apply")); ba.clicked.connect(self._apply_cpu_cores); pr.addWidget(ba)
@@ -1037,6 +1055,16 @@ class TunerWindow(QMainWindow):
         else:
             self.toast(L("SMT: %s", "SMT: %s") % res.get("err", "errore"), 6)
         self._cpu_update_count()
+
+    def _core8(self, on):
+        res = self.d.cmd(cmd="core-unlock-set", on=bool(on)) or {}
+        if res.get("ok"):
+            self.toast(L("Sblocco 8 core %s. Ha effetto al prossimo riavvio.",
+                         "8-core unlock %s. Takes effect on next reboot.")
+                       % (L("acceso", "on") if on else L("spento", "off")), 6)
+        else:
+            self.toast(L("Sblocco 8 core: %s", "8-core unlock: %s")
+                       % res.get("err", "errore"), 6)
 
     def _apply_cpu_cores(self):
         req = [{"core": k, "online": bool(v)} for k, v in self.cpu_want.items()]

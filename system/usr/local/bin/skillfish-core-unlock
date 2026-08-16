@@ -51,7 +51,12 @@ except OSError:
 #    controllo, ed e' proprio quello che fa il Tuner quando l'utente accende
 #    l'interruttore e non vuole aspettare il prossimo avvio.
 SEGNAPOSTO = "/etc/skillfish/core-unlock.abilitato"
-if "--adesso" not in sys.argv and not os.path.exists(SEGNAPOSTO):
+# ⚠️ --maschera deve passare di qui: e' di sola lettura e serve al postinst
+#    del pacchetto proprio sulle macchine che il segnaposto NON ce l'hanno,
+#    per capire se stavano gia' usando gli 8 core e non spegnerglieli sotto
+#    il naso. Prima non era escluso, quindi la migrazione non scattava mai.
+if ("--adesso" not in sys.argv and "--maschera" not in sys.argv
+        and not os.path.exists(SEGNAPOSTO)):
     sys.stderr.write("skillfish-core-unlock: sblocco non attivato "
                      "(manca %s) - si accende da SkillFishOS Tuner\n" % SEGNAPOSTO)
     sys.exit(0)
