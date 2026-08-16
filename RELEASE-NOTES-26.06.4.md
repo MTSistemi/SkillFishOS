@@ -4,8 +4,44 @@ A maintenance respin of the 26.06 "Aetherium" release for the AMD BC-250. Two ed
 **BC-250** (`7.1.7-skillfishos`, znver2) and **Generic** (`7.1.7-skillfishos-generic`,
 any x86-64 PC or VM). Boots in English; the language is chosen at install.
 
-This respin is mostly about **languages** and about **things that were quietly broken
-outside Italian and English** — including a few we only found because we went looking.
+This respin started out being about **languages**. It ended up being about an installer
+that could not finish on real hardware, and about three guards that were watching the
+wrong thing. Both stories are below; the second one matters more if you are on 26.06.3.
+
+## The installer no longer reboots your board
+
+If you tried to install 26.06.3 on a real BC-250 and it failed, this is why — and it was our fault.
+
+`skillfish-core-unlock` unlocks the two disabled CPU cores by writing the SMU core-presence mask and then **rebooting**: that is how the board re-reads how many cores it has, and a cold power-off reverts the mask, so the reboot happens on every cold start. Nothing stopped it from doing this **inside the live session**. The board rebooted a few seconds after start-up and, if that landed while Calamares was copying, the installation died. One cause, both symptoms.
+
+We never caught it because every install test ran in a VM, where the SMU write fails, the script exits and never reboots. The code path that breaks real hardware is exactly the one a virtual machine cannot execute.
+
+**The 8-core unlock is now off by default and opt-in.** SkillFishOS Tuner gained an *8 cores* switch in the CPU section; the tooltip states the cost up front (one extra reboot per cold start). Upgrading does not take the cores away from anyone who was already using them: if the mask is already unlocked, the package keeps it that way.
+
+*Already on 26.06.3 and stuck?* `sudo apt update && sudo apt upgrade` fixes the installed system. To get **past the installer** on the old media, press <kbd>e</kbd> at the boot menu and add `systemd.mask=skillfish-core-unlock.service` to the `linux` line.
+
+## Installing on Btrfs actually works now
+
+26.06.3 could install onto Btrfs and then refuse to boot:
+
+```
+error: premature end of file /@/boot/vmlinuz-...
+error: you need to load the kernel first.
+```
+
+Calamares copies the system with `rsync -aHAXS**S**` — that `S` is `--sparse`, so runs of zeros become holes. Our kernel image ends with 512 zero bytes, so it landed with a hole at the tail; on Btrfs a hole has no extent, the map stops one block short of the declared size, and GRUB stops there. Linux reads the file fine, which is why nothing looked wrong.
+
+We had shipped a repair for this in 26.06.3 — and it repaired nothing. It rewrote the files with `cp --reflink=never` but without `--sparse=never`, and GNU `cp` faithfully reproduces the hole. The check in CI that was meant to catch a regression searched for a string present in the broken version too, so it passed either way. Code, changelog and CI confirmed each other for six days.
+
+Fixed, and the repair now verifies its own work: if a file still occupies fewer sectors than its size requires, it says so.
+
+## Also fixed
+
+- **SSH failed on every fresh install** (`sshd: no hostkeys available`). Host keys are deliberately stripped from the image — otherwise every installation on earth would share the same keys — but the service that regenerates them was not enabled. Five more services were in the same state, including the GPU clock sampler and Wake-on-LAN.
+- **A third-party sensor module could abort the whole installation.** `nct6687d` failed to build, `dpkg-reconfigure` returned non-zero, and Calamares gave up — before writing the bootloader. A temperature sensor is not a good reason to refuse to install an operating system.
+- **The `nct6687` fan/sensor module now builds.** Its `Kbuild` file was never copied, so `make` walked the directory, found nothing to compile and exited *successfully* while DKMS reported failure.
+- **The initrd is compressed with zstd**, not gzip: `zstd` was simply missing from the image.
+- **Third-party code without a licence is no longer shipped.** `bc250_memcfg` and `bc250-cu-ref` are out of the image; the memory-split tool is now our own `skillfish-memcfg` (GPL-3.0).
 
 ## Now genuinely in four languages
 

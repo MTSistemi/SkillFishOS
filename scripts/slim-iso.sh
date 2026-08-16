@@ -234,7 +234,7 @@ fi
 
 echo
 echo "=== controllo che le cose che servono NON siano state escluse ==="
-for keep in /root/bc250_smu_oc /root/bc250_memcfg /root/bench; do
+for keep in /root/bc250_smu_oc /root/bench; do
     if [ -e "$keep" ]; then
         echo "   $keep resta nell'immagine (serve al Tuner)"
     else
