@@ -143,6 +143,10 @@ esac
 # nella PR #26.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
+# Il menu di avvio: titolo in inglese, e Safe/Text Mode che fanno davvero
+# qualcosa invece di essere copie della voce normale. Sta qui perche' i file
+# appartengono al pacchetto penguins-eggs e un suo aggiornamento li riscrive.
+python3 "$SCRIPT_DIR/fix-eggs-menu-avvio.py"
 RC=$?
 echo "fix GRUB rc=$RC"
 if [ $RC -ne 0 ]; then
@@ -213,6 +217,10 @@ IDENTITA="
 "
 
 rimetti_identita() {
+    # ⚠️ PRIMA l'igiene: e' quella che tiene da parte l'identita' ZeroTier, le
+    # chiavi Bluetooth, la chiave di firma DKMS e l'hash di root di Mattia. Se
+    # il produce muore a meta' e questa non gira, la scheda resta monca.
+    bash "$SCRIPT_DIR/igienizza-immagine.sh" ripristina 2>&1 | sed 's/^/   /'
     for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
         mkdir -p "$(dirname "$f")"
@@ -240,11 +248,38 @@ echo "   (identita' della macchina, codice di terzi senza licenza, ambiente di s
 # l'installazione. Il vecchio file difettoso accanto a quello corretto e' il
 # modo migliore per far perdere mezza giornata a chi ci mettera' le mani.
 # Sono tutte copie di file che stanno in git: cancellarle non perde niente.
-scarti=$(find /etc /usr/local -name '*.skfbak' 2>/dev/null | wc -l)
-if [ "$scarti" -gt 0 ]; then
-    find /etc /usr/local -name '*.skfbak' -delete 2>/dev/null
-    echo "cancellati $scarti file di backup che non devono entrare nell'immagine"
+# --- igiene: fuori tutto quello che appartiene a QUESTA macchina ------------
+# I .skfbak li gestisce ora igienizza-immagine.sh insieme a tutto il resto, e li
+# SPOSTA invece di cancellarli: non si perde niente e la scheda torna com'era.
+#
+# Cosa copre, e perche' e' nata (16/08/2026, aprendo le immagini gia' fatte):
+#   identita' privata ZeroTier   chi installava diventava un nodo della rete
+#                                privata di Mattia, con la sua chiave
+#   chiave API Unsloth           dentro dashboard.json, vera, pubblicata
+#   chiave di firma DKMS         uguale per tutti: firma moduli che il Secure
+#                                Boot di chiunque accetta
+#   chiavi Bluetooth             accoppiamenti e MAC dei suoi dispositivi
+#   hash password di root        della scheda di sviluppo
+#   800 MB di journal            i registri della sua macchina
+# Gli stessi file sono anche nella 26.06.3 pubblicata: non e' una regressione,
+# e' che non aveva mai guardato nessuno.
+bash "$SCRIPT_DIR/igienizza-immagine.sh" applica 2>&1 | sed 's/^/   /'
+
+# controprova prima di comprimere: se un segreto e' ancora li', non si produce
+resti=0
+for s in /var/lib/zerotier-one/identity.secret /var/lib/dkms/mok.key \
+         /var/lib/bluetooth /var/log/journal; do
+    [ -e "$s" ] && { echo "IGIENE FALLITA: $s e' ancora al suo posto"; resti=1; }
+done
+grep -q '^root:[^!*]' /etc/shadow && { echo "IGIENE FALLITA: root ha ancora una password"; resti=1; }
+grep -q 'unsloth_api_key": ""' /etc/skillfish/dashboard.json 2>/dev/null || {
+    echo "IGIENE FALLITA: dashboard.json ha ancora una chiave API"; resti=1; }
+if [ "$resti" = 1 ]; then
+    echo "FAIL-IGIENE" > "$ST"
+    echo "==== FALLITA: non produco un'immagine con dentro roba della scheda ===="
+    exit 1
 fi
+echo "igiene: controprova superata, nessun segreto della scheda nell'immagine"
 
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
