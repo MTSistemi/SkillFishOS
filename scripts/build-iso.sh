@@ -152,6 +152,53 @@ if [ $RC -ne 0 ]; then
 fi
 
 rm -f /home/eggs/mnt/*.iso 2>/dev/null
+
+# --- l'identita' della macchina di build resta fuori dall'immagine -----------
+# eggs clona questa scheda, e con lei si porterebbe dietro la chiave privata
+# della dashboard, il suo certificato e il segreto delle sessioni: ogni
+# installazione fatta da quella ISO avrebbe gli STESSI. E' lo stesso problema
+# delle chiavi host di ssh, che escludiamo da sempre; a questi non ci aveva
+# pensato nessuno, e sono dentro anche alle ISO 26.06.x gia' pubblicate.
+#
+# Piu' i due segnaposto, che sono bugie: dicono a ogni macchina che installa
+# l'immagine che un lavoro e' gia' stato fatto quando non e' vero.
+# core-unlock.abilitato in particolare ACCENDE lo sblocco degli 8 core, cioe'
+# la issue #31 ripresa dalla parte opposta.
+#
+# ⚠️ Non si usa una regola di exclude.list perche' su un FILE singolo non
+# morde: le regole di eggs funzionano solo se finiscono con /*. La prova e'
+# che .snapshots-setup-done era escluso da mesi ed era comunque nell'immagine.
+# Qui si sposta e si rimette: deterministico, e il trap lo garantisce anche se
+# la costruzione fallisce a meta'.
+DAPARTE=/root/.identita-macchina
+IDENTITA="
+/etc/skillfish/core-unlock.abilitato
+/etc/skillfish/dashboard-key.pem
+/etc/skillfish/dashboard-cert.pem
+/etc/skillfish/dashboard.secret
+/etc/skillfish/dashboard.json.pre-key
+/var/lib/skillfish/.snapshots-setup-done
+"
+
+rimetti_identita() {
+    for f in $IDENTITA; do
+        [ -e "$DAPARTE/$(basename "$f")" ] || continue
+        mkdir -p "$(dirname "$f")"
+        mv -f "$DAPARTE/$(basename "$f")" "$f"
+    done
+    rmdir "$DAPARTE" 2>/dev/null || true
+}
+trap rimetti_identita EXIT INT TERM
+
+mkdir -p "$DAPARTE"
+tolti=0
+for f in $IDENTITA; do
+    [ -e "$f" ] || continue
+    mv -f "$f" "$DAPARTE/$(basename "$f")"
+    tolti=$((tolti + 1))
+done
+echo "identita' della macchina messa da parte: $tolti file"
+
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
 echo "produce rc=$RC"
