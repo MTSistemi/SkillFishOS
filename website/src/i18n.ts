@@ -22,25 +22,26 @@ const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk };
 export const SITE = {
   github: "https://github.com/MTSistemi/SkillFishOS",
   domain: "skillfishos.com",
-  // 26.06.3 "Aetherium" — due edizioni (la Slim non si pubblica piu' come immagine:
+  // 26.06.4 "Aetherium" — due edizioni (la Slim non si pubblica piu' come immagine:
   // non dava vantaggi, il kernel slim resta nel repository). Su SourceForge.
   isoUrl:
-    "https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso/download",
+    "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download",
   isoUrlGeneric:
-    "https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso/download",
-  // I .torrent li ospitiamo noi: sono 25 KB, e cosi' il torrent parte anche se
-  // SourceForge e' lento o irraggiungibile. Dentro hanno i mirror SourceForge
-  // come sorgente HTTP, quindi si scarica anche senza nessun peer.
+    "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download",
+  // ⚠️ TORRENT RITIRATI il 16/08/2026 insieme alle immagini 26.06.x: quelle
+  // immagini contenevano file privati della macchina di costruzione. Quando
+  // ci sara' un torrent della 26.06.4 questi campi tornano pieni; finche'
+  // sono vuoti la sezione torrent non viene disegnata.
   torrentBc250:
-    "/torrent/SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso.torrent",
+    "",
   torrentGeneric:
-    "/torrent/SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso.torrent",
+    "",
   magnetBc250:
-    "magnet:?xt=urn:btih:7368d63d0393d9ba0929bbbec9d3004a520152d2&dn=SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce",
+    "",
   magnetGeneric:
-    "magnet:?xt=urn:btih:480f13d00c99fce742832f97fbd9b463bebb3a83&dn=SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce",
+    "",
   isoFilesUrl:
-    "https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/",
+    "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/",
   isoSizeGb: "4.7",
   repoUrl: "https://mtsistemi.github.io/SkillFishOS",
   // Donations — PayPal personal QR for Mattia Tadini (scan-to-pay). The "managed QR"
@@ -253,10 +254,10 @@ export const strings: Record<string, Entry> = {
     en: 'Got an idea, or is something missing? Requests are welcome: write from the <a href="/en/contact">contact</a> page or open a discussion on GitHub. Building what someone actually needs beats guessing well.',
   },
   "nav.news": { it: "Novità", en: "News" },
-  "dl.badge": { it: "26.06.3 «Aetherium»", en: "26.06.3 “Aetherium”" },
+  "dl.badge": { it: "26.06.4 «Aetherium»", en: "26.06.4 “Aetherium”" },
   "dl.notice": {
-    it: "La release <strong>26.06.3 «Aetherium»</strong> di SkillFishOS è disponibile in <strong>due edizioni</strong>: <strong>BC-250</strong> (la scheda AMD) e <strong>Generic</strong> (qualsiasi PC o VM x86-64). Complete e pronte all'uso. Progetto <strong>open-source</strong>.",
-    en: "The <strong>26.06.3 “Aetherium”</strong> release of SkillFishOS comes in <strong>two editions</strong>: <strong>BC-250</strong> (the AMD board) and <strong>Generic</strong> (any x86-64 PC or VM). Complete and ready to use. <strong>Open-source</strong> project.",
+    it: "La release <strong>26.06.4 «Aetherium»</strong> di SkillFishOS è disponibile in <strong>due edizioni</strong>: <strong>BC-250</strong> (la scheda AMD) e <strong>Generic</strong> (qualsiasi PC o VM x86-64). Complete e pronte all'uso. Progetto <strong>open-source</strong>.",
+    en: "The <strong>26.06.4 “Aetherium”</strong> release of SkillFishOS comes in <strong>two editions</strong>: <strong>BC-250</strong> (the AMD board) and <strong>Generic</strong> (any x86-64 PC or VM). Complete and ready to use. <strong>Open-source</strong> project.",
   },
   "dl.btnsoon": { it: "ISO in arrivo", en: "ISO coming soon" },
   "dl.btn": { it: "Scarica la ISO", en: "Download the ISO" },
@@ -295,8 +296,8 @@ export const strings: Record<string, Entry> = {
     en: "amd64 · ~{size} GB · btrfs + KDE Plasma · 2 editions on SourceForge",
   },
   "dl.ver": {
-    it: "Versione <strong>26.06.3 «Aetherium»</strong> · <strong>2 edizioni</strong> (BC-250 · Generic) · parte in inglese, lingua selezionabile in installazione",
-    en: "Version <strong>26.06.3 “Aetherium”</strong> · <strong>2 editions</strong> (BC-250 · Generic) · boots in English, language selectable at install",
+    it: "Versione <strong>26.06.4 «Aetherium»</strong> · <strong>2 edizioni</strong> (BC-250 · Generic) · parte in inglese, lingua selezionabile in installazione",
+    en: "Version <strong>26.06.4 “Aetherium”</strong> · <strong>2 editions</strong> (BC-250 · Generic) · boots in English, language selectable at install",
   },
   "dl.bugs.h": { it: "Hai trovato un problema?", en: "Found a problem?" },
   "dl.bugs.d": {

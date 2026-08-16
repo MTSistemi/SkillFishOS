@@ -92,9 +92,9 @@ export const uk: Record<string, string> = {
   "dl.h2": 'Завантажте SkillFish<span class="gold-text">OS</span>',
   "dl.sub":
     "Готові до встановлення образи ISO — для AMD BC-250 і будь-якого ПК x86-64.",
-  "dl.badge": "26.06.3 «Aetherium»",
+  "dl.badge": "26.06.4 «Aetherium»",
   "dl.notice":
-    "Реліз <strong>26.06.3 «Aetherium»</strong> системи SkillFishOS доступний у <strong>двох редакціях</strong>: <strong>BC-250</strong> (плата AMD) і <strong>Generic</strong> (будь-який ПК або ВМ x86-64). Повні й готові до використання. Проєкт із <strong>відкритим кодом</strong>.",
+    "Реліз <strong>26.06.4 «Aetherium»</strong> системи SkillFishOS доступний у <strong>двох редакціях</strong>: <strong>BC-250</strong> (плата AMD) і <strong>Generic</strong> (будь-який ПК або ВМ x86-64). Повні й готові до використання. Проєкт із <strong>відкритим кодом</strong>.",
   "dl.btnsoon": "ISO незабаром",
   "dl.btn": "Завантажити ISO",
   "dl.ed.bc250": "BC-250",
@@ -104,7 +104,7 @@ export const uk: Record<string, string> = {
   "dl.size":
     "amd64 · ~{size} ГБ · btrfs + KDE Plasma · 2 редакції на SourceForge",
   "dl.ver":
-    "Версія <strong>26.06.3 «Aetherium»</strong> · <strong>2 редакції</strong> (BC-250 · Generic) · стартує англійською, мову обираєте під час встановлення",
+    "Версія <strong>26.06.4 «Aetherium»</strong> · <strong>2 редакції</strong> (BC-250 · Generic) · стартує англійською, мову обираєте під час встановлення",
   "dl.bugs.h": "Знайшли проблему?",
   "dl.bugs.d":
     "SkillFishOS постійно вдосконалюється. Щоб повідомити про помилку, створіть <em>issue</em> на GitHub. (Незабаром додамо й адресу електронної пошти.)",

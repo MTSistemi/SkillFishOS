@@ -13,6 +13,9 @@ const comm = [
   { i: 'idea', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
 ];
 ---
+{/* I torrent sono ritirati finche' non ne pubblichiamo uno della 26.06.4:
+    la sezione si disegna solo se l'indirizzo c'e' davvero. */}
+{SITE.torrentBc250 && (<>
 <section class="hero" style="padding-bottom:30px">
   <div class="wrap">
     <div class="soon"><span class="dot"></span><span>{t('dl.badge', lang)}</span></div>
@@ -69,6 +72,7 @@ const comm = [
     <p class="sub" style="margin-top:24px;color:var(--gold-lt)" set:html={t('dl.notice', lang)} />
   </div>
 </section>
+</>)}
 
 <section class="features" style="padding-top:30px">
   <div class="wrap">
