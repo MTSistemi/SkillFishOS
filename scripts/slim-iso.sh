@@ -103,6 +103,22 @@ root/.viminfo
 home/*/.ssh/*
 home/*/.bash_history
 home/*/.python_history
+# --- Codice di terzi senza licenza: non puo' stare in un'immagine che
+# --- distribuiamo. Al posto di bc250_memcfg c'e' skillfish-memcfg, nostro e
+# --- GPL-3.0, dentro skillfish-base.
+opt/bc250_memcfg/*
+opt/bc250_memcfg
+opt/bc250-cu-ref/*
+opt/bc250-cu-ref
+root/bc250_memcfg/*
+root/bc250_memcfg
+# --- Il mio ambiente di sviluppo sulla scheda: non e' prodotto.
+opt/aider-venv/*
+opt/aider-venv
+opt/dockge/*
+opt/dockge
+opt/realesrgan/*
+opt/realesrgan
 EOF
 
 echo "=== quello che togliamo DAVVERO dall'immagine ==="
