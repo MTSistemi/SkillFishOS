@@ -20,8 +20,7 @@ Measured on the board with Qwen3‑1.7B Q4_K_M:
 By default TTM caps GPU‑addressable memory. SkillFishOS raises it on the kernel cmdline:
 
 ```
-ttm.pages_limit=4194304 ttm.page_pool_size=4194304   # ~16 GB
-amdgpu.gttsize=5120                                   # GTT, in MiB
+ttm.pages_limit=1572864 ttm.page_pool_size=1572864   # GTT ceiling: 4 KiB pages, so 1572864 = 6 GiB
 ```
 
 With this, Vulkan sees **~13 GiB** (UMA VRAM + GTT) instead of just the VRAM split — enough to fit large models entirely on the GPU. All memory is the same GDDR6, so GTT runs at VRAM speed (no PCIe hop).

@@ -18,7 +18,7 @@ no VNC password — VNC is `-nopw` LAN-only, autologin has no stored password).
 | `etc/systemd/system/*` | services: dp-hotswap, bc250-smu-oc (CPU OC), cyan-skillfish-governor (+`after-oc` drop-in), thermal-guard, docker ACL drop-in |
 | `etc/systemd/logind.conf.d/` | **anti-suspend** (`IdleAction=ignore`) — pair with `systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target` |
 | `etc/cyan-skillfish-governor/config.toml`, `etc/bc250-smu-oc.conf` | GPU safe-points (2000 MHz) + CPU OC (3700 MHz) |
-| `etc/default/grub` | kernel cmdline (mitigations=off, 40-CU, gttsize, ttm, video=DP-1:e) |
+| `etc/default/grub` | kernel cmdline (mitigations=off, 40-CU, ttm.pages_limit for the GTT, video=DP-1:e) |
 | `etc/sddm.conf.d/` | autologin skillfish → `plasmax11`, Relogin, brass theme |
 | `etc/NetworkManager/NetworkManager.conf` | `[ifupdown] managed=true` (enp4s0 visible in GUI) |
 | `etc/xdg/kcm-about-distrorc`, `etc/os-release`, `usr/lib/os-release`, `etc/issue` | branding (SkillFishOS, skillfishos.com) |

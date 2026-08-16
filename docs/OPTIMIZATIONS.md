@@ -79,8 +79,12 @@ Adds `amdgpu.bc250_cc_write_mode=3` to the kernel cmdline → `active_cu_number`
 All memory is shared GDDR6, so the split can be managed from the OS:
 
 - **UMA VRAM** is set in the BIOS CMOS via [`bc250_memcfg`](https://github.com/fanoush/bc250_memcfg) (persistent, battery‑backed; needs a reboot). The Tuner exposes this.
-- **GTT** is raised with `amdgpu.gttsize=` on the cmdline so the GPU can address far more than the UMA VRAM.
-- **TTM** page limits are raised (`ttm.pages_limit` / `ttm.page_pool_size`) so Vulkan can see the full pool — essential for running large LLMs on the GPU. See [AI.md](AI.md).
+- **GTT** is raised with `ttm.pages_limit` / `ttm.page_pool_size` on the cmdline. Those are counted in 4 KiB
+  pages, so 1572864 = 6 GiB, and that number *is* the GTT ceiling: the GPU can address far more than the UMA
+  VRAM, which is what makes large LLMs fit on the GPU. See [AI.md](AI.md).
+- `amdgpu.gttsize=` used to be the knob for this and is **deprecated since kernel 7.x**. When both are set the
+  driver obeys `gttsize`, says so at every boot, and warns again if the two numbers disagree — which they did
+  here (6 GiB of GTT under a 16 GiB TTM ceiling, on a board with 7.5 GiB of RAM). We now set only TTM.
 
 ---
 

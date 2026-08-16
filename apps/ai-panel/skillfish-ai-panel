@@ -295,16 +295,33 @@ def gtt_info():
     if d:
         tot = _read_int(os.path.join(d, "mem_info_gtt_total"))
         used = _read_int(os.path.join(d, "mem_info_gtt_used"))
-    # current boot value of amdgpu.gttsize (MB)
-    cur_mb = None
+    cur_mb, leva = gtt_richiesto()
+    return tot, used, cur_mb, leva
+
+
+def gtt_richiesto():
+    """Quanto GTT chiede la riga di avvio, e con quale leva.
+
+    Si rispecchia la regola del driver, non se ne inventa un'altra: se c'e'
+    amdgpu.gttsize ed e' diverso da -1 comanda lui (deprecato, ma su un sistema
+    non ancora aggiornato e' ancora il valore che vale), altrimenti il GTT sono
+    le pagine da 4 KiB di ttm.pages_limit. Leggerne una sola voleva dire
+    mostrare un numero che non era quello in vigore.
+    """
+    tok = {}
     try:
         with open("/proc/cmdline") as f:
-            for tok in f.read().split():
-                if tok.startswith("amdgpu.gttsize="):
-                    cur_mb = int(tok.split("=", 1)[1])
+            for pezzo in f.read().split():
+                if "=" in pezzo:
+                    k, v = pezzo.split("=", 1)
+                    tok[k] = v
     except Exception:
-        pass  # best-effort: cmdline unreadable
-    return tot, used, cur_mb
+        return None, None  # best-effort: cmdline unreadable
+    if tok.get("amdgpu.gttsize", "").isdigit():
+        return int(tok["amdgpu.gttsize"]), "amdgpu.gttsize"
+    if tok.get("ttm.pages_limit", "").isdigit():
+        return int(tok["ttm.pages_limit"]) // 256, "ttm.pages_limit"
+    return None, None
 
 def ram_info():
     tot = avail = None
@@ -593,7 +610,7 @@ class Panel(QMainWindow):
         else:
             self.l_vram.setText(L("n/d (GPU non-AMD o VRAM condivisa)", "n/a (non-AMD GPU or shared VRAM)"))
         rt, ra = ram_info(); self.l_ram.setText(f"{gb(ra)} {L('libera','free')} / {gb(rt)}")
-        gt, gu, cur = gtt_info()
+        gt, gu, cur, leva = gtt_info()
         rt2, _ = ram_info(); vr2 = vram_info()
         # GTT draws on system RAM -> cap the slider at total RAM minus headroom for the OS
         ram_gb = int(rt2 / 1e9) if rt2 else 14
@@ -602,7 +619,7 @@ class Panel(QMainWindow):
         parts = []
         if budget is not None: parts.append(L("budget modello ≈ %s", "model budget ≈ %s") % (gb(budget),))
         if gt is not None: parts.append(f"GTT {gb(gt)}")
-        if cur is not None: parts.append(f"amdgpu.gttsize={cur} MB")
+        if cur is not None: parts.append(L("richiesti %d MB (%s)", "requested %d MB (%s)") % (cur, leva))
         self.gtt_lbl.setText("  ·  ".join(parts) if parts else L("non disponibile su questa GPU", "not available on this GPU"))
         if cur is not None:
             self.gtt.blockSignals(True); self.gtt.setValue(max(2, min(smax, round(cur/1024)))); self.gtt.blockSignals(False)

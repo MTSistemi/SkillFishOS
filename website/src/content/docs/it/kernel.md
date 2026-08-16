@@ -23,17 +23,15 @@ La riga di comando del kernel è configurata così, e ogni parametro ha un motiv
 
 ```
 mitigations=off
-amdgpu.gttsize=6144
-ttm.pages_limit=4194304
-ttm.page_pool_size=4194304
+ttm.pages_limit=1572864
+ttm.page_pool_size=1572864
 video=DP-1:e
 ```
 
 | Parametro | Cosa fa |
 |---|---|
 | `mitigations=off` | disattiva le mitigazioni Spectre/Meltdown per massimizzare le prestazioni (scelta accettabile su una console di casa) |
-| `amdgpu.gttsize=6144` | estende il GTT → Vulkan vede ~13 GiB di memoria (utile per l'AI) |
-| `ttm.pages_limit` / `ttm.page_pool_size` | alzano i limiti del gestore di memoria TTM coerentemente col GTT ampliato |
+| `ttm.pages_limit` / `ttm.page_pool_size` | il tetto del GTT, contato in pagine da 4 KiB: 1572864 = 6 GiB, così fra VRAM e GTT Vulkan vede ~13 GiB (utile per l'AI). Prima si usava `amdgpu.gttsize`, che dal kernel 7.x è deprecato: se ci sono tutti e due comanda lui e il kernel lo segnala a ogni avvio |
 | `video=DP-1:e` | **forza l'abilitazione** del connettore DisplayPort (l'HPD è rotto, vedi [hardware](/docs/hardware-bc250)) |
 
 > **Compute Unit a caldo.** SkillFishOS **non** usa più il parametro `amdgpu.bc250_cc_write_mode=3` (che bloccava 40 CU al boot e impediva i cambi a runtime). Ora il sistema parte alla baseline driver (24 CU) e un servizio instrada le **40 CU a caldo** all'avvio; puoi cambiarle senza riavvio dal [Tuner](/docs/app-native). Vedi [GPU e overclock](/docs/gpu-overclock).

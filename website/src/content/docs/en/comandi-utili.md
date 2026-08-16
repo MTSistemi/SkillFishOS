@@ -65,7 +65,7 @@ sysbench cpu run      # CPU stress/benchmark
 ## Unified memory (VRAM/GTT)
 
 ```bash
-cat /proc/cmdline | tr ' ' '\n' | grep -E 'gttsize|ttm'   # GTT/TTM params
+cat /proc/cmdline | tr ' ' '\n' | grep -E 'ttm\.'   # GTT/TTM params
 glxinfo | grep -i "memory"                                 # memory seen by the driver
 free -h                                                     # shared RAM/GDDR6
 ```

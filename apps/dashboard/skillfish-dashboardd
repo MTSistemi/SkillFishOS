@@ -1036,8 +1036,37 @@ def _cmdline_param(name):
     return None
 
 
+GTT_PREDEFINITO_MB = 6144
+
+
+def _ram_mb():
+    try:
+        with open("/proc/meminfo") as f:
+            m = re.search(r"MemTotal:\s+(\d+)", f.read())
+            return int(m.group(1)) // 1024 if m else 0
+    except Exception:
+        return 0
+
+
+def _gtt_cap_mb():
+    """Il tetto del GTT che comanda davvero, in MB.
+
+    Stessa regola del driver: amdgpu.gttsize se c'e' e non e' -1 (deprecato dal
+    kernel 7.x), altrimenti ttm.pages_limit, che sono pagine da 4 KiB. Prima si
+    leggeva solo il primo, quindi su un sistema aggiornato la dashboard diceva
+    che il GTT non era configurato mentre invece lo era.
+    """
+    v = _cmdline_param("amdgpu.gttsize")
+    if (v or "").isdigit():
+        return int(v)
+    v = _cmdline_param("ttm.pages_limit")
+    if (v or "").isdigit():
+        return int(v) // 256
+    return None
+
+
 def ai_tune_status():
-    gtt_cap = _cmdline_param("amdgpu.gttsize")
+    gtt_cap = _gtt_cap_mb()
     swap_mb = 0
     try:
         with open("/proc/meminfo") as f:
@@ -1049,9 +1078,14 @@ def ai_tune_status():
     # In Unsloth quei parametri stanno dentro Studio e non li tocchiamo da qui:
     # restano le leve di sistema, il cap della GTT e lo swap. I campi vuoti li
     # teniamo perche' il frontend li legge.
-    recs = ["gtt_unlock"] if gtt_cap else []
+    # Si consiglia di alzare il GTT solo se c'e' davvero margine da guadagnare:
+    # sotto il mezzo giga non vale un riavvio. Prima lo si consigliava sempre,
+    # anche quando il tetto era gia' al massimo che la RAM consente.
+    ram = _ram_mb()
+    margine = (ram - 1024 - gtt_cap) if (ram and gtt_cap) else 0
+    recs = ["gtt_unlock"] if margine >= 512 else []
     return {"ok": True, "engine": "unsloth",
-            "gtt_cap_mb": int(gtt_cap) if (gtt_cap or "").isdigit() else gtt_cap,
+            "gtt_cap_mb": gtt_cap,
             "swap_mb": swap_mb, "kv_cache": "", "context": "",
             # Con Unsloth la GPU la usa llama.cpp col backend Vulkan.
             "vulkan": True, "flash_attention": None,
@@ -1069,20 +1103,21 @@ def ai_tune_apply(action):
         if action == "context":
             return {"ok": False, "error": "non implementato qui"}
         if action in ("gtt_unlock", "gtt_restore"):
-            with open(GRUB_F) as f:
-                txt = f.read()
-            if action == "gtt_unlock":
-                new = re.sub(r"\s*amdgpu\.gttsize=\d+", "", txt)
-            else:
-                if "amdgpu.gttsize=" not in txt:
-                    new = re.sub(r'(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*)"',
-                                 r"\1 amdgpu.gttsize=6144\"", txt, count=1)
-                else:
-                    new = txt
-            if new != txt:
-                with open(GRUB_F, "w") as f:
-                    f.write(new)
-                _grub_update()
+            # ⚠️ Prima "unlock" toglieva amdgpu.gttsize e basta. Con
+            # ttm.pages_limit=4194304 in riga di avvio quel gesto non liberava
+            # niente: portava il tetto del GTT a 16 GB su una scheda che di RAM
+            # ne ha 7,5, cioe' toglieva la rete invece di dare memoria. Adesso
+            # si passa da skillfish-gtt, che scrive una leva sola, si rifiuta di
+            # superare la RAM e rimette la riga di prima se non torna.
+            ram = _ram_mb()
+            mb = (ram - 1024) if action == "gtt_unlock" else GTT_PREDEFINITO_MB
+            if mb < 512:
+                return {"ok": False, "error": "RAM insufficiente per il GTT"}
+            r = subprocess.run(["skillfish-gtt", str(mb)],
+                               capture_output=True, text=True, timeout=180)
+            if r.returncode != 0:
+                return {"ok": False,
+                        "error": (r.stderr or r.stdout or "skillfish-gtt").strip()[:300]}
             return {"ok": True, "reboot_needed": True,
                     "note": "Modifica al boot applicata: riavvia per attivarla."}
         return {"ok": False, "error": "azione sconosciuta"}
