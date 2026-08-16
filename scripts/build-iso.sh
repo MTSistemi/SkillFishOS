@@ -232,6 +232,20 @@ done
 echo "messi da parte prima del produce: $tolti fra file e cartelle"
 echo "   (identita' della macchina, codice di terzi senza licenza, ambiente di sviluppo)"
 
+# --- i nostri backup non viaggiano ------------------------------------------
+# I nostri script salvano una copia prima di riscrivere un file di sistema
+# (.skfbak). Sulla scheda di sviluppo servono; dentro l'immagine no. E uno di
+# loro e' peggio che inutile: skillfish-core-unlock.service.skfbak conserva la
+# unit PRIMA delle guardie, cioe' quella che riavviava la scheda durante
+# l'installazione. Il vecchio file difettoso accanto a quello corretto e' il
+# modo migliore per far perdere mezza giornata a chi ci mettera' le mani.
+# Sono tutte copie di file che stanno in git: cancellarle non perde niente.
+scarti=$(find /etc /usr/local -name '*.skfbak' 2>/dev/null | wc -l)
+if [ "$scarti" -gt 0 ]; then
+    find /etc /usr/local -name '*.skfbak' -delete 2>/dev/null
+    echo "cancellati $scarti file di backup che non devono entrare nell'immagine"
+fi
+
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
 echo "produce rc=$RC"
