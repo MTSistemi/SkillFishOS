@@ -121,7 +121,8 @@ controlla "servizio snapshot abilitato" \
     config/hooks/normal/0090-snapper-grub-btrfs.hook.chroot 'systemctl enable skillfish-firstboot-snapshots'
 controlla "zstd, o l'initrd esce compresso con gzip" \
     config/package-lists/00-base.list.chroot 'zstd'
-controlla "i servizi vengono abilitati E verificati" \n    config/hooks/normal/0140-abilita-servizi.hook.chroot 'skillfish-core-unlock'
+controlla "i servizi vengono abilitati E verificati" \
+    config/hooks/normal/0140-abilita-servizi.hook.chroot 'skillfish-core-unlock'
 [ -f config/bootloaders/splash.svg ] \
     && echo "   menu di avvio col nostro marchio" \
     || { echo "   ERRORE: manca config/bootloaders/splash.svg"; exit 1; }
