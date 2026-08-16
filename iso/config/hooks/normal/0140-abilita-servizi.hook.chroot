@@ -1,0 +1,73 @@
+#!/bin/bash
+# Abilita i servizi di SkillFishOS che il postinst dei pacchetti non riesce ad
+# abilitare, e VERIFICA che ci sia riuscito.
+#
+# ⚠️ IL GUASTO CHE HA FATTO NASCERE QUESTO GANCIO (16/08/2026)
+# Il postinst di skillfish-base fa `systemctl enable` per sei servizi. Dentro
+# il chroot di live-build **nessuno dei sei attecchisce**: alla fine della
+# costruzione /etc/systemd/system/multi-user.target.wants non contiene nessuno
+# di loro. Gli stessi `systemctl enable` scritti in un GANCIO funzionano
+# invece benissimo: i tre servizi abilitati dagli hook 0070, 0090 e 0112 il
+# collegamento ce l'hanno. Il motivo di questa differenza non e' accertato;
+# quello che conta e' che il risultato si misura, ed e' misurato qui sotto.
+#
+# Come si e' visto: installando la ISO in macchina virtuale, ssh.service
+# risultava fallito con "sshd: no hostkeys available -- exiting". Le chiavi le
+# toglie apposta l'hook 8050 (se restassero, ogni installazione al mondo
+# avrebbe le stesse chiavi), e a rigenerarle dovrebbe essere
+# skillfish-sshd-keygen, che pero' era `disabled`.
+#
+# Tirando quel filo sono venuti fuori gli altri cinque, e uno fa molto piu'
+# male di ssh: **skillfish-core-unlock**, cioe' lo sblocco degli otto core.
+# Sarebbe uscita un'immagine in cui la funzione di punta del prodotto e'
+# semplicemente spenta, e nessuno se ne sarebbe accorto guardando il codice,
+# perche' il codice e' giusto.
+#
+# I servizi hardware hanno gia' la loro guardia (ExecCondition con
+# skillfish-is-bc250): abilitarli su un computer che non e' una BC-250 non fa
+# danni, l'unita' viene semplicemente saltata.
+#
+# ⚠️ QUESTO GANCIO FALLISCE LA COSTRUZIONE se un servizio non si abilita.
+# E' voluto. Un'immagine che si costruisce benissimo e arriva all'utente con
+# gli otto core spenti e SSH morto e' peggio di una costruzione che si ferma.
+set -u
+
+SERVIZI="
+skillfish-sshd-keygen.service
+skillfish-core-unlock.service
+skillfish-freeze-check.service
+skillfish-gpu-freq.service
+skillfish-wol.service
+skillfish-firstboot-snapshots.service
+"
+
+mancanti=0
+for S in $SERVIZI; do
+    # Se l'unita' non esiste non e' un guasto: puo' arrivare da un pacchetto
+    # che in questa immagine non c'e'. Si salta dicendolo.
+    if [ ! -f "/etc/systemd/system/$S" ] && [ ! -f "/lib/systemd/system/$S" ] \
+       && [ ! -f "/usr/lib/systemd/system/$S" ]; then
+        echo "[servizi] $S non c'e' in questa immagine, salto"
+        continue
+    fi
+
+    systemctl enable "$S" >/dev/null 2>&1 || true
+
+    # La verifica e' il punto di tutto il gancio: `systemctl enable` puo'
+    # uscire con successo senza aver creato niente, ed e' esattamente quello
+    # che succedeva nel postinst.
+    if find /etc/systemd/system -name "$S" -type l 2>/dev/null | grep -q .; then
+        echo "[servizi] $S abilitato"
+    else
+        echo "[servizi] ERRORE: $S NON si e' abilitato" >&2
+        mancanti=$((mancanti + 1))
+    fi
+done
+
+if [ "$mancanti" -gt 0 ]; then
+    echo "[servizi] $mancanti servizi non abilitati: fermo la costruzione." >&2
+    echo "[servizi] Meglio nessuna ISO che una ISO con le funzioni spente." >&2
+    exit 1
+fi
+
+echo "[servizi] tutti abilitati e verificati"
