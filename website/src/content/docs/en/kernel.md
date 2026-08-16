@@ -23,16 +23,18 @@ The kernel command line is configured as follows, and every parameter has a prec
 
 ```
 mitigations=off
+split_lock_detect=off
 ttm.pages_limit=1572864
 ttm.page_pool_size=1572864
-video=DP-1:e
 ```
 
 | Parameter | What it does |
 |---|---|
 | `mitigations=off` | disables Spectre/Meltdown mitigations to maximize performance (an acceptable choice on a home console) |
 | `ttm.pages_limit` / `ttm.page_pool_size` | the GTT ceiling, counted in 4 KiB pages: 1572864 = 6 GiB, so Vulkan sees ~13 GiB across VRAM and GTT (useful for AI). This used to be `amdgpu.gttsize`, deprecated since kernel 7.x: with both set the driver obeys that one and says so at every boot |
-| `video=DP-1:e` | **force-enables** the DisplayPort connector (HPD is broken, see [hardware](/en/docs/hardware-bc250)) |
+| `split_lock_detect=off` | disables the *split lock* detector, which otherwise throttles processes doing unaligned atomic accesses (games and emulators do) |
+
+> **What about DisplayPort?** The BC-250's HPD is broken (see [hardware](/en/docs/hardware-bc250)), but SkillFishOS does **not** use the `video=DP-1:e` parameter: the `skillfish-dp-hotswap` service watches the EDID and re-enables the output when the monitor comes back. That also covers switching the monitor on after the board, which the parameter alone does not.
 
 > **Live Compute Units.** SkillFishOS no longer uses the `amdgpu.bc250_cc_write_mode=3` parameter (which locked 40 CU at boot and blocked runtime changes). The system now boots at the driver baseline (24 CU) and a service routes the **40 CUs live** at startup; you can change them without a reboot from the [Tuner](/en/docs/app-native). See [GPU and overclock](/en/docs/gpu-overclock).
 
