@@ -13,6 +13,7 @@ si copiano uno per uno con SFTP e si committano con git: l'archivio e' di 36
 file per 25 MB, non vale la pena rischiare per risparmiare qualche secondo.
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -103,17 +104,45 @@ for radice, _, files in os.walk(os.path.join(CLONE, "pool")):
     pacchetti += [f for f in files if f.endswith(".deb")]
 base = [p for p in pacchetti if p.startswith("skillfish-base_")]
 print("   pacchetti nell'albero: %d, fra cui %s" % (len(pacchetti), base or "NESSUN skillfish-base"))
-if not base or "26.08.24" not in base[0]:
-    sys.exit("   FERMO: skillfish-base non e' alla versione attesa, non pubblico")
+
+
+def versione_attesa(nomi, richiesta):
+    """Quale versione ci aspettiamo di pubblicare, e perche' la si controlla.
+
+    Il numero non sta piu' scritto dentro allo script: o lo si passa come
+    argomento, o lo si deduce dai nomi dei .deb. In tutti e due i casi si
+    pretende che nell'archivio ci sia UNA sola versione dei nostri pacchetti:
+    due versioni mescolate vogliono dire un rilascio a meta', ed e' esattamente
+    il caso da cui questa guardia deve proteggere.
+    """
+    viste = set()
+    for n in nomi:
+        m = re.match(r"skillfish[a-z-]*_([0-9][0-9.]*)_", n)
+        if m and not m.group(1).startswith("7."):   # il kernel ha una sua numerazione
+            viste.add(m.group(1))
+    if not viste:
+        sys.exit("   FERMO: nell'archivio non c'e' nessun pacchetto nostro")
+    if len(viste) > 1:
+        sys.exit("   FERMO: nell'archivio convivono piu' versioni (%s): rilascio a meta'"
+                 % ", ".join(sorted(viste)))
+    trovata = viste.pop()
+    if richiesta and trovata != richiesta:
+        sys.exit("   FERMO: chiesto %s ma nell'archivio c'e' %s" % (richiesta, trovata))
+    return trovata
+
+
+VER = versione_attesa(pacchetti, sys.argv[1] if len(sys.argv) > 1 else None)
+if not base:
+    sys.exit("   FERMO: manca skillfish-base, non pubblico")
+print("   versione da pubblicare: %s" % VER)
 
 git("add", "-A")
 r = git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",
         "commit", "-m",
-        "Archivio apt 26.08.24: sblocco 8 core a richiesta, non piu' automatico\n\n"
+        "Archivio apt %s\n\n"
         "Allinea GitHub Pages a skillfishos.com/apt. Le ISO scaricano da qui,\n"
-        "quindi finche' questo ramo restava indietro si costruivano immagini\n"
-        "con i pacchetti vecchi - cioe' con lo sblocco core che riavvia la\n"
-        "scheda durante l'installazione (issue #31).")
+        "quindi finche' questo ramo resta indietro si costruiscono immagini\n"
+        "con i pacchetti vecchi." % VER)
 r = git("push", "origin", "gh-pages")
 print("   " + ((r.stderr or r.stdout).strip().splitlines() or ["push eseguito"])[-1])
 
