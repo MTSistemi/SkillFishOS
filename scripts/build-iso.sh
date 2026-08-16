@@ -171,6 +171,29 @@ rm -f /home/eggs/mnt/*.iso 2>/dev/null
 # Qui si sposta e si rimette: deterministico, e il trap lo garantisce anche se
 # la costruzione fallisce a meta'.
 DAPARTE=/root/.identita-macchina
+
+# Cartelle che non devono uscire di casa, per due motivi diversi.
+#
+# Licenza: bc250_memcfg non ha licenza e l'autore attribuisce lui stesso il
+# sorgente iniziale a un terzo; bc250-cu-ref deriva dallo stesso progetto. Al
+# loro posto c'e' skillfish-memcfg, nostro e GPL-3.0, che il Tuner preferisce
+# gia'. Ambiente di sviluppo: aider-venv, dockge, realesrgan sono roba della
+# scheda, non prodotto.
+#
+# ⚠️ Perche' non bastano le regole di esclusione: mksquashfs riceve un solo
+# file (-ef /etc/penguins-eggs.d/exclude.list) e eggs quel file lo rigenera dal
+# proprio modello a ogni produce; exclude.list.d/ non viene concatenata, e'
+# solo la cartella da cui eggs copia i modelli all'installazione. Provato: con
+# le regole scritte in entrambi i posti, nella ISO /opt/bc250_memcfg aveva
+# ancora 48 file dentro.
+FUORI_IMMAGINE="
+/opt/bc250_memcfg
+/opt/bc250-cu-ref
+/opt/aider-venv
+/opt/dockge
+/opt/realesrgan
+"
+
 IDENTITA="
 /etc/skillfish/core-unlock.abilitato
 /etc/skillfish/dashboard-key.pem
@@ -181,7 +204,7 @@ IDENTITA="
 "
 
 rimetti_identita() {
-    for f in $IDENTITA; do
+    for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
         mkdir -p "$(dirname "$f")"
         mv -f "$DAPARTE/$(basename "$f")" "$f"
@@ -192,12 +215,13 @@ trap rimetti_identita EXIT INT TERM
 
 mkdir -p "$DAPARTE"
 tolti=0
-for f in $IDENTITA; do
+for f in $IDENTITA $FUORI_IMMAGINE; do
     [ -e "$f" ] || continue
     mv -f "$f" "$DAPARTE/$(basename "$f")"
     tolti=$((tolti + 1))
 done
-echo "identita' della macchina messa da parte: $tolti file"
+echo "messi da parte prima del produce: $tolti fra file e cartelle"
+echo "   (identita' della macchina, codice di terzi senza licenza, ambiente di sviluppo)"
 
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
