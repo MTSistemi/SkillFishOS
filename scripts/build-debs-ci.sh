@@ -260,6 +260,20 @@ if [ -d /run/systemd/system ]; then
   systemctl enable skillfish-sshd-keygen.service || true
   [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
+  # Lo sblocco degli 8 core dal 16/08/2026 e' A RICHIESTA: il servizio resta
+  # abilitato ma non parte senza il segnaposto. Chi aveva gia' gli 8 core li ha
+  # perche' il vecchio servizio glieli sbloccava da solo: se al momento
+  # dell'aggiornamento la maschera e' gia' 0xFF vuol dire che li stava usando, e
+  # non glieli spegniamo sotto il naso. Chi non li aveva resta com'era.
+  if [ ! -e /etc/skillfish/core-unlock.abilitato ] \
+     && [ "$(/usr/local/bin/skillfish-core-unlock --maschera 2>/dev/null)" = "0xff" ]; then
+    mkdir -p /etc/skillfish
+    printf '%s\n' \
+      "# Creato aggiornando da una versione in cui lo sblocco era automatico:" \
+      "# questa macchina aveva gia' gli 8 core attivi, quindi li tiene." \
+      "# Si spegne dall'interruttore 8 core in SkillFishOS Tuner." \
+      > /etc/skillfish/core-unlock.abilitato
+  fi
   systemctl enable skillfish-core-unlock.service || true
   # ntsync serve a Proton: caricalo subito, non al prossimo riavvio
   modprobe ntsync 2>/dev/null || true
@@ -653,6 +667,15 @@ notcheck skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-wol.servic
 #    il servizio — 90 secondi di stallo per avvio, misurati, e un riavvio sporco
 #    che non conservava la maschera (quindi due giri invece di uno).
 check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'systemctl --no-block reboot'
+# Le guardie che impediscono alla scheda di riavviarsi durante l'installazione
+# (issue #31). Senza queste tre righe basta una modifica distratta per
+# rimettere in circolo il difetto piu' grave che abbiamo avuto: una ISO che non
+# si riesce a installare su hardware vero.
+check    skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-core-unlock.service 'ConditionKernelCommandLine=!boot=live'
+check    skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-core-unlock.service 'ConditionPathExists=/etc/skillfish/core-unlock.abilitato'
+check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'core-unlock.abilitato'
+# E l'interruttore nel Tuner, che e' l'unico modo che ha l'utente di accenderlo.
+check    skillfish-tuner_${VER}_all.deb ./usr/local/bin/skillfish-tuner 'core8_cb'
 notcheck skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'os.system("systemctl reboot")'
 # 7. Il menu di ripristino non deve dipendere da grub-btrfsd, che non lo aggiorna.
 check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'grub-mkconfig'

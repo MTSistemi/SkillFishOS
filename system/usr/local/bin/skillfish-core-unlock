@@ -87,6 +87,13 @@ def send(msg, arg, budget=5.0):
 
 
 mask = rd(MASK_REG) & 0xFF
+
+# Sola lettura, nessun effetto: serve al postinst del pacchetto per capire se
+# lo sblocco era gia' in uso su questa macchina. Sta qui e non piu' in alto
+# perche' rd() ha bisogno del descrittore aperto poco sopra.
+if "--maschera" in sys.argv:
+    print("0x%02x" % mask)
+    sys.exit(0)
 if mask == 0xFF:
     sys.exit(0)  # already unlocked (warm reboot) -> keep booting with 8 cores
 if mask != 0x77:
