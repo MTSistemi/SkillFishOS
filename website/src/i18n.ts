@@ -28,18 +28,23 @@ export const SITE = {
     "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download",
   isoUrlGeneric:
     "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download",
-  // ⚠️ TORRENT RITIRATI il 16/08/2026 insieme alle immagini 26.06.x: quelle
-  // immagini contenevano file privati della macchina di costruzione. Quando
-  // ci sara' un torrent della 26.06.4 questi campi tornano pieni; finche'
-  // sono vuoti la sezione torrent non viene disegnata.
+  // I .torrent li ospitiamo noi: sono 25 KB, e cosi' il torrent parte anche se
+  // SourceForge e' lento. Dentro hanno i due mirror SourceForge come sorgente
+  // HTTP (web seed), quindi il file si scarica anche quando non c'e' nessun
+  // peer - che con un progetto di questa dimensione e' la norma.
+  //
+  // ⚠️ Quelli della 26.06.3 erano stati RITIRATI il 16/08/2026 insieme alle
+  // immagini: contenevano file privati della macchina di costruzione. Questi
+  // sono nuovi, generati dalle 26.06.4 pulite, e li semina il container dei
+  // servizi - non la scheda, che deve restare libera.
   torrentBc250:
-    "",
+    "/torrent/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso.torrent",
   torrentGeneric:
-    "",
+    "/torrent/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.torrent",
   magnetBc250:
-    "",
+    "magnet:?xt=urn:btih:91a732603c92c186d4ead5189cd181c8e1c51759&dn=SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&ws=https%3A%2F%2Fmaster.dl.sourceforge.net%2Fproject%2Fskillfishos%2F26.06.4-Aetherium%2FSkillFishOS-26.06.4-Aetherium-BC250-amd64.iso&ws=https%3A%2F%2Fdownloads.sourceforge.net%2Fproject%2Fskillfishos%2F26.06.4-Aetherium%2FSkillFishOS-26.06.4-Aetherium-BC250-amd64.iso",
   magnetGeneric:
-    "",
+    "magnet:?xt=urn:btih:1be52720a5295c2cdae3ce3089a38793bc55d483&dn=SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&ws=https%3A%2F%2Fmaster.dl.sourceforge.net%2Fproject%2Fskillfishos%2F26.06.4-Aetherium%2FSkillFishOS-26.06.4-Aetherium-Generic-amd64.iso&ws=https%3A%2F%2Fdownloads.sourceforge.net%2Fproject%2Fskillfishos%2F26.06.4-Aetherium%2FSkillFishOS-26.06.4-Aetherium-Generic-amd64.iso",
   isoFilesUrl:
     "https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/",
   isoSizeGb: "4.7",

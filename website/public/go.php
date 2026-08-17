@@ -26,13 +26,18 @@ $DEST = array(
     'sha-generic'=> $SF . 'SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.sha256/download',
     'note'       => $SF . 'RELEASE-NOTES-26.06.4.md/download',
     'tutti'      => $SF,
+    // I .torrent li serviamo noi: 25 KB, cosi' partono anche se SourceForge
+    // e' lento, e dentro hanno i suoi mirror come web seed. Li semina il
+    // container dei servizi, non la scheda.
+    'tor-bc250'  => '/torrent/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso.torrent',
+    'tor-generic'=> '/torrent/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.torrent',
 );
 
 // I magnet erano contati qui con una segnalazione (go.php?f=...&b=1), perche' il
 // clic va direttamente al programma torrent senza passare dal nostro sito.
 // Ritirati anche loro: l'elenco resta vuoto, cosi' se arrivasse una vecchia
 // segnalazione da una pagina in cache non viene contata ne' rimandata altrove.
-$SEGNALI = array();
+$SEGNALI = array('magnet-bc250', 'magnet-generic');
 
 $f = (string)($_GET['f'] ?? '');
 $segnale = isset($_GET['b']) && $_GET['b'] === '1';

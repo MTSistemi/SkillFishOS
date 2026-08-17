@@ -13,46 +13,37 @@ const comm = [
   { i: 'idea', t: 'comm.idea.t', d: 'comm.idea.d', btn: 'comm.idea.btn', href: SITE.discussions },
 ];
 ---
-{/* I torrent sono ritirati finche' non ne pubblichiamo uno della 26.06.4:
-    la sezione si disegna solo se l'indirizzo c'e' davvero. */}
-{SITE.torrentBc250 && (<>
 <section class="hero" style="padding-bottom:30px">
   <div class="wrap">
     <div class="soon"><span class="dot"></span><span>{t('dl.badge', lang)}</span></div>
     <h1 style="font-size:clamp(2.2rem,6vw,4rem)" set:html={t('dl.h2', lang)} />
     <p class="sub" style="margin-bottom:30px">{t('dl.sub', lang)}</p>
-    {/* Internet Archive per primo: dall'Europa e' circa dieci volte piu' veloce
-        di SourceForge, che serve tutto da San Diego. E' lo stesso file. */}
+    {/* ⚠️ I pulsanti puntavano a Internet Archive, che era piu' veloce
+        dall'Europa. Il 16/08/2026 abbiamo ritirato da li' le immagini 26.06.x
+        - contenevano file privati della macchina di costruzione - e con esse le
+        voci ia-* di go.php. I pulsanti restavano quindi a puntare nel vuoto:
+        adesso la sorgente principale e' SourceForge, che e' anche l'unica. */}
     <div class="hero-btns">
       {hasIso ? (
         <>
-          <a class="btn btn-primary dl-go" href="/go.php?f=ia-bc250" target="_blank" rel="noopener">
+          <a class="btn btn-primary dl-go" href="/go.php?f=bc250" target="_blank" rel="noopener">
             <Icona nome="scarica" dim={20} classe="in-riga" />
-            <span set:html={t('dl.fast.bc250', lang)} />
+            <span set:html={t('dl.ed.bc250', lang)} />
           </a>
-          <a class="btn dl-go" href="/go.php?f=ia-generic" target="_blank" rel="noopener">
+          <a class="btn dl-go" href="/go.php?f=generic" target="_blank" rel="noopener">
             <Icona nome="scarica" dim={20} classe="in-riga" />
-            <span set:html={t('dl.fast.generic', lang)} />
+            <span set:html={t('dl.ed.generic', lang)} />
           </a>
         </>
       ) : (
         <span class="btn btn-primary" style="cursor:default;opacity:.85" set:html={t('dl.btnsoon', lang)} />
       )}
     </div>
-    {hasIso && (
-      <p class="sub fastnote" set:html={t('dl.fast.sub', lang)} />
-    )}
-    {hasIso && (
-      <div class="altbox">
-        <div class="torh">{t('dl.sf.h', lang)}</div>
-        <p class="sub tors">{t('dl.sf.sub', lang)}</p>
-        <div class="torrow">
-          <a class="btn btn-ghost dl-go" href="/go.php?f=bc250" target="_blank" rel="noopener" set:html={t('dl.ed.bc250', lang)} />
-          <a class="btn btn-ghost dl-go" href="/go.php?f=generic" target="_blank" rel="noopener" set:html={t('dl.ed.generic', lang)} />
-        </div>
-      </div>
-    )}
-    {hasIso && (
+    {/* ⚠️ I torrent sono stati ritirati il 16/08/2026 insieme alle immagini
+        26.06.x: quelle immagini contenevano file privati della macchina di
+        costruzione. Il riquadro si disegna solo quando SITE.torrentBc250 torna
+        a essere pieno - cioe' quando ne pubblichiamo uno della 26.06.4. */}
+    {hasIso && SITE.torrentBc250 && (
       <div class="torbox">
         <div class="torh" set:html={t('dl.tor.h', lang)} />
         <p class="sub tors" set:html={t('dl.tor.sub', lang)} />
@@ -72,7 +63,6 @@ const comm = [
     <p class="sub" style="margin-top:24px;color:var(--gold-lt)" set:html={t('dl.notice', lang)} />
   </div>
 </section>
-</>)}
 
 <section class="features" style="padding-top:30px">
   <div class="wrap">
