@@ -274,6 +274,7 @@ echo '</table></div>';
 //     davvero, compresi quelli di chi arriva da fuori dal nostro sito.
 // Il primo numero e' sempre piu' basso: chi cambia idea a meta' non conta.
 $dl_tot = array(); $dl_day = array(); $dl_paese = array(); $dl_lingua = array();
+$dl_ver = array();
 try {
     $db->exec('CREATE TABLE IF NOT EXISTS dl(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -291,6 +292,12 @@ try {
                             ORDER BY c DESC LIMIT 8')->fetchAll();
     $dl_lingua = $db->query('SELECT lang, COUNT(*) c FROM dl WHERE bot=0 AND lang<>""
                              GROUP BY lang ORDER BY c DESC')->fetchAll();
+    // Per versione. La colonna e' arrivata il 17/08/2026: i clic precedenti
+    // hanno ver="" e restano contati a parte, dichiarati per quello che sono,
+    // invece di essere attribuiti alla versione sbagliata.
+    $dl_ver = $db->query('SELECT ver, kind, COUNT(*) c, COUNT(DISTINCT vis) u
+                          FROM dl WHERE bot=0 GROUP BY ver, kind
+                          ORDER BY ver DESC, c DESC')->fetchAll();
 } catch (Throwable $e) { }
 
 $etichetta = array(
@@ -325,6 +332,45 @@ if ($dl_day) {
     echo '</table>';
 }
 
+// --- per versione ------------------------------------------------------------
+// Quale versione sta scaricando la gente adesso. Serve per capire quanto in
+// fretta una nuova immagine sostituisce la precedente, e - quando ne ritiriamo
+// una - se qualcuno la sta ancora prendendo da una pagina in cache o da un
+// segnalibro.
+if ($dl_ver) {
+    $per_ver = array();
+    foreach ($dl_ver as $r) {
+        $v = $r['ver'] !== '' ? $r['ver'] : '?';
+        if (!isset($per_ver[$v])) $per_ver[$v] = array('c' => 0, 'u' => 0, 'k' => array());
+        $per_ver[$v]['c'] += (int)$r['c'];
+        $per_ver[$v]['u'] += (int)$r['u'];
+        $per_ver[$v]['k'][$r['kind']] = (int)$r['c'];
+    }
+    krsort($per_ver);
+    $vmax = 0; foreach ($per_ver as $d) $vmax = max($vmax, $d['c']);
+    echo '<h3 style="margin-top:18px">Per versione di SkillFishOS '
+       . '<span class="muted" style="font-weight:400">· clic sui nostri pulsanti</span></h3>';
+    echo '<table><tr><th>Versione</th><th>Cosa</th><th class="r">Clic</th><th class="r">Persone</th></tr>';
+    foreach ($per_ver as $v => $d) {
+        arsort($d['k']);
+        $pezzi = array();
+        foreach ($d['k'] as $k => $n) $pezzi[] = h($k) . ' ' . $n;
+        $eti = $v === '?'
+            ? '<span class="muted">prima del 17/08</span>'
+            : h($v);
+        echo '<tr><td>' . $eti
+           . '<div class="bar" style="width:' . ($vmax ? round(100 * $d['c'] / $vmax) : 0) . '%;margin-top:4px"></div></td>'
+           . '<td class="muted" style="font-size:.82rem">' . implode(' · ', $pezzi) . '</td>'
+           . '<td class="r">' . $d['c'] . '</td>'
+           . '<td class="r muted">' . $d['u'] . '</td></tr>';
+    }
+    echo '</table>';
+    if (isset($per_ver['?']))
+        echo '<p class="muted" style="font-size:.8rem;margin-top:8px">'
+           . 'I clic segnati "prima del 17/08" sono stati registrati quando ancora non '
+           . 'annotavamo la versione: non si possono attribuire a posteriori senza tirare a indovinare.</p>';
+}
+
 if ($dl_paese || $dl_lingua) {
     echo '<h3 style="margin-top:18px">Da dove, e in che lingua</h3><table><tr><th>Paese</th><th class="r">Download</th></tr>';
     foreach ($dl_paese as $r)
@@ -338,12 +384,14 @@ if ($dl_paese || $dl_lingua) {
 echo '</div>';
 
 // --- i numeri veri, presi da SourceForge -------------------------------------
-// Si interroga una volta all'ora e si tiene in cache: l'API e' pubblica ma non
-// va martellata, e questa pagina si ricarica spesso.
+// Si interroga ogni mezz'ora e si tiene in cache: l'API e' pubblica ma non va
+// martellata, e questa pagina si ricarica spesso. Mezz'ora e' la stessa cadenza
+// del raccoglitore sul container, cosi' i due numeri non si contraddicono.
+define('SF_CACHE', 1800);
 $sf = null; $sf_err = '';
 try {
     $cache = sfstats_dir() . '/sf-downloads.json';
-    if (is_file($cache) && (time() - filemtime($cache) < 3600)) {
+    if (is_file($cache) && (time() - filemtime($cache) < SF_CACHE)) {
         $sf = json_decode((string)file_get_contents($cache), true);
     } else {
         $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
@@ -360,13 +408,14 @@ try {
 // --- il totale da sempre -----------------------------------------------------
 // L'API accetta qualunque data d'inizio e taglia da sola al primo caricamento,
 // quindi partiamo da prima che il progetto esistesse e lasciamo fare a lei.
-// Si aggiorna ogni sei ore: e' un numero che cresce piano, non ha senso
-// richiederlo a ogni ricarica della pagina.
+// Anche questo ogni mezz'ora: prima erano sei ore, e nei giorni in cui i
+// download si muovono davvero - un video, un articolo - sei ore di ritardo
+// vogliono dire guardare una pagina che dice il falso.
 $sf_tot = null; $sf_dal = '';
 try {
     $cache_tot = sfstats_dir() . '/sf-downloads-sempre.json';
     $d = null;
-    if (is_file($cache_tot) && (time() - filemtime($cache_tot) < 21600)) {
+    if (is_file($cache_tot) && (time() - filemtime($cache_tot) < SF_CACHE)) {
         $d = json_decode((string)file_get_contents($cache_tot), true);
     } else {
         $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
@@ -463,8 +512,12 @@ if ($det) {
         if ($zero) echo '<p class="muted" style="font-size:.82rem;margin-top:8px">'
                       . $zero . ' file non ancora scaricati da nessuno.</p>';
     }
+    $eta = time() - (int)$det['aggiornato'];
     echo '<p class="muted" style="font-size:.8rem;margin-top:10px">Dettaglio aggiornato il '
-       . h(date('d/m/Y \a\l\l\e H:i', (int)$det['aggiornato'])) . ', una volta al giorno.</p>';
+       . h(date('d/m/Y \a\l\l\e H:i', (int)$det['aggiornato'])) . ', ogni 30 minuti'
+       . ($eta > 7200 ? ' <strong>(fermo da ' . round($eta / 3600) . ' ore: il raccoglitore '
+                      . 'sul container non sta girando)</strong>' : '')
+       . '.</p>';
 }
 
 echo '<h3 style="margin-top:18px">Ultimi 30 giorni <span class="muted" style="font-weight:400">· da dove arrivano</span></h3>';

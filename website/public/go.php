@@ -13,6 +13,12 @@ require __DIR__ . '/_sfstats.php';
 
 $SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/';
 
+// La versione si ricava dall'indirizzo invece di scriverla una seconda volta:
+// al prossimo rilascio si cambia $SF e basta, e non puo' succedere che i clic
+// vengano contati sotto la versione precedente perche' qualcuno ha aggiornato
+// un posto solo.
+$VERSIONE = preg_match('#/files/([0-9]+\.[0-9]+\.[0-9]+)-#', $SF, $mv) ? $mv[1] : '';
+
 // ⚠️ Internet Archive e i torrent sono stati RITIRATI il 16/08/2026 insieme alle
 // immagini 26.06.x: quelle immagini contenevano file privati della macchina di
 // costruzione. Le voci sono state tolte da questa mappa, non lasciate a puntare
@@ -64,6 +70,14 @@ try {
     $db->exec('CREATE INDEX IF NOT EXISTS idx_dl_day ON dl(day)');
     $db->exec('CREATE INDEX IF NOT EXISTS idx_dl_file ON dl(file)');
 
+    // La colonna della versione e' arrivata dopo, quindi va aggiunta al volo
+    // sulle installazioni che hanno gia' la tabella. ALTER TABLE fallisce se
+    // c'e' gia': si ignora, e' il modo piu' semplice di dire "assicurati che
+    // esista" in SQLite.
+    try { $db->exec('ALTER TABLE dl ADD COLUMN ver TEXT NOT NULL DEFAULT ""'); }
+    catch (Throwable $e) { }
+    $db->exec('CREATE INDEX IF NOT EXISTS idx_dl_ver ON dl(ver)');
+
     // da che pagina arrivava: ci dice in che lingua naviga chi scarica
     $lang = '';
     $ref = (string)($_SERVER['HTTP_REFERER'] ?? '');
@@ -76,13 +90,13 @@ try {
           : ((strpos($f, 'sha') === 0) ? 'sha' : (($f === 'note' || $f === 'tutti') ? 'altro' : 'iso'))));
 
     list($cc, $cn) = sfstats_country();
-    $st = $db->prepare('INSERT INTO dl(ts,day,file,kind,vis,bot,country,cname,lang)
-                        VALUES(:ts,:day,:f,:k,:v,:b,:cc,:cn,:l)');
+    $st = $db->prepare('INSERT INTO dl(ts,day,file,kind,vis,bot,country,cname,lang,ver)
+                        VALUES(:ts,:day,:f,:k,:v,:b,:cc,:cn,:l,:ver)');
     $st->execute(array(
         ':ts' => time(), ':day' => gmdate('Y-m-d'),
         ':f' => $f, ':k' => $kind,
         ':v' => sfstats_visitor($ua), ':b' => sfstats_is_bot($ua),
-        ':cc' => $cc, ':cn' => $cn, ':l' => $lang,
+        ':cc' => $cc, ':cn' => $cn, ':l' => $lang, ':ver' => $VERSIONE,
     ));
 } catch (Throwable $e) {
     // un problema con le statistiche non deve mai impedire un download
