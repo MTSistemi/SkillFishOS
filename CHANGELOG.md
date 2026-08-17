@@ -4,6 +4,33 @@ All notable changes to SkillFishOS. Dates are ISO-8601.
 
 ## [Unreleased]
 
+### Packages 26.08.26 — 2026-08-17
+
+Published to both apt mirrors: `skillfishos.com/apt` and GitHub Pages.
+
+#### Fixed
+- **The web terminal in Remote Manager returned 404** — Debian's own `ttyd.service` was holding port 7681, so the dashboard's reverse proxy reached a `ttyd` running without the `/terminal` base path. The package now masks `ttyd.service`; the dashboard starts its own with `-b /terminal`, on loopback only.
+- **The AI engine pointed at `/root`, which never ships** — `skillfish-unsloth` looked for the Unsloth installation under `/root/.unsloth`, a path that exists on the development board and in no released image. It now finds the real user through `dashboard.json`, the active graphical session, or the first uid ≥ 1000 with an installation, and runs as that user.
+- **The package shipped a systemd unit nobody ever enabled** — `skillfish-unsloth.service` was installed and left alone. On the board it looked healthy only because it had been enabled by hand months earlier, and the ISO inherits that state by cloning the board, so every test passed while an `apt` install got the unit file and no service. `skillfish-ai-panel` now has its own postinst, and a build-time check refuses to produce the `.deb` if that postinst stops enabling the unit.
+- **"Unsloth is not installed" is no longer treated as a failure** — the launcher exited 1, and the unit has `Restart=on-failure`: enabling it on a machine without Unsloth would have restarted it every ten seconds until systemd gave up. It exits 0 and systemd leaves it `inactive (dead)`.
+- The engine binds `127.0.0.1` instead of `0.0.0.0`.
+
+#### Added
+- `skillfish-unsloth-update` — Unsloth releases often; this runs the official installer as the real user, removes the desktop entry it drops on every install, restarts the service and prints the version before and after.
+
+### Repository — 2026-08-17
+
+- **The release tooling is now public** (`repo-server/bin/`) — `skillfish-rilascio`, `skillfish-carica-ovh`, `skillfish-archivia` and `skillfish-stat-sourceforge` ran only on the services container and existed nowhere else. None contains a credential; each reads `~/.skillfishos/*.env`, and the templates are next to the scripts. The signing key deliberately stays out: putting it in a CI secret is a decision to take on purpose, not to slip into a workflow.
+- `scripts/pubblica-sito.py` — the website deploy step was not versioned at all. It refuses to upload a build with no CSS, never deletes anything on the server, and verifies the live pages afterwards.
+- `scripts/sincronizza-ghpages.py` takes the version as an argument — it had it written in twice, so the next release would have stopped with "not the expected version" and, if it had not, committed a message describing the previous one.
+- `skillfish-battletron-reconnect.sh` reads `/etc/skillfish/battletron.conf` instead of a single hard-coded controller MAC address.
+
+### Website — 2026-08-17
+
+- News announces 26.06.4 in Italian, English, Polish and Ukrainian; the 26.06.3 entry now carries a withdrawal notice.
+- Statistics refresh every 30 minutes instead of every 1 to 24 hours, and downloads are split by SkillFishOS version.
+- Gallery: two entries showed the top of the same Tuner window, one of them old enough to advertise presets that no longer exist. One is replaced with the lower half — CU grid, the eight unlocked cores, VRAM allocation and fan control.
+
 ## [26.06.4 "Aetherium"] — 2026-08-16
 
 Editions: **BC-250** (`7.1.7-skillfishos`) and **Generic** (`7.1.7-skillfishos-generic`).
