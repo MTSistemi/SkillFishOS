@@ -238,11 +238,11 @@ export const strings: Record<string, Entry> = {
     en: "The installable, branded, ready-to-use ISOs — for the AMD BC-250 and for any x86-64 PC.",
   },
   // Novità e roadmap: i contenuti stanno in news.ts, qui solo la cornice.
-  "news.title": { it: "Novità e roadmap", en: "News & roadmap" },
+  "news.title": { it: "Novità", en: "News" },
   "news.eye": { it: "Aggiornato di continuo", en: "Kept up to date" },
   "news.h1": {
-    it: "Cosa è cambiato,<br>e cosa arriva",
-    en: "What changed,<br>and what is coming",
+    it: "Cosa è cambiato,<br>e quando",
+    en: "What changed,<br>and when",
   },
   "news.sub": {
     it: "Un progetto piccolo si giudica anche da quanto spesso dà notizie. Qui trovi le novità in ordine di data e la strada che stiamo facendo, con lo stato di ogni cosa — comprese quelle non ancora pronte.",
@@ -259,6 +259,42 @@ export const strings: Record<string, Entry> = {
     en: 'Got an idea, or is something missing? Requests are welcome: write from the <a href="/en/contact">contact</a> page or open a discussion on GitHub. Building what someone actually needs beats guessing well.',
   },
   "nav.news": { it: "Novità", en: "News" },
+  "nav.road": { it: "Roadmap", en: "Roadmap", pl: "Roadmapa", uk: "Плани" },
+
+  // La roadmap sta in una pagina sua: era in fondo alle novità, dove la
+  // trovava solo chi scorreva tutto, e nel frattempo è diventata la cosa che
+  // ci chiedono più spesso — "il progetto è vivo? cosa arriva dopo?".
+  "road.title": {
+    it: "Roadmap", en: "Roadmap", pl: "Roadmapa", uk: "Плани розвитку",
+  },
+  "road.eye": {
+    it: "Dove stiamo andando", en: "Where we are going",
+    pl: "Dokąd zmierzamy", uk: "Куди ми йдемо",
+  },
+  "road.h1": {
+    it: "Quello che arriva,<br>e quello che è già qui",
+    en: "What is coming,<br>and what is already here",
+    pl: "Co nadchodzi,<br>i co już jest",
+    uk: "Що буде далі,<br>і що вже є",
+  },
+  "road.sub": {
+    it: "Nessuna data promessa se non ce l'abbiamo davvero. Le voci già fatte restano in fondo, perché rispondono alla domanda che ci fanno più spesso: se il progetto è vivo.",
+    en: "No dates promised unless we actually have them. Finished items stay at the bottom, because they answer the question we get asked most: whether the project is alive.",
+    pl: "Żadnych obiecanych dat, których naprawdę nie mamy. Rzeczy zrobione zostają na dole, bo odpowiadają na pytanie zadawane nam najczęściej: czy projekt żyje.",
+    uk: "Жодних обіцяних дат, яких у нас насправді немає. Зроблене лишається внизу, бо відповідає на питання, яке ставлять найчастіше: чи живий проєкт.",
+  },
+  "road.dinews": {
+    it: 'Cerchi invece cosa è cambiato? Sta nelle <a href="/news">novità</a>.',
+    en: 'Looking for what changed instead? That is in the <a href="/en/news">news</a>.',
+    pl: 'Szukasz raczej tego, co się zmieniło? To jest w <a href="/pl/news">nowościach</a>.',
+    uk: 'Шукаєте радше те, що змінилося? Це в <a href="/uk/news">новинах</a>.',
+  },
+  "news.diroad": {
+    it: 'Vuoi sapere cosa arriva dopo? C\'è la <a href="/roadmap">roadmap</a>.',
+    en: 'Want to know what comes next? There is the <a href="/en/roadmap">roadmap</a>.',
+    pl: 'Chcesz wiedzieć, co dalej? Jest <a href="/pl/roadmap">roadmapa</a>.',
+    uk: 'Хочете знати, що далі? Є <a href="/uk/roadmap">плани розвитку</a>.',
+  },
   "dl.badge": { it: "26.06.4 «Aetherium»", en: "26.06.4 “Aetherium”" },
   "dl.notice": {
     it: "La release <strong>26.06.4 «Aetherium»</strong> di SkillFishOS è disponibile in <strong>due edizioni</strong>: <strong>BC-250</strong> (la scheda AMD) e <strong>Generic</strong> (qualsiasi PC o VM x86-64). Complete e pronte all'uso. Progetto <strong>open-source</strong>.",

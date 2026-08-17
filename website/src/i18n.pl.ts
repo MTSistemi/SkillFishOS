@@ -362,11 +362,17 @@ export const pl: Record<string, string> = {
   "ct.err.send":
     "Wysyłka nie powiodła się. Spróbuj później lub napisz do nas na GitHubie.",
   "ct.err.generic": "Wystąpił błąd. Spróbuj ponownie.",
-  "news.title": "Nowości i roadmapa",
+  "news.title": "Nowości",
   "news.eye": "Na bieżąco",
-  "news.h1": "Co się zmieniło,<br>i co nadchodzi",
+  "news.h1": "Co się zmieniło,<br>i kiedy",
   "news.h.news": "Nowości",
   "news.h.road": "Roadmapa",
+  "news.sub":
+    "Mały projekt ocenia się także po tym, jak często daje znać o sobie. Tu znajdziesz nowości w kolejności dat oraz drogę, którą idziemy, ze stanem każdej pozycji — łącznie z tym, czego jeszcze nie ma.",
+  "news.road.sub":
+    "Co robimy teraz, co przyjdzie potem i co już jest gotowe. Żadnych obiecanych dat, których naprawdę nie mamy.",
+  "news.foot":
+    "Masz pomysł albo czegoś brakuje? Prośby są mile widziane: napisz ze strony <a href=\"/pl/contact\">kontakt</a> albo zacznij dyskusję na GitHubie.",
   "nav.news": "Nowości",
   "dl.fast.h": "Najszybszy sposób, z Europy",
   "dl.fast.sub":

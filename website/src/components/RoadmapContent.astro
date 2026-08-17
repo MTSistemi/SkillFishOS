@@ -1,0 +1,98 @@
+---
+// La roadmap era in fondo alla pagina delle novità, dove la trovava solo chi
+// scorreva tutto. È diventata la cosa che ci chiedono più spesso — "il progetto
+// è vivo? cosa arriva dopo?" — quindi ha una pagina sua, e le novità rimandano
+// qui invece di contenerla.
+import { t, type Lang } from '../i18n';
+import { roadmap, pick, type Stato } from '../news';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+// Le voci fatte vanno in fondo: chi apre questa pagina vuole sapere cosa arriva,
+// non cosa è già arrivato. Restano però, perché rispondono alla domanda che ci
+// fanno più spesso, cioè se il progetto è vivo.
+const ordine: Record<Stato, number> = { corso: 0, previsto: 1, fatto: 2 };
+const voci = [...roadmap].sort((a, b) => ordine[a.stato] - ordine[b.stato]);
+
+const etichettaStato: Record<Stato, Record<string, string>> = {
+  corso:    { it: 'in corso',  en: 'in progress', pl: 'w toku',        uk: 'у роботі' },
+  previsto: { it: 'previsto',  en: 'planned',     pl: 'planowane',     uk: 'заплановано' },
+  fatto:    { it: 'fatto',     en: 'done',        pl: 'zrobione',      uk: 'зроблено' },
+};
+const st = (s: Stato) => etichettaStato[s][lang] ?? etichettaStato[s].en;
+
+// Quante ce ne sono per stato: un conteggio dice in una riga quello che
+// l'elenco dice in trenta.
+const quante = (s: Stato) => voci.filter((v) => v.stato === s).length;
+---
+<section class="hero" style="padding-bottom:24px">
+  <div class="wrap">
+    <div class="soon"><span class="dot"></span><span>{t('road.eye', lang)}</span></div>
+    <h1 style="font-size:clamp(2.1rem,5.5vw,3.6rem)" set:html={t('road.h1', lang)} />
+    <p class="sub" style="max-width:720px" set:html={t('road.sub', lang)} />
+
+    <div class="conteggi">
+      <span class="conta"><b>{quante('corso')}</b> {st('corso')}</span>
+      <span class="conta"><b>{quante('previsto')}</b> {st('previsto')}</span>
+      <span class="conta spento"><b>{quante('fatto')}</b> {st('fatto')}</span>
+    </div>
+  </div>
+</section>
+
+<section class="features" style="padding-top:10px">
+  <div class="wrap">
+    <div class="roadlist">
+      {voci.map((v) => (
+        <article class={`roaditem stato-${v.stato}`}>
+          <div class="roadmeta">
+            <span class={`roadbadge b-${v.stato}`}>{st(v.stato)}</span>
+            {v.quando && <span class="roadwhen">{pick(v.quando, lang)}</span>}
+          </div>
+          <h3 set:html={pick(v.titolo, lang)} />
+          <p set:html={pick(v.testo, lang)} />
+        </article>
+      ))}
+    </div>
+
+    <p class="sub" style="margin-top:36px;max-width:720px" set:html={t('road.dinews', lang)} />
+    <p class="sub" style="margin-top:10px;max-width:720px" set:html={t('news.foot', lang)} />
+  </div>
+</section>
+
+<style>
+  .roadlist { display: grid; gap: 18px; margin-top: 24px; }
+  .roaditem {
+    border: 1px solid rgba(216,168,73,.22);
+    border-radius: 12px;
+    padding: 20px 22px;
+    background: rgba(255,255,255,.02);
+  }
+  .roaditem h3 { margin: 6px 0 10px; font-size: 1.16rem; color: var(--gold-lt); }
+  .roaditem p { margin: 0; line-height: 1.65; opacity: .92; }
+  .roadmeta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .roadbadge {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .6px;
+    padding: 3px 10px; border-radius: 999px; font-weight: 700;
+  }
+  /* in corso = ottone acceso, previsto = contorno, fatto = spento */
+  .b-corso    { background: var(--gold-lt); color: #1c150c; }
+  .b-previsto { border: 1px solid rgba(216,168,73,.5); color: var(--gold-lt); }
+  .b-fatto    { border: 1px solid rgba(255,255,255,.18); color: rgba(255,255,255,.55); }
+  .roadwhen { font-size: .82rem; opacity: .7; }
+  .stato-fatto { opacity: .72; }
+  .stato-fatto h3 { color: rgba(255,255,255,.72); }
+
+  .conteggi { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 22px; }
+  .conta {
+    font-size: .86rem; opacity: .85;
+    border: 1px solid rgba(216,168,73,.28);
+    border-radius: 999px; padding: 5px 14px;
+  }
+  .conta b { color: var(--gold-lt); font-size: 1rem; }
+  .conta.spento { opacity: .55; }
+  .conta.spento b { color: rgba(255,255,255,.7); }
+
+  @media (min-width: 900px) {
+    .roadlist { grid-template-columns: 1fr 1fr; }
+  }
+</style>
