@@ -11,33 +11,28 @@
 // sito qualsiasi, e ci ritroveremmo a fare da trampolino a chi manda spam.
 require __DIR__ . '/_sfstats.php';
 
-$SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/';
+$SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/';
 
-// Internet Archive: dall'Europa va circa dieci volte piu' veloce di SourceForge,
-// che serve tutto da San Diego. Stesso file, stesso checksum.
-$IA = 'https://archive.org/download/skillfishos-26.06.3-aetherium/';
+// ⚠️ Internet Archive e i torrent sono stati RITIRATI il 16/08/2026 insieme alle
+// immagini 26.06.x: quelle immagini contenevano file privati della macchina di
+// costruzione. Le voci sono state tolte da questa mappa, non lasciate a puntare
+// al vuoto: un contatore che conta clic verso un 404 e' peggio di uno che non
+// conta.
 
 $DEST = array(
-    'ia-bc250'   => $IA . 'SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso',
-    'ia-generic' => $IA . 'SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso',
-    'bc250'      => $SF . 'SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso/download',
-    'generic'    => $SF . 'SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso/download',
-    'sha-bc250'  => $SF . 'SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso.sha256/download',
-    'sha-generic'=> $SF . 'SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso.sha256/download',
-    'note'       => $SF . 'RELEASE-NOTES-26.06.3.md/download',
+    'bc250'      => $SF . 'SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download',
+    'generic'    => $SF . 'SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download',
+    'sha-bc250'  => $SF . 'SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso.sha256/download',
+    'sha-generic'=> $SF . 'SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.sha256/download',
+    'note'       => $SF . 'RELEASE-NOTES-26.06.4.md/download',
     'tutti'      => $SF,
-    // i .torrent li serviamo noi: 25 KB, e cosi' partono anche se SourceForge
-    // e' lento. Restano qui per essere contati come gli altri.
-    'tor-bc250'  => '/torrent/SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso.torrent',
-    'tor-generic'=> '/torrent/SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso.torrent',
 );
 
-// I magnet non passano di qui: il clic li consegna direttamente al programma
-// torrent, senza nessuna richiesta al nostro sito. Per contarli la pagina manda
-// una segnalazione (go.php?f=...&b=1) e noi rispondiamo senza rimandare da
-// nessuna parte. Restano in un elenco a parte proprio perche' per loro non
-// esiste una destinazione: se qualcuno li chiedesse senza b=1 e' un errore.
-$SEGNALI = array('magnet-bc250', 'magnet-generic');
+// I magnet erano contati qui con una segnalazione (go.php?f=...&b=1), perche' il
+// clic va direttamente al programma torrent senza passare dal nostro sito.
+// Ritirati anche loro: l'elenco resta vuoto, cosi' se arrivasse una vecchia
+// segnalazione da una pagina in cache non viene contata ne' rimandata altrove.
+$SEGNALI = array();
 
 $f = (string)($_GET['f'] ?? '');
 $segnale = isset($_GET['b']) && $_GET['b'] === '1';
