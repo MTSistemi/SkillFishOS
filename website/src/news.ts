@@ -30,6 +30,37 @@ export interface VoceRoadmap {
 
 export const roadmap: VoceRoadmap[] = [
   {
+    stato: 'corso',
+    titolo: {
+      it: 'Ogni immagine provata su una scheda vera prima di uscire',
+      en: 'Every image tested on real hardware before it ships',
+      pl: 'Każdy obraz sprawdzony na prawdziwej płycie przed wydaniem',
+      uk: 'Кожен образ перевірено на справжній платі перед випуском',
+    },
+    testo: {
+      it: "Le due falle che potevano bloccare l'installazione della 26.06.3 le ha trovate chi ha installato su una BC-250 vera, non noi: in macchina virtuale erano <strong>invisibili per costruzione</strong>, perché il pezzo di codice che rompe l'hardware è proprio quello che una macchina virtuale non può eseguire. Da qui in avanti nessuna immagine esce senza un'installazione completa su una scheda vera, e la costruzione si rifiuta di produrre un'immagine se un controllo non passa.",
+      en: "The two defects that could stop a 26.06.3 installation were found by someone installing on a real BC-250, not by us: in a virtual machine they were <strong>invisible by construction</strong>, because the code that breaks the hardware is exactly what a virtual machine cannot execute. From here on no image ships without a full install on a real board, and the build refuses to produce an image when a check fails.",
+      pl: "Dwie usterki, które mogły zatrzymać instalację 26.06.3, znalazł ktoś instalujący na prawdziwym BC-250, a nie my: w maszynie wirtualnej były <strong>niewidoczne z założenia</strong>, bo kod psujący sprzęt to dokładnie ten, którego maszyna wirtualna nie potrafi wykonać. Od tej pory żaden obraz nie wychodzi bez pełnej instalacji na prawdziwej płycie, a budowanie odmawia stworzenia obrazu, gdy któraś kontrola nie przejdzie.",
+      uk: "Дві вади, які могли зупинити встановлення 26.06.3, знайшов той, хто встановлював на справжню BC-250, а не ми: у віртуальній машині вони були <strong>невидимі за побудовою</strong>, бо код, що ламає залізо, — саме той, який віртуальна машина виконати не може. Відтепер жоден образ не виходить без повного встановлення на справжній платі, а збирання відмовляється створювати образ, якщо якась перевірка не проходить.",
+    },
+  },
+  {
+    stato: 'fatto',
+    quando: { it: 'agosto 2026', en: 'August 2026', pl: 'sierpień 2026', uk: 'серпень 2026' },
+    titolo: {
+      it: 'Tutto il codice pubblicato, anche quello che non si vede',
+      en: 'All the code published, including the part nobody sees',
+      pl: 'Cały kod opublikowany, także ta część, której nie widać',
+      uk: 'Увесь код оприлюднено, зокрема й той, якого не видно',
+    },
+    testo: {
+      it: "Non solo le applicazioni: adesso è pubblica anche l'infrastruttura che trasforma una compilazione in qualcosa che si può installare — il repository apt firmato, il caricamento sui mirror, le statistiche, la pubblicazione del sito. Nessuno di quegli script contiene una credenziale: le leggono da file che restano fuori dal repository, e accanto ci sono i modelli da riempire. Chi vuole rifare la stessa catena a casa propria adesso può.",
+      en: "Not just the applications: the infrastructure that turns a build into something installable is public too — the signed apt repository, the upload to the mirrors, the statistics, the website deploy. None of those scripts contains a credential: they read files that stay out of the repository, and the templates to fill in sit next to them. Anyone who wants to rebuild the same chain at home now can.",
+      pl: "Nie tylko aplikacje: publiczna jest teraz także infrastruktura, która zmienia kompilację w coś, co da się zainstalować — podpisane repozytorium apt, wysyłka na serwery lustrzane, statystyki, publikacja strony. Żaden z tych skryptów nie zawiera danych logowania: czytają je z plików, które zostają poza repozytorium, a obok leżą wzorce do wypełnienia. Kto chce odtworzyć ten sam łańcuch u siebie, teraz może.",
+      uk: "Не лише програми: тепер публічна й інфраструктура, яка перетворює збірку на щось, що можна встановити, — підписаний репозиторій apt, вивантаження на дзеркала, статистика, публікація сайту. Жоден із цих скриптів не містить облікових даних: вони читають файли, які лишаються поза репозиторієм, а поруч є шаблони для заповнення. Хто хоче відтворити той самий ланцюг у себе — тепер може.",
+    },
+  },
+  {
     stato: 'previsto',
     quando: { it: 'dicembre 2026', en: 'December 2026', pl: 'grudzień 2026', uk: 'грудень 2026' },
     titolo: {
@@ -46,7 +77,8 @@ export const roadmap: VoceRoadmap[] = [
     },
   },
   {
-    stato: 'corso',
+    stato: 'fatto',
+    quando: { it: 'agosto 2026', en: 'August 2026', pl: 'sierpień 2026', uk: 'серпень 2026' },
     titolo: {
       it: 'Scaricamento via torrent',
       en: 'Torrent downloads',
@@ -54,10 +86,10 @@ export const roadmap: VoceRoadmap[] = [
       uk: 'Звантаження через торент',
     },
     testo: {
-      it: "Da SourceForge in Europa si scarica a circa 250 kB/s: per un'immagine da 4,7 GB è inaccettabile, ed è la prima cosa in cui si imbatte chi ci prova. Stiamo preparando la distribuzione via torrent, con i mirror attuali come sorgente HTTP di riserva, così chi scarica non dipende da un solo specchio lento.",
-      en: "From SourceForge in Europe you get around 250 kB/s: for a 4.7 GB image that is unacceptable, and it is the first thing anyone meets. We are preparing torrent distribution, with the current mirrors as HTTP fallback sources, so a download no longer depends on one slow mirror.",
-      pl: "Z SourceForge w Europie schodzi około 250 kB/s: przy obrazie 4,7 GB to nie do przyjęcia, a jest to pierwsza rzecz, na którą trafia każdy. Przygotowujemy dystrybucję przez torrent, z obecnymi serwerami lustrzanymi jako zapasowym źródłem HTTP, żeby pobieranie nie zależało od jednego wolnego serwera.",
-      uk: "Із SourceForge у Європі виходить близько 250 кБ/с: для образу на 4,7 ГБ це неприйнятно, і саме з цим стикається кожен першим. Готуємо роздачу через торент, а поточні дзеркала лишаються запасним джерелом HTTP, щоб звантаження не залежало від одного повільного сервера.",
+      it: "Fatto: ogni immagine esce anche come torrent, con un magnet accanto, e a seminarla è un nostro server acceso ventiquattro ore su ventiquattro. I mirror restano dentro il torrent come sorgente HTTP di riserva, quindi il download parte comunque anche quando non c'è nessun altro a condividere. Da SourceForge in Europa si scaricava a circa 250 kB/s: per un'immagine da 4,7 GB era la prima cosa che faceva desistere.",
+      en: "Done: every image also ships as a torrent, with a magnet link beside it, seeded by a machine of ours that stays up around the clock. The mirrors remain inside the torrent as HTTP fallback sources, so a download starts even when nobody else is sharing. From SourceForge in Europe you got around 250 kB/s: on a 4.7 GB image that was the first thing that made people give up.",
+      pl: "Zrobione: każdy obraz wychodzi także jako torrent, z linkiem magnet obok, a rozsiewa go nasza maszyna działająca całą dobę. Serwery lustrzane zostają w torrencie jako zapasowe źródło HTTP, więc pobieranie ruszy nawet wtedy, gdy nikt inny nie udostępnia. Z SourceForge w Europie schodziło około 250 kB/s: przy obrazie 4,7 GB to była pierwsza rzecz, która zniechęcała.",
+      uk: "Зроблено: кожен образ виходить і як торент, із magnet-посиланням поруч, а роздає його наша машина, яка працює цілодобово. Дзеркала лишаються всередині торента запасним джерелом HTTP, тож звантаження почнеться навіть тоді, коли більше ніхто не роздає. Із SourceForge у Європі виходило близько 250 кБ/с: для образу на 4,7 ГБ саме це змушувало відмовитися.",
     },
   },
   {
