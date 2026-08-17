@@ -58,7 +58,7 @@ https://mtsistemi.github.io/SkillFishOS aetherium main" \
 sudo apt update && sudo apt install skillfishos-kernel
 ```
 
-Recent SkillFishOS builds ship it **pre-configured**; otherwise the commands above set it up. The [kernel](/docs/kernel)
+Recent SkillFishOS builds ship it **pre-configured**; otherwise the commands above set it up. The [kernel](/en/docs/kernel)
 (152 MB image) is published as a GitHub *release asset*: the tiny `skillfishos-kernel`
 package downloads and installs it automatically, so the update still goes through `apt`. The
 repo is managed with **[reprepro](https://salsa.debian.org/debian/reprepro)** and the client

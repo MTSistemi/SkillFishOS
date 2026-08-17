@@ -7,11 +7,11 @@ order: 2
 
 On a normal APU you tune clocks through the `amdgpu` sysfs. On the BC-250 **that doesn't work**: control goes through the **SMU** (System Management Unit) and needs dedicated tools. SkillFishOS bundles them all, pre-configured with safe profiles and a thermal-protection system.
 
-> **Warning:** **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/docs/app-native), which validates each preset **on your card** with an automatic test and rollback.
+> **Warning:** **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/en/docs/app-native), which validates each preset **on your card** with an automatic test and rollback.
 
 ## The four profiles
 
-The [Tuner](/docs/app-native) exposes **four presets**. The ISO boots in **Stock**; the others are one click away after the test.
+The [Tuner](/en/docs/app-native) exposes **four presets**. The ISO boots in **Stock**; the others are one click away after the test.
 
 | Profile | CPU | GPU | Notes |
 |---|---|---|---|
@@ -60,7 +60,7 @@ The thermal ceiling is **85 °C**, enforced on two levels:
 1. **SMU side**: the `max_temperature` value in the config makes the chip reduce clocks *before* crossing 85 °C (avoiding hard throttling);
 2. **system side**: a **thermal-guard** watchdog that, if temperature exceeds the cap, steps clocks down 100 MHz at a time until it's back in range.
 
-Things to know about the stock cooler (see also [BC-250 hardware](/docs/hardware-bc250) for **3D-printable cases and recommended fans**):
+Things to know about the stock cooler (see also [BC-250 hardware](/en/docs/hardware-bc250) for **3D-printable cases and recommended fans**):
 
 - the stock heatsink is **marginal**: "back-to-back" benchmark comparisons are skewed by *heat-soak* — let the card cool for a few minutes between runs;
 - only the GPU *edge* sensor exists; there is **no VRAM temperature sensor**;
@@ -74,7 +74,7 @@ When the workload **is** GPU-bound (e.g. the Wukong benchmark *flythrough*), the
 
 ## All of this, without a terminal
 
-Clocks, undervolt, fan and Compute Units are tuned from the **Tuner** GUI, with the four ready presets and **automatic test + rollback** if your card can't hold a value — see [Native apps](/docs/app-native). It's the recommended way: start at Stock, move to Performance, try Turbo or Crazy, and the Tuner validates everything on **your** BC-250.
+Clocks, undervolt, fan and Compute Units are tuned from the **Tuner** GUI, with the four ready presets and **automatic test + rollback** if your card can't hold a value — see [Native apps](/en/docs/app-native). It's the recommended way: start at Stock, move to Performance, try Turbo or Crazy, and the Tuner validates everything on **your** BC-250.
 
 ## Sources
 

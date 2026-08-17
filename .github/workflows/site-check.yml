@@ -88,3 +88,31 @@ jobs:
             exit 1
           fi
           echo "Nessun riferimento alle immagini ritirate."
+
+      - name: A document must not link out of its own language
+        run: |
+          set -u
+          # ⚠️ Trovati cinque casi il 17/08/2026: documenti inglesi con
+          # ](/docs/...) invece di ](/en/docs/...). Senza prefisso e' italiano,
+          # che e' la lingua predefinita. Il controllo dei link rotti non li
+          # vede, perche' la pagina di destinazione esiste davvero: e' solo
+          # nella lingua sbagliata, e se ne accorge solo il lettore.
+          #
+          # Si guardano i SORGENTI, non l'HTML: nell'HTML il selettore di
+          # lingua rimanda alle altre lingue apposta, ed e' giusto cosi'.
+          guasti=0
+          for lang in en pl uk; do
+            d="website/src/content/docs/$lang"
+            [ -d "$d" ] || continue
+            fuori=$(grep -rnoE '\]\(/(docs|news|download|roadmap|gallery|hardware|contact|donate)[a-z0-9/-]*\)' "$d" || true)
+            altre=$(grep -rnoE "\]\(/(en|pl|uk|it)/[a-z0-9/-]*\)" "$d" | grep -v "](/$lang/" || true)
+            if [ -n "$fuori$altre" ]; then
+              echo "::error::i documenti in $lang rimandano fuori dalla propria lingua:"
+              printf '%s
+%s
+' "$fuori" "$altre" | grep . | head -12 | sed 's/^/    /'
+              guasti=1
+            fi
+          done
+          [ "$guasti" = 0 ] || exit 1
+          echo "Ogni documento resta nella propria lingua."
