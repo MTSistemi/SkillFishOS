@@ -31,9 +31,9 @@ The **"CU test"** button checks the health of the extra CUs: it enables each pai
 
 ### "Test" flow and live monitor
 
-The **"Test"** flow (CPU, GPU, CU, fan): apply a change → run a benchmark → **verify** stability and, if something is wrong, perform an automatic **rollback**. When any test starts, a **Monitor window** opens with live charts of **temperature, frequency, voltage and fan** (closable at will).
+The **"Test"** flow (CPU, GPU, CU, fan): apply a change → run a benchmark → **verify** stability and, if something is wrong, perform an automatic **rollback**. When any test starts, the **[SkillFishOS Telemetry](#skillfishos-telemetry)** window opens with live charts of **temperature, frequency, voltage and fan** (closable at will).
 
-![Tuner Monitor window — live temperature, frequency, GPU voltage and fan charts during a test](/img/monitor.jpg)
+![SkillFishOS Telemetry during a Tuner test — live temperature, frequency, GPU voltage and fan charts during a test](/img/monitor.jpg)
 
 Architecture: a user GUI plus a small **root daemon** that performs the privileged operations. On a personal PC it is configured not to ask for a password on every operation. The desktop HUD also shows the **active CUs** live.
 

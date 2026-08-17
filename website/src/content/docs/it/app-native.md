@@ -31,9 +31,9 @@ Il pulsante **«Test CU»** verifica la salute delle CU extra: attiva ogni coppi
 
 ### Flusso "Test" e monitor live
 
-Il flusso **"Test"** (CPU, GPU, CU, ventola): applica una modifica → esegue un benchmark → **verifica** la stabilità e, se qualcosa non va, fa il **rollback** automatico. All'avvio di ogni test si apre una **finestra Monitor** con i grafici in tempo reale di **temperatura, frequenza, voltaggio e ventola** (chiudibile a piacere).
+Il flusso **"Test"** (CPU, GPU, CU, ventola): applica una modifica → esegue un benchmark → **verifica** la stabilità e, se qualcosa non va, fa il **rollback** automatico. All'avvio di ogni test si apre la finestra di **[SkillFishOS Telemetry](#skillfishos-telemetry)** con i grafici in tempo reale di **temperatura, frequenza, voltaggio e ventola** (chiudibile a piacere).
 
-![Finestra Monitor del Tuner — grafici live di temperatura, frequenza, voltaggio GPU e ventola durante un test](/img/monitor.jpg)
+![SkillFishOS Telemetry durante un test del Tuner — grafici live di temperatura, frequenza, voltaggio GPU e ventola durante un test](/img/monitor.jpg)
 
 Architettura: una GUI utente più un piccolo **daemon di root** che esegue le operazioni privilegiate. Su un PC personale è configurato per non richiedere password a ogni operazione. L'HUD del desktop mostra anche le **CU attive** in tempo reale.
 
