@@ -6,7 +6,7 @@
 
 [**skillfishos.com**](https://skillfishos.com) · Based on Debian · KDE Plasma · GPL-3.0
 
-**Release 26.06.3 "Aetherium"** — two editions: **BC-250** and **Generic x86-64** (PCs & VMs) · boots in English, language chosen at install
+**Release 26.06.4 "Aetherium"** — two editions: **BC-250** and **Generic x86-64** (PCs & VMs) · boots in English, language chosen at install
 
 ![SkillFishOS desktop](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/desktop.jpg)
 
@@ -119,18 +119,18 @@ sudo dpkg -i linux-image-7.1.7-skillfishos_7.1.7-1_amd64.deb
 
 Or, from the signed APT repo, simply `sudo apt install skillfishos-kernel` (a thin wrapper that fetches the full kernel `.deb` from the GitHub Release). To build it yourself, see [docs/BUILD.md](docs/BUILD.md) and [`kernel-build/`](kernel-build/).
 
-### Installable ISOs — **26.06.3 "Aetherium"** (two editions)
+### Installable ISOs — **26.06.4 "Aetherium"** (two editions)
 
 Each live ISO (~4.6 GB) is captured from the real system with [penguins-eggs](https://github.com/pieroproietti/penguins-eggs): KDE Plasma steampunk desktop, Btrfs + Snapper + grub-btrfs, the native PyQt6 app suite, the signed `aetherium` APT repo, and the **Calamares** installer. They **boot in English** and let you pick your **language and keyboard** at install; the bilingual apps and HUD follow the chosen locale.
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-BC250-amd64.iso/download) | `7.1.7-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/SkillFishOS-26.06.3-Aetherium-Generic-amd64.iso/download) | `7.1.7-skillfishos-generic` | any x86-64 PC / VM |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download) | `7.1.7-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download) | `7.1.7-skillfishos-generic` | any x86-64 PC / VM |
 
 The **Slim** edition of 26.06 is not part of this release: it was a third kernel flavour of the 7.0.11 series and has not been rebuilt for 7.1.7.
 
-Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.3-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
+Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 
 > The signed **APT repo is live** at <https://mtsistemi.github.io/SkillFishOS/>, mirrored at <https://skillfishos.com/apt>. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
 
@@ -153,10 +153,13 @@ apps/              native PyQt6 apps: tuner, ai-panel, iso-mount, kernel-switch,
 system/            mirror of the live box config (/usr/local/bin, systemd units, /etc, KDE skel, branding)
 theme/             the "SkillFish Steampunk" theme (icons, cursors, Kvantum, wallpapers, palettes)
 distribution/      release & publishing: APT repo (suite aetherium), SourceForge, DistroWatch
+repo-server/       the services container: reprepro archive, signing keyring, and in bin/
+                   the four scripts that publish a release (no credentials in them)
+website/           the skillfishos.com site (Astro, four languages)
 iso/               live-build configuration for the installable ISO
-scripts/           helper scripts (e.g. publish-kernel.sh)
+scripts/           build, publish and repair scripts (ISO, packages, mirrors, site)
+tests/             checks run on the built packages and images
 screenshots/       images used in this README
-legacy/            superseded early setup scripts, kept for reference
 ```
 
 ---
@@ -190,10 +193,17 @@ People who made this better without being asked:
 - **Bartek** ([Świat Linuksa](https://www.youtube.com/@SwiatLinuksa)) — reviewed SkillFishOS
   over ten days on real hardware, ran an **independent security audit** of the installed
   system (services, processes, network traffic with tcpdump and nmap) and found no
-  unexpected connections. He also reported four bugs on the tracker — the btrfs/GRUB
-  install failure, the Italian locale on a non-Italian install, the missing `docker`
-  group, and the local AI falling back to the CPU — all fixed in 26.06.3.
-- **cyryllo** — Polish translation and a polonisation script for earlier releases.
+  unexpected connections. He also reported four bugs on the tracker: the Italian locale on
+  a non-Italian install, the missing `docker` group and the local AI falling back to the
+  CPU were fixed in 26.06.3; **the btrfs/GRUB install failure was not**, although we said
+  it was. The repair we shipped ran, logged success and left the defect byte for byte
+  identical. The real cause — `rsync -aHAXS`, where that `S` is `--sparse` — was only
+  found for 26.06.4.
+- **Cyryl Sochacki** ([cyryllo](https://github.com/cyryllo)) — the Polish translation and a
+  polonisation script that carried earlier releases, plus [PR #26](../../pull/26), which
+  pointed out that our own boot fix had gone stale without anyone noticing. He was right
+  and we told him otherwise. That pull request was then closed by a force-push of ours, not
+  by a decision; the reasoning it contained is now in the tree.
 
 ## Credits & references
 
