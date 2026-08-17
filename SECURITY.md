@@ -3,19 +3,19 @@
 SkillFishOS is a Debian-sid–based gaming distribution for the AMD **BC-250**. This policy covers
 the parts **we** ship and maintain — the custom kernel patches, the native apps, the APT
 repository, the ISO/installer configuration and the website. It does **not** cover upstream
-software we merely repackage (the Linux kernel itself, Debian, Mesa, KDE Plasma, Ollama, …);
+software we merely repackage (the Linux kernel itself, Debian, Mesa, KDE Plasma, Unsloth Studio, …);
 report those to their respective projects.
 
 ## Supported versions
 
 | Component | Version | Supported |
 |---|---|---|
-| SkillFishOS release | **26.06.3 "Aetherium"** | security fixes |
-| SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 | best effort, upgrade advised |
+| SkillFishOS release | **26.06.4 "Aetherium"** | security fixes |
+| SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 / 26.06.3 | superseded — upgrade to 26.06.4 |
 | SkillFishOS release | < 26.06 (pre-release) | no |
 | Kernel | `7.1.7-skillfishos` (+ `-generic`) | yes |
 | Kernel | `7.0.11-skillfishos` | previous series, best effort |
-| Apps | `skillfish-*` `26.08.10` | yes |
+| Apps | `skillfish-*` `26.08.26` | yes |
 
 Fixes are delivered through the signed APT repository
 (<https://mtsistemi.github.io/SkillFishOS>) — `sudo apt update && sudo apt upgrade`.
