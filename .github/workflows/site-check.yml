@@ -108,9 +108,7 @@ jobs:
             altre=$(grep -rnoE "\]\(/(en|pl|uk|it)/[a-z0-9/-]*\)" "$d" | grep -v "](/$lang/" || true)
             if [ -n "$fuori$altre" ]; then
               echo "::error::i documenti in $lang rimandano fuori dalla propria lingua:"
-              printf '%s
-%s
-' "$fuori" "$altre" | grep . | head -12 | sed 's/^/    /'
+              { echo "$fuori"; echo "$altre"; } | grep . | head -12 | sed 's/^/    /'
               guasti=1
             fi
           done
