@@ -13,7 +13,6 @@ si copiano uno per uno con SFTP e si committano con git: l'archivio e' di 36
 file per 25 MB, non vale la pena rischiare per risparmiare qualche secondo.
 """
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +23,18 @@ QUI = os.path.dirname(os.path.abspath(__file__))
 SCARICO = os.path.join(QUI, "apt-nuovo")
 CLONE = os.path.join(QUI, "gh-pages")
 REPO = "https://github.com/MTSistemi/SkillFishOS.git"
+
+# ⚠️ La versione si passa da fuori. Prima era scritta dentro, in due punti: il
+# controllo di sicurezza e il messaggio di commit. Al rilascio dopo il controllo
+# fermava tutto per la versione sbagliata, e il messaggio avrebbe raccontato la
+# storia del rilascio precedente.
+#     python sincronizza-ghpages.py 26.08.26
+if len(sys.argv) < 2:
+    sys.exit("uso: sincronizza-ghpages.py <versione>   (esempio: 26.08.26)")
+VERSIONE = sys.argv[1]
+if not all(p.isdigit() for p in VERSIONE.split(".")) or VERSIONE.count(".") != 2:
+    sys.exit("versione non riconosciuta: %r (attesa tipo 26.08.26)" % VERSIONE)
+print("   allineo GitHub Pages alla %s" % VERSIONE)
 
 
 def scarica_ricorsivo(sftp, remoto, locale):
@@ -104,45 +115,20 @@ for radice, _, files in os.walk(os.path.join(CLONE, "pool")):
     pacchetti += [f for f in files if f.endswith(".deb")]
 base = [p for p in pacchetti if p.startswith("skillfish-base_")]
 print("   pacchetti nell'albero: %d, fra cui %s" % (len(pacchetti), base or "NESSUN skillfish-base"))
-
-
-def versione_attesa(nomi, richiesta):
-    """Quale versione ci aspettiamo di pubblicare, e perche' la si controlla.
-
-    Il numero non sta piu' scritto dentro allo script: o lo si passa come
-    argomento, o lo si deduce dai nomi dei .deb. In tutti e due i casi si
-    pretende che nell'archivio ci sia UNA sola versione dei nostri pacchetti:
-    due versioni mescolate vogliono dire un rilascio a meta', ed e' esattamente
-    il caso da cui questa guardia deve proteggere.
-    """
-    viste = set()
-    for n in nomi:
-        m = re.match(r"skillfish[a-z-]*_([0-9][0-9.]*)_", n)
-        if m and not m.group(1).startswith("7."):   # il kernel ha una sua numerazione
-            viste.add(m.group(1))
-    if not viste:
-        sys.exit("   FERMO: nell'archivio non c'e' nessun pacchetto nostro")
-    if len(viste) > 1:
-        sys.exit("   FERMO: nell'archivio convivono piu' versioni (%s): rilascio a meta'"
-                 % ", ".join(sorted(viste)))
-    trovata = viste.pop()
-    if richiesta and trovata != richiesta:
-        sys.exit("   FERMO: chiesto %s ma nell'archivio c'e' %s" % (richiesta, trovata))
-    return trovata
-
-
-VER = versione_attesa(pacchetti, sys.argv[1] if len(sys.argv) > 1 else None)
 if not base:
-    sys.exit("   FERMO: manca skillfish-base, non pubblico")
-print("   versione da pubblicare: %s" % VER)
+    sys.exit("   FERMO: nell'albero non c'e' skillfish-base, non pubblico")
+if VERSIONE not in base[0]:
+    sys.exit("   FERMO: mi aspettavo la %s e trovo %s, non pubblico"
+             % (VERSIONE, base[0]))
 
 git("add", "-A")
 r = git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",
         "commit", "-m",
-        "Archivio apt %s\n\n"
-        "Allinea GitHub Pages a skillfishos.com/apt. Le ISO scaricano da qui,\n"
-        "quindi finche' questo ramo resta indietro si costruiscono immagini\n"
-        "con i pacchetti vecchi." % VER)
+        "apt archive %s\n\n"
+        "Brings GitHub Pages level with skillfishos.com/apt. Installed images\n"
+        "point their apt source at this branch, so while it lags behind, users\n"
+        "silently stop receiving fixes and new images are built with stale\n"
+        "packages." % VERSIONE)
 r = git("push", "origin", "gh-pages")
 print("   " + ((r.stderr or r.stdout).strip().splitlines() or ["push eseguito"])[-1])
 
