@@ -7,7 +7,7 @@ order: 1
 
 SkillFishOS installs from a **live ISO** that contains the [Calamares](https://calamares.io/) graphical installer. The whole process is done with the mouse, no terminal required.
 
-> yes The **26.06 «Aetherium»** ISO is available — download it from the [Download](/en/download) page. It boots in **English** to stay universal and lets you pick your language and keyboard during installation.
+> The **26.06.4 «Aetherium»** ISO is available — download it from the [Download](/en/download) page. It boots in **English** to stay universal and lets you pick your language and keyboard during installation.
 
 ## Requirements
 
