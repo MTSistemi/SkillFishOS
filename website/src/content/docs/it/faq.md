@@ -13,7 +13,7 @@ Risposte rapide alle domande più comuni. Per gli approfondimenti, ogni risposta
 Una distribuzione Linux (Debian + KDE Plasma 6) pensata e ottimizzata per la scheda **AMD BC-250**: gaming, emulazione, AI locale e uso desktop, già configurati. Vedi [Introduzione](/docs/introduzione).
 
 **Su quale hardware gira?**
-Esclusivamente sulla **AMD BC-250** (APU Zen 2 + RDNA 2 "gfx1013", 16 GB GDDR6). È un sistema costruito attorno a *quella* scheda, non una distro generica. Vedi [Hardware BC-250](/docs/hardware-bc250).
+La scheda a cui è dedicato è la **AMD BC-250** (APU Zen 2 + RDNA 2 "gfx1013", 16 GB GDDR6), ed è lì che dà il meglio: 40 Compute Unit sbloccate, governor SMU, otto core. Esiste però anche l'edizione **Generic x86-64**, che gira su qualsiasi PC o macchina virtuale — con un kernel normale e senza le parti che riguardano solo quella scheda, che spariscono da sole invece di dare errore. Vedi [Hardware BC-250](/docs/hardware-bc250).
 
 **Quanto costa? È open source?**
 È **gratuito**. Integra software open source di tante comunità; il codice del progetto è su [GitHub](https://github.com/MTSistemi/SkillFishOS). Vedi [Fonti](/docs/fonti).
