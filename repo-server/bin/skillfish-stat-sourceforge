@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Raccoglie i download di SourceForge, file per file, da sempre.
+
+Perche' sta qui e non nella pagina statistiche: i file pubblicati sono quasi
+trenta, e ognuno vuole una richiesta all'API. Farlo mentre la pagina si carica
+vorrebbe dire mezzo minuto di attesa e trenta richieste a SourceForge a ogni
+apertura. Lo facciamo una volta al giorno da questa macchina, che tanto e'
+sempre accesa, e la pagina si limita a leggere il risultato gia' pronto.
+
+Il risultato finisce su OVH, in .sfstats/sf-dettaglio.json, accanto al database
+delle statistiche.
+"""
+import json
+import os
+import pathlib
+import re
+import sys
+import time
+import urllib.request
+
+PROGETTO = "skillfishos"
+DA = "2026-01-01"          # prima che il progetto esistesse: taglia l'API da sola
+CRED = pathlib.Path("/root/.skillfishos/deploy.env")
+REMOTO = ".sfstats/sf-dettaglio.json"
+UA = {"User-Agent": "SkillFishOS-stats"}
+
+
+def rete(url, tentativi=3):
+    for n in range(tentativi):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=45) as r:
+                return r.read().decode("utf-8", "replace")
+        except Exception as e:
+            if n == tentativi - 1:
+                print("   non risponde: %s (%s)" % (url[:70], e))
+                return None
+            time.sleep(3)
+
+
+def elenco_file():
+    """I file pubblicati, letti dal feed del progetto."""
+    x = rete("https://sourceforge.net/projects/%s/rss?path=/" % PROGETTO)
+    if not x:
+        return []
+    trovati = re.findall(
+        r"<link>https://sourceforge\.net/projects/" + PROGETTO +
+        r"/files(/[^<]*?)/download</link>", x)
+    # il feed puo' ripetere le voci: teniamo l'ordine ma senza doppioni
+    visti, fuori = set(), []
+    for p in trovati:
+        if p not in visti:
+            visti.add(p)
+            fuori.append(p)
+    return fuori
+
+
+def quanti(percorso=""):
+    oggi = time.strftime("%Y-%m-%d", time.gmtime())
+    u = ("https://sourceforge.net/projects/%s/files%s/stats/json"
+         "?start_date=%s&end_date=%s" % (PROGETTO, percorso, DA, oggi))
+    raw = rete(u)
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
+
+
+def tipo_di(nome):
+    """A che categoria appartiene un file, per raggrupparli in pagina."""
+    n = nome.lower()
+    if n.endswith(".sha256"):
+        return "firma"
+    if n.endswith(".torrent"):
+        return "torrent"
+    if n.endswith(".md"):
+        return "documenti"
+    if n.endswith(".iso"):
+        if "slim" in n:
+            return "ISO Slim"
+        if "generic" in n:
+            return "ISO Generic"
+        if "bc250" in n:
+            return "ISO BC-250"
+        return "ISO"
+    return "altro"
+
+
+def carica_su_ovh(testo):
+    dati = {}
+    for riga in CRED.read_text(encoding="utf-8").splitlines():
+        riga = riga.strip()
+        if "=" in riga and not riga.startswith("#"):
+            k, v = riga.split("=", 1)
+            dati[k.strip()] = v.strip()
+    import paramiko
+    t = paramiko.Transport((dati.get("OVH_SFTP_HOST", "ssh.cluster129.hosting.ovh.net"), 22))
+    t.connect(username=dati["OVH_FTP_USER"], password=dati["OVH_FTP_PASS"])
+    s = paramiko.SFTPClient.from_transport(t)
+    with s.open(REMOTO + ".nuovo", "w") as f:
+        f.write(testo)
+    # sostituzione all'ultimo momento: la pagina non deve mai leggere un file a meta'
+    try:
+        s.remove(REMOTO)
+    except IOError:
+        pass
+    s.rename(REMOTO + ".nuovo", REMOTO)
+    s.close()
+    t.close()
+
+
+def main():
+    print("== totale del progetto")
+    tutto = quanti()
+    if not tutto:
+        sys.exit("SourceForge non risponde, non tocco niente")
+    totale = int(tutto.get("total") or 0)
+    dal = ""
+    for g in tutto.get("downloads") or []:
+        if int(g[1]) > 0:
+            dal = str(g[0])[:10]
+            break
+    print("   %d download da sempre, dal %s" % (totale, dal or "?"))
+
+    percorsi = elenco_file()
+    print("== dettaglio di %d file" % len(percorsi))
+    voci = []
+    for p in percorsi:
+        d = quanti(p)
+        if not d:
+            continue
+        pezzi = p.strip("/").split("/")
+        nome = pezzi[-1]
+        voci.append({
+            "percorso": p,
+            "nome": nome,
+            "rilascio": pezzi[0] if len(pezzi) > 1 else "",
+            "tipo": tipo_di(nome),
+            "totale": int(d.get("total") or 0),
+        })
+        print("   %-58s %5d" % (nome[:58], voci[-1]["totale"]))
+        time.sleep(1)          # non martelliamo l'API
+
+    per_tipo = {}
+    for v in voci:
+        per_tipo[v["tipo"]] = per_tipo.get(v["tipo"], 0) + v["totale"]
+    per_rilascio = {}
+    for v in voci:
+        if v["rilascio"]:
+            per_rilascio[v["rilascio"]] = per_rilascio.get(v["rilascio"], 0) + v["totale"]
+
+    fuori = {
+        "aggiornato": int(time.time()),
+        "totale": totale,
+        "dal": dal,
+        "somma_file": sum(v["totale"] for v in voci),
+        "per_tipo": per_tipo,
+        "per_rilascio": per_rilascio,
+        "file": sorted(voci, key=lambda v: -v["totale"]),
+    }
+    testo = json.dumps(fuori, ensure_ascii=False, indent=1)
+
+    locale = "/var/lib/skillfish-sf-dettaglio.json"
+    with open(locale, "w", encoding="utf-8") as f:
+        f.write(testo)
+
+    print("== carico su OVH")
+    carica_su_ovh(testo)
+    print("   fatto: %d file, somma %d, totale progetto %d"
+          % (len(voci), fuori["somma_file"], totale))
+
+
+if __name__ == "__main__":
+    main()

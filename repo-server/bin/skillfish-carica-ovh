@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Manda il repository apt su OVH, da qui invece che dal portatile.
+
+Le credenziali si leggono da /root/.skillfishos/deploy.env, con le stesse
+chiavi usate dagli script su Windows:
+
+    OVH_FTP_USER=...
+    OVH_FTP_PASS=...
+    OVH_SFTP_HOST=ssh.cluster129.hosting.ovh.net    (facoltativo)
+
+La pulizia dei pacchetti obsoleti non e' un vezzo: il 12 agosto 2026 il pool
+remoto, cresciuto a ogni rilascio senza che nessuno togliesse mai niente, ha
+riempito la quota a meta' caricamento e ha lasciato il repository monco, con
+apt in errore per chi stava aggiornando. Cio' che non c'e' in locale non serve
+neanche la'.
+"""
+import sys
+import pathlib
+
+try:
+    import paramiko
+except ImportError:
+    sys.exit("manca python3-paramiko:  apt-get install -y python3-paramiko")
+
+RADICE = pathlib.Path("/srv/apt")
+REMOTA = "www/apt"
+CRED = pathlib.Path("/root/.skillfishos/deploy.env")
+
+
+def credenziali():
+    if not CRED.is_file():
+        sys.exit("mancano le credenziali OVH in %s\n"
+                 "   servono le righe OVH_FTP_USER=... e OVH_FTP_PASS=..." % CRED)
+    dati = {}
+    for riga in CRED.read_text(encoding="utf-8").splitlines():
+        riga = riga.strip()
+        if "=" in riga and not riga.startswith("#"):
+            chiave, valore = riga.split("=", 1)
+            dati[chiave.strip()] = valore.strip()
+    if not (dati.get("OVH_FTP_USER") and dati.get("OVH_FTP_PASS")):
+        sys.exit("in %s mancano OVH_FTP_USER o OVH_FTP_PASS" % CRED)
+    return dati
+
+
+def main():
+    dati = credenziali()
+    host = dati.get("OVH_SFTP_HOST", "ssh.cluster129.hosting.ovh.net")
+    trasporto = paramiko.Transport((host, 22))
+    trasporto.connect(username=dati["OVH_FTP_USER"], password=dati["OVH_FTP_PASS"])
+    sftp = paramiko.SFTPClient.from_transport(trasporto)
+    print("   collegato a OVH (%s)" % host)
+
+    fatte = set()
+
+    def cartelle(percorso):
+        corrente = ""
+        for pezzo in percorso.split("/"):
+            if not pezzo:
+                continue
+            corrente = corrente + "/" + pezzo if corrente else pezzo
+            if corrente in fatte:
+                continue
+            try:
+                sftp.stat(corrente)
+            except IOError:
+                sftp.mkdir(corrente)
+            fatte.add(corrente)
+
+    cartelle(REMOTA)
+    quanti = 0
+    for p in sorted(RADICE.rglob("*")):
+        rel = p.relative_to(RADICE).as_posix()
+        # il database e la configurazione di reprepro restano a casa nostra
+        if rel.split("/")[0] in ("db", "conf"):
+            continue
+        remoto = REMOTA + "/" + rel
+        if p.is_dir():
+            cartelle(remoto)
+        else:
+            sftp.put(str(p), remoto)
+            quanti += 1
+            print("   su %d: %s" % (quanti, rel))
+
+    locali = set()
+    for q in RADICE.rglob("*.deb"):
+        locali.add(q.relative_to(RADICE).as_posix())
+
+    def spazza(cartella):
+        try:
+            voci = sftp.listdir_attr(cartella)
+        except IOError:
+            return 0
+        tolti = 0
+        for voce in voci:
+            percorso = cartella + "/" + voce.filename
+            if str(voce).startswith("d"):
+                tolti += spazza(percorso)
+            elif voce.filename.endswith(".deb"):
+                rel = percorso[len(REMOTA) + 1:]
+                if rel not in locali:
+                    try:
+                        sftp.remove(percorso)
+                        tolti += 1
+                        print("   tolto (obsoleto): %s" % rel)
+                    except IOError:
+                        pass
+        return tolti
+
+    vecchi = spazza(REMOTA + "/pool")
+    if vecchi:
+        print("   liberati %d pacchetti obsoleti" % vecchi)
+
+    sftp.close()
+    trasporto.close()
+    print("   FATTO: %d file su https://skillfishos.com/apt" % quanti)
+
+
+if __name__ == "__main__":
+    main()

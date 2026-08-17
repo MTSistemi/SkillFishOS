@@ -1,0 +1,108 @@
+#!/bin/bash
+# SkillFishOS - rilascio di un aggiornamento.
+#
+# Sta qui, sul container, e non piu' sulla console: indicizzare, firmare e
+# caricare non deve piu' rubare la scheda a chi ci sta giocando.
+#
+#   skillfish-rilascio pacchetto.deb [altri.deb ...]   -> va in "aetherium"
+#   skillfish-rilascio --prova pacchetto.deb           -> va in "aetherium-proposed"
+#   skillfish-rilascio --dalla-scheda                  -> prende i .deb appena
+#                                                        costruiti sulla scheda
+#   skillfish-rilascio --pubblica                      -> manda fuori cio' che
+#                                                        e' gia' in archivio
+#
+# Senza --pubblica il repository resta solo qui: e' il modo di provare un
+# rilascio prima che lo veda il mondo.
+set -u
+export LC_ALL=C
+ARCHIVIO=/srv/apt
+SUITE=aetherium
+# Dove sta la macchina che costruisce i pacchetti. Si cambia senza
+# toccare lo script:  SKILLFISH_BOARD=1.2.3.4 skillfish-rilascio ...
+SCHEDA="${SKILLFISH_BOARD:-skillfish-board.local}"
+PUBBLICA=no
+FILE=()
+SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --prova|--proposed)   SUITE=aetherium-proposed ;;
+    --pubblica|--publish) PUBBLICA=si ;;
+    --dalla-scheda)
+        echo "== prendo i .deb dalla scheda ($SCHEDA)"
+        mkdir -p /srv/incoming
+        preso=no
+        for d in /root/dist-debs /home/root/dist-debs /root/deb-out; do
+          if scp -q $SSHOPT "root@$SCHEDA:$d/*.deb" /srv/incoming/ 2>/dev/null; then
+            echo "   presi da $d"; preso=si; break
+          fi
+        done
+        [ "$preso" = no ] && { echo "   non trovo i .deb sulla scheda"; exit 1; }
+        for f in /srv/incoming/*.deb; do FILE+=("$f"); done
+        ;;
+    -h|--aiuto|--help) sed -n '2,16p' "$0" | cut -c3-; exit 0 ;;
+    *.deb) FILE+=("$1") ;;
+    *) echo "non so cosa farmene di: $1"; exit 1 ;;
+  esac
+  shift
+done
+
+if [ ${#FILE[@]} -eq 0 ] && [ "$PUBBLICA" = no ]; then
+  echo "nessun pacchetto e nessun --pubblica: non c'e' niente da fare"
+  echo "aiuto:  skillfish-rilascio --aiuto"
+  exit 1
+fi
+
+# --- la chiave di firma c'e'? ------------------------------------------------
+if [ ${#FILE[@]} -gt 0 ]; then
+  if ! gpg --list-secret-keys apt@skillfishos.com >/dev/null 2>&1; then
+    echo "ERRORE: qui non c'e' la chiave di firma dell'archivio."
+    echo "        Senza quella reprepro non firma, e apt rifiuterebbe tutto."
+    exit 1
+  fi
+fi
+
+# --- inserimento -------------------------------------------------------------
+for f in "${FILE[@]}"; do
+  n=$(basename "$f")
+  p=$(dpkg-deb -f "$f" Package 2>/dev/null)
+  v=$(dpkg-deb -f "$f" Version 2>/dev/null)
+  if [ -z "$p" ]; then
+    echo "   $n non e' un pacchetto valido, lo salto"
+    continue
+  fi
+  # se la stessa versione c'e' gia', reprepro si rifiuta: la tolgo prima
+  reprepro -b "$ARCHIVIO" remove "$SUITE" "$p" >/dev/null 2>&1
+  if reprepro -b "$ARCHIVIO" includedeb "$SUITE" "$f" >/dev/null 2>&1; then
+    echo "   messo: $p $v  ->  $SUITE"
+  else
+    echo "   FALLITO: $n"
+    reprepro -b "$ARCHIVIO" includedeb "$SUITE" "$f" 2>&1 | tail -3 | sed 's/^/      /'
+  fi
+done
+
+reprepro -b "$ARCHIVIO" --delete clearvanished >/dev/null 2>&1
+
+echo
+echo "== archivio ora"
+reprepro -b "$ARCHIVIO" list "$SUITE" | sed 's/^/   /'
+
+# --- fuori -------------------------------------------------------------------
+if [ "$PUBBLICA" = si ]; then
+  echo
+  echo "== mando fuori"
+  /usr/local/bin/skillfish-carica-ovh || exit 1
+else
+  echo
+  echo "Resta solo qui: http://$(hostname -I | awk '{print $1}')/apt"
+  echo "Quando ti convince:  skillfish-rilascio --pubblica"
+fi
+
+# --- promemoria: l'altro mirror non si aggiorna da solo ----------------------
+# Le ISO scaricano da mtsistemi.github.io, non da qui. Se Pages resta indietro
+# si costruiscono immagini coi pacchetti vecchi, e non se ne accorge nessuno
+# perche' non c'e' nessun errore: c'e' solo la versione sbagliata.
+echo
+echo "PROMEMORIA: GitHub Pages NON e' stato aggiornato da questo comando."
+echo "            Le ISO scaricano da li'. Per allinearlo, dal portatile:"
+echo "                python scripts/sincronizza-ghpages.py"

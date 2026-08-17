@@ -1,0 +1,76 @@
+#!/bin/bash
+# Carica una versione di SkillFishOS su Internet Archive.
+#
+# Perche' da qui e non dalla scheda: sono quasi 10 GB dalla linea di casa, e la
+# BC-250 e' la console con cui giocano i bambini. Questo container e' sempre
+# acceso e non serve a nessun altro.
+#
+# Il motivo vero del caricamento non e' avere un posto in piu': l'URL diretto di
+# archive.org diventa un webseed per i nostri torrent, cioe' una seconda fonte
+# sempre viva accanto al seeder di casa, che da solo non basta.
+set -u
+export LC_ALL=C
+
+VER=26.06.3
+NOME=skillfishos-${VER}-aetherium
+ISO=/srv/iso
+LOG=/var/log/skillfish-archivia.log
+
+. /root/.skillfishos/archive.env
+export IA_ACCESS_KEY IA_SECRET_KEY
+
+# lo strumento vuole le chiavi in un suo file
+mkdir -p /root/.config/internetarchive
+cat > /root/.config/internetarchive/ia.ini <<FINE
+[s3]
+access = $IA_ACCESS_KEY
+secret = $IA_SECRET_KEY
+FINE
+chmod 600 /root/.config/internetarchive/ia.ini
+
+echo "== 1. checksum delle immagini (verifica anche che siano integre)"
+cd "$ISO"
+for f in SkillFishOS-${VER}-Aetherium-*.iso; do
+  [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
+  echo "   $(cat "$f.sha256")"
+done
+
+echo
+echo "== 2. note di rilascio da SourceForge"
+curl -sSL --max-time 120 -o "$ISO/RELEASE-NOTES-${VER}.md" \
+  "https://sourceforge.net/projects/skillfishos/files/${VER}-Aetherium/RELEASE-NOTES-${VER}.md/download" \
+  && echo "   prese ($(wc -c < "$ISO/RELEASE-NOTES-${VER}.md") byte)" \
+  || echo "   non scaricate, pazienza"
+
+echo
+echo "== 3. i file .torrent"
+for t in /srv/torrent/*.torrent.added; do
+  [ -f "$t" ] || continue
+  cp -f "$t" "$ISO/$(basename "${t%.added}")"
+done
+ls -1 "$ISO" | sed 's/^/   /'
+
+echo
+echo "== 4. carico su archive.org come $NOME"
+ia upload "$NOME" \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-BC250-amd64.iso \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-Generic-amd64.iso \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-BC250-amd64.iso.sha256 \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-Generic-amd64.iso.sha256 \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-BC250-amd64.iso.torrent \
+  "$ISO"/SkillFishOS-${VER}-Aetherium-Generic-amd64.iso.torrent \
+  "$ISO"/RELEASE-NOTES-${VER}.md \
+  --metadata="mediatype:software" \
+  --metadata="title:SkillFishOS ${VER} Aetherium - Linux for the AMD BC-250" \
+  --metadata="creator:SkillFishOS Project" \
+  --metadata="date:2026" \
+  --metadata="language:eng" \
+  --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
+  --metadata="subject:linux;debian;bc250;amd;gaming;distribution;steampunk;skillfishos" \
+  --metadata="originalurl:https://skillfishos.com" \
+  --metadata="description:SkillFishOS is a Debian sid based Linux distribution built for the AMD BC-250, the ex-mining board with a Zen 2 CPU and an RDNA 2 GPU. It ships a custom TKG kernel with BC-250 patches, unlocks all 40 compute units and the 8 CPU cores, and includes purpose built tools for monitoring, tuning, kernel management, local AI and remote control. Two editions are provided: BC-250, tuned for that board, and Generic, for ordinary amd64 PCs. Interface in English, Italian, Polish and Ukrainian. Project site: https://skillfishos.com - source: https://github.com/skillfishos/SkillFishOS - GPL-3.0-or-later." \
+  --retries=10 \
+  2>&1 | sed 's/^/   /'
+
+echo
+echo "== 5. fatto: https://archive.org/details/$NOME"
