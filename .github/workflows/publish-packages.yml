@@ -1,0 +1,103 @@
+# Build the .debs from git and attach them to the release.
+#
+# Today a release goes: build on the board, copy to Windows, upload to the
+# container, sign, publish, then sync GitHub Pages by hand. Every step is a
+# place to drift, and on 16 August 2026 it did: the two mirrors ended up a
+# version apart and nobody noticed for a day.
+#
+# This does the reproducible half. On a tag it builds the packages FROM GIT —
+# which is the point: it catches the "stale binary packaged into a new version"
+# failure that building on the board cannot — and attaches them to the release,
+# so there is one authoritative set of files with a public checksum.
+#
+# ⚠️ WHAT IT DELIBERATELY DOES NOT DO: sign the archive and push it to the apt
+# repository. That needs the project signing key, and putting a signing key into
+# a CI secret is a decision for Mattia to take deliberately, not something to
+# slip in inside a workflow. Until he decides, the last step stays manual:
+#
+#     skillfish-rilascio --pubblica <i .deb scaricati da qui>
+#     python scripts/sincronizza-ghpages.py <versione>
+name: Packages — build from git and attach to the release
+
+on:
+  push:
+    tags: ['pkg-*']            # esempio: pkg-26.08.26
+  workflow_dispatch:
+    inputs:
+      versione:
+        description: 'Version to build (e.g. 26.08.26)'
+        required: true
+
+permissions:
+  contents: write              # serve per allegare i file al rilascio
+
+jobs:
+  costruisci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # il changelog dei pacchetti nasce dai commit
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Work out the version
+        id: v
+        run: |
+          set -u
+          if [ -n "${{ inputs.versione }}" ]; then
+            v="${{ inputs.versione }}"
+          else
+            v="${GITHUB_REF_NAME#pkg-}"
+          fi
+          case "$v" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::versione non riconosciuta: '$v' (attesa tipo 26.08.26)"; exit 1 ;;
+          esac
+          echo "versione=$v" >> "$GITHUB_OUTPUT"
+          echo "Costruisco la $v"
+
+      - name: Build every package from the git sources
+        run: |
+          set -u
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends dpkg-dev fakeroot
+          OUT=/tmp/debs bash scripts/build-debs-ci.sh "${{ steps.v.outputs.versione }}"
+
+      - name: What came out
+        run: |
+          set -u
+          cd /tmp/debs/out
+          sha256sum *.deb | tee SHA256SUMS
+          ls -l *.deb | awk '{printf "%-52s %8.1f KB\n", $9, $5/1024}'
+          n=$(ls *.deb | wc -l)
+          [ "$n" -ge 13 ] || { echo "::error::solo $n pacchetti, ne aspettavo almeno 13"; exit 1; }
+
+      - name: Attach them to the release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            /tmp/debs/out/*.deb
+            /tmp/debs/out/SHA256SUMS
+          fail_on_unmatched_files: true
+          body: |
+            Packages built from git at `${{ github.sha }}` by GitHub Actions.
+
+            These are the same packages that go into the apt repository. Verify
+            with the attached `SHA256SUMS` before publishing them.
+
+            Still to do by hand, on the services container:
+
+            ```
+            skillfish-rilascio --pubblica *.deb
+            python scripts/sincronizza-ghpages.py ${{ steps.v.outputs.versione }}
+            ```
+
+      - name: Keep them as artifacts too
+        uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ steps.v.outputs.versione }}
+          path: /tmp/debs/out/
+          retention-days: 30

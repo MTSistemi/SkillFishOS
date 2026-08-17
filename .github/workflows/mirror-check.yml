@@ -1,0 +1,117 @@
+# Do the two apt mirrors agree?
+#
+# On 16 August 2026 skillfishos.com/apt was serving 26.08.24 while GitHub Pages
+# was still on 26.08.23, and we found out by accident. The images installed on
+# people's machines point at GitHub Pages, so a mirror left behind means users
+# quietly stop receiving fixes — and nothing anywhere says so.
+#
+# This is the cheapest possible watchman: fetch both Packages.gz, compare the
+# versions, open an issue if they disagree. It also catches the mirror being
+# down, the index being unsigned, or the .deb it advertises not existing.
+name: Mirrors — do they agree?
+
+on:
+  schedule:
+    - cron: '17 6 * * *'      # ogni giorno, presto, a un minuto non tondo
+  workflow_dispatch:           # e a mano, quando si e' appena pubblicato
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  confronta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch both indexes
+        id: fetch
+        run: |
+          set -u
+          PRIMARIO="https://skillfishos.com/apt"
+          SPECCHIO="https://mtsistemi.github.io/SkillFishOS"
+          guasti=""
+
+          leggi() {   # <url> <nome> -> stampa "pacchetto versione" per riga
+            local u="$1/dists/aetherium/main/binary-amd64/Packages.gz"
+            local code
+            code=$(curl -sSL -o "/tmp/$2.gz" -w '%{http_code}' --max-time 60 "$u" || echo 000)
+            if [ "$code" != 200 ]; then
+              echo "::error::$2 non risponde: HTTP $code su $u"
+              return 1
+            fi
+            gzip -dc "/tmp/$2.gz" | awk '
+              /^Package: /{p=$2} /^Version: /{print p, $2}' | sort
+          }
+
+          leggi "$PRIMARIO" primario > /tmp/v-primario.txt || guasti="$guasti primario"
+          leggi "$SPECCHIO" specchio > /tmp/v-specchio.txt || guasti="$guasti specchio"
+
+          if [ -n "$guasti" ]; then
+            echo "differiscono=si" >> "$GITHUB_OUTPUT"
+            { echo "Un mirror non risponde:$guasti"; } > /tmp/rapporto.txt
+            exit 0
+          fi
+
+          echo "### skillfishos.com/apt"; cat /tmp/v-primario.txt
+          echo "### GitHub Pages";        cat /tmp/v-specchio.txt
+
+          if diff -q /tmp/v-primario.txt /tmp/v-specchio.txt >/dev/null; then
+            echo "differiscono=no" >> "$GITHUB_OUTPUT"
+            echo "I due mirror servono le stesse versioni."
+          else
+            echo "differiscono=si" >> "$GITHUB_OUTPUT"
+            {
+              echo "I due mirror apt NON servono le stesse versioni."
+              echo
+              echo '```diff'
+              diff -u /tmp/v-primario.txt /tmp/v-specchio.txt || true
+              echo '```'
+              echo
+              echo "A sinistra skillfishos.com/apt, a destra GitHub Pages."
+              echo "Le immagini installate puntano a **GitHub Pages**: se e' quello"
+              echo "indietro, gli utenti non ricevono le correzioni."
+            } > /tmp/rapporto.txt
+          fi
+
+      - name: Is the advertised .deb actually there?
+        if: steps.fetch.outputs.differiscono == 'no'
+        run: |
+          set -u
+          # Un indice puo' essere allineato e puntare a un file che non esiste:
+          # e' successo con gh-pages svuotato da un tar sbagliato.
+          v=$(awk '$1=="skillfish-base"{print $2}' /tmp/v-primario.txt)
+          [ -n "$v" ] || { echo "::error::skillfish-base non e' nell'indice"; exit 1; }
+          for m in "https://skillfishos.com/apt" "https://mtsistemi.github.io/SkillFishOS"; do
+            u="$m/pool/main/s/skillfish-base/skillfish-base_${v}_all.deb"
+            code=$(curl -sSL -o /dev/null -w '%{http_code}' --max-time 120 "$u")
+            echo "$m -> HTTP $code"
+            [ "$code" = 200 ] || { echo "::error::$u non si scarica ($code)"; exit 1; }
+          done
+          echo "Tutti e due servono davvero skillfish-base $v."
+
+      - name: Open an issue if they disagree
+        if: steps.fetch.outputs.differiscono == 'si'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const corpo = fs.readFileSync('/tmp/rapporto.txt', 'utf8');
+            const titolo = 'The two apt mirrors disagree';
+            // non si apre una issue nuova ogni giorno: si aggiorna quella che c'e'
+            const aperte = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'mirror',
+            });
+            if (aperte.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: aperte.data[0].number,
+                body: `Still out of sync as of ${new Date().toISOString()}:\n\n${corpo}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: titolo, labels: ['mirror'],
+                body: `${corpo}\n\n---\nOpened automatically by the daily mirror check.`,
+              });
+            }

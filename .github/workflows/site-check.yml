@@ -1,0 +1,90 @@
+# Does the site still build, and do its links still go anywhere?
+#
+# On 16 August 2026 we withdrew four releases from SourceForge and the download
+# page kept offering them for hours: 108 pages in four languages are not
+# something you check by hand. And a broken Astro build is only discovered at
+# deploy time, because the deploy is a manual SFTP push.
+#
+# This runs on every change that touches the site.
+name: Site — build and links
+
+on:
+  push:
+    paths: ['website/**', '.github/workflows/site-check.yml']
+  pull_request:
+    paths: ['website/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  costruisci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    env:
+      # ⚠️ astro.config.mjs impone outDir = os.tmpdir()/skillfishos-website-dist,
+      #    sempre: e' l'accorgimento contro il filtro di Dropbox, e vale anche
+      #    qui. Il dist NON e' website/dist.
+      DIST: /tmp/skillfishos-website-dist
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - run: npm ci
+
+      - name: Build
+        # ⚠️ Fuori da Dropbox non serve build.ps1: quello esiste solo perche' il
+        #    filtro di Dropbox blocca la cache .astro sulla macchina di Mattia.
+        run: npm run build
+        env:
+          CI: 'true'
+
+      - name: The build must not be half-done
+        run: |
+          set -u
+          # Un dist con l'HTML e senza CSS e' gia' finito online una volta.
+          html=$(find "$DIST" -name '*.html' 2>/dev/null | wc -l)
+          css=$(find "$DIST" -name '*.css' 2>/dev/null | wc -l)
+          img=$(find "$DIST" -path '*img*' -type f 2>/dev/null | wc -l)
+          echo "HTML: $html   CSS: $css   immagini: $img"
+          [ "$html" -ge 100 ] || { echo "::error::solo $html pagine, ne aspettavo un centinaio"; exit 1; }
+          [ "$css"  -ge 1 ]   || { echo "::error::nessun CSS: e' il dist monco che ha gia' rotto il sito"; exit 1; }
+          [ "$img"  -ge 1 ]   || { echo "::error::nessuna immagine"; exit 1; }
+
+      - name: Internal links must go somewhere
+        run: |
+          set -u
+          cd "$DIST"
+          mancanti=0
+          # si guardano solo i link interni: quelli esterni cambiano per conto loro
+          grep -rhoE 'href="/[^"#?]*"' . 2>/dev/null | sed 's/href="//;s/"$//' | sort -u \
+          | while read -r p; do
+              case "$p" in */) f=".${p}index.html" ;; *.*) f=".$p" ;; *) f=".$p/index.html" ;; esac
+              [ -e "$f" ] || echo "$p"
+            done > /tmp/rotti.txt
+          n=$(wc -l < /tmp/rotti.txt)
+          if [ "$n" -gt 0 ]; then
+            echo "::error::$n collegamenti interni non portano da nessuna parte:"
+            head -40 /tmp/rotti.txt
+            exit 1
+          fi
+          echo "Tutti i collegamenti interni portano a una pagina che esiste."
+
+      - name: No links to releases we withdrew
+        run: |
+          set -u
+          # Le 26.06, .1, .2 e .3 sono state ritirate perche' contenevano file
+          # privati della macchina di costruzione: non devono piu' comparire.
+          if grep -rqE 'SkillFishOS-26\.06(\.[123])?-Aetherium' "$DIST" 2>/dev/null; then
+            echo "::error::il sito offre ancora immagini ritirate:"
+            grep -rhoE 'SkillFishOS-26\.06(\.[123])?-Aetherium[^"]*' "$DIST" | sort -u | head -10
+            exit 1
+          fi
+          echo "Nessun riferimento alle immagini ritirate."
