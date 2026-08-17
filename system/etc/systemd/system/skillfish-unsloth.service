@@ -1,0 +1,16 @@
+[Unit]
+Description=SkillFishOS — Unsloth Studio (on-device AI, Vulkan)
+Documentation=https://unsloth.ai/docs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/skillfish-unsloth
+Restart=on-failure
+RestartSec=10
+# l'inferenza non deve mai far morire di fame il desktop
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

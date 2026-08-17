@@ -1,0 +1,63 @@
+#!/bin/bash
+# skillfish-unsloth — avvia il motore AI di SkillFishOS (Unsloth Studio, Vulkan).
+#
+# ⚠️ PERCHE' NON PUNTA PIU' A /root, ed e' un difetto che nessuno vedeva.
+# Questo script aveva dentro, scritto a mano:
+#
+#     export HOME=/root
+#     exec /root/.unsloth/studio/unsloth_studio/bin/unsloth studio -p 8888 -H 0.0.0.0
+#
+# Ma /root NON entra nell'immagine: e' escluso dallo squashfs apposta, per non
+# spedire il banco di lavoro. Quindi su un'installazione fresca questo percorso
+# non esiste, e il motore AI non parte per NESSUN utente. Funzionava solo sulla
+# scheda di sviluppo, dove Unsloth era stato installato da root.
+#
+# Adesso si cerca l'installazione dell'utente vero, in questo ordine:
+#   1. l'utente indicato in /etc/skillfish/dashboard.json
+#   2. il proprietario della sessione grafica attiva
+#   3. il primo utente con uid >= 1000 che abbia ~/.unsloth
+#
+# ⚠️ E ascolta su 127.0.0.1, non piu' su 0.0.0.0. Il pannello e il cruscotto ci
+# arrivano da localhost comunque: aprire il motore AI su tutta la rete era un
+# predefinito che nessuno aveva scelto davvero.
+set -u
+export LC_ALL=C
+
+PORTA="${UNSLOTH_PORT:-8888}"
+ASCOLTO="${UNSLOTH_BIND:-127.0.0.1}"
+
+trova_utente() {
+    # 1. quello che dice la dashboard
+    if [ -r /etc/skillfish/dashboard.json ]; then
+        u=$(python3 -c 'import json;print(json.load(open("/etc/skillfish/dashboard.json")).get("user",""))' 2>/dev/null)
+        [ -n "$u" ] && [ -d "$(getent passwd "$u" | cut -d: -f6)/.unsloth" ] && { echo "$u"; return; }
+    fi
+    # 2. chi ha la sessione grafica accesa
+    u=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$3!="root"{print $3; exit}')
+    [ -n "$u" ] && [ -d "$(getent passwd "$u" | cut -d: -f6)/.unsloth" ] && { echo "$u"; return; }
+    # 3. il primo utente vero che ce l'ha
+    while IFS=: read -r nome _ uid _ _ casa _; do
+        [ "$uid" -ge 1000 ] 2>/dev/null && [ "$uid" -lt 65534 ] && [ -d "$casa/.unsloth" ] && { echo "$nome"; return; }
+    done < /etc/passwd
+}
+
+U=$(trova_utente)
+if [ -z "$U" ]; then
+    echo "skillfish-unsloth: nessuna installazione di Unsloth trovata." >&2
+    echo "Installala dal pannello SkillFishOS AI, o con:" >&2
+    echo "    bash /usr/local/share/skillfish/install-unsloth.sh" >&2
+    exit 1
+fi
+
+CASA=$(getent passwd "$U" | cut -d: -f6)
+BIN="$CASA/.unsloth/studio/unsloth_studio/bin/unsloth"
+if [ ! -x "$BIN" ]; then
+    echo "skillfish-unsloth: $BIN non e' eseguibile" >&2
+    exit 1
+fi
+
+# UNSLOTH_FORCE_VULKAN va messo PRIMA: decide quale pacchetto di llama.cpp viene
+# usato, ed e' l'unica strada accelerata sulla BC-250 (gfx1013 non ha ROCm).
+exec setpriv --reuid="$U" --regid="$(id -g "$U")" --init-groups --inh-caps=-all \
+    env HOME="$CASA" UNSLOTH_FORCE_VULKAN=1 XDG_RUNTIME_DIR="/run/user/$(id -u "$U")" \
+    "$BIN" studio -p "$PORTA" -H "$ASCOLTO" --no-cloudflare

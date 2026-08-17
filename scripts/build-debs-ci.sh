@@ -167,6 +167,13 @@ put $P 0755 apps/ai-panel/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-gtt      usr/local/bin/skillfish-gtt
 # the setup wizard shells out to this to install the Unsloth engine
 put $P 0755 scripts/install-unsloth.sh       usr/local/share/skillfish/install-unsloth.sh
+# ⚠️ Il lanciatore del motore AI e la sua unit NON erano in nessun pacchetto:
+#    stavano solo sul disco della scheda. Come per lo sfondo, una correzione non
+#    poteva arrivare a chi aveva gia' installato. E il lanciatore aveva dentro
+#    /root, che nell'immagine non c'e': il motore non partiva per nessuno.
+put $P 0755 system/usr/local/bin/skillfish-unsloth        usr/local/bin/skillfish-unsloth
+put $P 0755 system/usr/local/bin/skillfish-unsloth-update usr/local/bin/skillfish-unsloth-update
+put $P 0644 system/etc/systemd/system/skillfish-unsloth.service etc/systemd/system/skillfish-unsloth.service
 put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/applications/os.skillfish.ai.desktop
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
@@ -723,6 +730,14 @@ check skillfish-console_${VER}_all.deb       ./opt/skillfish/steam-bin/steamos-s
 check skillfish-console_${VER}_all.deb       ./usr/local/bin/skillfish-gaming-mode    /usr/games
 check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
+# Il motore AI non deve piu' puntare a /root: nell'immagine non esiste, e il
+# risultato era che su un'installazione fresca non partiva per nessuno.
+# ⚠️ Si guarda il CODICE, non i commenti: lo script SPIEGA il vecchio difetto e
+#    quindi la stringa /root compare, giustamente, in un commento.
+dpkg-deb --fsys-tarfile "$OUT/out/skillfish-ai-panel_${VER}_all.deb"   | tar -xO ./usr/local/bin/skillfish-unsloth 2>/dev/null   | grep -vE '^[[:space:]]*#' | grep -qE '/root/\.unsloth|HOME=/root'   && { echo "FATAL: skillfish-unsloth punta ancora a /root nel codice" >&2; exit 1; }   || echo "OK  skillfish-unsloth: il codice non punta piu' a /root"
+check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth '127.0.0.1'
+check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth-update 'install.unsloth.ai'
+check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth-update 'Desktop/unsloth-studio.desktop'
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html "SkillFishOS Hub"
 # La dashboard web dev'essere in quattro lingue: il dizionario condiviso c'e', e

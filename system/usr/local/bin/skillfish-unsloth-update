@@ -1,0 +1,97 @@
+#!/bin/bash
+# skillfish-unsloth-update — aggiorna Unsloth Studio, che rilascia molto spesso.
+#
+#   skillfish-unsloth-update            aggiorna, se c'e' qualcosa di nuovo
+#   skillfish-unsloth-update --versione dice solo quale versione c'e' adesso
+#   skillfish-unsloth-update --forza    reinstalla anche se sembra aggiornato
+#
+# PERCHE' ESISTE
+# Unsloth pubblica versioni nuove quasi ogni giorno, e noi non possiamo
+# impacchettarlo: sono 4 GB e cambierebbe piu' in fretta della distribuzione.
+# Quindi l'aggiornamento resta il loro installatore ufficiale, ma passa da qui,
+# che gli mette a posto tre cose che l'installatore fa a modo suo.
+#
+# ⚠️ 1. SI INSTALLA NELLA HOME DELL'UTENTE, NON IN /root. Il 16/08/2026 Mattia
+#       ha aggiornato e si e' ritrovato DUE installazioni da 4 GB - una in
+#       /root e una nella sua home - perche' il nostro install-unsloth.sh
+#       faceva `export HOME=/root`. Su un'immagine /root non viene nemmeno
+#       spedito, quindi quella copia non serviva a nessuno.
+#
+# ⚠️ 2. TOGLIE L'ICONA CHE L'INSTALLATORE LASCIA SULLA SCRIVANIA. Unsloth crea
+#       da solo ~/Desktop/unsloth-studio.desktop a ogni installazione. La voce
+#       di menu la teniamo, l'icona sulla scrivania no: la scrivania e' di chi
+#       usa il computer, non di chi installa i programmi.
+#
+# ⚠️ 3. RIAVVIA IL SERVIZIO. Se non lo si fa resta in piedi il motore vecchio,
+#       e si crede di aver aggiornato mentre gira ancora la versione di prima.
+set -u
+export LC_ALL=C
+
+AZIONE="${1:-aggiorna}"
+
+# --- chi e' l'utente vero -----------------------------------------------------
+utente_vero() {
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then echo "$SUDO_USER"; return; fi
+    if [ "$(id -u)" -ne 0 ]; then id -un; return; fi
+    if [ -r /etc/skillfish/dashboard.json ]; then
+        u=$(python3 -c 'import json;print(json.load(open("/etc/skillfish/dashboard.json")).get("user",""))' 2>/dev/null)
+        [ -n "$u" ] && { echo "$u"; return; }
+    fi
+    loginctl list-sessions --no-legend 2>/dev/null | awk '$3!="root"{print $3; exit}'
+}
+
+U=$(utente_vero)
+[ -n "$U" ] || { echo "non capisco per quale utente lavorare" >&2; exit 2; }
+CASA=$(getent passwd "$U" | cut -d: -f6)
+BIN="$CASA/.unsloth/studio/unsloth_studio/bin/unsloth"
+
+versione_installata() {
+    [ -x "$BIN" ] || { echo "nessuna"; return; }
+    sudo -u "$U" HOME="$CASA" "$BIN" --version 2>/dev/null | awk '{print $NF}' | head -1
+}
+
+if [ "$AZIONE" = "--versione" ]; then
+    echo "utente:    $U"
+    echo "percorso:  $CASA/.unsloth"
+    echo "versione:  $(versione_installata)"
+    exit 0
+fi
+
+PRIMA=$(versione_installata)
+echo ">>> Unsloth per l'utente $U — versione attuale: $PRIMA"
+
+# --- l'aggiornamento e' l'installatore ufficiale, rilanciato -------------------
+# Non c'e' un comando `unsloth update`: il modo previsto da loro e' rieseguire
+# install.sh, che sostituisce sul posto. UNSLOTH_FORCE_VULKAN va messo PRIMA,
+# perche' decide quale pacchetto di llama.cpp viene scaricato e non si puo'
+# cambiare al lancio: senza, si finisce sulla CPU (41 tok/s invece di 210).
+echo ">>> scarico ed eseguo l'installatore ufficiale come $U"
+sudo -u "$U" HOME="$CASA" UNSLOTH_FORCE_VULKAN=1 \
+    sh -c 'curl -fsSL https://install.unsloth.ai | sh' || {
+        echo "l'installatore e' fallito: la versione di prima resta al suo posto" >&2
+        exit 1
+    }
+
+DOPO=$(versione_installata)
+
+# --- le tre cose che l'installatore fa a modo suo ------------------------------
+if [ -f "$CASA/Desktop/unsloth-studio.desktop" ]; then
+    rm -f "$CASA/Desktop/unsloth-studio.desktop"
+    echo ">>> tolta l'icona che l'installatore aveva messo sulla scrivania"
+fi
+# la stessa cosa per chiunque altro abbia una scrivania
+for d in /home/*/Desktop; do
+    [ -f "$d/unsloth-studio.desktop" ] && rm -f "$d/unsloth-studio.desktop"
+done
+
+if systemctl is-active --quiet skillfish-unsloth; then
+    systemctl restart skillfish-unsloth
+    echo ">>> servizio riavviato: adesso gira davvero la versione nuova"
+fi
+
+echo
+if [ "$PRIMA" = "$DOPO" ]; then
+    echo "Era gia' aggiornato: $DOPO"
+else
+    echo "Aggiornato: $PRIMA -> $DOPO"
+fi
