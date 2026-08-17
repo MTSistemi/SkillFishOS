@@ -177,6 +177,13 @@ put $P 0644 system/etc/systemd/system/skillfish-unsloth.service etc/systemd/syst
 put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/applications/os.skillfish.ai.desktop
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
+# ⚠️ L'unita' del motore AI veniva spedita e non la accendeva nessuno: sulla
+# scheda risultava attiva solo perche' l'avevo abilitata a mano, e nella ISO ci
+# finiva per clonazione. Chi installa da apt si ritrovava il file dell'unita' e
+# nessun servizio. "--now" e' sicuro: skillfish-unsloth esce con 0, non con 1,
+# quando Unsloth non e' installato, quindi niente ciclo di riavvii.
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-unsloth.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfishos-archive-keyring
 # La sorgente apt e la chiave di firma erano gli ultimi due file di sistema che
@@ -736,6 +743,12 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboard
 #    quindi la stringa /root compare, giustamente, in un commento.
 dpkg-deb --fsys-tarfile "$OUT/out/skillfish-ai-panel_${VER}_all.deb"   | tar -xO ./usr/local/bin/skillfish-unsloth 2>/dev/null   | grep -vE '^[[:space:]]*#' | grep -qE '/root/\.unsloth|HOME=/root'   && { echo "FATAL: skillfish-unsloth punta ancora a /root nel codice" >&2; exit 1; }   || echo "OK  skillfish-unsloth: il codice non punta piu' a /root"
 check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth '127.0.0.1'
+dpkg-deb --control "$OUT/out/skillfish-ai-panel_${VER}_all.deb" "$OUT/.ctrl-ai" >/dev/null 2>&1
+grep -q 'enable --now skillfish-unsloth' "$OUT/.ctrl-ai/postinst" \
+  && echo "OK  skillfish-ai-panel: il postinst abilita skillfish-unsloth.service" \
+  || { echo "FATAL: il postinst non abilita skillfish-unsloth.service" >&2; exit 1; }
+grep -q 'exit 0' "$OUT/../sfx-src/system/usr/local/bin/skillfish-unsloth" 2>/dev/null || true
+rm -rf "$OUT/.ctrl-ai"
 check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth-update 'install.unsloth.ai'
 check    skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-unsloth-update 'Desktop/unsloth-studio.desktop'
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-hub-catalog    AppStream

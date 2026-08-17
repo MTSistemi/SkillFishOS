@@ -43,16 +43,18 @@ trova_utente() {
 
 U=$(trova_utente)
 if [ -z "$U" ]; then
-    echo "skillfish-unsloth: nessuna installazione di Unsloth trovata." >&2
-    echo "Installala dal pannello SkillFishOS AI, o con:" >&2
+    echo "skillfish-unsloth: no Unsloth installation found." >&2
+    echo "Install it from the SkillFishOS AI panel, or with:" >&2
     echo "    bash /usr/local/share/skillfish/install-unsloth.sh" >&2
-    exit 1
+    # non e' un errore: non c'e' niente da servire. Uscire con 1 farebbe
+    # ripartire l'unita' ogni 10 secondi per una macchina senza Unsloth.
+    exit 0
 fi
 
 CASA=$(getent passwd "$U" | cut -d: -f6)
 BIN="$CASA/.unsloth/studio/unsloth_studio/bin/unsloth"
 if [ ! -x "$BIN" ]; then
-    echo "skillfish-unsloth: $BIN non e' eseguibile" >&2
+    echo "skillfish-unsloth: $BIN is not executable" >&2
     exit 1
 fi
 
