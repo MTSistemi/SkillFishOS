@@ -474,7 +474,16 @@ Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  logs, Wake-on-LAN and ZeroTier. Ships the always-available daemon plus the
  native Remote Manager toggle app. Built from git by CI.
 EOF
-printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboard.json ] || cp /usr/share/skillfish/dashboard-default.json /etc/skillfish/dashboard.json\nif [ -d /run/systemd/system ]; then systemctl daemon-reload || true; fi\nupdate-desktop-database -q 2>/dev/null || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+# ⚠️ Si MASCHERA ttyd.service, non lo si disabilita soltanto.
+# Il pacchetto Debian ttyd porta una sua unita' abilitata, che parte con le
+# opzioni di /etc/default/ttyd (-W -i lo -p 7681 -O login) e occupa la porta
+# 7681 SENZA il percorso base /terminal. La dashboard inoltra /terminal/...
+# senza togliere il prefisso, perche' si aspetta il ttyd che avvia lei con
+# -b /terminal: con quello di systemd in mezzo, il terminale rispondeva 404.
+# Disabilitarla non basta: ha Restart=, e un aggiornamento di ttyd la
+# rimetterebbe in piedi. Con `-O login` per giunta il terminale richiedeva di
+# nuovo utente e password, buttando via il single sign-on della dashboard.
+printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboard.json ] || cp /usr/share/skillfish/dashboard-default.json /etc/skillfish/dashboard.json\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl disable --now ttyd.service 2>/dev/null || true\n  systemctl mask ttyd.service 2>/dev/null || true\nfi\nupdate-desktop-database -q 2>/dev/null || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then systemctl disable --now skillfish-dashboard.service 2>/dev/null || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
@@ -688,6 +697,12 @@ check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'annul
 # 4. Lo spegnimento della dashboard non deve stare dentro la unit: il pkill
 #    trovava la propria shell e si ammazzava, lasciando il servizio in failed.
 check    skillfish-dashboard_${VER}_all.deb ./usr/local/bin/skillfish-dashboard-stop 'ttyd -i lo'
+# Il terminale rispondeva 404 perche' il ttyd del pacchetto Debian teneva la
+# porta senza -b /terminal. Il postinst lo deve mascherare: se questa riga
+# sparisce, il guasto torna e nessuno lo collega alla causa.
+grep -q 'mask ttyd.service' "$OUT/skillfish-dashboard/DEBIAN/postinst" \
+  && echo "OK  postinst della dashboard: ttyd.service mascherato" \
+  || { echo "FATAL: il postinst non maschera ttyd.service" >&2; exit 1; }
 check    skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/usr/local/bin/skillfish-dashboard-stop'
 notcheck skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/bin/sh'
 # 5. La tabella ACPI della BC-250 va TOLTA sulle macchine che non lo sono, non
