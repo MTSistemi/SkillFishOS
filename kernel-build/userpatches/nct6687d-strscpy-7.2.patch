@@ -1,0 +1,53 @@
+Fix the nct6687d out-of-tree fan driver for Linux 7.2.
+
+WHY THIS EXISTS
+The BC-250's fan is driven by nct6687d (github.com/Fred78290/nct6687d), built by
+DKMS. On 7.2 it stops building:
+
+  nct6687.c:476:9: error: implicit declaration of function 'strncpy'
+
+strncpy() is gone from <linux/string.h> - it now appears there only in comments,
+as the function other helpers replace - and the kernel compiles with -Werror on
+implicit declarations, so this is an error, not a warning.
+
+strscpy() does exactly what the call needed (truncate and always terminate) and
+has existed for years, so the patched source still builds for 7.1.7 and older.
+That matters: DKMS keeps one source tree for every installed kernel.
+
+WHY IT IS NOT A KERNEL PATCH
+The module is not in the kernel tree. The source is vendored under
+/usr/src/nct6687d-1.0 on the board and travels into the images from there, so
+the fix is applied to that copy. This file exists so a rebuild from upstream
+does not silently lose it - without the fix the board boots with no fan control
+and no tacho, and nothing says why.
+
+    cd /usr/src/nct6687d-1.0 && patch -p0 < nct6687d-strscpy-7.2.patch
+    dkms build -m nct6687d -v 1.0 -k <kernel> && dkms install -m nct6687d -v 1.0 -k <kernel>
+
+--- nct6687.c.orig	2026-05-30 13:54:45.748753243 +0200
++++ nct6687.c	2026-08-18 23:25:08.749949524 +0200
+@@ -37,6 +37,10 @@
+ #include <linux/mutex.h>
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
++// 18/08/2026: dal kernel 7.2 <linux/string.h> non arriva piu' per traverso,
++// e il kernel compila con -Werror sulle dichiarazioni implicite: senza questa
++// riga strncpy() e' un errore, non un avviso, e il modulo non si costruisce.
++#include <linux/string.h>
+ #include <linux/version.h>
+ 
+ #define DRVNAME "nct6687"
+@@ -473,7 +477,12 @@
+ 	char valcp[16];
+ 	char *s;
+ 
+-	strncpy(valcp, val, 16);
++	// 18/08/2026: dal kernel 7.2 strncpy() non esiste piu' - in string.h resta
++	// solo nominata come "funzione sostituita" - e il kernel compila con -Werror
++	// sulle dichiarazioni implicite, quindi il modulo non si costruiva. strscpy fa
++	// esattamente quel che serviva qui (tronca e termina sempre) ed esiste da anni,
++	// quindi il sorgente resta buono anche per il 7.1.7.
++	strscpy(valcp, val, sizeof(valcp));
+ 	valcp[15] = '\0';
+ 
+ 	s = strstrip(valcp);
