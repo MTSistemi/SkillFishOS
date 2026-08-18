@@ -91,6 +91,7 @@ ACCESSO_DI_SVILUPPO="
 /root/.python_history
 /root/.lesshst
 /etc/sddm.conf.d/90-autologin-dev.conf
+/etc/ssh/sshd_config.d/90-skillfish-dev-root.conf
 "
 
 # Le stesse cose dentro le cartelle personali, qualunque sia il nome dell'utente:
