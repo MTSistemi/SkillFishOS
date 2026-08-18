@@ -525,12 +525,24 @@ if ($sf && isset($sf['total'])) {
     echo '<table><tr><th>Voce</th><th class="r">Download</th></tr>';
     echo '<tr><td><strong>Totale</strong></td><td class="r"><strong>' . (int)$sf['total'] . '</strong></td></tr>';
     if (!empty($sf['countries'])) {
+        $obc = $sf['oses_by_country'] ?? array();
         foreach (sfstats_paesi($sf['countries'], 10) as $p) {
             $bandiera = $p['iso'] ? sfstats_flag($p['iso']) . ' ' : '';
             $nome = $p['nome'] === 'Unknown' ? '<span class="muted">paese sconosciuto</span>' : h($p['nome']);
-            echo '<tr><td>' . $bandiera . $nome . '</td>'
+            $sp = sfstats_paesi_os($obc, $p['nome']);
+            $nota = '';
+            if ($sp !== null && $p['n'] > 0) {
+                $q = round(100 * $sp['auto'] / $p['n']);
+                $nota = ' <span class="muted" style="font-size:.8rem">· ' . $sp['browser'] . ' da browser'
+                      . ($q >= 40 ? ', ' . $q . '% automatici' : '') . '</span>';
+            }
+            echo '<tr><td>' . $bandiera . $nome . $nota . '</td>'
                . '<td class="r">' . $p['n'] . '</td></tr>';
         }
+        echo '<tr><td colspan="2" class="muted" style="font-size:.78rem;padding-top:8px">'
+           . 'Il totale di SourceForge conta anche i client torrent, che tirano dai nostri '
+           . 'web seed senza dichiarare un browser: dove gli "automatici" sono tanti, il numero '
+           . 'di persone e' piu' vicino alla cifra "da browser".</td></tr>';
     }
     echo '</table>';
 } else {

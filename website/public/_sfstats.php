@@ -228,6 +228,29 @@ if (!defined('SFSTATS_LIB')) {
         return $quanti ? array_slice($out, 0, $quanti) : $out;
     }
 
+
+    // Spacca i download di un paese fra browser riconosciuti e "Unknown".
+    // ⚠️ Unknown non vuol dire per forza robot: chi usa wget, aria2 o un client
+    // torrent (i nostri .torrent hanno SourceForge come web seed) e' una persona
+    // vera che finisce li' dentro. Serve a non leggere il totale grezzo come
+    // "utenti": il Kenya, 435 su 435 Unknown e una sola visita al sito, non e'
+    // 435 persone.
+    function sfstats_paesi_os($obc, $nome) {
+        $o = null;
+        if (is_array($obc)) {
+            if (isset($obc[$nome]) && is_array($obc[$nome])) $o = $obc[$nome];
+            else foreach ($obc as $v) {
+                if (is_array($v) && isset($v[0]) && $v[0] === $nome && isset($v[1]) && is_array($v[1])) { $o = $v[1]; break; }
+            }
+        }
+        if (!is_array($o)) return null;
+        $unk = 0; $br = 0;
+        foreach ($o as $k => $n) {
+            if ((string)$k === 'Unknown') $unk += (int)$n; else $br += (int)$n;
+        }
+        return array('browser' => $br, 'auto' => $unk);
+    }
+
     function sfstats_os($ua) {
         if (preg_match('/Android/i', $ua)) return 'Android';
         if (preg_match('/iPhone|iPad|iOS/i', $ua)) return 'iOS';
