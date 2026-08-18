@@ -275,6 +275,11 @@ if [ -d /run/systemd/system ]; then
   systemctl enable skillfish-sshd-keygen.service || true
   [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
+  # enable --now avvia solo se e' ferma: se era gia' attiva con la vecchia
+  # definizione, la nuova (RemainAfterExit + ExecStop) non entrerebbe in vigore
+  # fino al riavvio. Il try-restart e' innocuo: scrive il marcatore e lo
+  # riconsuma subito.
+  systemctl try-restart skillfish-freeze-check.service || true
   # Lo sblocco degli 8 core dal 16/08/2026 e' A RICHIESTA: il servizio resta
   # abilitato ma non parte senza il segnaposto. Chi aveva gia' gli 8 core li ha
   # perche' il vecchio servizio glieli sbloccava da solo: se al momento
@@ -668,6 +673,12 @@ check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillf
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Suites: aetherium'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswap.sh compositore
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
+# Il rilevatore di blocchi decide guardando un marcatore che scrive LUI stesso
+# allo spegnimento. Le due righe qui sotto sono quelle che lo rendono possibile:
+# senza RemainAfterExit systemd non esegue mai ExecStop, il marcatore non viene
+# scritto e ogni avvio denuncia un blocco che non c'e' stato.
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-freeze-check.service RemainAfterExit=yes
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-freeze-check.service 'ExecStop=/usr/local/bin/skillfish-freeze-check.sh shutdown'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlock     0x5A870
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents sparse=never

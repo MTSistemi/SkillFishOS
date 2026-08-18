@@ -1,10 +1,20 @@
 [Unit]
-Description=SkillFishOS - detect an unclean previous shutdown (freeze/watchdog reset)
-After=systemd-journald.service
+Description=SkillFishOS - detect an unclean previous shutdown (freeze/watchdog reset/power loss)
+Documentation=file:/usr/local/bin/skillfish-freeze-check.sh
+# The state lives on /var: do not start before it is there, and do not let the
+# shutdown run happen after it is gone.
+RequiresMountsFor=/var/lib /var/log
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/skillfish-freeze-check.sh
+# REQUIRED, not cosmetic. A oneshot unit without RemainAfterExit goes inactive
+# the moment ExecStart returns, and stopping an already inactive unit does
+# nothing: ExecStop would never run at shutdown and every boot would report a
+# freeze. With RemainAfterExit the unit stays active for the whole session and
+# is stopped, exactly once, on the way down.
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-freeze-check.sh boot
+ExecStop=/usr/local/bin/skillfish-freeze-check.sh shutdown
 
 [Install]
 WantedBy=multi-user.target
