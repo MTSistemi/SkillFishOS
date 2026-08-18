@@ -280,6 +280,11 @@ if [ -d /run/systemd/system ]; then
   # fino al riavvio. Il try-restart e' innocuo: scrive il marcatore e lo
   # riconsuma subito.
   systemctl try-restart skillfish-freeze-check.service || true
+  # Ripulisce cio' che la live si lascia dietro su un sistema installato:
+  # l'accesso automatico dell'utente 'live' e il generatore di getty orfano.
+  # Non fa niente se non c'e' niente da fare, ed e' l'unico modo di arrivare
+  # a chi ha installato prima che la correzione esistesse.
+  /usr/local/bin/skillfish-clean-live-autologin >/dev/null 2>&1 || true
   # Lo sblocco degli 8 core dal 16/08/2026 e' A RICHIESTA: il servizio resta
   # abilitato ma non parte senza il segnaposto. Chi aveva gia' gli 8 core li ha
   # perche' il vecchio servizio glieli sbloccava da solo: se al momento
@@ -683,6 +688,10 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-core-unlo
 check skillfish-base_${VER}_all.deb          ./etc/modules-load.d/skillfish-ntsync.conf ntsync
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-boot-extents sparse=never
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-clean-live-autologin '\[Autologin\]'
+# Lo stesso script maschera anche il generatore di getty che live-config-systemd
+# si lascia dietro: senza, l'errore compariva 32 volte per avvio su una BC-250
+# installata. Il controllo serve perche' e' una riga sola, facile da perdere.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-clean-live-autologin live-config-getty-generator
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication

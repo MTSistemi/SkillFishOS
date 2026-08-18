@@ -74,6 +74,26 @@ if [ -f "$SDDMC" ]; then
     fi
 fi
 
+# --- il generatore di getty rimasto orfano ----------------------------------
+# Vedi in testa: live-config-systemd resta installato, live-config no, e il suo
+# generatore fallisce a ogni rilettura della configurazione di systemd. Si
+# maschera con un collegamento a /dev/null in /etc, che ha la precedenza su
+# /usr/lib: dpkg non se ne accorge, e per riattivarlo basta togliere il
+# collegamento.
+#
+# La condizione guarda il file da cui il generatore dipende, non se siamo
+# installati: dentro un chroot non si puo' sapere, e nella live quel file c'e'
+# davvero, quindi li' non si tocca niente.
+GEN=live-config-getty-generator
+if [ -x "$RADICE/usr/lib/systemd/system-generators/$GEN" ] \
+   && [ ! -r "$RADICE/usr/lib/live/init-config.sh" ] \
+   && [ ! -L "$RADICE/etc/systemd/system-generators/$GEN" ]; then
+    mkdir -p "$RADICE/etc/systemd/system-generators"
+    ln -sfn /dev/null "$RADICE/etc/systemd/system-generators/$GEN"
+    tolti=$((tolti + 1))
+    echo "skillfish: mascherato $GEN (la live e' andata via, il generatore e' rimasto)"
+fi
+
 if [ "$tolti" -eq 0 ]; then
     echo "skillfish: nessun accesso automatico da ripulire"
 fi
