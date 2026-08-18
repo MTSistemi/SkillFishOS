@@ -2,7 +2,7 @@
 Name=SkillFish Steampunk
 Comment=Brass & copper steampunk icon theme matching the SkillFishOS wallpaper
 Inherits=breeze-dark,Adwaita,hicolor
-Directories=scalable/emblems,scalable/status,scalable/places,scalable/apps,scalable/categories,scalable/mimetypes,scalable/actions
+Directories=48x48/apps,64x64/apps,256x256/apps,scalable/emblems,scalable/status,scalable/places,scalable/apps,scalable/categories,scalable/mimetypes,scalable/actions
 
 [scalable/places]
 Size=128
@@ -52,3 +52,30 @@ MinSize=8
 MaxSize=512
 Type=Scalable
 Context=Emblems
+
+# Il pesce del pulsante del menu, in mappa di bit.
+#
+# PERCHE' STA QUI E NON SOLO IN hicolor
+# Il pannello chiede l'icona per nome, "skillfish-tuner". Quel nome nel tema non
+# c'era, e KDE allora taglia dopo l'ultimo trattino e riprova con "skillfish" -
+# che nel tema C'E', ed e' il pesce stilizzato con l'ingranaggio. Il tema attivo
+# vince su hicolor ereditato, quindi al posto del pesce di ottone usciva quello
+# stilizzato: nessun errore da nessuna parte, solo l'icona sbagliata.
+# Col nome esatto dentro il tema la ricerca finisce al primo colpo.
+
+[48x48/apps]
+Size=48
+Type=Fixed
+Context=Applications
+
+[64x64/apps]
+Size=64
+Type=Fixed
+Context=Applications
+
+[256x256/apps]
+Size=256
+MinSize=64
+MaxSize=512
+Type=Threshold
+Context=Applications

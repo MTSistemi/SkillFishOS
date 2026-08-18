@@ -833,6 +833,10 @@ check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.p
 # pulsante vuoto, senza dire niente nel giornale. Facile da riscrivere per
 # sbaglio salvando il pannello dall'interfaccia, quindi lo si controlla qui.
 check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=skillfish-tuner'
+# ...e l'icona con quel nome deve stare DENTRO al nostro tema. Se manca, KDE
+# taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
+# stilizzato al posto di quello di ottone, senza dire niente a nessuno.
+test -s "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" \n  && echo "OK  skillfish-theme: il pesce del menu e' dentro al tema" \n  || { echo "FAIL skillfish-theme: manca 256x256/apps/skillfish-tuner.png nel tema" >&2; exit 1; }
 # La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
 # che il testo passi dalla funzione di traduzione e non sia piu' una costante.
 check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
