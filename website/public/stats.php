@@ -542,7 +542,7 @@ if ($sf && isset($sf['total'])) {
         echo '<tr><td colspan="2" class="muted" style="font-size:.78rem;padding-top:8px">'
            . 'Il totale di SourceForge conta anche i client torrent, che tirano dai nostri '
            . 'web seed senza dichiarare un browser: dove gli "automatici" sono tanti, il numero '
-           . 'di persone e' piu' vicino alla cifra "da browser".</td></tr>';
+           . 'di persone sta più vicino alla cifra «da browser».</td></tr>';
     }
     echo '</table>';
 } else {
