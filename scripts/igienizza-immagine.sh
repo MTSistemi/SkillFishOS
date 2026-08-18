@@ -67,6 +67,54 @@ IDENTITA_MACCHINA="
 /var/lib/AccountsService/users
 "
 
+# --- 1bis. come si entra in QUESTA macchina --------------------------------
+# ⚠️ Serve da quando la Generic si produce dalla macchina di sviluppo e non piu'
+# clonando la BC-250. Quella macchina ha un utente con la password, l'accesso
+# automatico e le chiavi con cui ci entriamo da remoto: se finiscono
+# nell'immagine, ogni installazione nasce con la stessa porta aperta. E' lo
+# stesso errore della 26.06.3, su file diversi.
+#
+# Le chiavi di HOST le toglie gia' eggs quando produce, e skillfish-sshd-keygen
+# le rigenera al primo avvio: qui si aggiungono lo stesso, perche' un
+# comportamento che dipende da un'altra squadra non e' una garanzia.
+ACCESSO_DI_SVILUPPO="
+/etc/ssh/ssh_host_rsa_key
+/etc/ssh/ssh_host_rsa_key.pub
+/etc/ssh/ssh_host_ecdsa_key
+/etc/ssh/ssh_host_ecdsa_key.pub
+/etc/ssh/ssh_host_ed25519_key
+/etc/ssh/ssh_host_ed25519_key.pub
+/etc/ssh/ssh_host_mldsa44_ed25519_key
+/etc/ssh/ssh_host_mldsa44_ed25519_key.pub
+/root/.ssh
+/root/.bash_history
+/root/.python_history
+/root/.lesshst
+/etc/sddm.conf.d/90-autologin-dev.conf
+"
+
+# Le stesse cose dentro le cartelle personali, qualunque sia il nome dell'utente:
+# sulla BC-250 era "skillfish", sulla macchina di sviluppo e' "skillfishdev", e
+# domani potrebbe essere un altro. Si scoprono a runtime invece di elencarle.
+casa_da_ripulire() {
+    local u
+    for u in /home/*; do
+        [ -d "$u" ] || continue
+        printf '%s\n' "$u/.ssh" "$u/.bash_history" "$u/.python_history" \
+                       "$u/.lesshst" "$u/.local/share/krunnerstaterc"
+    done
+}
+
+# --- 1ter. il banco di lavoro della macchina di sviluppo -------------------
+# Il clone del repository con dentro l'albero di compilazione: centinaia di MB
+# che all'utente non servono, e con dentro i nostri file di lavoro.
+BANCO_DI_SVILUPPO="
+/root/sfx-src
+/root/k72
+/root/debs-2608-26
+/root/dist-debs
+"
+
 # --- 2. stato della scheda che nell'immagine e' sbagliato o morto -----------
 # grub-btrfs.cfg elenca gli snapshot di QUESTA scheda, con il suo UUID: sul
 # disco dell'utente sono undici voci di menu che non portano da nessuna parte.
@@ -142,7 +190,7 @@ case "$AZIONE" in
 applica)
     rm -rf "$DEP"; mkdir -p "$DEP"; : > "$REG"
     tolti=0; peso=0
-    for f in $IDENTITA_MACCHINA $STATO_SCHEDA $BANCO_DI_LAVORO $SERVIZI_DA_NON_SPEDIRE; do
+    for f in $IDENTITA_MACCHINA $STATO_SCHEDA $BANCO_DI_LAVORO $ACCESSO_DI_SVILUPPO $BANCO_DI_SVILUPPO $(casa_da_ripulire) $SERVIZI_DA_NON_SPEDIRE; do
         if [ -e "$f" ] || [ -L "$f" ]; then
             k=$(du -s --apparent-size "$f" 2>/dev/null | cut -f1); k=${k:-0}
             deposita "$f" && { tolti=$((tolti + 1)); peso=$((peso + k)); }
@@ -226,7 +274,7 @@ ripristina)
 
 controlla)
     echo "cosa verrebbe messo da parte (niente viene toccato):"
-    for f in $IDENTITA_MACCHINA $STATO_SCHEDA $BANCO_DI_LAVORO $SERVIZI_DA_NON_SPEDIRE; do
+    for f in $IDENTITA_MACCHINA $STATO_SCHEDA $BANCO_DI_LAVORO $ACCESSO_DI_SVILUPPO $BANCO_DI_SVILUPPO $(casa_da_ripulire) $SERVIZI_DA_NON_SPEDIRE; do
         [ -e "$f" ] || [ -L "$f" ] && printf '   %-52s %s\n' "$f" \
             "$(du -sh --apparent-size "$f" 2>/dev/null | cut -f1)"
     done
