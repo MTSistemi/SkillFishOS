@@ -777,7 +777,15 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/app
 notcheck skillfish-dashboard_${VER}_all.deb  ./usr/share/skillfish/dashboard/app.js   'S("'
 # Il HUD: il lanciatore deve esserci E deve contenere il controllo
 # sull'hardware, altrimenti partirebbe su PC dove la finestra collassa a 15x15.
-check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-is-bc250
+# Il HUD non si tira piu' indietro fuori dalla BC-250: genera la configurazione
+# dai sensori che la macchina espone. Qui si controlla che i due pezzi di quel
+# meccanismo ci siano davvero nel pacchetto - senza il generatore, skillfish-hud
+# ripiegherebbe sulla configurazione di /etc/skel, cablata sulla scheda, e su un
+# PC qualunque conky tornerebbe a rimpicciolirsi fino a sparire.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-hud-config
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'cpubar cpu'
+# e che i ripieghi generici dei sensori non vengano persi in una riscrittura
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val        cpu_temp_generico
 # L'autostart deve chiamare il percorso assoluto: con "sh -c" e le virgolette,
 # KDE lo converte in servizio systemd e $HOME resta letterale.
 check skillfish-base_${VER}_all.deb          ./etc/skel/.config/autostart/skillfish-conky.desktop "Exec=/usr/local/bin/skillfish-hud"
