@@ -1,0 +1,15 @@
+#!/bin/sh
+# Corregge il sorgente del driver della ventola PRIMA che DKMS provi a
+# costruirlo per il kernel appena installato.
+#
+# Il nome comincia per "00-" apposta: run-parts esegue /etc/kernel/postinst.d
+# in ordine alfabetico e il gancio di DKMS si chiama "dkms". Chiamandolo
+# "zz-..." avremmo corretto il sorgente subito DOPO il fallimento, cioe' mai in
+# tempo. Vedi /usr/local/bin/skillfish-fix-nct6687 per il perche' della
+# correzione.
+#
+# Non si fa mai fallire l'installazione di un kernel per colpa nostra: se lo
+# script non c'e' o non riesce, si tira dritto e sara' DKMS a lamentarsi, che e'
+# comunque piu' chiaro di un gancio che muore senza spiegazioni.
+[ -x /usr/local/bin/skillfish-fix-nct6687 ] && /usr/local/bin/skillfish-fix-nct6687 || true
+exit 0

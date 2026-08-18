@@ -238,6 +238,12 @@ put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/module
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
 put $P 0755 system/usr/local/bin/skillfish-fix-boot-extents         usr/local/bin/skillfish-fix-boot-extents
 put $P 0755 system/usr/local/bin/skillfish-clean-live-autologin   usr/local/bin/skillfish-clean-live-autologin
+put $P 0755 system/usr/local/bin/skillfish-fix-nct6687              usr/local/bin/skillfish-fix-nct6687
+# Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
+# il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
+# quando DKMS prova a costruirlo. Con un nome tipo zz- avremmo corretto il
+# sorgente subito dopo il fallimento, cioe' mai in tempo.
+put $P 0755 system/etc/kernel/postinst.d/00-skillfish-nct6687       etc/kernel/postinst.d/00-skillfish-nct6687
 put $P 0755 system/usr/local/bin/skillfish-is-bc250                usr/local/bin/skillfish-is-bc250
 put $P 0644 system/etc/systemd/system/skillfish-sshd-keygen.service etc/systemd/system/skillfish-sshd-keygen.service
 put $P 0644 system/etc/ssh/sshd_config.d/10-skillfish.conf        etc/ssh/sshd_config.d/10-skillfish.conf
@@ -285,6 +291,10 @@ if [ -d /run/systemd/system ]; then
   # Non fa niente se non c'e' niente da fare, ed e' l'unico modo di arrivare
   # a chi ha installato prima che la correzione esistesse.
   /usr/local/bin/skillfish-clean-live-autologin >/dev/null 2>&1 || true
+  # Il gancio del kernel serve ai kernel FUTURI; chi ha gia' installato il
+  # 7.2 a mano, o lo installera' nella stessa transazione di questo
+  # pacchetto, ha bisogno che il sorgente sia corretto adesso.
+  /usr/local/bin/skillfish-fix-nct6687 >/dev/null 2>&1 || true
   # Lo sblocco degli 8 core dal 16/08/2026 e' A RICHIESTA: il servizio resta
   # abilitato ma non parte senza il segnaposto. Chi aveva gia' gli 8 core li ha
   # perche' il vecchio servizio glieli sbloccava da solo: se al momento
@@ -692,6 +702,9 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-clean-liv
 # si lascia dietro: senza, l'errore compariva 32 volte per avvio su una BC-250
 # installata. Il controllo serve perche' e' una riga sola, facile da perdere.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-clean-live-autologin live-config-getty-generator
+# Il gancio DEVE chiamarsi 00-: e' l'unica cosa che lo fa girare prima di dkms.
+check skillfish-base_${VER}_all.deb          ./etc/kernel/postinst.d/00-skillfish-nct6687 skillfish-fix-nct6687
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-nct6687 'strscpy(valcp, val, sizeof(valcp))'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication

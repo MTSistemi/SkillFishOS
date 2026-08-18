@@ -1,0 +1,57 @@
+#!/bin/bash
+# Tiene compilabile il driver della ventola quando cambia il kernel.
+#
+# IL PROBLEMA, e perche' riguarda TUTTI e non solo noi
+# Il driver nct6687d (github.com/Fred78290/nct6687d) e' fuori dall'albero del
+# kernel e lo costruisce DKMS a ogni installazione di un kernel nuovo. Il suo
+# sorgente NON appartiene a nessun pacchetto: sta in /usr/src/nct6687d-1.0 e
+# arriva li' dall'immagine, quindi ce l'hanno identico tutte le macchine
+# installate da una nostra ISO.
+#
+# Dal kernel 7.2 quel sorgente non si compila piu':
+#
+#   nct6687.c:476:9: error: implicit declaration of function 'strncpy'
+#
+# strncpy() non e' piu' in <linux/string.h> - ci resta solo nominata nei
+# commenti, come la funzione che altre sostituiscono - e il kernel compila con
+# -Werror sulle dichiarazioni implicite, quindi e' un errore, non un avviso.
+# Aggiungere l'#include non basta: la funzione non c'e' proprio.
+#
+# Senza questa correzione, `apt install linux-image-7.2...` FALLISCE in
+# configurazione su ogni BC-250, e chi tira dritto si ritrova un sistema
+# avviato senza controllo ventola e senza contagiri, con niente sullo schermo
+# che glielo spieghi.
+#
+# PERCHE' GIRA PRIMA DI DKMS
+# /etc/kernel/postinst.d/00-skillfish-nct6687 lo richiama a ogni kernel nuovo.
+# run-parts esegue in ordine alfabetico e il gancio di DKMS si chiama "dkms":
+# "00-" viene prima, quindi il sorgente e' gia' a posto quando DKMS lo tocca.
+#
+# strscpy() fa esattamente cio' che serviva in quel punto - tronca e termina
+# sempre - ed esiste da anni, quindi il sorgente corretto continua a costruirsi
+# anche per i kernel piu' vecchi ancora installati. Serve: DKMS tiene UN solo
+# albero di sorgenti per tutti i kernel.
+set -u
+
+F=/usr/src/nct6687d-1.0/nct6687.c
+[ -f "$F" ] || exit 0                      # il driver non c'e': niente da fare
+
+if grep -q 'strscpy(valcp' "$F" 2>/dev/null; then
+    exit 0                                 # gia' corretto, ed e' il caso normale
+fi
+grep -q 'strncpy(valcp, val, 16);' "$F" 2>/dev/null || exit 0   # sorgente diverso: non ci si mette le mani
+
+cp -a "$F" "$F.prima-di-skillfish" 2>/dev/null || true
+
+# Si sostituisce SOLO la chiamata. La riga successiva, valcp[15] = '\0', resta
+# dov'e': con strscpy e' ridondante, ma toglierla non aggiunge niente e cambiare
+# meno righe rende evidente cos'e' successo a chi legge il file fra sei mesi.
+sed -i "s|strncpy(valcp, val, 16);|strscpy(valcp, val, sizeof(valcp));|" "$F"
+
+if grep -q 'strscpy(valcp' "$F"; then
+    echo "skillfish: nct6687d corretto per i kernel dalla 7.2 in su (strncpy -> strscpy)"
+else
+    echo "skillfish: NON sono riuscito a correggere $F" >&2
+    exit 0                                 # non si fa fallire un aggiornamento per questo
+fi
+exit 0
