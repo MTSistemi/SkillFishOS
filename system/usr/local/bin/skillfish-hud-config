@@ -28,7 +28,7 @@ set -u
 # aggiornata: la riga della versione del kernel, aggiunta il 18/08, non
 # compariva a chi aveva gia il HUD in funzione. Misurato sulla BC-250, che
 # aveva ancora la configurazione del 9 agosto.
-VERSIONE=3
+VERSIONE=5
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
 [ -x "$VAL" ] || { echo "manca $VAL" >&2; exit 1; }

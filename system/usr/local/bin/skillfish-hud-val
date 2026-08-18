@@ -133,8 +133,18 @@ get(){
               [ -z "$v" ] && v=$(primo "$(drm_any mem_info_vram_total)")
               if [ -n "$v" ]; then echo "$v" | awk '{printf "%.0f",$1/1048576}'
               else primo /run/skillfish/vram_total; fi ;;   # ripiego: dichiarata da Vulkan
-    vram_mhz) awk '/\*/{gsub(/[Mm]hz/,"",$2); print $2; exit}' \
-                /sys/class/drm/card0/device/pp_dpm_mclk 2>/dev/null ;;
+    # ⚠️ Si mostra SOLO se il driver espone piu' di uno stato. Sulla BC-250
+    # pp_dpm_mclk contiene una riga sola, "0: 450Mhz *", identica a pp_dpm_fclk:
+    # e' un valore fisso che non cambia mai, non la velocita' della memoria. La
+    # scheda e' una APU e la sua GDDR6 gira a 1750 MT/s, che e' il numero gia'
+    # mostrato sulla riga RAM. Scrivere "@450" accanto a VRAM faceva sembrare
+    # quella memoria piu' lenta di una DDR vecchia: il contrario del vero.
+    # Dove il driver espone una vera tabella di stati il valore serve, e resta.
+    vram_mhz) f=/sys/class/drm/card0/device/pp_dpm_mclk
+              [ -r "$f" ] || f=$(drm_any pp_dpm_mclk)
+              if [ -n "${f:-}" ] && [ -r "$f" ] && [ "$(grep -c . "$f")" -gt 1 ]; then
+                awk '/\*/{gsub(/[Mm]hz/,"",$2); print $2; exit}' "$f" 2>/dev/null
+              fi ;;
     # I giri delle ventole della scheda madre, separati da un punto centrale.
     fan_all) fan_scheda | awk '{s = s (s ? " · " : "") $1} END{if (s) print s}' ;;
     # La ventola della scheda video. Molte schede non hanno un contagiri e
