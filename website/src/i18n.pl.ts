@@ -383,6 +383,8 @@ export const pl: Record<string, string> = {
   "dl.sf.sub":
     "Wieloletni mirror projektu: wolniejszy z Europy, ale to stamtąd liczymy pobrania.",
   "dl.tor.h": "Albo przez torrent",
+  "dl.tor.sub":
+    "Szybciej, gdy pobiera wiele osób naraz, i wznawia od miejsca, w którym przerwałeś. Działa nawet wtedy, gdy nikt inny nie jest podłączony: torrent potrafi ciągnąć wprost z naszych serwerów lustrzanych.",
   "dl.tor.bc250": "⇅ BC-250 · torrent",
   "dl.tor.generic": "⇅ Generic · torrent",
   "dl.tor.magnet": "magnet",
