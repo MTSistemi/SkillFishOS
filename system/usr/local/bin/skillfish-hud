@@ -27,38 +27,39 @@
 # assoluto e basta, senza argomenti e senza quoting.
 set -u
 
-# SOLO SULLA BC-250, e non e' una precauzione teorica.
+# ⚠️ Qui prima si usciva in silenzio quando la macchina non era una BC-250.
 #
-# La configurazione di conky e' cablata su questo hardware: 16 barre CPU perche'
-# la BC-250 ha 16 thread, sensori amdgpu, ventola nct6687. Su un PC diverso
-# quelle voci tornano VUOTE, conky non riesce a calcolare l'ingombro del testo e
+# Il motivo era vero: la configurazione di conky era cablata su quella scheda
+# (16 barre CPU, sensori amdgpu, ventola nct6687) e su un PC diverso quelle voci
+# tornavano VUOTE. Conky non riesce a calcolare l'ingombro di un testo vuoto e
 # riduce la finestra a 15x15 pixel: un puntino invisibile nell'angolo. Non
 # degrada, sparisce — misurato su una VM a 4 core, dove la finestra minima
 # risultava 5x28 contro i 270x45 della stessa configurazione con testo valido.
 #
-# La ISO generic si installa su qualunque PC, quindi li' il HUD sarebbe rotto
-# per quasi tutti. Meglio non partire affatto che partire e non vedersi.
-#
-# Il controllo e' sull'HARDWARE, non sulla variante di ISO: chi installa la
-# generic su una BC-250 il HUD lo ha lo stesso, ed e' giusto cosi'.
-#
-# Un HUD configurabile che si adatta ai sensori veri e' previsto come app a se'.
-# ⚠️ Qui prima si usciva in silenzio quando la macchina non era una BC-250,
-# perche la configurazione era cablata su quella scheda e altrove conky spariva.
-# Adesso la configurazione la GENERA skillfish-hud-config leggendo i sensori
-# presenti, quindi non ce piu motivo di tirarsi indietro: su un PC qualsiasi
-# esce un HUD piu corto, non un puntino invisibile.
+# Era una toppa onesta ma sbagliata di bersaglio: sull'edizione Generic, che si
+# installa su qualunque PC, voleva dire spedire un avvio automatico che non
+# poteva funzionare per quasi nessuno. Adesso la configurazione la GENERA
+# skillfish-hud-config leggendo i sensori che la macchina espone davvero, quindi
+# non c'e' piu' motivo di tirarsi indietro: su un PC qualsiasi esce un HUD piu'
+# corto, non un puntino invisibile.
 CONF="$HOME/.config/conky/skillfish.conf"
 
-# Si rigenera se manca, o se il numero di thread non corrisponde a quanto scritto
-# dentro: e il segno che la configurazione arriva da unaltra macchina (immagine
-# clonata, disco spostato, core sbloccati).
+# Si rigenera se manca, o se il numero di barre non corrisponde ai thread di
+# QUESTA macchina: e' il segno che la configurazione arriva da un'altra
+# (immagine clonata, disco spostato, core sbloccati).
+#
+# ⚠️ Le barre si contano con grep -o, non con grep -c. Ce ne stanno otto per
+# riga, e -c conta le RIGHE: su una macchina a 8 thread diceva 1 invece di 8, su
+# una BC-250 a 16 diceva 2. Non corrispondeva mai, quindi la configurazione
+# veniva rigenerata a ogni accesso - senza danno visibile, ma il controllo non
+# controllava niente.
 THREAD=$(nproc 2>/dev/null || echo 0)
-if [ ! -f "$CONF" ] || [ "$(grep -c 'cpubar cpu' "$CONF" 2>/dev/null)" != "$THREAD" ]; then
+BARRE=$(grep -o 'cpubar cpu' "$CONF" 2>/dev/null | wc -l | tr -d ' ')
+if [ ! -f "$CONF" ] || [ "$BARRE" -ne "$THREAD" ]; then
     [ -x /usr/local/bin/skillfish-hud-config ] &&         /usr/local/bin/skillfish-hud-config "$CONF" >/dev/null 2>&1 || true
 fi
 [ -f "$CONF" ] || CONF=/etc/skel/.config/conky/skillfish.conf
-[ -f "$CONF" ] || exit 0          # nemmeno il generatore ce lha fatta: esci
+[ -f "$CONF" ] || exit 0          # nemmeno il generatore ce l'ha fatta: esci
 
 # -p 8: aspetta che il desktop sia pronto prima di disegnare.
 # LANG=C.UTF-8: le date del HUD restano uniformi in tutte le lingue.
