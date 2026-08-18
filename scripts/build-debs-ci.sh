@@ -648,6 +648,9 @@ done
 echo "== content verification (the bogus-deb guard) =="
 notcheck() { # come check, ma FALLISCE se il testo e' presente
   dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep -F "$3" >/dev/null   && { echo "FAIL $1: $2 contiene '$3' e non dovrebbe" >&2; exit 1; }   || echo "OK  $1: $2 non contiene '$3'"; }
+# Come check(), ma per un file che deve ESISTERE nella cartella di preparazione
+# invece che per una stringa dentro a un file.
+deve_esserci() { [ -s "$1" ] && echo "OK  $2" || { echo "FAIL manca: $2 ($1)" >&2; exit 1; }; }
 check() { dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep "$3" >/dev/null \
   && echo "OK  $1: $2 contains '$3'" || { echo "FAIL $1: $2 missing '$3'" >&2; exit 1; }; }
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner-helper  gov-mode
@@ -836,7 +839,7 @@ check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.p
 # ...e l'icona con quel nome deve stare DENTRO al nostro tema. Se manca, KDE
 # taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
 # stilizzato al posto di quello di ottone, senza dire niente a nessuno.
-test -s "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" \n  && echo "OK  skillfish-theme: il pesce del menu e' dentro al tema" \n  || { echo "FAIL skillfish-theme: manca 256x256/apps/skillfish-tuner.png nel tema" >&2; exit 1; }
+deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" "skillfish-theme: il pesce del menu e' dentro al tema"
 # La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
 # che il testo passi dalla funzione di traduzione e non sia piu' una costante.
 check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
