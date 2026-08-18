@@ -18,6 +18,17 @@
 #   uso:  skillfish-hud-config [percorso]     (default: ~/.config/conky/skillfish.conf)
 set -u
 
+# Versione del GENERATORE, non del HUD. Si alza ogni volta che cambia cio che
+# viene scritto nella configurazione: skillfish-hud confronta questo numero
+# con quello scritto dentro e rigenera se non coincide.
+#
+# PERCHE SERVE: il controllo di prima guardava solo il numero di barre contro
+# i thread. Su una macchina che non cambia hardware quei due numeri coincidono
+# per sempre, quindi una configurazione scritta mesi fa non veniva MAI
+# aggiornata: la riga della versione del kernel, aggiunta il 18/08, non
+# compariva a chi aveva gia il HUD in funzione. Misurato sulla BC-250, che
+# aveva ancora la configurazione del 9 agosto.
+VERSIONE=3
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
 [ -x "$VAL" ] || { echo "manca $VAL" >&2; exit 1; }
@@ -52,6 +63,8 @@ barre(){                       # disegna le barre dei thread, 8 per riga
 
 mkdir -p "$(dirname "$OUT")"
 {
+printf -- '-- skillfish-hud-config v%s
+' "$VERSIONE"
 cat <<'TESTA'
 conky.config = {
     alignment = 'top_right',
@@ -126,17 +139,20 @@ ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-
 # skillfish-sensori all'avvio, mentre l'uso non lo espone nessuno.
 linea=""
 if ce vram && ce vram_tot; then
-  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} / ${execi 9999 skillfish-hud-val vram_tot} MiB'
+  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram}/${execi 9999 skillfish-hud-val vram_tot}'
 elif ce vram_tot; then
   linea='${color2}VRAM  ${color1}${execi 9999 skillfish-hud-val vram_tot} MiB'
 elif ce vram; then
   linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
 fi
 # La frequenza della memoria video la espone amdgpu; nouveau e i915 no.
-ce vram_mhz && linea="${linea}"'${color2}  @ ${color1}${execi 5 skillfish-hud-val vram_mhz} MHz'
+# ⚠️ Forma compatta, senza unita'. Con "245 / 8192 MiB @ 450 MHz  CU 40/40" per
+# esteso la riga usciva dalla finestra e le CU venivano tagliate: il HUD e' largo
+# 240 pixel e allargarlo cambierebbe l'aspetto su tutte le macchine.
+ce vram_mhz && linea="${linea}"'${color2} @${color1}${execi 5 skillfish-hud-val vram_mhz}'
 # Unita' di calcolo: 40/40 sulla BC-250, il numero dichiarato da Vulkan altrove
 # (CU su AMD, CUDA core su NVIDIA). Dove nessuno lo dice, la voce non compare.
-ce cu   && linea="${linea}"'${color2}   CU ${color1}${execi 5 skillfish-hud-val cu}'
+ce cu   && linea="${linea}"'${color2}  CU ${color1}${execi 5 skillfish-hud-val cu}'
 [ -n "$linea" ] && printf '%s\n' "$linea"
 
 # --- memoria, ventola, disco -------------------------------------------------

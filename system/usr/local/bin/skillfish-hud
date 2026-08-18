@@ -53,9 +53,14 @@ CONF="$HOME/.config/conky/skillfish.conf"
 # una BC-250 a 16 diceva 2. Non corrispondeva mai, quindi la configurazione
 # veniva rigenerata a ogni accesso - senza danno visibile, ma il controllo non
 # controllava niente.
+# La firma del generatore: se la configurazione e stata scritta da una versione
+# piu vecchia va rifatta, altrimenti le voci nuove non arrivano mai a chi ha
+# gia il HUD in funzione.
+ATTESA=$(sed -n "s/^VERSIONE=\([0-9]*\).*/\1/p" /usr/local/bin/skillfish-hud-config 2>/dev/null | head -1)
+SCRITTA=$(sed -n "s/^-- skillfish-hud-config v\([0-9]*\).*/\1/p" "$CONF" 2>/dev/null | head -1)
 THREAD=$(nproc 2>/dev/null || echo 0)
 BARRE=$(grep -o 'cpubar cpu' "$CONF" 2>/dev/null | wc -l | tr -d ' ')
-if [ ! -f "$CONF" ] || [ "$BARRE" -ne "$THREAD" ]; then
+if [ ! -f "$CONF" ] || [ "$BARRE" -ne "$THREAD" ] || [ "${SCRITTA:-0}" != "${ATTESA:-0}" ]; then
     [ -x /usr/local/bin/skillfish-hud-config ] &&         /usr/local/bin/skillfish-hud-config "$CONF" >/dev/null 2>&1 || true
 fi
 [ -f "$CONF" ] || CONF=/etc/skel/.config/conky/skillfish.conf
