@@ -108,6 +108,7 @@ put $P 0755 system/usr/local/bin/skillfish-cu     usr/local/bin/skillfish-cu
 # installata da apt non esisteva: la voce della VRAM era li' e non funzionava.
 put $P 0755 system/usr/local/bin/skillfish-memcfg usr/local/bin/skillfish-memcfg
 put $P 0755 system/usr/local/bin/skillfish-hud-val usr/local/bin/skillfish-hud-val
+put $P 0755 system/usr/local/bin/skillfish-hud-config usr/local/bin/skillfish-hud-config
 put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
 # Il lanciatore del HUD sta qui e non in un pacchetto suo perche' legge i due
 # helper qui sopra: separarli permetterebbe di installarlo senza i sensori che

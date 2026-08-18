@@ -3,12 +3,51 @@
 # Batch: `skillfish-hud-val all` prints "key value" lines for every metric in ONE
 # process (used by the Monitor app and the telemetry web dashboard to avoid a
 # subprocess fan-out per sample). CPU load% is stateful (delta) → computed by callers.
+#
+# ⚠️ On hardware that is not a BC-250 every key used to come back EMPTY: the
+# paths were the board's own (k10temp, amdgpu card0, nct6686). Conky cannot
+# measure the size of empty text, shrinks its window to a few pixels and
+# vanishes — which is why the HUD was gated to the BC-250 instead of being
+# fixed. Each key now falls back to whatever the machine actually exposes, and
+# returns nothing only when the machine genuinely has no such sensor. The
+# BC-250 paths are still tried FIRST, so nothing changes on the board.
 GHW=$(echo /sys/class/drm/card0/device/hwmon/hwmon*)
 hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && { echo "$h"; return; }; done; }
 # The NCT6686 is claimed by two drivers (mainline nct6683 + out-of-tree nct6687) and
 # both register an "nct6686" hwmon, in an order that changes between boots. Only one
 # carries the fan tacho, so pick by the node we actually need, not by first match.
 hw_with(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && [ -e "$h/$2" ] && { echo "$h"; return; }; done; }
+
+# --- ripieghi generici -------------------------------------------------------
+# Il primo hwmon che espone il nodo chiesto, qualunque sia il chip. Serve alle
+# macchine che non hanno i chip della BC-250: un portatile Intel ha coretemp, un
+# server ha una PCH, una scheda NVIDIA con nouveau espone temperatura e PWM.
+hw_any(){ for h in /sys/class/hwmon/hwmon*; do [ -e "$h/$1" ] && { echo "$h/$1"; return; }; done; }
+# La prima scheda video che espone il nodo chiesto: card0 puo' essere una scheda
+# che non ha quel dato mentre card1 ce l'ha.
+drm_any(){ for d in /sys/class/drm/card[0-9]/device; do
+             for f in "$d"/$1 "$d"/hwmon/hwmon*/$1; do [ -e "$f" ] && { echo "$f"; return; }; done
+           done; }
+# Temperatura CPU su una macchina qualsiasi: si preferisce l'etichetta del
+# package, se non c'e' si prende il primo sensore di un chip noto per la CPU.
+cpu_temp_generico(){
+  for h in /sys/class/hwmon/hwmon*; do
+    n=$(cat "$h/name" 2>/dev/null)
+    case "$n" in coretemp|k10temp|zenpower|cpu_thermal)
+      for l in "$h"/temp*_label; do
+        [ -e "$l" ] || continue
+        case "$(cat "$l" 2>/dev/null)" in Package*|Tctl*|Tdie*)
+          v="${l%_label}_input"; [ -e "$v" ] && { cat "$v"; return; } ;;
+        esac
+      done
+      [ -e "$h/temp1_input" ] && { cat "$h/temp1_input"; return; } ;;
+    esac
+  done
+  # ultimo ripiego: la zona termica del sistema
+  cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null
+}
+primo(){ [ -n "${1:-}" ] && [ -e "$1" ] && cat "$1" 2>/dev/null; }
+
 # locale: it* -> Italian labels, anything else -> English
 _loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-$LANGUAGE}}}"; case "$_loc" in it*) IT=1;; *) IT=0;; esac
 
@@ -16,16 +55,36 @@ get(){
   case "$1" in
     lbl_use)  [ "$IT" = 1 ] && echo "uso"   || echo "use"  ;;
     lbl_disk) [ "$IT" = 1 ] && echo "DISCO" || echo "DISK" ;;
-    cpu_temp) awk '{printf "%.0f",$1/1000}' "$(hw k10temp)/temp1_input" 2>/dev/null ;;
+    cpu_temp) v=$(cat "$(hw k10temp)/temp1_input" 2>/dev/null)
+              [ -z "$v" ] && v=$(cpu_temp_generico)
+              [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000}' ;;
     gpu_freq) f=$(cat /run/skillfish-gpu-freq 2>/dev/null)   # SMU sample (correct after 8-core unlock)
-              [ -n "$f" ] && echo "${f}Mhz" || awk '/\*/{print $2}' /sys/class/drm/card0/device/pp_dpm_sclk 2>/dev/null ;;
-    gpu_util) cat /run/skillfish-gpu-util 2>/dev/null || echo 0 ;;
-    gpu_temp) awk '{printf "%.0f",$1/1000}' "$GHW/temp1_input" 2>/dev/null ;;
-    gpu_power) awk '{printf "%.0f",$1/1000000}' "$GHW/power1_average" 2>/dev/null ;;
-    gpu_mv) cat "$GHW/in0_input" 2>/dev/null ;;
+              if [ -n "$f" ]; then echo "${f}Mhz"
+              else
+                v=$(awk '/\*/{print $2}' /sys/class/drm/card0/device/pp_dpm_sclk 2>/dev/null)
+                # nouveau e altri driver espongono il clock in Hz nel proprio hwmon
+                [ -z "$v" ] && { g=$(drm_any freq1_input); [ -n "$g" ] && v=$(awk '{printf "%dMhz",$1/1000000}' "$g"); }
+                [ -n "$v" ] && echo "$v"
+              fi ;;
+    gpu_util) u=$(cat /run/skillfish-gpu-util 2>/dev/null)
+              [ -z "$u" ] && u=$(primo "$(drm_any gpu_busy_percent)")
+              echo "${u:-0}" ;;
+    gpu_temp) v=$(cat "$GHW/temp1_input" 2>/dev/null)
+              [ -z "$v" ] && v=$(primo "$(drm_any temp1_input)")
+              [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000}' ;;
+    gpu_power) v=$(cat "$GHW/power1_average" 2>/dev/null)
+               [ -z "$v" ] && v=$(primo "$(drm_any power1_average)")
+               [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}' ;;
+    gpu_mv) v=$(cat "$GHW/in0_input" 2>/dev/null)
+            [ -z "$v" ] && v=$(primo "$(drm_any in0_input)")
+            [ -n "$v" ] && echo "$v" ;;
     cpu_mv) cat "$GHW/in1_input" 2>/dev/null ;;   # vddnb = APU SoC/uncore (CPU-side) rail; nct6686 Vcore reads 0 on the BC-250
-    vram) awk '{printf "%.0f",$1/1048576}' /sys/class/drm/card0/device/mem_info_vram_used 2>/dev/null ;;
-    fan) cat "$(hw_with nct6686 fan2_input)/fan2_input" 2>/dev/null ;;
+    vram) v=$(cat /sys/class/drm/card0/device/mem_info_vram_used 2>/dev/null)
+          [ -z "$v" ] && v=$(primo "$(drm_any mem_info_vram_used)")
+          [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1048576}' ;;
+    fan) v=$(cat "$(hw_with nct6686 fan2_input)/fan2_input" 2>/dev/null)
+         [ -z "$v" ] && v=$(primo "$(hw_any fan1_input)")
+         [ -n "$v" ] && echo "$v" ;;
     cu) cat /run/skillfish/cu_active 2>/dev/null || echo "?" ;;
     cpu_mhz) awk -F: '/cpu MHz/{printf "%d",$2; exit}' /proc/cpuinfo 2>/dev/null ;;
   esac

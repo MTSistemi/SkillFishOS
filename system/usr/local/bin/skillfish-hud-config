@@ -1,0 +1,142 @@
+#!/bin/bash
+# Genera la configurazione del HUD dai sensori che questa macchina ha davvero.
+#
+# PERCHE' ESISTE
+# La configurazione di conky era scritta a mano sulla BC-250: 16 barre perche'
+# quella scheda ha 16 thread, sensori amdgpu, ventola nct6686, VRAM, Compute
+# Unit. Su un PC diverso quelle voci tornano VUOTE, conky non riesce a misurare
+# l'ingombro del testo, riduce la finestra a pochi pixel e sparisce. Non
+# degrada: sparisce. Per questo il HUD era stato limitato alla sola BC-250 —
+# una toppa onesta, ma sull'edizione Generic voleva dire spedire un avvio
+# automatico e una configurazione che non potevano funzionare per nessuno.
+#
+# Qui si fa il contrario: si chiede a `skillfish-hud-val` ogni valore, si tiene
+# solo quello che risponde, e si scrive una configurazione su misura. Su una
+# BC-250 esce esattamente il HUD di prima; su un portatile Intel escono CPU,
+# RAM e disco; su un PC con scheda NVIDIA esce anche la temperatura della GPU.
+#
+#   uso:  skillfish-hud-config [percorso]     (default: ~/.config/conky/skillfish.conf)
+set -u
+
+VAL=/usr/local/bin/skillfish-hud-val
+OUT="${1:-$HOME/.config/conky/skillfish.conf}"
+[ -x "$VAL" ] || { echo "manca $VAL" >&2; exit 1; }
+
+# c'e' <chiave>: vero se il valore non e' vuoto e non e' un segnaposto
+ce(){ v=$("$VAL" "$1" 2>/dev/null); [ -n "$v" ] && [ "$v" != "?" ] && [ "$v" != "0" ]; }
+# gpu_util torna 0 anche quando il dato non c'e': si distingue guardando la fonte
+ce_util(){ [ -r /run/skillfish-gpu-util ] || \
+           for d in /sys/class/drm/card[0-9]/device/gpu_busy_percent; do [ -e "$d" ] && return 0; done
+           [ -r /run/skillfish-gpu-util ]; }
+
+THREAD=$(nproc 2>/dev/null || echo 4)
+PER_RIGA=8
+
+barre(){                       # disegna le barre dei thread, 8 per riga
+  # La prima riga stacca di 3, le successive di 2: e' la spaziatura della
+  # configurazione scritta a mano sulla BC-250, tenuta identica per non
+  # cambiare di un pixel il HUD di chi ha gia' la scheda.
+  i=1; riga=0
+  while [ "$i" -le "$THREAD" ]; do
+    if [ "$riga" -eq 0 ]; then printf '${voffset 3}${color D8A849}'
+    else printf '${voffset 2}${color D8A849}'; fi
+    riga=$((riga+1))
+    j=0; sep=""
+    while [ "$j" -lt "$PER_RIGA" ] && [ "$i" -le "$THREAD" ]; do
+      printf '%s${cpubar cpu%d 6,16}' "$sep" "$i"; sep=" "   # niente spazio in coda
+      i=$((i+1)); j=$((j+1))
+    done
+    printf '\n'
+  done
+}
+
+mkdir -p "$(dirname "$OUT")"
+{
+cat <<'TESTA'
+conky.config = {
+    alignment = 'top_right',
+    gap_x = 16,
+    gap_y = 16,
+    minimum_width = 240,
+    maximum_width = 240,
+    own_window = true,
+    own_window_type = 'normal',
+    own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
+    own_window_class = 'Conky',
+    own_window_argb_visual = true,
+    own_window_argb_value = 165,
+    own_window_colour = '14100a',
+-- background = false: conky NON deve sganciarsi.
+--
+-- KDE avvia l'autostart come servizio utente di systemd. Se conky forka e il
+-- processo padre esce, systemd considera il servizio finito e ripulisce tutto
+-- il gruppo, ammazzando anche il figlio.
+background = false,
+    double_buffer = true,
+    update_interval = 2,
+    cpu_avg_samples = 2,
+    use_xft = true,
+    xftalpha = 1,
+    font = 'DejaVu Sans:size=9',
+    default_color = 'D8A849',
+    color1 = 'F1E3C6',
+    color2 = 'B9A07A',
+    draw_shades = false,
+    draw_outline = false,
+    border_inner_margin = 14,
+    border_outer_margin = 0,
+};
+
+conky.text = [[
+TESTA
+
+printf '${font DejaVu Sans:bold:size=12}${color D8A849}SkillFish${color1}OS${font}${alignr}${color1}${time %%a %%d  %%H:%%M}\n'
+
+# --- CPU: la frequenza e il carico ci sono su qualunque macchina -------------
+printf '${voffset 5}${color2}CPU   ${color1}${freq_g} GHz'
+ce cpu_temp && printf '${color2}    ${color1}${execi 2 skillfish-hud-val cpu_temp}°C'
+printf '${color2}    ${execi 9999 skillfish-hud-val lbl_use} ${color1}${cpu cpu0}%%\n'
+barre
+
+# --- GPU: solo le voci che questa scheda espone ------------------------------
+# I pezzi si uniscono con un separatore SOLO se qualcosa li precede, altrimenti
+# la riga comincia con uno spazio vuoto e sembra un difetto grafico.
+riga_gpu=""
+unisci(){ [ -n "$riga_gpu" ] && riga_gpu="${riga_gpu}"'${color2}  '; riga_gpu="${riga_gpu}$1"; }
+ce gpu_freq && unisci '${color1}${execi 2 skillfish-hud-val gpu_freq}'
+ce gpu_temp && unisci '${color1}${execi 2 skillfish-hud-val gpu_temp}°C'
+ce_util     && unisci '${execi 9999 skillfish-hud-val lbl_use} ${color1}${execi 2 skillfish-hud-val gpu_util}%'
+if [ -n "$riga_gpu" ]; then
+  printf '${voffset 6}${color2}GPU   %s\n' "$riga_gpu"
+  ce_util && printf '${voffset 3}${color D8A849}${execibar 6,208 skillfish-hud-val gpu_util}\n'
+fi
+
+linea=""
+ce gpu_mv    && linea='${color2}VDDGFX ${color1}${execi 2 skillfish-hud-val gpu_mv} mV'
+ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-hud-val gpu_power} W'
+[ -n "$linea" ] && printf '%s\n' "$linea"
+
+linea=""
+ce vram && linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
+ce cu   && linea="${linea}"'${color2}   CU ${color1}${execi 5 skillfish-hud-val cu}'
+[ -n "$linea" ] && printf '%s\n' "$linea"
+
+# --- memoria, ventola, disco -------------------------------------------------
+printf '${color2}RAM   ${color1}${mem} / ${memmax}${color2}   ${color1}${memperc}%%\n'
+ce fan && printf '${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan} rpm\n'
+printf '${color2}${execi 9999 skillfish-hud-val lbl_disk} ${color1}${fs_used /} / ${fs_size /}${color2}   ${color1}${fs_used_perc /}%%\n'
+
+# --- Bluetooth: solo se la macchina ha un adattatore -------------------------
+if [ -d /sys/class/bluetooth ] && [ -n "$(ls /sys/class/bluetooth 2>/dev/null)" ]; then
+  printf '${voffset 4}${color D8A849}── Bluetooth ──${color}\n'
+  printf '${execpi 15 skillfish-hud-bt}\n'
+fi
+
+printf ']];\n'
+} > "$OUT"
+
+echo "scritta $OUT"
+echo "  thread: $THREAD   righe di barre: $(( (THREAD + PER_RIGA - 1) / PER_RIGA ))"
+for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power vram cu fan; do
+  ce "$k" && echo "  presente: $k" || echo "  assente:  $k"
+done

@@ -43,13 +43,22 @@ set -u
 # generic su una BC-250 il HUD lo ha lo stesso, ed e' giusto cosi'.
 #
 # Un HUD configurabile che si adatta ai sensori veri e' previsto come app a se'.
-if [ -x /usr/local/bin/skillfish-is-bc250 ]; then
-    /usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1 || exit 0
-fi
-
+# ⚠️ Qui prima si usciva in silenzio quando la macchina non era una BC-250,
+# perche la configurazione era cablata su quella scheda e altrove conky spariva.
+# Adesso la configurazione la GENERA skillfish-hud-config leggendo i sensori
+# presenti, quindi non ce piu motivo di tirarsi indietro: su un PC qualsiasi
+# esce un HUD piu corto, non un puntino invisibile.
 CONF="$HOME/.config/conky/skillfish.conf"
+
+# Si rigenera se manca, o se il numero di thread non corrisponde a quanto scritto
+# dentro: e il segno che la configurazione arriva da unaltra macchina (immagine
+# clonata, disco spostato, core sbloccati).
+THREAD=$(nproc 2>/dev/null || echo 0)
+if [ ! -f "$CONF" ] || [ "$(grep -c 'cpubar cpu' "$CONF" 2>/dev/null)" != "$THREAD" ]; then
+    [ -x /usr/local/bin/skillfish-hud-config ] &&         /usr/local/bin/skillfish-hud-config "$CONF" >/dev/null 2>&1 || true
+fi
 [ -f "$CONF" ] || CONF=/etc/skel/.config/conky/skillfish.conf
-[ -f "$CONF" ] || exit 0          # niente configurazione: esci in silenzio
+[ -f "$CONF" ] || exit 0          # nemmeno il generatore ce lha fatta: esci
 
 # -p 8: aspetta che il desktop sia pronto prima di disegnare.
 # LANG=C.UTF-8: le date del HUD restano uniformi in tutte le lingue.
