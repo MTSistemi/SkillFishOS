@@ -97,6 +97,27 @@ ACCESSO_DI_SVILUPPO="
 # Le stesse cose dentro le cartelle personali, qualunque sia il nome dell'utente:
 # sulla BC-250 era "skillfish", sulla macchina di sviluppo e' "skillfishdev", e
 # domani potrebbe essere un altro. Si scoprono a runtime invece di elencarle.
+# --- le cartelle personali dentro le impostazioni flatpak -------------------
+# ⚠️ NON si sposta il file intero. In /var/lib/flatpak/overrides/ ci finiscono
+# due cose diverse: le cartelle che Mattia ha condiviso con un'applicazione
+# (/mnt/nas: roba sua, non va distribuita) e i rimedi che ci mettiamo NOI
+# perche' certi flatpak partano - per esempio QT_XCB_GL_INTEGRATION=none, senza
+# il quale ProtonUp-Qt aborta all'avvio sulla BC-250. Portando via il file si
+# porterebbe via anche la correzione, e l'utente si ritroverebbe l'applicazione
+# che non parte.
+#
+# Si toglie quindi SOLO la riga filesystems=, lasciando intatto [Environment].
+igiene_flatpak() {
+    local f
+    for f in /var/lib/flatpak/overrides/* /home/*/.local/share/flatpak/overrides/*; do
+        [ -f "$f" ] || continue
+        grep -q '^filesystems=' "$f" 2>/dev/null || continue
+        cp -a "$f" "$DEP/$(echo "$f" | tr / _)" 2>/dev/null
+        sed -i '/^filesystems=/d' "$f"
+        echo "   tolte le cartelle condivise da $(basename "$f")"
+    done
+}
+
 casa_da_ripulire() {
     local u
     for u in /home/*; do
@@ -215,6 +236,9 @@ applica)
     py=$(find /usr/local -type d -name '__pycache__' 2>/dev/null | wc -l)
     find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null
     echo "igiene: cancellate $py cartelle __pycache__ (si rigenerano)"
+
+    # --- flatpak: via le cartelle personali, restano i nostri rimedi -------
+    igiene_flatpak
 
     # --- root: nell'immagine la password non deve esserci -------------------
     # Sulla scheda l'hash resta (viene rimesso dal ripristino). Nell'immagine

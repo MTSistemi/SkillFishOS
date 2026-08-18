@@ -240,6 +240,7 @@ put $P 0755 system/usr/local/bin/skillfish-fix-boot-extents         usr/local/bi
 put $P 0755 system/usr/local/bin/skillfish-clean-live-autologin   usr/local/bin/skillfish-clean-live-autologin
 put $P 0755 system/usr/local/bin/skillfish-fix-nct6687              usr/local/bin/skillfish-fix-nct6687
 put $P 0755 system/usr/local/bin/skillfish-grub-btrfs               usr/local/bin/skillfish-grub-btrfs
+put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bin/skillfish-flatpak-rimedi
 # Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
 # il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
 # quando DKMS prova a costruirlo. Con un nome tipo zz- avremmo corretto il
@@ -296,6 +297,9 @@ if [ -d /run/systemd/system ]; then
   # 7.2 a mano, o lo installera' nella stessa transazione di questo
   # pacchetto, ha bisogno che il sorgente sia corretto adesso.
   /usr/local/bin/skillfish-fix-nct6687 >/dev/null 2>&1 || true
+  # Rimedi ai flatpak che su questo hardware non partono (per ora ProtonUp-Qt,
+  # che aborta all'avvio perche' GLX non ha configurazioni a buffer singolo).
+  /usr/local/bin/skillfish-flatpak-rimedi >/dev/null 2>&1 || true
   # Lo sblocco degli 8 core dal 16/08/2026 e' A RICHIESTA: il servizio resta
   # abilitato ma non parte senza il segnaposto. Chi aveva gia' gli 8 core li ha
   # perche' il vecchio servizio glieli sbloccava da solo: se al momento

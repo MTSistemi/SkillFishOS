@@ -1,0 +1,48 @@
+#!/bin/bash
+# Applica i rimedi noti ai flatpak che su questo hardware non partono.
+#
+# ProtonUp-Qt (net.davidotek.pupgui2)
+# -----------------------------------
+# Sulla BC-250 non si apriva: la finestra non compariva e il processo moriva
+# subito. Non era Python - il flatpak si porta il suo, la 3.12 - ed era
+# un'abort VOLUTA da Qt, non un segfault:
+#
+#   qt.glx: qglx_findConfig: Failed to finding matching FBConfig for
+#           QSurfaceFormat(... swapBehavior QSurfaceFormat::SingleBuffer ...)
+#   Could not initialize GLX
+#
+# Qt chiede a GLX una configurazione a BUFFER SINGOLO; il driver della scheda
+# non ne espone nessuna, la ricerca fallisce e Qt chiama qFatal. Il processo
+# esce con 134 (128+6, SIGABRT) e KDE apre il rapporto sui processi terminati.
+#
+# ⚠️ SI VEDE SOLO LANCIANDOLO DAL MENU. Da terminale parte, perche' il tema di
+# piattaforma KDE non viene caricato; dal menu QT_QPA_PLATFORMTHEME=kde c'e', il
+# tema costruisce una superficie e finisce nel percorso GLX che aborta. Cercarlo
+# da terminale porta a credere che funzioni.
+#
+# xcb_egl NON basta (provato): il tema passa comunque da GLX. Serve spegnere del
+# tutto l'integrazione GL. Per un'applicazione a widget come questa non si perde
+# niente: non disegna in OpenGL.
+#
+# Si usa `flatpak override`, che AGGIUNGE la voce senza toccare il resto della
+# configurazione dell'utente (cartelle condivise, permessi): scrivere il file a
+# mano cancellerebbe le sue impostazioni.
+set -u
+export LC_ALL=C
+
+command -v flatpak >/dev/null 2>&1 || exit 0
+
+rimedio() {  # rimedio <app-id> <VARIABILE=valore> <perche'>
+    flatpak info "$1" >/dev/null 2>&1 || return 0     # non installata: niente da fare
+    if flatpak override --system --show "$1" 2>/dev/null | grep -q "${2%%=*}="; then
+        return 0                                       # c'e' gia'
+    fi
+    if flatpak override --system --env="$2" "$1" 2>/dev/null; then
+        echo "skillfish: $1 -> $2 ($3)"
+    fi
+}
+
+rimedio net.davidotek.pupgui2 QT_XCB_GL_INTEGRATION=none \
+        "GLX senza configurazioni a buffer singolo: Qt abortiva all'avvio"
+
+exit 0
