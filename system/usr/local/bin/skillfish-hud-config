@@ -92,6 +92,10 @@ TESTA
 
 printf '${font DejaVu Sans:bold:size=12}${color D8A849}SkillFish${color1}OS${font}${alignr}${color1}${time %%a %%d  %%H:%%M}\n'
 
+# La versione del kernel sotto al nome: e' identita', non una misura, quindi
+# sta in alto e in tono spento invece che fra i sensori.
+printf '${voffset 1}${color2}${font DejaVu Sans:size=7}${execi 9999 skillfish-hud-val kernel}${font}\n'
+
 # --- CPU: la frequenza e il carico ci sono su qualunque macchina -------------
 printf '${voffset 5}${color2}CPU   ${color1}${freq_g} GHz'
 ce cpu_temp && printf '${color2}    ${color1}${execi 2 skillfish-hud-val cpu_temp}°C'
@@ -116,14 +120,57 @@ ce gpu_mv    && linea='${color2}VDDGFX ${color1}${execi 2 skillfish-hud-val gpu_
 ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-hud-val gpu_power} W'
 [ -n "$linea" ] && printf '%s\n' "$linea"
 
+# VRAM: dove il driver dice quanta ne e' in uso si scrive "usata / totale",
+# dove dice solo quanta ce n'e' si scrive il totale e basta. Su AMD i due numeri
+# stanno in sysfs; altrove il totale lo dichiara Vulkan e lo deposita
+# skillfish-sensori all'avvio, mentre l'uso non lo espone nessuno.
 linea=""
-ce vram && linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
+if ce vram && ce vram_tot; then
+  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} / ${execi 9999 skillfish-hud-val vram_tot} MiB'
+elif ce vram_tot; then
+  linea='${color2}VRAM  ${color1}${execi 9999 skillfish-hud-val vram_tot} MiB'
+elif ce vram; then
+  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
+fi
+# La frequenza della memoria video la espone amdgpu; nouveau e i915 no.
+ce vram_mhz && linea="${linea}"'${color2}  @ ${color1}${execi 5 skillfish-hud-val vram_mhz} MHz'
+# Unita' di calcolo: 40/40 sulla BC-250, il numero dichiarato da Vulkan altrove
+# (CU su AMD, CUDA core su NVIDIA). Dove nessuno lo dice, la voce non compare.
 ce cu   && linea="${linea}"'${color2}   CU ${color1}${execi 5 skillfish-hud-val cu}'
 [ -n "$linea" ] && printf '%s\n' "$linea"
 
 # --- memoria, ventola, disco -------------------------------------------------
-printf '${color2}RAM   ${color1}${mem} / ${memmax}${color2}   ${color1}${memperc}%%\n'
-ce fan && printf '${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan} rpm\n'
+# Un solo segno di percento, non due: prima la riga si stampava con printf,
+# che converte il doppio in singolo; adesso passa da una variabile stampata
+# con %s, che non converte niente.
+riga_ram='${color2}RAM   ${color1}${mem} / ${memmax}${color2}   ${color1}${memperc}%'
+# La frequenza dei moduli la sa solo dmidecode, che vuole root: la legge
+# skillfish-sensori all'avvio e la deposita in /run. Non cambia mai, quindi
+# si chiede una volta sola.
+# ⚠️ Forma compatta, senza unita'. Con " @ 2400 MT/s" per esteso la riga usciva
+# dalla finestra e "MT/s" veniva tagliato a meta': il HUD e' largo 240 pixel e
+# allargarlo cambierebbe l'aspetto anche sulla BC-250, dove va bene com'e'.
+ce ram_mhz && riga_ram="${riga_ram}"'${color2} @${color1}${execi 9999 skillfish-hud-val ram_mhz}'
+printf '%s\n' "$riga_ram"
+# VENTOLE. Sulla BC-250 ce n'e' una sola e resta com'era. Su un PC normale ce
+# ne sono diverse - processore, case, a volte due sul case - e il driver quasi
+# mai dice quale sia quale: si mostrano tutte, nell'ordine in cui il chip le
+# espone, che almeno e' stabile fra un avvio e l'altro. Inventare le etichette
+# sarebbe peggio che non metterle.
+#
+# ⚠️ Su molte macchine le ventole NON si vedono finche' skillfish-sensori non
+# carica il driver del chip Super-I/O: sta su bus ISA e il kernel non puo'
+# enumerarlo, quindi nessuno lo carica da solo.
+riga_fan=""
+if ce fan_all; then
+  riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan_all} rpm'
+elif ce fan; then
+  riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan} rpm'
+fi
+# La ventola della scheda video: giri se la scheda ha un contagiri, altrimenti
+# la percentuale del PWM, che e' il solo dato vero che quelle schede dichiarano.
+ce fan_gpu && riga_fan="${riga_fan}"'${color2}   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+[ -n "$riga_fan" ] && printf '%s\n' "$riga_fan"
 printf '${color2}${execi 9999 skillfish-hud-val lbl_disk} ${color1}${fs_used /} / ${fs_size /}${color2}   ${color1}${fs_used_perc /}%%\n'
 
 # --- Bluetooth: solo se la macchina ha un adattatore -------------------------
@@ -137,6 +184,6 @@ printf ']];\n'
 
 echo "scritta $OUT"
 echo "  thread: $THREAD   righe di barre: $(( (THREAD + PER_RIGA - 1) / PER_RIGA ))"
-for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power vram cu fan; do
+for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power vram vram_tot vram_mhz ram_mhz cu fan fan_all fan_gpu; do
   ce "$k" && echo "  presente: $k" || echo "  assente:  $k"
 done

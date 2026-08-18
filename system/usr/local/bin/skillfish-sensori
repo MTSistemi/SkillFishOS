@@ -1,0 +1,84 @@
+#!/bin/bash
+# Prepara i dati che il HUD non puo' leggersi da solo, e accende i sensori che
+# Debian non accende mai. Gira una volta all'avvio, come root.
+#
+# PERCHE' SERVE
+# 1. LE VENTOLE NON SI VEDONO. I chip Super-I/O stanno su bus ISA: il kernel non
+#    puo' enumerarli, quindi nessun driver si carica da solo e le ventole
+#    semplicemente non esistono per il sistema. Misurato sul Fujitsu della
+#    macchina di sviluppo: zero contagiri, e dentro c'era un Nuvoton NCT6792D
+#    che appena caricato il driver ha mostrato due ventole a 956 e 1824 giri.
+#    Su una edizione che si installa su PC qualunque questo vale per quasi tutti.
+# 2. dmidecode E debugfs VOGLIONO ROOT. Il HUD gira come utente. Cose che non
+#    cambiano mai - la frequenza della RAM, la dimensione della VRAM, il numero
+#    di unita' di calcolo - si leggono una volta qui e si depositano in /run,
+#    da dove il HUD le prende senza privilegi e senza costo.
+#
+# ⚠️ SULLA BC-250 NON SI TOCCA NIENTE dei moduli: li' la ventola la governa
+# nct6687 con force=1 e nct6683 e' in lista nera. Caricare altri driver
+# Super-I/O e' inutile e rischia solo di rompere un equilibrio che funziona.
+set -u
+export LC_ALL=C
+
+D=/run/skillfish
+mkdir -p "$D"
+
+E_BC250=/usr/local/bin/skillfish-is-bc250
+e_bc250() { [ -x "$E_BC250" ] && "$E_BC250" 2>/dev/null; }
+
+# --- 1. i sensori della scheda madre ----------------------------------------
+# Si provano i driver dei chip piu' diffusi. Se il chip non c'e' il modulo si
+# rifiuta di caricarsi e non succede niente: nessuno di questi tocca hardware
+# che non riconosce.
+if ! e_bc250; then
+    for m in nct6775 it87 f71882fg w83627ehf; do
+        modprobe -q "$m" 2>/dev/null
+    done
+fi
+
+# --- 2. la frequenza della RAM ----------------------------------------------
+# "Configured Memory Speed" e' quella a cui i moduli girano davvero, che non e'
+# sempre quella per cui sono venduti: e' il numero che serve a chi guarda.
+if command -v dmidecode >/dev/null 2>&1; then
+    v=$(dmidecode -t memory 2>/dev/null \
+        | sed -n 's/^[[:space:]]*Configured Memory Speed:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' \
+        | head -1)
+    [ -z "$v" ] && v=$(dmidecode -t memory 2>/dev/null \
+        | sed -n 's/^[[:space:]]*Speed:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' | head -1)
+    [ -n "$v" ] && printf '%s\n' "$v" > "$D/ram_mhz"
+fi
+
+# --- 3. la GPU: dimensione della VRAM e unita' di calcolo -------------------
+# Su AMD stanno in sysfs e le legge il HUD da solo. Altrove l'unica fonte
+# generica e' Vulkan, che dichiara la memoria del dispositivo e - dove il driver
+# lo supporta - il numero di unita' di calcolo. Costa ~60 ms, quindi si fa qui
+# una volta e non a ogni aggiornamento del HUD.
+if [ ! -e /sys/class/drm/card0/device/mem_info_vram_total ] \
+   && command -v vulkaninfo >/dev/null 2>&1; then
+    vulkaninfo 2>/dev/null | awk '
+        # si salta llvmpipe: resa via software, non una scheda vera
+        /deviceName/       { sw = ($0 ~ /llvmpipe/) }
+        /deviceType/       { tipo = $0 }
+        !sw && /memoryHeaps\[/ { inheap = 1 }
+        !sw && inheap && /size *=/ && !fatto {
+            for (i = 1; i <= NF; i++) if ($i == "=") { byte = $(i+1); break }
+            if (byte + 0 > 512 * 1024 * 1024) { print "vram", int(byte / 1048576); fatto = 1 }
+        }
+        !sw && /shaderSMCount/            { print "sm", $NF }
+        !sw && /computeUnitsPerShaderArray/ { cu = $NF }
+        !sw && /shaderArraysPerEngineCount/ { ar = $NF }
+        !sw && /shaderEngineCount/         { en = $NF }
+        END { if (cu && ar && en) print "cu", cu * ar * en }
+    ' | while read -r chiave valore; do
+        case "$chiave" in
+            vram) printf '%s\n' "$valore" > "$D/vram_total" ;;
+            cu)   printf '%s\n' "$valore" > "$D/gpu_cores" ;;
+            # Su NVIDIA il conto che la gente conosce non e' il numero di SM ma
+            # i "CUDA core": 128 per SM su tutto quello che gira con nouveau.
+            sm)   printf '%s\n' "$((valore * 128))" > "$D/gpu_cores" ;;
+        esac
+    done
+fi
+
+chmod 0644 "$D"/ram_mhz "$D"/vram_total "$D"/gpu_cores 2>/dev/null || true
+exit 0

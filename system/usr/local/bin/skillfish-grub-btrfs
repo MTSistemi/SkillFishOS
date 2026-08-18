@@ -1,0 +1,69 @@
+#!/bin/bash
+# Spegne e riaccende il rilevatore di snapshot di grub-btrfs, per la sola durata
+# dell'installazione.
+#
+#   skillfish-grub-btrfs spegni    [radice]   prima che Calamares chiami grub-mkconfig
+#   skillfish-grub-btrfs riaccendi [radice]   dopo, insieme a update-grub
+#   skillfish-grub-btrfs stato     [radice]
+#
+# IL PROBLEMA (segnalato da Cyryl Sochacki, riprodotto il 19/08/2026)
+# Durante l'installazione, `grub-mkconfig` esegue /etc/grub.d/41_snapshots-btrfs.
+# Se sul bersaglio ci sono gia' degli snapshot, quel gancio prova a montarli per
+# UUID; dentro il chroot dell'installatore /dev/disk/by-uuid NON e' popolato e il
+# mount fallisce:
+#
+#   Detecting snapshots ...
+#   mount: /tmp/grub-btrfs.XXXX: special device /dev/disk/by-uuid/<uuid> does not exist.
+#
+# Il 32 che si legge nel registro e' il codice di uscita di mount, che risale e
+# fa fallire l'INTERO lavoro di grub-mkconfig, e con esso l'installazione.
+#
+# PERCHE' NON SI VEDE SU UN DISCO CANCELLATO
+# Su un filesystem appena creato non c'e' nessuno snapshot: il gancio non trova
+# niente da montare e tira dritto. Il guasto compare solo quando il bersaglio ha
+# gia' degli snapshot, cioe' REINSTALLANDO sopra un SkillFishOS esistente - che
+# e' esattamente cio' che fa chi sta riprovando. Non e' un caso di laboratorio.
+#
+# PERCHE' SI SPEGNE INVECE DI MONTARE /dev/disk/by-uuid NEL CHROOT
+# Perche' il menu degli snapshot durante l'installazione non serve a niente: lo
+# rigenera comunque `update-grub` subito dopo, con questo stesso strumento che
+# lo riaccende, e in ogni caso il nostro hook di apt lo rifa' a ogni
+# aggiornamento. Montare /dev/disk/by-uuid dipenderebbe invece da come Calamares
+# prepara il chroot, che nel ramo eggs viene rigenerato e non e' cosa nostra.
+set -u
+export LC_ALL=C
+
+AZIONE="${1:-stato}"
+RADICE="${2:-}"
+CONF="$RADICE/etc/default/grub-btrfs/config"
+CHIAVE=GRUB_BTRFS_DISABLE
+
+[ -f "$CONF" ] || { echo "skillfish: grub-btrfs non e' configurato qui, niente da fare"; exit 0; }
+
+imposta() {
+    if grep -q "^[[:space:]]*${CHIAVE}=" "$CONF"; then
+        sed -i "s|^[[:space:]]*${CHIAVE}=.*|${CHIAVE}=\"$1\"|" "$CONF"
+    else
+        printf '\n# Impostato da skillfish-grub-btrfs durante l%s installazione.\n%s="%s"\n' \
+               "'" "$CHIAVE" "$1" >> "$CONF"
+    fi
+}
+
+case "$AZIONE" in
+    spegni)
+        imposta true
+        echo "skillfish: rilevamento snapshot di grub-btrfs sospeso per l'installazione"
+        ;;
+    riaccendi)
+        imposta false
+        echo "skillfish: rilevamento snapshot di grub-btrfs riacceso"
+        ;;
+    stato)
+        grep -E "^[[:space:]]*${CHIAVE}=" "$CONF" || echo "${CHIAVE} non impostato (predefinito: false)"
+        ;;
+    *)
+        echo "uso: ${0##*/} [spegni|riaccendi|stato] [radice]" >&2
+        exit 2
+        ;;
+esac
+exit 0

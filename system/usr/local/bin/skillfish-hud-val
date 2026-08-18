@@ -48,6 +48,24 @@ cpu_temp_generico(){
 }
 primo(){ [ -n "${1:-}" ] && [ -e "$1" ] && cat "$1" 2>/dev/null; }
 
+# Le ventole della SCHEDA MADRE, in ordine di hwmon. Si escludono quelle che
+# stanno sotto una scheda video (quelle le riporta fan_gpu) e quelle ferme: un
+# connettore senza ventola attaccata legge 0, e stampare "0 rpm" fa credere a un
+# guasto invece che a un connettore libero.
+#
+# ⚠️ Niente etichette da inventare. Sul Fujitsu di sviluppo il driver nct6792
+# non fornisce fanN_label, quindi non c'e' modo ONESTO di sapere quale sia la
+# ventola del processore e quale quella del case: si mostrano i valori nell'
+# ordine in cui il chip li espone, che almeno resta stabile fra un avvio e l'altro.
+fan_scheda(){
+  for f in /sys/class/hwmon/hwmon*/fan[0-9]_input; do
+    [ -e "$f" ] || continue
+    case "$(readlink -f "$f")" in *devices/pci*/drm/*) continue ;; esac
+    v=$(cat "$f" 2>/dev/null)
+    [ -n "$v" ] && [ "$v" -gt 0 ] 2>/dev/null && echo "$v"
+  done
+}
+
 # locale: it* -> Italian labels, anything else -> English
 _loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-$LANGUAGE}}}"; case "$_loc" in it*) IT=1;; *) IT=0;; esac
 
@@ -61,9 +79,26 @@ get(){
     gpu_freq) f=$(cat /run/skillfish-gpu-freq 2>/dev/null)   # SMU sample (correct after 8-core unlock)
               if [ -n "$f" ]; then echo "${f}Mhz"
               else
+                # AMD: il livello attivo e' quello segnato con l'asterisco
                 v=$(awk '/\*/{print $2}' /sys/class/drm/card0/device/pp_dpm_sclk 2>/dev/null)
-                # nouveau e altri driver espongono il clock in Hz nel proprio hwmon
+                # Intel: i915 e xe pubblicano la frequenza reale in MHz, in due
+                # posti diversi a seconda della generazione.
+                if [ -z "$v" ]; then
+                  for g in /sys/class/drm/card[0-9]/gt_act_freq_mhz                            /sys/class/drm/card[0-9]/gt/gt0/rps_act_freq_mhz; do
+                    [ -r "$g" ] && { v="$(cat "$g" 2>/dev/null)Mhz"; break; }
+                  done
+                fi
+                # Un hwmon di scheda video che espone freq1_input, in Hz
                 [ -z "$v" ] && { g=$(drm_any freq1_input); [ -n "$g" ] && v=$(awk '{printf "%dMhz",$1/1000000}' "$g"); }
+                # nouveau: la frequenza sta in debugfs, non in sysfs, e serve root.
+                # ⚠️ Sulle schede dalla Maxwell in poi (qui una GP107) il file c'e'
+                # ma risponde ENODEV: nouveau non implementa il controllo dei
+                # clock su quelle GPU. Non e' un nostro difetto e non si aggira:
+                # dove non risponde, la voce resta vuota e la riga non compare.
+                if [ -z "$v" ]; then
+                  p=$(cat /sys/kernel/debug/dri/0/pstate 2>/dev/null | sed -n 's/.*AC: core \([0-9]\{1,\}\).*//p' | head -1)
+                  [ -n "$p" ] && v="${p}Mhz"
+                fi
                 [ -n "$v" ] && echo "$v"
               fi ;;
     gpu_util) u=$(cat /run/skillfish-gpu-util 2>/dev/null)
@@ -85,13 +120,36 @@ get(){
     fan) v=$(cat "$(hw_with nct6686 fan2_input)/fan2_input" 2>/dev/null)
          [ -z "$v" ] && v=$(primo "$(hw_any fan1_input)")
          [ -n "$v" ] && echo "$v" ;;
-    cu) cat /run/skillfish/cu_active 2>/dev/null || echo "?" ;;
+    # Sulla BC-250 il conto lo tiene skillfish-cu; altrove lo dichiara Vulkan
+    # (unita' di calcolo su AMD, CUDA core su NVIDIA) e lo deposita
+    # skillfish-sensori all'avvio. Dove nessuno dei due sa rispondere si tace.
+    cu) v=$(cat /run/skillfish/cu_active 2>/dev/null)
+        [ -z "$v" ] && v=$(primo /run/skillfish/gpu_cores)
+        [ -n "$v" ] && echo "$v" ;;
     cpu_mhz) awk -F: '/cpu MHz/{printf "%d",$2; exit}' /proc/cpuinfo 2>/dev/null ;;
+    kernel) uname -r ;;
+    ram_mhz) primo /run/skillfish/ram_mhz ;;
+    vram_tot) v=$(cat /sys/class/drm/card0/device/mem_info_vram_total 2>/dev/null)
+              [ -z "$v" ] && v=$(primo "$(drm_any mem_info_vram_total)")
+              if [ -n "$v" ]; then echo "$v" | awk '{printf "%.0f",$1/1048576}'
+              else primo /run/skillfish/vram_total; fi ;;   # ripiego: dichiarata da Vulkan
+    vram_mhz) awk '/\*/{gsub(/[Mm]hz/,"",$2); print $2; exit}' \
+                /sys/class/drm/card0/device/pp_dpm_mclk 2>/dev/null ;;
+    # I giri delle ventole della scheda madre, separati da un punto centrale.
+    fan_all) fan_scheda | awk '{s = s (s ? " · " : "") $1} END{if (s) print s}' ;;
+    # La ventola della scheda video. Molte schede non hanno un contagiri e
+    # dichiarano solo il PWM: in quel caso si mostra la percentuale, che e' un
+    # dato vero, invece di tacere o di spacciare il PWM per giri al minuto.
+    fan_gpu) v=$(primo "$(drm_any fan1_input)")
+             if [ -n "$v" ] && [ "$v" -gt 0 ] 2>/dev/null; then echo "${v} rpm"
+             else p=$(primo "$(drm_any pwm1)")
+                  [ -n "$p" ] && echo "$p" | awk '{printf "%d%%",$1*100/255}'
+             fi ;;
   esac
 }
 
 if [ "$1" = "all" ]; then
-  for k in cpu_temp gpu_temp cpu_mhz gpu_freq gpu_mv cpu_mv gpu_power fan vram gpu_util cu; do
+  for k in cpu_temp gpu_temp cpu_mhz gpu_freq gpu_mv cpu_mv gpu_power fan fan_all fan_gpu vram vram_tot vram_mhz ram_mhz gpu_util cu kernel; do
     printf '%s %s\n' "$k" "$(get "$k")"
   done
   exit 0

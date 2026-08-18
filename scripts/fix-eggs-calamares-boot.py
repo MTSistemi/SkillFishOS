@@ -103,6 +103,9 @@ script:
     - >-
       grub-install --target=x86_64-efi --efi-directory=/boot/efi
       --removable --recheck || true
+    - /usr/local/bin/skillfish-grub-btrfs riaccendi || true
+    # update-grub qui sotto rigenera il menu CON gli snapshot: quello che si
+    # sospende prima del bootloader si riprende subito.
     - update-grub || true
     - /usr/local/bin/skillfish-clean-live-autologin || true
 """
@@ -351,6 +354,49 @@ def main():
             print("OK  : boot_reconfigure viene dopo bootloader nella sequenza")
 
 
+def sospendi_snapshot():
+    """Sospende il rilevatore di snapshot di grub-btrfs durante l'installazione.
+
+    IL PROBLEMA (Cyryl Sochacki, riprodotto il 19/08/2026)
+    Il modulo `bootloader` di Calamares esegue grub-mkconfig, che esegue
+    /etc/grub.d/41_snapshots-btrfs. Se sul disco di destinazione ci sono GIA'
+    degli snapshot - cioe' quando si reinstalla sopra un SkillFishOS - quel
+    gancio prova a montarli per UUID; dentro il chroot /dev/disk/by-uuid non e'
+    popolato, il mount fallisce e il suo 32 risale fino a far fallire l'intera
+    installazione:
+
+        Detecting snapshots ...
+        mount: /tmp/grub-btrfs.XXXX: special device
+               /dev/disk/by-uuid/<uuid> does not exist.
+
+    Su un disco cancellato non si vede: snapshot non ce ne sono e il gancio non
+    ha niente da montare. Per questo l'avevamo sempre mancato nelle nostre prove.
+
+    La riga si aggiunge a shellprocess@boot_deploy, che e' l'unico passo che gira
+    PRIMA del bootloader ed e' fuori dal chroot (quindi ha ${ROOT}). Il modulo lo
+    scrive eggs: lo si ritocca qui, insieme a tutto il resto che eggs rigenera.
+    Lo riaccende boot_reconfigure, che chiama update-grub subito dopo.
+    """
+    f = os.path.join(MODDIR, "shellprocess@boot_deploy.conf")
+    if not os.path.exists(f):
+        print("ATTENZIONE: manca shellprocess@boot_deploy.conf, non sospendo grub-btrfs")
+        return
+    with open(f, encoding="utf-8") as fh:
+        s = fh.read()
+    if "skillfish-grub-btrfs" in s:
+        print("OK  : grub-btrfs gia' sospeso in boot_deploy")
+        return
+    s = s.rstrip("\n") + (
+        "\n    # Sospende il rilevatore di snapshot PRIMA di grub-mkconfig: con snapshot\n"
+        "    # gia' sul bersaglio fallisce con 32 dentro il chroot. Lo riaccende\n"
+        "    # shellprocess@boot_reconfigure.\n"
+        "    - >-\n"
+        "      ${ROOT}/usr/local/bin/skillfish-grub-btrfs spegni ${ROOT} || true\n")
+    with open(f, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(s)
+    print("OK  : grub-btrfs sospeso durante l'installazione (boot_deploy)")
+
+
 def verify():
     """Ricontrolla che la correzione sia dove serve. Fidarsi non basta: la prima
     volta eggs aveva sovrascritto tutto e me ne sono accorto solo aprendo la ISO."""
@@ -404,7 +450,8 @@ def verify():
         #    Un controllo che non puo' fallire non e' un controllo.
         miss = [k for k in ("skillfish-fix-boot-extents", "--removable", "update-grub",
                             "dpkg-reconfigure -fnoninteractive linux-image-`uname -r` || true",
-                            "update-initramfs -c -k") if k not in t]
+                            "update-initramfs -c -k",
+                               "skillfish-grub-btrfs riaccendi") if k not in t]
         if miss:
             print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
         else:
@@ -414,5 +461,9 @@ def verify():
 
 if __name__ == "__main__":
     main()
+    # Sospende il rilevatore di snapshot di grub-btrfs durante l'installazione:
+    # senza, reinstallando sopra un sistema che ha gia' snapshot, grub-mkconfig
+    # muore con 32 dentro il chroot e si porta dietro tutta l'installazione.
+    sospendi_snapshot()
     print()
     raise SystemExit(0 if verify() else 1)
