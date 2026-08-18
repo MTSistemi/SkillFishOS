@@ -53,7 +53,14 @@ popupWidth=653
 
 [Containments][2][Applets][3][Configuration][General]
 favoritesPortedToKAstats=true
-icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
+# ⚠️ NOME dell'icona, non percorso. Fino a Plasma 6.7.2 qui stava scritto
+#   icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
+# e funzionava. Da 6.7.4 quel percorso non viene piu' risolto e il pulsante del
+# menu resta VUOTO: nessun errore nel giornale, semplicemente niente disegnato.
+# Misurato sulle nostre due macchine: 6.7.2 lo mostra, 6.7.4 no, stesso file e
+# stessa impronta. Col nome lo risolve il tema di icone, che e' anche il modo
+# giusto: sceglie da solo la dimensione buona per l'altezza del pannello.
+icon=skillfish-tuner
 
 [Containments][2][Applets][4]
 immutability=1

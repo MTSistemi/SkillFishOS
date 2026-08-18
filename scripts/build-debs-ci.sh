@@ -829,6 +829,10 @@ check skillfish-menu_${VER}_all.deb         ./usr/share/desktop-directories/skil
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
 check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc os.skillfish.hub.desktop
+# L'icona del menu va per NOME: da Plasma 6.7.4 un percorso assoluto lascia il
+# pulsante vuoto, senza dire niente nel giornale. Facile da riscrivere per
+# sbaglio salvando il pannello dall'interfaccia, quindi lo si controlla qui.
+check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=skillfish-tuner'
 # La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
 # che il testo passi dalla funzione di traduzione e non sia piu' una costante.
 check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
