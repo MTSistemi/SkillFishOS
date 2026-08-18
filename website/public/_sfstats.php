@@ -114,6 +114,120 @@ if (!defined('SFSTATS_LIB')) {
         return $f;
     }
 
+
+    // ⚠️ SourceForge manda i paesi come LISTA DI COPPIE — [["Kenya",435], ...] —
+    // e con nomi per esteso, non codici ISO. Il codice che la trattava come una
+    // mappa stampava l'indice numerico al posto del paese, una bandierina di
+    // ripiego sempre uguale, e un conteggio sempre 1 (in PHP (int) su un array
+    // fa 1). Qui si normalizza una volta sola: dentro o fuori, sempre
+    // [nome, quanti, codice ISO].
+    function sfstats_iso($nome) {
+        static $m = array(
+        'Algeria'                  => 'DZ',
+        'Argentina'                => 'AR',
+        'Australia'                => 'AU',
+        'Austria'                  => 'AT',
+        'Belgium'                  => 'BE',
+        'Bolivia'                  => 'BO',
+        'Brazil'                   => 'BR',
+        'Bulgaria'                 => 'BG',
+        'Canada'                   => 'CA',
+        'Chile'                    => 'CL',
+        'China'                    => 'CN',
+        'Colombia'                 => 'CO',
+        'Costa Rica'               => 'CR',
+        'Croatia'                  => 'HR',
+        'Cyprus'                   => 'CY',
+        'Czech Republic'           => 'CZ',
+        'Czechia'                  => 'CZ',
+        'Denmark'                  => 'DK',
+        'Dominican Republic'       => 'DO',
+        'Egypt'                    => 'EG',
+        'El Salvador'              => 'SV',
+        'Estonia'                  => 'EE',
+        'Finland'                  => 'FI',
+        'France'                   => 'FR',
+        'Germany'                  => 'DE',
+        'Greece'                   => 'GR',
+        'Guadeloupe'               => 'GP',
+        'Guatemala'                => 'GT',
+        'Hong Kong'                => 'HK',
+        'Hungary'                  => 'HU',
+        'India'                    => 'IN',
+        'Indonesia'                => 'ID',
+        'Ireland'                  => 'IE',
+        'Israel'                   => 'IL',
+        'Italy'                    => 'IT',
+        'Japan'                    => 'JP',
+        'Kenya'                    => 'KE',
+        'Korea'                    => 'KR',
+        'Latvia'                   => 'LV',
+        'Lebanon'                  => 'LB',
+        'Lithuania'                => 'LT',
+        'Luxembourg'               => 'LU',
+        'Malaysia'                 => 'MY',
+        'Mexico'                   => 'MX',
+        'Morocco'                  => 'MA',
+        'Netherlands'              => 'NL',
+        'New Zealand'              => 'NZ',
+        'Norway'                   => 'NO',
+        'Pakistan'                 => 'PK',
+        'Peru'                     => 'PE',
+        'Philippines'              => 'PH',
+        'Poland'                   => 'PL',
+        'Portugal'                 => 'PT',
+        'Romania'                  => 'RO',
+        'Russia'                   => 'RU',
+        'Russian Federation'       => 'RU',
+        'Saudi Arabia'             => 'SA',
+        'Serbia'                   => 'RS',
+        'Seychelles'               => 'SC',
+        'Singapore'                => 'SG',
+        'Slovakia'                 => 'SK',
+        'Slovenia'                 => 'SI',
+        'South Africa'             => 'ZA',
+        'South Korea'              => 'KR',
+        'Spain'                    => 'ES',
+        'Sweden'                   => 'SE',
+        'Switzerland'              => 'CH',
+        'Taiwan'                   => 'TW',
+        'Thailand'                 => 'TH',
+        'Trinidad and Tobago'      => 'TT',
+        'Tunisia'                  => 'TN',
+        'Turkey'                   => 'TR',
+        'Ukraine'                  => 'UA',
+        'United Arab Emirates'     => 'AE',
+        'United Kingdom'           => 'GB',
+        'United States'            => 'US',
+        'Uruguay'                  => 'UY',
+        'Venezuela'                => 'VE',
+        'Viet Nam'                 => 'VN',
+        'Vietnam'                  => 'VN'
+        );
+        $n = trim((string)$nome);
+        if (isset($m[$n])) return $m[$n];
+        // gia' un codice a due lettere? capita con altre fonti
+        if (strlen($n) === 2 && ctype_alpha($n)) return strtoupper($n);
+        return '';
+    }
+
+    function sfstats_paesi($dato, $quanti = 8) {
+        $out = array();
+        foreach ((array)$dato as $k => $v) {
+            if (is_array($v)) {                 // ["Kenya", 435]
+                $nome = (string)($v[0] ?? '');
+                $n    = (int)($v[1] ?? 0);
+            } else {                             // "Kenya" => 435
+                $nome = (string)$k;
+                $n    = (int)$v;
+            }
+            if ($nome === '') continue;
+            $out[] = array('nome' => $nome, 'n' => $n, 'iso' => sfstats_iso($nome));
+        }
+        usort($out, function ($a, $b) { return $b['n'] - $a['n']; });
+        return $quanti ? array_slice($out, 0, $quanti) : $out;
+    }
+
     function sfstats_os($ua) {
         if (preg_match('/Android/i', $ua)) return 'Android';
         if (preg_match('/iPhone|iPad|iOS/i', $ua)) return 'iOS';

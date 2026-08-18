@@ -525,10 +525,11 @@ if ($sf && isset($sf['total'])) {
     echo '<table><tr><th>Voce</th><th class="r">Download</th></tr>';
     echo '<tr><td><strong>Totale</strong></td><td class="r"><strong>' . (int)$sf['total'] . '</strong></td></tr>';
     if (!empty($sf['countries'])) {
-        $cs = $sf['countries']; arsort($cs); $i = 0;
-        foreach ($cs as $cc => $n) {
-            if ($i++ >= 8) break;
-            echo '<tr><td>' . sfstats_flag($cc) . ' ' . h($cc) . '</td><td class="r">' . (int)$n . '</td></tr>';
+        foreach (sfstats_paesi($sf['countries'], 10) as $p) {
+            $bandiera = $p['iso'] ? sfstats_flag($p['iso']) . ' ' : '';
+            $nome = $p['nome'] === 'Unknown' ? '<span class="muted">paese sconosciuto</span>' : h($p['nome']);
+            echo '<tr><td>' . $bandiera . $nome . '</td>'
+               . '<td class="r">' . $p['n'] . '</td></tr>';
         }
     }
     echo '</table>';
