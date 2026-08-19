@@ -220,7 +220,21 @@ rimetti_identita() {
     # ⚠️ PRIMA l'igiene: e' quella che tiene da parte l'identita' ZeroTier, le
     # chiavi Bluetooth, la chiave di firma DKMS e l'hash di root di Mattia. Se
     # il produce muore a meta' e questa non gira, la scheda resta monca.
-    bash "$SCRIPT_DIR/igienizza-immagine.sh" ripristina 2>&1 | sed 's/^/   /'
+    # ⚠️ Si prende lo script DA DOVE C'E'. /root/sfx-src e' nella lista di cio'
+    # che l'igiene mette da parte, quindi applicandola lo script sposta via la
+    # cartella che contiene lo script stesso: chiamarlo dal percorso di prima
+    # dava "No such file or directory" e il ripristino non partiva. Il 19/08/2026
+    # la scheda e' rimasta senza identita' ZeroTier, con root bloccato, col
+    # profilo di overclock di sicurezza al posto di quello di Mattia e senza le
+    # cartelle condivise dei flatpak. Ora l'igiene si deposita una copia di se'
+    # stessa, e qui si usa quella se l'originale non c'e' piu'.
+    IGIENE="$SCRIPT_DIR/igienizza-immagine.sh"
+    [ -x "$IGIENE" ] || IGIENE=/root/.igiene-immagine/igienizza-immagine.sh
+    if [ -x "$IGIENE" ]; then
+        bash "$IGIENE" ripristina 2>&1 | sed 's/^/   /'
+    else
+        echo "   ATTENZIONE: non trovo l'igienizzatore, la scheda resta IGIENIZZATA"
+    fi
     for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
         mkdir -p "$(dirname "$f")"

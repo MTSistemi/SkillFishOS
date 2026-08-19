@@ -214,7 +214,20 @@ rimetti_tutto() {
 case "$AZIONE" in
 
 applica)
+    # ⚠️ PRIMA DI TUTTO: una copia di QUESTO script nel deposito.
+    #
+    # COSA E' SUCCESSO IL 19/08/2026. /root/sfx-src e' in BANCO_DI_SVILUPPO,
+    # quindi applicando l'igiene lo script sposta via la cartella che contiene
+    # lo script stesso. build-iso.sh poi chiama `igienizza-immagine.sh ripristina`
+    # dal percorso di prima e trova:
+    #     bash: /root/sfx-src/scripts/igienizza-immagine.sh: No such file
+    # Il ripristino non parte, e la scheda resta igienizzata: senza identita'
+    # ZeroTier, con root bloccato, col profilo di overclock di sicurezza al posto
+    # di quello dell'utente e senza le cartelle condivise dei flatpak.
+    # Il deposito NON viene spostato da nessuno, quindi la copia li' dentro
+    # sopravvive sempre a se' stessa.
     rm -rf "$DEP"; mkdir -p "$DEP"; : > "$REG"
+    cp -f "$0" "$DEP/igienizza-immagine.sh" 2>/dev/null && chmod +x "$DEP/igienizza-immagine.sh"
     tolti=0; peso=0
     for f in $IDENTITA_MACCHINA $STATO_SCHEDA $BANCO_DI_LAVORO $ACCESSO_DI_SVILUPPO $BANCO_DI_SVILUPPO $(casa_da_ripulire) $SERVIZI_DA_NON_SPEDIRE; do
         if [ -e "$f" ] || [ -L "$f" ]; then
@@ -291,6 +304,18 @@ PY
 
 ripristina)
     rimetti_tutto
+    # Le impostazioni flatpak non si spostano (dentro ci sono anche i NOSTRI
+    # rimedi, che devono restare): si toglie solo la riga delle cartelle
+    # condivise e se ne tiene una copia. Quella copia va rimessa, altrimenti
+    # Steam resta senza la cartella dei giochi e senza il NAS - successo il
+    # 19/08/2026, e nessuno se ne accorge finche' non prova ad avviare un gioco.
+    rifl=0
+    for b in "$DEP"/_*flatpak_overrides_*; do
+        [ -f "$b" ] || continue
+        dst="/$(basename "$b" | sed 's/^_//' | tr '_' '/')"
+        if [ -f "$dst" ]; then cp -f "$b" "$dst" && rm -f "$b" && rifl=$((rifl + 1)); fi
+    done
+    [ "$rifl" -gt 0 ] && echo "   rimesse le cartelle condivise di $rifl flatpak"
     for coppia in "shadow.originale:/etc/shadow" \
                   "debian.sources.originale:/etc/apt/sources.list.d/debian.sources" \
                   "grub.originale:/etc/default/grub" \
