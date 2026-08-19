@@ -1,0 +1,129 @@
+#!/bin/bash
+# Prepara /games: un sottovolume btrfs SENZA copy-on-write, per i giochi.
+#
+#   skillfish-games-subvolume prepara [radice]   dopo l'installazione (lo chiama Calamares)
+#   skillfish-games-subvolume crea               su un sistema gia' installato
+#   skillfish-games-subvolume stato
+#
+# PERCHE' NON UNA PARTIZIONE XFS SEPARATA
+# XFS sui giochi si sente poco: caricare un gioco e' lettura sequenziale, e li'
+# la differenza fra i due filesystem e' piccola. Dove btrfs costa davvero e' nel
+# COPY-ON-WRITE sulle scritture sparse - cache degli shader, salvataggi,
+# aggiornamenti - e negli snapshot, che su una cartella di giochi diventano
+# enormi e non servono a nessuno.
+#
+# Quei due costi si tolgono senza un secondo filesystem: un sottovolume a se',
+# con chattr +C (niente copy-on-write) e fuori dagli snapshot. Si prende quasi
+# tutto il beneficio di XFS restando su un filesystem solo, e soprattutto lo
+# SPAZIO RESTA IN COMUNE. Con una partizione separata la dimensione la si decide
+# in installazione: chi sbaglia si ritrova la partizione dei giochi piena e
+# duecento giga liberi su root, e per una distro che si installa su dischi di
+# ogni taglia quello e' il problema vero, non qualche punto percentuale.
+#
+# ⚠️ chattr +C VA MESSO QUANDO LA CARTELLA E' VUOTA. Su btrfs il flag non
+# converte i file che ci sono gia': vale solo per quelli scritti dopo. Il momento
+# giusto e' appena dopo l'installazione, ed e' per questo che questo script lo
+# chiama Calamares invece di lasciarlo all'utente.
+#
+# ⚠️ FUORI DAGLI SNAPSHOT PER COSTRUZIONE. @games e' un sottovolume di primo
+# livello come @home, @cache e @log: snapper fotografa @ e non scende dentro gli
+# altri. Nessuna esclusione da mantenere, nessuna dimenticanza possibile.
+set -u
+export LC_ALL=C
+
+AZIONE="${1:-stato}"
+RADICE="${2:-}"
+PUNTO="$RADICE/games"
+SOTTO="@games"
+
+msg() { echo "skillfish: $*"; }
+
+primo_utente() {
+    awk -F: '$3 >= 1000 && $3 < 60000 {print $1; exit}' "$RADICE/etc/passwd" 2>/dev/null
+}
+
+# I flatpak dei giochi devono poterci scrivere. Si usa `flatpak override`, che
+# AGGIUNGE la cartella lasciando stare il resto della configurazione: riscrivere
+# quei file a mano cancellerebbe le condivisioni gia' impostate dall'utente.
+apri_ai_flatpak() {
+    command -v flatpak >/dev/null 2>&1 || return 0
+    local app
+    for app in com.valvesoftware.Steam net.lutris.Lutris com.heroicgameslauncher.hgl \
+               io.github.ryubing.Ryujinx org.libretro.RetroArch; do
+        flatpak info "$app" >/dev/null 2>&1 || continue
+        flatpak override --system --filesystem=/games "$app" 2>/dev/null \
+            && msg "$app puo' usare /games"
+    done
+}
+
+prepara() {
+    if ! mountpoint -q "$PUNTO" 2>/dev/null && [ ! -d "$PUNTO" ]; then
+        msg "/games non c'e' su questo sistema, niente da fare"
+        return 0
+    fi
+    # ⚠️ Solo se e' VUOTA. Su una cartella con dentro dei giochi il flag non
+    # converte niente e lascia credere il contrario.
+    if [ -z "$(ls -A "$PUNTO" 2>/dev/null)" ]; then
+        if chattr +C "$PUNTO" 2>/dev/null; then
+            msg "/games senza copy-on-write (chattr +C)"
+        else
+            msg "non sono riuscito a togliere il copy-on-write da /games"
+        fi
+    else
+        msg "/games non e' vuota: il flag non si applica ai file gia' scritti, lo lascio stare"
+    fi
+    local u
+    u=$(primo_utente)
+    if [ -n "$u" ]; then
+        chown "$u:$u" "$PUNTO" 2>/dev/null && msg "/games e' di $u"
+    fi
+    apri_ai_flatpak
+}
+
+crea() {
+    local dev sotto_root
+    dev=$(findmnt -no SOURCE / | sed 's/\[.*//')
+    [ -n "$dev" ] || { msg "non capisco su che dispositivo sta /"; return 1; }
+    if [ "$(findmnt -no FSTYPE /)" != "btrfs" ]; then
+        msg "la radice non e' btrfs: /games non si puo' fare cosi'"
+        return 1
+    fi
+    if mountpoint -q /games; then
+        msg "/games c'e' gia', non tocco niente"
+        prepara
+        return 0
+    fi
+    sotto_root=$(mktemp -d)
+    mount -o subvolid=5 "$dev" "$sotto_root" || { rmdir "$sotto_root"; return 1; }
+    if [ ! -d "$sotto_root/$SOTTO" ]; then
+        btrfs subvolume create "$sotto_root/$SOTTO" >/dev/null && msg "creato il sottovolume $SOTTO"
+    fi
+    umount "$sotto_root"; rmdir "$sotto_root"
+
+    mkdir -p /games
+    if ! grep -q "subvol=/$SOTTO" /etc/fstab 2>/dev/null; then
+        local uuid opts
+        uuid=$(blkid -s UUID -o value "$dev")
+        opts=$(findmnt -no OPTIONS / | sed 's/subvol=[^,]*,\?//; s/,$//')
+        printf 'UUID=%s /games btrfs %s,subvol=/%s 0 0\n' "$uuid" "$opts" "$SOTTO" >> /etc/fstab
+        msg "aggiunta la riga in /etc/fstab"
+    fi
+    mount /games && msg "/games montato"
+    prepara
+}
+
+case "$AZIONE" in
+    prepara) prepara ;;
+    crea)    crea ;;
+    stato)
+        if mountpoint -q /games 2>/dev/null; then
+            echo "   /games: montato da $(findmnt -no SOURCE /games)"
+            echo "   copy-on-write: $(lsattr -d /games 2>/dev/null | grep -q C && echo 'disattivato' || echo 'ATTIVO')"
+            echo "   spazio: $(df -h /games | tail -1 | awk '{print $4}') liberi (in comune con /)"
+        else
+            echo "   /games non e' montato"
+        fi
+        ;;
+    *) echo "uso: ${0##*/} [prepara|crea|stato] [radice]" >&2; exit 2 ;;
+esac
+exit 0

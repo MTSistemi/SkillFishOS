@@ -108,6 +108,10 @@ script:
     # update-grub qui sotto rigenera il menu CON gli snapshot: quello che si
     # sospende prima del bootloader si riprende subito.
     - update-grub || true
+    # /games e' un sottovolume a se': qui gli si toglie il copy-on-write
+    # mentre e' ancora VUOTO (dopo il flag non convertirebbe niente) e lo si
+    # intesta all'utente appena creato.
+    - /usr/local/bin/skillfish-games-subvolume prepara || true
     - /usr/local/bin/skillfish-clean-live-autologin || true
 """
 
@@ -265,6 +269,8 @@ WANT_SUBVOLS = """btrfsSubvolumes:
       subvolume: /@cache
     - mountPoint: /var/log
       subvolume: /@log
+    - mountPoint: /games
+      subvolume: /@games
 """
 
 

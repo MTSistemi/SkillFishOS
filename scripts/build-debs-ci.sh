@@ -241,6 +241,7 @@ put $P 0755 system/usr/local/bin/skillfish-clean-live-autologin   usr/local/bin/
 put $P 0755 system/usr/local/bin/skillfish-fix-nct6687              usr/local/bin/skillfish-fix-nct6687
 put $P 0755 system/usr/local/bin/skillfish-grub-btrfs               usr/local/bin/skillfish-grub-btrfs
 put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bin/skillfish-flatpak-rimedi
+put $P 0755 system/usr/local/bin/skillfish-games-subvolume         usr/local/bin/skillfish-games-subvolume
 # Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
 # il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
 # quando DKMS prova a costruirlo. Con un nome tipo zz- avremmo corretto il
@@ -717,6 +718,10 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-fix-nct66
 # gia' presenti sul bersaglio, grub-mkconfig muore con uscita 32 dentro il
 # chroot, dove /dev/disk/by-uuid non c'e'. Segnalato da Cyryl Sochacki.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-grub-btrfs GRUB_BTRFS_DISABLE
+# chattr +C su /games vale solo finche' e' vuota: il flag non converte i file
+# gia' scritti. Se sparisce quella riga, i giochi finiscono in copy-on-write
+# e nessuno se ne accorge, perche' tutto continua a funzionare - piano.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-games-subvolume 'chattr +C'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication

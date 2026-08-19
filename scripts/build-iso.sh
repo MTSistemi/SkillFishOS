@@ -229,6 +229,41 @@ IDENTITA="
 /var/lib/skillfish/.snapshots-setup-done
 "
 
+
+# --- i kernel che non appartengono a QUESTA edizione ------------------------
+# ⚠️ VERIFICATO APRENDO LE ISO: l'edizione Generic si e' sempre portata dentro
+# anche il kernel della BC-250, 26.06.4 pubblicata compresa. La live avvia
+# quello giusto, ma il sistema INSTALLATO se li ritrova tutti e due in /boot e
+# GRUB li elenca entrambi. Il kernel della scheda e' compilato -march=znver2:
+# su un Intel quella voce di menu puo' non partire affatto. Un kernel che a
+# volte si avvia e' peggio di uno che non c'e'.
+#
+# ⚠️ SI SPOSTA SOLO /boot, NON /lib/modules. I moduli del kernel IN ESECUZIONE
+# servono mentre la build gira: portarli via vorrebbe dire rompere la macchina a
+# meta' produzione. Senza vmlinuz e initrd in /boot, pero', GRUB del sistema
+# installato non ha nulla da elencare, che e' la parte pericolosa. I moduli
+# rimasti sono spazio sprecato, non un rischio, e si vedono nel controllo finale.
+ALTRI_KERNEL=/root/.kernel-da-parte
+kernel_estranei() {
+    mkdir -p "$ALTRI_KERNEL"
+    local f base
+    for f in /boot/vmlinuz-* /boot/initrd.img-*; do
+        [ -e "$f" ] || continue
+        case "$f" in *"$KVER") continue ;; esac
+        base=$(basename "$f")
+        mv -f "$f" "$ALTRI_KERNEL/$base" && echo "   messo da parte $base (non e' di questa edizione)"
+    done
+}
+rimetti_kernel_estranei() {
+    [ -d "$ALTRI_KERNEL" ] || return 0
+    local f
+    for f in "$ALTRI_KERNEL"/*; do
+        [ -e "$f" ] || continue
+        mv -f "$f" /boot/ && echo "   rimesso $(basename "$f")"
+    done
+    rmdir "$ALTRI_KERNEL" 2>/dev/null
+}
+
 rimetti_identita() {
     # ⚠️ PRIMA l'igiene: e' quella che tiene da parte l'identita' ZeroTier, le
     # chiavi Bluetooth, la chiave di firma DKMS e l'hash di root di Mattia. Se
@@ -247,18 +282,23 @@ rimetti_identita() {
         bash "$IGIENE" ripristina 2>&1 | sed 's/^/   /'
     else
         echo "   ATTENZIONE: non trovo l'igienizzatore, la scheda resta IGIENIZZATA"
-        # ⚠️ DOPO l'igiene, non prima. L'igiene rimette /etc/bc250-smu-oc.conf
-        # com'era quando ha applicato, cioe' col profilo di SICUREZZA che questo
-        # script aveva appena scritto. Affidarsi alla sola trap EXIT non basta:
-        # il 19/08/2026 la scheda e' rimasta a 3500/0 invece di 3700/-16 e me ne
-        # sono accorto solo controllando a mano.
-        restore_build_env  # esplicito, dopo l'igiene
-        # Il rilevatore di snapshot era stato sospeso PRIMA di produrre, perche'
-        # l'immagine lo eredita spento. Sulla scheda va riacceso, se no il menu
-        # degli snapshot sparisce a chi ci lavora tutti i giorni.
-        [ -x /usr/local/bin/skillfish-grub-btrfs ] && \
-            /usr/local/bin/skillfish-grub-btrfs riaccendi >/dev/null 2>&1 || true
     fi
+    # ⚠️ Queste righe stavano DENTRO il ramo else, cioe' correvano solo
+    # quando l'igienizzatore non si trovava: sul percorso normale non sono
+    # mai state eseguite, e la scheda e' rimasta due volte col profilo di
+    # sicurezza. Vanno fuori dall'if, sempre.
+    # ⚠️ DOPO l'igiene, non prima. L'igiene rimette /etc/bc250-smu-oc.conf
+    # com'era quando ha applicato, cioe' col profilo di SICUREZZA che questo
+    # script aveva appena scritto. Affidarsi alla sola trap EXIT non basta:
+    # il 19/08/2026 la scheda e' rimasta a 3500/0 invece di 3700/-16 e me ne
+    # sono accorto solo controllando a mano.
+    rimetti_kernel_estranei
+    restore_build_env  # esplicito, dopo l'igiene
+    # Il rilevatore di snapshot era stato sospeso PRIMA di produrre, perche'
+    # l'immagine lo eredita spento. Sulla scheda va riacceso, se no il menu
+    # degli snapshot sparisce a chi ci lavora tutti i giorni.
+    [ -x /usr/local/bin/skillfish-grub-btrfs ] && \
+        /usr/local/bin/skillfish-grub-btrfs riaccendi >/dev/null 2>&1 || true
     for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
         mkdir -p "$(dirname "$f")"
@@ -319,6 +359,7 @@ if [ "$resti" = 1 ]; then
 fi
 echo "igiene: controprova superata, nessun segreto della scheda nell'immagine"
 
+kernel_estranei
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
 echo "produce rc=$RC"
