@@ -242,6 +242,8 @@ put $P 0755 system/usr/local/bin/skillfish-fix-nct6687              usr/local/bi
 put $P 0755 system/usr/local/bin/skillfish-grub-btrfs               usr/local/bin/skillfish-grub-btrfs
 put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bin/skillfish-flatpak-rimedi
 put $P 0755 system/usr/local/bin/skillfish-games-subvolume         usr/local/bin/skillfish-games-subvolume
+put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bin/skillfish-live-no-lock
+put $P 0644 system/etc/systemd/system/skillfish-live-no-lock.service etc/systemd/system/skillfish-live-no-lock.service
 # Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
 # il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
 # quando DKMS prova a costruirlo. Con un nome tipo zz- avremmo corretto il
@@ -282,6 +284,10 @@ if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
   # senza chiavi host ssh.service fallisce all'infinito su installazione fresca
   systemctl enable skillfish-sshd-keygen.service || true
+  # Nella live il blocco schermo chiude fuori l'utente (password vuota):
+  # il servizio si accende sempre e non fa niente sul sistema installato,
+  # dove /run/live/medium non esiste.
+  systemctl enable skillfish-live-no-lock.service || true
   [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
   # enable --now avvia solo se e' ferma: se era gia' attiva con la vecchia
@@ -722,6 +728,11 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-grub-btrf
 # gia' scritti. Se sparisce quella riga, i giochi finiscono in copy-on-write
 # e nessuno se ne accorge, perche' tutto continua a funzionare - piano.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-games-subvolume 'chattr +C'
+# La condizione e' quello che tiene la correzione fuori dal sistema installato:
+# senza, si consegnerebbe a tutti un sistema senza blocco schermo.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'run/live/medium'
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'ConditionPathExists=/run/live/medium'
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'Before=sddm.service'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-sshd-keygen.service ssh-keygen
 check skillfish-base_${VER}_all.deb          ./etc/ssh/sshd_config.d/10-skillfish.conf PasswordAuthentication

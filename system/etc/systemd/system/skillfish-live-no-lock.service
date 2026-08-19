@@ -1,0 +1,21 @@
+[Unit]
+# Nella live il blocco schermo chiude fuori l'utente: la password non esiste.
+#
+# Deve girare PRIMA di SDDM, perche' Plasma legge kscreenlockerrc all'avvio
+# della sessione: scriverlo dopo non avrebbe effetto fino al riavvio, che in
+# una live nessuno fa.
+Description=SkillFishOS - niente blocco schermo nella sessione live
+Documentation=man:kscreenlocker(1)
+# ⚠️ Questa condizione e' cio' che tiene la correzione FUORI dal sistema
+# installato: /run/live/medium lo crea live-boot e su un disco non c'e'.
+ConditionPathExists=/run/live/medium
+Before=sddm.service display-manager.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-live-no-lock
+
+[Install]
+WantedBy=multi-user.target

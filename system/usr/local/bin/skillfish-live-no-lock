@@ -1,0 +1,73 @@
+#!/bin/bash
+# Toglie il blocco schermo, e lo spegnimento dello schermo, nella sola sessione
+# LIVE.
+#
+# PERCHE'
+# Il predefinito di Plasma blocca la sessione dopo cinque minuti e poi chiede la
+# password. Nella live quella password NON ESISTE: l'utente e' creato senza, e
+# il modulo PAM di sblocco rifiuta le password vuote. Chi lascia la live per un
+# caffe' torna davanti a uno schermo nero che non si sblocca in nessun modo, e
+# l'unica via d'uscita e' spegnere la macchina - magari nel mezzo di
+# un'installazione. Visto in macchina virtuale il 19/08/2026 sulla 26.06.5:
+# kscreenlocker_g in esecuzione e monitor spento dopo mezz'ora di inattivita'.
+#
+# ⚠️ SOLO NELLA LIVE. Sul sistema installato il blocco schermo ci deve essere:
+# e' una macchina vera, con dati veri. Per questo il servizio ha
+# ConditionPathExists=/run/live/medium e qui sotto c'e' lo stesso controllo una
+# seconda volta: se qualcuno lancia lo script a mano su un sistema installato,
+# non deve succedere niente.
+#
+# ⚠️ E NON IN /etc/skel. Sarebbe piu' comodo, ma /etc/skel finisce
+# nell'immagine e da li' nelle case degli utenti creati dall'installatore: si
+# consegnerebbe a tutti un sistema senza blocco schermo. Qui si scrive nella
+# home dell'utente della live, che l'installatore cancella (removeuser).
+set -u
+export LC_ALL=C
+
+[ -e /run/live/medium ] || exit 0
+
+scrivi() {
+    local casa="$1" ut="$2"
+    mkdir -p "$casa/.config"
+
+    cat > "$casa/.config/kscreenlockerrc" <<'CONF'
+[Daemon]
+Autolock=false
+LockOnResume=false
+CONF
+
+    # e nemmeno lo schermo che si spegne da solo mentre si legge una guida
+    cat > "$casa/.config/powermanagementprofilesrc" <<'CONF'
+[AC][DPMSControl]
+idleTime=0
+lockBeforeTurnOff=0
+
+[AC][DimDisplay]
+idleTime=0
+
+[AC][SuspendSession]
+idleTime=0
+suspendType=0
+CONF
+
+    # "$ut:" mette anche il gruppo di accesso dell'utente: con il solo nome
+    # utente il gruppo resta quello di root, e Plasma si ritrova file di
+    # configurazione che non sono suoi.
+    chown "$ut:" "$casa/.config/kscreenlockerrc" \
+                 "$casa/.config/powermanagementprofilesrc" 2>/dev/null
+    echo "skillfish: niente blocco schermo per $ut (sessione live)"
+}
+
+fatto=0
+for casa in /home/*; do
+    [ -d "$casa" ] || continue
+    ut=$(stat -c %U "$casa" 2>/dev/null) || continue
+    id=$(id -u "$ut" 2>/dev/null) || continue
+    [ "$id" -ge 1000 ] 2>/dev/null || continue
+    [ "$id" -lt 60000 ] 2>/dev/null || continue
+    scrivi "$casa" "$ut"
+    fatto=$((fatto + 1))
+done
+
+[ "$fatto" -gt 0 ] || echo "skillfish: nessun utente della live trovato sotto /home"
+exit 0
