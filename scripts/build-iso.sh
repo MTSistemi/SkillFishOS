@@ -103,8 +103,12 @@ restore_build_env() {
 }
 trap restore_build_env EXIT INT TERM
 
+# ⚠️ NON si sovrascrive un backup che c'e' gia'. Il 19/08/2026 due build
+# di fila hanno perso il profilo di Mattia: la prima non l'aveva ripristinato,
+# la seconda ha salvato come "profilo dell'utente" il 3500 di sicurezza che
+# aveva trovato, e il 3700/-16 e' rimasto solo dentro gli snapshot btrfs.
 if [ -f "$OCF" ]; then
-    cp -f "$OCF" "$OCBAK"
+    [ -f "$OCBAK" ] || cp -f "$OCF" "$OCBAK"
     printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 85\n' > "$OCF"
     echo "profilo overclock: messo quello di sicurezza (3500) per la durata della build"
 fi
