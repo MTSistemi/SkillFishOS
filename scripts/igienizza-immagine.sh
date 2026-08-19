@@ -90,7 +90,11 @@ ACCESSO_DI_SVILUPPO="
 /root/.bash_history
 /root/.python_history
 /root/.lesshst
+# I core dump sono IMMAGINI DI MEMORIA dei processi caduti: dentro ci puo'
+# essere qualunque cosa avessero in RAM, password digitate comprese. Sulla
+# scheda erano 62 MB accumulati fra prove e sviluppo, e nessuno li toglieva.
 /etc/sddm.conf.d/90-autologin-dev.conf
+/var/lib/systemd/coredump
 /etc/ssh/sshd_config.d/90-skillfish-dev-root.conf
 "
 
