@@ -10,7 +10,7 @@
 #    che appena caricato il driver ha mostrato due ventole a 956 e 1824 giri.
 #    Su una edizione che si installa su PC qualunque questo vale per quasi tutti.
 # 2. dmidecode E debugfs VOGLIONO ROOT. Il HUD gira come utente. Cose che non
-#    cambiano mai - la frequenza della RAM, la dimensione della VRAM, il numero
+#    cambiano mai - la velocita' della RAM, la dimensione della VRAM, il numero
 #    di unita' di calcolo - si leggono una volta qui e si depositano in /run,
 #    da dove il HUD le prende senza privilegi e senza costo.
 #
@@ -36,15 +36,41 @@ if ! e_bc250; then
     done
 fi
 
-# --- 2. la frequenza della RAM ----------------------------------------------
-# "Configured Memory Speed" e' quella a cui i moduli girano davvero, che non e'
-# sempre quella per cui sono venduti: e' il numero che serve a chi guarda.
-if command -v dmidecode >/dev/null 2>&1; then
-    v=$(dmidecode -t memory 2>/dev/null \
-        | sed -n 's/^[[:space:]]*Configured Memory Speed:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' \
-        | head -1)
-    [ -z "$v" ] && v=$(dmidecode -t memory 2>/dev/null \
-        | sed -n 's/^[[:space:]]*Speed:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' | head -1)
+# --- 2. la velocita' della RAM ----------------------------------------------
+# ⚠️ SI SCRIVE SOLO SE IL FIRMWARE DICHIARA ANCHE IL TIPO.
+#
+# Sul Fujitsu di sviluppo dmidecode dice "Type: DDR4, Speed: 2400 MT/s": il 2400
+# e' un transfer rate, il numero che la gente conosce. Sulla BC-250 dice
+# "Type: Unknown, Speed: Unknown" e riempie solo Configured Memory Speed con
+# 1750 - che e' il CLOCK DI COMANDO della GDDR6, non il transfer rate: quella
+# memoria muove 8 bit per clock, quindi il dato confrontabile sta un ordine di
+# grandezza piu' in alto.
+#
+# Mostrare i due numeri uno accanto all'altro faceva sembrare la GDDR6 della
+# scheda piu' lenta di una DDR4 vecchia: il contrario del vero. Moltiplicare per
+# 8 sarebbe peggio - un numero calcolato da noi, non misurato, su un tipo di
+# memoria che il firmware non ha nemmeno dichiarato.
+#
+# Quindi: niente tipo dichiarato, niente velocita', e la voce non compare.
+tipo_ram() {
+    dmidecode -t memory 2>/dev/null \
+        | awk '/^[[:space:]]*Type:/ { print $2 }' \
+        | grep -viE '^(unknown|other|none)$' \
+        | head -1
+}
+velocita_ram() {
+    dmidecode -t memory 2>/dev/null \
+        | awk '/^[[:space:]]*Configured Memory Speed:[[:space:]]*[0-9]/ { print $4; exit }'
+}
+velocita_ram_ripiego() {
+    dmidecode -t memory 2>/dev/null \
+        | awk '/^[[:space:]]*Speed:[[:space:]]*[0-9]/ { print $2; exit }'
+}
+
+rm -f "$D/ram_mhz"
+if command -v dmidecode >/dev/null 2>&1 && [ -n "$(tipo_ram)" ]; then
+    v=$(velocita_ram)
+    [ -z "$v" ] && v=$(velocita_ram_ripiego)
     [ -n "$v" ] && printf '%s\n' "$v" > "$D/ram_mhz"
 fi
 
@@ -58,16 +84,15 @@ if [ ! -e /sys/class/drm/card0/device/mem_info_vram_total ] \
     vulkaninfo 2>/dev/null | awk '
         # si salta llvmpipe: resa via software, non una scheda vera
         /deviceName/       { sw = ($0 ~ /llvmpipe/) }
-        /deviceType/       { tipo = $0 }
         !sw && /memoryHeaps\[/ { inheap = 1 }
         !sw && inheap && /size *=/ && !fatto {
             for (i = 1; i <= NF; i++) if ($i == "=") { byte = $(i+1); break }
             if (byte + 0 > 512 * 1024 * 1024) { print "vram", int(byte / 1048576); fatto = 1 }
         }
-        !sw && /shaderSMCount/            { print "sm", $NF }
+        !sw && /shaderSMCount/             { print "sm", $NF }
         !sw && /computeUnitsPerShaderArray/ { cu = $NF }
         !sw && /shaderArraysPerEngineCount/ { ar = $NF }
-        !sw && /shaderEngineCount/         { en = $NF }
+        !sw && /shaderEngineCount/          { en = $NF }
         END { if (cu && ar && en) print "cu", cu * ar * en }
     ' | while read -r chiave valore; do
         case "$chiave" in
