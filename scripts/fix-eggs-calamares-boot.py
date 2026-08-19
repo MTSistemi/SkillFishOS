@@ -284,6 +284,17 @@ def install_slideshow():
 # Nessun @boot: /boot resta dentro @, cosi' GRUB non deve attraversare un
 # secondo sottovolume per trovare la propria configurazione (era l'errore
 # "@boot subvolume not found" della #12).
+#
+# /@games e' il sottovolume dei giochi: senza copy-on-write e, per come sono
+# fatti gli snapshot su btrfs, automaticamente fuori dagli snapshot di @.
+#
+# ⚠️ QUESTO BLOCCO PRIMA VENIVA SOLO STAMPATO. C'era un controllo che diceva
+# "OK: mount.conf ha gia' il layout con /@" e, in caso contrario, suggeriva
+# questo testo all'operatore. Nessuno lo scriveva mai. Aggiungerci /@games non
+# ha quindi avuto alcun effetto: la ISO del 19/08/2026 e' uscita senza il
+# sottovolume dei giochi anche se tutto il resto - lo strumento, la chiamata
+# nell'installatore - c'era. Adesso il blocco viene APPLICATO, al template di
+# eggs e alla configurazione viva.
 WANT_SUBVOLS = """btrfsSubvolumes:
     - mountPoint: /
       subvolume: /@
@@ -296,6 +307,37 @@ WANT_SUBVOLS = """btrfsSubvolumes:
     - mountPoint: /games
       subvolume: /@games
 """
+
+
+def scrivi_sottovolumi(percorso):
+    """Sostituisce l'elenco dei sottovolumi in un mount.yaml/mount.conf.
+
+    Si sostituisce da 'btrfsSubvolumes:' fino alla chiave successiva di primo
+    livello (btrfsSwapSubvol), commenti compresi: il template di eggs ne ha in
+    mezzo, e lasciarli mischiati a righe nostre renderebbe il file illeggibile.
+    """
+    if not os.path.exists(percorso):
+        return False
+    with open(percorso, encoding="utf-8") as f:
+        t = f.read()
+    i = t.find("btrfsSubvolumes:")
+    if i == -1:
+        print("ATTENZIONE: %s non ha btrfsSubvolumes, non lo tocco" % percorso)
+        return False
+    m = re.search(r"^btrfsSwapSubvol:", t[i:], re.M)
+    if not m:
+        print("ATTENZIONE: %s non ha btrfsSwapSubvol, non so dove finisce l'elenco"
+              % percorso)
+        return False
+    nuovo = t[:i] + WANT_SUBVOLS + "\n" + t[i + m.start():]
+    if nuovo == t:
+        print("      gia' a posto:", percorso)
+        return True
+    backup(percorso)
+    with open(percorso, "w", encoding="utf-8", newline="\n") as f:
+        f.write(nuovo)
+    print("OK  : sottovolumi (con /@games) scritti in", percorso)
+    return True
 
 
 def backup(path):
@@ -392,17 +434,16 @@ def main():
             sw = "file" if "initialSwapChoice: file" in t else "?"
             print("      %s -> filesystem=%s swap=%s" % (name, fs, sw))
 
+    # I sottovolumi: nel template (che finisce nella ISO) e nella config viva.
+    for d in TPLDIRS:
+        scrivi_sottovolumi(os.path.join(d, "mount.yaml"))
     mount = os.path.join(MODDIR, "mount.conf")
+    scrivi_sottovolumi(mount)
     if os.path.exists(mount):
         with open(mount, encoding="utf-8") as f:
             s = f.read()
         if "/@boot" in s:
             print("ATTENZIONE: mount.conf contiene un sottovolume @boot — GRUB non lo trovera'")
-        if "subvolume: /@\n" in s or "subvolume: /@ " in s:
-            print("OK  : mount.conf ha gia' il layout con /@")
-        else:
-            print("ATTENZIONE: mount.conf non ha il layout atteso, controllalo a mano:")
-            print(WANT_SUBVOLS)
     else:
         print("ATTENZIONE: manca", mount)
 
@@ -558,6 +599,25 @@ def verify():
             print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
         else:
             print("OK  : %s (%s) contiene tutte le correzioni" % (path, what))
+
+    # I sottovolumi, template compreso. ⚠️ Questo controllo mancava, ed e' il
+    # motivo per cui una ISO e' uscita senza /@games mentre tutto il resto della
+    # catena c'era: quello che lo script sa non conta, conta quello che finisce
+    # nel file.
+    for path, what in ([(os.path.join(d, "mount.yaml"), "template eggs")
+                        for d in TPLDIRS] + [(os.path.join(MODDIR, "mount.conf"),
+                                              "config viva")]):
+        if not os.path.exists(path):
+            print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
+        with open(path, encoding="utf-8") as f:
+            t = f.read()
+        if "subvolume: /@games" not in t:
+            print("KO  : %s (%s) senza /@games: i giochi finirebbero dentro @"
+                  % (path, what)); ok = False
+        elif "/@boot" in t:
+            print("KO  : %s (%s) ha un sottovolume @boot" % (path, what)); ok = False
+        else:
+            print("OK  : %s (%s) -> sottovolumi con /@games" % (path, what))
 
     # La pulizia dell'accesso automatico: il file del passo E il suo posto nella
     # sequenza. Il file da solo non serve a niente se nessuno lo esegue, e nella
