@@ -64,6 +64,7 @@
 #
 # Da eseguire DOPO che eggs ha generato /etc/calamares e PRIMA di produrre la ISO.
 import os
+import subprocess
 import re
 import shutil
 
@@ -395,6 +396,25 @@ def sospendi_snapshot():
     with open(f, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(s)
     print("OK  : grub-btrfs sospeso durante l'installazione (boot_deploy)")
+
+    # ⚠️ E NON BASTA. Verificato aprendo la ISO del 19/08/2026: eggs RIGENERA
+    # shellprocess@boot_deploy.conf mentre produce - nell'immagine il file ha
+    # la sua intestazione "on Skillfishos, penguins-eggs 26.5.12" e la nostra
+    # riga non c'e' piu'. Il registro della build diceva "sospeso" ed era vero
+    # sulla scheda, ma non nell'immagine: una correzione che si vede nei log e
+    # non nel prodotto.
+    #
+    # Quindi si sospende il rilevatore QUI, sulla macchina che produce: quel file
+    # (/etc/default/grub-btrfs/config) viene clonato nell'immagine cosi' com'e',
+    # e nessuno lo rigenera. Sul bersaglio lo riaccende boot_reconfigure, che e'
+    # un file nostro e sopravvive. Sulla scheda lo riaccende build-iso.sh a fine
+    # produzione.
+    sgb = "/usr/local/bin/skillfish-grub-btrfs"
+    if os.path.exists(sgb):
+        subprocess.run([sgb, "spegni"], check=False)
+        print("OK  : rilevatore sospeso anche sulla macchina che produce")
+    else:
+        print("ATTENZIONE: manca %s, l'immagine partira' col rilevatore acceso" % sgb)
 
 
 def verify():

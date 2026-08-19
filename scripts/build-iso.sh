@@ -240,6 +240,11 @@ rimetti_identita() {
         # il 19/08/2026 la scheda e' rimasta a 3500/0 invece di 3700/-16 e me ne
         # sono accorto solo controllando a mano.
         restore_build_env  # esplicito, dopo l'igiene
+        # Il rilevatore di snapshot era stato sospeso PRIMA di produrre, perche'
+        # l'immagine lo eredita spento. Sulla scheda va riacceso, se no il menu
+        # degli snapshot sparisce a chi ci lavora tutti i giorni.
+        [ -x /usr/local/bin/skillfish-grub-btrfs ] && \
+            /usr/local/bin/skillfish-grub-btrfs riaccendi >/dev/null 2>&1 || true
     fi
     for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
