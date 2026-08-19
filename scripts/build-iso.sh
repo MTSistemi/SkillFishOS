@@ -146,6 +146,15 @@ esac
 # installarla: meglio fermare la build. Segnalato da Cyryl Sochacki (cyryllo)
 # nella PR #26.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# La versione mostrata dall'installatore. Lo script esisteva da mesi ma NON
+# LO CHIAMAVA NESSUNO: era stato lanciato a mano una volta e poi dimenticato,
+# cosi' il numero e' rimasto fermo al rilascio di allora. La 26.06.5 del
+# 19/08/2026 presentava l'installatore come "SkillFishOS 26.06.4 Aetherium".
+# Il numero si ricava dal nome del file .iso, che e' l'unico posto dove lo
+# scriviamo gia'.
+VERSIONE_ISO=$(echo "$FINAL" | sed -n "s/^SkillFishOS-\([0-9.]*\)-.*//p")
+python3 "$SCRIPT_DIR/fix-eggs-calamares-version.py" "${VERSIONE_ISO:-26.06}"
+
 python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
 # Il menu di avvio: titolo in inglese, e Safe/Text Mode che fanno davvero
 # qualcosa invece di essere copie della voce normale. Sta qui perche' i file
