@@ -234,6 +234,12 @@ rimetti_identita() {
         bash "$IGIENE" ripristina 2>&1 | sed 's/^/   /'
     else
         echo "   ATTENZIONE: non trovo l'igienizzatore, la scheda resta IGIENIZZATA"
+        # ⚠️ DOPO l'igiene, non prima. L'igiene rimette /etc/bc250-smu-oc.conf
+        # com'era quando ha applicato, cioe' col profilo di SICUREZZA che questo
+        # script aveva appena scritto. Affidarsi alla sola trap EXIT non basta:
+        # il 19/08/2026 la scheda e' rimasta a 3500/0 invece di 3700/-16 e me ne
+        # sono accorto solo controllando a mano.
+        restore_build_env  # esplicito, dopo l'igiene
     fi
     for f in $IDENTITA $FUORI_IMMAGINE; do
         [ -e "$DAPARTE/$(basename "$f")" ] || continue
