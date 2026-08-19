@@ -37,6 +37,27 @@ if not all(p.isdigit() for p in VERSIONE.split(".")) or VERSIONE.count(".") != 2
 print("   allineo GitHub Pages alla %s" % VERSIONE)
 
 
+def butta(percorso):
+    u"""Cancella un albero anche su Windows.
+
+    ⚠️ shutil.rmtree(ignore_errors=True) NON basta: git lascia i suoi oggetti
+    in sola lettura e su Windows cancellarli da' PermissionError, che con
+    ignore_errors viene ingoiato. La cartella resta li' mezza piena e il clone
+    successivo fallisce con "destination path already exists" - preso in faccia
+    il 19/08/2026. Qui si toglie il flag di sola lettura e si riprova.
+    """
+    def riprova(funzione, nome, _exc):
+        try:
+            os.chmod(nome, 0o700)
+            funzione(nome)
+        except OSError:
+            pass
+    if os.path.exists(percorso):
+        shutil.rmtree(percorso, onerror=riprova)
+    if os.path.exists(percorso):
+        sys.exit("   non riesco a cancellare %s: toglilo a mano" % percorso)
+
+
 def scarica_ricorsivo(sftp, remoto, locale):
     """Copia una cartella remota intera, contando i file."""
     n = 0
@@ -61,7 +82,7 @@ def git(*args, cwd=CLONE):
 
 
 # --- 1. l'archivio dal container --------------------------------------------
-shutil.rmtree(SCARICO, ignore_errors=True)
+butta(SCARICO)
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 c.connect("192.168.5.103", username="root", password="47yk2d8r6c", timeout=40)
@@ -81,7 +102,7 @@ c.close()
 print("   scaricati dal container: %d file" % tot)
 
 # --- 2. il ramo gh-pages ----------------------------------------------------
-shutil.rmtree(CLONE, ignore_errors=True)
+butta(CLONE)
 tok = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True).stdout.strip()
 if not tok:
     sys.exit("   niente token: non posso pubblicare")
@@ -132,6 +153,6 @@ r = git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.
 r = git("push", "origin", "gh-pages")
 print("   " + ((r.stderr or r.stdout).strip().splitlines() or ["push eseguito"])[-1])
 
-shutil.rmtree(SCARICO, ignore_errors=True)
-shutil.rmtree(CLONE, ignore_errors=True)
+butta(SCARICO)
+butta(CLONE)
 print("   copie locali rimosse")

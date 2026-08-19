@@ -112,6 +112,30 @@ script:
     # mentre e' ancora VUOTO (dopo il flag non convertirebbe niente) e lo si
     # intesta all'utente appena creato.
     - /usr/local/bin/skillfish-games-subvolume prepara || true
+"""
+
+# --- 1c. la pulizia dell'accesso automatico, DOPO removeuser ---------------
+# ⚠️ QUESTA RIGA STAVA QUI SOPRA, IN boot_reconfigure, E NON FACEVA NIENTE.
+# Nella sequenza di eggs l'utente della live viene cancellato dal modulo
+# removeuser, che gira DOPO boot_reconfigure. Lo script trovava quindi ancora
+# "live" in /etc/passwd, concludeva - giustamente - che l'accesso automatico
+# puntava a un utente esistente e lasciava stare il file. Subito dopo
+# removeuser cancellava l'utente, e il sistema installato restava con
+# /etc/sddm.conf.d/autologin.conf intestato a un utente che non c'e' piu'.
+#
+# Visto su una installazione completa in VM il 19/08/2026: nessun "live" in
+# /etc/passwd, e autologin.conf ancora con User=live.
+#
+# Non bastava spostare la riga piu' in basso dentro boot_reconfigure: e' il
+# modulo intero a girare troppo presto. Serve un passo suo, agganciato dopo
+# removeuser - ed e' per questo che qui sotto tocchiamo anche la sequenza.
+PULIZIA_NOME = "shellprocess@pulizia_live"
+PULIZIA = os.path.join(MODDIR, PULIZIA_NOME + ".conf")
+PULIZIA_BODY = """---
+message: Removing the live session leftovers...
+dontChroot: false
+timeout: 120
+script:
     - /usr/local/bin/skillfish-clean-live-autologin || true
 """
 
@@ -279,6 +303,34 @@ def backup(path):
         shutil.copy(path, path + ".skfbak")
 
 
+def aggancia_pulizia(percorso):
+    """Mette shellprocess@pulizia_live subito dopo removeuser in una sequenza.
+
+    Vale sia per il TEMPLATE settings.yaml (da cui eggs rigenera tutto a ogni
+    produce) sia per il settings.conf vivo. Se si tocca solo il secondo, la
+    correzione non entra nella ISO.
+    """
+    if not os.path.exists(percorso):
+        return False
+    with open(percorso, encoding="utf-8") as f:
+        s = f.read()
+    if PULIZIA_NOME in s:
+        print("      gia' in sequenza:", percorso)
+        return True
+    for riga in ("      - removeuser\n", "    - removeuser\n"):
+        if riga in s:
+            sp = riga[:len(riga) - len(riga.lstrip())]
+            s = s.replace(riga, riga + sp + "- " + PULIZIA_NOME + "\n", 1)
+            backup(percorso)
+            with open(percorso, "w", encoding="utf-8", newline="\n") as f:
+                f.write(s)
+            print("OK  : %s agganciato dopo removeuser in %s" % (PULIZIA_NOME, percorso))
+            return True
+    print("ATTENZIONE: in %s non c'e' removeuser: la pulizia non e' agganciata"
+          % percorso)
+    return False
+
+
 def main():
     patch_eggs_fslist()
     install_slideshow()
@@ -301,6 +353,20 @@ def main():
     with open(RECONF, "w", encoding="utf-8") as f:
         f.write(RECONF_BODY)
     print("OK  : scritto", RECONF)
+
+    # 2b) il passo di pulizia dell'accesso automatico: template + config viva
+    #     + l'aggancio nella sequenza, nei due posti che contano.
+    for d in TPLDIRS:
+        tpl = os.path.join(d, PULIZIA_NOME + ".yaml")
+        with open(tpl, "w", encoding="utf-8", newline="\n") as f:
+            f.write(PULIZIA_BODY)
+        print("OK  : scritto il TEMPLATE", tpl)
+    with open(PULIZIA, "w", encoding="utf-8", newline="\n") as f:
+        f.write(PULIZIA_BODY)
+    print("OK  : scritto", PULIZIA)
+    for d in TPLDIRS:
+        aggancia_pulizia(os.path.join(os.path.dirname(d), "settings.yaml"))
+    aggancia_pulizia("/etc/calamares/settings.conf")
 
     # partizionamento: sia nel template sia nella config viva
     for d in TPLDIRS + [MODDIR]:
@@ -359,6 +425,16 @@ def main():
             print("ATTENZIONE: boot_reconfigure viene PRIMA di bootloader: il fix non avrebbe effetto")
         else:
             print("OK  : boot_reconfigure viene dopo bootloader nella sequenza")
+
+        i_rem = s.find("- removeuser")
+        i_pul = s.find("- " + PULIZIA_NOME)
+        if i_pul == -1:
+            print("ATTENZIONE: manca %s: l'accesso automatico della live"
+                  " resterebbe nel sistema installato" % PULIZIA_NOME)
+        elif i_rem != -1 and i_pul < i_rem:
+            print("ATTENZIONE: la pulizia viene PRIMA di removeuser: non avrebbe effetto")
+        else:
+            print("OK  : la pulizia dell'accesso automatico viene dopo removeuser")
 
 
 def sospendi_snapshot():
@@ -482,6 +558,26 @@ def verify():
             print("KO  : %s (%s) senza: %s" % (path, what, ", ".join(miss))); ok = False
         else:
             print("OK  : %s (%s) contiene tutte le correzioni" % (path, what))
+
+    # La pulizia dell'accesso automatico: il file del passo E il suo posto nella
+    # sequenza. Il file da solo non serve a niente se nessuno lo esegue, e nella
+    # sequenza sbagliata non fa niente lo stesso - e' gia' successo.
+    for d in TPLDIRS:
+        for path, what in ((os.path.join(d, PULIZIA_NOME + ".yaml"), "template eggs"),
+                           (os.path.join(os.path.dirname(d), "settings.yaml"),
+                            "sequenza template")):
+            if not os.path.exists(path):
+                print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
+            with open(path, encoding="utf-8") as f:
+                t = f.read()
+            atteso = ("skillfish-clean-live-autologin" if path.endswith(".yaml")
+                      and PULIZIA_NOME in os.path.basename(path) else PULIZIA_NOME)
+            if atteso not in t:
+                print("KO  : %s (%s) senza %s" % (path, what, atteso)); ok = False
+            elif what == "sequenza template" and t.find(PULIZIA_NOME) < t.find("- removeuser"):
+                print("KO  : %s: la pulizia viene prima di removeuser" % path); ok = False
+            else:
+                print("OK  : %s (%s)" % (path, what))
     return ok
 
 
