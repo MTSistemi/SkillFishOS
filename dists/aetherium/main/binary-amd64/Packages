@@ -1,53 +1,53 @@
 Package: skillfish-ai-panel
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.08.28_all.deb
-Size: 50912
-SHA256: bee2496a2f15b0780a4fa49b031547ab84562ae0e02ed67b48024f31797c6ad0
-SHA1: fd59a7153ee9d37fd09f57869f68bf94374b7456
-MD5sum: 79411107a0e2929d1c7fdc73f2b68f48
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.08.31_all.deb
+Size: 50900
+SHA256: acaef7de60a02733c8beeabe35db9c446c1cbf1dac83e8d4c998d63d70fac8b2
+SHA1: 8444ecc0798b46f6a214f178605199add07d9b2f
+MD5sum: ae2958ce9f8887cec13595adb87ca5fa
 Description: SkillFish AI - on-device LLM control panel
  built from git by CI.
 
 Package: skillfish-base
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.28_all.deb
-Size: 36620
-SHA256: 75cb0db5f6446965027fb1293871d5bbb592e26ef8ec8b9fc2a6f589ad070849
-SHA1: 941e14a71b0b59045c5b09c759082514e4904079
-MD5sum: 45a1915f9ee0054bcfa17499f65a2b2a
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.31_all.deb
+Size: 36616
+SHA256: 991a52c3355aacf6bc143a0245aa9d8b1182551d68cb6e6da379efe317c3f88d
+SHA1: 889ba928214e9aaabc9570d34c73f61c2e3d9747
+MD5sum: 07152363108600e9fa77cdf186f03152
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  built from git by CI.
 
 Package: skillfish-console
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gamescope, flatpak
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-console/skillfish-console_26.08.28_all.deb
-Size: 3888
-SHA256: 72238238febf72a654d210f0d2b18f2a2624c9aae21b5328613a6578730da2dc
-SHA1: edaf8398913218a8359f6daccb8bc77385d9bdd3
-MD5sum: 9b0513dbc793c0541ea96c98ec5093b2
+Filename: pool/main/s/skillfish-console/skillfish-console_26.08.31_all.deb
+Size: 3892
+SHA256: 4f30851423753073bf9700546d5a02f7124acb08be84adec655e347cbf9c1543
+SHA1: e94a959e75a72c5b03c12a3e8765b5fa927fee3e
+MD5sum: aae56246c2550b8cbd7aeab265591555
 Description: SkillFishOS Console - SteamOS-style Big Picture session
  built from git by CI.
 
 Package: skillfish-dashboard
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
@@ -56,11 +56,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.28_all.deb
-Size: 68176
-SHA256: 5cdf548d2871a8d6cf56f33ea48f48ae62f98954d5a1b2d588ede9142cb3f070
-SHA1: a5a6bc47bc0dd46782b59fa83898747fda9dfb6e
-MD5sum: 4162af30581d00947f141f5ea9374d3e
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.31_all.deb
+Size: 68188
+SHA256: 8585b98597cea601dabe2748929f138e53dd2f7860705f216b6e72b217352dba
+SHA1: e0ceb8fe73d8e7cb83a22004105738425e675870
+MD5sum: d03c7cde277a884cac2ffc00236755e0
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -69,146 +69,146 @@ Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  native Remote Manager toggle app. Built from git by CI.
 
 Package: skillfish-emulators
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: flatpak, curl
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.08.28_all.deb
-Size: 7288
-SHA256: 5701e7eb36c4a6a6daeca0efe82d376750db38b2368a4ce29a6da481b6eabc4d
-SHA1: 50b462a7f4435af35cf2d7308ec3e767b0852c96
-MD5sum: 03e055b2556de4a086655b68d8b46336
+Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.08.31_all.deb
+Size: 7292
+SHA256: e6f3b334a099e505421af4d977b89dd14ecd6bd3ec7453428ef88035a5254ff3
+SHA1: d1ecc83691c2bda52a82049dc2f79cf5356007c1
+MD5sum: 57094a06d1b020405fb6ae7f5ec4fa74
 Description: SkillFishOS Emulators - install emulators after the installation
  built from git by CI.
 
 Package: skillfish-hub
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.28_all.deb
-Size: 301056
-SHA256: b4dd3c4a7ebed43340c1c91a21b5cca3899ee26e0d68b42c835d3076beb27dc8
-SHA1: f52d70946bfe42d2e7bfd12033e1c6e4a8ebc535
-MD5sum: 6e4be11b6ff896986ca5ead67e3cc9ae
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.31_all.deb
+Size: 301008
+SHA256: ec139c33cd46b5775ef73fc214c4554c705b1b0ce11a40cc54e52865a5bdaab0
+SHA1: a688ffdc0cfe3373f3a8a0904249ac609740465e
+MD5sum: fb78e1d83ba29b5ba3247bc1146ff9fa
 Description: SkillFishOS Hub - Discover-style software centre
  built from git by CI.
 
 Package: skillfish-iso-mount
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: udisks2, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-iso-mount/skillfish-iso-mount_26.08.28_all.deb
-Size: 3244
-SHA256: 212dffbea49856eea8f48c3a10c19bb627140028f39a935ac8c83ac7823abb1c
-SHA1: fa701663099c3dcd14c90fdf8675e80e067fa8bb
-MD5sum: ead6b7cc551401d2515764fba60a3cdc
+Filename: pool/main/s/skillfish-iso-mount/skillfish-iso-mount_26.08.31_all.deb
+Size: 3240
+SHA256: dd5a5716ae28c910db85daf8e73c48e42cf454db95d0a5d34841eec03830774f
+SHA1: e7b11afdc9cafe12fc4e5d6576e59fe768a48684
+MD5sum: 042282a99f37d842e89f5a335a958318
 Description: SkillFishOS native ISO mounting for KDE
  built from git by CI.
 
 Package: skillfish-kernel-manager
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-kernel-manager/skillfish-kernel-manager_26.08.28_all.deb
-Size: 57636
-SHA256: 839dd09b81ae9f4caaea295d2ec2f31c61e5bf0f97b8f3b4e6917c080660eb47
-SHA1: 63dcafc37f7633d822654909b9814555ad7d97cc
-MD5sum: baa05df79bacc6c20992f8d084e0c14b
+Filename: pool/main/s/skillfish-kernel-manager/skillfish-kernel-manager_26.08.31_all.deb
+Size: 57632
+SHA256: 208305f658f38bc3458df093a8a37fe6e3a6d6f3632140848209260c4b42fca2
+SHA1: 8517c6b5bc3471f08020fc4ed54c022f598d4b36
+MD5sum: 67c8efbdc8899752bd4745a9baea4dde
 Description: SkillFishOS Kernel Manager
  built from git by CI.
 
 Package: skillfish-menu
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: 
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-menu/skillfish-menu_26.08.28_all.deb
-Size: 2416
-SHA256: 7250f766ab867c90655893b937c4c119750513641d50101b43230a066ca4ccd5
-SHA1: 81d09aef70af9648457dcd0416d5e338098d4b76
-MD5sum: cd497f1ecaf84356c2fb74cad0d4aa22
+Filename: pool/main/s/skillfish-menu/skillfish-menu_26.08.31_all.deb
+Size: 2428
+SHA256: def9fcc6137e0a2d081632b18c85c386e17dcce7c7350be806a837ea20b598f1
+SHA1: 7a1c8d88a213a0dafbbee7bfcd38e9df98516808
+MD5sum: e68e867a18029e3ef91c76d614e8927c
 Description: SkillFishOS application menu group
  built from git by CI.
 
 Package: skillfish-monitor
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.08.28_all.deb
-Size: 64256
-SHA256: 62e078e32eef89c9939556d29e57bbcffcafcfae419bb6a711f96b52d45f4fb9
-SHA1: 86c6ced841727093d8ebdbffc172f30c5335970f
-MD5sum: 9eee93ad56ff16c4785d9702b35d19eb
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.08.31_all.deb
+Size: 64244
+SHA256: 39cdae30d970961818b13435fbeb0110ff563d4a5f8b4464ca040988242646c7
+SHA1: b7627ac31f201c6b1833eaedb5c73c602a993865
+MD5sum: 776a7f8b1e2fce8ac2e8dd94a3bbda02
 Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer
  built from git by CI.
 
 Package: skillfish-theme
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: hicolor-icon-theme
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-theme/skillfish-theme_26.08.28_all.deb
-Size: 24069504
-SHA256: c6e8d6b693e237d751dcadf8046e49736a2a21ce7634e4f99e59db647ae0a3a7
-SHA1: 82bfbed400577681f74be5810dfc3597540b1b20
-MD5sum: 64ab47bca38453b9426b31ad1a92fd54
+Filename: pool/main/s/skillfish-theme/skillfish-theme_26.08.31_all.deb
+Size: 24069124
+SHA256: 0d8a0b581427a9a01bd0624e239f0b49342578d39c4df473e20c007bd0f9a928
+SHA1: 061bb1ed98213c02eb0dca3e2c1c2aa3e4d4d50e
+MD5sum: 1de97fb519c0ff4ea397c589c10229a3
 Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours
  built from git by CI.
 
 Package: skillfish-tuner
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.28_all.deb
-Size: 394812
-SHA256: caad8b9891df7dd5af3e129acbff221468e0ba8d04716981cda5456db3301655
-SHA1: 3be7b4acbcedd31fa63d3dc2a4f0b29314b73dfa
-MD5sum: ccd040662a19af1f817c99b1f2240f82
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.31_all.deb
+Size: 395408
+SHA256: 588f80a1578bc1de0c7805e0fecac680bc4b23c6725126814b29380ffb412b57
+SHA1: 0edc8b8d7aa9d93ec3b4f40dfb1757b5031cbd90
+MD5sum: e4af070bab9885d91fa106024d90a037
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  built from git by CI.
 
 Package: skillfishos-archive-keyring
-Version: 26.08.28
+Version: 26.08.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gnupg | gpgv
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.28_all.deb
-Size: 2668
-SHA256: 87a504c45fe88db7c7769360222a879da67b0827da61bd9fbd39544ffa17f86d
-SHA1: eff43c2b247d797f1d04851fb29cad09da932741
-MD5sum: 6335c6fbf6034b5127f1f67261840e46
+Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.31_all.deb
+Size: 2664
+SHA256: 73ca57b73afaa44c907d6d2492eb0e9f08af705daedc5289196be70d7d9d312e
+SHA1: 162cd61fc588b61016c8c1ce3015a0db1ebf5744
+MD5sum: 72c56de7f8beb1f4b50f45cedaa9ca27
 Description: SkillFishOS archive keyring and APT source
  built from git by CI.
 
