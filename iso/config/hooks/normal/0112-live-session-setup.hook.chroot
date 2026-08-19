@@ -86,17 +86,22 @@ Autolock=false
 LockOnResume=false
 CONF
 
-# e nemmeno lo schermo che si spegne da solo mentre si legge una guida
+# E nemmeno lo schermo che si spegne da solo mentre si legge una guida.
+#
+# ⚠️ NON idleTime=0. Per powerdevil quello vuol dire "SUBITO", non "mai": con
+# lo zero lo schermo si spegne appena la sessione resta ferma, e dopo un
+# xset dpms force on si rispegne all'istante. Misurato in macchina virtuale il
+# 19/08/2026 sul ramo eggs, dove avevo copiato lo stesso valore da qui.
 cat > "$CASA/.config/powermanagementprofilesrc" <<'CONF'
 [AC][DPMSControl]
-idleTime=0
+idleTime=86400
 lockBeforeTurnOff=0
 
 [AC][DimDisplay]
-idleTime=0
+idleTime=86400
 
 [AC][SuspendSession]
-idleTime=0
+idleTime=86400
 suspendType=0
 CONF
 

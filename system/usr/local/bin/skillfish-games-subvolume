@@ -38,8 +38,41 @@ SOTTO="@games"
 
 msg() { echo "skillfish: $*"; }
 
+# Chi e' il padrone di /games.
+#
+# ⚠️ NON "il primo con uid >= 1000". Durante l'installazione, per un tratto,
+# gli utenti sono DUE: quello della live (uid 1000, che viene dall'immagine) e
+# quello appena creato dall'installatore (uid 1001). Prendendo il primo si
+# intestava /games alla live; poco dopo il modulo removeuser la cancellava e
+# /games restava di un uid orfano, con l'utente vero che non ci poteva
+# scrivere. Visto in VM il 19/08/2026: /games con uid=1000 e in /etc/passwd
+# solo provag, uid 1001.
+#
+# La cura vera e' l'ordine - adesso questo script gira DOPO removeuser - ma il
+# criterio resta piu' solido lo stesso: fra i candidati si preferisce chi ha
+# una password vera, perche' l'utente della live non ne ha nessuna, e a parita'
+# si prende l'uid piu' alto, cioe' l'ultimo creato.
 primo_utente() {
-    awk -F: '$3 >= 1000 && $3 < 60000 {print $1; exit}' "$RADICE/etc/passwd" 2>/dev/null
+    local passwd="$RADICE/etc/passwd" shadow="$RADICE/etc/shadow"
+    local scelto="" scelto_uid=-1 nome uid cifra
+    while IFS=: read -r nome _ uid _; do
+        [ -n "${uid:-}" ] || continue
+        [ "$uid" -ge 1000 ] 2>/dev/null || continue
+        [ "$uid" -lt 60000 ] 2>/dev/null || continue
+        cifra=$(awk -F: -v u="$nome" '$1 == u {print $2}' "$shadow" 2>/dev/null)
+        case "$cifra" in
+            ""|"!"|"*"|"!!") continue ;;   # nessuna password: e' la live
+        esac
+        if [ "$uid" -gt "$scelto_uid" ]; then
+            scelto="$nome"; scelto_uid="$uid"
+        fi
+    done < "$passwd"
+    if [ -z "$scelto" ]; then
+        # nessuno ha una password (puo' succedere in prove particolari):
+        # si ripiega sul primo, com'era prima.
+        scelto=$(awk -F: '$3 >= 1000 && $3 < 60000 {print $1; exit}' "$passwd" 2>/dev/null)
+    fi
+    [ -n "$scelto" ] && echo "$scelto"
 }
 
 # I flatpak dei giochi devono poterci scrivere. Si usa `flatpak override`, che

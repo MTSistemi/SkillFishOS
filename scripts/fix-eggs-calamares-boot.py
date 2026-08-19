@@ -108,35 +108,45 @@ script:
     # update-grub qui sotto rigenera il menu CON gli snapshot: quello che si
     # sospende prima del bootloader si riprende subito.
     - update-grub || true
-    # /games e' un sottovolume a se': qui gli si toglie il copy-on-write
-    # mentre e' ancora VUOTO (dopo il flag non convertirebbe niente) e lo si
-    # intesta all'utente appena creato.
-    - /usr/local/bin/skillfish-games-subvolume prepara || true
 """
 
-# --- 1c. la pulizia dell'accesso automatico, DOPO removeuser ---------------
-# ⚠️ QUESTA RIGA STAVA QUI SOPRA, IN boot_reconfigure, E NON FACEVA NIENTE.
+# --- 1c. quello che va fatto DOPO che l'utente della live e' sparito -------
+# ⚠️ QUESTE DUE RIGHE STAVANO IN boot_reconfigure E FACEVANO IL DANNO OPPOSTO
+# DI QUELLO CHE DOVEVANO.
+#
 # Nella sequenza di eggs l'utente della live viene cancellato dal modulo
-# removeuser, che gira DOPO boot_reconfigure. Lo script trovava quindi ancora
-# "live" in /etc/passwd, concludeva - giustamente - che l'accesso automatico
-# puntava a un utente esistente e lasciava stare il file. Subito dopo
-# removeuser cancellava l'utente, e il sistema installato restava con
-# /etc/sddm.conf.d/autologin.conf intestato a un utente che non c'e' piu'.
+# removeuser, che gira DOPO boot_reconfigure. Quindi, quando boot_reconfigure
+# esegue i nostri script, in /etc/passwd ci sono ANCORA DUE utenti: "live"
+# (uid 1000, quello dell'immagine) e quello appena creato dall'installatore
+# (uid 1001). Da li' due guasti, visti su installazioni complete in VM il
+# 19/08/2026:
 #
-# Visto su una installazione completa in VM il 19/08/2026: nessun "live" in
-# /etc/passwd, e autologin.conf ancora con User=live.
+#   - skillfish-clean-live-autologin trovava "live" ancora esistente e
+#     lasciava stare l'accesso automatico. Subito dopo removeuser cancellava
+#     l'utente: il sistema installato restava con autologin.conf intestato a
+#     uno che non c'e' piu'.
+#   - skillfish-games-subvolume intestava /games al PRIMO utente con uid
+#     >= 1000, cioe' a "live". Cancellato quello, /games restava di un uid
+#     orfano e l'utente vero non ci poteva scrivere: il sottovolume dei
+#     giochi, inservibile proprio per chi deve usarlo.
 #
-# Non bastava spostare la riga piu' in basso dentro boot_reconfigure: e' il
+# Non bastava spostare le righe piu' in basso dentro boot_reconfigure: e' il
 # modulo intero a girare troppo presto. Serve un passo suo, agganciato dopo
 # removeuser - ed e' per questo che qui sotto tocchiamo anche la sequenza.
-PULIZIA_NOME = "shellprocess@pulizia_live"
+PULIZIA_NOME = "shellprocess@post_removeuser"
+PULIZIA_ID = "post_removeuser"
 PULIZIA = os.path.join(MODDIR, PULIZIA_NOME + ".conf")
 PULIZIA_BODY = """---
-message: Removing the live session leftovers...
+message: Finishing up the new system...
 dontChroot: false
-timeout: 120
+timeout: 300
 script:
     - /usr/local/bin/skillfish-clean-live-autologin || true
+    # /games e' un sottovolume a se': qui gli si toglie il copy-on-write
+    # mentre e' ancora VUOTO (dopo il flag non convertirebbe niente) e lo si
+    # intesta all'utente creato dall'installatore, che adesso e' l'unico
+    # rimasto.
+    - /usr/local/bin/skillfish-games-subvolume prepara || true
 """
 
 # --- 1b. partizionamento predefinito: btrfs con swap su file --------------
@@ -345,8 +355,35 @@ def backup(path):
         shutil.copy(path, path + ".skfbak")
 
 
+def dichiara_istanza(testo):
+    """Aggiunge l'istanza del nostro shellprocess all'elenco 'instances:'.
+
+    ⚠️ SENZA QUESTO IL PASSO SI CARICA E NON ESEGUE NIENTE. Con la sintassi
+    modulo@istanza Calamares non va a cercare il file per nome: pretende una
+    voce in 'instances:' che dica quale configurazione usare. Senza, il modulo
+    parte lo stesso e nel registro lascia soltanto
+
+        WARNING: No script given for ShellProcessJob "shellprocess@..."
+        WARNING: No commands to execute "shellprocess@..."
+
+    L'installazione riesce, il passo risulta eseguito, e non ha fatto nulla:
+    e' cosi' che un'immagine e' uscita con l'accesso automatico della live
+    ancora dentro (19/08/2026), anche se la sequenza era giusta.
+    """
+    if PULIZIA_ID in testo and "module: shellprocess" in testo:
+        return testo, False
+    m = re.search(r"^(\s*)- id: \w+\n(\s*)module: shellprocess\n(\s*)config: \S+\n",
+                  testo, re.M)
+    if not m:
+        return testo, False
+    sp = m.group(1)
+    voce = ("%s- id: %s\n%smodule: shellprocess\n%sconfig: %s.conf\n"
+            % (sp, PULIZIA_ID, m.group(2), m.group(3), PULIZIA_NOME))
+    return testo[:m.end()] + voce + testo[m.end():], True
+
+
 def aggancia_pulizia(percorso):
-    """Mette shellprocess@pulizia_live subito dopo removeuser in una sequenza.
+    """Mette il passo post_removeuser nella sequenza E fra le istanze.
 
     Vale sia per il TEMPLATE settings.yaml (da cui eggs rigenera tutto a ogni
     produce) sia per il settings.conf vivo. Se si tocca solo il secondo, la
@@ -356,21 +393,38 @@ def aggancia_pulizia(percorso):
         return False
     with open(percorso, encoding="utf-8") as f:
         s = f.read()
-    if PULIZIA_NOME in s:
-        print("      gia' in sequenza:", percorso)
+    orig = s
+    # Il passo prima si chiamava pulizia_live. Se il nome vecchio e' rimasto
+    # nella sequenza, Calamares lo carica, non trova l'istanza e va avanti: un
+    # passo fantasma che non fa niente e che nel registro sembra eseguito.
+    for vecchio in ("shellprocess@pulizia_live",):
+        s = "\n".join(r for r in s.split("\n") if vecchio not in r)
+        if s != orig:
+            print("      tolto dalla sequenza il vecchio %s" % vecchio)
+    s, aggiunta = dichiara_istanza(s)
+    if aggiunta:
+        print("OK  : istanza %s dichiarata in %s" % (PULIZIA_ID, percorso))
+
+    if PULIZIA_NOME not in s.split("sequence:")[-1]:
+        messo = False
+        for riga in ("      - removeuser\n", "    - removeuser\n"):
+            if riga in s:
+                sp = riga[:len(riga) - len(riga.lstrip())]
+                s = s.replace(riga, riga + sp + "- " + PULIZIA_NOME + "\n", 1)
+                print("OK  : %s agganciato dopo removeuser in %s"
+                      % (PULIZIA_NOME, percorso))
+                messo = True
+                break
+        if not messo:
+            print("ATTENZIONE: in %s non c'e' removeuser: il passo non e' agganciato"
+                  % percorso)
+    if s == orig:
+        print("      gia' a posto:", percorso)
         return True
-    for riga in ("      - removeuser\n", "    - removeuser\n"):
-        if riga in s:
-            sp = riga[:len(riga) - len(riga.lstrip())]
-            s = s.replace(riga, riga + sp + "- " + PULIZIA_NOME + "\n", 1)
-            backup(percorso)
-            with open(percorso, "w", encoding="utf-8", newline="\n") as f:
-                f.write(s)
-            print("OK  : %s agganciato dopo removeuser in %s" % (PULIZIA_NOME, percorso))
-            return True
-    print("ATTENZIONE: in %s non c'e' removeuser: la pulizia non e' agganciata"
-          % percorso)
-    return False
+    backup(percorso)
+    with open(percorso, "w", encoding="utf-8", newline="\n") as f:
+        f.write(s)
+    return True
 
 
 def main():
@@ -398,6 +452,12 @@ def main():
 
     # 2b) il passo di pulizia dell'accesso automatico: template + config viva
     #     + l'aggancio nella sequenza, nei due posti che contano.
+    for d in TPLDIRS + [MODDIR]:
+        for vecchio in ("shellprocess@pulizia_live.yaml", "shellprocess@pulizia_live.conf"):
+            v = os.path.join(d, vecchio)
+            if os.path.exists(v):
+                os.remove(v)
+                print("      rimosso il file del vecchio passo", v)
     for d in TPLDIRS:
         tpl = os.path.join(d, PULIZIA_NOME + ".yaml")
         with open(tpl, "w", encoding="utf-8", newline="\n") as f:
@@ -619,25 +679,40 @@ def verify():
         else:
             print("OK  : %s (%s) -> sottovolumi con /@games" % (path, what))
 
-    # La pulizia dell'accesso automatico: il file del passo E il suo posto nella
-    # sequenza. Il file da solo non serve a niente se nessuno lo esegue, e nella
-    # sequenza sbagliata non fa niente lo stesso - e' gia' successo.
+    # Il passo che gira dopo removeuser. Servono TRE cose insieme, e ne basta
+    # una fuori posto perche' non succeda niente senza che nessuno se ne accorga:
+    #   1) il file con i comandi
+    #   2) la voce nella sequenza, dopo removeuser
+    #   3) la dichiarazione dell'istanza - senza, Calamares carica il modulo e
+    #      lascia solo un WARNING nel registro
     for d in TPLDIRS:
-        for path, what in ((os.path.join(d, PULIZIA_NOME + ".yaml"), "template eggs"),
-                           (os.path.join(os.path.dirname(d), "settings.yaml"),
-                            "sequenza template")):
-            if not os.path.exists(path):
-                print("KO  : manca %s (%s)" % (path, what)); ok = False; continue
+        path = os.path.join(d, PULIZIA_NOME + ".yaml")
+        if not os.path.exists(path):
+            print("KO  : manca %s (template del passo)" % path); ok = False
+        else:
             with open(path, encoding="utf-8") as f:
                 t = f.read()
-            atteso = ("skillfish-clean-live-autologin" if path.endswith(".yaml")
-                      and PULIZIA_NOME in os.path.basename(path) else PULIZIA_NOME)
-            if atteso not in t:
-                print("KO  : %s (%s) senza %s" % (path, what, atteso)); ok = False
-            elif what == "sequenza template" and t.find(PULIZIA_NOME) < t.find("- removeuser"):
-                print("KO  : %s: la pulizia viene prima di removeuser" % path); ok = False
+            manca = [k for k in ("skillfish-clean-live-autologin",
+                                 "skillfish-games-subvolume prepara") if k not in t]
+            if manca:
+                print("KO  : %s senza: %s" % (path, ", ".join(manca))); ok = False
             else:
-                print("OK  : %s (%s)" % (path, what))
+                print("OK  : %s (template del passo)" % path)
+
+        seq = os.path.join(os.path.dirname(d), "settings.yaml")
+        if not os.path.exists(seq):
+            print("KO  : manca %s" % seq); ok = False; continue
+        with open(seq, encoding="utf-8") as f:
+            t = f.read()
+        if ("id: " + PULIZIA_ID) not in t:
+            print("KO  : %s non dichiara l'istanza %s: il passo non eseguirebbe"
+                  " niente" % (seq, PULIZIA_ID)); ok = False
+        elif PULIZIA_NOME not in t.split("sequence:")[-1]:
+            print("KO  : %s non ha %s nella sequenza" % (seq, PULIZIA_NOME)); ok = False
+        elif t.rfind(PULIZIA_NOME) < t.find("- removeuser"):
+            print("KO  : %s: il passo viene prima di removeuser" % seq); ok = False
+        else:
+            print("OK  : %s -> istanza dichiarata e passo dopo removeuser" % seq)
     return ok
 
 

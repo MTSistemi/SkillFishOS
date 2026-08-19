@@ -728,9 +728,15 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-grub-btrf
 # gia' scritti. Se sparisce quella riga, i giochi finiscono in copy-on-write
 # e nessuno se ne accorge, perche' tutto continua a funzionare - piano.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-games-subvolume 'chattr +C'
+# Prendere "il primo uid >= 1000" durante l'installazione significa prendere
+# l'utente della live, che poi viene cancellato: /games resta di un uid orfano.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-games-subvolume 'nessuna password: e. la live'
 # La condizione e' quello che tiene la correzione fuori dal sistema installato:
 # senza, si consegnerebbe a tutti un sistema senza blocco schermo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'run/live/medium'
+# idleTime=0 per powerdevil vuol dire SUBITO, non mai: con lo zero la live
+# spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'ConditionPathExists=/run/live/medium'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'Before=sddm.service'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
