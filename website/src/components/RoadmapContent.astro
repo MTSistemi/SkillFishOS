@@ -15,9 +15,9 @@ const ordine: Record<Stato, number> = { corso: 0, previsto: 1, fatto: 2 };
 const voci = [...roadmap].sort((a, b) => ordine[a.stato] - ordine[b.stato]);
 
 const etichettaStato: Record<Stato, Record<string, string>> = {
-  corso:    { it: 'in corso',  en: 'in progress', pl: 'w toku',        uk: 'у роботі',     ru: 'в работе',      es: 'en curso' },
-  previsto: { it: 'previsto',  en: 'planned',     pl: 'planowane',     uk: 'заплановано', ru: 'запланировано', es: 'previsto' },
-  fatto:    { it: 'fatto',     en: 'done',        pl: 'zrobione',      uk: 'зроблено',    ru: 'сделано',       es: 'hecho' },
+  corso:    { it: 'in corso',  en: 'in progress', pl: 'w toku',        uk: 'у роботі',     ru: 'в работе',      es: 'en curso',  pt: 'em andamento', de: 'in Arbeit' },
+  previsto: { it: 'previsto',  en: 'planned',     pl: 'planowane',     uk: 'заплановано', ru: 'запланировано', es: 'previsto', pt: 'previsto',     de: 'geplant' },
+  fatto:    { it: 'fatto',     en: 'done',        pl: 'zrobione',      uk: 'зроблено',    ru: 'сделано',       es: 'hecho',    pt: 'feito',        de: 'erledigt' },
 };
 const st = (s: Stato) => etichettaStato[s][lang] ?? etichettaStato[s].en;
 

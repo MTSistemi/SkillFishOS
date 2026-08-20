@@ -41,6 +41,8 @@ export default defineConfig({
     // sembra un problema del server, invece manca qui. Successo con il russo.
     '/ru/docs': '/ru/docs/introduzione',
     '/es/docs': '/es/docs/introduzione',
+    '/pt/docs': '/pt/docs/introduzione',
+    '/de/docs': '/de/docs/introduzione',
   },
   vite: {
     cacheDir: viteCacheDir,
