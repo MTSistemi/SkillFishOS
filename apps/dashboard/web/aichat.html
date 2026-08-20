@@ -31,7 +31,7 @@
   const add = (role, text) => { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : role === "assistant" ? "a" : "sys"); d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
   (async () => { try { const s = await (await fetch("/api/ai", { credentials: "same-origin" })).json();
     (s.models || []).forEach(m => { const o = document.createElement("option"); o.value = o.textContent = m; $("#model").appendChild(o); });
-    if (!(s.models || []).length) add("system", "Nessun modello installato. Scaricane uno dal modulo AI.");
+    if (!(s.models || []).length) add("system", sfT("p_nomodel"));
   } catch (e) {} })();
   $("#f").addEventListener("submit", async e => {
     e.preventDefault(); const q = $("#q").value.trim(); if (!q) return;

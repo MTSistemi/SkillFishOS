@@ -97,7 +97,7 @@
     <button class="btn sec" id="cuprofsave" data-i18n="t_saveas">Save as…</button>
     <button class="btn danger" id="cuprofdel" data-i18n="del">Delete</button>
   </div>
-  <div class="stub">Le prime 3 colonne (24 CU) sono il minimo del driver e restano bloccate. 1 WGP = 2 CU. Salva la griglia come profilo per richiamarla al volo.</div>
+  <div class="stub" data-i18n="p_cuhint">The first 3 columns (24 CUs) are the driver minimum and stay locked. 1 WGP = 2 CUs. Save the grid as a profile to recall it in one click.</div>
   <pre class="log" id="cutestlog"></pre>
 </div>
 
@@ -134,7 +134,7 @@
     <svg id="fcsvg" viewBox="0 0 320 120" style="width:100%;max-width:420px;height:120px;background:#0d0b06;border:1px solid var(--line);border-radius:8px"></svg>
     <div id="fcpts" style="margin-top:8px"></div>
     <div class="brow"><button class="btn" id="fcsave" data-i18n="t_savecurve">Save curve</button><button class="btn sec" id="fcadd" data-i18n="t_addpoint">+ point</button></div>
-    <div class="stub">Punti temperatura → % ventola. Tra un punto e l'altro la velocità è interpolata. "Off" restituisce la ventola al firmware.</div>
+    <div class="stub" data-i18n="p_fchint">Temperature points → fan %. Between two points the speed is interpolated. “Off” hands the fan back to the firmware.</div>
   </div>
 </div>
 
@@ -244,7 +244,7 @@ async function load(){
   const pc=$("#presets"); pc.innerHTML="";
   (r.presets||[]).forEach(p=>{ const b=document.createElement("button"); b.className="btn sec"; b.textContent=p.name;
     b.onclick=async()=>{ $("#presetdesc").textContent=p.desc||""; toast("Applico preset "+p.name+"…");
-      const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?("Preset "+p.name+" applicato"):("Errore: "+(x.error||""))); setTimeout(load,600); };
+      const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?(sfT("p_presetapp").replace("{x}",p.name)):("Errore: "+(x.error||""))); setTimeout(load,600); };
     pc.appendChild(b); });
   fill();
 }
@@ -254,9 +254,9 @@ bindSlider("cmhz", v=>v+" MHz"); bindSlider("cscale", v=>v); bindSlider("ctemp",
 bindSlider("gmhz", v=>v+" MHz"); bindSlider("gmv", v=>v+" mV"); bindSlider("fanpct", v=>v+" %");
 
 $("#reload").onclick=load;
-$("#cpuapply").onclick=async()=>{ toast("Applico CPU…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); toast(x.ok?"CPU applicata":"Errore CPU"); };
-$("#cpupersist").onclick=async()=>{ toast("Salvo al boot…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value,persist:true}); toast(x.ok?"Salvato al boot":"Errore"); };
-$("#gpuapply").onclick=async()=>{ toast("Applico GPU…"); const x=await api("/api/tuner/gpu",{maxmhz:+$("#gmhz").value,maxmv:+$("#gmv").value,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); toast(x.ok?"GPU applicata":"Errore GPU"); };
+$("#cpuapply").onclick=async()=>{ toast("Applico CPU…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); toast(x.ok?sfT("p_cpuapp"):"Errore CPU"); };
+$("#cpupersist").onclick=async()=>{ toast("Salvo al boot…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value,persist:true}); toast(x.ok?sfT("p_savedboot"):"Errore"); };
+$("#gpuapply").onclick=async()=>{ toast("Applico GPU…"); const x=await api("/api/tuner/gpu",{maxmhz:+$("#gmhz").value,maxmv:+$("#gmv").value,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); toast(x.ok?sfT("p_gpuapp"):"Errore GPU"); };
 
 function lg(id,msg,clear){ const e=$("#"+id); e.style.display="block"; if(clear)e.textContent=""; e.textContent+=(e.textContent?"\n":"")+msg; e.scrollTop=e.scrollHeight; }
 function busy(b){ document.querySelectorAll(".btn").forEach(x=>x.disabled=b); }
@@ -264,32 +264,32 @@ function busy(b){ document.querySelectorAll(".btn").forEach(x=>x.disabled=b); }
 $("#cputest").onclick=async()=>{ busy(true); lg("cpulog","▶ Test CPU "+$("#cmhz").value+" MHz scale "+$("#cscale").value+" (60s)…",true);
   const x=await api("/api/tuner/test-cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value});
   lg("cpulog", x.ok?("✓ Stabile"+(x.bench?(" — "+JSON.stringify(x.bench)):"")):("✗ Instabile: "+(x.err||"")) ); busy(false); };
-$("#cpuuv").onclick=async()=>{ busy(true); lg("cpulog","▶ Cerco il miglior undervolt a "+$("#cmhz").value+" MHz…",true);
+$("#cpuuv").onclick=async()=>{ busy(true); lg("cpulog",sfT("p_uvsearch")+$("#cmhz").value+" MHz…",true);
   const x=await api("/api/tuner/suggest-uv",{mhz:+$("#cmhz").value});
-  if(x.ok){ $("#cscale").value=x.suggested_scale; $("#cscale").dispatchEvent(new Event("input")); lg("cpulog","✓ Scale suggerito: "+x.suggested_scale); toast("UV suggerito: "+x.suggested_scale); }
+  if(x.ok){ $("#cscale").value=x.suggested_scale; $("#cscale").dispatchEvent(new Event("input")); lg("cpulog",sfT("p_uvfound")+x.suggested_scale); toast(sfT("p_uvsugg")+x.suggested_scale); }
   else lg("cpulog","✗ "+(x.err||"errore")); busy(false); };
-$("#cpuwiz").onclick=async()=>{ if(!confirm("Il wizard testa frequenze crescenti (può richiedere alcuni minuti e stressa la CPU). Procedere?"))return;
+$("#cpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizcpu")))return;
   busy(true); const steps=[[3600,-8],[3700,-16],[3800,-20],[3900,-24],[4000,-36]]; let best=null; lg("cpulog","🎰 Wizard CPU…",true);
   for(const [m,s] of steps){ lg("cpulog","▶ "+m+" MHz scale "+s+" …");
     const x=await api("/api/tuner/test-cpu",{mhz:m,scale:s,temp:+$("#ctemp").value});
     if(x.ok){ best=[m,s]; lg("cpulog","  ✓ stabile"); } else { lg("cpulog","  ✗ instabile — stop"); break; } }
   if(best){ $("#cmhz").value=best[0]; $("#cscale").value=best[1]; ["cmhz","cscale"].forEach(i=>$("#"+i).dispatchEvent(new Event("input")));
-    await api("/api/tuner/cpu",{mhz:best[0],scale:best[1],temp:+$("#ctemp").value,persist:true}); lg("cpulog","🏁 Massimo stabile: "+best[0]+" MHz scale "+best[1]+" (applicato e salvato)"); toast("Max CPU: "+best[0]+" MHz"); }
+    await api("/api/tuner/cpu",{mhz:best[0],scale:best[1],temp:+$("#ctemp").value,persist:true}); lg("cpulog",sfT("p_maxstable")+best[0]+" MHz scale "+best[1]+sfT("p_appsaved")); toast("Max CPU: "+best[0]+" MHz"); }
   else lg("cpulog","Nessun passo stabile."); busy(false); };
 // --- GPU test / wizard ---
 $("#gputest").onclick=async()=>{ busy(true); lg("gpulog","▶ Test GPU "+$("#gmhz").value+" MHz "+$("#gmv").value+" mV…",true);
   const x=await api("/api/tuner/test-gpu",{maxmhz:+$("#gmhz").value,maxmv:+$("#gmv").value,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700});
   lg("gpulog", x.ok?"✓ Stabile":("✗ Instabile: "+(x.err||"")) ); busy(false); };
-$("#gpuwiz").onclick=async()=>{ if(!confirm("Il wizard testa frequenze GPU crescenti (può richiedere alcuni minuti). Procedere?"))return;
+$("#gpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizgpu")))return;
   busy(true); const steps=[2000,2050,2100,2150,2200]; let best=null; lg("gpulog","🎰 Wizard GPU…",true);
   for(const m of steps){ lg("gpulog","▶ "+m+" MHz @ 1000 mV …");
     const x=await api("/api/tuner/test-gpu",{maxmhz:m,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700});
     if(x.ok){ best=m; lg("gpulog","  ✓ stabile"); } else { lg("gpulog","  ✗ instabile — stop"); break; } }
   if(best){ $("#gmhz").value=best; $("#gmv").value=1000; ["gmhz","gmv"].forEach(i=>$("#"+i).dispatchEvent(new Event("input")));
-    await api("/api/tuner/gpu",{maxmhz:best,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); lg("gpulog","🏁 Massimo stabile: "+best+" MHz (applicato)"); toast("Max GPU: "+best+" MHz"); }
+    await api("/api/tuner/gpu",{maxmhz:best,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); lg("gpulog",sfT("p_maxstable")+best+(" MHz"+sfT("p_applied"))); toast("Max GPU: "+best+" MHz"); }
   else lg("gpulog","Nessun passo stabile."); busy(false); };
-$("#govbal").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"balanced"}); STATE.gpu.gov_mode="balanced"; renderGov(); toast("Governor: bilanciato"); };
-$("#govperf").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"performance"}); STATE.gpu.gov_mode="performance"; renderGov(); toast("Governor: prestazioni"); };
+$("#govbal").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"balanced"}); STATE.gpu.gov_mode="balanced"; renderGov(); toast(sfT("p_govbal")); };
+$("#govperf").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"performance"}); STATE.gpu.gov_mode="performance"; renderGov(); toast(sfT("p_govperf")); };
 document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{
   const k=+b.dataset.cores;
   CPU_CORES.forEach(c=> cpuWant[c.core] = (k>=CPU_CORES.length) ? true : (c.core<k || !c.removable));
@@ -298,7 +298,7 @@ $("#cpucoresapply").onclick=async()=>{ toast("Applico i core…");
   const cores=CPU_CORES.map(c=>({core:c.core, online:!!cpuWant[c.core]}));
   const x=await api("/api/tuner/cpu-cores",{cores});
   if(x && x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online);
-    renderCPUCores(); toast("Core applicati — "+(x.nproc||"?")+" thread attivi"); }
+    renderCPUCores(); toast(sfT("p_coresapp")+(x.nproc||"?")+" thread attivi"); }
   else toast("Errore core: "+((x&&x.err)||"")); };
 $("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; toast("SMT "+(on?"acceso":"spento")+"…");
   const x=await api("/api/tuner/cpu-cores",{smt:on});
@@ -306,32 +306,32 @@ $("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; toast("SMT "+(on?"
   else toast("SMT: "+((x&&x.err)||"errore")); };
 document.querySelectorAll("[data-cu]").forEach(b=> b.onclick=()=>{ const m=+b.dataset.cu; CU_ROWS.forEach(([k])=>cuMask[k]=m|cuFloor); renderCU(); });
 $("#cuapply").onclick=async()=>{ toast("Applico CU a caldo…"); const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor);
-  const x=await api("/api/tuner/cu",{rows}); toast(x.ok?("CU applicate: "+(x.active||cuActive())+" attive"):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cutest").onclick=async()=>{ const lg=$("#cutestlog"); lg.style.display="block"; lg.textContent="Test CU in corso (può richiedere 1-2 min)…";
+  const x=await api("/api/tuner/cu",{rows}); toast(x.ok?(sfT("p_cuapp")+(x.active||cuActive())+" attive"):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cutest").onclick=async()=>{ const lg=$("#cutestlog"); lg.style.display="block"; lg.textContent=sfT("p_cutest");
   $("#cutest").disabled=true; const x=await api("/api/tuner/cu-test",{}); $("#cutest").disabled=false;
-  lg.textContent=JSON.stringify(x,null,2); toast("Test CU completato"); };
+  lg.textContent=JSON.stringify(x,null,2); toast(sfT("p_cudone")); };
 $("#fanauto").onclick=()=>{ renderFanMode("auto"); };
 $("#fanman").onclick=()=>{ renderFanMode("manual"); };
-$("#fanapply").onclick=async()=>{ const mode=$("#fanman").classList.contains("on")?"manual":"auto"; toast("Applico ventola…");
-  const x=await api("/api/tuner/fan",{mode,pct:+$("#fanpct").value}); toast(x.ok?("Ventola: "+mode+(x.rpm?(" "+x.rpm+" RPM"):"")):("Errore ventola")); };
+$("#fanapply").onclick=async()=>{ const mode=$("#fanman").classList.contains("on")?"manual":"auto"; toast(sfT("p_fanapply"));
+  const x=await api("/api/tuner/fan",{mode,pct:+$("#fanpct").value}); toast(x.ok?(sfT("p_fanis")+mode+(x.rpm?(" "+x.rpm+" RPM"):"")):(sfT("p_fanerr"))); };
 $("#vramapply").onclick=async()=>{ toast("Imposto VRAM…"); const x=await api("/api/tuner/vram",{mb:+$("#vram").value});
-  toast(x.ok?"VRAM impostata — riavvia per applicare":"Errore VRAM"); };
+  toast(x.ok?sfT("p_vramset"):"Errore VRAM"); };
 
 // --- CU profiles (#7) ---
 async function loadProfiles(){ const r=await api("/api/tuner/cu-profiles"); const sel=$("#cuprof"); const cur=sel.value;
   const names=Object.keys(r.profiles||{}); sel.innerHTML=names.length?names.map(n=>'<option>'+n+'</option>').join(""):'<option value="">(nessun profilo)</option>';
   if(cur&&names.includes(cur))sel.value=cur; }
-$("#cuprofsave").onclick=async()=>{ const n=prompt("Nome del profilo CU:"); if(!n)return;
+$("#cuprofsave").onclick=async()=>{ const n=prompt(sfT("p_cuprofname")); if(!n)return;
   const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu-profile",{action:"save",name:n,rows});
-  if(x.ok){ await loadProfiles(); $("#cuprof").value=n; toast("Profilo '"+n+"' salvato"); } else toast("Errore: "+(x.error||"")); };
+  if(x.ok){ await loadProfiles(); $("#cuprof").value=n; toast(sfT("p_profsavedn").replace("{x}",n)); } else toast("Errore: "+(x.error||"")); };
 $("#cuprofapply").onclick=async()=>{ const n=$("#cuprof").value; if(!n)return; toast("Applico profilo '"+n+"'…");
-  const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?("Profilo applicato: "+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm("Eliminare il profilo '"+n+"'?"))return;
-  const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); toast("Profilo eliminato"); } };
+  const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?(sfT("p_profapp")+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm(sfT("p_profdelq2").replace("{x}",n)))return;
+  const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); toast(sfT("p_profdel")); } };
 
 // --- CPU core map (#8) ---
 async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=$("#coremap");
-  if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">non disponibile</span>'; return; }
+  if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">'+sfT("p_navail")+'</span>'; return; }
   // raggruppa per core fisico
   const byCore={}; r.cpus.forEach(c=>{ (byCore[c.core]=byCore[c.core]||[]).push(c); });
   let h='<table style="width:100%;border-collapse:collapse;font-size:.85rem">'+
@@ -367,7 +367,7 @@ async function loadFanCurve(){ const r=await api("/api/tuner/fan-curve"); if(r.c
   $("#fcsrc").value=FC.source||"max"; fcRenderMode(); fcRenderPts(); fcRenderSvg();
   $("#fcnow").textContent=(r.preview!=null?("→ "+r.preview+"%"):"–"); }
 async function fcSave(){ FC.source=$("#fcsrc").value; const x=await api("/api/tuner/fan-curve",{enabled:FC.enabled,source:FC.source,points:FC.points});
-  if(x.ok){FC=x.curve; fcRenderMode(); $("#fcnow").textContent=(x.preview!=null?("→ "+x.preview+"%"):"–"); toast("Curva ventola salvata"+(FC.enabled?" e attiva":"")); } else toast("Errore: "+(x.error||"")); }
+  if(x.ok){FC=x.curve; fcRenderMode(); $("#fcnow").textContent=(x.preview!=null?("→ "+x.preview+"%"):"–"); toast(sfT("p_fcsaved")+(FC.enabled?sfT("p_andon"):"")); } else toast("Errore: "+(x.error||"")); }
 $("#fcsave").onclick=fcSave;
 $("#fcadd").onclick=()=>{FC.points.push([75,65]);FC.points.sort((a,b)=>a[0]-b[0]);fcRenderPts();fcRenderSvg();};
 $("#fcon").onclick=()=>{FC.enabled=true;fcRenderMode();fcSave();};

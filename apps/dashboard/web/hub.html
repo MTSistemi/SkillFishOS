@@ -76,7 +76,7 @@
 </style></head>
 <body>
 <div class="top"><b>📦 SkillFishOS Hub</b>
-  <input id="q" placeholder="Cerca app e pacchetti…">
+  <input id="q" placeholder="Search apps and packages…" data-i18n-ph="p_searchph">
   <span class="sp"></span>
   <span class="badge" id="updbadge"></span>
   <button class="gbtn" id="refresh" title="Rebuild the catalogue" data-i18n-title="h_rebuild">⟳</button>
@@ -132,14 +132,14 @@ function card(a){
     '<div style="min-width:0;flex:1"><div class="nm">'+esc(a.name)+'</div><div class="sm">'+esc(a.summary)+'</div>'+
     '<div class="meta">'+(a.ours?'<span class="badge ours">✦ SkillFishOS</span>':'')+
     (a.rating_n?'<span class="stars">'+stars(a.rating)+'</span><span class="badge">'+a.rating_n+'</span>':'')+
-    backendBadge(a.backend)+(a.installed?'<span class="badge inst">installata</span>':'')+'</div></div>';
+    backendBadge(a.backend)+(a.installed?'<span class="badge inst">'+sfT("p_installed1")+'</span>':'')+'</div></div>';
   d.onclick=()=>openApp(a.key);
   return d;
 }
 
 function setNav(){
   const nav=$("#nav");nav.innerHTML="";
-  [["home","✦","Esplora"],["installed","✓","Installate"],["updates","⟳","Aggiornamenti"],["sources","⚙","Sorgenti"]].forEach(([k,e,l])=>{
+  [["home","✦",sfT("p_explore")],["installed","✓",sfT("p_installedn")],["updates","⟳",sfT("p_updates")],["sources","⚙",sfT("p_sources")]].forEach(([k,e,l])=>{
     const d=ce("div","ni"+(ST.view===k?" on":""));d.innerHTML='<span>'+e+'</span><span class="l">'+l+'</span>';
     d.onclick=()=>{ST.view=k;ST.cat=null;ST.sub=null;ST.q="";$("#q").value="";render();};nav.appendChild(d);});
   const cv=$("#cats");cv.innerHTML="";
@@ -156,7 +156,7 @@ async function viewGrid(opts,title,toolbar){
   const m=$("#main");m.innerHTML=(toolbar||"")+'<h2>'+esc(title)+'</h2><div class="grid" id="g"></div><div id="more"></div>';
   const qs=new URLSearchParams(opts).toString();
   const r=await api("/api/hub/catalog?"+qs);
-  if(!r.ready){m.querySelector("#g").outerHTML='<div class="stub"><span class="spin"></span> Sto costruendo il catalogo… (qualche secondo)</div>';
+  if(!r.ready){m.querySelector("#g").outerHTML='<div class="stub"><span class="spin"></span> '+sfT("p_building")+'</div>';
     setTimeout(render,2500);return;}
   const g=m.querySelector("#g");
   if(!r.apps.length){g.innerHTML='<div class="stub">Nessuna app.</div>';return;}
@@ -170,7 +170,7 @@ async function viewGrid(opts,title,toolbar){
 
 function sortToolbar(){
   return '<div class="toolbar">'+
-    '<span class="chip'+(ST.sort==="rating"?" on":"")+'" data-sort="rating">Più popolari</span>'+
+    '<span class="chip'+(ST.sort==="rating"?" on":"")+'" data-sort="rating">'+sfT("p_popular")+'</span>'+
     '<span class="chip'+(ST.sort==="name"?" on":"")+'" data-sort="name">Nome</span>'+
     '<span style="width:10px"></span>'+
     ['',"apt","flatpak","snap"].map(b=>'<span class="chip'+(ST.backend===(b||null)?" on":"")+'" data-bk="'+b+'">'+(b||"Tutte")+'</span>').join("")+
@@ -183,18 +183,18 @@ function bindToolbar(){
 }
 
 async function viewUpdates(){
-  const m=$("#main");m.innerHTML='<div class="stub">Controllo aggiornamenti…</div>';
+  const m=$("#main");m.innerHTML='<div class="stub">'+sfT("p_checkupd")+'</div>';
   const u=await api("/api/hub/updates");const ups=u.updates||[];
-  let h='<div class="toolbar"><h2 style="margin:0">'+(ups.length?ups.length+" aggiornamenti":"Tutto aggiornato ✓")+'</h2><span class="sp" style="flex:1"></span>'+
+  let h='<div class="toolbar"><h2 style="margin:0">'+(ups.length?sfT("p_nupdates").replace("{x}",ups.length):sfT("p_alluptodate"))+'</h2><span class="sp" style="flex:1"></span>'+
     '<button class="btn green" id="ua"'+(ups.length?"":" disabled")+'>Aggiorna tutto</button></div>';
   ups.forEach(p=>h+='<div class="card" style="cursor:default"><div class="ic">📦</div><div style="flex:1"><div class="nm">'+esc(p.pkg)+'</div>'+
     '<div class="sm">'+backendBadge(p.backend)+' '+esc(p.old?p.old+" → ":"")+esc(p.new)+'</div></div></div>');
-  m.innerHTML=h||'<div class="stub">Tutto aggiornato.</div>';
-  if($("#ua"))$("#ua").onclick=()=>doOp("upgrade","","","Aggiornamento di tutti i pacchetti");
+  m.innerHTML=h||'<div class="stub">'+sfT("p_alluptodate2")+'</div>';
+  if($("#ua"))$("#ua").onclick=()=>doOp("upgrade","","",sfT("p_updall"));
 }
 
 async function viewSources(){
-  const m=$("#main");m.innerHTML='<div class="stub">Carico le sorgenti…</div>';
+  const m=$("#main");m.innerHTML='<div class="stub">'+sfT("p_loadsrc")+'</div>';
   const r=await api("/api/hub/sources");
   let h='<h2>Sorgenti APT</h2>';
   (r.sources||[]).forEach(s=>h+='<div class="card" style="cursor:default"><div class="ic">📚</div><div style="flex:1"><div class="nm">'+esc(s.name)+
@@ -204,7 +204,7 @@ async function viewSources(){
   if(!(r.flatpak_remotes||[]).length)h+='<div class="stub">Nessun remote flatpak.</div>';
   m.innerHTML=h;
   m.querySelectorAll("[data-s]").forEach(c=>c.onchange=async()=>{const x=await api("/api/hub/source",{name:c.dataset.s,enable:c.checked});
-    if(!x.ok){alert(x.error||"errore");c.checked=!c.checked;}else doOp("update","","","Aggiorno l'elenco dopo modifica sorgenti");});
+    if(!x.ok){alert(x.error||"errore");c.checked=!c.checked;}else doOp("update","","",sfT("p_refreshsrc"));});
 }
 
 async function openApp(key){
@@ -222,15 +222,15 @@ async function openApp(key){
   h+='<div class="metarow">'+(a.ver?'<span>versione <b>'+esc(a.ver)+'</b></span>':'')+
     (a.license?'<span>licenza <b>'+esc(a.license)+'</b></span>':'')+
     (a.size?'<span>dimensione <b>'+(Math.round(a.size/1024))+' MB</b></span>':'')+
-    (a.homepage?'<span><a href="'+esc(a.homepage)+'" target="_blank" rel="noreferrer noopener">sito web ↗</a></span>':'')+'</div>';
+    (a.homepage?'<span><a href="'+esc(a.homepage)+'" target="_blank" rel="noreferrer noopener">'+sfT("p_website")+'</a></span>':'')+'</div>';
   if((a.screens||[]).length)h+='<div class="shots">'+a.screens.map(s=>'<img loading="lazy" src="'+esc(s)+'" onerror="this.remove()">').join("")+'</div>';
-  if(a.desc)h+='<div class="sec"><h3>Descrizione</h3><div class="desc">'+sanitize(a.desc)+'</div></div>';
-  if((a.releases||[]).length)h+='<div class="sec"><h3>Novità</h3>'+a.releases.map(r=>'<div style="margin:6px 0"><b style="color:var(--gold-lt)">'+esc(r[0])+'</b><div class="desc">'+sanitize(r[1])+'</div></div>').join("")+'</div>';
+  if(a.desc)h+='<div class="sec"><h3>'+sfT("p_desc")+'</h3><div class="desc">'+sanitize(a.desc)+'</div></div>';
+  if((a.releases||[]).length)h+='<div class="sec"><h3>'+sfT("p_whatsnew")+'</h3>'+a.releases.map(r=>'<div style="margin:6px 0"><b style="color:var(--gold-lt)">'+esc(r[0])+'</b><div class="desc">'+sanitize(r[1])+'</div></div>').join("")+'</div>';
   if((a.reviews||[]).length)h+='<div class="sec"><h3>Recensioni</h3>'+a.reviews.map(rv=>'<div class="rev"><div class="rh"><span class="stars">'+stars(Math.round((rv.rating||0)/20))+'</span><span class="ru">'+esc(rv.user)+'</span></div><div style="font-weight:600">'+esc(rv.summary)+'</div><div class="desc">'+esc(rv.description)+'</div></div>').join("")+'</div>';
   m.innerHTML=h;
   $("#back").onclick=render;
   $("#act").onclick=()=>{const inst=a.installed;
-    if(inst&&!confirm("Rimuovere "+a.name+"?"))return;
+    if(inst&&!confirm(sfT("p_removeq").replace("{x}",a.name)))return;
     doOp(inst?"remove":"install",a.backend,a.pkgid,(inst?"Rimuovo ":"Installo ")+a.name);};
 }
 function sanitize(html){const d=ce("div");d.innerHTML=html||"";d.querySelectorAll("script,style").forEach(e=>e.remove());
@@ -238,18 +238,18 @@ function sanitize(html){const d=ce("div");d.innerHTML=html||"";d.querySelectorAl
 
 async function installedView(){const m=$("#main");m.innerHTML='<div class="stub">Carico…</div>';
   const r=await api("/api/hub/installed");const g=ce("div","grid");
-  m.innerHTML='<h2>App installate ('+(r.count||0)+')</h2>';m.appendChild(g);
+  m.innerHTML='<h2>'+esc(sfT("p_instappsn").replace("{x}",(r.count||0)))+'</h2>';m.appendChild(g);
   (r.installed||[]).forEach(a=>g.appendChild(card(a)));if(!(r.installed||[]).length)g.innerHTML='<div class="stub">Nessuna.</div>';}
 async function searchView(){const m=$("#main");m.innerHTML='<div class="stub"><span class="spin"></span> Cerco…</div>';
   const r=await api("/api/hub/search?q="+encodeURIComponent(ST.q));const g=ce("div","grid");
-  m.innerHTML='<h2>Risultati per "'+esc(ST.q)+'"</h2>';m.appendChild(g);
-  (r.results||[]).forEach(a=>g.appendChild(card(a)));if(!(r.results||[]).length)g.innerHTML='<div class="stub">Nessun risultato.</div>';}
+  m.innerHTML='<h2>'+esc(sfT("p_resultsforq").replace("{x}",ST.q))+'</h2>';m.appendChild(g);
+  (r.results||[]).forEach(a=>g.appendChild(card(a)));if(!(r.results||[]).length)g.innerHTML='<div class="stub">'+sfT("p_noresults")+'</div>';}
 async function homeView(){
   const m=$("#main");m.innerHTML='<div class="stub"><span class="spin"></span> Carico…</div>';
   const fr=await api("/api/hub/catalog?ours=1&sort=name");
-  if(!fr.ready){m.innerHTML='<div class="stub"><span class="spin"></span> Sto costruendo il catalogo… (qualche secondo)</div>';setTimeout(render,2500);return;}
+  if(!fr.ready){m.innerHTML='<div class="stub"><span class="spin"></span> '+sfT("p_building")+'</div>';setTimeout(render,2500);return;}
   let h="";
-  if((fr.apps||[]).length)h+='<div class="feat"><h2>✦ App SkillFishOS <span class="badge ours">le nostre</span></h2><div class="grid" id="fg"></div></div>';
+  if((fr.apps||[]).length)h+='<div class="feat"><h2>✦ App SkillFishOS <span class="badge ours">'+sfT("p_ours")+'</span></h2><div class="grid" id="fg"></div></div>';
   h+=sortToolbar()+'<h2>In evidenza</h2><div class="grid" id="g"></div>';
   m.innerHTML=h;
   if((fr.apps||[]).length){const fg=m.querySelector("#fg");fr.apps.forEach(a=>fg.appendChild(card(a)));}
@@ -278,7 +278,7 @@ render=async function(){
 
 let qt;$("#q").addEventListener("input",e=>{clearTimeout(qt);const v=e.target.value.trim();
   qt=setTimeout(()=>{if(v.length>=2){ST.view="search";ST.q=v;render();}else if(!v){ST.view="home";render();}},350);});
-$("#refresh").onclick=async()=>{await api("/api/hub/refresh",{});$("#main").innerHTML='<div class="stub"><span class="spin"></span> Ricostruisco il catalogo…</div>';setTimeout(render,3000);};
+$("#refresh").onclick=async()=>{await api("/api/hub/refresh",{});$("#main").innerHTML='<div class="stub"><span class="spin"></span> '+sfT("p_rebuilding")+'</div>';setTimeout(render,3000);};
 render();refreshBadge();
 </script>
 </body></html>
