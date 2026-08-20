@@ -632,14 +632,30 @@ def verify():
                 print("KO  : customize-partitions.js NON corretto: il menu proporra' ext4")
                 ok = False
 
+    # ⚠️ NON BASTA CHE LE QUATTRO LINGUE CI SIANO: vanno scritte come si deve.
+    # La presentazione e' uscita in polacco senza NESSUN segno diacritico -
+    # "Juz prawie", "Twoj", "za chwile", "gre" invece di "Już prawie", "Twój",
+    # "za chwilę", "grę" - per cinque diapositive intere. Visto a video in VM il
+    # 20/08/2026. Il polacco delle app e del sito e' corretto (l'ha scritto
+    # Cyryl); questo testo l'avevo scritto io, e l'avevo scritto storpiato.
+    # Proprio il pubblico che ci ha dedicato un capitolo di video intitolato
+    # "wloski to nie polski" e' quello che se ne accorge per primo.
+    diacritici = u"ąćęłńóśźżĄĆĘŁŃÓŚŹŻ"
     for d in _glob.glob("/etc/calamares/branding/*/show.qml"):
         with open(d, encoding="utf-8") as f:
             t = f.read()
-        if '"pl":' in t and '"uk":' in t and "Qt.locale()" in t:
-            print("OK  : %s -> presentazione in quattro lingue" % d)
-        else:
-            print("KO  : %s -> presentazione ancora monolingua" % d)
+        manca = []
+        if not ('"pl":' in t and '"uk":' in t and "Qt.locale()" in t):
+            manca.append("non e' in quattro lingue")
+        if not any(c in t for c in diacritici):
+            manca.append("il polacco non ha un solo segno diacritico")
+        if not re.search(u"[Ѐ-ӿ]", t):
+            manca.append("l'ucraino non ha caratteri cirillici")
+        if manca:
+            print("KO  : %s -> %s" % (d, "; ".join(manca)))
             ok = False
+        else:
+            print("OK  : %s -> presentazione in quattro lingue, scritte per bene" % d)
 
     targets = [(os.path.join(d, "shellprocess@boot_reconfigure.yaml"), "template eggs")
                for d in TPLDIRS] + [(RECONF, "config viva")]
