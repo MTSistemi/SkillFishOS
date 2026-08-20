@@ -100,7 +100,7 @@
             text-transform:uppercase;margin:18px 2px 2px;padding-bottom:6px;border-bottom:1px solid var(--line)}
   .grouphdr:first-child{margin-top:4px}
   /* language toggle */
-  .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .lang{display:flex;flex-wrap:wrap;gap:2px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
   .lang-btn{background:none;border:none;color:var(--muted);padding:6px 11px;font-size:.8rem;font-weight:700;cursor:pointer}
   .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
   #login .lang{margin:16px auto 0;width:max-content}
@@ -163,7 +163,7 @@
       <button class="btn" type="submit" id="lbtn">Sign in</button>
       <div class="err" id="lerr"></div>
     </form>
-    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button></div>
+    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button><button class="lang-btn" data-l="ru">RU</button><button class="lang-btn" data-l="es">ES</button><button class="lang-btn" data-l="pt">PT</button><button class="lang-btn" data-l="de">DE</button></div>
   </div>
 </div>
 
@@ -172,13 +172,13 @@
     <span class="brand">SkillFish<span class="g">OS</span> Remote Manager</span>
     <span class="host" id="host"></span>
     <span class="sp"></span>
-    <button class="ghost pwr" id="reboot-top" title="Riavvia">🔄</button>
-    <button class="ghost pwr" id="off-top" title="Spegni">⏻</button>
+    <button class="ghost pwr" id="reboot-top" title="Reboot" data-i18n-title="p_reboot">🔄</button>
+    <button class="ghost pwr" id="off-top" title="Shut down" data-i18n-title="p_off">⏻</button>
     <span id="hidden-wrap"></span>
-    <button class="ghost" id="save-btn" title="Salva disposizione">💾</button>
-    <button class="ghost" id="reset-btn" title="Ripristina disposizione">↺</button>
-    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button></div>
-    <button class="ghost" id="settings-btn" title="Moduli">⚙️</button>
+    <button class="ghost" id="save-btn" title="Save layout" data-i18n-title="ly_save">💾</button>
+    <button class="ghost" id="reset-btn" title="Reset layout" data-i18n-title="ly_resetb">↺</button>
+    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button><button class="lang-btn" data-l="ru">RU</button><button class="lang-btn" data-l="es">ES</button><button class="lang-btn" data-l="pt">PT</button><button class="lang-btn" data-l="de">DE</button></div>
+    <button class="ghost" id="settings-btn" title="Modules" data-i18n-title="x_mods">⚙️</button>
     <button class="ghost" id="logout">Log out</button>
   </div></header>
   <div class="wrap"><div class="grid" id="grid"></div></div>
