@@ -68,6 +68,11 @@ function page_head($title) {
     echo '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
     echo '<meta name="robots" content="noindex,nofollow"><title>' . h($title) . '</title>';
+    // La stessa favicon del sito. Va qui dentro e non nelle due pagine, perche'
+    // page_head() le serve entrambe: la schermata di accesso e il cruscotto.
+    // Metterla in una sola avrebbe lasciato l'icona vuota proprio sulla pagina
+    // che si tiene aperta in una scheda per ore.
+    echo '<link rel="icon" href="/img/badge.png" type="image/png">';
     echo '<style>'
        . ':root{--bg:#0c0a06;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;--gold-lt:#e8c878;'
        . '--copper:#b9722f;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.18)}'
