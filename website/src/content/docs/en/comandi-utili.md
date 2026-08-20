@@ -95,7 +95,7 @@ curl -s localhost:8888/              # the Unsloth Studio UI (loopback only)
 ```bash
 sudo snapper list                    # list snapshots
 sudo snapper create -d "before X"    # manual snapshot
-sudo btrfs subvolume list /          # subvolumes (@, @home, @log, @cache)
+sudo btrfs subvolume list /          # subvolumes (@, @home, @log, @cache, @games)
 
 # go back to a snapshot, for real (takes effect at the next reboot)
 sudo skillfish-rollback --list       # which snapshots are available

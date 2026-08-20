@@ -41,7 +41,7 @@ From the live desktop launch the installer (*Install SkillFishOS* icon). Calamar
 
 1. **Language and timezone.**
 2. **Keyboard.**
-3. **Partitioning.** SkillFishOS uses **Btrfs** with separate `@rootfs` (system) and `@home` (user data) subvolumes: this lets you *roll back* the system without touching your files. A small **EFI** partition and a **swap** partition complete the layout. For most users the automatic install option ("Erase disk") is fine.
+3. **Partitioning.** SkillFishOS uses **Btrfs** with separate subvolumes — `@` (system), `@home` (your data), `@cache` and `@log` (kept out of the snapshots), `@games` (the games library): this lets you *roll back* the system without touching your files. A small **EFI** partition completes the layout, and swap is a **file**, not a partition. For most users the automatic install option ("Erase disk") is fine.
 4. **User.** Create your account (it will be in the right groups for gaming, audio, render, etc.).
 5. **Summary and install.**
 
@@ -63,8 +63,9 @@ From here you can:
 | Partition | Filesystem | Content |
 |---|---|---|
 | `nvme0n1p1` | FAT32 (EFI) | GRUB bootloader |
-| `nvme0n1p2` | **Btrfs** | `@rootfs` (system) + `@home` (data) |
-| `nvme0n1p3` | swap | swap space |
+| `nvme0n1p2` | **Btrfs** | `@` (system) · `@home` (data) · `@cache` · `@log` · `@games` · `@swap` |
+
+There is no swap partition: swap lives in a **file** inside the `@swap` subvolume. On Btrfs it can be resized without touching the partition table, and it stays out of the snapshots.
 
 ## Sources
 

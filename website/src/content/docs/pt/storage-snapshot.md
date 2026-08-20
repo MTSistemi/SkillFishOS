@@ -9,10 +9,13 @@ Uma das ideias centrais do SkillFishOS é poder **mexer sem medo**. Quem torna i
 
 ## Subvolumes separados
 
-O disco usa dois subvolumes Btrfs distintos:
+O disco tem uma só partição Btrfs, dividida em subvolumes distintos:
 
-- **`@rootfs`** — o sistema operacional;
-- **`@home`** — os dados do usuário.
+- **`@`** — o sistema operacional;
+- **`@home`** — os dados do usuário;
+- **`@cache`** e **`@log`** — caches e registros, deixados fora dos snapshots para que uma volta atrás não traga junto os registros de ontem;
+- **`@games`** — a biblioteca de jogos, que senão deixaria cada snapshot enorme;
+- **`@swap`** — o arquivo de swap.
 
 Mantê-los separados é essencial: voltar atrás no sistema **não toca nos arquivos pessoais**. Dá para regressar a um sistema de “ontem” mantendo os documentos, os saves e as configurações de hoje.
 

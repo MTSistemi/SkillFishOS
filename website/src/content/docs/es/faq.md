@@ -30,7 +30,7 @@ Graba la ISO en una memoria USB y arranca el instalador gráfico **Calamares**. 
 Sí: la ISO es **en vivo**, puedes recorrer el escritorio antes de instalar.
 
 **¿Me borra el disco?**
-La instalación automática («Borrar disco») sí. Para conservar datos existentes, usa el particionado manual. SkillFishOS usa **Btrfs** con subvolúmenes separados `@rootfs` y `@home`.
+La instalación automática («Borrar disco») sí. Para conservar datos existentes, usa el particionado manual. SkillFishOS usa **Btrfs** con subvolúmenes separados: `@` para el sistema, `@home` para tus datos, y además `@cache`, `@log` y `@games`.
 
 **¿Necesito conexión a internet?**
 Para instalar no; luego hará falta para Steam, las actualizaciones y la IA.

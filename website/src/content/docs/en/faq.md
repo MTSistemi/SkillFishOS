@@ -30,7 +30,7 @@ Write the ISO to a USB stick and boot the **Calamares** graphical installer. All
 Yes: the ISO is **live**, you can explore the desktop before installing.
 
 **Does it erase my disk?**
-The automatic install ("Erase disk") does. To keep existing data, use manual partitioning. SkillFishOS uses **Btrfs** with separate `@rootfs` and `@home` subvolumes.
+The automatic install ("Erase disk") does. To keep existing data, use manual partitioning. SkillFishOS uses **Btrfs** with separate subvolumes — `@` for the system, `@home` for your data, plus `@cache`, `@log` and `@games`.
 
 **Do I need an internet connection?**
 Not to install; you'll need one afterwards for Steam, updates and AI.

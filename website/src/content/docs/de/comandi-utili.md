@@ -95,7 +95,7 @@ curl -s localhost:8888/              # die Oberfläche von Unsloth Studio (nur L
 ```bash
 sudo snapper list                    # Schnappschüsse auflisten
 sudo snapper create -d "vor X"       # Schnappschuss von Hand
-sudo btrfs subvolume list /          # Unterbände (@, @home, @log, @cache)
+sudo btrfs subvolume list /          # Unterbände (@, @home, @log, @cache, @games)
 
 # wirklich zu einem Schnappschuss zurück (gilt ab dem nächsten Start)
 sudo skillfish-rollback --list       # welche Schnappschüsse es gibt

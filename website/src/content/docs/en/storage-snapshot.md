@@ -9,10 +9,13 @@ One of SkillFishOS's central ideas is being able to **tinker without fear**. Thi
 
 ## Separate subvolumes
 
-The disk uses two distinct Btrfs subvolumes:
+The disk holds a single Btrfs partition, split into distinct subvolumes:
 
-- **`@rootfs`** — the operating system;
-- **`@home`** — the user's data.
+- **`@`** — the operating system;
+- **`@home`** — the user's data;
+- **`@cache`** and **`@log`** — caches and logs, kept outside the snapshots so a rollback does not drag yesterday's logs back with it;
+- **`@games`** — the games library, which would otherwise make every snapshot enormous;
+- **`@swap`** — the swap file.
 
 Keeping them separate is essential: rolling back the system **does not touch personal files**. You can return to a "yesterday" system while keeping today's documents, saves and settings.
 

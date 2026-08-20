@@ -30,7 +30,7 @@ Grave a ISO num pendrive e dê boot no instalador gráfico **Calamares**. Tudo c
 Dá: a ISO é **ao vivo**, você pode passear pela área de trabalho antes de instalar.
 
 **Ele apaga meu disco?**
-A instalação automática (“Apagar disco”) apaga. Para preservar dados existentes, use o particionamento manual. O SkillFishOS usa **Btrfs** com subvolumes separados `@rootfs` e `@home`.
+A instalação automática (“Apagar disco”) apaga. Para preservar dados existentes, use o particionamento manual. O SkillFishOS usa **Btrfs** com subvolumes separados: `@` para o sistema, `@home` para os seus dados, e ainda `@cache`, `@log` e `@games`.
 
 **Preciso de conexão com a internet?**
 Para instalar, não; depois será necessária para a Steam, as atualizações e a IA.

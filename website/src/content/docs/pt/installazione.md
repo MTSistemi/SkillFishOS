@@ -41,7 +41,7 @@ Na área de trabalho ao vivo abra o instalador (ícone *Install SkillFishOS*). O
 
 1. **Idioma e fuso horário.**
 2. **Teclado.**
-3. **Particionamento.** O SkillFishOS usa **Btrfs** com subvolumes separados `@rootfs` (sistema) e `@home` (dados do usuário): assim dá para *voltar atrás* no sistema sem mexer nos seus arquivos. Uma pequena partição **EFI** e uma de **swap** completam o quadro. Para a maioria, a opção automática (“Apagar disco”) já serve.
+3. **Particionamento.** O SkillFishOS usa **Btrfs** com subvolumes separados: `@` (sistema), `@home` (seus dados), `@cache` e `@log` (fora dos snapshots), `@games` (a biblioteca de jogos). Assim dá para *voltar atrás* no sistema sem mexer nos seus arquivos. Uma pequena partição **EFI** completa o quadro, e o swap é um **arquivo**, não uma partição. Para a maioria, a opção automática (“Apagar disco”) já serve.
 4. **Usuário.** Crie sua conta (ela entra nos grupos certos para jogos, áudio, renderização e afins).
 5. **Resumo e instalação.**
 
@@ -63,8 +63,9 @@ Daqui você pode:
 | Partição | Sistema de arquivos | Conteúdo |
 |---|---|---|
 | `nvme0n1p1` | FAT32 (EFI) | gerenciador de boot GRUB |
-| `nvme0n1p2` | **Btrfs** | `@rootfs` (sistema) + `@home` (dados) |
-| `nvme0n1p3` | swap | espaço de troca |
+| `nvme0n1p2` | **Btrfs** | `@` (sistema) · `@home` (dados) · `@cache` · `@log` · `@games` · `@swap` |
+
+Não há partição de swap: o swap é um **arquivo** dentro do subvolume `@swap`. No Btrfs ele muda de tamanho sem mexer na tabela de partições, e fica fora dos snapshots.
 
 ## Fontes
 

@@ -30,7 +30,7 @@ Wypal obraz ISO na pendrive i uruchom graficzny instalator **Calamares**. Wszyst
 Tak: obraz ISO jest **live**, możesz obejrzeć pulpit przed instalacją.
 
 **Czy to skasuje mi dysk?**
-Instalacja automatyczna („Wymaż dysk”) tak. Żeby zachować istniejące dane, użyj podziału ręcznego. SkillFishOS używa **Btrfs** z osobnymi podwoluminami `@rootfs` i `@home`.
+Instalacja automatyczna („Wymaż dysk”) tak. Żeby zachować istniejące dane, użyj podziału ręcznego. SkillFishOS używa **Btrfs** z osobnymi podwoluminami: `@` na system, `@home` na twoje dane, a do tego `@cache`, `@log` i `@games`.
 
 **Czy potrzebuję internetu?**
 Do instalacji nie; przyda się później do Steama, aktualizacji i AI.

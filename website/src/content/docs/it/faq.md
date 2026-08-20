@@ -30,7 +30,7 @@ Si scrive la ISO su una chiavetta USB e si avvia l'installer grafico **Calamares
 Sì: la ISO è **live**, puoi esplorare il desktop prima di installare.
 
 **Cancella il mio disco?**
-L'installazione automatica ("Cancella disco") sì. Se vuoi conservare dati esistenti, usa il partizionamento manuale. SkillFishOS usa **Btrfs** con sottovolumi `@rootfs` e `@home` separati.
+L'installazione automatica ("Cancella disco") sì. Se vuoi conservare dati esistenti, usa il partizionamento manuale. SkillFishOS usa **Btrfs** con sottovolumi separati: `@` per il sistema, `@home` per i tuoi dati, più `@cache`, `@log` e `@games`.
 
 **Serve la connessione a Internet?**
 Per installare no; serve poi per Steam, aggiornamenti e AI.

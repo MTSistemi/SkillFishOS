@@ -95,7 +95,7 @@ curl -s localhost:8888/              # la interfaz de Unsloth Studio (solo loopb
 ```bash
 sudo snapper list                    # listar instantáneas
 sudo snapper create -d "antes de X"  # instantánea a mano
-sudo btrfs subvolume list /          # subvolúmenes (@, @home, @log, @cache)
+sudo btrfs subvolume list /          # subvolúmenes (@, @home, @log, @cache, @games)
 
 # volver a una instantánea de verdad (surte efecto en el siguiente arranque)
 sudo skillfish-rollback --list       # qué instantáneas hay

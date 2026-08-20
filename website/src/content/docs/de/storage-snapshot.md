@@ -9,10 +9,13 @@ Einer der Grundgedanken von SkillFishOS ist, **ohne Angst herumprobieren** zu k�
 
 ## Getrennte Unterbände
 
-Die Platte verwendet zwei getrennte Btrfs-Unterbände:
+Die Platte hat eine einzige Btrfs-Partition, aufgeteilt in getrennte Unterbände:
 
-- **`@rootfs`** — das Betriebssystem;
-- **`@home`** — die Daten der Benutzer.
+- **`@`** — das Betriebssystem;
+- **`@home`** — die Daten der Benutzer;
+- **`@cache`** und **`@log`** — Zwischenspeicher und Protokolle, aus den Schnappschüssen herausgehalten, damit eine Rückkehr nicht die Protokolle von gestern mitschleppt;
+- **`@games`** — die Spielesammlung, die sonst jeden Schnappschuss riesig machen würde;
+- **`@swap`** — die Auslagerungsdatei.
 
 Sie getrennt zu halten ist entscheidend: das System zurückzurollen **rührt die persönlichen Dateien nicht an**. Du kannst zu einem System von „gestern“ zurückkehren und die Dokumente, Spielstände und Einstellungen von heute behalten.
 

@@ -30,7 +30,7 @@ Schreibe die ISO auf einen USB-Stick und starte das grafische Installationsprogr
 Ja: die ISO ist **live**, du kannst dich auf dem Schreibtisch umsehen, bevor du installierst.
 
 **Löscht es meine Platte?**
-Die automatische Installation („Platte löschen“) tut das. Um vorhandene Daten zu behalten, teile die Platte von Hand auf. SkillFishOS verwendet **Btrfs** mit getrennten Unterbänden `@rootfs` und `@home`.
+Die automatische Installation („Platte löschen“) tut das. Um vorhandene Daten zu behalten, teile die Platte von Hand auf. SkillFishOS verwendet **Btrfs** mit getrennten Unterbänden: `@` für das System, `@home` für deine Daten, dazu `@cache`, `@log` und `@games`.
 
 **Brauche ich eine Internetverbindung?**
 Zum Installieren nicht; danach für Steam, Aktualisierungen und die KI schon.

@@ -9,10 +9,13 @@ Jedną z głównych myśli SkillFishOS jest to, żeby dało się **grzebać bez 
 
 ## Osobne podwoluminy
 
-Dysk używa dwóch odrębnych podwoluminów Btrfs:
+Dysk ma jedną partycję Btrfs, podzieloną na odrębne podwoluminy:
 
-- **`@rootfs`** — system operacyjny;
-- **`@home`** — dane użytkownika.
+- **`@`** — system operacyjny;
+- **`@home`** — dane użytkownika;
+- **`@cache`** i **`@log`** — pamięci podręczne i dzienniki, trzymane poza migawkami, żeby cofnięcie nie przywlekło ze sobą wczorajszych dzienników;
+- **`@games`** — biblioteka gier, która inaczej rozdęłaby każdą migawkę;
+- **`@swap`** — plik wymiany.
 
 Trzymanie ich osobno jest kluczowe: cofnięcie systemu **nie rusza plików osobistych**. Możesz wrócić do systemu „z wczoraj”, zachowując dzisiejsze dokumenty, zapisy gier i ustawienia.
 

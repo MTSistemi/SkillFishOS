@@ -95,7 +95,7 @@ curl -s localhost:8888/              # окно Unsloth Studio (только п�
 ```bash
 sudo snapper list                    # список снимков
 sudo snapper create -d "перед X"     # снимок вручную
-sudo btrfs subvolume list /          # подтома (@, @home, @log, @cache)
+sudo btrfs subvolume list /          # подтома (@, @home, @log, @cache, @games)
 
 # вернуться к снимку по-настоящему (вступает в силу при следующей загрузке)
 sudo skillfish-rollback --list       # какие снимки есть

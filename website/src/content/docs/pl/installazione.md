@@ -41,7 +41,7 @@ Z pulpitu live uruchom instalator (ikona *Install SkillFishOS*). Calamares prowa
 
 1. **Język i strefa czasowa.**
 2. **Klawiatura.**
-3. **Podział dysku.** SkillFishOS używa **Btrfs** z osobnymi podwoluminami `@rootfs` (system) i `@home` (dane użytkownika): dzięki temu można *cofnąć* system, nie ruszając swoich plików. Układ dopełniają mała partycja **EFI** i partycja **swap**. Większości osób wystarczy instalacja automatyczna („Wymaż dysk”).
+3. **Podział dysku.** SkillFishOS używa **Btrfs** z osobnymi podwoluminami: `@` (system), `@home` (twoje dane), `@cache` i `@log` (trzymane poza migawkami), `@games` (biblioteka gier). Dzięki temu można *cofnąć* system, nie ruszając swoich plików. Układ dopełnia mała partycja **EFI**, a wymiana jest **plikiem**, nie partycją. Większości osób wystarczy instalacja automatyczna („Wymaż dysk”).
 4. **Użytkownik.** Utwórz swoje konto (trafi do właściwych grup: granie, dźwięk, render itd.).
 5. **Podsumowanie i instalacja.**
 
@@ -63,8 +63,9 @@ Stąd możesz:
 | Partycja | System plików | Zawartość |
 |---|---|---|
 | `nvme0n1p1` | FAT32 (EFI) | program rozruchowy GRUB |
-| `nvme0n1p2` | **Btrfs** | `@rootfs` (system) + `@home` (dane) |
-| `nvme0n1p3` | swap | przestrzeń wymiany |
+| `nvme0n1p2` | **Btrfs** | `@` (system) · `@home` (dane) · `@cache` · `@log` · `@games` · `@swap` |
+
+Nie ma partycji wymiany: wymiana to **plik** w podwoluminie `@swap`. Na Btrfs zmienia się jego rozmiar bez ruszania tablicy partycji, a sam plik zostaje poza migawkami.
 
 ## Źródła
 

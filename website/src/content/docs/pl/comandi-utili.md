@@ -95,7 +95,7 @@ curl -s localhost:8888/              # interfejs Unsloth Studio (tylko lokalnie)
 ```bash
 sudo snapper list                    # wypisz migawki
 sudo snapper create -d "przed X"     # migawka ręczna
-sudo btrfs subvolume list /          # podwoluminy (@, @home, @log, @cache)
+sudo btrfs subvolume list /          # podwoluminy (@, @home, @log, @cache, @games)
 
 # naprawdę wróć do migawki (obowiązuje od następnego uruchomienia)
 sudo skillfish-rollback --list       # które migawki są dostępne

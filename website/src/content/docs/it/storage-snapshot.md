@@ -9,10 +9,13 @@ Una delle idee centrali di SkillFishOS è poter **smanettare senza paura**. Ques
 
 ## Sottovolumi separati
 
-Il disco usa due sottovolumi Btrfs distinti:
+Il disco ha una sola partizione Btrfs, divisa in sottovolumi distinti:
 
-- **`@rootfs`** — il sistema operativo;
-- **`@home`** — i dati dell'utente.
+- **`@`** — il sistema operativo;
+- **`@home`** — i dati dell'utente;
+- **`@cache`** e **`@log`** — cache e registri, tenuti fuori dagli snapshot così un rollback non si riporta dietro i log di ieri;
+- **`@games`** — la libreria dei giochi, che altrimenti renderebbe enorme ogni snapshot;
+- **`@swap`** — il file di swap.
 
 Tenerli separati è fondamentale: fare il **rollback del sistema non tocca i file personali**. Si può tornare a un sistema "di ieri" mantenendo documenti, salvataggi e configurazioni di oggi.
 

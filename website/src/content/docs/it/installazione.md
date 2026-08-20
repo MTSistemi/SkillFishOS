@@ -41,7 +41,7 @@ Dal desktop live avvia l'installer (icona *Installa SkillFishOS*). Calamares ti 
 
 1. **Lingua e fuso orario.**
 2. **Tastiera.**
-3. **Partizionamento.** SkillFishOS usa **Btrfs** con i sottovolumi `@rootfs` (sistema) e `@home` (dati utente) separati: questo permette di fare il *rollback* del sistema senza toccare i tuoi file. Una piccola partizione **EFI** e una di **swap** completano lo schema. Per la maggior parte degli utenti va bene l'opzione di installazione automatica ("Cancella disco").
+3. **Partizionamento.** SkillFishOS usa **Btrfs** con sottovolumi separati: `@` (sistema), `@home` (i tuoi dati), `@cache` e `@log` (tenuti fuori dagli snapshot), `@games` (la libreria dei giochi). Questo permette di fare il *rollback* del sistema senza toccare i tuoi file. Una piccola partizione **EFI** completa lo schema, e lo swap è un **file**, non una partizione. Per la maggior parte degli utenti va bene l'opzione di installazione automatica ("Cancella disco").
 4. **Utente.** Crea il tuo account (sarà nei gruppi corretti per gaming, audio, render, ecc.).
 5. **Riepilogo e installazione.**
 
@@ -63,8 +63,9 @@ Da qui puoi:
 | Partizione | Filesystem | Contenuto |
 |---|---|---|
 | `nvme0n1p1` | FAT32 (EFI) | bootloader GRUB |
-| `nvme0n1p2` | **Btrfs** | `@rootfs` (sistema) + `@home` (dati) |
-| `nvme0n1p3` | swap | memoria di scambio |
+| `nvme0n1p2` | **Btrfs** | `@` (sistema) · `@home` (dati) · `@cache` · `@log` · `@games` · `@swap` |
+
+Non c'è una partizione di swap: lo swap è un **file** dentro il sottovolume `@swap`. Su Btrfs si ridimensiona senza toccare la tabella delle partizioni, e resta fuori dagli snapshot.
 
 ## Fonti
 
