@@ -34,15 +34,6 @@ UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
 # ⚠️ Se skillfish-base e' piu' vecchio e non ce l'ha, si resta senza pallino e
 # il testo torna dov'era: meglio una spiegazione di troppo che una finestra
 # che non si apre.
-AIUTO_GTT = L(
-    "Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
-    "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
-    "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
-    "possibile su questo hardware, verificato).",
-    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
-    "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
-    "parameter → a reboot is required (a live change is not possible on this "
-    "hardware, verified).")
 
 sys.path.insert(0, "/usr/share/skillfish")
 try:
@@ -412,6 +403,21 @@ def is_configured():
     return stack_installed()
 
 # ---------- worker threads ----------
+# ⚠️ DOPO def L(), non prima: il corpo di un modulo si esegue dall'alto in
+# basso, e messa in cima questa riga chiamava una funzione che non esisteva
+# ancora — l'applicazione non si apriva affatto (NameError). py_compile non
+# se ne accorge: e' un errore di esecuzione, non di sintassi.
+
+AIUTO_GTT = L(
+    "Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
+    "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
+    "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
+    "possibile su questo hardware, verificato).",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
+    "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
+    "parameter → a reboot is required (a live change is not possible on this "
+    "hardware, verified).")
+
 class Worker(QThread):
     line = pyqtSignal(str)
     done = pyqtSignal(int)

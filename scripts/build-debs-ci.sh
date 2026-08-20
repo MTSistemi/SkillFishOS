@@ -608,6 +608,30 @@ ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plas
 printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
+
+# ⚠️ COMPILARE NON E' AVVIARE. Il pannello AI della 26.08.37 compilava e non si
+# apriva: una costante chiamava L() venti righe prima che L() esistesse, cioe'
+# un errore di esecuzione che py_compile e i controlli sul testo non vedono.
+#
+# Qui il corpo del modulo viene ESEGUITO davvero (import, costanti, classi) con
+# un nome diverso da __main__, quindi main() non parte: niente finestre, niente
+# password, nessun demone. Serve solo a rispondere alla domanda "si apre?".
+avvia() { # avvia <sorgente-python>
+  if QT_QPA_PLATFORM=offscreen python3 - "$1" <<'PYAVVIO' >/tmp/avvio.$$ 2>&1
+import runpy, sys
+runpy.run_path(sys.argv[1], run_name="prova_di_avvio")
+PYAVVIO
+  then
+    echo "OK  si avvia: $1"
+  else
+    echo "FAIL non si avvia: $1"
+    sed 's/^/     /' /tmp/avvio.$$ | tail -12
+    rm -f /tmp/avvio.$$
+    exit 1
+  fi
+  rm -f /tmp/avvio.$$
+}
+
 echo "== building =="
 P=skillfish-iso-mount
 # Era rimasto nel vecchio apps/build-debs.sh, che prende i file dal disco della
@@ -1023,4 +1047,11 @@ check skillfish-theme_${VER}_all.deb ./usr/share/wallpapers/SkillFishOS/metadata
 check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc usr/share/wallpapers/SkillFishOS
 check skillfish-theme_${VER}_all.deb ./usr/local/bin/skillfish-first-login-wallpaper plasma-apply-wallpaperimage
 check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillfish.steampunk/contents/defaults usr/share/wallpapers/SkillFishOS
+
+# Le applicazioni con la finestra: si controlla che si APRANO, non solo che
+# compilino. E' il controllo che mancava quando il pannello AI e' uscito rotto.
+avvia apps/ai-panel/skillfish-ai-panel
+avvia apps/snapshots/skillfish-snapshots
+avvia apps/kernel-manager/skillfish-kernel-manager
+
 echo "ALL DEBS VERIFIED"
