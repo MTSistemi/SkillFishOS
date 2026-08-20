@@ -1,4 +1,4 @@
-name: "🐛 Bug report"
+name: "Bug report"
 description: Report a problem with SkillFishOS (kernel, apps, ISO/installer, theme, repo)
 labels: ["bug"]
 body:
@@ -7,12 +7,43 @@ body:
       value: |
         Thanks for helping improve SkillFishOS! For **security vulnerabilities** do **not** use
         this form — see [SECURITY.md](../../SECURITY.md) and report privately.
+
+        **Before reporting a boot or install failure, check that you downloaded the right image.**
+        The two editions are not interchangeable:
+
+        | Image | Runs on |
+        |---|---|
+        | `SkillFishOS-…-BC250-amd64.iso` | **AMD BC-250 boards only.** Its kernel is built for that board and will not boot anywhere else. |
+        | `SkillFishOS-…-Generic-amd64.iso` | Ordinary Intel/AMD PCs and virtual machines. |
+
+        A BC-250 image on a normal PC shows the boot menu and then stops with a black
+        screen — that is expected, not a bug. Download the Generic image instead.
+  - type: input
+    id: iso
+    attributes:
+      label: Exact ISO file name
+      description: >-
+        Copy the file name as it is on your disk, in full. This is the single most useful
+        line in the whole report: most "it does not boot" cases turn out to be the BC-250
+        image on a PC that is not a BC-250. Write "installed from the APT repository, no ISO"
+        if you did not use an image.
+      placeholder: "SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso"
+    validations:
+      required: true
+  - type: input
+    id: checksum
+    attributes:
+      label: MD5 of the ISO (optional, but it rules out a damaged download)
+      description: >-
+        `md5sum <file>` on Linux, `certutil -hashfile <file> MD5` on Windows.
+        Compare it with the value published next to the download.
+      placeholder: "c56c0fe5…"
   - type: input
     id: version
     attributes:
       label: SkillFishOS version
       description: "From the About app or `cat /etc/os-release` (VERSION / VERSION_CODENAME)."
-      placeholder: "26.06 Aetherium"
+      placeholder: "26.06.4 Aetherium"
     validations:
       required: true
   - type: dropdown
@@ -23,20 +54,18 @@ body:
         - "AMD BC-250"
         - "Generic PC (Intel/AMD)"
         - "Virtual machine (KVM/QEMU/VirtualBox)"
+        - "Not sure"
         - "Other"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: kernel
     attributes:
-      label: Kernel flavor
-      description: "`uname -r`"
-      options:
-        - "7.0.11-skillfishos (BC-250 main)"
-        - "7.0.11-skillfishos-generic"
-        - "7.0.11-skillfishos-slim"
-        - "7.0.10-skillfishos"
-        - "Other / not sure"
+      label: Kernel
+      description: >-
+        Paste the output of `uname -r`, exactly. If the system does not boot far enough to
+        run it, write what the boot menu shows, or "does not boot".
+      placeholder: "7.2.0-skillfishos-generic"
     validations:
       required: true
   - type: dropdown
@@ -53,6 +82,7 @@ body:
         - "Theme / KDE desktop"
         - "APT repository / updates"
         - "Gaming / EmuDeck / ES-DE"
+        - "Website / downloads"
         - "Other"
     validations:
       required: true

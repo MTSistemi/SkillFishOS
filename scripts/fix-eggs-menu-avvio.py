@@ -24,14 +24,44 @@ vede chiunque, prima di qualunque scelta di lingua:
    BC-250, e la stessa riga la legge anche la Generic, che puo' finire su un PC
    con 4 GB. Un tetto GTT piu' grande della RAM non e' un regalo.
 
+E una quarta, arrivata dalla issue #53 (20/08/2026): IL MENU NON DICEVA PER
+QUALE MACCHINA E' FATTA L'IMMAGINE. Le due edizioni si chiamavano tutte e due
+"SkillFishOS Live/Installation", identiche. Chi scarica la BC-250 e la mette in
+un PC normale vede il menu, sceglie, e finisce su uno schermo nero: il kernel e'
+compilato per quella scheda e non parte altrove. Da fuori sembra una ISO rotta.
+Il menu e' l'ULTIMO punto in cui si puo' ancora dirglielo - dopo non c'e' piu'
+niente da leggere - e costa una riga di testo. Vedi la sezione 5.
+
 Questi file appartengono al pacchetto penguins-eggs: un suo aggiornamento li
 riscrive. Per questo la correzione sta in uno script che si rilancia, come gia'
 si fa per branding.js e per la configurazione di Calamares.
+
+  uso:  fix-eggs-menu-avvio.py [bc250|generic]
+
+L'edizione e' facoltativa: senza, si fanno solo le correzioni 1-4 e il menu
+resta generico. build-iso.sh la ricava dal nome del file .iso, che e' l'unico
+posto dove l'edizione e' gia' scritta.
 """
-import glob, io, os, sys
+import glob, io, os, re, sys
 
 BASE = "/usr/lib/penguins-eggs/addons"
 fatti = []
+
+EDIZIONE = (sys.argv[1] if len(sys.argv) > 1 else "").strip().lower()
+
+# Per ogni edizione: la coda della voce di menu, e il titolo in cima allo
+# schermo. Corte apposta: la scritta sta dentro a una cornice di larghezza fissa
+# e quella di prima ("SkillFishOS - play and learn Linux", 34 caratteri) e' il
+# tetto pratico che sappiamo entrarci.
+# ⚠️ Trattino ASCII, non lineetta lunga: la stessa stringa la disegna anche
+# isolinux, che in avvio BIOS non e' in UTF-8.
+EDIZIONI = {
+    "bc250":   ("for AMD BC-250 boards only", "SkillFishOS - AMD BC-250 edition"),
+    "generic": ("for standard PCs",           "SkillFishOS - Generic PC edition"),
+}
+if EDIZIONE and EDIZIONE not in EDIZIONI:
+    sys.exit("edizione sconosciuta: %s (attese: %s)"
+             % (EDIZIONE, ", ".join(sorted(EDIZIONI))))
 
 
 def salva(p, t):
@@ -143,6 +173,55 @@ for p in ("/etc/calamares/modules/fstab.conf",
                                "btrfs: discard=async,compress=zstd:1"))
             fatti.append("fstab: sugli SSD btrfs usa zstd e discard asincrono")
 
+
+# --- 5. il menu dice per quale macchina e' fatta l'immagine ----------------
+# Deve stare DOPO la 2: quella cerca le voci di isolinux per intero, compresa
+# la riga dell'etichetta, e se la trovasse gia' allungata non le riconoscerebbe.
+#
+# ⚠️ Le sostituzioni sono scritte in modo da poter girare piu' volte, e con
+# edizioni DIVERSE: l'espressione regolare mangia anche una coda gia' aggiunta
+# prima di rimetterne una. Senza, la seconda build della giornata avrebbe
+# prodotto "Live/Installation for AMD BC-250 boards only for standard PCs" -
+# oppure, peggio, avrebbe lasciato alla Generic la scritta della BC-250 perche'
+# "c'e' gia' una coda, non tocco niente". I due modelli restano nel pacchetto
+# fra una build e l'altra, quindi il caso non e' teorico: e' quello normale.
+if EDIZIONE:
+    coda, titolo = EDIZIONI[EDIZIONE]
+
+    # Una riga di registro per gruppo, non una per file: i modelli sono otto
+    # (quattro nomi per due cartelle di addon) e otto righe uguali nel log della
+    # build non dicono niente piu' di una.
+    def per_tutti(schema, regola, cosa):
+        n_file = 0
+        for p in glob.glob(BASE + schema):
+            t = io.open(p, encoding="utf-8", errors="replace").read()
+            n = regola(t)
+            if n != t:
+                salva(p, n)
+                n_file += 1
+        if n_file:
+            fatti.append("%s (%d modelli)" % (cosa, n_file))
+
+    # GRUB (avvio UEFI): menuentry "{{{fullname}}} Live/Installation"
+    R_GRUB = re.compile(r'(menuentry "\{\{\{fullname\}\}\} Live/Installation)'
+                        r'(?: - [^"\n]*)?(")')
+    per_tutti("/*/theme/livecd/*grub.main.cfg",
+              lambda t: R_GRUB.sub(lambda m: m.group(1) + " - " + coda + m.group(2), t),
+              "menu UEFI: dice «%s»" % coda)
+
+    # isolinux (avvio BIOS): menu label {{{fullname}}} Live/Installation Mode
+    R_ISO = re.compile(r'(menu label \{\{\{fullname\}\}\} Live/Installation Mode)'
+                       r'(?: - [^\n]*?)?(\s*\n)')
+    per_tutti("/*/theme/livecd/*isolinux.main.cfg",
+              lambda t: R_ISO.sub(lambda m: m.group(1) + " - " + coda + m.group(2), t),
+              "menu BIOS: dice «%s»" % coda)
+
+    # il titolo in cima allo schermo: e' la scritta piu' grande che c'e'
+    R_TIT = re.compile(r'title-text:\s*"[^"]*"')
+    per_tutti("/*/theme/livecd/*grub.theme.cfg",
+              lambda t: R_TIT.sub('title-text: "%s"' % titolo, t),
+              "titolo: «%s»" % titolo)
+
 if not fatti:
     print("   niente da fare, e' gia' tutto a posto")
 for f in fatti:
@@ -164,5 +243,27 @@ for p in glob.glob(BASE + "/*/theme/livecd/grub.main.cfg"):
     if len(set(righe)) < len(righe):
         print("      ANCORA: in %s ci sono voci di menu identiche" % os.path.basename(p))
         brutte += 1
+
+# Che la coda ci sia, che sia UNA sola, e che sia quella di QUESTA edizione:
+# la coda sbagliata e' peggio di nessuna coda, perche' manda via la persona
+# giusta convincendola di avere l'immagine sbagliata.
+if EDIZIONE:
+    coda, titolo = EDIZIONI[EDIZIONE]
+    altre = [c for e, (c, _) in EDIZIONI.items() if e != EDIZIONE]
+    for p in (glob.glob(BASE + "/*/theme/livecd/*grub.main.cfg")
+              + glob.glob(BASE + "/*/theme/livecd/*isolinux.main.cfg")):
+        t = io.open(p, encoding="utf-8", errors="replace").read()
+        if t.count(coda) != 1:
+            print("      ANCORA: %s nomina l'edizione %d volte invece di 1"
+                  % (os.path.basename(p), t.count(coda)))
+            brutte += 1
+        for a in altre:
+            if a in t:
+                print("      ANCORA: %s porta la scritta dell'altra edizione (%s)"
+                      % (os.path.basename(p), a))
+                brutte += 1
+    print("      la voce di avvio dice: Live/Installation - %s" % coda)
+else:
+    print("      nessuna edizione indicata: il menu resta generico")
 print("      testo in altre lingue o voci doppie rimaste: %d" % brutte)
 sys.exit(1 if brutte else 0)

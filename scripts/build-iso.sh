@@ -152,14 +152,38 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 19/08/2026 presentava l'installatore come "SkillFishOS 26.06.4 Aetherium".
 # Il numero si ricava dal nome del file .iso, che e' l'unico posto dove lo
 # scriviamo gia'.
-VERSIONE_ISO=$(echo "$FINAL" | sed -n "s/^SkillFishOS-\([0-9.]*\)-.*//p")
+# ⚠️ Niente sed qui: la riga di prima era
+#      sed -n "s/^SkillFishOS-\([0-9.]*\)-.*//p"
+#    cioe' con la sostituzione VUOTA, perche' il \1 se l'erano mangiato le
+#    virgolette doppie quando e' stata scritta. Restituiva sempre stringa
+#    vuota, scattava il ripiego, e ogni ISO ha continuato a presentare
+#    l'installatore come "26.06": la correzione non ha mai corretto niente.
+#    Due tagli di shell fanno lo stesso lavoro e non hanno niente da
+#    proteggere: via il prefisso, poi via tutto dal primo trattino.
+VERSIONE_ISO="${FINAL#SkillFishOS-}"
+VERSIONE_ISO="${VERSIONE_ISO%%-*}"
 python3 "$SCRIPT_DIR/fix-eggs-calamares-version.py" "${VERSIONE_ISO:-26.06}"
 
 python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
 # Il menu di avvio: titolo in inglese, e Safe/Text Mode che fanno davvero
 # qualcosa invece di essere copie della voce normale. Sta qui perche' i file
 # appartengono al pacchetto penguins-eggs e un suo aggiornamento li riscrive.
-python3 "$SCRIPT_DIR/fix-eggs-menu-avvio.py"
+# Per quale macchina e' questa immagine. Le due edizioni si chiamavano tutte
+# e due "SkillFishOS Live/Installation": chi scaricava la BC-250 e la metteva
+# in un PC normale vedeva il menu e poi lo schermo nero, senza mai leggere da
+# nessuna parte che quel kernel e' fatto per quella scheda e non parte
+# altrove (issue #53). Il menu e' l'ultimo posto in cui glielo si puo' dire.
+case "$FINAL" in
+  *Generic*|*generic*) EDIZIONE=generic ;;
+  *BC250*|*bc250*)     EDIZIONE=bc250 ;;
+  *)
+    echo "FAIL-EDIZIONE" > "$ST"
+    echo "==== FALLITA: dal nome $FINAL non capisco l'edizione ===="
+    echo "     il nome deve contenere BC250 oppure Generic"
+    exit 1
+    ;;
+esac
+python3 "$SCRIPT_DIR/fix-eggs-menu-avvio.py" "$EDIZIONE"
 RC=$?
 echo "fix GRUB rc=$RC"
 if [ $RC -ne 0 ]; then
