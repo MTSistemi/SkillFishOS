@@ -159,7 +159,12 @@ mkdir -p /root/.attic
 moved=0
 for f in /root/*.sh; do
     [ -f "$f" ] || continue
-    if grep -qIE 'DioBestia|47yk2d8r6c|sshpass|github_pat_|ghp_[A-Za-z0-9]{20}' "$f" 2>/dev/null; then
+    # ⚠️ Si cerca la FORMA di una credenziale, non il suo valore. Prima qui
+    # c'era scritta la password vera: un rilevatore di segreti che contiene un
+    # segreto e' un controsenso — ed e' finito su un repository pubblico.
+    # Cercare la forma prende anche gli script con una password DIVERSA, che
+    # con l'elenco dei valori non sarebbero mai stati trovati.
+    if grep -qIE 'password[[:space:]]*=|passwd[[:space:]]*=|sshpass|PRIVATE KEY|github_pat_|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}' "$f" 2>/dev/null; then
         if [ "$DRY" = 1 ]; then
             echo "   [dry] $(basename "$f") -> /root/.attic/"
         else

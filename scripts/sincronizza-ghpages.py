@@ -12,6 +12,7 @@ di Git Bash rompe i percorsi e ha gia' svuotato gh-pages una volta. Qui i file
 si copiano uno per uno con SFTP e si committano con git: l'archivio e' di 36
 file per 25 MB, non vale la pena rischiare per risparmiare qualche secondo.
 """
+import io
 import os
 import shutil
 import stat
@@ -20,6 +21,43 @@ import subprocess
 import sys
 
 import paramiko
+
+
+# --- le credenziali del container, da FUORI il repository -------------------
+# ⚠️ Qui c'era la password scritta in chiaro, ed e' finita su un repository
+# PUBBLICO (16/08/2026, commit 1655aa3). Adesso si legge da
+# ~/.skillfishos/deploy.env, che e' lo stesso posto delle credenziali OVH e non
+# e' mai stato dentro al repository.
+#
+# Non si mette un valore predefinito: un ripiego silenzioso qui vorrebbe dire
+# rimettere una password nel codice fra sei mesi, quando qualcuno lo trovera'
+# comodo.
+def _credenziali():
+    percorso = os.path.join(os.path.expanduser("~"), ".skillfishos", "deploy.env")
+    valori = {}
+    try:
+        with io.open(percorso, encoding="utf-8") as f:
+            for riga in f:
+                riga = riga.strip()
+                if not riga or riga.startswith("#") or "=" not in riga:
+                    continue
+                k, _, v = riga.partition("=")
+                valori[k.strip()] = v.strip().strip('"').strip("'")
+    except IOError:
+        pass
+    manca = [k for k in ("APT_HOST", "APT_USER", "APT_PASS") if not valori.get(k)]
+    if manca:
+        sys.exit(
+            "manca %s in %s\n"
+            "   Aggiungi queste righe (il file NON sta nel repository):\n"
+            "      APT_HOST=192.168.5.103\n"
+            "      APT_USER=root\n"
+            "      APT_PASS=<la password del container>"
+            % (", ".join(manca), percorso))
+    return valori["APT_HOST"], valori["APT_USER"], valori["APT_PASS"]
+
+
+APT_HOST, APT_USER, APT_PASS = _credenziali()
 
 QUI = os.path.dirname(os.path.abspath(__file__))
 
@@ -91,7 +129,7 @@ def git(*args, cwd=CLONE):
 butta(SCARICO)
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect("192.168.5.103", username="root", password="47yk2d8r6c", timeout=40)
+c.connect(APT_HOST, username=APT_USER, password=APT_PASS, timeout=40)
 sf = c.open_sftp()
 tot = 0
 for cartella in ("dists", "pool"):

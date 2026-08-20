@@ -1,0 +1,31 @@
+# Ci sono credenziali nel repository?
+#
+# Il 16 agosto 2026 la password di root del container e' finita in
+# scripts/sincronizza-ghpages.py e ci e' rimasta quattro giorni, su un
+# repository pubblico. Nessuno se n'e' accorto: CodeQL cerca difetti nel
+# codice, e il rilevamento automatico di GitHub riconosce i FORMATI noti dei
+# token (ghp_, chiavi AWS) — una password qualunque no.
+#
+# Questo gira dopo il push, quindi non impedisce la fuga: la segnala forte.
+# Cio' che la impedisce e' l'hook pre-push, che pero' va installato a mano su
+# ogni copia. I due si coprono a vicenda.
+name: Credenziali — ce ne sono nel repository?
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cerca:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Cerca la forma di una credenziale
+        run: bash scripts/controlla-segreti.sh
