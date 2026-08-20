@@ -49,6 +49,45 @@ if (!defined('SFSTATS_LIB')) {
         }
         $db->exec('CREATE INDEX IF NOT EXISTS idx_day ON hits(day)');
         $db->exec('CREATE INDEX IF NOT EXISTS idx_vis ON hits(vis)');
+
+        // ---- doppioni: si tolgono una volta, e poi non tornano piu' --------
+        // Nel database c'erano 29 visite e 5 clic registrati DUE VOLTE: stesso
+        // secondo, stessa pagina, stesso visitatore. Non e' una persona che
+        // ricarica - quella cade in un altro secondo - e' lo stesso evento
+        // scritto due volte. Erano lo 0,4%: poco, ma gonfiano ogni conteggio.
+        //
+        // ⚠️ NON si toccano le visite ravvicinate ma non identiche. Ne avevamo
+        // 299 e sembravano lo stesso guaio: non lo erano. Riguardavano l'1,7%
+        // dei visitatori e il 76% veniva da CINQUE persone che macinavano
+        // pagine - traffico vero, o al limite un raccoglitore che non abbiamo
+        // riconosciuto. Cancellarle avrebbe falsato i numeri al ribasso.
+        //
+        // L'indice unico e' cio' che impedisce il ritorno: da qui in poi un
+        // secondo inserimento identico viene semplicemente ignorato (le
+        // scritture usano INSERT OR IGNORE), senza errori e senza doppioni.
+        $fatto = $dir . '/.doppioni-tolti';
+        if (!is_file($fatto)) {
+            try {
+                $db->exec('DELETE FROM hits WHERE id NOT IN
+                           (SELECT MIN(id) FROM hits GROUP BY ts, path, vis)');
+                $db->exec('CREATE TABLE IF NOT EXISTS dl(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts INTEGER NOT NULL, day TEXT NOT NULL,
+                    file TEXT NOT NULL, kind TEXT NOT NULL DEFAULT "iso",
+                    vis TEXT NOT NULL, bot INTEGER NOT NULL DEFAULT 0,
+                    country TEXT NOT NULL DEFAULT "", cname TEXT NOT NULL DEFAULT "",
+                    lang TEXT NOT NULL DEFAULT "")');
+                $db->exec('DELETE FROM dl WHERE id NOT IN
+                           (SELECT MIN(id) FROM dl GROUP BY ts, file, vis)');
+                $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_unico ON hits(ts, path, vis)');
+                $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_unico_dl ON dl(ts, file, vis)');
+                @file_put_contents($fatto, gmdate('c') . "
+");
+            } catch (Throwable $e) {
+                // Se qualcosa va storto si riprova al prossimo giro: meglio
+                // ritentare che lasciare il segno e non farlo mai piu'.
+            }
+        }
         return $db;
     }
 

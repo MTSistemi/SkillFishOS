@@ -34,7 +34,10 @@ list($country, $cname) = sfstats_country();
 
 try {
     $db = sfstats_db();
-    $st = $db->prepare('INSERT INTO hits(ts,day,path,ref,vis,bot,browser,os,country,cname,ref_full)
+    // INSERT OR IGNORE: con l'indice unico su (ts,path,vis) un secondo colpo
+    // identico nello stesso secondo viene lasciato cadere invece di
+    // sollevare un errore. E' il doppione che non deve piu' entrare.
+    $st = $db->prepare('INSERT OR IGNORE INTO hits(ts,day,path,ref,vis,bot,browser,os,country,cname,ref_full)
                         VALUES(:ts,:day,:path,:ref,:vis,:bot,:br,:os,:cc,:cn,:rf)');
     $st->execute(array(
         ':ts'   => time(),

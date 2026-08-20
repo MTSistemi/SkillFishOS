@@ -103,7 +103,7 @@ function page_head($title) {
 // ----------------------------------------------------------------------------
 // Not authenticated → setup or login screen
 if (!$authed) {
-    page_head('SkillFishOS · Statistiche');
+page_head('SkillFishOS · Statistiche');
     echo '<div class="mid"><div class="card lbox">';
     echo '<div class="brand">SkillFish<span class="g">OS</span> · Statistiche</div>';
     if (!$HASH) {
@@ -173,6 +173,116 @@ $top_links = $db->query("SELECT ref_full k, COUNT(*) c FROM hits
 $recent    = $db->query("SELECT ts,path,ref,ref_full,browser,os,bot,country,cname
                          FROM hits ORDER BY id DESC LIMIT 20")->fetchAll(PDO::FETCH_ASSOC);
 
+// ⚠️ QUESTO BLOCCO VA DOPO `$db = sfstats_db()` E PRIMA DEI RIQUADRI.
+// `page_head('SkillFishOS · Statistiche')` compare DUE VOLTE nel file: una per
+// la schermata di accesso e una per il cruscotto. Mettendolo prima della prima
+// occorrenza finiva nella schermata di accesso, dove il database non e' ancora
+// aperto: la pagina rispondeva 500 a chiunque provasse a entrare. Non lo
+// avrebbe detto nessun controllo di sintassi — si e' visto solo eseguendola.
+
+// --- i totali, calcolati PRIMA dei riquadri ---------------------------------
+// Questo blocco stava a meta' pagina, sotto le tabelle dei download. I numeri
+// che riassumono tutto - quanti download in tutto, quanti visitatori da quando
+// il sito esiste - servono in ALTO, dove si guarda per primo, non in fondo dopo
+// aver scorso otto tabelle. Il calcolo e' lo stesso; e' cambiato solo il punto
+// in cui viene fatto, perche' i riquadri stanno sopra e in PHP una variabile
+// non esiste finche' non la si e' riempita.
+
+// --- i numeri veri, presi da SourceForge -------------------------------------
+// Si interroga ogni mezz'ora e si tiene in cache: l'API e' pubblica ma non va
+// martellata, e questa pagina si ricarica spesso. Mezz'ora e' la stessa cadenza
+// del raccoglitore sul container, cosi' i due numeri non si contraddicono.
+define('SF_CACHE', 1800);
+$sf = null; $sf_err = '';
+try {
+    $cache = sfstats_dir() . '/sf-downloads.json';
+    if (is_file($cache) && (time() - filemtime($cache) < SF_CACHE)) {
+        $sf = json_decode((string)file_get_contents($cache), true);
+    } else {
+        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
+             . '?start_date=' . gmdate('Y-m-d', time() - 30 * 86400)
+             . '&end_date=' . gmdate('Y-m-d');
+        $ctx = stream_context_create(array('http' => array(
+            'timeout' => 8, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
+        $raw = @file_get_contents($url, false, $ctx);
+        if ($raw) { @file_put_contents($cache, $raw); $sf = json_decode($raw, true); }
+        else $sf_err = 'SourceForge non ha risposto';
+    }
+} catch (Throwable $e) { $sf_err = 'errore nella lettura'; }
+
+// --- il totale da sempre -----------------------------------------------------
+// L'API accetta qualunque data d'inizio e taglia da sola al primo caricamento,
+// quindi partiamo da prima che il progetto esistesse e lasciamo fare a lei.
+// Anche questo ogni mezz'ora: prima erano sei ore, e nei giorni in cui i
+// download si muovono davvero - un video, un articolo - sei ore di ritardo
+// vogliono dire guardare una pagina che dice il falso.
+$sf_tot = null; $sf_dal = '';
+try {
+    $cache_tot = sfstats_dir() . '/sf-downloads-sempre.json';
+    $d = null;
+    if (is_file($cache_tot) && (time() - filemtime($cache_tot) < SF_CACHE)) {
+        $d = json_decode((string)file_get_contents($cache_tot), true);
+    } else {
+        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
+             . '?start_date=2026-01-01&end_date=' . gmdate('Y-m-d');
+        $ctx = stream_context_create(array('http' => array(
+            'timeout' => 12, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
+        $raw = @file_get_contents($url, false, $ctx);
+        if ($raw) { @file_put_contents($cache_tot, $raw); $d = json_decode($raw, true); }
+        elseif (is_file($cache_tot)) {
+            // se SourceForge non risponde meglio un numero vecchio che nessun numero
+            $d = json_decode((string)file_get_contents($cache_tot), true);
+        }
+    }
+    if (is_array($d) && isset($d['total'])) {
+        $sf_tot = (int)$d['total'];
+        foreach ((array)($d['downloads'] ?? array()) as $g) {
+            if (is_array($g) && (int)$g[1] > 0) { $sf_dal = substr((string)$g[0], 0, 10); break; }
+        }
+    }
+} catch (Throwable $e) { }
+
+// --- il dettaglio file per file ----------------------------------------------
+// Lo raccoglie il container una volta al giorno (skillfish-stat-sourceforge):
+// sono quasi trenta file e ognuno vuole una richiesta all'API, farlo mentre la
+// pagina si carica vorrebbe dire mezzo minuto di attesa a ogni apertura.
+$det = null;
+$f_det = sfstats_dir() . '/sf-dettaglio.json';
+if (is_file($f_det)) {
+    $d2 = json_decode((string)file_get_contents($f_det), true);
+    if (is_array($d2) && isset($d2['totale'])) {
+        $det = $d2;
+        $sf_tot = (int)$d2['totale'];              // piu' attendibile: e' la stessa fonte
+        if (!empty($d2['dal'])) $sf_dal = (string)$d2['dal'];
+    }
+}
+
+// I clic sui nostri pulsanti, in totale. Non sono i download veri: dicono
+// quanti li hanno AVVIATI dal sito. Il numero di SourceForge e' sempre piu'
+// alto, perche' comprende anche chi arriva li' senza passare da noi.
+$dl_clic = 0; $dl_persone = 0;
+try {
+    $dl_clic    = one($db, 'SELECT COUNT(*) FROM dl WHERE bot=0');
+    $dl_persone = one($db, 'SELECT COUNT(DISTINCT vis) FROM dl WHERE bot=0');
+} catch (Throwable $e) { /* la tabella arriva col primo clic */ }
+
+// ⚠️ Da quando esiste il sito: il PRIMO giorno che risulta nel database, non
+// una data scritta a mano che poi resta indietro.
+$dal_giorno = '';
+try {
+    $s = $db->query('SELECT MIN(day) FROM hits');
+    $r = $s->fetch(PDO::FETCH_NUM);
+    if ($r && $r[0]) $dal_giorno = (string)$r[0];
+} catch (Throwable $e) { }
+
+// ⚠️ VISITATORI TOTALI, e va detto cosa sono davvero. L'identificativo del
+// visitatore contiene il GIORNO (e' cosi' che restiamo senza cookie e senza
+// poter risalire alla persona), quindi chi torna domani conta come qualcuno di
+// nuovo. Questo numero e' la somma dei visitatori giornalieri: e' il massimo
+// che si puo' dire senza tracciare le persone, e chiamarlo "persone diverse"
+// sarebbe falso.
+$uniq_total = one($db, "SELECT COUNT(DISTINCT vis) FROM hits WHERE 1=1$botw");
+
 page_head('SkillFishOS · Statistiche');
 echo '<div class="wrap">';
 echo '<header><div class="brand">SkillFish<span class="g">OS</span> · Statistiche</div><div class="sp"></div>';
@@ -182,11 +292,41 @@ echo '</header>';
 
 // KPIs
 $kpi = function ($n, $l) { echo '<div class="kpi"><div class="n">' . number_format($n, 0, ',', '.') . '</div><div class="l">' . h($l) . '</div></div>'; };
+
+// Prima fila: il movimento recente.
 echo '<div class="kpis">';
 $kpi($views_today, 'Visite oggi'); $kpi($uniq_today, 'Visitatori oggi');
 $kpi($views_7, 'Visite 7 giorni'); $kpi($uniq_7, 'Visitatori 7 giorni');
-$kpi($views_30, 'Visite 30 giorni'); $kpi($views_total, 'Visite totali');
+$kpi($views_30, 'Visite 30 giorni'); $kpi($uniq_30, 'Visitatori 30 giorni');
 echo '</div>';
+
+// Seconda fila: i totali da quando il sito esiste, download compresi. Stavano
+// sparsi in fondo alla pagina, sotto le tabelle; sono i numeri che si vogliono
+// vedere per primi, quindi stanno accanto alle visite.
+// ⚠️ Ogni totale porta la SUA data d'inizio, non una comune. Il sito conta le
+// visite dal 15/06; SourceForge contava i download da prima che il sito
+// esistesse. Una data sola in cima al gruppo le avrebbe attribuite entrambe al
+// giorno sbagliato.
+$da_sito = $dal_giorno ? ' · dal ' . date('d/m/Y', strtotime($dal_giorno)) : '';
+$da_sf   = $sf_dal ? ' · dal ' . date('d/m/Y', strtotime($sf_dal)) : '';
+echo '<h3 style="margin:26px 0 10px">Da sempre</h3>';
+echo '<div class="kpis">';
+$kpi($views_total, 'Visite totali' . $da_sito);
+$kpi($uniq_total, 'Visitatori totali' . $da_sito);
+if ($sf_tot !== null) $kpi($sf_tot, 'Download completati' . $da_sf);
+if ($sf && isset($sf['total'])) $kpi((int)$sf['total'], 'Download 30 giorni');
+$kpi($dl_clic, 'Download avviati dal sito');
+$kpi($dl_persone, 'Chi li ha avviati');
+echo '</div>';
+// ⚠️ Gli accenti si scrivono accentati. La prima stesura usava l'apostrofo
+// (perche', meta') per non litigare con le virgolette del PHP, e sulla pagina
+// si leggeva cosi': in mezzo a un testo che per il resto ha gli accenti giusti.
+// Con le virgolette doppie il problema non esiste.
+echo '<div class="muted" style="font-size:.78rem;margin:8px 2px 0">'
+   . "<strong>Download completati</strong>: i numeri veri di SourceForge, compreso chi ci arriva senza passare dal sito. "
+   . "<strong>Avviati dal sito</strong>: i clic sui nostri pulsanti — sempre di meno, perché chi cambia idea a metà non conta. "
+   . "<strong>Visitatori totali</strong>: la somma dei visitatori giornalieri. Restiamo senza cookie, quindi chi torna un altro giorno non lo possiamo riconoscere e conta due volte."
+   . '</div>';
 
 // chart
 echo '<div class="panel"><h3>Andamento ultimi 30 giorni</h3>';
@@ -383,90 +523,19 @@ if ($dl_paese || $dl_lingua) {
 }
 echo '</div>';
 
-// --- i numeri veri, presi da SourceForge -------------------------------------
-// Si interroga ogni mezz'ora e si tiene in cache: l'API e' pubblica ma non va
-// martellata, e questa pagina si ricarica spesso. Mezz'ora e' la stessa cadenza
-// del raccoglitore sul container, cosi' i due numeri non si contraddicono.
-define('SF_CACHE', 1800);
-$sf = null; $sf_err = '';
-try {
-    $cache = sfstats_dir() . '/sf-downloads.json';
-    if (is_file($cache) && (time() - filemtime($cache) < SF_CACHE)) {
-        $sf = json_decode((string)file_get_contents($cache), true);
-    } else {
-        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
-             . '?start_date=' . gmdate('Y-m-d', time() - 30 * 86400)
-             . '&end_date=' . gmdate('Y-m-d');
-        $ctx = stream_context_create(array('http' => array(
-            'timeout' => 8, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
-        $raw = @file_get_contents($url, false, $ctx);
-        if ($raw) { @file_put_contents($cache, $raw); $sf = json_decode($raw, true); }
-        else $sf_err = 'SourceForge non ha risposto';
-    }
-} catch (Throwable $e) { $sf_err = 'errore nella lettura'; }
-
-// --- il totale da sempre -----------------------------------------------------
-// L'API accetta qualunque data d'inizio e taglia da sola al primo caricamento,
-// quindi partiamo da prima che il progetto esistesse e lasciamo fare a lei.
-// Anche questo ogni mezz'ora: prima erano sei ore, e nei giorni in cui i
-// download si muovono davvero - un video, un articolo - sei ore di ritardo
-// vogliono dire guardare una pagina che dice il falso.
-$sf_tot = null; $sf_dal = '';
-try {
-    $cache_tot = sfstats_dir() . '/sf-downloads-sempre.json';
-    $d = null;
-    if (is_file($cache_tot) && (time() - filemtime($cache_tot) < SF_CACHE)) {
-        $d = json_decode((string)file_get_contents($cache_tot), true);
-    } else {
-        $url = 'https://sourceforge.net/projects/skillfishos/files/stats/json'
-             . '?start_date=2026-01-01&end_date=' . gmdate('Y-m-d');
-        $ctx = stream_context_create(array('http' => array(
-            'timeout' => 12, 'header' => "User-Agent: SkillFishOS-stats\r\n")));
-        $raw = @file_get_contents($url, false, $ctx);
-        if ($raw) { @file_put_contents($cache_tot, $raw); $d = json_decode($raw, true); }
-        elseif (is_file($cache_tot)) {
-            // se SourceForge non risponde meglio un numero vecchio che nessun numero
-            $d = json_decode((string)file_get_contents($cache_tot), true);
-        }
-    }
-    if (is_array($d) && isset($d['total'])) {
-        $sf_tot = (int)$d['total'];
-        foreach ((array)($d['downloads'] ?? array()) as $g) {
-            if (is_array($g) && (int)$g[1] > 0) { $sf_dal = substr((string)$g[0], 0, 10); break; }
-        }
-    }
-} catch (Throwable $e) { }
-
-// --- il dettaglio file per file ----------------------------------------------
-// Lo raccoglie il container una volta al giorno (skillfish-stat-sourceforge):
-// sono quasi trenta file e ognuno vuole una richiesta all'API, farlo mentre la
-// pagina si carica vorrebbe dire mezzo minuto di attesa a ogni apertura.
-$det = null;
-$f_det = sfstats_dir() . '/sf-dettaglio.json';
-if (is_file($f_det)) {
-    $d2 = json_decode((string)file_get_contents($f_det), true);
-    if (is_array($d2) && isset($d2['totale'])) {
-        $det = $d2;
-        $sf_tot = (int)$d2['totale'];              // piu' attendibile: e' la stessa fonte
-        if (!empty($d2['dal'])) $sf_dal = (string)$d2['dal'];
-    }
-}
-
 echo '<div class="panel"><h3>Download completati su SourceForge</h3>';
-if ($sf_tot !== null) {
+// ⚠️ Il totale da sempre e quello a 30 giorni sono saliti in cima alla pagina.
+// Ripeterli qui non aggiungeva niente e faceva sembrare che fossero due
+// misure diverse. Resta il numero che in alto non c'e': quanti di quei
+// download sono immagini ISO e non firme, note o elenchi.
+if ($sf_tot !== null && $det && !empty($det['per_tipo'])) {
+    $iso = 0;
+    foreach ($det['per_tipo'] as $tp => $n) if (strpos($tp, 'ISO') === 0) $iso += (int)$n;
     echo '<div class="kpis">';
-    echo '<div class="kpi"><div class="n">' . number_format($sf_tot, 0, ',', '.') . '</div>'
-       . '<div class="l">totale da sempre'
-       . ($sf_dal ? ' · dal ' . h(date('d/m/Y', strtotime($sf_dal))) : '') . '</div></div>';
-    if ($sf && isset($sf['total']))
-        echo '<div class="kpi"><div class="n">' . number_format((int)$sf['total'], 0, ',', '.') . '</div>'
-           . '<div class="l">ultimi 30 giorni</div></div>';
-    if ($det && !empty($det['per_tipo'])) {
-        $iso = 0;
-        foreach ($det['per_tipo'] as $tp => $n) if (strpos($tp, 'ISO') === 0) $iso += (int)$n;
-        echo '<div class="kpi"><div class="n">' . number_format($iso, 0, ',', '.') . '</div>'
-           . '<div class="l">solo immagini ISO</div></div>';
-    }
+    echo '<div class="kpi"><div class="n">' . number_format($iso, 0, ',', '.') . '</div>'
+       . '<div class="l">di cui immagini ISO</div></div>';
+    echo '<div class="kpi"><div class="n">' . ($sf_tot ? round(100 * $iso / $sf_tot) : 0) . '%</div>'
+       . '<div class="l">del totale</div></div>';
     echo '</div>';
 }
 

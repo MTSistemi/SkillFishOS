@@ -90,7 +90,9 @@ try {
           : ((strpos($f, 'sha') === 0) ? 'sha' : (($f === 'note' || $f === 'tutti') ? 'altro' : 'iso'))));
 
     list($cc, $cn) = sfstats_country();
-    $st = $db->prepare('INSERT INTO dl(ts,day,file,kind,vis,bot,country,cname,lang,ver)
+    // INSERT OR IGNORE: stesso motivo di pulse.php - due clic registrati nello
+    // stesso secondo sullo stesso file sono lo stesso clic scritto due volte.
+    $st = $db->prepare('INSERT OR IGNORE INTO dl(ts,day,file,kind,vis,bot,country,cname,lang,ver)
                         VALUES(:ts,:day,:f,:k,:v,:b,:cc,:cn,:l,:ver)');
     $st->execute(array(
         ':ts' => time(), ':day' => gmdate('Y-m-d'),
