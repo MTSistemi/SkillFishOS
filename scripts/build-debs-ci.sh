@@ -613,6 +613,31 @@ put $P 0755 system/usr/local/bin/skillfish-iso-mount usr/local/bin/skillfish-iso
 put $P 0644 system/usr/share/kio/servicemenus/skillfish-iso.desktop usr/share/kio/servicemenus/skillfish-iso.desktop
 put $P 0644 system/etc/polkit-1/rules.d/49-skillfish-udisks.rules etc/polkit-1/rules.d/49-skillfish-udisks.rules
 ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KDE"
+P=skillfish-snapshots
+# «SkillFishOS Snapshot»: gli snapshot in una finestra, senza terminale e senza
+# il vocabolario del filesystem. Btrfs Assistant resta installato per chi vuole
+# entrare nel dettaglio; questa risponde a tre domande e basta.
+#
+# Tre file e non uno perche' /.snapshots e' leggibile solo da root: anche solo
+# per MOSTRARE l'elenco serve passare da pkexec, e polkit lega l'autorizzazione
+# al percorso del programma. Separando la lettura dalla modifica si puo' dare
+# l'elenco senza password e chiedere la password per cancellare o ripristinare.
+# Se fossero un programma solo, o si chiede la password ogni volta che si apre
+# la finestra, o non la si chiede mai, nemmeno per cancellare.
+put $P 0755 apps/snapshots/skillfish-snapshots        usr/local/bin/skillfish-snapshots
+put $P 0755 apps/snapshots/skillfish-snapshots-read   usr/local/bin/skillfish-snapshots-read
+put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-snapshots-helper
+put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.snapshots.policy usr/share/polkit-1/actions/os.skillfish.snapshots.policy
+put $P 0644 system/usr/share/applications/os.skillfish.snapshots.desktop usr/share/applications/os.skillfish.snapshots.desktop
+# L'icona: il tema la porta gia' dentro skillfish-theme (tutto l'albero),
+# ma serve anche in hicolor, per chi cambia tema e per la finestra stessa.
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-snapshots.png usr/share/icons/hicolor/48x48/apps/skillfish-snapshots.png
+put $P 0644 system/usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
+put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
+ctrl $P "python3-pyqt6, snapper, btrfs-progs, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots in a window"
+
 
 P=skillfish-menu
 # Questo non stava in NESSUNO script: esisteva solo come .deb costruito a mano
@@ -622,6 +647,7 @@ P=skillfish-menu
 put $P 0644 system/etc/xdg/menus/applications-merged/skillfishos.menu etc/xdg/menus/applications-merged/skillfishos.menu
 put $P 0644 system/etc/xdg/menus/plasma-applications-merged/skillfishos.menu etc/xdg/menus/plasma-applications-merged/skillfishos.menu
 put $P 0644 system/usr/share/desktop-directories/skillfishos.directory usr/share/desktop-directories/skillfishos.directory
+
 ctrl $P "" "SkillFishOS application menu group"
 
 P=skillfish-emulators
@@ -639,7 +665,7 @@ put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/sha
 put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
 
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-menu skillfishos-archive-keyring; do
+for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -713,6 +739,11 @@ rm -f /tmp/kr.$$ /tmp/krg.$$ /tmp/krf.$$
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Signed-By: /usr/share/keyrings/skillfishos-archive-keyring.gpg'
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Suites: aetherium'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswap.sh compositore
+# Il nome del sottovolume di sistema NON si ricava da findmnt: dopo un
+# ripristino quello risponde col nome del sistema messo da parte, e
+# --annulla non trova piu' niente da recuperare (visto sulla Generic).
+check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'sottovol_da_fstab'
+check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'GRUB_BTRFS_DISABLE'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 # Il rilevatore di blocchi decide guardando un marcatore che scrive LUI stesso
 # allo spegnimento. Le due righe qui sotto sono quelle che lo rendono possibile:
@@ -756,6 +787,19 @@ check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 
 # in inglese. Ed e' generato dai sorgenti, quindi se qualcuno lo cancella non
 # se ne accorge nessuno: l'inglese e' anche il ripiego buono.
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 'Giochi da tavolo'
+# ⚠️ Tutte le lingue, sempre: e' una regola del progetto, e finora stava
+# solo nella testa di chi scriveva. Qui la costruzione si ferma se anche
+# una sola delle otto non ha le frasi dell'applicazione degli snapshot.
+# Una traduzione che manca non da' nessun segno: l'app ripiega
+# sull'inglese e sembra tutto a posto.
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/de.json 'Jetzt einen Schnappschuss machen'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/es.json 'Hacer una instantánea ahora'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/fr.json 'Prendre un instantané maintenant'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 'Fai una fotografia adesso'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pl.json 'Zrób migawkę teraz'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pt.json 'Tirar um snapshot agora'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Сделать снимок сейчас'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/uk.json 'Зробити знімок зараз'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'ConditionPathExists=/run/live/medium'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'Before=sddm.service'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
@@ -891,6 +935,25 @@ check skillfish-iso-mount_${VER}_all.deb    ./usr/local/bin/skillfish-iso-mount 
 # come espressione regolare, dove [pl] vale "un carattere fra p e l" e non
 # combacia mai. Cercare la traduzione vera verifica anche di piu'.
 check skillfish-menu_${VER}_all.deb         ./usr/share/desktop-directories/skillfishos.directory "Narzędzia SkillFishOS"
+# Le tre cose che, se saltano, non si vedono finche' non serve il ripristino:
+# l'applicazione senza la voce di menu, la voce fuori dal nostro gruppo, e
+# soprattutto la regola polkit senza la quale l'elenco chiede la password a
+# ogni apertura (o peggio, la cancellazione non la chiede piu').
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'skillfish-snapshots-read'
+check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop 'X-SkillFishOS'
+check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop 'Name\[fr\]=SkillFishOS Instantanés'
+check skillfish-snapshots_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.snapshots.policy '<allow_active>yes</allow_active>'
+check skillfish-snapshots_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.snapshots.policy 'auth_admin_keep'
+# L'aiutante NON deve accettare un numero qualunque: lo snapshot 0 e' il
+# sistema in funzione, e cancellarlo non ha senso.
+# L'aiutante parla inglese con un'etichetta davanti: e' la finestra a
+# tradurre. Si controlla l'ETICHETTA, che e' cio' che l'applicazione
+# riconosce; il testo inglese puo' cambiare senza rompere la costruzione.
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-helper 'ERR:zero'
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'def spiega'
+# E il programma di sola lettura non deve accettare argomenti: e' quello che
+# gira senza password.
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-read 'ERR:argomenti'
 # Nella barra deve esserci il NOSTRO Hub. Il collegamento a Discover era rimasto
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.

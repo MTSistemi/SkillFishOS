@@ -69,8 +69,38 @@ DISPOSITIVO=$(findmnt -no SOURCE / | sed 's/\[.*//')
 # ancora. Lo si ricava da dove e' montata la radice:
 #     /dev/sda2[/@]                        -> @
 #     /dev/sda2[/@/.snapshots/4/snapshot]  -> @   (avviati dentro uno snapshot)
-SOTTOVOL=$(findmnt -no SOURCE / | sed -n 's/.*\[\/\([^]]*\)\].*/\1/p' | cut -d/ -f1)
+# ⚠️ NON si ricava da findmnt. Il ripristino RINOMINA il sottovolume su cui il
+# sistema sta girando, e il kernel aggiorna il mount: subito dopo, findmnt
+# risponde /dev/sdb2[/@-rotto-20260820-161548] e il nome del sistema
+# diventerebbe quello del rottame. Da li' --annulla non trova piu' niente da
+# recuperare (misurato sulla Generic), e un secondo ripristino sposterebbe da
+# parte il sistema gia' messo da parte, lasciando orfano il vero @.
+#
+# Il nome giusto sta dove un ripristino non arriva: in fstab (cio' che verra'
+# montato al prossimo avvio) e in rootflags= del kernel (cio' che e' stato
+# montato a questo). findmnt resta solo come ultimo ripiego.
+sottovol_da_fstab() {
+    findmnt -no OPTIONS --fstab / 2>/dev/null \
+        | tr ',' '\n' | sed -n 's|^subvol=/*||p' | cut -d/ -f1 | head -1
+}
+sottovol_da_cmdline() {
+    tr ' ' '\n' < /proc/cmdline 2>/dev/null \
+        | sed -n 's|^rootflags=.*subvol=/*||p' | cut -d/ -f1 | head -1
+}
+sottovol_da_mount() {
+    findmnt -no SOURCE / | sed -n 's/.*\[\/\([^]]*\)\].*/\1/p' | cut -d/ -f1
+}
+SOTTOVOL=$(sottovol_da_fstab)
+[ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_cmdline)
+[ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_mount)
 [ -n "$SOTTOVOL" ] || errore "la radice non sta su un sottovolume: non so cosa ripristinare"
+
+# Rete di sicurezza: se comunque uscisse il nome di un sistema messo da parte,
+# meglio fermarsi che lavorare sul sottovolume sbagliato.
+case "$SOTTOVOL" in
+    *-rotto-*|*-annullato-*)
+        errore "il sottovolume di sistema risulta «$SOTTOVOL», che e' un sistema messo da parte: mi fermo" ;;
+esac
 
 mount -o subvolid=5 "$DISPOSITIVO" "$CIMA" 2>/dev/null || errore "non riesco a montare il livello superiore di $DISPOSITIVO"
 FATTO_MOUNT=1

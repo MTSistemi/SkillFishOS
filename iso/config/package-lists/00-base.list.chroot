@@ -53,7 +53,6 @@ bluez
 btrfs-progs
 inotify-tools
 snapper
-btrfs-assistant
 
 # --- Bootloader ---
 grub-efi-amd64

@@ -1,0 +1,140 @@
+#!/bin/bash
+# skillfish-snapshots-helper — le operazioni che modificano qualcosa, per
+# «SkillFishOS Snapshot». Si chiama con pkexec e chiede la password.
+#
+#   crea <descrizione>     fa uno snapshot adesso
+#   cancella <numero>      cancella uno snapshot
+#   cancella-molti <n,n,n> la pulizia: piu' snapshot in un colpo solo
+#   ripristina <numero>    riporta il sistema a quello snapshot (al riavvio)
+#   annulla                torna al sistema com'era prima dell'ultimo ripristino
+#   pulisci                butta i sistemi vecchi lasciati da parte
+#
+# Il lavoro vero non e' qui: ripristinare e' `skillfish-rollback`, che esiste
+# gia' e sa le due cose difficili (il sottovolume .snapshots annidato e /home
+# separato). Qui si controllano gli argomenti e si chiama lui.
+#
+# ⚠️ Ogni argomento che arriva da fuori va controllato PRIMA di finire in un
+# comando: questo programma gira da root per volonta' di polkit, e chi lo chiama
+# e' un'applicazione che gira da utente normale.
+set -u
+
+AZIONE="${1:-}"
+CONF=root
+
+numero() {  # accetta solo cifre, e rifiuta lo snapshot 0 (e' il sistema vivo)
+    case "$1" in
+        ''|*[!0-9]*) echo "ERR:non-numero «$1» is not a snapshot number" >&2; exit 2 ;;
+    esac
+    if [ "$1" = "0" ]; then
+        echo "ERR:zero snapshot 0 is the running system, not a real snapshot" >&2
+        exit 2
+    fi
+    [ -d "/.snapshots/$1/snapshot" ] || { echo "ERR:inesistente snapshot $1 does not exist" >&2; exit 2; }
+}
+
+# Il menu di avvio non si aggiorna da solo: grub-btrfsd dovrebbe farlo e non lo
+# fa (misurato, vedi skillfish-snapshot-menu). Se non lo chiamiamo qui, uno
+# snapshot appena creato NON compare fra le voci di ripristino - cioe' manca
+# proprio quando serve, se il sistema non parte piu'.
+aggiorna_menu() {
+    [ -x /usr/local/bin/skillfish-snapshot-menu ] || return 0
+    /usr/local/bin/skillfish-snapshot-menu 2>&1 | sed 's/^/   /'
+}
+
+case "$AZIONE" in
+  crea)
+    DESC="${2:-}"
+    # Una descrizione vuota non e' un errore: si mette qualcosa di sensato.
+    [ -n "$DESC" ] || DESC="manual snapshot"
+    # A capo e caratteri di controllo via: finiscono dentro info.xml, che e'
+    # XML, e una riga sola tiene l'elenco leggibile.
+    DESC=$(printf '%s' "$DESC" | tr -d '\000-\037' | cut -c1-120)
+    # ⚠️ Niente algoritmo di pulizia (-c number): con NUMBER_LIMIT=3 uno
+    # snapshot fatto a mano verrebbe buttato via dopo tre aggiornamenti di
+    # sistema. Chi lo crea prima di fare una prova se lo aspetta li' finche'
+    # non lo cancella lui.
+    snapper -c "$CONF" create -t single -d "$DESC" || exit 1
+    # ⚠️ Colonna 3 = number. L'intestazione del csv e'
+    #   config,subvolume,number,default,active,type,...
+    # quindi la colonna 1 e' il nome della configurazione: con -f1 questo
+    # rispondeva «OK creato root».
+    N=$(snapper -c "$CONF" --machine-readable csv list 2>/dev/null | tail -1 | cut -d, -f3)
+    echo "OK creato ${N:-?}"
+    aggiorna_menu
+    ;;
+
+  cancella)
+    numero "${2:-}"
+    # Il sistema in funzione potrebbe ESSERE partito da questo snapshot: in quel
+    # caso cancellarlo significa segare il ramo su cui si sta seduti.
+    RADICE=$(findmnt -no SOURCE / 2>/dev/null)
+    case "$RADICE" in
+        *"/.snapshots/$2/snapshot"*)
+            echo "ERR:in-uso the running system booted from this snapshot" >&2
+            exit 3 ;;
+    esac
+    snapper -c "$CONF" delete "$2" || exit 1
+    echo "OK cancellato $2"
+    aggiorna_menu
+    ;;
+
+  cancella-molti)
+    # La pulizia: piu' snapshot in un colpo solo. Non e' un ciclo di «cancella»
+    # fatto da fuori per due motivi concreti:
+    #   - una sola autorizzazione invece di una per snapshot;
+    #   - il menu di avvio si rifa' UNA volta alla fine. Rifarlo a ogni
+    #     cancellazione costa una decina di secondi per volta: su otto snapshot
+    #     sarebbero un minuto e mezzo di finestra bloccata.
+    LISTA="${2:-}"
+    [ -n "$LISTA" ] || { echo "ERR:vuoto nothing was given to delete" >&2; exit 2; }
+    RADICE=$(findmnt -no SOURCE / 2>/dev/null)
+
+    # ⚠️ Prima si controllano TUTTI, poi si cancella. Al contrario, un numero
+    # sbagliato in fondo all'elenco lascerebbe il lavoro fatto a meta', senza
+    # modo di sapere da fuori dove si e' fermato.
+    OLD_IFS="$IFS"; IFS=','; set -- $LISTA; IFS="$OLD_IFS"
+    for n in "$@"; do
+        numero "$n"
+        case "$RADICE" in
+            *"/.snapshots/$n/snapshot"*)
+                echo "ERR:in-uso the running system booted from snapshot $n" >&2
+                exit 3 ;;
+        esac
+    done
+
+    FATTI=0
+    for n in "$@"; do
+        if snapper -c "$CONF" delete "$n"; then
+            FATTI=$((FATTI+1))
+        else
+            echo "ERR:cancellazione could not delete snapshot $n" >&2
+        fi
+    done
+    echo "OK cancellati $FATTI"
+    aggiorna_menu
+    [ "$FATTI" -gt 0 ] || exit 1
+    ;;
+
+  ripristina)
+    numero "${2:-}"
+    # --si perche' qui la conferma l'ha gia' data la finestra, con scritto per
+    # esteso che cosa succede. Chiederla due volte non aggiunge sicurezza.
+    /usr/local/bin/skillfish-rollback "$2" --si || exit 1
+    echo "OK ripristinato $2"
+    ;;
+
+  annulla)
+    /usr/local/bin/skillfish-rollback --annulla || exit 1
+    echo "OK annullato"
+    ;;
+
+  pulisci)
+    /usr/local/bin/skillfish-rollback --pulisci || exit 1
+    echo "OK pulito"
+    ;;
+
+  *)
+    echo "ERR:uso usage: skillfish-snapshots-helper crea|cancella|cancella-molti|ripristina|annulla|pulisci [argument]" >&2
+    exit 2 ;;
+esac
+exit 0

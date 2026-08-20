@@ -28,7 +28,7 @@ set -u
 # aggiornata: la riga della versione del kernel, aggiunta il 18/08, non
 # compariva a chi aveva gia il HUD in funzione. Misurato sulla BC-250, che
 # aveva ancora la configurazione del 9 agosto.
-VERSIONE=7
+VERSIONE=8
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
 [ -x "$VAL" ] || { echo "manca $VAL" >&2; exit 1; }
@@ -185,7 +185,18 @@ elif ce fan; then
 fi
 # La ventola della scheda video: giri se la scheda ha un contagiri, altrimenti
 # la percentuale del PWM, che e' il solo dato vero che quelle schede dichiarano.
-ce fan_gpu && riga_fan="${riga_fan}"'${color2}   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+# ⚠️ Se la macchina non ha una ventola di sistema leggibile, qui riga_fan e'
+# ancora vuota: accodare "   GPU 39%" lascerebbe la percentuale senza
+# etichetta, due righe sotto "GPU 34°C", e si legge come carico della GPU.
+# Visto sulla Generic (Xeon + GTX 1050 Ti). Sulla BC-250 non si manifesta,
+# perche' li' la ventola di sistema c'e' sempre.
+if ce fan_gpu; then
+  if [ -n "$riga_fan" ]; then
+    riga_fan="${riga_fan}"'${color2}   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+  else
+    riga_fan='${color2}FAN   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+  fi
+fi
 [ -n "$riga_fan" ] && printf '%s\n' "$riga_fan"
 printf '${color2}${execi 9999 skillfish-hud-val lbl_disk} ${color1}${fs_used /} / ${fs_size /}${color2}   ${color1}${fs_used_perc /}%%\n'
 

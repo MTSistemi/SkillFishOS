@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  Due autorizzazioni distinte, e questo e' il motivo per cui i programmi
+  privilegiati sono due invece di uno.
+
+  LEGGERE l'elenco degli snapshot non cambia niente e va fatto ogni volta che si
+  apre la finestra: chiedere la password per guardare sarebbe un fastidio senza
+  contropartita, quindi qui allow_active e' "yes".
+
+  CANCELLARE o RIPRISTINARE si fa una volta ogni tanto e non si torna indietro
+  con un clic: la password si chiede, con auth_admin_keep, cosi' chi fa piu'
+  operazioni di fila non se la vede chiedere ogni volta.
+
+  ⚠️ polkit lega l'autorizzazione al PERCORSO del programma, non al suo nome:
+  se un giorno si sposta uno di questi due file, va cambiato anche qui, oppure
+  pkexec ricade sulla richiesta di password predefinita e l'elenco smette di
+  aprirsi da solo.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.snapshots.read">
+    <description>Read the list of system snapshots</description>
+    <description xml:lang="it">Leggere l'elenco degli snapshot di sistema</description>
+    <description xml:lang="pl">Odczyt listy migawek systemu</description>
+    <description xml:lang="uk">Читання списку знімків системи</description>
+    <description xml:lang="ru">Чтение списка снимков системы</description>
+    <description xml:lang="es">Leer la lista de instantáneas del sistema</description>
+    <description xml:lang="pt">Ler a lista de snapshots do sistema</description>
+    <description xml:lang="de">Die Liste der System-Schnappschüsse lesen</description>
+    <description xml:lang="fr">Lire la liste des instantanés du système</description>
+    <message>Authentication is required to read the snapshot list</message>
+    <message xml:lang="it">È richiesta l'autenticazione per leggere l'elenco degli snapshot</message>
+    <message xml:lang="pl">Wymagane jest uwierzytelnienie, aby odczytać listę migawek</message>
+    <message xml:lang="uk">Для читання списку знімків потрібна автентифікація</message>
+    <message xml:lang="ru">Для чтения списка снимков требуется аутентификация</message>
+    <message xml:lang="es">Se requiere autenticación para leer la lista de instantáneas</message>
+    <message xml:lang="pt">É necessária autenticação para ler a lista de snapshots</message>
+    <message xml:lang="de">Zum Lesen der Schnappschussliste ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="fr">Une authentification est requise pour lire la liste des instantanés</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-snapshots-read</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+
+  <action id="os.skillfish.snapshots.helper">
+    <description>Create, delete or restore a system snapshot</description>
+    <description xml:lang="it">Creare, cancellare o ripristinare uno snapshot di sistema</description>
+    <description xml:lang="pl">Utworzenie, usunięcie lub przywrócenie migawki systemu</description>
+    <description xml:lang="uk">Створення, вилучення або відновлення знімка системи</description>
+    <description xml:lang="ru">Создание, удаление или восстановление снимка системы</description>
+    <description xml:lang="es">Crear, borrar o restaurar una instantánea del sistema</description>
+    <description xml:lang="pt">Criar, apagar ou restaurar um snapshot do sistema</description>
+    <description xml:lang="de">Einen System-Schnappschuss anlegen, löschen oder zurückholen</description>
+    <description xml:lang="fr">Créer, supprimer ou restaurer un instantané du système</description>
+    <message>Authentication is required to change the system snapshots</message>
+    <message xml:lang="it">È richiesta l'autenticazione per modificare gli snapshot di sistema</message>
+    <message xml:lang="pl">Wymagane jest uwierzytelnienie, aby zmienić migawki systemu</message>
+    <message xml:lang="uk">Для зміни знімків системи потрібна автентифікація</message>
+    <message xml:lang="ru">Для изменения снимков системы требуется аутентификация</message>
+    <message xml:lang="es">Se requiere autenticación para modificar las instantáneas del sistema</message>
+    <message xml:lang="pt">É necessária autenticação para alterar os snapshots do sistema</message>
+    <message xml:lang="de">Zum Ändern der System-Schnappschüsse ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="fr">Une authentification est requise pour modifier les instantanés du système</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-snapshots-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

@@ -1,0 +1,77 @@
+#!/bin/bash
+# skillfish-snapshots-read — legge l'elenco degli snapshot e lo stampa in una
+# forma che l'applicazione sa leggere. NON modifica niente.
+#
+# PERCHE' E' UN PROGRAMMA A PARTE
+# /.snapshots e' drwxr-x--- root:root: un utente normale non riesce nemmeno a
+# elencarla, e `snapper list` gli risponde "No permissions". Quindi anche solo
+# per MOSTRARE la finestra serve passare da pkexec.
+#
+# Se l'elenco e la parte che cancella fossero lo stesso programma, pkexec
+# userebbe la stessa autorizzazione per entrambi e ci sarebbero due strade,
+# tutte e due brutte: chiedere la password ogni volta che si apre la finestra,
+# oppure non chiederla mai, nemmeno per cancellare uno snapshot.
+#
+# Separandoli, l'autorizzazione la si puo' dare per programma:
+#   questo (sola lettura)  -> senza password
+#   skillfish-snapshots-helper (modifica) -> con password
+#
+# ⚠️ Per questo qui non si accetta NESSUN argomento: quello che gira senza
+# password non deve avere niente su cui si possa influire da fuori.
+set -u
+
+CARTELLA=/.snapshots
+
+# Nessun argomento: vedi sopra. Se ne arriva uno, e' un errore di chi chiama.
+[ "$#" -eq 0 ] || { echo "ERR:argomenti this program takes no arguments" >&2; exit 2; }
+
+# --- spazio libero ----------------------------------------------------------
+# Serve a rispondere alla domanda che uno si fa davvero ("quanto mi resta?"),
+# ed e' la sola misura sensata: le quote btrfs sono spente, quindi lo spazio
+# occupato dal singolo snapshot non e' un dato che si possa avere in fretta.
+# Con le quote accese `btrfs qgroup show` costa un'attesa lunga a ogni apertura.
+if command -v findmnt >/dev/null 2>&1; then
+    read -r LIB TOT < <(df -B1 --output=avail,size / 2>/dev/null | tail -1)
+    printf 'SPAZIO\t%s\t%s\n' "${LIB:-0}" "${TOT:-0}"
+fi
+
+# --- il sistema di prima, messo da parte da un ripristino -------------------
+# skillfish-rollback non cancella il sistema che sostituisce: lo lascia come
+# @rootfs-rotto-<data>. L'applicazione deve poterlo dire, e offrire di tornare
+# indietro: e' la rete di sicurezza di chi ha ripristinato per sbaglio.
+CIMA=$(mktemp -d /tmp/skillfish-snapshots.XXXXXX)
+DISPOSITIVO=$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//')
+if [ -n "${DISPOSITIVO:-}" ] && mount -o subvolid=5 "$DISPOSITIVO" "$CIMA" 2>/dev/null; then
+    for v in "$CIMA"/*-rotto-* "$CIMA"/*-annullato-*; do
+        [ -d "$v" ] || continue
+        printf 'DAPARTE\t%s\n' "$(basename "$v")"
+    done
+    umount "$CIMA" 2>/dev/null
+fi
+rmdir "$CIMA" 2>/dev/null
+
+# --- gli snapshot -----------------------------------------------------------
+[ -d "$CARTELLA" ] || exit 0
+
+campo() {   # campo <file> <nome>: il contenuto di <nome> dentro info.xml
+    sed -n "s:.*<$2>\(.*\)</$2>.*:\1:p" "$1" 2>/dev/null | head -1
+}
+
+# ordine NUMERICO: col glob semplice l'elenco esce 1, 10, 11, 2, 3...
+for n in $(ls -1 "$CARTELLA" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
+    d="$CARTELLA/$n"
+    [ -d "$d/snapshot" ] || continue
+    i="$d/info.xml"
+    [ -r "$i" ] || continue
+    # ⚠️ La data dentro info.xml e' in UTC, mentre `snapper list` la mostra
+    # nell'ora locale. Qui si passa cosi' com'e' ed e' l'applicazione a
+    # convertirla: se la convertissimo qui, la finestra non avrebbe modo di
+    # sapere se il fuso e' gia' stato applicato.
+    printf 'SNAP\t%s\t%s\t%s\t%s\t%s\n' \
+        "$n" \
+        "$(campo "$i" date)" \
+        "$(campo "$i" type)" \
+        "$(campo "$i" pre_num)" \
+        "$(campo "$i" description)"
+done
+exit 0

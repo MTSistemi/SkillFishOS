@@ -27,6 +27,19 @@ GRUBCFG=/boot/grub/grub.cfg
 [ "$(findmnt -no FSTYPE / 2>/dev/null)" = "btrfs" ] || exit 0
 btrfs subvolume show /.snapshots >/dev/null 2>&1 || exit 0
 command -v grub-mkconfig >/dev/null 2>&1 || exit 0
+
+# ⚠️ Il generatore delle voci di ripristino puo' essere SPENTO: lo spegne
+# skillfish-grub-btrfs durante l'installazione (senza, grub-mkconfig fallisce
+# dentro il chroot di Calamares) e lo riaccende subito dopo. Se per qualunque
+# motivo resta spento, grub-mkconfig va a buon fine, salta il generatore e non
+# tocca grub-btrfs.cfg: senza questo controllo diremmo "menu aggiornato" mentre
+# il menu resta fermo a snapshot che non esistono piu'. Meglio dirlo.
+CONF_BTRFS=/etc/default/grub-btrfs/config
+if [ -r "$CONF_BTRFS" ] && grep -qE '^[[:space:]]*GRUB_BTRFS_DISABLE="?true"?' "$CONF_BTRFS"; then
+    echo "SkillFishOS: il menu di ripristino e' SPENTO, le sue voci non vengono aggiornate." >&2
+    echo "SkillFishOS: per riaccenderlo:  skillfish-grub-btrfs riaccendi && update-grub" >&2
+    exit 1
+fi
 [ -w "$(dirname "$GRUBCFG")" ] || exit 0     # sola lettura: siamo dentro uno snapshot
 
 # impronta: l'elenco degli snapshot presenti. Cambia quando ne nasce o ne muore uno.

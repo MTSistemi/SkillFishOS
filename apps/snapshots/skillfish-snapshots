@@ -1,0 +1,704 @@
+#!/usr/bin/env python3
+# SkillFishOS Snapshot — le fotografie del sistema in una finestra: guardarle,
+# farne una, tornare indietro. PyQt6, tema ottone/steampunk come le altre.
+#
+# PERCHE' NON BASTAVA BTRFS ASSISTANT
+# Btrfs Assistant c'e' gia' ed e' un buon programma, ma parla la lingua del
+# filesystem: sottovolumi, qgroup, configurazioni di snapper, schede diverse per
+# btrfs-maintenance e per snapper. Chi vuole solo tornare a ieri sera perche'
+# un aggiornamento ha rotto qualcosa deve prima imparare tutto quello.
+#
+# Qui si risponde a tre domande e basta:
+#   - che fotografie ho?              -> l'elenco, con date leggibili
+#   - me ne faccio una adesso         -> un bottone
+#   - torno a quella                  -> un bottone e un riavvio
+# Btrfs Assistant resta installato per chi vuole entrare nel dettaglio.
+#
+# COSA GIRA CON I PRIVILEGI E COSA NO
+# La finestra gira da utente normale. /.snapshots pero' e' leggibile solo da
+# root, quindi anche il semplice elenco passa da un programma a parte
+# (skillfish-snapshots-read, senza password) e le operazioni che cambiano
+# qualcosa da un secondo (skillfish-snapshots-helper, con password). Vedi la
+# regola polkit os.skillfish.snapshots.policy.
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+from PyQt6.QtCore import Qt, QLocale, QDateTime
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QGroupBox, QPushButton, QRadioButton, QButtonGroup,
+                             QMessageBox, QFrame, QScrollArea, QInputDialog, QLineEdit)
+
+# ⚠️ Il nome dell'icona e' «skillfish-snapshots» e deve esistere ESATTAMENTE
+# cosi' dentro SkillFishSteampunk, anche in png: se nel tema attivo non c'e',
+# KDE taglia dopo l'ultimo trattino e ripiega su «skillfish», che nel tema c'e'
+# — e sullo schermo esce il pesce del sistema al posto dell'icona giusta, senza
+# un errore da nessuna parte. Successo col Tuner, che aveva solo lo scalable.
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png"
+LEGGI = "/usr/local/bin/skillfish-snapshots-read"
+HELPER = "/usr/local/bin/skillfish-snapshots-helper"
+
+
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG;
+    # LANGUAGE (la lista con i due punti di gettext) e' l'ultimo ripiego.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"):
+        return "it"
+    # "uk" e' il codice della lingua ucraina; "ua" e' il codice del PAESE e non
+    # dovrebbe comparire, ma nei locale scritti a mano capita.
+    if v.startswith("ua"):
+        return "uk"
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    if len(codice) == 2 and codice.isalpha():
+        return codice
+    return "en"
+
+
+LANG = _detect_lang()
+
+# ⚠️ Il dizionario condiviso non deve mai impedire alla finestra di aprirsi: se
+# il modulo o il file della lingua mancano, si resta all'inglese. Una frase non
+# tradotta e' un fastidio, un'applicazione che non parte e' un guasto.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
+
+def L(it, en):
+    """La stringa in italiano o in inglese, o quella del dizionario condiviso.
+
+    Le due stringhe devono essere COSTANTI: se il testo viene formattato prima
+    (una f-string, o un "%s" % x), la chiave cercata nel dizionario contiene
+    gia' il valore e non la si trova mai. Il segnaposto va lasciato dentro e
+    riempito dopo: L("Snapshot %s", "Snapshot %s") % n.
+    """
+    if LANG == "it":
+        return it
+    return _TR(en)
+
+
+def sh(cmd, t=60):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=t)
+        return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
+    except Exception as e:
+        return 1, "", str(e)
+
+
+def bytes_leggibili(n):
+    try:
+        n = float(n)
+    except (TypeError, ValueError):
+        return "?"
+    for u in ("B", "KiB", "MiB", "GiB", "TiB"):
+        if n < 1024 or u == "TiB":
+            return ("%.0f %s" % (n, u)) if u in ("B", "KiB") else ("%.1f %s" % (n, u))
+        n /= 1024.0
+    return "?"
+
+
+# ---------- lettura ----------
+class Snapshot:
+    def __init__(self, num, data_utc, tipo, pre, descrizione):
+        self.num = num
+        self.tipo = tipo
+        self.pre = pre
+        self.descrizione = descrizione
+        self.quando = self._locale(data_utc)
+
+    @staticmethod
+    def _locale(s):
+        """La data di info.xml e' in UTC: va portata all'ora della macchina.
+
+        ⚠️ Senza questa conversione gli orari escono sbagliati di quanto vale il
+        fuso - due ore, in Italia d'estate - e uno snapshot fatto adesso
+        sembrerebbe di due ore fa. `snapper list` la converte, info.xml no.
+        """
+        if not s:
+            return None
+        try:
+            d = datetime.strptime(s.strip(), "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return None
+        return d.replace(tzinfo=timezone.utc).astimezone()
+
+    def data_scritta(self):
+        if self.quando is None:
+            return L("data sconosciuta", "unknown date")
+        q = QDateTime.fromSecsSinceEpoch(int(self.quando.timestamp()))
+        return QLocale().toString(q, QLocale.FormatType.ShortFormat)
+
+    def quanto_fa(self):
+        if self.quando is None:
+            return ""
+        s = (datetime.now(timezone.utc) - self.quando.astimezone(timezone.utc)).total_seconds()
+        if s < 90:
+            return L("adesso", "just now")
+        # ⚠️ Il singolare va scritto a parte. Con il solo plurale usciva
+        # «1 minuti fa» — visto nella finestra, non dedotto: e' il tipo di cosa
+        # che nel codice sembra a posto e sullo schermo no.
+        if s < 5400:
+            n = int(s // 60)
+            return L("un minuto fa", "one minute ago") if n == 1 else \
+                L("%d minuti fa", "%d minutes ago") % n
+        if s < 172800:
+            n = int(s // 3600)
+            return L("un'ora fa", "one hour ago") if n == 1 else \
+                L("%d ore fa", "%d hours ago") % n
+        n = int(s // 86400)
+        return L("un giorno fa", "one day ago") if n == 1 else \
+            L("%d giorni fa", "%d days ago") % n
+
+    def in_parole(self):
+        """La descrizione di snapper detta in italiano corrente.
+
+        snapper scrive «apt» e «pre»/«post», che dicono tutto a chi sa gia' come
+        funziona e niente a tutti gli altri. Le descrizioni scritte da chi usa il
+        programma si mostrano invece com'e' stato scritto, senza toccarle.
+        """
+        d = (self.descrizione or "").strip()
+        if d in ("apt", "zypp(apt)"):
+            if self.tipo == "pre":
+                return L("prima di installare o aggiornare programmi",
+                         "before installing or updating software")
+            return L("dopo aver installato o aggiornato programmi",
+                     "after installing or updating software")
+        if d == "timeline":
+            return L("fotografia periodica", "scheduled snapshot")
+        if d in ("manual snapshot", ""):
+            return L("fatta da te", "made by you")
+        # ⚠️ «boot» e «clean install» li scrivono i nostri ganci, e restavano
+        # cosi' com'erano: sulla Generic l'elenco diceva "boot" tre volte su
+        # quattro. Sono le due descrizioni piu' frequenti in assoluto — quelle
+        # che uno vede sempre - e sono proprio quelle che non dicevano niente.
+        b = d.lower()
+        if b == "boot":
+            return L("all'avvio del sistema", "at system startup")
+        if "clean install" in b or ("first" in b and "boot" in b):
+            return L("appena installato il sistema", "right after installing the system")
+        return d
+
+
+def leggi_tutto():
+    """Chiede l'elenco al programma di sola lettura. Torna (snapshot, spazio, daparte)."""
+    rc, out, err = sh(["pkexec", LEGGI], 60)
+    if rc != 0:
+        # ⚠️ Il messaggio grezzo di pkexec NON va mostrato: e' in inglese
+        # qualunque lingua parli la finestra, ed e' scritto per chi sviluppa.
+        # Visto sulla Generic aprendo l'app in tedesco: sotto un elenco vuoto
+        # compariva «Error creating textual authentication agent: Error opening
+        # current controlling terminal for the process ('/dev/tty')». Chi legge
+        # non ne ricava niente, e nemmeno capisce che ha solo negato il permesso.
+        #
+        # 126 e 127 sono i codici con cui pkexec dice «non autorizzato» oppure
+        # «non sono nemmeno riuscito a chiedere»: da' quasi sempre su chi ha
+        # premuto Annulla, e non e' un guasto.
+        if rc in (126, 127):
+            return None, None, None, L("operazione annullata", "operation cancelled")
+        return None, None, None, L("Non riesco a leggere le fotografie.",
+                                   "cannot read the snapshots")
+    snap, spazio, daparte = [], None, []
+    for riga in out.splitlines():
+        p = riga.split("\t")
+        if p[0] == "SNAP" and len(p) >= 6:
+            snap.append(Snapshot(p[1], p[2], p[3], p[4], p[5]))
+        elif p[0] == "SPAZIO" and len(p) >= 3:
+            spazio = (p[1], p[2])
+        elif p[0] == "DAPARTE" and len(p) >= 2:
+            daparte.append(p[1])
+    snap.sort(key=lambda s: int(s.num), reverse=True)   # i piu' recenti in cima
+    return snap, spazio, daparte, None
+
+
+# ---------- finestra ----------
+class Snapshots(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS — Snapshot", "SkillFishOS — Snapshots"))
+        self.setWindowIcon(QIcon(ICON))
+        self.resize(720, 620)
+        self.snap = []
+        self.daparte = []
+        self.spazio = None
+
+        w = QWidget()
+        self.setCentralWidget(w)
+        v = QVBoxLayout(w)
+        v.setContentsMargins(22, 18, 22, 18)
+        v.setSpacing(14)
+
+        # intestazione
+        h = QHBoxLayout()
+        img = QLabel()
+        pm = QPixmap(ICON)
+        if not pm.isNull():
+            img.setPixmap(pm.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation))
+        h.addWidget(img)
+        tcol = QVBoxLayout()
+        tcol.setSpacing(0)
+        titolo = QLabel(L("Snapshot", "Snapshots"))
+        titolo.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
+        self.sub = QLabel(L("Fotografie del sistema: se qualcosa si rompe, si torna a prima",
+                            "Pictures of the system: if something breaks, go back to before"))
+        self.sub.setStyleSheet("color:#b9a07a;")
+        tcol.addWidget(titolo)
+        tcol.addWidget(self.sub)
+        h.addLayout(tcol)
+        h.addStretch(1)
+        v.addLayout(h)
+
+        # avviso del sistema messo da parte (compare solo dopo un ripristino)
+        self.avviso = QFrame()
+        self.avviso.setStyleSheet("QFrame{border:1px solid #7a6034;border-radius:6px;"
+                                  "background:rgba(120,90,40,0.18);}")
+        av = QHBoxLayout(self.avviso)
+        av.setContentsMargins(12, 8, 12, 8)
+        self.avviso_testo = QLabel("")
+        self.avviso_testo.setWordWrap(True)
+        self.avviso_testo.setStyleSheet("border:0;color:#e8c878;")
+        self.bannulla = QPushButton(L("Torna indietro", "Go back"))
+        self.bannulla.clicked.connect(self.annulla)
+        self.bpulisci = QPushButton(L("Butta il vecchio", "Discard the old one"))
+        self.bpulisci.clicked.connect(self.pulisci)
+        av.addWidget(self.avviso_testo, 1)
+        av.addWidget(self.bannulla)
+        av.addWidget(self.bpulisci)
+        self.avviso.hide()
+        v.addWidget(self.avviso)
+
+        # elenco
+        self.box = QGroupBox(L("Le tue fotografie", "Your snapshots"))
+        bv = QVBoxLayout(self.box)
+        bv.setSpacing(6)
+        self.listhost = QWidget()
+        self.listlay = QVBoxLayout(self.listhost)
+        self.listlay.setContentsMargins(0, 0, 0, 0)
+        self.listlay.setSpacing(6)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(self.listhost)
+        bv.addWidget(scroll)
+        v.addWidget(self.box, 1)
+
+        self.stato = QLabel("")
+        self.stato.setWordWrap(True)
+        self.stato.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.stato)
+
+        b = QHBoxLayout()
+        self.bcancella = QPushButton(L("Cancella", "Delete"))
+        self.bcancella.clicked.connect(self.cancella)
+        self.bcancella.setStyleSheet("QPushButton{color:#e0b0a0;} QPushButton:hover{color:#ff9a7a;}")
+        self.bcrea = QPushButton(L("Fai una fotografia adesso", "Take a snapshot now"))
+        self.bcrea.clicked.connect(self.crea)
+        self.bripristina = QPushButton(L("Torna a questa", "Go back to this one"))
+        self.bripristina.clicked.connect(self.ripristina)
+        self.bpulizia = QPushButton(L("Fai pulizia", "Clean up"))
+        self.bpulizia.clicked.connect(self.pulizia)
+        b.addWidget(self.bcancella)
+        b.addWidget(self.bpulizia)
+        b.addStretch(1)
+        b.addWidget(self.bcrea)
+        b.addWidget(self.bripristina)
+        v.addLayout(b)
+        self.statusBar()
+
+        self.grp = QButtonGroup(self)
+        self.ricarica()
+
+    # ---- elenco ----
+    def ricarica(self):
+        for btn in list(self.grp.buttons()):
+            self.grp.removeButton(btn)
+        while self.listlay.count():
+            it = self.listlay.takeAt(0)
+            if it.widget():
+                it.widget().deleteLater()
+
+        self.snap, spazio, self.daparte, errore = leggi_tutto()
+        if errore:
+            # ⚠️ Se l'utente annulla la richiesta di autorizzazione finiamo qui:
+            # non e' un guasto, e non va detto come se lo fosse.
+            self.stato.setText(errore)
+            self.stato.setStyleSheet("color:#cf8a6a;")
+            self.snap = []
+            return
+
+        # ⚠️ Lo spazio libero NON va nel sottotitolo: quello dice a cosa serve la
+        # finestra, ed e' la prima cosa che legge chi la apre la prima volta.
+        # Scrivendocelo sopra si perdeva la spiegazione per un numero che sta
+        # benissimo in fondo, accanto al conteggio.
+        self.spazio = spazio
+        if self.daparte:
+            self.avviso_testo.setText(
+                L("C'è un sistema messo da parte da un ripristino: %s. "
+                  "Finché resta, puoi tornare com'eri prima.",
+                  "There is a system set aside by a restore: %s. "
+                  "While it is there, you can go back to how you were.")
+                % self.daparte[0])
+            self.avviso.show()
+        else:
+            self.avviso.hide()
+
+        if not self.snap:
+            # ⚠️ Due elenchi vuoti che sembrano uguali e non lo sono affatto.
+            #
+            # Dopo un ripristino la cronologia non e' persa: SEGUE il sistema
+            # nuovo, e quello parte al riavvio. Fino ad allora questa finestra
+            # gira sul sistema vecchio, dove /.snapshots non c'e' piu' — e
+            # scrivere «non c'e' ancora nessuna fotografia» proprio a chi ha
+            # appena ripristinato vorrebbe dire annunciargli di avergli perso
+            # tutto. Visto sulla Generic subito dopo un ripristino vero.
+            if self.daparte:
+                testo = L("Hai appena ripristinato. Le fotografie sono nel sistema "
+                          "che parte al prossimo riavvio: riappariranno tutte da li'.",
+                          "You have just restored. The snapshots are in the system that "
+                          "boots on the next restart: they will all be there again.")
+            else:
+                testo = L("Non c'è ancora nessuna fotografia. "
+                          "Il sistema ne fa una da solo prima di ogni installazione o aggiornamento.",
+                          "There are no snapshots yet. The system takes one by itself "
+                          "before every install or update.")
+            vuoto = QLabel(testo)
+            vuoto.setWordWrap(True)
+            vuoto.setStyleSheet("color:#b9a07a;")
+            self.listlay.addWidget(vuoto)
+            self.listlay.addStretch(1)
+            self.aggiorna_bottoni()
+            return
+
+        for i, s in enumerate(self.snap):
+            riga = QWidget()
+            rv = QHBoxLayout(riga)
+            rv.setContentsMargins(2, 2, 2, 2)
+            rb = QRadioButton()
+            rb.setProperty("num", s.num)
+            self.grp.addButton(rb)
+            rb.toggled.connect(self.aggiorna_bottoni)
+            if i == 0:
+                rb.setChecked(True)
+            rv.addWidget(rb)
+
+            col = QVBoxLayout()
+            col.setSpacing(0)
+            nm = QLabel("%s   %s" % (s.data_scritta(), s.quanto_fa()))
+            nm.setStyleSheet("font-weight:700;color:#f1e3c6;")
+            meta = QLabel(s.in_parole())
+            meta.setStyleSheet("color:#b9a07a;")
+            col.addWidget(nm)
+            col.addWidget(meta)
+            rv.addLayout(col, 1)
+            self.listlay.addWidget(riga)
+        self.listlay.addStretch(1)
+        self.stato.setText(self.riga_conteggio())
+        self.stato.setStyleSheet("color:#b9a07a;")
+        self.aggiorna_bottoni()
+
+    def riga_conteggio(self):
+        n = len(self.snap)
+        t = L("una fotografia.", "one snapshot.") if n == 1 else \
+            L("%d fotografie.", "%d snapshots.") % n
+        if self.spazio:
+            t += "   " + L("Spazio libero: %s su %s",
+                           "Free space: %s of %s") % (bytes_leggibili(self.spazio[0]),
+                                                      bytes_leggibili(self.spazio[1]))
+        return t
+
+    def scelto(self):
+        for btn in self.grp.buttons():
+            if btn.isChecked():
+                return btn.property("num")
+        return None
+
+    def scelto_snap(self):
+        n = self.scelto()
+        for s in self.snap:
+            if s.num == n:
+                return s
+        return None
+
+    def aggiorna_bottoni(self):
+        c = self.scelto() is not None
+        self.bcancella.setEnabled(c)
+        self.bripristina.setEnabled(c)
+
+    # ---- azioni ----
+    def esegui(self, argomenti, attesa=600):
+        rc, out, err = sh(["pkexec", HELPER] + argomenti, attesa)
+        return rc, out, err
+
+    @staticmethod
+    def spiega(testo):
+        """Traduce i messaggi dell'aiutante, che parla inglese con un'etichetta.
+
+        L'aiutante e' un programma a se': gira da root, e lo si puo' chiamare
+        anche da terminale. Non puo' sapere in che lingua sta la finestra, e
+        scrivere italiano li' dentro vorrebbe dire mostrarlo pari pari a un
+        tedesco. Quindi manda «ERR:zero snapshot 0 is the running system…» e la
+        traduzione la mette qui chi la lingua la conosce.
+
+        ⚠️ L'etichetta sconosciuta NON si scarta: si mostra il testo inglese che
+        l'accompagna. Se un giorno l'aiutante e' piu' nuovo dell'applicazione —
+        succede, sono due pacchetti — chi guarda legge comunque qualcosa di
+        sensato invece di una riga vuota.
+        """
+        t = (testo or "").strip()
+        if not t.startswith("ERR:"):
+            return t
+        etichetta, _, resto = t[4:].partition(" ")
+        frasi = {
+            "zero": L("Lo snapshot 0 è il sistema in funzione, non è una fotografia.",
+                      "Snapshot 0 is the running system, not a snapshot."),
+            "non-numero": L("Non è un numero di fotografia.",
+                            "That is not a snapshot number."),
+            "inesistente": L("Quella fotografia non esiste più.",
+                             "That snapshot no longer exists."),
+            "in-uso": L("Non si può: il sistema in funzione è partito da questa fotografia.",
+                        "Not possible: the running system booted from this snapshot."),
+            "vuoto": L("Non hai scelto niente da cancellare.",
+                       "You have not chosen anything to delete."),
+            "cancellazione": L("Non sono riuscito a cancellare una delle fotografie.",
+                               "One of the snapshots could not be deleted."),
+            "argomenti": L("Richiesta non valida.", "Invalid request."),
+            "uso": L("Richiesta non valida.", "Invalid request."),
+        }
+        return frasi.get(etichetta, resto or t)
+
+    def crea(self):
+        testo, ok = QInputDialog.getText(
+            self, L("Fai una fotografia", "Take a snapshot"),
+            L("A cosa ti serve? (per ritrovarla dopo)",
+              "What is it for? (so you can find it later)"),
+            QLineEdit.EchoMode.Normal,
+            L("prima di una prova", "before trying something"))
+        if not ok:
+            return
+        self.stato.setText(L("Sto facendo la fotografia…", "Taking the snapshot…"))
+        QApplication.processEvents()
+        rc, out, err = self.esegui(["crea", testo.strip()], 300)
+        self.ricarica()          # prima l'elenco, poi l'esito: al contrario
+                                 # la ricarica cancellava il messaggio
+        if rc == 0:
+            self.bene(L("Fatta.", "Done."))
+        else:
+            self.male(self.spiega(err or out))
+
+    def cancella(self):
+        s = self.scelto_snap()
+        if s is None:
+            return
+        r = QMessageBox.question(
+            self, L("Cancellare?", "Delete?"),
+            L("Cancello la fotografia del %s (%s)?\n\n"
+              "Sparisce solo la fotografia: il sistema di adesso non cambia.",
+              "Delete the snapshot from %s (%s)?\n\n"
+              "Only the snapshot goes: your current system does not change.")
+            % (s.data_scritta(), s.in_parole()))
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        rc, out, err = self.esegui(["cancella", s.num], 300)
+        self.ricarica()          # prima l'elenco, poi l'esito: al contrario
+                                 # la ricarica cancellava il messaggio
+        if rc == 0:
+            self.bene(L("Cancellata.", "Deleted."))
+        else:
+            self.male(self.spiega(err or out))
+
+    # ---- la pulizia ----
+    # Quante fotografie recenti restano comunque. Tre e' il numero che snapper
+    # tiene gia' per conto suo (NUMBER_LIMIT), quindi non introduce una regola
+    # nuova da spiegare: e' la stessa che il sistema applica da solo.
+    TIENE = 3
+
+    def da_buttare(self):
+        """Quali si propone di cancellare, e quali restano. Mai a indovinare.
+
+        Restano sempre, oltre alle piu' recenti:
+          - quella dell'installazione, che e' l'unico punto di ritorno al
+            sistema com'era appena uscito dalla ISO, e non si rifa' piu';
+          - quella da cui il sistema e' partito, se ci si e' dentro (l'aiutante
+            rifiuterebbe comunque, ma proporla e poi fallire sarebbe scortese).
+        """
+        radice = sh(["findmnt", "-no", "SOURCE", "/"], 10)[1]
+        tieni, butta = [], []
+        for i, s in enumerate(self.snap):        # gia' ordinati, i piu' recenti in cima
+            d = (s.descrizione or "").lower()
+            protetta = (i < self.TIENE
+                        or "clean install" in d
+                        or ("first" in d and "boot" in d)
+                        or ("/.snapshots/%s/snapshot" % s.num) in radice)
+            (tieni if protetta else butta).append(s)
+        return butta, tieni
+
+    def pulizia(self):
+        butta, tieni = self.da_buttare()
+        if not butta:
+            self.stato.setText(
+                L("Non c'è niente da buttare: ci sono solo fotografie da tenere.",
+                  "Nothing to clean up: only snapshots worth keeping are here."))
+            self.stato.setStyleSheet("color:#b9a07a;")
+            return
+
+        elenco = "\n".join("   • %s   %s" % (s.data_scritta(), s.in_parole()) for s in butta)
+        resta = "\n".join("   • %s   %s" % (s.data_scritta(), s.in_parole()) for s in tieni)
+
+        # PRIMA conferma: cosa succede, per esteso. Qui si legge.
+        # ⚠️ Non si promette un numero di gigabyte liberati: le quote btrfs sono
+        # spente, e con gli snapshot lo spazio recuperato dipende da quanto
+        # ciascuno condivide con gli altri. Dire una cifra inventata sarebbe
+        # peggio che non dirla.
+        d1 = QMessageBox(self)
+        d1.setWindowTitle(L("Fare pulizia?", "Clean up?"))
+        d1.setText(L("Butto %d fotografie e ne tengo %d.",
+                     "I will remove %d snapshots and keep %d.") % (len(butta), len(tieni)))
+        d1.setInformativeText(
+            L("VANNO VIA:\n%s\n\nRESTANO:\n%s\n\n"
+              "Lo spazio che si libera non si può dire in anticipo: le fotografie "
+              "condividono i dati fra loro.",
+              "GOING:\n%s\n\nSTAYING:\n%s\n\n"
+              "How much space is freed cannot be known in advance: snapshots share "
+              "their data with each other.") % (elenco, resta))
+        d1.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        d1.setDefaultButton(QMessageBox.StandardButton.No)
+        if d1.exec() != QMessageBox.StandardButton.Yes:
+            return
+
+        # SECONDA conferma: corta, secca, e con il No gia' selezionato. Serve a
+        # spezzare il doppio clic distratto sul primo «Sì».
+        d2 = QMessageBox(self)
+        d2.setIcon(QMessageBox.Icon.Warning)
+        d2.setWindowTitle(L("Sicuro?", "Are you sure?"))
+        d2.setText(L("Cancello per sempre %d fotografie.",
+                     "I will permanently delete %d snapshots.") % len(butta))
+        d2.setInformativeText(
+            L("Non si torna indietro: una fotografia cancellata non si recupera. "
+              "Il sistema di adesso non viene toccato.",
+              "There is no undo: a deleted snapshot cannot be recovered. "
+              "Your current system is not touched."))
+        d2.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        d2.setDefaultButton(QMessageBox.StandardButton.No)
+        if d2.exec() != QMessageBox.StandardButton.Yes:
+            return
+
+        self.stato.setText(L("Sto facendo pulizia…", "Cleaning up…"))
+        QApplication.processEvents()
+        rc, out, err = self.esegui(["cancella-molti", ",".join(s.num for s in butta)], 900)
+        self.ricarica()
+        if rc == 0:
+            self.bene(L("Buttate %d fotografie.", "Removed %d snapshots.") % len(butta))
+        else:
+            self.male(self.spiega(err or out))
+
+    def ripristina(self):
+        s = self.scelto_snap()
+        if s is None:
+            return
+        r = QMessageBox.question(
+            self, L("Tornare indietro?", "Go back?"),
+            L("Riporto il sistema a com'era il %s (%s).\n\n"
+              "• I tuoi file personali NON vengono toccati: torna indietro il sistema, "
+              "i documenti restano quelli di adesso.\n"
+              "• Il sistema di adesso non viene cancellato: resta da parte e puoi tornarci.\n"
+              "• Ha effetto al prossimo riavvio.\n\nProcedo?",
+              "I will put the system back to how it was on %s (%s).\n\n"
+              "• Your personal files are NOT touched: the system goes back, your "
+              "documents stay as they are now.\n"
+              "• The current system is not deleted: it stays aside and you can return to it.\n"
+              "• It takes effect on the next restart.\n\nShall I go ahead?")
+            % (s.data_scritta(), s.in_parole()))
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        self.stato.setText(L("Sto tornando indietro…", "Going back…"))
+        QApplication.processEvents()
+        rc, out, err = self.esegui(["ripristina", s.num], 900)
+        # anche qui: prima l'elenco, poi l'esito, o la ricarica lo cancella
+        self.ricarica()
+        if rc != 0:
+            self.male(self.spiega(err or out))
+            return
+        self.bene(L("Fatto. Al prossimo riavvio parte il sistema di quella data.",
+                    "Done. On the next restart the system from that date will boot."))
+        # ⚠️ Titolo e corpo non possono essere la stessa chiave inglese con due
+        # italiani diversi: nel dizionario condiviso la chiave e' la stringa
+        # inglese, quindi una delle due traduzioni scaccerebbe l'altra.
+        if QMessageBox.question(
+                self, L("Riavviare adesso?", "Restart now?"),
+                L("Al ritorno troverai il sistema di quella data.",
+                  "When it comes back you will have the system from that date.")
+        ) == QMessageBox.StandardButton.Yes:
+            sh(["pkexec", "systemctl", "reboot"], 30)
+
+    def annulla(self):
+        r = QMessageBox.question(
+            self, L("Tornare com'eri?", "Back to how you were?"),
+            L("Rimetto il sistema com'era prima del ripristino. Ha effetto al riavvio.",
+              "I will put back the system as it was before the restore. "
+              "It takes effect on restart."))
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        rc, out, err = self.esegui(["annulla"], 600)
+        self.ricarica()          # prima l'elenco, poi l'esito: al contrario
+                                 # la ricarica cancellava il messaggio
+        if rc == 0:
+            self.bene(L("Fatto. Riavvia per tornare al sistema di prima.",
+                        "Done. Restart to go back to the previous system."))
+        else:
+            self.male(self.spiega(err or out))
+
+    def pulisci(self):
+        r = QMessageBox.question(
+            self, L("Buttare il vecchio sistema?", "Discard the old system?"),
+            L("Cancello per sempre il sistema messo da parte dal ripristino. "
+              "Dopo, «Torna indietro» non sarà più possibile.\n\nLo spazio torna libero.",
+              "I will permanently delete the system set aside by the restore. "
+              "After that, «Go back» will no longer be possible.\n\nThe space is freed."))
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        rc, out, err = self.esegui(["pulisci"], 600)
+        self.ricarica()          # prima l'elenco, poi l'esito: al contrario
+                                 # la ricarica cancellava il messaggio
+        if rc == 0:
+            self.bene(L("Spazio liberato.", "Space freed."))
+        else:
+            self.male(self.spiega(err or out))
+
+    # ---- esito ----
+    def bene(self, msg):
+        self.stato.setText(msg)
+        self.stato.setStyleSheet("color:#9ccf6a;font-weight:600;")
+
+    def male(self, msg):
+        # pkexec esce con 126 quando l'autorizzazione viene negata o annullata:
+        # non e' un guasto del programma e non va scritto come tale.
+        if not msg:
+            msg = L("operazione annullata", "operation cancelled")
+        self.stato.setText(msg)
+        self.stato.setStyleSheet("color:#cf8a6a;")
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Snapshots")
+    app.setDesktopFileName("os.skillfish.snapshots")
+    app.setWindowIcon(QIcon(ICON))
+    w = Snapshots()
+    w.show()
+    w.raise_()
+    w.activateWindow()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

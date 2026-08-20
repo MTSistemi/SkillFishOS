@@ -32,6 +32,9 @@ skillfish-dashboard
 skillfish-ai-panel
 skillfish-kernel-manager
 skillfish-iso-mount
+# Gli snapshot in una finestra: senza questo, l'unica strada
+# per tornare indietro resta il terminale (skillfish-rollback).
+skillfish-snapshots
 
 # --- Sessione di gioco ---
 # Fornisce /usr/share/wayland-sessions/skillfish-gaming.desktop,
