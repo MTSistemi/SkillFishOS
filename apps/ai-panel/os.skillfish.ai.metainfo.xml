@@ -5,13 +5,28 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS AI</name>
   <summary>Run local AI models on the integrated GPU, on demand</summary>
+  <summary xml:lang="uk">Запускайте моделі ШІ локально на вбудованому відеоядрі, коли потрібно</summary>
+  <summary xml:lang="ru">Запускайте модели ИИ локально на встроенном видеоядре, когда нужно</summary>
+  <summary xml:lang="es">Ejecuta modelos de IA en local, en la GPU integrada, cuando quieras</summary>
+  <summary xml:lang="pt">Rode modelos de IA localmente, na GPU integrada, quando quiser</summary>
+  <summary xml:lang="de">KI-Modelle örtlich auf der eingebauten GPU laufen lassen, wenn du willst</summary>
   <summary xml:lang="it">Esegui modelli AI locali sulla GPU integrata, on-demand</summary>
   <summary xml:lang="pl">Uruchamiaj lokalne modele AI na zintegrowanej GPU, na żądanie</summary>
   <description>
-    <p>A one-click panel for an on-device LLM stack (Ollama + OpenWebUI, accelerated in Vulkan on the BC-250 GPU). A first-run wizard installs the stack and lets you pick a model from a curated list of more than 30 options that fit the hardware.</p>
+    <p>A one-click panel for a local LLM engine: Unsloth Studio, accelerated in Vulkan on the BC-250 GPU. A first-run wizard installs it and starts it; models are then downloaded from Unsloth's own interface.</p>
+    <p xml:lang="uk">Панель на один клац для локального рушія LLM: Unsloth Studio з прискоренням через Vulkan на відеоядрі BC-250. Майстер встановлює і запускає його під час першого запуску; моделі потім завантажують з власного вікна Unsloth.</p>
+    <p xml:lang="ru">Панель в один щелчок для локального движка LLM: Unsloth Studio с ускорением через Vulkan на видеоядре BC-250. Мастер ставит и запускает его при первом запуске; модели затем скачивают из окна самого Unsloth.</p>
+    <p xml:lang="es">Un panel de un clic para un motor LLM local: Unsloth Studio, acelerado en Vulkan sobre la GPU de la BC-250. Un asistente lo instala y lo arranca la primera vez; los modelos se descargan luego desde la interfaz del propio Unsloth.</p>
+    <p xml:lang="pt">Um painel de um clique para um motor LLM local: o Unsloth Studio, acelerado em Vulkan na GPU da BC-250. Um assistente o instala e o inicia na primeira vez; os modelos são baixados depois pela interface do próprio Unsloth.</p>
+    <p xml:lang="de">Eine Leiste mit einem Klick für einen örtlichen LLM-Motor: Unsloth Studio, über Vulkan auf der GPU der BC-250 beschleunigt. Ein Assistent richtet ihn beim ersten Start ein; die Modelle holst du danach über die Oberfläche von Unsloth.</p>
     <p>Shows live CPU, GPU, VRAM and RAM, and a slider to grow the shared memory available to the model. Turn the engine off with one click to free the GPU for gaming. Nothing leaves the machine.</p>
-    <p xml:lang="it">Un pannello 1-click per uno stack LLM locale (Ollama + OpenWebUI, accelerato in Vulkan sulla GPU della BC-250). Un wizard alla prima esecuzione installa lo stack e ti fa scegliere un modello da una lista curata di oltre 30 opzioni adatte all'hardware.</p>
-    <p xml:lang="pl">Panel 1-click dla lokalnego stacka LLM (Ollama + OpenWebUI, przyspieszany w Vulkanie na GPU BC-250). Kreator pierwszego uruchomienia instaluje stack i pozwala wybrać model z wyselekcjonowanej listy ponad 30 opcji dopasowanych do sprzętu.</p>
+    <p xml:lang="uk">Показує процесор, відеоядро, відеопам'ять і оперативну пам'ять наживо, і повзунок, щоб збільшити спільну пам'ять для моделі. Один клац — і рушій вимкнено, відеоядро вільне для ігор. Нічого не залишає комп'ютер.</p>
+    <p xml:lang="ru">Показывает процессор, видеоядро, видеопамять и оперативную память вживую, и ползунок, чтобы увеличить общую память для модели. Один щелчок — и движок выключен, видеоядро свободно для игр. Ничего не покидает компьютер.</p>
+    <p xml:lang="es">Muestra CPU, GPU, VRAM y RAM en vivo, y un deslizador para ampliar la memoria compartida que el modelo puede usar. Apaga el motor con un clic para dejar la GPU libre para los juegos. Nada sale de la máquina.</p>
+    <p xml:lang="pt">Mostra CPU, GPU, VRAM e RAM ao vivo, e um controle deslizante para aumentar a memória compartilhada que o modelo pode usar. Desligue o motor com um clique para liberar a GPU para os jogos. Nada sai da máquina.</p>
+    <p xml:lang="de">Zeigt CPU, GPU, Grafikspeicher und Arbeitsspeicher in Echtzeit und einen Schieberegler, um den gemeinsamen Speicher für das Modell zu vergrößern. Mit einem Klick den Motor ausschalten und die GPU fürs Spielen freigeben. Nichts verlässt den Rechner.</p>
+    <p xml:lang="it">Un pannello a un clic per un motore LLM locale: Unsloth Studio, accelerato in Vulkan sulla GPU della BC-250. Una procedura guidata lo installa e lo avvia al primo uso; i modelli si scaricano poi dall'interfaccia di Unsloth.</p>
+    <p xml:lang="pl">Panel na jedno kliknięcie dla lokalnego silnika LLM: Unsloth Studio, przyspieszany w Vulkanie na GPU BC-250. Kreator instaluje go i uruchamia przy pierwszym użyciu; modele pobiera się potem z własnego interfejsu Unslotha.</p>
     <p xml:lang="it">Mostra CPU, GPU, VRAM e RAM in tempo reale, e un cursore per aumentare la memoria condivisa disponibile al modello. Spegni il motore con un clic per liberare la GPU per i giochi. Nessun dato lascia la macchina.</p>
     <p xml:lang="pl">Pokazuje na żywo zużycie CPU, GPU, VRAM i RAM oraz suwak do zwiększania pamięci współdzielonej dostępnej dla modelu. Wyłącz silnik jednym kliknięciem, by zwolnić GPU do grania. Żadne dane nie opuszczają komputera.</p>
   </description>
@@ -35,6 +50,11 @@
   <screenshots>
     <screenshot type="default">
       <caption>AI panel with hardware readout</caption>
+      <caption xml:lang="uk">Панель ШІ з показниками заліза</caption>
+      <caption xml:lang="ru">Панель ИИ с показаниями железа</caption>
+      <caption xml:lang="es">Panel de IA con la lectura del hardware</caption>
+      <caption xml:lang="pt">Painel de IA com a leitura do hardware</caption>
+      <caption xml:lang="de">KI-Leiste mit den Werten der Hardware</caption>
       <caption xml:lang="it">Pannello AI con lettura hardware</caption>
       <caption xml:lang="pl">Panel AI z odczytem sprzętu</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/ai-panel.jpg</image>

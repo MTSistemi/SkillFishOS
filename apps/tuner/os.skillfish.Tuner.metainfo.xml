@@ -5,15 +5,30 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Tuner</name>
   <summary>Overclock, undervolt and tune the AMD BC-250 without a terminal</summary>
+  <summary xml:lang="uk">Розгін, зниження напруги та налаштування AMD BC-250 без термінала</summary>
+  <summary xml:lang="ru">Разгон, снижение напряжения и настройка AMD BC-250 без терминала</summary>
+  <summary xml:lang="es">Overclock, undervolt y ajuste de la AMD BC-250 sin terminal</summary>
+  <summary xml:lang="pt">Overclock, undervolt e ajuste da AMD BC-250 sem terminal</summary>
+  <summary xml:lang="de">Übertakten, Undervolting und Einstellen der AMD BC-250 ohne Terminal</summary>
   <summary xml:lang="it">Overclock, undervolt e tuning della AMD BC-250 senza terminale</summary>
   <summary xml:lang="pl">Overclocking, undervolting i tuning AMD BC-250 bez terminala</summary>
   <description>
     <p>The control centre for the AMD BC-250: overclock and undervolt the CPU, drive the GPU safe-point governor, control the fan, resize the shared VRAM, and manage Compute Units live — a grid of CU squares (24/32/40 presets, no reboot) with a CU health test for the silicon lottery.</p>
-    <p>Four ready presets (Stock, Performance, Turbo, Crazy), benchmark-and-rollback testing that applies a setting, stresses it and reverts if unstable, and a pop-up live monitor during any test. Bilingual (IT/EN); privileged actions go through a single authenticated helper.</p>
+    <p xml:lang="uk">Центр керування AMD BC-250: розгін і зниження напруги процесора, керування регулятором безпечних точок відеоядра, керування вентилятором, зміна розміру спільної відеопам'яті та керування обчислювальними блоками наживо — сітка квадратиків CU (набори 24/32/40, без перезавантаження) з перевіркою стану CU для кремнієвої лотереї.</p>
+    <p xml:lang="ru">Центр управления AMD BC-250: разгон и снижение напряжения процессора, управление регулятором безопасных точек видеоядра, управление вентилятором, изменение размера общей видеопамяти и управление вычислительными блоками вживую — сетка квадратиков CU (наборы 24/32/40, без перезагрузки) с проверкой состояния CU для кремниевой лотереи.</p>
+    <p xml:lang="es">El centro de control de la AMD BC-250: overclock y undervolt de la CPU, gobernador de puntos seguros de la GPU, control del ventilador, cambio de tamaño de la VRAM compartida y manejo de las unidades de cómputo en caliente — una rejilla de casillas de CU (perfiles 24/32/40, sin reiniciar) con una prueba de salud de las CU para la lotería del silicio.</p>
+    <p xml:lang="pt">A central de controle da AMD BC-250: overclock e undervolt da CPU, governador de pontos seguros da GPU, controle da ventoinha, mudança de tamanho da VRAM compartilhada e manejo das unidades de computação em tempo real — uma grade de quadradinhos de CU (perfis 24/32/40, sem reiniciar) com um teste de saúde das CU para a loteria do silício.</p>
+    <p xml:lang="de">Die Steuerzentrale der AMD BC-250: Übertakten und Undervolting der CPU, der Governor mit sicheren Punkten für die GPU, Lüftersteuerung, Ändern des gemeinsamen Grafikspeichers und Verwalten der Recheneinheiten im Betrieb — ein Raster aus CU-Kästchen (Vorgaben 24/32/40, ohne Neustart) mit einer Zustandsprüfung der CU für die Silizium-Lotterie.</p>
+    <p>Four ready presets (Stock, Performance, Turbo, Crazy), benchmark-and-rollback testing that applies a setting, stresses it and reverts if unstable, and a pop-up live monitor during any test. Translated into eight languages; privileged actions go through a single authenticated helper.</p>
+    <p xml:lang="uk">Чотири готові набори (Stock, Performance, Turbo, Crazy), перевірка «виміряй і відкоти», яка застосовує значення, навантажує його і повертає назад, якщо воно нестійке, та спливне вікно спостереження під час кожної перевірки. Перекладено вісьмома мовами; дії з правами йдуть через один перевірений помічник.</p>
+    <p xml:lang="ru">Четыре готовых набора (Stock, Performance, Turbo, Crazy), проверка «измерь и откати», которая применяет значение, нагружает его и возвращает назад, если оно неустойчиво, и всплывающее окно наблюдения во время каждой проверки. Переведён на восемь языков; действия с правами идут через один проверенный помощник.</p>
+    <p xml:lang="es">Cuatro perfiles listos (Stock, Performance, Turbo, Crazy), pruebas de medir-y-deshacer que aplican un valor, lo esfuerzan y lo revierten si no aguanta, y un monitor en vivo emergente durante cada prueba. Traducido a ocho idiomas; las acciones con privilegios pasan por un único ayudante autenticado.</p>
+    <p xml:lang="pt">Quatro perfis prontos (Stock, Performance, Turbo, Crazy), testes de medir-e-desfazer que aplicam um valor, o forçam e o revertem se não aguentar, e um monitor ao vivo que aparece durante cada teste. Traduzido para oito idiomas; as ações com privilégio passam por um único auxiliar autenticado.</p>
+    <p xml:lang="de">Vier fertige Vorgaben (Stock, Performance, Turbo, Crazy), Prüfen mit Messen-und-Zurücknehmen, das einen Wert anwendet, ihn belastet und zurücknimmt, wenn er nicht trägt, und ein Fenster mit Echtzeitwerten während jeder Prüfung. In acht Sprachen übersetzt; Vorgänge mit Rechten laufen über einen einzigen angemeldeten Helfer.</p>
     <p xml:lang="it">Il centro di controllo della AMD BC-250: overclock e undervolt della CPU, governor GPU al safe-point, controllo ventola, ridimensionamento della VRAM condivisa e gestione live delle Compute Unit — una griglia di quadratini CU (preset 24/32/40, senza riavvio) con un test di salute CU per la lotteria del silicio.</p>
     <p xml:lang="pl">Centrum sterowania dla AMD BC-250: overclocking i undervolting CPU, sterowanie governorem GPU w bezpiecznym punkcie pracy, kontrola wentylatora, zmiana rozmiaru współdzielonego VRAM oraz zarządzanie Compute Units na żywo — siatka kwadratów CU (presety 24/32/40, bez restartu) z testem kondycji CU dla loterii krzemowej.</p>
-    <p xml:lang="it">Quattro preset pronti (Stock, Performance, Turbo, Crazy), test con benchmark-e-rollback che applica un'impostazione, la stressa e la ripristina se instabile, e un monitor live durante ogni test. Bilingue (IT/EN); le azioni privilegiate passano da un singolo helper autenticato.</p>
-    <p xml:lang="pl">Cztery gotowe presety (Stock, Performance, Turbo, Crazy), testowanie benchmark-i-rollback, które stosuje ustawienie, obciąża je testem i cofa, jeśli jest niestabilne, oraz podręczny monitor na żywo podczas każdego testu. Wielojęzyczny (IT/EN/PL); uprzywilejowane operacje przechodzą przez jeden uwierzytelniony helper.</p>
+    <p xml:lang="it">Quattro preset pronti (Stock, Performance, Turbo, Crazy), test con benchmark-e-rollback che applica un'impostazione, la stressa e la ripristina se instabile, e un monitor live durante ogni test. Tradotto in otto lingue; le azioni privilegiate passano da un singolo helper autenticato.</p>
+    <p xml:lang="pl">Cztery gotowe presety (Stock, Performance, Turbo, Crazy), testowanie benchmark-i-rollback, które stosuje ustawienie, obciąża je testem i cofa, jeśli jest niestabilne, oraz podręczny monitor na żywo podczas każdego testu. Przetłumaczony na osiem języków; uprzywilejowane operacje przechodzą przez jeden uwierzytelniony helper.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.Tuner.desktop</launchable>
   <icon type="stock">skillfishos</icon>
@@ -36,18 +51,33 @@
   <screenshots>
     <screenshot type="default">
       <caption>Tuner main window</caption>
+      <caption xml:lang="uk">Головне вікно Тюнера</caption>
+      <caption xml:lang="ru">Главное окно Tuner</caption>
+      <caption xml:lang="es">Ventana principal del Tuner</caption>
+      <caption xml:lang="pt">Janela principal do Tuner</caption>
+      <caption xml:lang="de">Hauptfenster des Tuners</caption>
       <caption xml:lang="it">Finestra principale del Tuner</caption>
       <caption xml:lang="pl">Główne okno Tunera</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/tuner.jpg</image>
     </screenshot>
     <screenshot>
       <caption>Live Compute Unit grid</caption>
+      <caption xml:lang="uk">Сітка обчислювальних блоків наживо</caption>
+      <caption xml:lang="ru">Сетка вычислительных блоков вживую</caption>
+      <caption xml:lang="es">Rejilla de unidades de cómputo en caliente</caption>
+      <caption xml:lang="pt">Grade de unidades de computação em tempo real</caption>
+      <caption xml:lang="de">Raster der Recheneinheiten im Betrieb</caption>
       <caption xml:lang="it">Griglia Compute Unit live</caption>
       <caption xml:lang="pl">Siatka Compute Unit na żywo</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/tuner-full.png</image>
     </screenshot>
     <screenshot>
       <caption>CU health test</caption>
+      <caption xml:lang="uk">Перевірка стану CU</caption>
+      <caption xml:lang="ru">Проверка состояния CU</caption>
+      <caption xml:lang="es">Prueba de salud de las CU</caption>
+      <caption xml:lang="pt">Teste de saúde das CU</caption>
+      <caption xml:lang="de">Zustandsprüfung der CU</caption>
       <caption xml:lang="it">Test di salute delle CU</caption>
       <caption xml:lang="pl">Test kondycji CU</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/cu-test.jpg</image>

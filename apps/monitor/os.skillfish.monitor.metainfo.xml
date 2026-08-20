@@ -7,11 +7,26 @@
   <name xml:lang="it">SkillFishOS Telemetry</name>
   <name xml:lang="pl">SkillFishOS Telemetry</name>
   <summary>Live sensor charts + benchmark recorder/analyzer</summary>
+  <summary xml:lang="uk">Графіки датчиків наживо + запис і аналіз вимірювань</summary>
+  <summary xml:lang="ru">Графики датчиков вживую + запись и разбор измерений</summary>
+  <summary xml:lang="es">Gráficas de sensores en vivo + grabación y análisis de pruebas</summary>
+  <summary xml:lang="pt">Gráficos de sensores ao vivo + gravação e análise de medições</summary>
+  <summary xml:lang="de">Sensorkurven in Echtzeit + Aufzeichnung und Auswertung von Messungen</summary>
   <summary xml:lang="it">Grafici live dei sensori + registratore/analizzatore di benchmark</summary>
   <summary xml:lang="pl">Wykresy sensorów na żywo + rejestrator/analizator benchmarków</summary>
   <description>
     <p>A standalone live dashboard for the AMD BC-250: real-time line charts of CPU and GPU temperature, clock frequency, GPU voltage and fan speed, read straight from the hardware sensors.</p>
+    <p xml:lang="uk">Самостійна панель наживо для AMD BC-250: графіки температури процесора й відеоядра, частоти, напруги відеоядра та обертів вентилятора в реальному часі, зчитані просто з датчиків заліза.</p>
+    <p xml:lang="ru">Самостоятельная панель вживую для AMD BC-250: графики температуры процессора и видеоядра, частоты, напряжения видеоядра и оборотов вентилятора в реальном времени, считанные прямо с датчиков железа.</p>
+    <p xml:lang="es">Un panel en vivo independiente para la AMD BC-250: gráficas en tiempo real de la temperatura de CPU y GPU, la frecuencia, el voltaje de la GPU y la velocidad del ventilador, leídas directamente de los sensores del hardware.</p>
+    <p xml:lang="pt">Um painel ao vivo independente para a AMD BC-250: gráficos em tempo real da temperatura de CPU e GPU, da frequência, da tensão da GPU e da rotação da ventoinha, lidos direto dos sensores do hardware.</p>
+    <p xml:lang="de">Eine eigenständige Anzeige in Echtzeit für die AMD BC-250: Kurven von CPU- und GPU-Temperatur, Takt, GPU-Spannung und Lüfterdrehzahl, direkt von den Fühlern der Hardware gelesen.</p>
     <p>Sensor sampling runs on a background thread so the interface stays smooth, and the refresh interval is adjustable. Part of the native SkillFishOS app suite.</p>
+    <p xml:lang="uk">Опитування датчиків іде окремим потоком, тож вікно лишається плавним, а частоту оновлення можна змінювати. Частина набору рідних програм SkillFishOS.</p>
+    <p xml:lang="ru">Опрос датчиков идёт в отдельном потоке, поэтому окно остаётся плавным, а частоту обновления можно менять. Часть набора родных приложений SkillFishOS.</p>
+    <p xml:lang="es">La lectura de los sensores corre en un hilo aparte para que la interfaz siga fluida, y el intervalo de refresco se puede cambiar. Forma parte del conjunto de aplicaciones propias de SkillFishOS.</p>
+    <p xml:lang="pt">A leitura dos sensores roda numa thread à parte para a interface seguir fluida, e o intervalo de atualização é ajustável. Faz parte do conjunto de aplicativos nativos do SkillFishOS.</p>
+    <p xml:lang="de">Das Abfragen der Fühler läuft in einem eigenen Thread, damit die Oberfläche flüssig bleibt, und der Abstand zwischen den Messungen lässt sich einstellen. Teil der eigenen Anwendungen von SkillFishOS.</p>
     <p xml:lang="it">Un cruscotto live indipendente per l'AMD BC-250: grafici in tempo reale di temperatura CPU e GPU, frequenza di clock, voltaggio GPU e velocità della ventola, letti direttamente dai sensori hardware.</p>
     <p xml:lang="pl">Samodzielny pulpit na żywo dla AMD BC-250: wykresy liniowe w czasie rzeczywistym temperatury CPU i GPU, częstotliwości zegara, napięcia GPU i prędkości wentylatora, odczytywane bezpośrednio z czujników sprzętowych.</p>
     <p xml:lang="it">Il campionamento dei sensori gira su un thread dedicato così l'interfaccia resta fluida, e l'intervallo di aggiornamento è regolabile. Fa parte della suite di app native di SkillFishOS.</p>
@@ -41,6 +56,11 @@
   <screenshots>
     <screenshot type="default">
       <caption>Live temperature, frequency, voltage and fan charts</caption>
+      <caption xml:lang="uk">Графіки температури, частоти, напруги та вентилятора наживо</caption>
+      <caption xml:lang="ru">Графики температуры, частоты, напряжения и вентилятора вживую</caption>
+      <caption xml:lang="es">Gráficas en vivo de temperatura, frecuencia, voltaje y ventilador</caption>
+      <caption xml:lang="pt">Gráficos ao vivo de temperatura, frequência, tensão e ventoinha</caption>
+      <caption xml:lang="de">Kurven von Temperatur, Takt, Spannung und Lüfter in Echtzeit</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/monitor.jpg</image>
     </screenshot>
   </screenshots>
@@ -48,6 +68,13 @@
     <release version="26.06.6" date="2026-06-10">
       <description>
         <p>Monitor v2: added power (W) and CPU/GPU load charts (six panels total); refresh now selectable down to 0.5 s. Recordings are saved as .sfmon files (CSV-backed) and can be re-opened in the Monitor as a benchmark analyzer with a time scrubber to inspect the whole run second by second.</p>
+        <p xml:lang="uk">Monitor v2: додано графіки потужності (Вт) і завантаження процесора та відеоядра (усього шість панелей); оновлення тепер можна вибрати аж до 0,5 с. Записи зберігаються у файли .sfmon (усередині CSV) і відкриваються в Моніторі як аналізатор вимірювань, з повзунком часу, щоб оглянути весь прогін секунда за секундою.</p>
+        <p xml:lang="it">Monitor v2: aggiunti i grafici della potenza (W) e del carico di CPU e GPU (sei pannelli in tutto); l'aggiornamento ora si sceglie fino a 0,5 s. Le registrazioni si salvano in file .sfmon (dentro sono CSV) e si riaprono nel Monitor come analizzatore di benchmark, con una barra del tempo per riguardare tutta la sessione secondo per secondo.</p>
+        <p xml:lang="pl">Monitor v2: dodano wykresy poboru mocy (W) oraz obciążenia CPU i GPU (łącznie sześć paneli); odświeżanie można teraz wybrać nawet co 0,5 s. Nagrania zapisują się do plików .sfmon (w środku CSV) i otwierają się ponownie w Monitorze jako analizator testów, z suwakiem czasu do przejrzenia całego przebiegu sekunda po sekundzie.</p>
+        <p xml:lang="ru">Monitor v2: добавлены графики мощности (Вт) и загрузки процессора и видеоядра (всего шесть панелей); частоту обновления теперь можно выбрать вплоть до 0,5 с. Записи сохраняются в файлы .sfmon (внутри CSV) и открываются в Мониторе как разборщик измерений, с ползунком времени, чтобы осмотреть весь прогон секунда за секундой.</p>
+        <p xml:lang="es">Monitor v2: se añaden gráficas de potencia (W) y de carga de CPU y GPU (seis paneles en total); el refresco ahora se puede elegir hasta 0,5 s. Las grabaciones se guardan en archivos .sfmon (CSV por dentro) y se vuelven a abrir en el Monitor como analizador de pruebas, con una barra de tiempo para repasar toda la pasada segundo a segundo.</p>
+        <p xml:lang="pt">Monitor v2: acrescentados gráficos de potência (W) e de carga de CPU e GPU (seis painéis ao todo); a atualização agora pode ser escolhida até 0,5 s. As gravações são salvas em arquivos .sfmon (CSV por dentro) e voltam a abrir no Monitor como analisador de medições, com uma barra de tempo para percorrer a passada inteira segundo a segundo.</p>
+        <p xml:lang="de">Monitor v2: Kurven für die Leistungsaufnahme (W) und die Auslastung von CPU und GPU kommen dazu (insgesamt sechs Felder); der Abstand zwischen den Messungen lässt sich jetzt bis auf 0,5 s wählen. Aufzeichnungen werden als .sfmon-Dateien gesichert (innen CSV) und lassen sich im Monitor als Auswertung wieder öffnen, mit einem Zeitregler, um den ganzen Durchlauf Sekunde für Sekunde anzusehen.</p>
       </description>
     </release>
     <release version="26.06.5" date="2026-06-10">

@@ -5,11 +5,26 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Hub</name>
   <summary>A software centre for APT, Flatpak and Snap</summary>
+  <summary xml:lang="uk">Центр програм для APT, Flatpak і Snap</summary>
+  <summary xml:lang="ru">Центр программ для APT, Flatpak и Snap</summary>
+  <summary xml:lang="es">Un centro de software para APT, Flatpak y Snap</summary>
+  <summary xml:lang="pt">Uma central de programas para APT, Flatpak e Snap</summary>
+  <summary xml:lang="de">Eine Programmzentrale für APT, Flatpak und Snap</summary>
   <summary xml:lang="it">Un centro software per APT, Flatpak e Snap</summary>
   <summary xml:lang="pl">Centrum oprogramowania dla APT, Flatpak i Snap</summary>
   <description>
     <p>A Discover-style software centre: browse software by category, search, and read app pages with screenshots, ratings and reviews. Install, remove and update across APT (including the SkillFishOS repository), Flatpak and Snap, switch each backend on or off, and manage software sources.</p>
+    <p xml:lang="uk">Центр програм у дусі Discover: перегляд за категоріями, пошук і сторінки програм зі знімками, оцінками та відгуками. Встановлення, вилучення й оновлення через APT (разом зі сховищем SkillFishOS), Flatpak і Snap, вмикання й вимикання кожного рушія та керування джерелами програм.</p>
+    <p xml:lang="ru">Центр программ в духе Discover: просмотр по разделам, поиск и страницы приложений со снимками, оценками и отзывами. Установка, удаление и обновление через APT (включая репозиторий SkillFishOS), Flatpak и Snap, включение и выключение каждого движка и управление источниками программ.</p>
+    <p xml:lang="es">Un centro de software al estilo de Discover: explora por categorías, busca y lee fichas de aplicaciones con capturas, valoraciones y reseñas. Instala, quita y actualiza a través de APT (incluido el repositorio de SkillFishOS), Flatpak y Snap, enciende o apaga cada motor y gestiona las fuentes de programas.</p>
+    <p xml:lang="pt">Uma central de programas no estilo do Discover: navegue por categorias, busque e leia páginas de aplicativos com capturas, avaliações e resenhas. Instale, remova e atualize por APT (incluindo o repositório do SkillFishOS), Flatpak e Snap, ligue ou desligue cada motor e gerencie as fontes de programas.</p>
+    <p xml:lang="de">Eine Programmzentrale im Stil von Discover: nach Kategorien stöbern, suchen und Programmseiten mit Bildschirmfotos, Bewertungen und Besprechungen lesen. Einrichten, entfernen und aktualisieren über APT (samt der Paketquelle von SkillFishOS), Flatpak und Snap, jeden Motor ein- oder ausschalten und die Programmquellen verwalten.</p>
     <p>One place to keep the whole system up to date, with sort and filter controls and a one-click "update all" across every backend.</p>
+    <p xml:lang="uk">Одне місце, щоб тримати всю систему свіжою: впорядкування, фільтри та «оновити все» одним клацом для всіх рушіїв разом.</p>
+    <p xml:lang="ru">Одно место, чтобы держать всю систему свежей: сортировка, фильтры и «обновить всё» одним щелчком для всех движков сразу.</p>
+    <p xml:lang="es">Un solo sitio para tener todo el sistema al día, con orden y filtros y un «actualizar todo» de un clic para todos los motores a la vez.</p>
+    <p xml:lang="pt">Um só lugar para manter o sistema inteiro em dia, com ordenação e filtros e um “atualizar tudo” de um clique para todos os motores de uma vez.</p>
+    <p xml:lang="de">Ein Ort, um das ganze System aktuell zu halten, mit Ordnen und Filtern und einem „alles aktualisieren“ mit einem Klick über alle Motoren hinweg.</p>
     <p xml:lang="it">Un centro software in stile Discover: sfoglia per categoria, cerca e leggi le pagine app con screenshot, valutazioni e recensioni. Installa, rimuovi e aggiorna su APT (incluso il repository SkillFishOS), Flatpak e Snap, attiva o disattiva ogni backend e gestisci le sorgenti software.</p>
     <p xml:lang="pl">Centrum oprogramowania w stylu Discover: przeglądaj oprogramowanie według kategorii, wyszukuj i czytaj strony aplikacji ze zrzutami ekranu, ocenami i recenzjami. Instaluj, usuwaj i aktualizuj w APT (w tym repozytorium SkillFishOS), Flatpak i Snap, włączaj lub wyłączaj każdy backend i zarządzaj źródłami oprogramowania.</p>
     <p xml:lang="it">Un solo posto per tenere tutto il sistema aggiornato, con filtri e ordinamento e un "aggiorna tutto" su ogni backend con un clic.</p>
@@ -36,6 +51,11 @@
   <screenshots>
     <screenshot type="default">
       <caption>Browse software by category</caption>
+      <caption xml:lang="uk">Перегляд програм за категоріями</caption>
+      <caption xml:lang="ru">Просмотр программ по разделам</caption>
+      <caption xml:lang="es">Explorar programas por categorías</caption>
+      <caption xml:lang="pt">Navegar pelos programas por categoria</caption>
+      <caption xml:lang="de">Programme nach Kategorien durchsehen</caption>
       <caption xml:lang="it">Sfoglia il software per categoria</caption>
       <caption xml:lang="pl">Przeglądaj oprogramowanie według kategorii</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/hub.png</image>

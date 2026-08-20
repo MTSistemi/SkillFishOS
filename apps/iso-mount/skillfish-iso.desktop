@@ -1,15 +1,41 @@
 [Desktop Entry]
 Type=Application
+# ⚠️ Questo Name mancava: desktop-file-validate lo pretende nel gruppo
+# principale anche quando il file serve solo a portare delle Actions. KDE lo
+# accettava lo stesso, quindi l'errore non si vedeva; ma un file che non passa
+# la validazione e' un file che il prossimo strumento puo' rifiutare.
+Name=ISO image
+Name[it]=Immagine ISO
+Name[pl]=Obraz ISO
+Name[uk]=Образ ISO
+Name[ru]=Образ ISO
+Name[es]=Imagen ISO
+Name[pt]=Imagem ISO
+Name[de]=ISO-Abbild
 MimeType=application/x-cd-image;application/x-udf-image;application/x-iso9660-image;application/vnd.efi.iso;
 Actions=skfMount;skfUnmount;
 X-KDE-Priority=TopLevel
 
 [Desktop Action skfMount]
-Name=Monta immagine ISO
+Name=Mount ISO image
+Name[it]=Monta immagine ISO
+Name[pl]=Zamontuj obraz ISO
+Name[uk]=Змонтувати образ ISO
+Name[ru]=Подключить образ ISO
+Name[es]=Montar imagen ISO
+Name[pt]=Montar imagem ISO
+Name[de]=ISO-Abbild einhängen
 Icon=media-optical
 Exec=/usr/local/bin/skillfish-iso-mount %f
 
 [Desktop Action skfUnmount]
-Name=Smonta immagine ISO
+Name=Unmount ISO image
+Name[it]=Smonta immagine ISO
+Name[pl]=Odmontuj obraz ISO
+Name[uk]=Відмонтувати образ ISO
+Name[ru]=Отключить образ ISO
+Name[es]=Desmontar imagen ISO
+Name[pt]=Desmontar imagem ISO
+Name[de]=ISO-Abbild aushängen
 Icon=media-eject
 Exec=/usr/local/bin/skillfish-iso-mount -u %f
