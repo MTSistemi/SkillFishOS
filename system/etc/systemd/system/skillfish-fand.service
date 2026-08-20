@@ -1,0 +1,40 @@
+[Unit]
+# Il controllo della ventola. Gira sempre, anche a finestra chiusa: il
+# raffreddamento non e' una cosa che si guarda, e' una cosa che deve succedere.
+#
+# ⚠️ NIENTE guardia skillfish-is-bc250: questo serve su qualunque macchina che
+# abbia un PWM. Si ferma da solo se nella configurazione non c'e' un'uscita.
+Description=SkillFishOS Fan Control - fan curve, with anticipation
+Documentation=man:sensors(1)
+After=skillfish-sensori.service
+Wants=skillfish-sensori.service
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/skillfish-fand
+# ⚠️ Il ripristino e' qui, e non solo dentro al programma, perche' questo e'
+# l'unico che gira anche dopo un SIGKILL: la ventola non deve MAI restare
+# bloccata sull'ultimo valore che abbiamo scritto noi.
+ExecStopPost=/usr/local/bin/skillfish-fand --ripristina
+Restart=always
+RestartSec=2
+# Un giro dura un secondo. Se per trenta non arriva un colpetto, il ciclo e'
+# bloccato: meglio ammazzarlo e riavviarlo che lasciarlo li' con la ventola
+# ferma sul valore di dieci minuti fa.
+WatchdogSec=30
+NotifyAccess=main
+
+# Ha bisogno di scrivere in /sys (i PWM) e in /run e /var/lib. Tutto il resto
+# glielo togliamo: un programma che gira da root per muovere una ventola non ha
+# nessun motivo di poter vedere /home o la rete.
+ProtectHome=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+NoNewPrivileges=yes
+ReadWritePaths=/sys /run /var/lib
+
+[Install]
+WantedBy=multi-user.target

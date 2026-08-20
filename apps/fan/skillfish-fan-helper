@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""Scrive la configurazione della ventola, con i privilegi e con il cervello.
+
+La finestra gira da utente normale: /etc/skillfish e le uscite PWM sono di
+root. Passa da qui, e questo e' l'unico punto in cui si scrive.
+
+⚠️ NON SI FIDA DI CHI LO CHIAMA. La configurazione arriva sullo standard input
+come JSON e viene RICOSTRUITA campo per campo: quello che non e' previsto viene
+buttato, quello che e' fuori scala viene riportato dentro. Un helper che gira
+da root e scrive quello che gli arriva non e' un helper, e' una porta aperta —
+e in questo caso una porta su un programma che governa il raffreddamento.
+
+I limiti sono gli stessi del demone e sono scritti qui una seconda volta
+apposta: se domani qualcuno modifica la finestra, il freno resta.
+
+uso:
+    skillfish-fan-helper scrivi     < configurazione.json
+    skillfish-fan-helper etichette  < etichette.json
+    skillfish-fan-helper prova      < {"pwm": "...", "fan": "..."}
+    skillfish-fan-helper accendi | spegni     il servizio
+"""
+import io
+import json
+import os
+import subprocess
+import sys
+import time
+
+CONF = "/etc/skillfish/ventola.json"
+PROVA = "/etc/skillfish/ventola-prova.json"
+ETICHETTE = "/etc/skillfish/sensori.json"
+SERVIZIO = "skillfish-fand.service"
+
+MINIMO_ASSOLUTO = 20      # come SOGLIA_MINIMA nel demone
+EMERGENZA_MIN = 60.0
+EMERGENZA_MAX = 105.0
+PUNTI_MAX = 12
+
+
+def errore(msg):
+    sys.stderr.write("ERR:%s\n" % msg)
+    raise SystemExit(1)
+
+
+def _num(v, minimo, massimo, ripiego):
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return ripiego
+    if x != x:                      # NaN: si riconosce cosi' e basta
+        return ripiego
+    return max(minimo, min(massimo, x))
+
+
+def _chiave(v):
+    u"""Una chiave di canale plausibile: niente percorsi, niente sorprese.
+
+    Le chiavi hanno la forma «nct6687.2592:fan2». Qui si controlla solo che
+    siano fatte di caratteri innocui: e' il demone che poi cerca il canale fra
+    quelli veri, e se non lo trova non lo usa."""
+    if not isinstance(v, str) or len(v) > 80 or ":" not in v:
+        return ""
+    ammessi = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:_-")
+    return v if set(v) <= ammessi else ""
+
+
+def pulisci(d):
+    u"""Ricostruisce la configurazione da zero, tenendo solo cio' che e' valido."""
+    if not isinstance(d, dict):
+        errore("non e' un oggetto")
+
+    curva = []
+    for p in (d.get("curva") or [])[:PUNTI_MAX]:
+        if not isinstance(p, (list, tuple)) or len(p) != 2:
+            continue
+        t = _num(p[0], -20, 120, None)
+        y = _num(p[1], 0, 100, None)
+        if t is None or y is None:
+            continue
+        curva.append([round(t, 1), round(y)])
+    curva.sort()
+    if len(curva) < 2:
+        errore("la curva vuole almeno due punti")
+
+    # ⚠️ La curva deve essere non decrescente. Una curva che scende mentre la
+    # temperatura sale e' quasi sempre un punto trascinato per sbaglio, e
+    # significherebbe raffreddare di meno mentre ci si scalda.
+    for i in range(1, len(curva)):
+        if curva[i][1] < curva[i - 1][1]:
+            curva[i][1] = curva[i - 1][1]
+
+    p = d.get("predittivo") or {}
+    pulito = {
+        "attivo": bool(d.get("attivo")),
+        "pwm": _chiave(d.get("pwm") or ""),
+        "sorgente": [k for k in (_chiave(x) for x in (d.get("sorgente") or [])) if k][:8],
+        "curva": curva,
+        "minimo": int(_num(d.get("minimo"), MINIMO_ASSOLUTO, 100, MINIMO_ASSOLUTO)),
+        "isteresi": round(_num(d.get("isteresi"), 0, 20, 3.0), 1),
+        "emergenza": round(_num(d.get("emergenza"), EMERGENZA_MIN, EMERGENZA_MAX, 88.0), 1),
+        "preset": (d.get("preset") or "")[:32],
+        "predittivo": {
+            "attivo": bool(p.get("attivo", True)),
+            "guadagno": round(_num(p.get("guadagno"), 0, 10, 2.5), 2),
+            "finestra": int(_num(p.get("finestra"), 2, 30, 6)),
+            "soglia_watt": round(_num(p.get("soglia_watt"), 0.5, 100, 4.0), 1),
+            "bonus_watt": round(_num(p.get("bonus_watt"), 0, 30, 6.0), 1),
+            "preraffredda": int(_num(p.get("preraffredda"), MINIMO_ASSOLUTO, 100, 55)),
+            "durata_prelancio": int(_num(p.get("durata_prelancio"), 5, 300, 25)),
+            "watt_pesante": round(_num(p.get("watt_pesante"), 5, 500, 45.0), 1),
+        },
+    }
+    if pulito["attivo"] and not pulito["pwm"]:
+        errore("nessuna uscita PWM scelta")
+    if pulito["attivo"] and not pulito["sorgente"]:
+        errore("nessun sensore scelto come sorgente")
+    return pulito
+
+
+def scrivi_json(percorso, dati):
+    cartella = os.path.dirname(percorso)
+    if not os.path.isdir(cartella):
+        os.makedirs(cartella, 0o755)
+    tmp = percorso + ".tmp"
+    with io.open(tmp, "w", encoding="utf-8") as f:
+        f.write(json.dumps(dati, indent=2, ensure_ascii=False, sort_keys=True))
+    os.chmod(tmp, 0o644)
+    os.rename(tmp, percorso)
+
+
+def prova_uscita(chiave_pwm, chiave_fan):
+    u"""Questo PWM muove davvero quella ventola?
+
+    ⚠️ SERVE PIU' DI QUANTO SEMBRI. Sul Fujitsu PRIMERGY di sviluppo il chip
+    accetta le scritture su pwm1 e pwm2 e NON SUCCEDE NIENTE: i giri restano
+    965 e 2030 qualunque valore si scriva, perche' le ventole se le governa il
+    firmware del server. Verificato salendo a 255 e scendendo a 60 su tutte e
+    due le uscite, con nove secondi di attesa ogni volta: mai una variazione.
+
+    Senza questa prova l'applicazione sarebbe una bugia ben fatta: si disegna
+    una curva, i numeri sullo schermo si muovono, e la ventola non ha mai
+    ricevuto un ordine. Meglio dirlo.
+
+    Si sale, si scende, si risale, e si guarda se il contagiri segue. Alla fine
+    si rimette tutto com'era, sempre (try/finally): questa prova gira su
+    richiesta, mentre la macchina e' accesa e sta facendo il suo lavoro.
+    """
+    sys.path.insert(0, "/usr/share/skillfish")
+    import hwmon
+    canali, uscite = hwmon.elenca()
+    pwm = next((p for p in uscite if p.chiave == chiave_pwm), None)
+    fan = next((c for c in canali if c.chiave == chiave_fan), None)
+    if pwm is None:
+        errore("uscita %s non trovata" % chiave_pwm)
+    if fan is None:
+        errore("ventola %s non trovata" % chiave_fan)
+
+    def leggi(p):
+        try:
+            with io.open(p, encoding="utf-8") as f:
+                return int(f.read().strip())
+        except (IOError, OSError, ValueError):
+            return None
+
+    def scrivi(p, v):
+        try:
+            with io.open(p, "w", encoding="utf-8") as f:
+                f.write("%d" % v)
+        except (IOError, OSError):
+            pass
+
+    letture = []
+
+    # ⚠️ IL CONTROLLO VA FERMATO PRIMA, o la prova misura lui.
+    # La prima versione non lo faceva e sulla BC-250 diceva «non risponde»,
+    # su una ventola che risponde benissimo: skillfish-fand riscrive il PWM
+    # una volta al secondo, quindi i 255 e i 90 della prova duravano un istante
+    # e le tre letture uscivano tutte uguali (1388, 1387, 1425 giri). Una prova
+    # che da' il risultato sbagliato e' peggio di nessuna prova: qui la
+    # conclusione sarebbe stata «su questa macchina la curva non ha effetto»,
+    # detta a chi la curva ce l'ha e funziona.
+    girava = subprocess.call(["systemctl", "is-active", "--quiet", SERVIZIO]) == 0
+    if girava:
+        subprocess.call(["systemctl", "stop", SERVIZIO])
+        time.sleep(2)
+
+    # ⚠️ Il valore da rimettere si legge ADESSO, non prima di fermare il
+    # controllo. Prima si leggeva sopra, e quello che si trovava era il valore
+    # scritto dal demone un attimo prima: la prova rimetteva quello, e alla
+    # ripartenza il demone se lo segnava come «originale». Il valore del
+    # firmware si perdeva un pezzetto a ogni prova. Fermato il controllo,
+    # ExecStopPost ha gia' rimesso il valore vero: e' quello che si salva.
+    orig_v = leggi(pwm.percorso)
+    orig_m = leggi(pwm.percorso + "_enable")
+
+    try:
+        scrivi(pwm.percorso + "_enable", 1)
+        for v in (255, 90, 255):
+            scrivi(pwm.percorso, v)
+            time.sleep(9)
+            letture.append({"pwm": v, "rpm": fan.leggi()})
+    finally:
+        if orig_v is not None:
+            scrivi(pwm.percorso, orig_v)
+        if orig_m is not None:
+            scrivi(pwm.percorso + "_enable", orig_m)
+        # e il controllo torna come l'abbiamo trovato, sempre
+        if girava:
+            subprocess.call(["systemctl", "start", SERVIZIO])
+
+    giri = [x["rpm"] for x in letture if x["rpm"] is not None]
+    # Il criterio: fra il valore alto e quello basso ci deve essere una
+    # differenza che non si spiega col rumore del contagiri. Il 15% e' largo
+    # apposta - una ventola vera fra il 35% e il 100% cambia di piu' del doppio
+    # (misurato sulla BC-250: 1244 giri contro 3100), quindi chi passa questa
+    # soglia risponde per davvero, e chi non la passa non risponde affatto.
+    risponde = False
+    if len(giri) >= 2 and max(giri) > 0:
+        risponde = (max(giri) - min(giri)) / float(max(giri)) > 0.15
+    esito = {"pwm": chiave_pwm, "fan": chiave_fan, "risponde": risponde,
+             "letture": letture, "quando": int(time.time())}
+    scrivi_json(PROVA, esito)
+    print(json.dumps(esito))
+    return 0
+
+
+def main():
+    if os.geteuid() != 0:
+        errore("root required")
+    azione = sys.argv[1] if len(sys.argv) > 1 else ""
+
+    if azione == "scrivi":
+        try:
+            d = json.loads(sys.stdin.read())
+        except ValueError as e:
+            errore("json illeggibile: %s" % e)
+        c = pulisci(d)
+        scrivi_json(CONF, c)
+        # Il demone si accorge da solo del file cambiato (guarda la data), ma se
+        # e' spento va acceso: chi salva una curva si aspetta che valga.
+        if c["attivo"]:
+            subprocess.call(["systemctl", "enable", "--now", SERVIZIO])
+        print("OK")
+        return 0
+
+    if azione == "etichette":
+        try:
+            d = json.loads(sys.stdin.read())
+        except ValueError as e:
+            errore("json illeggibile: %s" % e)
+        if not isinstance(d, dict):
+            errore("non e' un oggetto")
+        pulite = {}
+        for k, v in list(d.items())[:200]:
+            k2 = _chiave(k)
+            if k2 and isinstance(v, str) and v.strip():
+                pulite[k2] = v.strip()[:40]
+        scrivi_json(ETICHETTE, pulite)
+        print("OK")
+        return 0
+
+    if azione == "prova":
+        try:
+            d = json.loads(sys.stdin.read())
+        except ValueError as e:
+            errore("json illeggibile: %s" % e)
+        return prova_uscita(_chiave(d.get("pwm") or ""), _chiave(d.get("fan") or ""))
+
+    if azione in ("accendi", "spegni"):
+        if azione == "accendi":
+            subprocess.call(["systemctl", "enable", "--now", SERVIZIO])
+        else:
+            subprocess.call(["systemctl", "disable", "--now", SERVIZIO])
+        print("OK")
+        return 0
+
+    errore("azione sconosciuta: %s" % azione)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

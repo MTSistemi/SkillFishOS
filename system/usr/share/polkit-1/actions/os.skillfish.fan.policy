@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  Una sola autorizzazione, e con la password.
+
+  Qui non c'e' la coppia lettura/scrittura che hanno gli snapshot: lo stato
+  della ventola lo pubblica il demone in /run/skillfish/ventola.json, che e'
+  leggibile da chiunque, quindi la finestra non ha bisogno di privilegi per
+  MOSTRARE niente. Serve root solo per SCRIVERE la curva.
+
+  E la password si chiede davvero: una curva sbagliata puo' lasciare la ventola
+  al minimo mentre la scheda scalda. Con auth_admin_keep chi sistema la curva a
+  tentativi non se la vede chiedere a ogni salvataggio.
+
+  ⚠️ polkit lega l'autorizzazione al PERCORSO del programma, non al nome: se un
+  giorno l'helper si sposta, va cambiato anche qui.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.fan.helper">
+    <description>Change the fan curve and fan control settings</description>
+    <description xml:lang="it">Modificare la curva e le impostazioni della ventola</description>
+    <description xml:lang="pl">Zmiana krzywej i ustawień wentylatora</description>
+    <description xml:lang="uk">Зміна кривої та налаштувань вентилятора</description>
+    <description xml:lang="ru">Изменение кривой и настроек вентилятора</description>
+    <description xml:lang="es">Cambiar la curva y los ajustes del ventilador</description>
+    <description xml:lang="pt">Alterar a curva e as definições da ventoinha</description>
+    <description xml:lang="de">Lüfterkurve und Lüftereinstellungen ändern</description>
+    <description xml:lang="fr">Modifier la courbe et les réglages du ventilateur</description>
+    <message>Authentication is required to change the fan control</message>
+    <message xml:lang="it">È richiesta l'autenticazione per modificare il controllo della ventola</message>
+    <message xml:lang="pl">Wymagane jest uwierzytelnienie, aby zmienić sterowanie wentylatorem</message>
+    <message xml:lang="uk">Для зміни керування вентилятором потрібна автентифікація</message>
+    <message xml:lang="ru">Для изменения управления вентилятором требуется аутентификация</message>
+    <message xml:lang="es">Se requiere autenticación para cambiar el control del ventilador</message>
+    <message xml:lang="pt">É necessária autenticação para alterar o controlo da ventoinha</message>
+    <message xml:lang="de">Zum Ändern der Lüftersteuerung ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="fr">Une authentification est requise pour modifier le contrôle du ventilateur</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-fan-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

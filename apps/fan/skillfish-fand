@@ -1,0 +1,690 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""SkillFishOS Fan Control — il pezzo che gira sempre e muove la ventola.
+
+La finestra si apre e si chiude; il raffreddamento no. Quindi la curva la
+applica questo, che parte all'avvio e non ha bisogno che ci sia nessuno.
+
+PERCHE' PRIMA NON C'ERA NIENTE
+Sulla BC-250 la ventola l'ha sempre governata il firmware. L'unica cosa nostra
+era skillfish-thermal-guard, che sopra gli 85 gradi ABBASSA LA FREQUENZA: cioe'
+toglie prestazioni invece di togliere calore. Con una curva vera si arriva a
+quel punto molto piu' tardi, e spesso mai.
+
+⚠️ QUESTO PROGRAMMA PUO' FAR FRIGGERE UNA SCHEDA. Tutto quello che segue e'
+scritto perche' non succeda.
+
+  1. IL RIPRISTINO E' LA PRIMA COSA SCRITTA, NON L'ULTIMA.
+     Prima di toccare qualunque PWM si salvano il valore e il modo originali in
+     /run/skillfish/ventola-originale.json. Si rimettono quando il demone si
+     ferma, in tre modi diversi perche' uno solo non basta: sui segnali normali
+     (SIGTERM/SIGINT), su qualunque uscita (atexit), e dall'esterno con
+     `--ripristina` chiamato da ExecStopPost, che e' l'unico che sopravvive a un
+     SIGKILL.
+  2. NEL DUBBIO SI VA AL MASSIMO, MAI AL MINIMO.
+     Sensore sparito, lettura assurda, file di configurazione rotto: 100%. Una
+     ventola rumorosa e' un fastidio, una ventola ferma e' un danno.
+  3. L'EMERGENZA NON PASSA DALLA CURVA.
+     Sopra `emergenza` si scrive 100% e basta, senza interpolare niente: e' la
+     strada piu' corta possibile fra il termometro e la ventola.
+  4. IL MINIMO NON PUO' ESSERE ZERO SE LA VENTOLA NON RIPARTE.
+     Molte ventole a 3 fili sotto una certa soglia si fermano e NON ripartono da
+     sole finche' il PWM non risale parecchio. Il minimo di sicurezza e'
+     configurabile ma non scende sotto SOGLIA_MINIMA.
+  5. SE IL DEMONE SI IMPALLA, systemd LO SA.
+     WatchdogSec nell'unita' e sd_notify a ogni giro: un ciclo bloccato viene
+     ammazzato e riavviato invece di restare li' con la ventola congelata sul
+     valore di dieci minuti fa.
+
+COME DECIDE
+Ogni secondo:
+
+  temperatura = la PIU' ALTA fra quelle scelte come sorgente
+                (la piu' alta, non la media: la media nasconde il punto caldo)
+  base        = curva interpolata su quella temperatura
+  anticipo    = quanto sta salendo, tradotto in gradi (vedi sotto)
+  duty        = curva(temperatura + anticipo)
+  se un gioco pesante e' appena partito: duty non scende sotto `preraffredda`
+  se temperatura >= emergenza: duty = 100
+
+L'ANTICIPO, CIOE' LA PARTE «PREDITTIVA»
+Non serve indovinare il futuro, servono tre secondi di vantaggio. Una ventola
+impiega un paio di secondi a salire di giri e l'APU si scalda in pochi secondi:
+chi aspetta che il termometro salga arriva sempre tardi.
+
+Due segnali, tutti e due gia' disponibili:
+
+  * LA PENDENZA DELLA TEMPERATURA. dT/dt misurata sulla finestra. Moltiplicata
+    per il guadagno da' i gradi da aggiungere: se sale di 2 gradi al secondo e
+    il guadagno e' 2,5, la curva viene letta 5 gradi piu' in alto. E' un termine
+    derivativo, la stessa idea della D di un PID, scritta in modo che si capisca
+    guardandola.
+  * LA PENDENZA DELLA POTENZA. Sulla BC-250 amdgpu espone i watt veri (PPT).
+    I watt salgono PRIMA della temperatura — sono la causa, non l'effetto —
+    quindi sono il segnale che arriva per primo in assoluto. Una salita oltre
+    `soglia_watt` W/s vale `bonus_watt` gradi di anticipo.
+
+  ⚠️ L'anticipo puo' solo ALZARE la ventola, mai abbassarla: `max(0, ...)`.
+  Una temperatura che scende non e' un motivo per raffreddare di meno adesso;
+  a quello ci pensa gia' la curva, con l'isteresi.
+
+IL GIOCO CHE PARTE
+Il segnale che arriva prima di tutti e' l'avvio del programma: Cyberpunk carica
+per venti secondi prima di scaldare, e quello e' tempo regalato.
+
+  * si guardano i processi nuovi una volta al secondo; quelli lanciati da Steam
+    si riconoscono dal percorso (steamapps/common), che vale anche per lo Steam
+    Flatpak;
+  * un titolo GIA' VISTO si tratta secondo quanto ha DAVVERO consumato l'ultima
+    volta, misurato e scritto in /var/lib/skillfish/ventola-appresi.json. E'
+    questo che distingue Cyberpunk da Roblox senza dover tenere un elenco di
+    tutti i giochi del mondo;
+  * un titolo MAI VISTO si tratta come pesante, per prudenza, e alla fine della
+    partita si scrive quanto ha consumato davvero. Quindi Roblox pre-raffredda
+    una volta sola, la prima, e mai piu'.
+  Un piccolo elenco di partenza (ventola-giochi.json) serve solo a indovinare
+  gia' al primo avvio i titoli piu' noti.
+
+uso:
+    skillfish-fand              gira (lo lancia il servizio)
+    skillfish-fand --ripristina rimette la ventola come l'ha trovata ed esce
+    skillfish-fand --stato      stampa cosa vede e cosa farebbe, senza scrivere
+"""
+import atexit
+import errno
+import io
+import json
+import os
+import signal
+import socket
+import sys
+import time
+
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    import hwmon
+except ImportError:
+    sys.stderr.write("manca /usr/share/skillfish/hwmon.py\n")
+    raise SystemExit(1)
+
+CONF = "/etc/skillfish/ventola.json"
+STATO = "/run/skillfish/ventola.json"
+ORIGINALE = "/run/skillfish/ventola-originale.json"
+APPRESI = "/var/lib/skillfish/ventola-appresi.json"
+CATALOGO = "/usr/share/skillfish/ventola-giochi.json"
+
+PERIODO = 1.0          # un giro al secondo
+SOGLIA_MINIMA = 20     # sotto questo il PWM non si scrive mai (vedi punto 4)
+PWM_MAX = 255
+
+# Cosa si fa quando non si sa cosa fare.
+CONF_PREDEFINITA = {
+    "attivo": False,           # ⚠️ di serie NON prende il comando: lo fa fare a chi apre la finestra
+    "pwm": "",
+    "sorgente": [],
+    "curva": [[40, 30], [55, 40], [65, 60], [75, 85], [85, 100]],
+    "minimo": 30,
+    "isteresi": 3.0,
+    "emergenza": 88.0,
+    "preset": "equilibrato",
+    "predittivo": {
+        "attivo": True,
+        "guadagno": 2.5,       # gradi di anticipo per ogni grado al secondo di salita
+        "finestra": 6,         # su quanti secondi si misura la pendenza
+        "soglia_watt": 4.0,    # W/s oltre i quali si considera una salita di carico
+        "bonus_watt": 6.0,     # gradi di anticipo che vale quella salita
+        "preraffredda": 55,    # duty minimo quando parte un gioco pesante
+        "durata_prelancio": 25,  # per quanti secondi vale, dal lancio
+        "watt_pesante": 45.0,  # oltre questi watt di picco un titolo e' «pesante»
+    },
+}
+
+
+# ---------------------------------------------------------------- utilita'
+def _leggi_json(percorso, ripiego):
+    try:
+        with io.open(percorso, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else ripiego
+    except (IOError, OSError, ValueError):
+        return ripiego
+
+
+def _scrivi_json(percorso, dati):
+    cartella = os.path.dirname(percorso)
+    if cartella and not os.path.isdir(cartella):
+        try:
+            os.makedirs(cartella)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                return False
+    tmp = percorso + ".tmp"
+    try:
+        with io.open(tmp, "w", encoding="utf-8") as f:
+            f.write(json.dumps(dati, indent=2, ensure_ascii=False, sort_keys=True))
+        os.rename(tmp, percorso)
+        return True
+    except (IOError, OSError):
+        return False
+
+
+def carica_conf():
+    u"""La configurazione, con i buchi riempiti dai valori predefiniti.
+
+    ⚠️ Una configurazione rotta non deve fermare il demone: si torna ai valori
+    predefiniti, che con `attivo` a falso vuol dire lasciare la ventola al chip.
+    Fermarsi sarebbe la scelta peggiore: il demone e' anche l'emergenza."""
+    c = dict(CONF_PREDEFINITA)
+    letta = _leggi_json(CONF, {})
+    p = dict(CONF_PREDEFINITA["predittivo"])
+    p.update(letta.get("predittivo") or {})
+    c.update(letta)
+    c["predittivo"] = p
+    # I limiti si fanno rispettare qui, una volta, invece di fidarsi del file.
+    c["minimo"] = max(SOGLIA_MINIMA, min(100, int(c.get("minimo") or 0)))
+    c["emergenza"] = float(c.get("emergenza") or 88.0)
+    c["isteresi"] = max(0.0, float(c.get("isteresi") or 0.0))
+    curva = [tuple(p2) for p2 in (c.get("curva") or []) if len(p2) == 2]
+    c["curva"] = sorted(curva) or list(CONF_PREDEFINITA["curva"])
+    return c
+
+
+def interpola(curva, t):
+    u"""Il duty per una temperatura, fra i punti della curva.
+
+    Sotto il primo punto vale il primo, sopra l'ultimo vale l'ultimo: la curva
+    non si estrapola. Estrapolare vorrebbe dire inventare numeri fuori da quello
+    che la persona ha disegnato, e verso il basso significherebbe inventare
+    ventole piu' lente di quanto abbia chiesto."""
+    if not curva:
+        return 100
+    if t <= curva[0][0]:
+        return float(curva[0][1])
+    if t >= curva[-1][0]:
+        return float(curva[-1][1])
+    for i in range(len(curva) - 1):
+        x0, y0 = curva[i]
+        x1, y1 = curva[i + 1]
+        if x0 <= t <= x1:
+            if x1 == x0:
+                return float(y1)
+            return y0 + (y1 - y0) * (t - x0) / float(x1 - x0)
+    return float(curva[-1][1])
+
+
+# ------------------------------------------------------- il PWM e il ripristino
+class Uscita(object):
+    u"""L'uscita PWM, con il dovere di rimettere le cose come stavano."""
+
+    def __init__(self, chiave):
+        self.chiave = chiave
+        self.percorso = None
+        self.originale = None
+        self.preso = False
+        _, pwm = hwmon.elenca()
+        for p in pwm:
+            if p.chiave == chiave:
+                self.percorso = p.percorso
+                break
+
+    def esiste(self):
+        return bool(self.percorso and os.path.exists(self.percorso))
+
+    def prendi(self):
+        u"""Salva com'era e passa al comando manuale.
+
+        ⚠️ Il salvataggio va su DISCO prima di cambiare qualunque cosa. Se il
+        demone muore fra il cambio e la scrittura, il ripristino esterno non
+        saprebbe a cosa tornare e lascerebbe la ventola bloccata sul nostro
+        valore per sempre.
+
+        ⚠️ E SI SALVA UNA VOLTA SOLA PER ACCENSIONE. Trovato provando: dopo un
+        SIGKILL systemd riavvia il demone, che rilegge il PWM e ci trova dentro
+        IL VALORE SCRITTO DA NOI — e se lo segna come «originale». Di riavvio in
+        riavvio il valore del firmware si perde, e alla fine «rimettere le cose
+        come stavano» vuol dire rimettere le nostre. Peggio ancora per il MODO:
+        il chip poteva governarsela da solo (modo 2) e ci si ritroverebbe con un
+        modo 1 e nessuno al comando, cioe' la ventola inchiodata per sempre su
+        un numero fisso.
+        Il file sta in /run, che e' un tmpfs: si svuota al riavvio della
+        macchina, che e' esattamente la durata giusta. Il valore del firmware si
+        legge una volta per accensione, la prima, quando e' ancora suo."""
+        if not self.esiste() or self.preso:
+            return self.preso
+        gia = _leggi_json(ORIGINALE, {})
+        if gia.get("chiave") == self.chiave and gia.get("percorso") == self.percorso:
+            self.originale = gia
+        else:
+            # ⚠️ IL DRIVER TIENE I REGISTRI IN CACHE PER CIRCA UN SECONDO.
+            # Misurato sul nct6687: si scrive 255 e per 1,0-1,2 secondi la
+            # rilettura restituisce ancora il valore di prima. Chi legge subito
+            # dopo una scrittura si porta a casa un numero vecchio - e qui il
+            # numero vecchio finirebbe salvato come «valore del firmware».
+            # Mezzo secondo di attesa costa niente e la lettura diventa vera:
+            # il demone ha appena aperto il file e non ha ancora scritto nulla,
+            # quindi non c'e' fretta.
+            time.sleep(1.2)
+            self.originale = {"chiave": self.chiave, "percorso": self.percorso,
+                              "valore": self._leggi(self.percorso),
+                              "modo": self._leggi(self.percorso + "_enable")}
+            _scrivi_json(ORIGINALE, self.originale)
+        # modo 1 = comandata da noi. Senza, molti chip ignorano la scrittura in
+        # silenzio: il file accetta il valore e la ventola non cambia di un giro.
+        self._scrivi(self.percorso + "_enable", 1)
+        self.preso = True
+        return True
+
+    def scrivi(self, percento):
+        if not self.preso:
+            return
+        v = int(round(max(0, min(100, percento)) * PWM_MAX / 100.0))
+        self._scrivi(self.percorso, v)
+
+    def rilascia(self):
+        if not self.preso or not self.originale:
+            return
+        o = self.originale
+        # Prima il valore, poi il modo: al contrario, il chip potrebbe applicare
+        # per un istante il NOSTRO valore con la sua logica gia' riattivata.
+        if o.get("valore") is not None:
+            self._scrivi(o["percorso"], o["valore"])
+        if o.get("modo") is not None:
+            self._scrivi(o["percorso"] + "_enable", o["modo"])
+        self.preso = False
+        try:
+            os.unlink(ORIGINALE)
+        except OSError:
+            pass
+
+    @staticmethod
+    def _leggi(percorso):
+        try:
+            with io.open(percorso, encoding="utf-8") as f:
+                return int(f.read().strip())
+        except (IOError, OSError, ValueError):
+            return None
+
+    @staticmethod
+    def _scrivi(percorso, valore):
+        try:
+            with io.open(percorso, "w", encoding="utf-8") as f:
+                f.write("%d" % valore)
+            return True
+        except (IOError, OSError):
+            return False
+
+
+def ripristina_da_fuori():
+    u"""Rimette la ventola come l'ha trovata, leggendo il file salvato.
+
+    La chiama ExecStopPost. E' l'unica strada che funziona anche dopo un
+    SIGKILL, quando dentro al processo non gira piu' niente."""
+    o = _leggi_json(ORIGINALE, {})
+    if not o.get("percorso"):
+        print("niente da ripristinare")
+        return 0
+    if o.get("valore") is not None:
+        Uscita._scrivi(o["percorso"], o["valore"])
+    if o.get("modo") is not None:
+        Uscita._scrivi(o["percorso"] + "_enable", o["modo"])
+    try:
+        os.unlink(ORIGINALE)
+    except OSError:
+        pass
+    print("ventola rimessa come era: %s valore=%s modo=%s"
+          % (o.get("chiave"), o.get("valore"), o.get("modo")))
+    return 0
+
+
+# ------------------------------------------------------------- i giochi
+class Giochi(object):
+    u"""Chi e' partito, e se vale la pena raffreddare prima."""
+
+    def __init__(self, conf):
+        self.conf = conf
+        self.visti = set()
+        self.appresi = _leggi_json(APPRESI, {})
+        self.catalogo = _leggi_json(CATALOGO, {})
+        self.in_corso = {}       # nome -> watt di picco misurati
+        self.lancio = 0.0
+        self.titolo = ""
+        self.pesante = False
+
+    @staticmethod
+    def _processi():
+        u"""(pid, nome, riga di comando) di tutto quello che gira adesso."""
+        fuori = []
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with io.open("/proc/%s/cmdline" % pid, encoding="utf-8",
+                             errors="replace") as f:
+                    riga = f.read().replace("\x00", " ").strip()
+            except (IOError, OSError):
+                continue
+            if riga:
+                fuori.append((pid, riga))
+        return fuori
+
+    @staticmethod
+    def _nome_gioco(riga):
+        u"""Il nome del gioco da una riga di comando, se e' un gioco.
+
+        Si riconosce dal percorso: tutto quello che Steam installa sta sotto
+        steamapps/common/<Titolo>/. Vale anche per lo Steam Flatpak, che cambia
+        la radice ma non quel pezzo — ed e' proprio il nostro caso."""
+        marca = "steamapps/common/"
+        i = riga.find(marca)
+        if i < 0:
+            return ""
+        resto = riga[i + len(marca):]
+        nome = resto.split("/")[0].strip()
+        # Roba di servizio che sta nella stessa cartella ma non e' un gioco.
+        if not nome or nome.startswith(("Proton", "Steam", "SteamLinuxRuntime")):
+            return ""
+        return nome
+
+    def peso(self, nome):
+        u"""«pesante» o no, dando la precedenza a cio' che si e' misurato."""
+        watt = self.appresi.get(nome, {}).get("picco_watt")
+        if watt is not None:
+            return watt >= self.conf["predittivo"]["watt_pesante"]
+        c = self.catalogo.get(nome)
+        if isinstance(c, dict) and "pesante" in c:
+            return bool(c["pesante"])
+        # Mai visto: si tratta come pesante. Sbagliare per eccesso costa un
+        # minuto di ventola alta una volta sola; sbagliare per difetto costa
+        # calore proprio nel momento in cui ne arriva di piu'.
+        return True
+
+    def aggiorna(self, watt):
+        u"""Da chiamare a ogni giro. Restituisce True se stiamo pre-raffreddando."""
+        adesso = time.time()
+        vivi = {}
+        for pid, riga in self._processi():
+            nome = self._nome_gioco(riga)
+            if not nome:
+                continue
+            vivi[pid] = nome
+            if pid not in self.visti:
+                self.visti.add(pid)
+                self.titolo = nome
+                self.lancio = adesso
+                self.pesante = self.peso(nome)
+                self.in_corso.setdefault(nome, 0.0)
+        # i watt di picco, che serviranno la prossima volta
+        if vivi and watt:
+            for nome in set(vivi.values()):
+                if watt > self.in_corso.get(nome, 0.0):
+                    self.in_corso[nome] = watt
+        # partita finita: si scrive quello che si e' imparato
+        finiti = [n for n in list(self.in_corso) if n not in set(vivi.values())]
+        for nome in finiti:
+            picco = self.in_corso.pop(nome)
+            if picco > 0:
+                self.appresi[nome] = {"picco_watt": round(picco, 1),
+                                      "visto": int(adesso)}
+                _scrivi_json(APPRESI, self.appresi)
+        self.visti = set(vivi)
+        p = self.conf["predittivo"]
+        return bool(self.pesante and self.lancio
+                    and adesso - self.lancio < p["durata_prelancio"])
+
+
+# ------------------------------------------------------------- il demone
+class Demone(object):
+    def __init__(self):
+        self.conf = carica_conf()
+        self.uscita = None
+        self.storia_t = []      # (istante, temperatura)
+        self.storia_w = []      # (istante, watt)
+        self.ultimo_duty = None
+        self.conf_mtime = 0
+        self.giochi = Giochi(self.conf)
+        self.motivo = ""
+
+    # -- i sensori ---------------------------------------------------------
+    def _canali(self):
+        veri, scartati, fermi, pwm = hwmon.scopri(durata=0.0, campioni=1)
+        return {c.chiave: c for c in veri + fermi}, {p.chiave: p for p in pwm}
+
+    def temperatura(self, canali):
+        u"""La piu' alta fra le sorgenti scelte.
+
+        ⚠️ Se NESSUNA sorgente risponde si restituisce None, e chi chiama va al
+        massimo. E' il caso «il chip e' sparito», che senza questa riga
+        lascerebbe la ventola all'ultimo valore scritto."""
+        valori = []
+        for k in self.conf.get("sorgente") or []:
+            c = canali.get(k)
+            if c is None:
+                continue
+            v = c.leggi()
+            if v is not None and -40 < v < 150:
+                valori.append(v)
+        return max(valori) if valori else None
+
+    @staticmethod
+    def _pendenza(storia, finestra, adesso):
+        u"""Quanto sta salendo, per secondo, sulla finestra."""
+        recenti = [(t, v) for t, v in storia if adesso - t <= finestra]
+        if len(recenti) < 2:
+            return 0.0
+        (t0, v0), (t1, v1) = recenti[0], recenti[-1]
+        dt = t1 - t0
+        return (v1 - v0) / dt if dt > 0.5 else 0.0
+
+    def watt(self, canali):
+        for k, c in canali.items():
+            if c.tipo == "power":
+                v = c.leggi()
+                if v is not None:
+                    return v
+        return None
+
+    # -- la decisione ------------------------------------------------------
+    def decidi(self, t, adesso, prelancio):
+        u"""Da temperatura e pendenze al duty, con il motivo scritto accanto."""
+        conf = self.conf
+        if t is None:
+            self.motivo = "no temperature: full speed"
+            return 100.0
+        if t >= conf["emergenza"]:
+            self.motivo = "emergency: %.1f C" % t
+            return 100.0
+
+        p = conf["predittivo"]
+        anticipo = 0.0
+        if p.get("attivo"):
+            # ⚠️ solo salite: max(0, ...). Una discesa non deve mai togliere giri
+            # adesso — a quello ci pensa la curva con l'isteresi.
+            dT = max(0.0, self._pendenza(self.storia_t, p["finestra"], adesso))
+            anticipo += p["guadagno"] * dT * p["finestra"]
+            dW = max(0.0, self._pendenza(self.storia_w, p["finestra"], adesso))
+            if dW >= p["soglia_watt"]:
+                anticipo += p["bonus_watt"]
+
+        duty = interpola(conf["curva"], t + anticipo)
+
+        # isteresi: si scende solo se la temperatura e' scesa davvero, non per
+        # il tremolio di mezzo grado di un sensore.
+        if self.ultimo_duty is not None and duty < self.ultimo_duty:
+            if interpola(conf["curva"], t + anticipo + conf["isteresi"]) >= self.ultimo_duty:
+                duty = self.ultimo_duty
+
+        if prelancio and duty < p["preraffredda"]:
+            duty = float(p["preraffredda"])
+            self.motivo = "pre-cooling for %s" % (self.giochi.titolo or "a game")
+        elif anticipo > 0.5:
+            self.motivo = "anticipating +%.1f C" % anticipo
+        else:
+            self.motivo = "curve"
+
+        return max(conf["minimo"], min(100.0, duty))
+
+    # -- il giro -----------------------------------------------------------
+    def ricarica_se_cambiata(self):
+        try:
+            m = os.path.getmtime(CONF)
+        except OSError:
+            return
+        if m != self.conf_mtime:
+            self.conf_mtime = m
+            self.conf = carica_conf()
+            self.giochi.conf = self.conf
+            self.ultimo_duty = None
+            # la sorgente o l'uscita possono essere cambiate
+            if self.uscita and self.uscita.chiave != self.conf.get("pwm"):
+                self.uscita.rilascia()
+                self.uscita = None
+
+    def giro(self, canali, pwm):
+        adesso = time.time()
+        t = self.temperatura(canali)
+        w = self.watt(canali)
+        if t is not None:
+            self.storia_t.append((adesso, t))
+        if w is not None:
+            self.storia_w.append((adesso, w))
+        limite = adesso - 60
+        self.storia_t = [x for x in self.storia_t if x[0] >= limite]
+        self.storia_w = [x for x in self.storia_w if x[0] >= limite]
+
+        prelancio = self.giochi.aggiorna(w)
+        duty = self.decidi(t, adesso, prelancio)
+
+        if self.conf.get("attivo") and self.conf.get("pwm"):
+            if self.uscita is None:
+                self.uscita = Uscita(self.conf["pwm"])
+                if not self.uscita.prendi():
+                    self.motivo = "PWM %s not available" % self.conf["pwm"]
+                    self.uscita = None
+            if self.uscita:
+                self.uscita.scrivi(duty)
+                self.ultimo_duty = duty
+        elif self.uscita is not None:
+            self.uscita.rilascia()
+            self.uscita = None
+            self.ultimo_duty = None
+
+        self.pubblica(canali, t, w, duty, prelancio)
+        return t, duty
+
+    def pubblica(self, canali, t, w, duty, prelancio):
+        u"""Lo stato per la finestra, che gira da utente e non puo' leggere tutto."""
+        etichette = hwmon.etichette_utente()
+        sensori = []
+        for k, c in sorted(canali.items()):
+            v = c.leggi()
+            sensori.append({"key": k, "label": c.etichetta(etichette),
+                            "type": c.tipo, "unit": c.unita, "value": v,
+                            "source": k in (self.conf.get("sorgente") or [])})
+        _scrivi_json(STATO, {
+            "aggiornato": int(time.time()),
+            "attivo": bool(self.conf.get("attivo")),
+            "in_controllo": bool(self.uscita and self.uscita.preso),
+            "temperatura": t,
+            "watt": w,
+            "duty": round(duty, 1),
+            "motivo": self.motivo,
+            "prelancio": bool(prelancio),
+            "gioco": self.giochi.titolo,
+            "preset": self.conf.get("preset", ""),
+            "sensori": sensori,
+        })
+
+    def esegui(self):
+        canali, pwm = self._canali()
+        scad = 0
+        while True:
+            self.ricarica_se_cambiata()
+            if time.time() > scad:
+                # I chip non compaiono e spariscono di continuo: rileggerli ogni
+                # dieci secondi basta e avanza, e a ogni giro costerebbe.
+                canali, pwm = self._canali()
+                scad = time.time() + 10
+            try:
+                self.giro(canali, pwm)
+            except Exception as e:      # noqa: BLE001 — vedi sotto
+                # ⚠️ Qualunque cosa vada storta, la ventola va al massimo e il
+                # demone continua. Morire qui vorrebbe dire lasciare il PWM
+                # sull'ultimo valore scritto, che e' lo scenario peggiore.
+                sys.stderr.write("giro fallito: %s\n" % e)
+                if self.uscita:
+                    self.uscita.scrivi(100)
+            notifica_watchdog()
+            time.sleep(PERIODO)
+
+
+# systemd: un colpetto a ogni giro. Se smettono di arrivare, ci ammazza e ci
+# riavvia — che e' esattamente quello che si vuole da un ciclo bloccato.
+_WD = None
+
+
+def notifica_watchdog():
+    global _WD
+    ind = os.environ.get("NOTIFY_SOCKET")
+    if not ind:
+        return
+    try:
+        if _WD is None:
+            _WD = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        _WD.sendto(b"WATCHDOG=1", ind if not ind.startswith("@")
+                   else "\0" + ind[1:])
+    except OSError:
+        pass
+
+
+def pronto():
+    ind = os.environ.get("NOTIFY_SOCKET")
+    if not ind:
+        return
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        s.sendto(b"READY=1", ind if not ind.startswith("@") else "\0" + ind[1:])
+        s.close()
+    except OSError:
+        pass
+
+
+def main():
+    if "--ripristina" in sys.argv:
+        return ripristina_da_fuori()
+
+    d = Demone()
+
+    if "--stato" in sys.argv:
+        canali, pwm = d._canali()
+        t = d.temperatura(canali)
+        w = d.watt(canali)
+        print("configuration: %s" % CONF)
+        print("  active   : %s" % d.conf.get("attivo"))
+        print("  pwm      : %s" % (d.conf.get("pwm") or "(none)"))
+        print("  sources  : %s" % ", ".join(d.conf.get("sorgente") or []) or "(none)")
+        print("  curve    : %s" % d.conf.get("curva"))
+        print("readings:")
+        print("  temperature: %s" % ("%.1f C" % t if t is not None else "none"))
+        print("  power      : %s" % ("%.1f W" % w if w is not None else "none"))
+        duty = d.decidi(t, time.time(), False)
+        print("  would set  : %.0f%%  (%s)" % (duty, d.motivo))
+        return 0
+
+    if os.geteuid() != 0:
+        sys.stderr.write("root required\n")
+        return 1
+
+    def fermati(signum, frame):
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, fermati)
+    signal.signal(signal.SIGINT, fermati)
+    atexit.register(lambda: d.uscita.rilascia() if d.uscita else None)
+
+    pronto()
+    d.esegui()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

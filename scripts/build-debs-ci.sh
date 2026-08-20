@@ -159,6 +159,39 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png usr/sh
 shot $P apps/hub/os.skillfish.hub.metainfo.xml
 ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1" "SkillFishOS Hub - Discover-style software centre"
 
+P=skillfish-fan
+# SkillFishOS Fan Control. Tre programmi, e non e' una complicazione gratuita:
+#   skillfish-fand        gira sempre da root e muove la ventola. Il
+#                         raffreddamento non puo' dipendere da una finestra
+#                         aperta, ed e' anche l'emergenza termica.
+#   skillfish-fan         la finestra, che gira da utente e non muove niente.
+#   skillfish-fan-helper  l'unico che scrive, e che non si fida di cio' che
+#                         gli arriva: rifa' la configurazione campo per campo.
+put $P 0755 apps/fan/skillfish-fan               usr/local/bin/skillfish-fan
+put $P 0755 apps/fan/skillfish-fand              usr/local/bin/skillfish-fand
+put $P 0755 apps/fan/skillfish-fan-helper        usr/local/bin/skillfish-fan-helper
+put $P 0644 system/etc/systemd/system/skillfish-fand.service etc/systemd/system/skillfish-fand.service
+put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.fan.policy usr/share/polkit-1/actions/os.skillfish.fan.policy
+put $P 0644 system/usr/share/applications/os.skillfish.fan.desktop usr/share/applications/os.skillfish.fan.desktop
+put $P 0644 system/usr/share/skillfish/ventola-giochi.json usr/share/skillfish/ventola-giochi.json
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-fan.png usr/share/icons/hicolor/256x256/apps/skillfish-fan.png
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg
+# ⚠️ La dipendenza da skillfish-base non e' decorativa: li' dentro c'e' hwmon.py,
+# senza il quale il demone esce al primo giro. Meglio che lo sappia apt.
+ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1" "SkillFishOS Fan Control - fan curve with anticipation"
+# ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
+# Il servizio si accende all'installazione anche se non e' ancora configurato:
+# con `attivo` a falso non tocca la ventola, ma pubblica le letture, e senza di
+# lui la finestra si aprirebbe vuota con scritto che non gira niente.
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-fand.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+# ⚠️ prerm: disinstallando, la ventola deve tornare al firmware. Senza questo
+# resterebbe inchiodata sull'ultimo valore scritto da noi, su una macchina da
+# cui il programma e' appena stato tolto — cioe' senza piu' nessuno che la
+# guardi. E' il caso peggiore che ci sia.
+printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then\n  systemctl disable --now skillfish-fand.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
+chmod 0755 "$OUT/$P/DEBIAN/prerm"
+
 P=skillfish-monitor
 put $P 0755 apps/monitor/skillfish-monitor usr/local/bin/skillfish-monitor
 put $P 0644 system/usr/share/applications/os.skillfish.monitor.desktop usr/share/applications/os.skillfish.monitor.desktop
@@ -264,6 +297,9 @@ put $P 0644 system/usr/share/skillfish/i18n.py                       usr/share/s
 # Sta accanto a i18n.py perche' e' la stessa cosa — un modulo che tutte le
 # applicazioni importano da /usr/share/skillfish.
 put $P 0644 system/usr/share/skillfish/aiuto.py                      usr/share/skillfish/aiuto.py
+# Il riconoscimento dei sensori veri, condiviso come i due qui sopra: lo usa
+# il controllo ventola e sono gli stessi canali che leggono HUD e Monitor.
+put $P 0644 system/usr/share/skillfish/hwmon.py                      usr/share/skillfish/hwmon.py
 for _l in system/usr/share/skillfish/i18n/*.json; do
   put $P 0644 "$_l" "usr/share/skillfish/i18n/$(basename "$_l")"
 done
@@ -710,7 +746,7 @@ put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/sha
 put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
 
-for P in skillfish-tuner skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
+for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -826,6 +862,15 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-l
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n.py 'def traduttore'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/aiuto.py 'class Aiuto'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/hwmon.py 'def scopri'
+# La ventola. Il demone deve contenere i suoi freni: l'emergenza che non
+# passa dalla curva, e il ripristino chiamato da ExecStopPost. Sono le due
+# righe fra cui sta la differenza tra una ventola e una scheda cotta.
+check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fand 'emergency'
+check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fand 'ripristina_da_fuori'
+check skillfish-fan_${VER}_all.deb           ./etc/systemd/system/skillfish-fand.service 'ExecStopPost'
+check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fan-helper 'MINIMO_ASSOLUTO'
+check skillfish-fan_${VER}_all.deb           ./usr/share/applications/os.skillfish.fan.desktop 'Name\[fr\]=SkillFishOS Ventilateur'
 # La soglia decide se la spiegazione esce come bollicina o come riquadro:
 # se sparisse, i testi lunghi del Tuner tornerebbero in una bollicina che si
 # chiude al primo movimento del mouse.
@@ -1069,6 +1114,9 @@ check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillf
 
 # Le applicazioni con la finestra: si controlla che si APRANO, non solo che
 # compilino. E' il controllo che mancava quando il pannello AI e' uscito rotto.
+avvia apps/fan/skillfish-fan
+avvia apps/fan/skillfish-fand
+avvia apps/fan/skillfish-fan-helper
 avvia apps/ai-panel/skillfish-ai-panel
 avvia apps/snapshots/skillfish-snapshots
 avvia apps/kernel-manager/skillfish-kernel-manager

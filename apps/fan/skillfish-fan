@@ -1,0 +1,1264 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# SkillFishOS Fan Control — la curva della ventola in una finestra.
+#
+# COSA FA E COSA NON FA QUESTA FINESTRA
+# Non muove niente. La ventola la muove skillfish-fand, che gira sempre; qui si
+# disegna la curva, si scelgono i sensori e si guarda cosa sta succedendo. E'
+# una divisione voluta: il raffreddamento non puo' dipendere da una finestra
+# aperta, e una finestra non ha bisogno di essere root per mostrare un grafico.
+#
+# PERCHE' NON COOLERCONTROL
+# CoolerControl e' un ottimo programma e fa molto piu' di questo. Ma elenca
+# tutto quello che il chip dichiara, e sulle nostre due macchine la maggior
+# parte di quei canali e' finta: sulla BC-250 il chip dichiara otto ventole e ne
+# esiste una, dichiara quattordici tensioni e ne legge tre, e le due che
+# contano davvero — +12V e +5V — danno zero fisso. Sul Fujitsu di sviluppo un
+# ingresso dichiara 127,5 gradi mentre la CPU ne fa 47.
+# Il punto non e' l'ordine: se qualcuno aggancia una curva a un canale che e'
+# una costante, la ventola non salira' mai. Qui si mostra solo cio' che la
+# macchina legge davvero, e cio' che e' sospetto viene detto (vedi hwmon.py).
+#
+# ⚠️ LE ETICHETTE LE SCRIVE CHI USA IL PROGRAMMA. Sul Fujitsu le tensioni non
+# hanno nome nemmeno per il driver: si chiamano in0, in2, in6, perche' il
+# driver non sa come sono cablate su quella scheda. Nessun programma puo'
+# saperlo. Chi ha la macchina davanti si'.
+import io
+import json
+import os
+import subprocess
+import sys
+
+from PyQt6.QtCore import Qt, QTimer, QRect, QSize, QPoint, QPointF, QThread, pyqtSignal
+from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QFont,
+                         QPainterPath, QLinearGradient)
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout, QLabel, QGroupBox, QPushButton,
+                             QRadioButton, QButtonGroup, QMessageBox, QLayout,
+                             QScrollArea, QCheckBox, QSpinBox, QDoubleSpinBox,
+                             QLineEdit, QToolButton, QToolTip, QComboBox,
+                             QSizePolicy, QFrame)
+
+# ⚠️ Il nome dell'icona deve esistere ESATTAMENTE cosi' nel tema, anche in png:
+# se manca, KDE taglia dopo l'ultimo trattino e ripiega su «skillfish», che nel
+# tema c'e', e sullo schermo esce il pesce di sistema senza un errore da
+# nessuna parte. Successo col Tuner.
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-fan.png"
+HELPER = "/usr/local/bin/skillfish-fan-helper"
+CONF = "/etc/skillfish/ventola.json"
+STATO = "/run/skillfish/ventola.json"
+ETICHETTE = "/etc/skillfish/sensori.json"
+PROVA = "/etc/skillfish/ventola-prova.json"
+
+
+# ---------- i18n ----------
+def _detect_lang():
+    # Ordine standard dei locale: LC_ALL batte LC_MESSAGES batte LANG.
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"):
+        return "it"
+    # "uk" e' il codice della lingua ucraina; "ua" e' quello del PAESE e non
+    # dovrebbe comparire, ma nei locale scritti a mano capita.
+    if v.startswith("ua"):
+        return "uk"
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    if len(codice) == 2 and codice.isalpha():
+        return codice
+    return "en"
+
+
+LANG = _detect_lang()
+
+# ⚠️ Il dizionario condiviso non deve mai impedire alla finestra di aprirsi.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
+
+def L(it, en):
+    u"""La stringa in italiano o quella tradotta dal dizionario condiviso.
+
+    ⚠️ TUTTO CIO' CHE CHIAMA L() DEVE STARE SOTTO QUESTA RIGA. Nel pannello AI
+    una costante che chiamava L() era finita venti righe piu' in su della sua
+    definizione: il corpo del modulo si esegue dall'alto in basso, quindi la
+    chiamata avveniva prima che la funzione esistesse e la finestra non si
+    apriva affatto. py_compile passava, perche' e' un errore di esecuzione, non
+    di sintassi."""
+    return it if LANG == "it" else _TR(en)
+
+
+# Il pallino con il punto interrogativo, condiviso con le altre applicazioni.
+# ⚠️ L'import sta dentro a un try: base e le app sono pacchetti diversi, e su
+# una macchina aggiornata a meta' un import secco chiuderebbe la finestra
+# invece di togliere un bottoncino.
+try:
+    from aiuto import Aiuto
+except Exception:
+    class Aiuto(QToolButton):
+        def __init__(self, testo, titolo="", parent=None):
+            super().__init__(parent)
+            self.setText("?")
+            self.setCursor(Qt.CursorShape.WhatsThisCursor)
+            self._t, self._ti = testo, titolo
+            self.clicked.connect(self._mostra)
+
+        def _mostra(self):
+            QMessageBox.information(self.window(), self._ti or L("Aiuto", "Help"), self._t)
+
+
+# ---------- i preset ----------
+# ⚠️ I numeri non sono inventati: vengono dalla risposta MISURATA della ventola
+# della BC-250, che a PWM 20 fa 567 giri, a 90 ne fa 1244 e a 255 ne fa 3100,
+# in modo lineare, e che non si e' mai fermata nemmeno all'8%.
+PRESET = {
+    "silenzioso": [[45, 20], [60, 30], [70, 45], [80, 70], [88, 100]],
+    "equilibrato": [[40, 30], [55, 40], [65, 60], [75, 85], [85, 100]],
+    "prestazioni": [[35, 40], [50, 60], [60, 80], [70, 100], [85, 100]],
+    "massimo": [[0, 100], [100, 100]],
+}
+
+
+def nome_preset(chiave):
+    return {
+        "silenzioso": L("Silenzioso", "Silent"),
+        "equilibrato": L("Equilibrato", "Balanced"),
+        "prestazioni": L("Prestazioni", "Performance"),
+        "massimo": L("Massimo", "Full"),
+        "personalizzata": L("Personalizzata", "Custom"),
+    }.get(chiave, chiave)
+
+
+def aiuto_preset(chiave):
+    return {
+        "silenzioso": L(
+            "La ventola resta bassa finche' si puo'. Sotto i 45 gradi va al minimo, "
+            "e comincia a salire sul serio solo oltre i 70.\n\n"
+            "Per chi guarda film, naviga o gioca a cose leggere. Sotto carico pesante "
+            "la scheda arrivera' piu' in alto di temperatura: non e' un guasto, e' il "
+            "prezzo del silenzio.",
+            "The fan stays low as long as it can. Below 45 C it sits at the minimum "
+            "and only climbs in earnest past 70.\n\n"
+            "For films, browsing and light games. Under heavy load the board will run "
+            "hotter: that is not a fault, it is what quiet costs."),
+        "equilibrato": L(
+            "Il compromesso, ed e' quello che consigliamo.\n\n"
+            "La ventola sale gradualmente dai 40 gradi in su e arriva al massimo a 85. "
+            "Nella maggior parte dei giochi si sente appena e la scheda sta larga.",
+            "The compromise, and the one we suggest.\n\n"
+            "The fan climbs gradually from 40 C and reaches full speed at 85. In most "
+            "games you barely hear it and the board has room to spare."),
+        "prestazioni": L(
+            "Priorita' al fresco. La ventola parte gia' al 40% da subito e arriva al "
+            "massimo a 70 gradi.\n\n"
+            "Serve se stai in overclock o se giochi a cose pesanti per ore. Si sente, "
+            "ma la scheda resta lontana dal punto in cui comincia a rallentare da sola.",
+            "Cool first. The fan starts at 40% straight away and is at full speed by "
+            "70 C.\n\n"
+            "For overclocking, or long sessions on heavy games. You will hear it, but "
+            "the board stays well away from the point where it starts throttling."),
+        "massimo": L(
+            "Sempre al 100%, qualunque sia la temperatura.\n\n"
+            "Non e' un preset da usare tutti i giorni: serve per una prova, o mentre si "
+            "cerca un problema termico. E' rumoroso.",
+            "Always 100%, whatever the temperature.\n\n"
+            "Not an everyday setting: it is for a test, or while chasing a thermal "
+            "problem. It is loud."),
+    }.get(chiave, "")
+
+
+AIUTO = {
+    "curva": (L("La curva", "The curve"), L(
+        "Ogni punto dice: «a questa temperatura, la ventola gira cosi'». Fra un punto e "
+        "l'altro la velocita' si calcola per interpolazione, quindi la ventola non fa "
+        "scatti.\n\n"
+        "• trascina un punto per spostarlo\n"
+        "• doppio clic sul grafico per aggiungerne uno\n"
+        "• tasto destro su un punto per toglierlo\n\n"
+        "Il pallino chiaro che si muove da solo e' la macchina adesso: temperatura "
+        "vera e velocita' vera.\n\n"
+        "La curva non puo' scendere mentre la temperatura sale: se trascini un punto "
+        "sotto quello precedente viene rialzato. Raffreddare di meno mentre ci si "
+        "scalda non e' una scelta, e' un errore di trascinamento.",
+        "Each point says: \"at this temperature, run the fan this fast\". Between two "
+        "points the speed is interpolated, so the fan does not jump.\n\n"
+        "• drag a point to move it\n"
+        "• double-click the graph to add one\n"
+        "• right-click a point to remove it\n\n"
+        "The pale dot that moves on its own is the machine right now: real temperature, "
+        "real speed.\n\n"
+        "The curve cannot go down as temperature goes up: a point dragged below the "
+        "previous one is raised back. Cooling less while getting hotter is not a "
+        "choice, it is a slip of the mouse.")),
+
+    "sorgente": (L("Quale temperatura comanda", "Which temperature drives it"), L(
+        "La curva si legge su UNA temperatura. Se ne scegli piu' d'una, comanda la piu' "
+        "alta fra quelle: e' la scelta prudente, perche' la media nasconde il punto "
+        "caldo.\n\n"
+        "Qui sotto compaiono solo i sensori che la macchina legge davvero. Quelli che il "
+        "chip dichiara ma non legge — su questa scheda sono la maggioranza — sono "
+        "nascosti apposta.\n\n"
+        "⚠️ Se un sensore e' segnato come sospetto, non usarlo: un canale che non cambia "
+        "mai comanderebbe una ventola che non sale mai.",
+        "The curve is read against ONE temperature. If you pick more than one, the "
+        "hottest of them wins: that is the prudent choice, because an average hides the "
+        "hot spot.\n\n"
+        "Only sensors the machine actually reads are listed. The ones the chip declares "
+        "but does not read — on this board, most of them — are hidden on purpose.\n\n"
+        "⚠️ Do not use a sensor marked suspicious: a channel that never changes would "
+        "drive a fan that never rises.")),
+
+    "anticipo": (L("Salire prima del calore", "Getting ahead of the heat"), L(
+        "Una ventola impiega un paio di secondi a prendere giri, e l'APU si scalda in "
+        "pochi secondi: chi aspetta che il termometro salga arriva sempre tardi. Qui si "
+        "guarda quanto sta salendo e si legge la curva un po' piu' avanti.\n\n"
+        "• GUADAGNO: quanti gradi di anticipo per ogni grado al secondo di salita. Piu' "
+        "alto vuol dire piu' pronto e piu' rumoroso.\n"
+        "• FINESTRA: su quanti secondi si misura la salita. Corta = nervosa, lunga = "
+        "lenta a reagire.\n"
+        "• WATT: sulla BC-250 si leggono i watt veri dell'APU. I watt salgono PRIMA "
+        "della temperatura, perche' sono la causa: e' il segnale che arriva per primo.\n\n"
+        "L'anticipo puo' solo alzare la ventola, mai abbassarla.",
+        "A fan takes a couple of seconds to spin up and the APU heats in a few: waiting "
+        "for the thermometer always arrives late. This watches how fast it is rising and "
+        "reads the curve a little further along.\n\n"
+        "• GAIN: degrees of lead per degree-per-second of rise. Higher is more eager and "
+        "louder.\n"
+        "• WINDOW: how many seconds the rise is measured over. Short is twitchy, long is "
+        "slow to react.\n"
+        "• WATTS: on the BC-250 the APU's real wattage is readable. Watts rise BEFORE "
+        "temperature, because they are the cause: it is the earliest signal there is.\n\n"
+        "Lead can only raise the fan, never lower it.")),
+
+    "gioco": (L("Il gioco che parte", "When a game starts"), L(
+        "Il segnale che arriva prima di tutti e' l'avvio del programma: un gioco pesante "
+        "carica per una ventina di secondi prima di scaldare, e quel tempo e' regalato.\n\n"
+        "Un titolo gia' visto viene trattato secondo quanto ha DAVVERO consumato l'ultima "
+        "volta, misurato su questa macchina. E' cosi' che si distingue Cyberpunk da "
+        "Roblox senza tenere l'elenco di tutti i giochi del mondo.\n\n"
+        "Un titolo mai visto viene trattato come pesante, per prudenza, e alla fine della "
+        "partita si segna quanto ha consumato. Quindi un gioco leggero pre-raffredda una "
+        "volta sola, la prima, e mai piu'.",
+        "The earliest signal of all is the program starting: a heavy game loads for "
+        "twenty seconds before it heats anything, and that time is free.\n\n"
+        "A title seen before is treated according to what it ACTUALLY drew last time, "
+        "measured on this machine. That is how Cyberpunk is told apart from Roblox "
+        "without keeping a list of every game in the world.\n\n"
+        "A title never seen is treated as heavy, to be safe, and what it drew is recorded "
+        "when you quit. So a light game pre-cools once, the first time, and never again.")),
+
+    "prova": (L("Comanda davvero?", "Is it really in charge?"), L(
+        "Scrivere su un'uscita PWM non vuol dire che qualcosa si muova. Su molte "
+        "schede, e soprattutto su server e portatili, il chip accetta il valore e le "
+        "ventole se le governa il firmware: da fuori si vede un pannello che funziona "
+        "e una ventola che non ha mai ricevuto un ordine.\n\n"
+        "Verificato sulla macchina di sviluppo, un Fujitsu PRIMERGY: si scrive 255, si "
+        "scrive 60, e i giri non si muovono su nessuna delle due uscite.\n\n"
+        "Questa prova ferma per un momento il controllo, manda la ventola al massimo, "
+        "poi al 35%, poi di nuovo al massimo, e guarda se il contagiri segue. Dura una "
+        "trentina di secondi, si sente, e alla fine rimette tutto com'era.",
+        "Writing to a PWM output does not mean anything moves. On many boards, servers "
+        "and laptops especially, the chip accepts the value and the firmware keeps the "
+        "fans to itself: from outside you see a panel that works and a fan that never "
+        "got an order.\n\n"
+        "Verified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, "
+        "and the speed does not budge on either output.\n\n"
+        "This test pauses the controller for a moment, takes the fan to full, then to "
+        "35%, then back to full, and watches whether the tachometer follows. It takes "
+        "about thirty seconds, you will hear it, and it puts everything back "
+        "afterwards.")),
+
+    "sicurezza": (L("I freni", "The brakes"), L(
+        "• MINIMO: la ventola non scende mai sotto questo. Molte ventole a tre fili sotto "
+        "una certa soglia si fermano e non ripartono da sole finche' il segnale non "
+        "risale parecchio, quindi lo zero non e' fra le scelte.\n"
+        "• ISTERESI: di quanto deve scendere la temperatura prima che la ventola cali. "
+        "Senza, mezzo grado di tremolio del sensore la farebbe salire e scendere di "
+        "continuo.\n"
+        "• EMERGENZA: sopra questa temperatura si va al 100% senza passare dalla curva. "
+        "E' la strada piu' corta fra il termometro e la ventola, e non la si puo' "
+        "disattivare.\n\n"
+        "Se un sensore sparisce o dice un numero impossibile, la ventola va al massimo. "
+        "Una ventola rumorosa e' un fastidio, una ventola ferma e' un danno.",
+        "• MINIMUM: the fan never goes below this. Many 3-wire fans stop below a "
+        "threshold and do not restart until the signal climbs well past it, so zero is "
+        "not on the menu.\n"
+        "• HYSTERESIS: how far the temperature must fall before the fan eases off. "
+        "Without it, half a degree of sensor jitter would have it rising and falling "
+        "constantly.\n"
+        "• EMERGENCY: above this temperature it goes to 100% without consulting the "
+        "curve. It is the shortest path from thermometer to fan, and it cannot be turned "
+        "off.\n\n"
+        "If a sensor disappears or reports something impossible, the fan goes to full "
+        "speed. A loud fan is an annoyance; a stopped fan is damage.")),
+
+    "tensioni": (L("Le tensioni", "The voltages"), L(
+        "Una tensione che si allontana dal suo valore di riposo sotto carico e' il "
+        "sintomo classico di un alimentatore troppo debole o di scarsa qualita'.\n\n"
+        "⚠️ SU QUESTA SCHEDA LE LINEE DELL'ALIMENTATORE NON SI LEGGONO. Il chip dichiara "
+        "+12V e +5V ma restituisce zero fisso: non sono cablate. Non e' un guasto e non "
+        "c'e' niente da riparare, semplicemente da li' non si possono sorvegliare.\n\n"
+        "Quello che si puo' guardare e' il lato APU: i watt assorbiti e le tensioni "
+        "interne della GPU. Un alimentatore che non regge si vede da li' — i watt "
+        "chiedono, la tensione cala e le frequenze crollano a temperatura costante.\n\n"
+        "Per le tensioni senza nome l'allarme si basa sul valore di riposo imparato "
+        "guardando: se si sposta di piu' della tolleranza, viene segnalato.",
+        "A voltage drifting from its resting value under load is the classic symptom of "
+        "a power supply that is too weak or poorly made.\n\n"
+        "⚠️ ON THIS BOARD THE SUPPLY RAILS CANNOT BE READ. The chip declares +12V and "
+        "+5V but returns a fixed zero: they are not wired. Nothing is broken and there "
+        "is nothing to repair — they simply cannot be watched from there.\n\n"
+        "What can be watched is the APU side: wattage drawn and the GPU's internal "
+        "voltages. A supply that cannot keep up shows there — watts demand, voltage "
+        "sags, and clocks collapse at constant temperature.\n\n"
+        "For unnamed voltages the alarm uses the resting value learned by watching: if "
+        "it moves more than the tolerance, it is flagged.")),
+
+    "etichette": (L("I nomi dei sensori", "Sensor names"), L(
+        "Puoi riscrivere il nome di qualunque sensore, e resta anche dopo un riavvio.\n\n"
+        "Serve davvero: su molte schede il driver non sa come sono cablati gli ingressi e "
+        "li chiama in0, in2, in6. Nessun programma puo' saperlo — chi ha la macchina "
+        "davanti si'.\n\n"
+        "Il nome resta legato al chip e al canale, non al numero di hwmon, che cambia a "
+        "seconda dell'ordine in cui si caricano i driver.",
+        "You can rename any sensor, and the name survives a reboot.\n\n"
+        "This matters: on many boards the driver does not know how the inputs are wired "
+        "and calls them in0, in2, in6. No program can know — the person with the machine "
+        "in front of them can.\n\n"
+        "The name is tied to the chip and channel, not to the hwmon number, which changes "
+        "with driver load order.")),
+}
+
+
+def _aiuto(chiave, parent=None):
+    titolo, corpo = AIUTO.get(chiave, (L("Aiuto", "Help"), ""))
+    return Aiuto(corpo, titolo, parent)
+
+
+# ---------- il layout a colonne ----------
+class ColonneFlusso(QLayout):
+    u"""Le sezioni scorrono in una, due o tre colonne secondo lo spazio.
+
+    E' lo stesso schema del Tuner, dove ha risolto una finestra alta quanto lo
+    schermo che scorreva lo stesso mentre meta' larghezza restava vuota. Qui
+    serve per la stessa ragione: su 1280x1024 (la macchina di sviluppo) le
+    sezioni devono stare in due colonne, su 1920 in tre, e su uno schermo
+    piccolo in una sola senza schiacciare niente.
+    """
+
+    def __init__(self, parent=None, margine=0, spazio=10, larghezza_min=420, colonne_max=3):
+        super().__init__(parent)
+        self._voci = []
+        self._spazio = spazio
+        self.larghezza_min = larghezza_min
+        self.colonne_max = colonne_max
+        self.setContentsMargins(margine, margine, margine, margine)
+
+    def addItem(self, item):
+        self._voci.append(item)
+
+    def count(self):
+        return len(self._voci)
+
+    def itemAt(self, i):
+        return self._voci[i] if 0 <= i < len(self._voci) else None
+
+    def takeAt(self, i):
+        return self._voci.pop(i) if 0 <= i < len(self._voci) else None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, larghezza):
+        return self._disponi(QRect(0, 0, larghezza, 0), prova=True)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._disponi(rect, prova=False)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        w = 0
+        for v in self._voci:
+            w = max(w, v.minimumSize().width())
+        s, d, _, _ = self.getContentsMargins()
+        return QSize(max(w, self.larghezza_min) + s + d, 0)
+
+    def quante_colonne(self, larghezza):
+        s, d, _, _ = self.getContentsMargins()
+        utile = larghezza - s - d
+        n = (utile + self._spazio) // (self.larghezza_min + self._spazio)
+        return max(1, min(int(n), self.colonne_max, len(self._voci) or 1))
+
+    def _disponi(self, rect, prova):
+        if not self._voci:
+            return 0
+        s, sup, d, inf = self.getContentsMargins()
+        n = self.quante_colonne(rect.width())
+        utile = rect.width() - s - d
+        larg = (utile - (n - 1) * self._spazio) // n
+        alte = [0] * n
+        for v in self._voci:
+            c = alte.index(min(alte))
+            h = v.sizeHint().height()
+            if v.hasHeightForWidth():
+                h = v.heightForWidth(larg)
+            if not prova:
+                x = rect.x() + s + c * (larg + self._spazio)
+                y = rect.y() + sup + alte[c]
+                v.setGeometry(QRect(x, y, larg, h))
+            alte[c] += h + self._spazio
+        return max(alte) + sup + inf - self._spazio
+
+
+# ---------- il grafico ----------
+OTTONE = QColor("#d8a849")
+OTTONE_SCURO = QColor("#8a6a2a")
+FONDO = QColor("#1b1713")
+GRIGLIA = QColor("#3a322a")
+VIVO = QColor("#7fd4ff")
+
+
+class Curva(QWidget):
+    u"""Il grafico della curva, con i punti che si trascinano.
+
+    Gli assi sono fissi: 20-100 gradi in orizzontale, 0-100% in verticale. Fissi
+    apposta — una scala che si adatta ai dati fa sembrare identiche due curve
+    completamente diverse, ed e' un grafico che serve a confrontare.
+    """
+
+    RAGGIO = 6
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.punti = [list(p) for p in PRESET["equilibrato"]]
+        self.vivo = None          # (temperatura, duty) adesso
+        self.storia = []          # ultimi punti vivi, per la scia
+        self.cambiata = None      # richiamo verso la finestra
+        self._trascinato = -1
+        self.setMinimumHeight(240)
+        self.setMouseTracking(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    # -- conversioni fra gradi/percento e pixel ----------------------------
+    T_MIN, T_MAX = 20.0, 100.0
+
+    def _bordo(self):
+        return 34, 12, 12, 26      # sinistra, sopra, destra, sotto
+
+    def _area(self):
+        s, sup, d, inf = self._bordo()
+        return QRect(s, sup, max(1, self.width() - s - d),
+                     max(1, self.height() - sup - inf))
+
+    def _px(self, t, y):
+        a = self._area()
+        x = a.left() + (t - self.T_MIN) / (self.T_MAX - self.T_MIN) * a.width()
+        yy = a.bottom() - y / 100.0 * a.height()
+        return QPointF(x, yy)
+
+    def _val(self, pos):
+        a = self._area()
+        t = self.T_MIN + (pos.x() - a.left()) / max(1, a.width()) * (self.T_MAX - self.T_MIN)
+        y = (a.bottom() - pos.y()) / max(1, a.height()) * 100.0
+        return max(self.T_MIN, min(self.T_MAX, t)), max(0.0, min(100.0, y))
+
+    # -- disegno ------------------------------------------------------------
+    def paintEvent(self, ev):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        a = self._area()
+        p.fillRect(self.rect(), FONDO)
+
+        # griglia e numeri
+        p.setFont(QFont(self.font().family(), 8))
+        for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 10):
+            x = self._px(t, 0).x()
+            p.setPen(QPen(GRIGLIA, 1))
+            p.drawLine(int(x), a.top(), int(x), a.bottom())
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            p.drawText(int(x) - 10, a.bottom() + 16, "%d" % t)
+        for y in range(0, 101, 25):
+            yy = self._px(self.T_MIN, y).y()
+            p.setPen(QPen(GRIGLIA, 1))
+            p.drawLine(a.left(), int(yy), a.right(), int(yy))
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            p.drawText(4, int(yy) + 4, "%d%%" % y)
+
+        if not self.punti:
+            return
+
+        # l'area sotto la curva, in ottone sfumato
+        cammino = QPainterPath()
+        primo = self._px(max(self.T_MIN, self.punti[0][0]), self.punti[0][1])
+        cammino.moveTo(a.left(), primo.y())
+        for t, y in self.punti:
+            cammino.lineTo(self._px(max(self.T_MIN, min(self.T_MAX, t)), y))
+        ultimo = self.punti[-1]
+        cammino.lineTo(a.right(), self._px(self.T_MAX, ultimo[1]).y())
+        sotto = QPainterPath(cammino)
+        sotto.lineTo(a.right(), a.bottom())
+        sotto.lineTo(a.left(), a.bottom())
+        sotto.closeSubpath()
+        sfum = QLinearGradient(0, a.top(), 0, a.bottom())
+        sfum.setColorAt(0.0, QColor(216, 168, 73, 90))
+        sfum.setColorAt(1.0, QColor(216, 168, 73, 15))
+        p.fillPath(sotto, QBrush(sfum))
+        p.setPen(QPen(OTTONE, 2))
+        p.drawPath(cammino)
+
+        # la scia di dove e' stata la macchina
+        if len(self.storia) > 1:
+            p.setPen(QPen(QColor(127, 212, 255, 70), 1))
+            for i in range(1, len(self.storia)):
+                p.drawLine(self._px(*self.storia[i - 1]), self._px(*self.storia[i]))
+
+        # i punti da trascinare
+        for t, y in self.punti:
+            c = self._px(max(self.T_MIN, min(self.T_MAX, t)), y)
+            p.setPen(QPen(QColor("#2b241c"), 2))
+            p.setBrush(QBrush(OTTONE))
+            p.drawEllipse(c, self.RAGGIO, self.RAGGIO)
+
+        # dove sta la macchina adesso
+        if self.vivo:
+            c = self._px(max(self.T_MIN, min(self.T_MAX, self.vivo[0])), self.vivo[1])
+            p.setBrush(QBrush(VIVO))
+            p.setPen(QPen(QColor("#0d1a20"), 2))
+            p.drawEllipse(c, 5, 5)
+            p.setPen(QPen(VIVO, 1))
+            p.setFont(QFont(self.font().family(), 8, QFont.Weight.Bold))
+            p.drawText(int(c.x()) + 9, int(c.y()) - 6,
+                       "%.0f° → %.0f%%" % (self.vivo[0], self.vivo[1]))
+
+    # -- interazione --------------------------------------------------------
+    def _vicino(self, pos):
+        for i, (t, y) in enumerate(self.punti):
+            c = self._px(max(self.T_MIN, min(self.T_MAX, t)), y)
+            if (c.x() - pos.x()) ** 2 + (c.y() - pos.y()) ** 2 <= (self.RAGGIO + 6) ** 2:
+                return i
+        return -1
+
+    def mousePressEvent(self, ev):
+        pos = ev.position()
+        i = self._vicino(pos)
+        if ev.button() == Qt.MouseButton.RightButton:
+            # ⚠️ mai sotto due punti: con uno solo la curva non e' piu' una curva
+            if i >= 0 and len(self.punti) > 2:
+                del self.punti[i]
+                self._fatto()
+            return
+        self._trascinato = i
+
+    def mouseDoubleClickEvent(self, ev):
+        if self._vicino(ev.position()) >= 0:
+            return
+        t, y = self._val(ev.position())
+        self.punti.append([round(t, 1), round(y)])
+        self.punti.sort()
+        self._fatto()
+
+    def mouseMoveEvent(self, ev):
+        if self._trascinato < 0:
+            return
+        t, y = self._val(ev.position())
+        i = self._trascinato
+        # non si scavalca il vicino: l'ordine dei punti non cambia trascinando
+        if i > 0:
+            t = max(t, self.punti[i - 1][0] + 0.5)
+        if i < len(self.punti) - 1:
+            t = min(t, self.punti[i + 1][0] - 0.5)
+        self.punti[i] = [round(t, 1), round(y)]
+        self.update()
+
+    def mouseReleaseEvent(self, ev):
+        if self._trascinato >= 0:
+            self._trascinato = -1
+            self._fatto()
+
+    def _fatto(self):
+        self.punti.sort()
+        # non decrescente: un punto trascinato sotto il precedente e' quasi
+        # sempre uno scivolone del mouse, e vorrebbe dire raffreddare di meno
+        # mentre ci si scalda.
+        for i in range(1, len(self.punti)):
+            if self.punti[i][1] < self.punti[i - 1][1]:
+                self.punti[i][1] = self.punti[i - 1][1]
+        self.update()
+        if self.cambiata:
+            self.cambiata()
+
+    def imposta(self, punti):
+        self.punti = [list(p) for p in punti]
+        self.update()
+
+    def aggiorna_vivo(self, t, duty):
+        if t is None:
+            self.vivo = None
+        else:
+            self.vivo = (t, duty)
+            self.storia.append((t, duty))
+            self.storia = self.storia[-180:]
+        self.update()
+
+
+# ---------- utilita' ----------
+def leggi_json(percorso, ripiego):
+    try:
+        with io.open(percorso, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else ripiego
+    except (IOError, OSError, ValueError):
+        return ripiego
+
+
+# Le linee FISSE: quelle che devono stare ferme sul loro valore, e su cui un
+# allarme ha senso. Sono le uscite dell'alimentatore e i riferimenti del chip.
+RAIL_FISSE = {"+12v": 12.0, "+5v": 5.0, "+3.3v": 3.3, "3vcc": 3.3,
+              "avcc": 3.3, "avcc3": 3.3, "avsb": 3.3, "vcc": 3.3}
+
+# ⚠️ QUESTE NON SI SORVEGLIANO, e non e' una dimenticanza.
+#
+# vddgfx e vddnb sono le tensioni interne dell'APU: SI MUOVONO PER PROGETTO,
+# perche' il silicio le alza e le abbassa insieme alla frequenza. La prima
+# versione le trattava come le altre e sullo schermo compariva
+# «vddnb: 0.743 V invece di 1.09 V» a macchina ferma e sana. Un allarme che si
+# accende quando va tutto bene e' peggio di nessun allarme: si impara a
+# ignorarlo, e il giorno che ha ragione non lo guarda nessuno.
+#
+# VBat e' il caso opposto: fermo davvero, ma il chip lo legge attraverso un
+# partitore suo e su questa scheda dichiara 2,03 V per una pila da 3 V. Il
+# valore «giusto» dipende dalla scheda e non lo sappiamo, quindi si mostra e
+# basta.
+#
+# Restano visibili tutte: mostrare senza allarmare e' diverso da nascondere.
+DINAMICHE = ("vddgfx", "vddnb", "vcore", "cpu vcore", "cpu soc", "cpu vddp",
+             "cpu sa", "cpu 1p8", "dram", "chipset", "vbat", "vid", "vtt")
+
+# Quanti campioni prima di fidarsi del valore di riposo imparato. Uno solo
+# sarebbe un colpo di fortuna: se capita durante un picco, quello diventa il
+# riferimento e tutto il resto sembra sbagliato.
+CAMPIONI_RIPOSO = 20
+
+
+def nominale(etichetta):
+    u"""Il valore atteso di una linea, se e' una linea fissa che conosciamo."""
+    e = (etichetta or "").strip().lower()
+    if any(d in e for d in DINAMICHE):
+        return "dinamica"
+    return RAIL_FISSE.get(e)
+
+
+class Prova(QThread):
+    u"""La prova del PWM gira in un filo suo: dura mezzo minuto.
+
+    Nella finestra principale bloccherebbe tutto — niente aggiornamento delle
+    temperature proprio mentre la ventola va al massimo, che e' l'unico momento
+    in cui uno vorrebbe guardarle."""
+    finita = pyqtSignal(bool, str)
+
+    def __init__(self, pwm, fan, parent=None):
+        super().__init__(parent)
+        self.pwm, self.fan = pwm, fan
+
+    def run(self):
+        try:
+            p = subprocess.run(["pkexec", HELPER, "prova"],
+                               input=json.dumps({"pwm": self.pwm, "fan": self.fan}),
+                               capture_output=True, text=True, timeout=180)
+        except Exception as e:
+            self.finita.emit(False, str(e))
+            return
+        if p.returncode != 0:
+            self.finita.emit(False, (p.stderr or p.stdout or "").strip())
+            return
+        try:
+            d = json.loads(p.stdout)
+        except ValueError:
+            self.finita.emit(False, p.stdout[:200])
+            return
+        giri = ", ".join("%s%% -> %s" % (round(x["pwm"] * 100 / 255), x["rpm"])
+                         for x in d.get("letture", []))
+        self.finita.emit(bool(d.get("risponde")), giri)
+
+
+# ---------- la finestra ----------
+class Finestra(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS Ventola", "SkillFishOS Fan Control"))
+        if os.path.exists(ICON):
+            self.setWindowIcon(QIcon(ICON))
+        self.conf = leggi_json(CONF, {})
+        self.stato = leggi_json(STATO, {})
+        self.etichette = leggi_json(ETICHETTE, {})
+        self.riposo = {}          # tensione -> valore di riposo imparato
+        self.campi_etichetta = {}
+        self.caselle_sorgente = {}
+
+        centro = QWidget()
+        self.setCentralWidget(centro)
+        fuori = QVBoxLayout(centro)
+        fuori.setContentsMargins(10, 10, 10, 10)
+
+        # Lo scorrimento resta come rete di sicurezza per gli schermi piccoli:
+        # a 1920 e a 1280 non serve, ma su un portatile basso si'.
+        scorri = QScrollArea()
+        scorri.setWidgetResizable(True)
+        scorri.setFrameShape(QFrame.Shape.NoFrame)
+        dentro = QWidget()
+        self.colonne = ColonneFlusso(dentro, margine=0, spazio=10)
+        scorri.setWidget(dentro)
+        fuori.addWidget(scorri, 1)
+
+        self.colonne.addWidget(self._sez_adesso())
+        self.colonne.addWidget(self._sez_curva())
+        self.colonne.addWidget(self._sez_sorgente())
+        self.colonne.addWidget(self._sez_anticipo())
+        self.colonne.addWidget(self._sez_sicurezza())
+        self.colonne.addWidget(self._sez_tensioni())
+
+        # la barra in fondo
+        barra = QHBoxLayout()
+        self.interruttore = QCheckBox(L("Controlla la ventola",
+                                        "Take control of the fan"))
+        self.interruttore.setChecked(bool(self.conf.get("attivo")))
+        barra.addWidget(self.interruttore)
+        barra.addStretch(1)
+        self.etichetta_salva = QLabel("")
+        barra.addWidget(self.etichetta_salva)
+        b = QPushButton(L("Applica", "Apply"))
+        b.clicked.connect(self.salva)
+        barra.addWidget(b)
+        fuori.addLayout(barra)
+        self.barra_bassa = max(36, b.sizeHint().height() + 12)
+
+        self._adatta_allo_schermo()
+
+        self.orologio = QTimer(self)
+        self.orologio.timeout.connect(self.aggiorna)
+        self.orologio.start(1000)
+        self.aggiorna()
+
+    def _adatta_allo_schermo(self):
+        u"""Grande quanto ci sta, senza uscire dallo spazio utile."""
+        sc = QApplication.primaryScreen()
+        d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
+        larg = min(1500, max(760, int(d.width() * 0.82)))
+        alt = min(int(d.height() * 0.92), max(560, self.sizeHint().height()))
+        self.resize(larg, alt)
+        self.move(d.left() + (d.width() - larg) // 2,
+                  d.top() + max(0, (d.height() - alt) // 2))
+
+    def showEvent(self, ev):
+        # ⚠️ La prima misura non vale: le sezioni scorrono in colonne e quante
+        # colonne siano dipende dalla larghezza, che a __init__ non e' ancora
+        # decisa. Alla prima comparsa il conto e' fatto davvero, e la finestra
+        # si stringe sull'altezza che serve invece di restare alta quanto lo
+        # schermo con meta' vuota sotto.
+        super().showEvent(ev)
+        if getattr(self, "_gia_stretta", False):
+            return
+        self._gia_stretta = True
+        sc = QApplication.primaryScreen()
+        d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
+        # ⚠️ Non sizeHint() del contenitore: per un QLayout che dispone a
+        # colonne quel numero non vuol dire niente (la minima ha altezza zero,
+        # perche' l'altezza dipende da quante colonne ci stanno). Si chiede al
+        # layout la sola cosa che sa rispondere: quanto e' alto SE gli si da'
+        # questa larghezza. Col conto sbagliato la finestra si stringeva troppo
+        # e le tensioni finivano sotto il bordo.
+        largh = max(400, self.centralWidget().width() - 24)
+        serve = self.colonne.heightForWidth(largh) + self.barra_bassa + 40
+        alt = min(int(d.height() * 0.92), max(520, serve))
+        if abs(alt - self.height()) > 30:
+            self.resize(self.width(), alt)
+            self.move(self.x(), d.top() + max(0, (d.height() - alt) // 2))
+
+    # -- le sezioni ---------------------------------------------------------
+    @staticmethod
+    def _box(titolo, chiave_aiuto=None):
+        g = QGroupBox()
+        v = QVBoxLayout(g)
+        intest = QHBoxLayout()
+        et = QLabel("<b>%s</b>" % titolo)
+        intest.addWidget(et)
+        intest.addStretch(1)
+        if chiave_aiuto:
+            intest.addWidget(_aiuto(chiave_aiuto, g))
+        v.addLayout(intest)
+        return g, v
+
+    def _sez_adesso(self):
+        g, v = self._box(L("Adesso", "Right now"))
+        self.et_temp = QLabel("—")
+        self.et_temp.setStyleSheet("font-size: 30px; color: #d8a849;")
+        self.et_giri = QLabel("—")
+        self.et_duty = QLabel("—")
+        self.et_watt = QLabel("—")
+        self.et_motivo = QLabel("—")
+        self.et_motivo.setWordWrap(True)
+        self.et_motivo.setStyleSheet("color: #9a8a70;")
+        v.addWidget(self.et_temp)
+        for e in (self.et_duty, self.et_giri, self.et_watt, self.et_motivo):
+            v.addWidget(e)
+        self.et_allarme = QLabel("")
+        self.et_allarme.setWordWrap(True)
+        self.et_allarme.setStyleSheet("color:#e0703a; font-weight:bold;")
+        v.addWidget(self.et_allarme)
+        return g
+
+    def _sez_curva(self):
+        g, v = self._box(L("La curva", "The curve"), "curva")
+        self.grafico = Curva()
+        self.grafico.cambiata = self._curva_toccata
+        punti = self.conf.get("curva") or PRESET["equilibrato"]
+        self.grafico.imposta(punti)
+        v.addWidget(self.grafico, 1)
+
+        # I preset: una spunta ciascuno e UN solo bottone.
+        # ⚠️ Cinque bottoni «applica» in colonna erano cinque occasioni di
+        # premere quello sbagliato, e l'ultimo della fila e' «sempre al massimo».
+        self.gruppo = QButtonGroup(g)
+        riga = QHBoxLayout()
+        for chiave in ("silenzioso", "equilibrato", "prestazioni", "massimo"):
+            r = QRadioButton(nome_preset(chiave))
+            r.chiave = chiave
+            self.gruppo.addButton(r)
+            riga.addWidget(r)
+            riga.addWidget(Aiuto(aiuto_preset(chiave), nome_preset(chiave), g))
+            if self.conf.get("preset") == chiave:
+                r.setChecked(True)
+        riga.addStretch(1)
+        v.addLayout(riga)
+        self.bottone_preset = QPushButton(L("Usa questo preset", "Use this preset"))
+        self.bottone_preset.setEnabled(any(b.isChecked() for b in self.gruppo.buttons()))
+        self.gruppo.buttonClicked.connect(lambda _: self.bottone_preset.setEnabled(True))
+        self.bottone_preset.clicked.connect(self._usa_preset)
+        v.addWidget(self.bottone_preset)
+        return g
+
+    def _sez_sorgente(self):
+        g, v = self._box(L("Quale temperatura comanda",
+                           "Which temperature drives it"), "sorgente")
+        self.contenitore_sorgente = QVBoxLayout()
+        v.addLayout(self.contenitore_sorgente)
+        v.addStretch(1)
+        return g
+
+    def _sez_anticipo(self):
+        g, v = self._box(L("Anticipo", "Lead"), "anticipo")
+        p = self.conf.get("predittivo") or {}
+        self.pred_attivo = QCheckBox(L("Sali prima che arrivi il calore",
+                                       "Speed up before the heat arrives"))
+        self.pred_attivo.setChecked(bool(p.get("attivo", True)))
+        v.addWidget(self.pred_attivo)
+
+        def riga(testo, widget, suffisso=""):
+            h = QHBoxLayout()
+            h.addWidget(QLabel(testo))
+            h.addStretch(1)
+            h.addWidget(widget)
+            if suffisso:
+                h.addWidget(QLabel(suffisso))
+            v.addLayout(h)
+
+        self.guadagno = QDoubleSpinBox()
+        self.guadagno.setRange(0.0, 10.0)
+        self.guadagno.setSingleStep(0.5)
+        self.guadagno.setValue(float(p.get("guadagno", 2.5)))
+        riga(L("Guadagno", "Gain"), self.guadagno)
+
+        self.finestra = QSpinBox()
+        self.finestra.setRange(2, 30)
+        self.finestra.setValue(int(p.get("finestra", 6)))
+        riga(L("Finestra", "Window"), self.finestra, "s")
+
+        self.preraffredda = QSpinBox()
+        self.preraffredda.setRange(20, 100)
+        self.preraffredda.setValue(int(p.get("preraffredda", 55)))
+        riga(L("Quando parte un gioco pesante", "When a heavy game starts"),
+             self.preraffredda, "%")
+
+        h = QHBoxLayout()
+        h.addWidget(QLabel(L("Come riconosce i giochi", "How it recognises games")))
+        h.addStretch(1)
+        h.addWidget(_aiuto("gioco", g))
+        v.addLayout(h)
+        self.et_gioco = QLabel("")
+        self.et_gioco.setStyleSheet("color:#9a8a70;")
+        self.et_gioco.setWordWrap(True)
+        v.addWidget(self.et_gioco)
+        v.addStretch(1)
+        return g
+
+    def _sez_sicurezza(self):
+        g, v = self._box(L("Sicurezza", "Safety"), "sicurezza")
+
+        def riga(testo, widget, suffisso=""):
+            h = QHBoxLayout()
+            h.addWidget(QLabel(testo))
+            h.addStretch(1)
+            h.addWidget(widget)
+            if suffisso:
+                h.addWidget(QLabel(suffisso))
+            v.addLayout(h)
+
+        self.minimo = QSpinBox()
+        self.minimo.setRange(20, 100)
+        self.minimo.setValue(int(self.conf.get("minimo", 30)))
+        riga(L("Non scendere sotto", "Never go below"), self.minimo, "%")
+
+        self.isteresi = QDoubleSpinBox()
+        self.isteresi.setRange(0.0, 20.0)
+        self.isteresi.setSingleStep(0.5)
+        self.isteresi.setValue(float(self.conf.get("isteresi", 3.0)))
+        riga(L("Isteresi", "Hysteresis"), self.isteresi, "°C")
+
+        self.emergenza = QDoubleSpinBox()
+        self.emergenza.setRange(60.0, 105.0)
+        self.emergenza.setValue(float(self.conf.get("emergenza", 88.0)))
+        riga(L("Tutta al massimo sopra", "Full speed above"), self.emergenza, "°C")
+
+        self.et_uscita = QLabel("")
+        self.et_uscita.setStyleSheet("color:#9a8a70;")
+        self.et_uscita.setWordWrap(True)
+        v.addWidget(self.et_uscita)
+
+        h = QHBoxLayout()
+        self.bottone_prova = QPushButton(L("Comanda davvero la ventola?",
+                                           "Is it really in charge of the fan?"))
+        self.bottone_prova.clicked.connect(self._prova_uscita)
+        h.addWidget(self.bottone_prova, 1)
+        h.addWidget(_aiuto("prova", g))
+        v.addLayout(h)
+        self.et_prova = QLabel("")
+        self.et_prova.setWordWrap(True)
+        v.addWidget(self.et_prova)
+        self._mostra_prova(leggi_json(PROVA, {}))
+        v.addStretch(1)
+        return g
+
+    def _mostra_prova(self, d):
+        if not d:
+            self.et_prova.setText("")
+            return
+        if d.get("risponde"):
+            self.et_prova.setStyleSheet("color:#8fbf6a;")
+            self.et_prova.setText(L("Provata: la ventola risponde ai comandi.",
+                                    "Tested: the fan responds to the control."))
+        else:
+            self.et_prova.setStyleSheet("color:#e0703a; font-weight:bold;")
+            self.et_prova.setText(L(
+                "Provata: la ventola NON risponde. Il valore viene accettato e i giri "
+                "non cambiano — su questa macchina la ventola la governa il firmware, "
+                "e la curva non ha effetto.",
+                "Tested: the fan does NOT respond. The value is accepted and the speed "
+                "does not change — on this machine the firmware keeps the fan to "
+                "itself, and the curve has no effect."))
+
+    def _prova_uscita(self):
+        sensori = (self.stato or {}).get("sensori") or []
+        ventole = [x for x in sensori if x.get("type") == "fan" and x.get("value")]
+        pwm = self.conf.get("pwm") or self._scegli_pwm()
+        if not ventole or not pwm:
+            QMessageBox.information(self, L("Non si puo' provare", "Cannot test"), L(
+                "Serve un'uscita PWM e una ventola che dia i giri. Su questa macchina "
+                "manca almeno una delle due.",
+                "This needs a PWM output and a fan that reports its speed. At least one "
+                "of the two is missing on this machine."))
+            return
+        self.bottone_prova.setEnabled(False)
+        self.et_prova.setStyleSheet("color:#9a8a70;")
+        self.et_prova.setText(L("Prova in corso, una trentina di secondi. Si sente.",
+                                "Testing, about thirty seconds. You will hear it."))
+        self._filo = Prova(pwm, ventole[0]["key"], self)
+        self._filo.finita.connect(self._prova_finita)
+        self._filo.start()
+
+    def _prova_finita(self, risponde, dettaglio):
+        self.bottone_prova.setEnabled(True)
+        self._mostra_prova(leggi_json(PROVA, {}) or {"risponde": risponde})
+        if dettaglio:
+            self.et_prova.setText(self.et_prova.text() + chr(10) + dettaglio)
+
+    def _sez_tensioni(self):
+        g, v = self._box(L("Tensioni e assorbimento",
+                           "Voltages and power draw"), "tensioni")
+        self.contenitore_tensioni = QVBoxLayout()
+        v.addLayout(self.contenitore_tensioni)
+        h = QHBoxLayout()
+        h.addWidget(QLabel(L("Rinomina i sensori", "Rename the sensors")))
+        h.addStretch(1)
+        h.addWidget(_aiuto("etichette", g))
+        v.addLayout(h)
+        v.addStretch(1)
+        return g
+
+    # -- vita ---------------------------------------------------------------
+    def _curva_toccata(self):
+        for b in self.gruppo.buttons():
+            self.gruppo.setExclusive(False)
+            b.setChecked(False)
+            self.gruppo.setExclusive(True)
+        self.bottone_preset.setEnabled(False)
+        self.etichetta_salva.setText(L("modificata, non ancora applicata",
+                                       "changed, not applied yet"))
+
+    def _usa_preset(self):
+        for b in self.gruppo.buttons():
+            if b.isChecked():
+                self.grafico.imposta(PRESET[b.chiave])
+                self.etichetta_salva.setText(
+                    L("%s: premi Applica", "%s: press Apply") % nome_preset(b.chiave))
+                return
+
+    def _preset_scelto(self):
+        for b in self.gruppo.buttons():
+            if b.isChecked():
+                return b.chiave
+        return "personalizzata"
+
+    def _svuota(self, layout):
+        while layout.count():
+            v = layout.takeAt(0)
+            w = v.widget()
+            if w:
+                w.deleteLater()
+            elif v.layout():
+                self._svuota(v.layout())
+
+    def aggiorna(self):
+        self.stato = leggi_json(STATO, {})
+        s = self.stato
+        if not s:
+            self.et_motivo.setText(L(
+                "Il controllo della ventola non sta girando. Premi Applica per accenderlo.",
+                "The fan controller is not running. Press Apply to start it."))
+            return
+
+        t = s.get("temperatura")
+        self.et_temp.setText("%.1f °C" % t if t is not None else "—")
+        self.et_duty.setText(L("Ventola: %s%%", "Fan: %s%%") % s.get("duty", "—"))
+        self.et_watt.setText(L("Assorbimento: %.1f W", "Power draw: %.1f W")
+                             % s["watt"] if s.get("watt") else "")
+        motivo = {
+            "curve": L("segue la curva", "following the curve"),
+            "no temperature: full speed": L(
+                "nessuna temperatura leggibile: al massimo per sicurezza",
+                "no readable temperature: full speed, to be safe"),
+        }.get(s.get("motivo") or "", s.get("motivo") or "")
+        if (s.get("motivo") or "").startswith("emergency"):
+            motivo = L("EMERGENZA: al massimo", "EMERGENCY: full speed")
+        if (s.get("motivo") or "").startswith("anticipating"):
+            motivo = L("sta anticipando la salita", "anticipating the rise")
+        if (s.get("motivo") or "").startswith("pre-cooling"):
+            motivo = L("pre-raffredda per %s", "pre-cooling for %s") % (s.get("gioco") or "")
+        self.et_motivo.setText(motivo)
+
+        if not s.get("in_controllo"):
+            self.et_uscita.setText(L(
+                "La ventola e' ancora governata dal firmware: la curva non e' attiva.",
+                "The fan is still governed by the firmware: the curve is not in charge."))
+        else:
+            self.et_uscita.setText(L("Uscita comandata: %s", "Driving output: %s")
+                                   % (self.conf.get("pwm") or "—"))
+
+        sensori = s.get("sensori") or []
+        giri = [x for x in sensori if x.get("type") == "fan" and x.get("value")]
+        self.et_giri.setText(L("Giri: %d rpm", "Speed: %d rpm") % giri[0]["value"]
+                             if giri else "")
+        if t is not None:
+            self.grafico.aggiorna_vivo(t, float(s.get("duty") or 0))
+
+        self._riempi_sorgente(sensori)
+        self._riempi_tensioni(sensori)
+        if s.get("gioco"):
+            self.et_gioco.setText(L("Ultimo riconosciuto: %s", "Last recognised: %s")
+                                  % s["gioco"])
+
+    def _riempi_sorgente(self, sensori):
+        temp = [x for x in sensori if x.get("type") == "temp"]
+        chiavi = [x["key"] for x in temp]
+        if set(chiavi) != set(self.caselle_sorgente):
+            self._svuota(self.contenitore_sorgente)
+            self.caselle_sorgente = {}
+            scelte = set(self.conf.get("sorgente") or [])
+            for x in temp:
+                c = QCheckBox(x["label"])
+                c.setChecked(x["key"] in scelte)
+                self.caselle_sorgente[x["key"]] = c
+                h = QHBoxLayout()
+                h.addWidget(c)
+                h.addStretch(1)
+                val = QLabel("")
+                val.setStyleSheet("color:#d8a849;")
+                h.addWidget(val)
+                c.valore = val
+                self.contenitore_sorgente.addLayout(h)
+        for x in temp:
+            c = self.caselle_sorgente.get(x["key"])
+            if c is not None and x.get("value") is not None:
+                c.valore.setText("%.1f °C" % x["value"])
+
+    def _riempi_tensioni(self, sensori):
+        volt = [x for x in sensori if x.get("type") in ("in", "power")]
+        chiavi = [x["key"] for x in volt]
+        if set(chiavi) != set(self.campi_etichetta):
+            self._svuota(self.contenitore_tensioni)
+            self.campi_etichetta = {}
+            for x in volt:
+                h = QHBoxLayout()
+                campo = QLineEdit(x["label"])
+                campo.setMaximumWidth(150)
+                self.campi_etichetta[x["key"]] = campo
+                h.addWidget(campo)
+                h.addStretch(1)
+                val = QLabel("")
+                h.addWidget(val)
+                campo.valore = val
+                self.contenitore_tensioni.addLayout(h)
+        allarmi = []
+        for x in volt:
+            campo = self.campi_etichetta.get(x["key"])
+            if campo is None or x.get("value") is None:
+                continue
+            v = x["value"]
+            campo.valore.setText("%.3f V" % v if x["type"] == "in" else "%.1f W" % v)
+            if x["type"] != "in":
+                continue
+            atteso = nominale(x.get("label"))
+            if atteso == "dinamica":
+                continue           # si muove per progetto: si mostra, non si allarma
+            if atteso is None:
+                # Nessun nome riconoscibile — sul Fujitsu si chiamano in0, in2,
+                # in6 perche' il driver non sa come sono cablate. L'unica cosa
+                # onesta e' guardare per un po' e prendere la MEDIANA come
+                # valore di riposo. La mediana, non la prima lettura: se il
+                # primo campione capita durante un picco, quel picco diventa il
+                # riferimento e tutto il resto sembra sbagliato.
+                storia = self.riposo.setdefault(x["key"], [])
+                if len(storia) < CAMPIONI_RIPOSO:
+                    storia.append(v)
+                    continue       # ancora non si sa abbastanza per giudicare
+                ordinati = sorted(storia)
+                atteso = ordinati[len(ordinati) // 2]
+                tolleranza = 0.10
+            else:
+                tolleranza = 0.05
+            if atteso and abs(v - atteso) / atteso > tolleranza:
+                allarmi.append(L("%s: %.3f V invece di %.2f V",
+                                 "%s: %.3f V instead of %.2f V")
+                               % (campo.text(), v, atteso))
+        self.et_allarme.setText("\n".join(allarmi[:3]))
+
+    # -- salvataggio --------------------------------------------------------
+    def salva(self):
+        sorgenti = [k for k, c in self.caselle_sorgente.items() if c.isChecked()]
+        pwm = self.conf.get("pwm") or self._scegli_pwm()
+        if self.interruttore.isChecked() and not sorgenti:
+            QMessageBox.warning(self, L("Manca la sorgente", "No source chosen"), L(
+                "Scegli almeno una temperatura da usare come sorgente della curva.",
+                "Pick at least one temperature for the curve to follow."))
+            return
+        if self.interruttore.isChecked() and not pwm:
+            QMessageBox.warning(self, L("Nessuna uscita", "No output"), L(
+                "Su questa macchina non ho trovato un'uscita PWM che si possa comandare.",
+                "I could not find a controllable PWM output on this machine."))
+            return
+
+        conf = {
+            "attivo": self.interruttore.isChecked(),
+            "pwm": pwm,
+            "sorgente": sorgenti,
+            "curva": self.grafico.punti,
+            "minimo": self.minimo.value(),
+            "isteresi": self.isteresi.value(),
+            "emergenza": self.emergenza.value(),
+            "preset": self._preset_scelto(),
+            "predittivo": {
+                "attivo": self.pred_attivo.isChecked(),
+                "guadagno": self.guadagno.value(),
+                "finestra": self.finestra.value(),
+                "preraffredda": self.preraffredda.value(),
+            },
+        }
+        etichette = dict(self.etichette)
+        for k, campo in self.campi_etichetta.items():
+            testo = campo.text().strip()
+            if testo:
+                etichette[k] = testo
+
+        ok, msg = self._helper("scrivi", conf)
+        if ok and etichette:
+            self._helper("etichette", etichette)
+        if ok:
+            self.conf = conf
+            self.etichetta_salva.setText(L("applicata", "applied"))
+        else:
+            QMessageBox.critical(self, L("Non riesco a salvare", "Could not save"), msg)
+
+    def _scegli_pwm(self):
+        u"""L'uscita da comandare, se non e' gia' scelta.
+
+        Si prende quella gia' in modo manuale sullo stesso chip della ventola
+        che legge: sulla BC-250 e' pwm2, l'unica che non e' governata dal chip.
+        Non e' un indovinello — e' l'unica configurazione coerente possibile
+        quando c'e' una sola ventola vera."""
+        sensori = (self.stato or {}).get("sensori") or []
+        ventole = [x for x in sensori if x.get("type") == "fan" and x.get("value")]
+        chip = ventole[0]["key"].split(":")[0] if ventole else ""
+        try:
+            sys.path.insert(0, "/usr/share/skillfish")
+            import hwmon
+            _, pwm = hwmon.elenca()
+        except Exception:
+            return ""
+        candidate = [p for p in pwm if p.modo is not None and p.modo >= 0]
+        if chip:
+            stesso = [p for p in candidate if p.chiave.split(":")[0] == chip]
+            candidate = stesso or candidate
+        for p in candidate:
+            if p.modo == 1:
+                return p.chiave
+        return candidate[0].chiave if candidate else ""
+
+    @staticmethod
+    def _helper(azione, dati):
+        try:
+            p = subprocess.run(["pkexec", HELPER, azione],
+                               input=json.dumps(dati), capture_output=True,
+                               text=True, timeout=120)
+        except Exception as e:
+            return False, str(e)
+        if p.returncode == 0:
+            return True, ""
+        msg = (p.stderr or p.stdout or "").strip()
+        if p.returncode == 126:
+            msg = L("Autenticazione annullata.", "Authentication cancelled.")
+        return False, msg or L("errore sconosciuto", "unknown error")
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Fan Control")
+    if os.path.exists(ICON):
+        app.setWindowIcon(QIcon(ICON))
+    f = Finestra()
+    f.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
