@@ -5,11 +5,12 @@
 import { pl } from "./i18n.pl";
 import { uk } from "./i18n.uk";
 import { ru } from "./i18n.ru";
+import { es } from "./i18n.es";
 
 // pl/uk arrived after it/en and live in their own files as flat key→string maps.
 // Anything they don't translate falls back to English, so a partial dictionary
 // degrades to English instead of showing a raw key.
-export type Lang = "it" | "en" | "pl" | "uk" | "ru";
+export type Lang = "it" | "en" | "pl" | "uk" | "ru" | "es";
 export const defaultLang: Lang = "it";
 export const languages: Record<Lang, string> = {
   it: "Italiano",
@@ -17,14 +18,15 @@ export const languages: Record<Lang, string> = {
   pl: "Polski",
   uk: "Українська",
   ru: "Русский",
+  es: "Español",
 };
 
 // L'ordine in cui le lingue compaiono nel menu'. Italiano e inglese davanti
 // perché sono le due complete; le altre in ordine di quanto pesano nei
 // download, che è il motivo per cui esistono.
-export const langOrder: Lang[] = ["it", "en", "pl", "ru", "uk"];
+export const langOrder: Lang[] = ["it", "en", "es", "pl", "ru", "uk"];
 
-const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk, ru };
+const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk, ru, es };
 
 // Centralized site config (download URL finalized later — see DESIGN notes).
 export const SITE = {
@@ -207,11 +209,11 @@ export const strings: Record<string, Entry> = {
   },
   "hw.c1": {
     it: 'CPU "Oberon" · fino a 4.0 GHz',
-    en: '"Oberon"CPU · up to 4.0 GHz',
+    en: 'CPU "Oberon" · up to 4.0 GHz',
   },
   "hw.c2": {
     it: 'GPU "Cyan Skillfish" · 40 CU',
-    en: '"Cyan Skillfish"GPU · 40 CU',
+    en: 'GPU "Cyan Skillfish" · 40 CU',
   },
   "hw.c3": {
     it: "FP32 · accelerazione Vulkan",

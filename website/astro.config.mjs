@@ -36,6 +36,11 @@ export default defineConfig({
     '/en/docs': '/en/docs/introduzione',
     '/pl/docs': '/pl/docs/introduzione',
     '/uk/docs': '/uk/docs/introduzione',
+    // ⚠️ Aggiungendo una lingua questa riga si dimentica facilmente, e il
+    // sintomo non e' una pagina rotta ma l'elenco delle cartelle di Apache:
+    // sembra un problema del server, invece manca qui. Successo con il russo.
+    '/ru/docs': '/ru/docs/introduzione',
+    '/es/docs': '/es/docs/introduzione',
   },
   vite: {
     cacheDir: viteCacheDir,
