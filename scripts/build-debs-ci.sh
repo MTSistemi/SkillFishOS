@@ -107,6 +107,14 @@ put $P 0755 system/usr/local/bin/skillfish-cu     usr/local/bin/skillfish-cu
 # strumento di terzi in /opt che non e' ridistribuibile e che su una macchina
 # installata da apt non esisteva: la voce della VRAM era li' e non funzionava.
 put $P 0755 system/usr/local/bin/skillfish-memcfg usr/local/bin/skillfish-memcfg
+# I sensori della scheda madre. Sta nel pacchetto del HUD per lo stesso
+# motivo degli helper qui sotto: e' cio' che rende visibili le ventole su un
+# PC qualunque, dove i chip Super-I/O sono su bus ISA e nessun driver si
+# carica da solo. Prima non era in NESSUN pacchetto - stava solo nel git e
+# sulla scheda, copiato a mano - quindi su una macchina installata non
+# esisteva, e con lui sparivano contagiri, tensioni e i ripieghi del HUD.
+put $P 0755 system/usr/local/bin/skillfish-sensori usr/local/bin/skillfish-sensori
+put $P 0644 system/etc/systemd/system/skillfish-sensori.service etc/systemd/system/skillfish-sensori.service
 put $P 0755 system/usr/local/bin/skillfish-hud-val usr/local/bin/skillfish-hud-val
 put $P 0755 system/usr/local/bin/skillfish-hud-config usr/local/bin/skillfish-hud-config
 put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
@@ -123,6 +131,11 @@ put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/sk
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Tuner - BC-250 hardware control GUI"
+# ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
+# sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
+# come si fa gia' per skillfish-unsloth.
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-sensori.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-hub
 put $P 0755 apps/hub/skillfish-hub        usr/local/bin/skillfish-hub
@@ -970,6 +983,12 @@ check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud      
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'cpubar cpu'
 # e che i ripieghi generici dei sensori non vengano persi in una riscrittura
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val        cpu_temp_generico
+# I sensori della scheda madre: lo script E l'unita' che lo fa partire.
+# Questo file e' rimasto per mesi nel repository senza essere in nessun
+# pacchetto e senza che lo lanciasse nessuno, e non se n'e' accorto nessuno
+# perche' un file fuori da ogni elenco non manca a nessuno. Ora manca qui.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-sensori        modprobe
+check skillfish-tuner_${VER}_all.deb         ./etc/systemd/system/skillfish-sensori.service  ExecStart=/usr/local/bin/skillfish-sensori
 # L'autostart deve chiamare il percorso assoluto: con "sh -c" e le virgolette,
 # KDE lo converte in servizio systemd e $HOME resta letterale.
 check skillfish-base_${VER}_all.deb          ./etc/skel/.config/autostart/skillfish-conky.desktop "Exec=/usr/local/bin/skillfish-hud"

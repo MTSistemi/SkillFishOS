@@ -1,0 +1,28 @@
+[Unit]
+# Accende i sensori della scheda madre e mette in /run le cose che il HUD, che
+# gira come utente, non puo' leggersi da solo.
+#
+# ⚠️ QUESTA UNITA' NON DEVE AVERE LA GUARDIA skillfish-is-bc250. Tutti gli altri
+# servizi nostri la hanno perche' toccano hardware che esiste solo sulla BC-250;
+# questo fa l'opposto, ed e' sul PC qualunque che serve di piu': li' i chip
+# Super-I/O stanno su bus ISA, il kernel non li enumera, nessun driver si carica
+# da solo e le ventole non esistono per il sistema. Sulla scheda di sviluppo
+# c'era un NCT6792D con due ventole a 965 e 2020 giri, invisibile finche' non
+# si e' caricato nct6775 a mano. Lo script si guarda da solo dal toccare i
+# moduli sulla BC-250, dove l'equilibrio nct6687/nct6683 non va disturbato.
+Description=SkillFishOS - motherboard sensors and cached hardware facts for the HUD
+Documentation=man:sensors(1)
+After=systemd-modules-load.service
+Before=graphical.target
+ConditionPathExists=/usr/local/bin/skillfish-sensori
+
+[Service]
+Type=oneshot
+# Scrive in /run, che e' un tmpfs: al riavvio sparisce tutto e va rifatto.
+# RemainAfterExit perche' l'unita' resti "attiva" dopo essere finita, cosi' si
+# vede a colpo d'occhio che il lavoro e' stato fatto invece di trovarla inerte.
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-sensori
+
+[Install]
+WantedBy=multi-user.target
