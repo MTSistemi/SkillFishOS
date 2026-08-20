@@ -14,15 +14,42 @@ file per 25 MB, non vale la pena rischiare per risparmiare qualche secondo.
 """
 import os
 import shutil
+import stat
+import tempfile
 import subprocess
 import sys
 
 import paramiko
 
 QUI = os.path.dirname(os.path.abspath(__file__))
-SCARICO = os.path.join(QUI, "apt-nuovo")
-CLONE = os.path.join(QUI, "gh-pages")
+
+# ⚠️ SI LAVORA FUORI DA DROPBOX. Questo script sta dentro una cartella
+# sincronizzata, e Dropbox tiene aperti i file mentre li indicizza: la
+# cancellazione dell'albero fallisce, `ignore_errors=True` la fa fallire in
+# SILENZIO, e la copia successiva muore con "il file esiste gia'". E' lo stesso
+# motivo per cui il sito si costruisce in C:\sfweb e non nel repository.
+LAVORO = os.path.join(tempfile.gettempdir(), "skillfishos-ghpages")
+SCARICO = os.path.join(LAVORO, "apt-nuovo")
+CLONE = os.path.join(LAVORO, "gh-pages")
 REPO = "https://github.com/MTSistemi/SkillFishOS.git"
+
+
+def butta(percorso):
+    """Cancella un albero anche quando Windows fa i capricci.
+
+    git lascia gli oggetti in sola lettura e Windows si rifiuta di cancellarli;
+    `shutil.rmtree(ignore_errors=True)` non protesta e lascia mezzo albero al
+    suo posto. Qui si toglie la sola lettura e si riprova, e se proprio non si
+    riesce lo si dice invece di andare avanti su una cartella sporca.
+    """
+    def riprova(funzione, p, _):
+        os.chmod(p, stat.S_IWRITE)
+        funzione(p)
+    if not os.path.exists(percorso):
+        return
+    shutil.rmtree(percorso, onerror=riprova)
+    if os.path.exists(percorso):
+        sys.exit("   non riesco a cancellare %s: chiudi i programmi che lo tengono aperto" % percorso)
 
 # ⚠️ La versione si passa da fuori. Prima era scritta dentro, in due punti: il
 # controllo di sicurezza e il messaggio di commit. Al rilascio dopo il controllo
@@ -35,27 +62,6 @@ VERSIONE = sys.argv[1]
 if not all(p.isdigit() for p in VERSIONE.split(".")) or VERSIONE.count(".") != 2:
     sys.exit("versione non riconosciuta: %r (attesa tipo 26.08.26)" % VERSIONE)
 print("   allineo GitHub Pages alla %s" % VERSIONE)
-
-
-def butta(percorso):
-    u"""Cancella un albero anche su Windows.
-
-    ⚠️ shutil.rmtree(ignore_errors=True) NON basta: git lascia i suoi oggetti
-    in sola lettura e su Windows cancellarli da' PermissionError, che con
-    ignore_errors viene ingoiato. La cartella resta li' mezza piena e il clone
-    successivo fallisce con "destination path already exists" - preso in faccia
-    il 19/08/2026. Qui si toglie il flag di sola lettura e si riprova.
-    """
-    def riprova(funzione, nome, _exc):
-        try:
-            os.chmod(nome, 0o700)
-            funzione(nome)
-        except OSError:
-            pass
-    if os.path.exists(percorso):
-        shutil.rmtree(percorso, onerror=riprova)
-    if os.path.exists(percorso):
-        sys.exit("   non riesco a cancellare %s: toglilo a mano" % percorso)
 
 
 def scarica_ricorsivo(sftp, remoto, locale):
@@ -119,7 +125,7 @@ print("   ramo gh-pages clonato")
 # particolare: senza, GitHub Pages ignora le cartelle che iniziano per underscore
 # e l'archivio smetterebbe di funzionare.)
 for cartella in ("dists", "pool"):
-    shutil.rmtree(os.path.join(CLONE, cartella), ignore_errors=True)
+    butta(os.path.join(CLONE, cartella))
     shutil.copytree(os.path.join(SCARICO, cartella), os.path.join(CLONE, cartella))
 for chiave in ("skillfishos-archive-keyring.asc", "skillfishos-archive-keyring.gpg"):
     s = os.path.join(SCARICO, chiave)
