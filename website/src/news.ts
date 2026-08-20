@@ -32,6 +32,23 @@ export const roadmap: VoceRoadmap[] = [
   {
     stato: 'corso',
     titolo: {
+      it: 'Il sistema nella lingua di chi lo usa',
+      en: 'The system in the language of the people using it',
+      pl: 'System w języku tych, którzy go używają',
+      uk: 'Система мовою тих, хто нею користується',
+      ru: 'Система на языке тех, кто ею пользуется',
+    },
+    testo: {
+      it: "Finora SkillFishOS parlava quattro lingue: italiano, inglese, polacco e ucraino. I download raccontano un'altra storia — negli ultimi trenta giorni Russia e Spagna insieme valgono quasi un terzo di chi scarica, con il Brasile subito dietro. Stiamo aggiungendo <strong>russo, spagnolo, portoghese brasiliano e tedesco</strong>: applicazioni, installatore e sito. Le traduzioni sono uscite dal codice e vivono in un file per lingua, così chi vuole correggerne una manda <strong>un file solo</strong> invece di modificare sei sorgenti che non ha mai visto. Il polacco lo ha scritto Cyryl Sochacki; per le lingue nuove non abbiamo madrelingua, quindi sono marcate come da rivedere e le correzioni sono benvenute.",
+      en: "Until now SkillFishOS spoke four languages: Italian, English, Polish and Ukrainian. The downloads tell a different story — over the last thirty days Russia and Spain together account for nearly a third of them, with Brazil close behind. We are adding <strong>Russian, Spanish, Brazilian Portuguese and German</strong>: applications, installer and website. Translations have moved out of the code into one file per language, so anyone who wants to fix one sends <strong>a single file</strong> instead of editing six sources they have never seen. The Polish was written by Cyryl Sochacki; for the new languages we have no native speakers, so they are marked as needing review and corrections are welcome.",
+      pl: "Dotąd SkillFishOS mówił czterema językami: włoskim, angielskim, polskim i ukraińskim. Pobrania mówią co innego — w ostatnich trzydziestu dniach Rosja i Hiszpania to razem prawie jedna trzecia pobrań, a tuż za nimi Brazylia. Dodajemy <strong>rosyjski, hiszpański, portugalski brazylijski i niemiecki</strong>: aplikacje, instalator i stronę. Tłumaczenia wyszły z kodu i mieszkają w jednym pliku na język, więc kto chce poprawić któreś, wysyła <strong>jeden plik</strong>, zamiast zmieniać sześć źródeł, których nigdy nie widział. Polski napisał Cyryl Sochacki; do nowych języków nie mamy rodzimych użytkowników, więc są oznaczone jako wymagające przeglądu, a poprawki są mile widziane.",
+      uk: "Досі SkillFishOS розмовляв чотирма мовами: італійською, англійською, польською та українською. Завантаження свідчать про інше — за останні тридцять днів Росія та Іспанія разом дають майже третину завантажень, одразу за ними Бразилія. Ми додаємо <strong>російську, іспанську, бразильську португальську та німецьку</strong>: програми, встановлювач і сайт. Переклади вийшли з коду й живуть в одному файлі на мову, тож той, хто хоче щось виправити, надсилає <strong>один файл</strong>, а не змінює шість джерел, яких ніколи не бачив. Польську написав Cyryl Sochacki; для нових мов у нас немає носіїв, тому вони позначені як такі, що потребують перегляду, і виправлення вітаються.",
+      ru: "До сих пор SkillFishOS говорил на четырёх языках: итальянском, английском, польском и украинском. Загрузки говорят иное — за последние тридцать дней Россия и Испания вместе дают почти треть загрузок, сразу за ними Бразилия. Мы добавляем <strong>русский, испанский, бразильский португальский и немецкий</strong>: программы, установщик и сайт. Переводы вышли из кода и живут в одном файле на язык, поэтому тот, кто хочет что-то исправить, присылает <strong>один файл</strong>, а не правит шесть исходников, которых никогда не видел. Польский написал Cyryl Sochacki; для новых языков у нас нет носителей, поэтому они помечены как требующие проверки, и исправления приветствуются.",
+    },
+  },
+  {
+    stato: 'corso',
+    titolo: {
       it: 'Ogni immagine provata su una scheda vera prima di uscire',
       en: 'Every image tested on real hardware before it ships',
       pl: 'Każdy obraz sprawdzony na prawdziwej płycie przed wydaniem',

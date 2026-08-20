@@ -48,6 +48,31 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rg
 .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-shrink:0}
 .lang-btn{background:none;border:none;color:var(--muted);padding:6px 9px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.2s;display:inline-block;white-space:nowrap}
 .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
+
+/* Menu' delle lingue. Sostituisce la fila di sigle: con otto lingue quella fila
+   diventava lunga quanto il menu' di navigazione. Costruito su <details>, quindi
+   si apre e si chiude senza una riga di JavaScript.
+   Il nome esteso della lingua compare solo da 900px in su: sotto resta la sigla,
+   che e' quello che sul telefono ci sta davvero. */
+.langmenu{position:relative;flex-shrink:0}
+.langmenu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;
+  border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);
+  font-size:.78rem;font-weight:600;white-space:nowrap;transition:.2s}
+.langmenu>summary::-webkit-details-marker{display:none}
+.langmenu>summary:hover{color:var(--gold-lt);border-color:rgba(216,168,73,.45)}
+.langmenu .caret{font-size:.7rem;opacity:.8}
+.langmenu .langname{display:none}
+@media(min-width:900px){.langmenu .langname{display:inline}}
+.langmenu[open]>summary{color:var(--gold-lt);border-color:rgba(216,168,73,.45)}
+.langmenu ul{position:absolute;right:0;top:calc(100% + 6px);z-index:60;margin:0;padding:6px;
+  list-style:none;min-width:170px;border:1px solid var(--line);border-radius:12px;
+  background:#171009;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+.langmenu li{margin:0}
+.langmenu ul a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
+  color:var(--muted);font-size:.84rem;text-decoration:none;white-space:nowrap}
+.langmenu ul a:hover{background:rgba(216,168,73,.12);color:var(--gold-lt)}
+.langmenu ul a.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
+.langmenu ul .langcode{font-weight:700;font-size:.72rem;opacity:.75;min-width:22px}
 .btn{display:inline-block;padding:13px 26px;border-radius:12px;font-weight:600;font-size:.95rem;transition:transform .15s,box-shadow .25s,background .25s;cursor:pointer;border:none}
 .btn-primary{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;box-shadow:0 6px 24px rgba(216,168,73,.35)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(216,168,73,.5)}

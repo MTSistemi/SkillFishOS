@@ -4,19 +4,27 @@
 
 import { pl } from "./i18n.pl";
 import { uk } from "./i18n.uk";
+import { ru } from "./i18n.ru";
 
 // pl/uk arrived after it/en and live in their own files as flat key→string maps.
 // Anything they don't translate falls back to English, so a partial dictionary
 // degrades to English instead of showing a raw key.
-export type Lang = "it" | "en" | "pl" | "uk";
+export type Lang = "it" | "en" | "pl" | "uk" | "ru";
 export const defaultLang: Lang = "it";
 export const languages: Record<Lang, string> = {
   it: "Italiano",
   en: "English",
   pl: "Polski",
   uk: "Українська",
+  ru: "Русский",
 };
-const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk };
+
+// L'ordine in cui le lingue compaiono nel menu'. Italiano e inglese davanti
+// perché sono le due complete; le altre in ordine di quanto pesano nei
+// download, che è il motivo per cui esistono.
+export const langOrder: Lang[] = ["it", "en", "pl", "ru", "uk"];
+
+const extra: Partial<Record<Lang, Record<string, string>>> = { pl, uk, ru };
 
 // Centralized site config (download URL finalized later — see DESIGN notes).
 export const SITE = {

@@ -1,5 +1,16 @@
 ---
-import { t, localePath, languages, SITE, type Lang } from '../i18n';
+// ⚠️ IL SELETTORE DELLE LINGUE E' UN MENU', NON PIU' UNA FILA DI PULSANTI.
+// Con quattro lingue la fila IT EN PL UK ci stava; con russo, spagnolo,
+// portoghese e tedesco in arrivo diventerebbe una fila di otto sigle che sul
+// telefono manda a capo la barra e a monitor sembra un codice a barre. Il menu'
+// mostra una voce sola - la lingua corrente - e apre le altre su richiesta.
+//
+// E' fatto con <details>, cioe' SENZA JavaScript: la pagina e' statica e deve
+// funzionare anche a script bloccati. Le voci restano <a> veri, quindi i motori
+// di ricerca li seguono e il tasto centrale del mouse apre in una scheda nuova,
+// che con un <select> pilotato da script non succederebbe.
+import { t, localePath, languages, langOrder, type Lang } from '../i18n';
+import { SITE } from '../i18n';
 interface Props { lang: Lang; page?: string; }
 const { lang, page = '/' } = Astro.props;
 const home = localePath('/', lang);
@@ -22,11 +33,23 @@ const active = (p: string) => (page === p || (p === '/docs' && page.startsWith('
       <a href={localePath('/donate', lang)} class={`donate-link ${active('/donate')}`}>{t('nav.donate', lang)}</a>
       <a href={SITE.github} target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
-    <div class="lang">
-      {(['it', 'en', 'pl', 'uk'] as const).map((l) => (
-        <a class={`lang-btn ${lang === l ? 'active' : ''}`} href={localePath(page, l)}
-           hreflang={l} title={languages[l]}>{l.toUpperCase()}</a>
-      ))}
-    </div>
+    <details class="langmenu">
+      <summary aria-label={languages[lang]} title={languages[lang]}>
+        <span class="langcode">{lang.toUpperCase()}</span>
+        <span class="langname">{languages[lang]}</span>
+        <span class="caret" aria-hidden="true">▾</span>
+      </summary>
+      <ul>
+        {langOrder.map((l) => (
+          <li>
+            <a class={lang === l ? 'active' : undefined} href={localePath(page, l)}
+               hreflang={l} lang={l}>
+              <span class="langcode">{l.toUpperCase()}</span>
+              <span>{languages[l]}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
   </div>
 </header>
