@@ -43,6 +43,7 @@ export default defineConfig({
     '/es/docs': '/es/docs/introduzione',
     '/pt/docs': '/pt/docs/introduzione',
     '/de/docs': '/de/docs/introduzione',
+    '/fr/docs': '/fr/docs/introduzione',
   },
   vite: {
     cacheDir: viteCacheDir,

@@ -40,6 +40,7 @@ export const roadmap: VoceRoadmap[] = [
       es: 'El sistema en el idioma de quien lo usa',
       pt: "O sistema no idioma de quem usa",
       de: "Das System in der Sprache derer, die es benutzen",
+      fr: "Le système dans la langue de ceux qui s'en servent"
     },
     testo: {
       it: "Finora SkillFishOS parlava quattro lingue: italiano, inglese, polacco e ucraino. I download raccontano un'altra storia — negli ultimi trenta giorni Russia e Spagna insieme valgono quasi un terzo di chi scarica, con il Brasile subito dietro. Stiamo aggiungendo <strong>russo, spagnolo, portoghese brasiliano e tedesco</strong>: applicazioni, installatore e sito. Le traduzioni sono uscite dal codice e vivono in un file per lingua, così chi vuole correggerne una manda <strong>un file solo</strong> invece di modificare sei sorgenti che non ha mai visto. Il polacco lo ha scritto Cyryl Sochacki; per le lingue nuove non abbiamo madrelingua, quindi sono marcate come da rivedere e le correzioni sono benvenute.",
@@ -50,6 +51,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Hasta ahora SkillFishOS hablaba cuatro idiomas: italiano, inglés, polaco y ucraniano. Las descargas cuentan otra cosa — en los últimos treinta días Rusia y España juntas suman casi un tercio, con Brasil justo detrás. Estamos añadiendo <strong>ruso, español, portugués de Brasil y alemán</strong>: aplicaciones, instalador y web. Las traducciones han salido del código y viven en un archivo por idioma, así que quien quiera corregir alguna envía <strong>un solo archivo</strong> en vez de tocar seis fuentes que nunca ha visto. El polaco lo escribió Cyryl Sochacki; para los idiomas nuevos no tenemos hablantes nativos, así que están marcados como pendientes de revisión y las correcciones son bienvenidas.",
       pt: "Até agora o SkillFishOS falava quatro idiomas: italiano, inglês, polonês e ucraniano. Os downloads contam outra história — nos últimos trinta dias Rússia e Espanha juntas somam quase um terço, com o Brasil logo atrás. Estamos acrescentando <strong>russo, espanhol, português do Brasil e alemão</strong>: aplicativos, instalador e site. As traduções saíram do código e vivem em um arquivo por idioma, então quem quiser corrigir alguma envia <strong>um único arquivo</strong> em vez de mexer em seis fontes que nunca viu. O polonês foi escrito por Cyryl Sochacki; para os idiomas novos não temos falantes nativos, então estão marcados como pendentes de revisão e as correções são bem-vindas.",
       de: "Bisher sprach SkillFishOS vier Sprachen: Italienisch, Englisch, Polnisch und Ukrainisch. Die Downloads erzählen etwas anderes — in den letzten dreißig Tagen machen Russland und Spanien zusammen fast ein Drittel aus, Brasilien folgt dicht dahinter. Wir fügen <strong>Russisch, Spanisch, brasilianisches Portugiesisch und Deutsch</strong> hinzu: Anwendungen, Installationsprogramm und Website. Die Übersetzungen sind aus dem Code herausgewandert und leben in einer Datei je Sprache, sodass jemand, der eine davon verbessern möchte, <strong>eine einzige Datei</strong> schickt, statt sechs Quelldateien zu ändern, die er nie gesehen hat. Das Polnische stammt von Cyryl Sochacki; für die neuen Sprachen haben wir keine Muttersprachler, deshalb sind sie als prüfbedürftig gekennzeichnet, und Korrekturen sind willkommen.",
+      fr: "Jusqu'ici SkillFishOS parlait quatre langues : italien, anglais, polonais et ukrainien. Les téléchargements racontent autre chose — sur les trente derniers jours la Russie et l'Espagne réunies pèsent près d'un tiers, le Brésil juste derrière. Nous ajoutons <strong>le russe, l'espagnol, le portugais brésilien et l'allemand</strong> : applications, installateur et site. Les traductions sont sorties du code et vivent dans un fichier par langue, si bien que celui qui veut en corriger une envoie <strong>un seul fichier</strong> au lieu de modifier six sources qu'il n'a jamais vues. Le polonais a été écrit par Cyryl Sochacki ; pour les langues nouvelles nous n'avons pas de locuteurs natifs, elles sont donc marquées comme à relire, et les corrections sont les bienvenues."
     },
   },
   {
@@ -63,6 +65,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Cada imagen probada en una placa real antes de salir",
       pt: "Cada imagem testada numa placa de verdade antes de sair",
       de: "Jedes Abbild auf einer echten Platine geprüft, bevor es erscheint",
+      fr: "Chaque image essayée sur du vrai matériel avant de sortir"
     },
     testo: {
       it: "Le due falle che potevano bloccare l'installazione della 26.06.3 le ha trovate chi ha installato su una BC-250 vera, non noi: in macchina virtuale erano <strong>invisibili per costruzione</strong>, perché il pezzo di codice che rompe l'hardware è proprio quello che una macchina virtuale non può eseguire. Da qui in avanti nessuna immagine esce senza un'installazione completa su una scheda vera, e la costruzione si rifiuta di produrre un'immagine se un controllo non passa.",
@@ -73,6 +76,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Los dos fallos que podían detener la instalación de la 26.06.3 los encontró alguien que instalaba en una BC-250 real, no nosotros: en una máquina virtual eran <strong>invisibles por construcción</strong>, porque el código que rompe el hardware es justo el que una máquina virtual no puede ejecutar. A partir de ahora ninguna imagen sale sin una instalación completa en una placa real, y la compilación se niega a producir una imagen si alguna comprobación falla.",
       pt: "As duas falhas que podiam travar a instalação da 26.06.3 foram encontradas por quem instalou numa BC-250 de verdade, não por nós: numa máquina virtual elas eram <strong>invisíveis por construção</strong>, porque o código que quebra o hardware é justamente o que uma máquina virtual não consegue executar. Daqui em diante nenhuma imagem sai sem uma instalação completa numa placa real, e a compilação se recusa a produzir uma imagem quando alguma verificação falha.",
       de: "Die beiden Fehler, die eine Installation von 26.06.3 stoppen konnten, hat jemand gefunden, der auf einer echten BC-250 installiert hat, nicht wir: in einer virtuellen Maschine waren sie <strong>von vornherein unsichtbar</strong>, weil genau der Code, der die Hardware lahmlegt, in einer virtuellen Maschine nicht ausgeführt werden kann. Von jetzt an erscheint kein Abbild ohne eine vollständige Installation auf einer echten Platine, und der Bauvorgang weigert sich, ein Abbild zu erzeugen, wenn eine Prüfung fehlschlägt.",
+      fr: "Les deux défauts qui pouvaient arrêter une installation de la 26.06.3 ont été trouvés par quelqu'un qui installait sur une vraie BC-250, pas par nous : dans une machine virtuelle ils étaient <strong>invisibles par construction</strong>, parce que le code qui casse le matériel est exactement celui qu'une machine virtuelle ne peut pas exécuter. Désormais aucune image ne sort sans une installation complète sur une vraie carte, et la fabrication refuse de produire une image quand un contrôle échoue."
     },
   },
   {
@@ -87,6 +91,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Todo el código publicado, también la parte que no se ve",
       pt: "Todo o código publicado, inclusive a parte que ninguém vê",
       de: "Der ganze Code veröffentlicht, auch der Teil, den niemand sieht",
+      fr: "Tout le code publié, y compris la partie que personne ne voit"
     },
     testo: {
       it: "Non solo le applicazioni: adesso è pubblica anche l'infrastruttura che trasforma una compilazione in qualcosa che si può installare — il repository apt firmato, il caricamento sui mirror, le statistiche, la pubblicazione del sito. Nessuno di quegli script contiene una credenziale: le leggono da file che restano fuori dal repository, e accanto ci sono i modelli da riempire. Chi vuole rifare la stessa catena a casa propria adesso può.",
@@ -97,6 +102,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "No solo las aplicaciones: ahora también es pública la infraestructura que convierte una compilación en algo instalable — el repositorio apt firmado, la subida a los espejos, las estadísticas, la publicación de la web. Ninguno de esos scripts contiene credenciales: leen archivos que quedan fuera del repositorio, y al lado están las plantillas para rellenar. Quien quiera rehacer la misma cadena en su casa, ahora puede.",
       pt: "Não só os aplicativos: agora também é pública a infraestrutura que transforma uma compilação em algo instalável — o repositório apt assinado, o envio aos espelhos, as estatísticas, a publicação do site. Nenhum desses scripts contém credenciais: eles leem arquivos que ficam fora do repositório, e ao lado estão os modelos para preencher. Quem quiser refazer a mesma cadeia em casa, agora pode.",
       de: "Nicht nur die Anwendungen: Jetzt ist auch die Infrastruktur öffentlich, die aus einem Bauvorgang etwas Installierbares macht — die signierte apt-Paketquelle, das Hochladen auf die Spiegelserver, die Statistik, die Veröffentlichung der Website. Keines dieser Skripte enthält Zugangsdaten: Sie lesen Dateien, die außerhalb des Repositorys bleiben, und daneben liegen die Vorlagen zum Ausfüllen. Wer dieselbe Kette bei sich zu Hause nachbauen will, kann das jetzt.",
+      fr: "Pas seulement les applications : l'infrastructure qui transforme une compilation en quelque chose d'installable est publique elle aussi — le dépôt apt signé, l'envoi vers les miroirs, les statistiques, la publication du site. Aucun de ces scripts ne contient d'identifiant : ils lisent des fichiers qui restent hors du dépôt, et les modèles à remplir sont juste à côté. Qui veut refaire la même chaîne chez lui peut maintenant le faire."
     },
   },
   {
@@ -111,6 +117,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Versión 26.12 sobre Debian trixie + backports",
       pt: "Versão 26.12 sobre Debian trixie + backports",
       de: "Version 26.12 auf Debian trixie + Backports",
+      fr: "Version 26.12 sur Debian trixie + backports"
     },
     testo: {
       it: "La base passa da <strong>sid</strong> a <strong>trixie (stable)</strong> con i backports: sistema stabile, kernel e grafica recenti dove servono. È la risposta alla critica più fondata che ci hanno fatto — sid dà il software più nuovo ma può rompersi, e su una console di casa questo pesa.",
@@ -121,6 +128,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "La base pasa de <strong>sid</strong> a <strong>trixie (estable)</strong> más backports: un sistema estable con núcleo y gráficos recientes donde importa. Esto responde a la crítica más justa que nos han hecho — sid trae el software más nuevo pero puede romperse, y en una consola de casa eso duele.",
       pt: "A base sai do <strong>sid</strong> e passa para o <strong>trixie (estável)</strong> mais backports: um sistema estável com kernel e gráficos recentes onde importa. Isso responde à crítica mais justa que recebemos — o sid traz o software mais novo, mas pode quebrar, e num console de casa isso dói.",
       de: "Die Basis wechselt von <strong>sid</strong> auf <strong>trixie (stabil)</strong> plus Backports: ein stabiles System mit aktuellem Kernel und aktueller Grafik dort, wo es zählt. Das ist die Antwort auf die berechtigtste Kritik, die wir bekommen haben — sid liefert die neueste Software, kann aber kaputtgehen, und auf einer Konsole zu Hause tut das weh.",
+      fr: "La base passe de <strong>sid</strong> à <strong>trixie (stable)</strong> plus les backports : un système stable avec un noyau et une partie graphique récents là où cela compte. C'est la réponse à la critique la plus juste qu'on nous ait faite — sid donne les logiciels les plus récents mais peut casser, et sur une console de salon cela fait mal."
     },
   },
   {
@@ -135,6 +143,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Descargas por torrent",
       pt: "Downloads por torrent",
       de: "Downloads per Torrent",
+      fr: "Téléchargement par torrent"
     },
     testo: {
       it: "Fatto: ogni immagine esce anche come torrent, con un magnet accanto, e a seminarla è un nostro server acceso ventiquattro ore su ventiquattro. I mirror restano dentro il torrent come sorgente HTTP di riserva, quindi il download parte comunque anche quando non c'è nessun altro a condividere. Da SourceForge in Europa si scaricava a circa 250 kB/s: per un'immagine da 4,7 GB era la prima cosa che faceva desistere.",
@@ -145,6 +154,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Hecho: cada imagen sale también como torrent, con su enlace magnet al lado, y la comparte una máquina nuestra encendida las veinticuatro horas. Los espejos siguen dentro del torrent como fuentes HTTP de respaldo, así la descarga arranca aunque no haya nadie más compartiendo. Desde SourceForge en Europa se sacaban unos 250 kB/s: en una imagen de 4,7 GB, eso era lo primero que hacía abandonar a la gente.",
       pt: "Feito: cada imagem sai também como torrent, com o link magnet ao lado, semeada por uma máquina nossa que fica ligada o dia inteiro. Os espelhos continuam dentro do torrent como fontes HTTP de reserva, então o download começa mesmo sem mais ninguém compartilhando. Pelo SourceForge na Europa saíam cerca de 250 kB/s: numa imagem de 4,7 GB, era a primeira coisa que fazia as pessoas desistirem.",
       de: "Erledigt: Jedes Abbild erscheint auch als Torrent, mit einem Magnet-Link daneben, verteilt von einer Maschine von uns, die rund um die Uhr läuft. Die Spiegelserver bleiben als HTTP-Reserve im Torrent enthalten, sodass ein Download auch dann startet, wenn sonst niemand teilt. Von SourceForge kamen in Europa etwa 250 kB/s an: bei einem Abbild von 4,7 GB war das das Erste, was die Leute aufgeben ließ.",
+      fr: "Fait : chaque image sort aussi en torrent, avec un lien magnet à côté, semée par une de nos machines qui reste allumée jour et nuit. Les miroirs restent dans le torrent comme sources HTTP de secours, si bien qu'un téléchargement démarre même quand personne d'autre ne partage. Depuis SourceForge en Europe on tournait autour de 250 ko/s : sur une image de 4,7 Go, c'était la première chose qui faisait abandonner."
     },
   },
   {
@@ -158,6 +168,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Guía de instalación con capturas, en cuatro idiomas",
       pt: "Guia de instalação com capturas, em quatro idiomas",
       de: "Installationsanleitung mit Bildschirmfotos, in vier Sprachen",
+      fr: "Guide d'installation en images, en quatre langues"
     },
     testo: {
       it: "Una guida passo passo con le schermate vere dell'installer, rifatte per ogni lingua: l'interfaccia cambia, quindi non basta tradurre le didascalie. Chi installa per la prima volta vede esattamente quello che ha davanti, nella sua lingua.",
@@ -168,6 +179,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Una guía paso a paso con capturas reales del instalador, rehechas para cada idioma: la interfaz cambia, así que traducir los pies de foto no basta. Quien instala por primera vez ve exactamente lo que tiene delante, y en su idioma.",
       pt: "Um guia passo a passo com capturas reais do instalador, refeitas para cada idioma: a interface muda, então traduzir as legendas não basta. Quem instala pela primeira vez vê exatamente o que está na frente dele, e no próprio idioma.",
       de: "Eine Schritt-für-Schritt-Anleitung mit echten Bildschirmfotos des Installationsprogramms, für jede Sprache neu aufgenommen: die Oberfläche ändert sich, also reicht es nicht, die Bildunterschriften zu übersetzen. Wer zum ersten Mal installiert, sieht genau das, was vor ihm liegt, und zwar in seiner Sprache.",
+      fr: "Un guide pas à pas avec de vraies captures de l'installateur, reprises pour chaque langue : l'interface change, traduire les légendes ne suffit pas. Celui qui installe pour la première fois voit exactement ce qu'il a devant lui, dans sa langue."
     },
   },
   {
@@ -181,6 +193,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Gestión de instantáneas en una ventana",
       pt: "Gerenciamento de snapshots numa janela",
       de: "Schnappschüsse in einem Fenster verwalten",
+      fr: "La gestion des instantanés dans une fenêtre"
     },
     testo: {
       it: "Btrfs Assistant è già dentro il sistema: va messo nel menu, vestito col tema e tradotto, così elencare, creare e ripristinare uno snapshot non richiede il terminale. Chi preferisce la riga di comando continua a usare <code>skillfish-rollback</code>.",
@@ -191,6 +204,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Btrfs Assistant ya viene con el sistema: falta ponerlo en el menú, darle la estética y traducirlo, para que listar, crear o restaurar una instantánea no requiera terminal. Quien prefiera la línea de comandos conserva <code>skillfish-rollback</code>.",
       pt: "O Btrfs Assistant já vem com o sistema: falta colocá-lo no menu, dar o visual e traduzir, para que listar, criar ou restaurar um snapshot não precise de terminal. Quem prefere a linha de comando continua com o <code>skillfish-rollback</code>.",
       de: "Btrfs Assistant liegt dem System schon bei: Es fehlt noch, ihn ins Menü zu holen, zu gestalten und zu übersetzen, damit Auflisten, Anlegen und Wiederherstellen eines Schnappschusses ohne Terminal geht. Wer die Kommandozeile bevorzugt, behält <code>skillfish-rollback</code>.",
+      fr: "Btrfs Assistant est déjà livré avec le système : il doit être au menu, habillé et traduit, pour que lister, créer et restaurer un instantané ne demande aucun terminal. Qui préfère la ligne de commande garde <code>skillfish-rollback</code>."
     },
   },
   {
@@ -204,6 +218,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Juego en streaming con Sunshine",
       pt: "Jogos em streaming com o Sunshine",
       de: "Spiele-Streaming mit Sunshine",
+      fr: "Le jeu en streaming avec Sunshine"
     },
     testo: {
       it: 'Giocare da un altro dispositivo, con la scheda che lavora in un angolo della casa. Il modulo è previsto nel pannello di controllo remoto, che già gestisce schermo, terminale e AI.',
@@ -214,6 +229,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Jugar desde otro dispositivo mientras la placa trabaja en un rincón de la casa. El módulo está previsto para el panel remoto, que ya se ocupa de pantalla, terminal e IA.",
       pt: "Jogar de outro aparelho enquanto a placa trabalha num canto da casa. O módulo está previsto para o painel remoto, que já cuida de tela, terminal e IA.",
       de: "Von einem anderen Gerät aus spielen, während die Platine in einer Ecke der Wohnung arbeitet. Das Modul ist für die Fernsteuerung vorgesehen, die sich schon um Bildschirm, Terminal und KI kümmert.",
+      fr: "Jouer depuis un autre appareil pendant que la carte travaille dans un coin de la maison. Le module est prévu pour le panneau à distance, qui gère déjà l'écran, le terminal et l'IA."
     },
   },
   {
@@ -227,6 +243,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Juegos en un disco externo",
       pt: "Jogos num disco externo",
       de: "Spiele auf einem externen Laufwerk",
+      fr: "Les jeux sur un disque externe"
     },
     testo: {
       it: "Un selettore per installare i giochi su un SSD USB invece che sul disco di sistema. Steam arriva come Flatpak, quindi non basta cambiare cartella: serve dare il permesso giusto al contenitore, ed è proprio il pezzo che vogliamo togliere di mezzo all'utente.",
@@ -237,6 +254,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Un selector para instalar los juegos en un SSD por USB en vez de en el disco del sistema. Steam viene como Flatpak, así que cambiar de carpeta no basta: hay que dar el permiso correcto al contenedor, y es justo esa parte la que queremos quitarle de encima al usuario.",
       pt: "Um seletor para instalar os jogos num SSD por USB em vez do disco do sistema. O Steam vem como Flatpak, então trocar de pasta não basta: é preciso dar a permissão certa ao contêiner, e é exatamente essa parte que queremos tirar das costas do usuário.",
       de: "Eine Auswahl, um Spiele auf einer USB-SSD statt auf der Systemplatte zu installieren. Steam kommt als Flatpak, deshalb reicht ein anderer Ordner nicht: der Container braucht die richtige Berechtigung, und genau diesen Teil wollen wir den Nutzern abnehmen.",
+      fr: "Un sélecteur pour installer les jeux sur un SSD USB plutôt que sur le disque système. Steam est livré en Flatpak, donc changer de dossier ne suffit pas : il faut donner la bonne permission au conteneur, et c'est précisément ce que nous voulons enlever des mains de l'utilisateur."
     },
   },
   {
@@ -250,6 +268,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "HUD configurable y curva del ventilador",
       pt: "HUD configurável e curva da ventoinha",
       de: "Einstellbares HUD und Lüfterkurve",
+      fr: "Affichage réglable et courbe du ventilateur"
     },
     testo: {
       it: "Il pannello a schermo oggi è tarato sulla BC-250 e su altre macchine si nasconde. Diventerà un'applicazione che legge i sensori davvero presenti e si costruisce la configurazione da sola. Insieme arriva l'editor della curva della ventola dentro il Tuner.",
@@ -260,6 +279,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "El panel en pantalla está hoy ajustado a la BC-250 y se esconde en otras máquinas. Se convertirá en una aplicación que lee los sensores que realmente hay y se construye su propia configuración. Junto a ella llega al Tuner el editor de la curva del ventilador.",
       pt: "O painel na tela hoje é feito para a BC-250 e se esconde em outras máquinas. Vai virar um aplicativo que lê os sensores realmente presentes e monta a própria configuração. Junto com ele chega ao Tuner o editor da curva da ventoinha.",
       de: "Die Anzeige auf dem Bildschirm ist heute auf die BC-250 zugeschnitten und versteckt sich auf anderen Rechnern. Sie wird zu einer Anwendung, die die tatsächlich vorhandenen Sensoren ausliest und sich ihre Konfiguration selbst baut. Daneben kommt der Editor für die Lüfterkurve in den Tuner.",
+      fr: "Le panneau à l'écran est aujourd'hui taillé pour la BC-250 et se cache sur les autres machines. Il deviendra une application qui lit les capteurs réellement présents et construit sa propre configuration. L'éditeur de courbe du ventilateur arrive dans le Tuner en même temps."
     },
   },
   {
@@ -273,6 +293,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Ucraniano revisado por un hablante nativo",
       pt: "Ucraniano revisado por um falante nativo",
       de: "Ukrainisch von einem Muttersprachler geprüft",
+      fr: "L'ukrainien relu par un locuteur natif"
     },
     testo: {
       it: "Il polacco è stato riletto da un madrelingua, e si vede. Cerchiamo qualcuno che faccia lo stesso con l'ucraino: se è la tua lingua e ti va di darci una mano, sei il benvenuto.",
@@ -283,6 +304,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "El polaco lo revisó un hablante nativo, y se nota. Buscamos a alguien que haga lo mismo con el ucraniano: si es tu idioma y te apetece echar una mano, eres bienvenido.",
       pt: "O polonês foi revisado por um falante nativo, e dá para notar. Estamos procurando alguém que faça o mesmo com o ucraniano: se esse é o seu idioma e você quiser dar uma mão, será bem-vindo.",
       de: "Das Polnische hat ein Muttersprachler geprüft, und das merkt man. Wir suchen jemanden, der dasselbe für Ukrainisch tut: wenn das deine Sprache ist und du Lust hast mitzuhelfen, bist du willkommen.",
+      fr: "Le polonais a été relu par un locuteur natif, et cela se voit. Nous cherchons quelqu'un pour faire de même avec l'ukrainien : si c'est votre langue et que l'idée vous tente, vous êtes le bienvenu."
     },
   },
   {
@@ -297,6 +319,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Puntos de restauración, y un comando para volver atrás",
       pt: "Pontos de restauração, e um comando para voltar",
       de: "Wiederherstellungspunkte, und ein Befehl zurück",
+      fr: "Des points de restauration, et une commande pour revenir en arrière"
     },
     testo: {
       it: "Il sistema tiene cinque punti di ripristino, presi da solo prima di ogni aggiornamento, e li mostra nel menu di avvio. Con <code>skillfish-rollback</code> si torna a uno di essi per davvero, in un comando: la cartella personale non viene toccata.",
@@ -307,6 +330,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "El sistema guarda cinco puntos de restauración, tomados por él mismo antes de cada actualización, y los lista en el menú de arranque. <code>skillfish-rollback</code> te devuelve de verdad a uno de ellos con un solo comando — tu carpeta personal no se toca.",
       pt: "O sistema guarda cinco pontos de restauração, tirados por ele mesmo antes de cada atualização, e os lista no menu de boot. O <code>skillfish-rollback</code> leva você de volta a um deles de verdade, com um único comando — sua pasta pessoal não é tocada.",
       de: "Das System hält fünf Wiederherstellungspunkte bereit, die es vor jeder Aktualisierung selbst anlegt, und listet sie im Startmenü auf. <code>skillfish-rollback</code> bringt dich mit einem einzigen Befehl wirklich zu einem davon zurück — dein persönlicher Ordner bleibt unangetastet.",
+      fr: "Le système garde cinq points de restauration, pris tout seul avant chaque mise à jour, et les affiche dans le menu de démarrage. <code>skillfish-rollback</code> vous ramène vraiment à l'un d'eux, en une seule commande — votre dossier personnel n'est pas touché."
     },
   },
   {
@@ -321,6 +345,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Cuatro idiomas, con vuelta al inglés",
       pt: "Quatro idiomas, sempre com volta ao inglês",
       de: "Vier Sprachen, immer mit Rückfall auf Englisch",
+      fr: "Quatre langues, avec toujours l'anglais en secours"
     },
     testo: {
       it: 'Italiano, inglese, polacco e ucraino nelle applicazioni, nella schermata di accesso, nel pannello web e nelle diapositive dell\'installer. E una regola: se una traduzione manca, esce l\'inglese, mai l\'italiano.',
@@ -331,6 +356,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Italiano, inglés, polaco y ucraniano en las aplicaciones, la pantalla de acceso, el panel web y la presentación del instalador. Y una regla: si falta una traducción sale el inglés, nunca el italiano.",
       pt: "Italiano, inglês, polonês e ucraniano nos aplicativos, na tela de acesso, no painel web e na apresentação do instalador. E uma regra: se faltar uma tradução aparece o inglês, nunca o italiano.",
       de: "Italienisch, Englisch, Polnisch und Ukrainisch in den Anwendungen, im Anmeldebildschirm, in der Weboberfläche und in der Präsentation des Installationsprogramms. Dazu eine Regel: fehlt eine Übersetzung, kommt Englisch, niemals Italienisch.",
+      fr: "Italien, anglais, polonais et ukrainien dans les applications, l'écran de connexion, le panneau web et la présentation de l'installateur. Plus une règle : si une traduction manque, vous avez l'anglais, jamais l'italien."
     },
   },
   {
@@ -345,6 +371,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "Ocho núcleos en lugar de seis",
       pt: "Oito núcleos em vez de seis",
       de: "Acht Kerne statt sechs",
+      fr: "Huit cœurs au lieu de six"
     },
     testo: {
       it: 'La scheda si presenta come 6 core / 12 thread, ma i due mancanti sono spenti dalla configurazione, non difettosi. SkillFishOS li riaccende all\'avvio: <strong>+20% misurato</strong> sui carichi multi-thread, senza toccare il BIOS.',
@@ -355,6 +382,7 @@ export const roadmap: VoceRoadmap[] = [
       es: "La placa se presenta como 6 núcleos / 12 hilos, pero los dos que faltan están apagados por configuración, no defectuosos. SkillFishOS los vuelve a encender en el arranque: <strong>+20% medido</strong> en trabajo multihilo, sin tocar la BIOS.",
       pt: "A placa se apresenta como 6 núcleos / 12 threads, mas os dois que faltam estão desligados por configuração, não com defeito. O SkillFishOS os liga de novo no boot: <strong>+20% medido</strong> em trabalho multithread, sem mexer na BIOS.",
       de: "Die Platine gibt sich als 6 Kerne / 12 Threads aus, aber die beiden fehlenden sind per Konfiguration abgeschaltet, nicht defekt. SkillFishOS schaltet sie beim Start wieder ein: <strong>+20% gemessen</strong> bei mehrfädiger Arbeit, ohne Eingriff ins BIOS.",
+      fr: "La carte se présente avec 6 cœurs / 12 fils, mais les deux qui manquent sont éteints par la configuration, pas défectueux. SkillFishOS les rallume au démarrage : <strong>+20 % mesuré</strong> sur les charges multifils, sans toucher au BIOS."
     },
   },
 ];
@@ -383,6 +411,7 @@ export const news: Post[] = [
       es: "SkillFishOS 26.06.4 «Aetherium»",
       pt: "SkillFishOS 26.06.4 “Aetherium”",
       de: "SkillFishOS 26.06.4 „Aetherium“",
+      fr: "SkillFishOS 26.06.4 « Aetherium »"
     },
     testo: {
       it: "Due difetti potevano impedire all'installazione di arrivare in fondo su una BC-250 vera. Adesso non ci sono più.<br><br>Il primo: lo sblocco degli otto core scriveva la maschera nella SMU e <strong>riavviava la scheda</strong>, anche dentro la sessione live. Se capitava mentre l'installatore stava copiando, l'installazione moriva lì. Adesso lo sblocco è disattivato di partenza e si chiede dal Tuner.<br><br>Il secondo: installando su <strong>Btrfs</strong> il sistema poteva non avviarsi, con <code>error: premature end of file</code> al prompt di GRUB. L'installatore copiava con <code>rsync -aHAXS</code> e il kernel arrivava a destinazione con un buco in coda; su Btrfs un buco non ha extent, e GRUB si ferma lì. Linux quel file lo legge benissimo, ed è per questo che non sembrava esserci niente di storto.<br><br>Corretti anche: il controllo del disco chiedeva 10 GiB quando al sistema ne servono 15, l'edizione BC-250 avviava il kernel <em>generico</em>, e le voci Safe Mode e Text Mode facevano esattamente la stessa cosa della voce normale.<br><br>Le immagini 26.06.x precedenti sono state <strong>sostituite</strong>: se ne hai una, scarica la 26.06.4.",
@@ -393,6 +422,7 @@ export const news: Post[] = [
       es: "Dos fallos podían impedir que la instalación terminara en una BC-250 real. Ya no están.<br><br>El primero: el desbloqueo de los ocho núcleos escribía la máscara de núcleos en el SMU y <strong>reiniciaba la placa</strong>, también dentro de la sesión en vivo. Si eso caía mientras el instalador copiaba, la instalación moría. El desbloqueo ahora está desactivado de fábrica y se activa a mano desde el Tuner.<br><br>El segundo: instalar sobre <strong>Btrfs</strong> podía dar un sistema que no arrancaba, con <code>error: premature end of file</code> en el prompt de GRUB. El instalador copiaba con <code>rsync -aHAXS</code> y la imagen del núcleo acababa con un hueco al final; en Btrfs un hueco no tiene extent, así que GRUB se para ahí. Linux lee ese archivo perfectamente, y por eso nada parecía ir mal.<br><br>También corregido: la comprobación de disco pedía 10 GiB cuando el sistema necesita 15, la edición BC-250 arrancaba el núcleo <em>generic</em>, y Safe Mode y Text Mode hacían exactamente lo mismo que la entrada normal.<br><br>Las imágenes 26.06.x anteriores quedan <strong>sustituidas</strong>: si tienes una, descarga la 26.06.4.",
       pt: "Duas falhas podiam impedir a instalação de terminar numa BC-250 de verdade. Elas acabaram.<br><br>A primeira: o destravamento dos oito núcleos escrevia a máscara de núcleos no SMU e <strong>reiniciava a placa</strong>, inclusive dentro da sessão ao vivo. Se isso caísse enquanto o instalador copiava, a instalação morria. O destravamento agora vem desligado e é ligado à mão pelo Tuner.<br><br>A segunda: instalar em <strong>Btrfs</strong> podia gerar um sistema que não dava boot, com <code>error: premature end of file</code> no prompt do GRUB. O instalador copiava com <code>rsync -aHAXS</code> e a imagem do kernel ficava com um buraco no fim; no Btrfs um buraco não tem extent, então o GRUB para ali. O Linux lê esse arquivo perfeitamente, e por isso nada parecia errado.<br><br>Também corrigido: a checagem de disco pedia 10 GiB quando o sistema precisa de 15, a edição BC-250 dava boot no kernel <em>generic</em>, e Safe Mode e Text Mode faziam exatamente o mesmo que a entrada normal.<br><br>As imagens 26.06.x anteriores foram <strong>substituídas</strong>: se você tem uma, baixe a 26.06.4.",
       de: "Zwei Fehler konnten verhindern, dass die Installation auf einer echten BC-250 zu Ende läuft. Sie sind weg.<br><br>Der erste: Das Freischalten der acht Kerne schrieb die Kernmaske in die SMU und <strong>startete die Platine neu</strong>, auch innerhalb der Live-Sitzung. Traf das ein, während das Installationsprogramm kopierte, war die Installation tot. Das Freischalten ist jetzt standardmäßig aus und wird im Tuner von Hand eingeschaltet.<br><br>Der zweite: Eine Installation auf <strong>Btrfs</strong> konnte ein System ergeben, das nicht startet, mit <code>error: premature end of file</code> an der GRUB-Eingabe. Das Installationsprogramm kopierte mit <code>rsync -aHAXS</code>, und das Kernel-Abbild landete mit einem Loch am Ende; auf Btrfs hat ein Loch keinen Extent, also bleibt GRUB dort stehen. Linux liest diese Datei einwandfrei, und deshalb sah nichts falsch aus.<br><br>Ebenfalls behoben: Die Plattenprüfung verlangte 10 GiB, obwohl das System 15 braucht, die BC-250-Ausgabe startete den <em>generic</em>-Kernel, und Safe Mode und Text Mode taten genau dasselbe wie der normale Starteintrag.<br><br>Frühere 26.06.x-Abbilder sind <strong>überholt</strong>: wenn du eines hast, lade 26.06.4 herunter.",
+      fr: "Deux défauts pouvaient empêcher l'installation d'aller au bout sur une vraie BC-250. Ils ont disparu.<br><br>Le premier : le déverrouillage des huit cœurs écrivait le masque des cœurs dans la SMU et <strong>redémarrait la carte</strong>, y compris depuis la session live. Si cela tombait pendant que l'installateur copiait, l'installation mourait. Le déverrouillage est maintenant éteint par défaut et se demande depuis le Tuner.<br><br>Le second : installer sur <strong>Btrfs</strong> pouvait donner un système qui ne démarrait pas, avec <code>error: premature end of file</code> à l'invite de GRUB. L'installateur copiait avec <code>rsync -aHAXS</code> et l'image du noyau arrivait avec un trou à la fin ; sur Btrfs un trou n'a pas d'extent, donc GRUB s'arrête là. Linux lit ce fichier parfaitement, et c'est pour cela que rien ne paraissait anormal.<br><br>Corrigé aussi : le contrôle du disque demandait 10 Gio alors que le système en veut 15, l'édition BC-250 démarrait sur le noyau <em>générique</em>, et les modes Safe et Text faisaient exactement la même chose que l'entrée normale.<br><br>Les images 26.06.x précédentes sont <strong>remplacées</strong> : si vous en avez une, téléchargez la 26.06.4."
     },
   },
   {
@@ -408,6 +438,7 @@ export const news: Post[] = [
       es: "SkillFishOS 26.06.3 «Aetherium»",
       pt: "SkillFishOS 26.06.3 “Aetherium”",
       de: "SkillFishOS 26.06.3 „Aetherium“",
+      fr: "SkillFishOS 26.06.3 « Aetherium »"
     },
     testo: {
       it: "<strong>⚠️ Questa immagine è stata sostituita: usa la 26.06.4.</strong> Aveva due difetti che potevano bloccare l'installazione su una BC-250.<br><br>Due edizioni, <strong>BC-250</strong> e <strong>Generic</strong>, per la scheda AMD e per qualsiasi PC o macchina virtuale x86-64.<br><br>La lingua che scegli vale adesso <strong>ovunque</strong>: interfaccia, schermata di accesso, pannello web e anche le diapositive dell'installer, che prima restavano in inglese. Italiano, inglese, polacco e ucraino, e se una traduzione manca esce l'inglese.<br><br>Sotto: kernel <strong>7.1.7</strong> con lo sblocco delle 40 Compute Unit e degli otto core, installazione su Btrfs con punti di ripristino attivi dal primo avvio, e AI locale su GPU. Un'installazione nuova parte con <strong>tutti i servizi a posto</strong>.<br><br>L'edizione <strong>Slim</strong> non esce più come immagine: il kernel slim resta nel repository per chi lo vuole.",
@@ -418,6 +449,7 @@ export const news: Post[] = [
       es: "<strong>⚠️ Esta imagen ha quedado sustituida: usa la 26.06.4.</strong> Tenía dos fallos que podían detener una instalación en una BC-250.<br><br>Dos ediciones, <strong>BC-250</strong> y <strong>Generic</strong>, para la placa de AMD y para cualquier PC o máquina virtual x86-64.<br><br>El idioma que eliges se aplica ahora <strong>en todas partes</strong>: interfaz, pantalla de acceso, panel web y también la presentación del instalador, que antes se quedaba en inglés. Italiano, inglés, polaco y ucraniano — y si falta una traducción, sale el inglés.<br><br>Por debajo: núcleo <strong>7.1.7</strong> con el desbloqueo de las 40 unidades de cómputo y el de los ocho núcleos, instalación en Btrfs con puntos de restauración vivos desde el primer arranque, e IA en el propio equipo sobre la GPU. Una instalación nueva levanta con <strong>todos los servicios en orden</strong>.<br><br>La edición <strong>Slim</strong> ya no sale como imagen: el núcleo ligero sigue en el repositorio para quien lo quiera.",
       pt: "<strong>⚠️ Esta imagem foi substituída: use a 26.06.4.</strong> Ela tinha duas falhas que podiam travar uma instalação numa BC-250.<br><br>Duas edições, <strong>BC-250</strong> e <strong>Generic</strong>, para a placa da AMD e para qualquer PC ou máquina virtual x86-64.<br><br>O idioma escolhido agora vale <strong>em tudo</strong>: interface, tela de acesso, painel web e também a apresentação do instalador, que antes ficava em inglês. Italiano, inglês, polonês e ucraniano — e se faltar uma tradução, aparece o inglês.<br><br>Por baixo: kernel <strong>7.1.7</strong> com o destravamento das 40 unidades de computação e o dos oito núcleos, instalação em Btrfs com pontos de restauração vivos desde o primeiro boot, e IA no próprio aparelho pela GPU. Uma instalação nova sobe com <strong>todos os serviços saudáveis</strong>.<br><br>A edição <strong>Slim</strong> não sai mais como imagem: o kernel enxuto continua no repositório para quem quiser.",
       de: "<strong>⚠️ Dieses Abbild ist überholt: bitte 26.06.4 verwenden.</strong> Es hatte zwei Fehler, die eine Installation auf einer BC-250 stoppen konnten.<br><br>Zwei Ausgaben, <strong>BC-250</strong> und <strong>Generic</strong>, für die AMD-Platine und für jeden x86-64-PC oder jede virtuelle Maschine.<br><br>Die gewählte Sprache gilt jetzt <strong>überall</strong>: Oberfläche, Anmeldebildschirm, Weboberfläche und auch die Präsentation des Installationsprogramms, die früher auf Englisch blieb. Italienisch, Englisch, Polnisch und Ukrainisch — und fehlt eine Übersetzung, kommt Englisch.<br><br>Darunter: Kernel <strong>7.1.7</strong> mit der Freischaltung der 40 Recheneinheiten und der acht Kerne, Btrfs-Installationen mit Wiederherstellungspunkten ab dem ersten Start, und KI auf dem Gerät über die GPU. Eine frische Installation kommt mit <strong>lauter gesunden Diensten</strong> hoch.<br><br>Die Ausgabe <strong>Slim</strong> erscheint nicht mehr als Abbild: der schlanke Kernel bleibt für alle, die ihn möchten, in der Paketquelle.",
+      fr: "<strong>⚠️ Cette image est remplacée : utilisez la 26.06.4.</strong> Elle avait deux défauts qui pouvaient arrêter une installation sur une BC-250.<br><br>Deux éditions, <strong>BC-250</strong> et <strong>Générique</strong>, pour la carte AMD et pour n'importe quel PC ou machine virtuelle x86-64.<br><br>La langue que vous choisissez s'applique désormais <strong>partout</strong> : interface, écran de connexion, panneau web et présentation de l'installateur elle aussi, qui restait en anglais. Italien, anglais, polonais et ukrainien — et si une traduction manque, vous avez l'anglais.<br><br>Dessous : noyau <strong>7.1.7</strong> avec le déverrouillage des 40 unités de calcul et celui des huit cœurs, installation sur Btrfs avec des points de restauration actifs dès le premier démarrage, et l'IA sur le GPU. Une installation neuve démarre avec <strong>tous les services en bonne santé</strong>.<br><br>L'édition <strong>Slim</strong> n'est plus livrée en image : le noyau slim reste dans le dépôt pour qui le veut."
     },
   },
   {
@@ -433,6 +465,7 @@ export const news: Post[] = [
       es: "Cinco puntos de restauración, y un comando para volver atrás",
       pt: "Cinco pontos de restauração, e um comando para voltar",
       de: "Fünf Wiederherstellungspunkte, und ein Befehl zurück",
+      fr: "Cinq points de restauration, et une commande pour revenir en arrière"
     },
     testo: {
       it: "Il sistema si prende cura da solo dei punti di ripristino: ne fa uno <strong>prima</strong> e uno <strong>dopo</strong> ogni operazione di <code>apt</code>, ne tiene <strong>cinque</strong> — tre ordinari e due degli aggiornamenti importanti, quelli che toccano kernel o systemd — e li elenca nel menu di avvio, aggiornato a ogni transazione.<br><br>Dal menu di avvio ci si entra per guardare e recuperare file. Per ripartire davvero da uno di essi c'è un comando nuovo:<br><br><code>sudo skillfish-rollback 12</code><br><br>Al riavvio successivo il sistema è quello di allora. Il sistema di prima non viene cancellato: resta da parte, e <code>--annulla</code> lo rimette al suo posto. La <strong>cartella personale non viene mai toccata</strong>: torna indietro il sistema, i tuoi file restano quelli di adesso.<br><br>Arriva con <code>sudo apt update && sudo apt upgrade</code>, senza reinstallare niente.",
@@ -443,6 +476,7 @@ export const news: Post[] = [
       es: "El sistema se ocupa solo de sus puntos de restauración: toma uno <strong>antes</strong> y otro <strong>después</strong> de cada operación de <code>apt</code>, guarda <strong>cinco</strong> — tres normales y dos de las actualizaciones importantes, las que tocan el núcleo o systemd — y los lista en el menú de arranque, actualizándolos en cada transacción.<br><br>Desde el menú de arranque puedes entrar a mirar y rescatar archivos. Para empezar de nuevo de verdad desde uno de ellos hay un comando nuevo:<br><br><code>sudo skillfish-rollback 12</code><br><br>En el siguiente arranque el sistema es el de entonces. El anterior no se borra: queda apartado, y <code>--undo</code> lo devuelve. Tu <strong>carpeta personal no se toca nunca</strong>: el sistema viaja atrás, tus archivos se quedan como están.<br><br>Llega con <code>sudo apt update && sudo apt upgrade</code> — no hace falta reinstalar.",
       pt: "O sistema cuida sozinho dos seus pontos de restauração: tira um <strong>antes</strong> e um <strong>depois</strong> de cada operação do <code>apt</code>, guarda <strong>cinco</strong> — três comuns e dois das atualizações importantes, as que mexem no kernel ou no systemd — e os lista no menu de boot, atualizado a cada transação.<br><br>Pelo menu de boot dá para entrar, olhar e resgatar arquivos. Para de fato recomeçar a partir de um deles existe um comando novo:<br><br><code>sudo skillfish-rollback 12</code><br><br>No boot seguinte o sistema é o daquela época. O anterior não é apagado: fica guardado de lado, e o <code>--undo</code> o traz de volta. Sua <strong>pasta pessoal nunca é tocada</strong>: o sistema volta no tempo, seus arquivos ficam como estão.<br><br>Chega com <code>sudo apt update && sudo apt upgrade</code> — não precisa reinstalar.",
       de: "Das System kümmert sich selbst um seine Wiederherstellungspunkte: Es legt einen <strong>vor</strong> und einen <strong>nach</strong> jeder <code>apt</code>-Aktion an, behält <strong>fünf</strong> — drei gewöhnliche und zwei von den wichtigen Aktualisierungen, denen am Kernel oder an systemd — und listet sie im Startmenü auf, bei jeder Transaktion aufgefrischt.<br><br>Aus dem Startmenü kannst du hineinschauen und Dateien retten. Um wirklich von einem davon aus neu zu beginnen, gibt es einen neuen Befehl:<br><br><code>sudo skillfish-rollback 12</code><br><br>Beim nächsten Start ist das System das von damals. Das vorherige wird nicht gelöscht: es wird beiseitegelegt, und <code>--undo</code> holt es zurück. Dein <strong>persönlicher Ordner wird nie angerührt</strong>: das System reist zurück, deine Dateien bleiben, wie sie sind.<br><br>Es kommt mit <code>sudo apt update && sudo apt upgrade</code> — neu installieren ist nicht nötig.",
+      fr: "Le système s'occupe tout seul de ses points de restauration : il en prend un <strong>avant</strong> et un <strong>après</strong> chaque opération <code>apt</code>, en garde <strong>cinq</strong> — trois ordinaires et deux venant des mises à jour importantes, celles qui touchent au noyau ou à systemd — et les affiche dans le menu de démarrage, rafraîchis à chaque transaction.<br><br>Depuis le menu de démarrage vous entrez pour regarder et récupérer des fichiers. Pour repartir vraiment de l'un d'eux il y a une commande nouvelle :<br><br><code>sudo skillfish-rollback 12</code><br><br>Au démarrage suivant le système est celui d'alors. Le système précédent n'est pas effacé : il est mis de côté, et <code>--undo</code> le remet en place. Votre <strong>dossier personnel n'est jamais touché</strong> : le système remonte le temps, vos fichiers restent tels quels.<br><br>Cela arrive avec <code>sudo apt update && sudo apt upgrade</code> — sans réinstaller."
     },
   },
   {
@@ -458,6 +492,7 @@ export const news: Post[] = [
       es: "La IA local se muda a Unsloth Studio",
       pt: "A IA local muda para o Unsloth Studio",
       de: "Die KI auf dem Gerät zieht zu Unsloth Studio um",
+      fr: "L'IA sur la machine passe à Unsloth Studio"
     },
     testo: {
       it: "Al posto di tre container Docker c'è <strong>un solo servizio nativo</strong>, con la chat e un'API compatibile OpenAI. Docker non è più installato.<br><br>Sulla scheda, con Qwen3-1.7B: <strong>210 token al secondo</strong> sulla GPU via Vulkan contro 41 sulla sola CPU, cioè cinque volte tanto. I modelli si prendono direttamente dal catalogo di Hugging Face. Il servizio ascolta solo in locale: da fuori ci si arriva attraverso il pannello remoto, che autentica con le credenziali di sistema.",
@@ -468,6 +503,7 @@ export const news: Post[] = [
       es: "En lugar de tres contenedores Docker hay ahora <strong>un único servicio nativo</strong>, que ofrece tanto el chat como una API compatible con OpenAI. Docker ya no se instala.<br><br>En la placa, con Qwen3-1.7B: <strong>210 tokens por segundo</strong> en la GPU con Vulkan frente a 41 solo en CPU — cinco veces más rápido. Los modelos vienen directamente del catálogo de Hugging Face. El servicio escucha solo en loopback: desde fuera se llega por el panel remoto, que autentica con las cuentas del sistema.",
       pt: "No lugar de três contêineres Docker existe agora <strong>um único serviço nativo</strong>, que oferece tanto a conversa quanto uma API compatível com a da OpenAI. O Docker não é mais instalado.<br><br>Na placa, com o Qwen3-1.7B: <strong>210 tokens por segundo</strong> na GPU via Vulkan contra 41 só na CPU — cinco vezes mais rápido. Os modelos vêm direto do catálogo do Hugging Face. O serviço escuta apenas em loopback: de fora chega-se a ele pelo painel remoto, que autentica com as contas do sistema.",
       de: "Statt drei Docker-Containern gibt es jetzt <strong>einen einzigen nativen Dienst</strong>, der sowohl den Chat als auch eine zu OpenAI kompatible Schnittstelle anbietet. Docker wird nicht mehr installiert.<br><br>Auf der Platine, mit Qwen3-1.7B: <strong>210 Token pro Sekunde</strong> auf der GPU über Vulkan gegenüber 41 allein auf der CPU — fünfmal so schnell. Die Modelle kommen direkt aus dem Katalog von Hugging Face. Der Dienst lauscht nur auf dem Loopback: von außen erreicht man ihn über die Fernsteuerung, die sich gegen die Systemkonten anmeldet.",
+      fr: "À la place de trois conteneurs Docker il y a maintenant <strong>un seul service natif</strong>, qui offre à la fois la discussion et une interface compatible OpenAI. Docker n'est plus installé.<br><br>Sur la carte, avec Qwen3-1.7B : <strong>210 jetons par seconde</strong> sur le GPU via Vulkan contre 41 sur le CPU seul — cinq fois plus vite. Les modèles viennent directement du catalogue Hugging Face. Le service n'écoute que sur l'interface locale : de l'extérieur on l'atteint par le panneau à distance, qui vérifie les comptes du système."
     },
   },
   {
@@ -483,6 +519,7 @@ export const news: Post[] = [
       es: "SkillFishOS 26.06.2",
       pt: "SkillFishOS 26.06.2",
       de: "SkillFishOS 26.06.2",
+      fr: "SkillFishOS 26.06.2"
     },
     testo: {
       it: 'Immagini rigenerate con le correzioni raccolte dopo il primo mese: lingua della sessione live, AI sulla GPU, gruppi utente. Tre edizioni su SourceForge.',
@@ -493,6 +530,7 @@ export const news: Post[] = [
       es: "Imágenes recompiladas con los arreglos reunidos durante el primer mes: idioma de la sesión en vivo, IA en la GPU, grupos del usuario. Tres ediciones en SourceForge.",
       pt: "Imagens recompiladas com as correções reunidas no primeiro mês: idioma da sessão ao vivo, IA na GPU, grupos do usuário. Três edições no SourceForge.",
       de: "Abbilder mit den Korrekturen des ersten Monats neu gebaut: Sprache der Live-Sitzung, KI auf der GPU, Benutzergruppen. Drei Ausgaben auf SourceForge.",
+      fr: "Images refaites avec les corrections rassemblées pendant le premier mois : langue de la session live, IA sur le GPU, groupes d'utilisateurs. Trois éditions sur SourceForge."
     },
   },
   {
@@ -508,6 +546,7 @@ export const news: Post[] = [
       es: "La primera versión pública: 26.06 «Aetherium»",
       pt: "A primeira versão pública: 26.06 “Aetherium”",
       de: "Die erste öffentliche Version: 26.06 „Aetherium“",
+      fr: "La première version publique : 26.06 « Aetherium »"
     },
     testo: {
       it: "Una scheda da mining comprata di seconda mano diventa una console-PC pronta all'uso: kernel su misura con lo sblocco delle 40 Compute Unit, governor SMU, profili di overclock con protezione termica, tema steampunk dal boot al desktop, Steam ed emulatori, AI locale.<br><br>Era nato per far usare e imparare Linux ai miei figli mentre giocano. Il gioco è la carota, gli snapshot sono la rete.",
@@ -518,6 +557,7 @@ export const news: Post[] = [
       es: "Una placa de minería de segunda mano se convierte en un PC-consola listo para usar: un núcleo propio con el desbloqueo de las 40 unidades de cómputo, un gobernador SMU, perfiles de overclock con protección térmica, estética steampunk desde el arranque hasta el escritorio, Steam y emuladores, IA en el propio equipo.<br><br>Empezó como una forma de que mis hijos usaran y aprendieran Linux mientras juegan. Los juegos son la zanahoria; las instantáneas, la red de seguridad.",
       pt: "Uma placa de mineração de segunda mão vira um PC-console pronto para usar: um kernel próprio com o destravamento das 40 unidades de computação, um governador SMU, perfis de overclock com proteção térmica, visual steampunk do boot até a área de trabalho, Steam e emuladores, IA no próprio aparelho.<br><br>Começou como um jeito de fazer meus filhos usarem e aprenderem Linux enquanto jogam. Os jogos são a cenoura; os snapshots, a rede de segurança.",
       de: "Aus einer gebrauchten Mining-Platine wird ein sofort nutzbarer Konsolen-PC: ein eigener Kernel mit der Freischaltung der 40 Recheneinheiten, ein SMU-Governor, Übertaktungsprofile mit Temperaturschutz, eine Steampunk-Gestaltung vom Start bis zum Schreibtisch, Steam und Emulatoren, KI auf dem Gerät selbst.<br><br>Angefangen hat es als Weg, meine Kinder dazu zu bringen, Linux zu benutzen und zu lernen, während sie spielen. Die Spiele sind die Karotte, die Schnappschüsse das Netz.",
+      fr: "Une carte de minage d'occasion devient un PC-console prêt à l'emploi : un noyau sur mesure avec le déverrouillage des 40 unités de calcul, un gouverneur SMU, des profils d'overclock avec une garde thermique, un thème steampunk du démarrage au bureau, Steam et les émulateurs, l'IA sur la machine.<br><br>Tout est parti de l'envie de faire utiliser et apprendre Linux à mes enfants pendant qu'ils jouent. Le jeu est la carotte, les instantanés sont le filet."
     },
   },
 ];

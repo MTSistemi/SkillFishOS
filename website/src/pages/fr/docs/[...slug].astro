@@ -1,0 +1,41 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import DocsShell from '../../../components/DocsShell.astro';
+
+// ⚠️ Questa pagina leggeva sempre e solo `en/`: un documento in ucraino non
+// poteva esistere nemmeno scrivendolo. Adesso si prende la versione nella
+// propria lingua quando c'e' e si ripiega sull'inglese solo per i documenti
+// non ancora tradotti - un documento per volta, invece di tutto o niente.
+export async function getStaticPaths() {
+  const all = await getCollection('docs');
+  const en = all.filter((e) => e.id.startsWith('en/'));
+  const miei = new Map(
+    all.filter((e) => e.id.startsWith('fr/')).map((e) => [e.id.slice(3), e])
+  );
+  // l'elenco laterale mostra i titoli tradotti dove esistono
+  const entries = en.map((e) => miei.get(e.id.slice(3)) ?? e);
+  return en.map((e) => {
+    const slug = e.id.slice(3);
+    return {
+      params: { slug },
+      props: { entry: miei.get(slug) ?? e, entries, tradotta: miei.has(slug) },
+    };
+  });
+}
+
+const { entry, entries, tradotta } = Astro.props;
+const { Content, headings } = await render(entry);
+const slug = entry.id.slice(3);
+const sidebar = entries.map((e) => ({ id: e.id.slice(3), data: e.data }));
+---
+<Base lang="fr" page={`/docs/${slug}`} title={`${entry.data.title} — SkillFishOS`} description={entry.data.description}>
+  <DocsShell lang="fr" entries={sidebar} current={slug} headings={headings}>
+    {!tradotta && (
+      <p style="border:1px solid rgba(216,168,73,.35);border-radius:8px;padding:10px 14px;margin:0 0 20px;font-size:.9rem;opacity:.85">
+        Cette page n'est pas encore traduite en français : elle est donc affichée en anglais. Les traductions sont les bienvenues — écrivez-nous sur GitHub.
+      </p>
+    )}
+    <Content />
+  </DocsShell>
+</Base>
