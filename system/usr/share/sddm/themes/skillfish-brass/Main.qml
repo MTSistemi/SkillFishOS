@@ -32,21 +32,22 @@ Rectangle {
         if (n.indexOf("it") === 0) return "it";
         if (n.indexOf("pl") === 0) return "pl";
         if (n.indexOf("uk") === 0 || n.indexOf("ua") === 0) return "uk";
+        if (n.indexOf("ru") === 0) return "ru";
         return "en";
     }
     function tr(s) { return s[root.lang] !== undefined ? s[root.lang] : s["en"]; }
 
     property var txtLogin: {
-        "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти"
+        "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти", "ru": "Войти"
     }
     property var txtPassword: {
-        "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль"
+        "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль", "ru": "Пароль"
     }
     property var txtShutdown: {
-        "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути"
+        "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути", "ru": "Выключить"
     }
     property var txtReboot: {
-        "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити"
+        "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити", "ru": "Перезагрузить"
     }
 
     // background image (brass wallpaper) with dark overlay
