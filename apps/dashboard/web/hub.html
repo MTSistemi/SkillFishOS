@@ -96,18 +96,18 @@
 <script>
 const $=s=>document.querySelector(s), ce=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
 let ST={view:"home",cat:null,sub:null,sort:"rating",backend:null,page:0,q:""},jobPoll=null;
-const CATS=[["Game","🎮","Giochi"],["Development","🛠️","Sviluppo"],["Graphics","🎨","Grafica"],
-  ["AudioVideo","🎬","Multimedia"],["Network","🌐","Internet"],["Office","📝","Produttività"],
-  ["Education","📚","Istruzione"],["System","⚙️","Sistema"],["Utility","🧰","Utilità"]];
-const SUBCATS={Game:[["ActionGame","Azione"],["AdventureGame","Avventura"],["ArcadeGame","Arcade"],["StrategyGame","Strategia"],["Simulation","Simulazione"],["RolePlaying","Ruolo"],["BoardGame","Tavolo"],["Shooter","Sparatutto"]],
-  Development:[["IDE","IDE"],["Building","Build"],["Debugger","Debug"],["WebDevelopment","Web"],["Database","Database"]],
-  Graphics:[["2DGraphics","2D"],["3DGraphics","3D"],["VectorGraphics","Vettoriale"],["Photography","Foto"],["Viewer","Visualizzatori"]],
-  AudioVideo:[["Audio","Audio"],["Video","Video"],["Player","Player"],["AudioVideoEditing","Editing"],["Music","Musica"]],
-  Network:[["WebBrowser","Browser"],["Email","Email"],["Chat","Chat"],["InstantMessaging","Messaggi"],["FileTransfer","Trasferimento"]],
-  Office:[["WordProcessor","Testi"],["Spreadsheet","Fogli"],["Presentation","Presentazioni"],["Finance","Finanza"]],
-  Education:[["Math","Matematica"],["Physics","Fisica"],["Chemistry","Chimica"],["Languages","Lingue"],["Astronomy","Astronomia"]],
-  System:[["Monitor","Monitor"],["Security","Sicurezza"],["Filesystem","Filesystem"],["TerminalEmulator","Terminale"]],
-  Utility:[["TextEditor","Editor"],["Archiving","Archivi"],["Calculator","Calcolatrice"],["FileManager","File manager"]]};
+const CATS=[["Game","🎮","Games"],["Development","🛠️","Development"],["Graphics","🎨","Graphics"],
+  ["AudioVideo","🎬","Multimedia"],["Network","🌐","Internet"],["Office","📝","Productivity"],
+  ["Education","📚","Education & science"],["System","⚙️","System"],["Utility","🧰","Utilities"]];
+const SUBCATS={Game:[["ActionGame","Action"],["AdventureGame","Adventure"],["ArcadeGame","Arcade"],["StrategyGame","Strategy"],["Simulation","Simulation"],["RolePlaying","Role-playing"],["BoardGame","Board games"],["Shooter","Shooter"]],
+  Development:[["IDE","IDE"],["Building","Building"],["Debugger","Debugger"],["WebDevelopment","Web development"],["Database","Databases"]],
+  Graphics:[["2DGraphics","2D graphics"],["3DGraphics","3D graphics"],["VectorGraphics","Vector"],["Photography","Photography"],["Viewer","Viewers"]],
+  AudioVideo:[["Audio","Audio"],["Video","Video"],["Player","Players"],["AudioVideoEditing","Editing"],["Music","Music"]],
+  Network:[["WebBrowser","Browsers"],["Email","Email"],["Chat","Chat"],["InstantMessaging","Messaging"],["FileTransfer","File transfer"]],
+  Office:[["WordProcessor","Word processors"],["Spreadsheet","Spreadsheets"],["Presentation","Presentations"],["Finance","Finance"]],
+  Education:[["Math","Maths"],["Physics","Physics"],["Chemistry","Chemistry"],["Languages","Languages"],["Astronomy","Astronomy"]],
+  System:[["Monitor","Monitoring"],["Security","Security"],["Filesystem","Filesystem"],["TerminalEmulator","Terminal"]],
+  Utility:[["TextEditor","Text editors"],["Archiving","Archiving"],["Calculator","Calculators"],["FileManager","File managers"]]};
 
 async function api(path,body){const o={credentials:"same-origin"};
   if(body){o.method="POST";o.headers={"Content-Type":"application/json"};o.body=JSON.stringify(body);}return (await fetch(path,o)).json();}
@@ -143,7 +143,7 @@ function setNav(){
     const d=ce("div","ni"+(ST.view===k?" on":""));d.innerHTML='<span>'+e+'</span><span class="l">'+l+'</span>';
     d.onclick=()=>{ST.view=k;ST.cat=null;ST.sub=null;ST.q="";$("#q").value="";render();};nav.appendChild(d);});
   const cv=$("#cats");cv.innerHTML="";
-  CATS.forEach(([k,e,l])=>{const d=ce("div","ni"+(ST.view==="cat"&&ST.cat===k?" on":""));
+  CATS.forEach(([k,e,l])=>{l=sfC(l);const d=ce("div","ni"+(ST.view==="cat"&&ST.cat===k?" on":""));
     d.innerHTML='<span>'+e+'</span><span class="l">'+l+'</span><span class="c" data-cc="'+k+'"></span>';
     d.onclick=()=>{ST.view="cat";ST.cat=k;ST.sub=null;ST.page=0;ST.q="";$("#q").value="";render();};cv.appendChild(d);});
   api("/api/hub/categories").then(r=>{for(const[k,n]of Object.entries(r.counts||{})){const el=document.querySelector('[data-cc="'+k+'"]');if(el)el.textContent=n;}});
@@ -270,8 +270,8 @@ render=async function(){
   if(ST.view==="cat"){
     const subs=(SUBCATS[ST.cat]||[]);
     const tb=sortToolbar()+'<div class="toolbar"><span class="chip'+(!ST.sub?" on":"")+'" data-sub="">Tutte</span>'+
-      subs.map(([k,l])=>'<span class="chip'+(ST.sub===k?" on":"")+'" data-sub="'+k+'">'+esc(l)+'</span>').join("")+'</div>';
-    const cn=(CATS.find(c=>c[0]===ST.cat)||[])[2]||ST.cat;
+      subs.map(([k,l])=>'<span class="chip'+(ST.sub===k?" on":"")+'" data-sub="'+k+'">'+esc(sfC(l))+'</span>').join("")+'</div>';
+    const cn=sfC((CATS.find(c=>c[0]===ST.cat)||[])[2]||ST.cat);
     await viewGrid({cat:ST.cat,sub:ST.sub||"",sort:ST.sort,backend:ST.backend||"",page:0},cn,tb);bindToolbar();return;
   }
 };
@@ -279,6 +279,9 @@ render=async function(){
 let qt;$("#q").addEventListener("input",e=>{clearTimeout(qt);const v=e.target.value.trim();
   qt=setTimeout(()=>{if(v.length>=2){ST.view="search";ST.q=v;render();}else if(!v){ST.view="home";render();}},350);});
 $("#refresh").onclick=async()=>{await api("/api/hub/refresh",{});$("#main").innerHTML='<div class="stub"><span class="spin"></span> '+sfT("p_rebuilding")+'</div>';setTimeout(render,3000);};
-render();refreshBadge();
+// ⚠️ Il dizionario condiviso arriva dalla rete: se si disegna prima,
+// le categorie escono in inglese e non si aggiornano piu', perche'
+// render() non viene richiamato da solo.
+sfCarica().then(()=>{ sfApply(); render(); refreshBadge(); });
 </script>
 </body></html>

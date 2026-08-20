@@ -13,6 +13,7 @@ SECRET_F = os.path.join(STATE, "dashboard.secret")
 CERT_F = os.path.join(STATE, "dashboard-cert.pem")
 KEY_F = os.path.join(STATE, "dashboard-key.pem")
 WEB = "/usr/share/skillfish/dashboard"
+I18N_DIR = "/usr/share/skillfish/i18n"   # il dizionario condiviso con le app
 HUD = "/usr/local/bin/skillfish-hud-val"
 SESSION_TTL = 8 * 3600
 
@@ -101,6 +102,44 @@ try:
     _PAM_OK = True
 except Exception:
     _PAM_OK = False
+
+
+# --- dizionario condiviso ----------------------------------------------------
+# Le pagine web leggono le stesse traduzioni delle app native. Tenerlo in
+# memoria evita di rileggere il file a ogni richiesta; il controllo del mtime
+# fa vedere un aggiornamento del pacchetto senza riavviare il servizio.
+_i18n_cache = {}          # lingua -> (mtime, voci)
+_i18n_lock = threading.Lock()
+
+
+def i18n_voci(lang):
+    """Le voci della lingua chiesta, o {} se non c'e' o non si legge.
+
+    Non solleva mai: una traduzione assente e' un fastidio, una pagina che non
+    si apre e' un guasto. Stessa regola di /usr/share/skillfish/i18n.py.
+    """
+    if not (isinstance(lang, str) and len(lang) == 2 and lang.isalpha() and lang.islower()):
+        return {}
+    p = os.path.join(I18N_DIR, lang + ".json")
+    try:
+        m = os.path.getmtime(p)
+    except OSError:
+        return {}
+    with _i18n_lock:
+        vecchio = _i18n_cache.get(lang)
+        if vecchio and vecchio[0] == m:
+            return vecchio[1]
+    try:
+        with open(p, encoding="utf-8") as f:
+            dati = json.load(f)
+        voci = dati.get("voci") if isinstance(dati.get("voci"), dict) else dati
+        voci = {k: v for k, v in voci.items()
+                if isinstance(k, str) and isinstance(v, str) and v}
+    except Exception:
+        voci = {}
+    with _i18n_lock:
+        _i18n_cache[lang] = (m, voci)
+    return voci
 
 
 def pam_check(username, password, service="login"):
@@ -1482,6 +1521,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._serve_file("index.html", "text/html; charset=utf-8")
         if path.startswith("/static/"):
             return self._serve_file(path[len("/static/"):], None)
+        if path == "/api/i18n":
+            # Il dizionario condiviso, per le pagine web. Senza autenticazione
+            # come /static/: sono gli stessi file che stanno nei pacchetti.
+            lang = urllib.parse.parse_qs(
+                urllib.parse.urlparse(self.path).query).get("lang", [""])[0]
+            return self._json(200, {"lang": lang, "voci": i18n_voci(lang)})
         if path == "/api/me":
             u = self._user()
             return self._json(200 if u else 401, {"user": u} if u else {"error": "auth"})
@@ -1859,7 +1904,7 @@ class Handler(BaseHTTPRequestHandler):
                                       "sfdash=%s; Max-Age=%d; Path=/; HttpOnly; SameSite=Strict; Secure"
                                       % (tok, SESSION_TTL))])
         _login_fails[ip] = (cnt + 1, t0 if cnt else time.time())
-        return self._json(401, {"error": "credenziali non valide"})
+        return self._json(401, {"error": "invalid credentials"})
 
     def _serve_file(self, rel, ctype):
         rel = rel.lstrip("/")

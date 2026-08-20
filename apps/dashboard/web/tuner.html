@@ -173,7 +173,7 @@ function renderFanMode(mode){ $("#fanauto").classList.toggle("on", mode!=="manua
 
 // ---- CPU cores (live hotplug) ----
 let CPU_CORES = [];        // [{core, online, removable, cpus:[...]}]
-let cpuWant = {};          // core -> desired state, applied on "Applica core"
+let cpuWant = {};          // core -> desired state, applied on the "Apply cores" button (t_applyco)
 
 function renderCPUCores(){
   const g = $("#cpugrid"); if(!g) return;

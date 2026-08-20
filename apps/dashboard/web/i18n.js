@@ -271,6 +271,34 @@ var SFSTR = {
   p_nomodel: { it: "Nessun modello installato. Scaricane uno dal modulo AI.", en: "No model installed. Download one from the AI module.", pl: "Brak zainstalowanego modelu. Pobierz jakiś z modułu SI.", uk: "Жодної моделі не встановлено. Завантажте якусь із модуля ШІ.", ru: "Ни одной модели не установлено. Скачайте её из модуля ИИ.", es: "No hay ningún modelo instalado. Descarga uno desde el módulo de IA.", pt: "Nenhum modelo instalado. Baixe um pelo módulo de IA.", de: "Kein Modell eingerichtet. Hol dir eines über das KI-Modul." },
 };
 
+// --- il dizionario condiviso con le app native -------------------------------
+// /usr/share/skillfish/i18n/<lingua>.json, servito dal server su /api/i18n.
+//
+// PERCHE' NON UN ALTRO DIZIONARIO QUI DENTRO
+// I nomi delle categorie dell'Hub erano scritti in italiano dentro hub.html.
+// Tradurli qui avrebbe fatto il TERZO dizionario del progetto — quello delle
+// app, quello di queste pagine, e un altro — con gli stessi nomi ricopiati in
+// tre posti, che prima o poi divergono. Quei nomi ci sono gia' tradotti nel
+// dizionario delle app: si legge quello.
+//
+// Le chiavi sono le stringhe INGLESI, non le chiavi corte di SFSTR: per questo
+// sfC() e' una funzione a parte e non un ripiego dentro sfT().
+var SFVOCI = null;
+
+function sfCarica() {
+  if (SFVOCI) return Promise.resolve(SFVOCI);
+  return fetch("/api/i18n?lang=" + encodeURIComponent(SFLANG))
+    .then(function (r) { return r.ok ? r.json() : { voci: {} }; })
+    .then(function (j) { SFVOCI = (j && j.voci) || {}; return SFVOCI; })
+    // Se il server non risponde si va avanti in inglese. Una traduzione che
+    // manca e' un fastidio, una pagina che non si disegna e' un guasto.
+    .catch(function () { SFVOCI = {}; return SFVOCI; });
+}
+
+function sfC(en) {
+  return (SFVOCI && SFVOCI[en]) || en;
+}
+
 function sfT(k) {
   var e = SFSTR[k];
   if (!e) return k;

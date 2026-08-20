@@ -746,6 +746,12 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-l
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n.py 'def traduttore'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Телеметрия'
+# ⚠️ it.json NON serve alle app — per loro l'italiano sta nel codice, e i18n.py
+# lo esclude apposta. Serve alle PAGINE WEB della dashboard, che leggono un
+# dizionario e basta: senza, un utente italiano vedrebbe le categorie dell'Hub
+# in inglese. Ed e' generato dai sorgenti, quindi se qualcuno lo cancella non
+# se ne accorge nessuno: l'inglese e' anche il ripiego buono.
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 'Giochi da tavolo'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'ConditionPathExists=/run/live/medium'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'Before=sddm.service'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe
@@ -834,6 +840,15 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub
 # le pagine lo agganciano. Senza i18n.js le tre pagine che non caricano app.js
 # resterebbero in inglese fisso.
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/i18n.js  'uk:'
+# Il dizionario condiviso arriva alle pagine dalla rotta /api/i18n del server, e
+# sfC() e' la funzione che lo consulta. Se salta uno dei due, le categorie
+# dell'Hub restano in inglese in tutte le lingue — senza errori a video.
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/i18n.js  'function sfC'
+check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd      '/api/i18n'
+# Le tabelle delle categorie devono portare i nomi INGLESI: sono le chiavi del
+# dizionario condiviso. Se qualcuno ci rimette l'italiano, la traduzione non
+# aggancia piu' niente.
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html  '"Word processors"'
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/tuner.html data-i18n
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/app.js   'pl:'
 # app.js NON deve contenere S("...": la funzione di traduzione si chiama T().
