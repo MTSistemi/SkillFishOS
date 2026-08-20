@@ -243,6 +243,13 @@ put $P 0755 system/usr/local/bin/skillfish-grub-btrfs               usr/local/bi
 put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bin/skillfish-flatpak-rimedi
 put $P 0755 system/usr/local/bin/skillfish-games-subvolume         usr/local/bin/skillfish-games-subvolume
 put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bin/skillfish-live-no-lock
+# Dizionario condiviso delle traduzioni: un file per lingua, comune a tutte le
+# app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
+# restano dentro le app, dove hanno le sfumature per contesto.
+put $P 0644 system/usr/share/skillfish/i18n.py                       usr/share/skillfish/i18n.py
+for _l in system/usr/share/skillfish/i18n/*.json; do
+  put $P 0644 "$_l" "usr/share/skillfish/i18n/$(basename "$_l")"
+done
 put $P 0644 system/etc/systemd/system/skillfish-live-no-lock.service etc/systemd/system/skillfish-live-no-lock.service
 # Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
 # il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
@@ -737,6 +744,8 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-l
 # idleTime=0 per powerdevil vuol dire SUBITO, non mai: con lo zero la live
 # spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n.py 'def traduttore'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Телеметрия'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'ConditionPathExists=/run/live/medium'
 check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-live-no-lock.service 'Before=sddm.service'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-is-bc250        0x13fe

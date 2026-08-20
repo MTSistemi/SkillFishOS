@@ -26,9 +26,30 @@ def _detect_lang():
     # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
     # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
     if v.startswith("uk") or v.startswith("ua"): return "uk"
+    # Qualsiasi altra lingua: si restituisce il codice a due lettere e sara' il
+    # dizionario condiviso (/usr/share/skillfish/i18n/<lingua>.json) a servirla.
+    # ⚠️ Prima qui c'era "return en" secco: un elenco chiuso di tre lingue. Con
+    # quello, aggiungere una traduzione nuova non aveva alcun effetto - la
+    # lingua veniva scartata prima di arrivare al dizionario.
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    if len(codice) == 2 and codice.isalpha():
+        return codice
     return "en"
 
 LANG = _detect_lang()
+
+# --- dizionario condiviso per le lingue nuove -------------------------------
+# ⚠️ Non deve mai impedire alla app di partire: se il modulo o il file della
+# lingua mancano, si resta all'inglese. Una traduzione assente e' un fastidio,
+# una app che non si apre e' un guasto.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
 
 # Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
 # Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene la
@@ -326,9 +347,9 @@ UK = {
 def L(it, en):
     """Restituisce la stringa IT, PL, UK o EN secondo il locale rilevato."""
     if LANG == "it": return it
-    if LANG == "pl": return PL.get(en, en)
-    if LANG == "uk": return UK.get(en, en)
-    return en
+    if LANG == "pl": return PL.get(en) or _TR(en)
+    if LANG == "uk": return UK.get(en) or _TR(en)
+    return _TR(en)
 
 
 HELP = {
