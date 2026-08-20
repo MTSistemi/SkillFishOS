@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
 <title>SkillFishOS Remote Manager</title>
 <style>
   :root{--bg:#0c0a06;--bg2:#14100a;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;
@@ -99,11 +100,40 @@
   .grouphdr{grid-column:1/-1;color:var(--gold);font-weight:700;font-size:.78rem;letter-spacing:.14em;
             text-transform:uppercase;margin:18px 2px 2px;padding-bottom:6px;border-bottom:1px solid var(--line)}
   .grouphdr:first-child{margin-top:4px}
-  /* language toggle */
-  .lang{display:flex;flex-wrap:wrap;gap:2px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-  .lang-btn{background:none;border:none;color:var(--muted);padding:6px 11px;font-size:.8rem;font-weight:700;cursor:pointer}
+  /* Selettore della lingua: una tendina, come sul sito.
+     Con nove lingue la fila di bottoni andava a capo nella barra in alto e ne
+     occupava tre righe sul telefono. <details> si apre e si chiude da solo,
+     senza JavaScript. Il nome esteso compare da 900px in su: sotto resta la
+     sigla, che e' quello che sullo schermo di un telefono ci sta davvero. */
+  .langmenu{position:relative;flex-shrink:0}
+  .langmenu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;
+    border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);
+    font-size:.78rem;font-weight:600;white-space:nowrap;transition:.2s}
+  .langmenu>summary::-webkit-details-marker{display:none}
+  .langmenu>summary:hover{color:var(--gold-lt);border-color:rgba(216,168,73,.45)}
+  .langmenu[open]>summary{color:var(--gold-lt);border-color:rgba(216,168,73,.45)}
+  .langmenu .caret{font-size:.7rem;opacity:.8}
+  .langmenu .langname{display:none}
+  @media(min-width:900px){.langmenu .langname{display:inline}}
+  .langmenu ul{position:absolute;right:0;top:calc(100% + 6px);z-index:60;margin:0;padding:6px;
+    list-style:none;min-width:180px;border:1px solid var(--line);border-radius:12px;
+    background:#171009;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+  .langmenu li{margin:0}
+  .lang-btn{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border:none;
+    border-radius:8px;background:none;color:var(--muted);font-size:.84rem;text-align:left;
+    white-space:nowrap;cursor:pointer;font-family:inherit}
+  .lang-btn:hover{background:rgba(216,168,73,.12);color:var(--gold-lt)}
   .lang-btn.active{background:rgba(216,168,73,.16);color:var(--gold-lt)}
-  #login .lang{margin:16px auto 0;width:max-content}
+  .lang-btn .langcode{font-weight:700;font-size:.72rem;opacity:.75;min-width:22px}
+  /* Sulla pagina di accesso la tendina si apre verso il basso al centro: li'
+     non c'e' una barra, e ancorata a destra finirebbe fuori dalla scheda. */
+  #login .langmenu{margin:16px auto 0;width:max-content}
+  /* Sulla pagina di accesso la tendina si apre VERSO L'ALTO: il selettore sta
+     in fondo alla scheda, centrata verticalmente, e un elenco di nove voci
+     aperto verso il basso esce dallo schermo e fa comparire la barra di
+     scorrimento. Verificato con una fotografia della pagina, non a occhio. */
+  #login .langmenu ul{right:auto;left:50%;transform:translateX(-50%);
+    top:auto;bottom:calc(100% + 6px)}
   /* card tools: move handle, collapse, close */
   .mod{position:relative}
   .mod h3{padding-right:78px}
@@ -163,7 +193,7 @@
       <button class="btn" type="submit" id="lbtn">Sign in</button>
       <div class="err" id="lerr"></div>
     </form>
-    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button><button class="lang-btn" data-l="ru">RU</button><button class="lang-btn" data-l="es">ES</button><button class="lang-btn" data-l="pt">PT</button><button class="lang-btn" data-l="de">DE</button><button class="lang-btn" data-l="fr">FR</button></div>
+    <details class="langmenu"><summary><span class="langcode" id="lang-code">IT</span><span class="langname" id="lang-name">Italiano</span><span class="caret" aria-hidden="true">▾</span></summary><ul><li><button class="lang-btn" data-l="it"><span class="langcode">IT</span><span>Italiano</span></button></li><li><button class="lang-btn" data-l="en"><span class="langcode">EN</span><span>English</span></button></li><li><button class="lang-btn" data-l="de"><span class="langcode">DE</span><span>Deutsch</span></button></li><li><button class="lang-btn" data-l="es"><span class="langcode">ES</span><span>Español</span></button></li><li><button class="lang-btn" data-l="fr"><span class="langcode">FR</span><span>Français</span></button></li><li><button class="lang-btn" data-l="pl"><span class="langcode">PL</span><span>Polski</span></button></li><li><button class="lang-btn" data-l="pt"><span class="langcode">PT</span><span>Português (BR)</span></button></li><li><button class="lang-btn" data-l="ru"><span class="langcode">RU</span><span>Русский</span></button></li><li><button class="lang-btn" data-l="uk"><span class="langcode">UK</span><span>Українська</span></button></li></ul></details>
   </div>
 </div>
 
@@ -177,7 +207,7 @@
     <span id="hidden-wrap"></span>
     <button class="ghost" id="save-btn" title="Save layout" data-i18n-title="ly_save">💾</button>
     <button class="ghost" id="reset-btn" title="Reset layout" data-i18n-title="ly_resetb">↺</button>
-    <div class="lang"><button class="lang-btn" data-l="it">IT</button><button class="lang-btn" data-l="en">EN</button><button class="lang-btn" data-l="pl">PL</button><button class="lang-btn" data-l="uk">UK</button><button class="lang-btn" data-l="ru">RU</button><button class="lang-btn" data-l="es">ES</button><button class="lang-btn" data-l="pt">PT</button><button class="lang-btn" data-l="de">DE</button><button class="lang-btn" data-l="fr">FR</button></div>
+    <details class="langmenu"><summary><span class="langcode" id="lang-code">IT</span><span class="langname" id="lang-name">Italiano</span><span class="caret" aria-hidden="true">▾</span></summary><ul><li><button class="lang-btn" data-l="it"><span class="langcode">IT</span><span>Italiano</span></button></li><li><button class="lang-btn" data-l="en"><span class="langcode">EN</span><span>English</span></button></li><li><button class="lang-btn" data-l="de"><span class="langcode">DE</span><span>Deutsch</span></button></li><li><button class="lang-btn" data-l="es"><span class="langcode">ES</span><span>Español</span></button></li><li><button class="lang-btn" data-l="fr"><span class="langcode">FR</span><span>Français</span></button></li><li><button class="lang-btn" data-l="pl"><span class="langcode">PL</span><span>Polski</span></button></li><li><button class="lang-btn" data-l="pt"><span class="langcode">PT</span><span>Português (BR)</span></button></li><li><button class="lang-btn" data-l="ru"><span class="langcode">RU</span><span>Русский</span></button></li><li><button class="lang-btn" data-l="uk"><span class="langcode">UK</span><span>Українська</span></button></li></ul></details>
     <button class="ghost" id="settings-btn" title="Modules" data-i18n-title="x_mods">⚙️</button>
     <button class="ghost" id="logout">Log out</button>
   </div></header>

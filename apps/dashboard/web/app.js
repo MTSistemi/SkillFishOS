@@ -841,6 +841,17 @@ function applicaTitoli() {
   });
 }
 
+// Il riquadro chiuso della tendina mostra la lingua in uso. Senza questo
+// resterebbe "IT · Italiano" scritto nell'HTML per tutti, che e' il genere di
+// difetto che non si vede finche' qualcuno non cambia lingua.
+const LANGNAMES = { it: "Italiano", en: "English", de: "Deutsch", es: "Español",
+                    fr: "Français", pl: "Polski", pt: "Português (BR)",
+                    ru: "Русский", uk: "Українська" };
+function mostraLingua() {
+  document.querySelectorAll("#lang-code").forEach(e => e.textContent = LANG.toUpperCase());
+  document.querySelectorAll("#lang-name").forEach(e => e.textContent = LANGNAMES[LANG] || LANG);
+}
+
 function setLang(l) { LANG = l; localStorage.setItem("sflang", l); location.reload(); }
 
 $("#lform").addEventListener("submit", async ev => {
@@ -858,5 +869,6 @@ document.querySelectorAll(".lang-btn").forEach(b => b.addEventListener("click", 
 
 (async () => {
   document.querySelectorAll(".lang-btn").forEach(b => b.classList.toggle("active", b.dataset.l === LANG));
+  mostraLingua();
   try { const r = await api("/api/me"); if (r.ok) buildDashboard(); else showLogin(); } catch (e) { showLogin(); }
 })();

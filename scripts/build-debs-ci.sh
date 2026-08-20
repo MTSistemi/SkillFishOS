@@ -501,6 +501,10 @@ put $P 0644 apps/dashboard/web/i18n.js     usr/share/skillfish/dashboard/i18n.js
 put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.html
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
+# La favicon delle pagine della dashboard: la stessa del sito. Senza questa
+# riga la pagina la chiede e prende un 404, che nella scheda del browser si
+# vede come icona vuota — cioe' come prima.
+put $P 0644 apps/dashboard/web/badge.png   usr/share/skillfish/dashboard/badge.png
 put $P 0644 system/etc/skillfish/dashboard.json usr/share/skillfish/dashboard-default.json
 put $P 0644 system/etc/systemd/system/skillfish-dashboard.service etc/systemd/system/skillfish-dashboard.service
 put $P 0644 system/usr/share/applications/os.skillfish.remote-manager.desktop usr/share/applications/os.skillfish.remote-manager.desktop
@@ -849,6 +853,10 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboard
 # dizionario condiviso. Se qualcuno ci rimette l'italiano, la traduzione non
 # aggancia piu' niente.
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hub.html  '"Word processors"'
+# La tendina delle lingue e la favicon: se saltano, la pagina funziona lo
+# stesso e nessuno se ne accorge — una fila di nove bottoni e un'icona vuota
+# non sono un errore, sono solo brutte.
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/index.html '<details class="langmenu"'
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/tuner.html data-i18n
 check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/app.js   'pl:'
 # app.js NON deve contenere S("...": la funzione di traduzione si chiama T().
