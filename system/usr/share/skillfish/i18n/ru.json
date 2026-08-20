@@ -4,7 +4,7 @@
   "nome": "Русский",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 377
+  "voci_totali": 382
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЭто действие нельзя отменить. Продолжить?",
@@ -28,6 +28,9 @@
   "+ Add repository": "+ Добавить репозиторий",
   "40 CU (max)": "40 CU (максимум)",
   "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU под нагрузкой (vkpeak): %s GFLOPS%s",
+  "8 cores": "8 ядер",
+  "8-core unlock %s. Takes effect on next reboot.": "Разблокировка 8 ядер %s. Вступит в силу при следующей загрузке.",
+  "8-core unlock: %s": "Разблокировка 8 ядер: %s",
   "ACCESS": "ДОСТУП",
   "AI Engine (LLM) — %s": "Движок ИИ (LLM) — %s",
   "APT repositories": "Репозитории APT",
@@ -303,6 +306,7 @@
   "Undervolt (scale)": "Снижение напряжения (шкала)",
   "Uninstall": "Удалить",
   "Uninstalling…": "Удаляем…",
+  "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Разблокирует 2 ядра, которые BC-250 держит выключенными (6я/12п становится 8я/16п).\n\nСтоит одной лишней перезагрузки при каждом холодном пуске: только так плата\nзаново считывает, сколько у неё ядер. Вступает в силу со следующей загрузки.",
   "Unsupported backend: ": "Неподдерживаемый движок: ",
   "Update all": "Обновить всё",
   "Updates": "Обновления",
@@ -350,6 +354,7 @@
   "online": "в сети",
   "operation cancelled": "операция отменена",
   "operation failed": "операция не удалась",
+  "requested %d MB (%s)": "запрошено %d МБ (%s)",
   "running": "работает",
   "service unavailable": "служба недоступна",
   "sockets: ": "сокеты: ",

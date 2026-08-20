@@ -3,7 +3,7 @@
   "lingua": "uk",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "ucraino del team, da rivedere",
-  "voci_totali": 377
+  "voci_totali": 382
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЦю дію не можна скасувати. Продовжити?",
@@ -27,6 +27,9 @@
   "+ Add repository": "+ Додати репозиторій",
   "40 CU (max)": "40 CU (макс.)",
   "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU під навантаженням (vkpeak): %s GFLOPS%s",
+  "8 cores": "8 ядер",
+  "8-core unlock %s. Takes effect on next reboot.": "Розблокування 8 ядер %s. Подіє після наступного запуску.",
+  "8-core unlock: %s": "Розблокування 8 ядер: %s",
   "ACCESS": "ДОСТУП",
   "AI Engine (LLM) — %s": "Рушій ШІ (LLM) — %s",
   "APT repositories": "Репозиторії APT",
@@ -302,6 +305,7 @@
   "Undervolt (scale)": "Зниження напруги (шкала)",
   "Uninstall": "Вилучити",
   "Uninstalling…": "Вилучення…",
+  "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Розблоковує 2 ядра, які BC-250 тримає вимкненими (6я/12п стає 8я/16п).\n\nКоштує одного зайвого запуску при кожному холодному старті: лише так плата\nперечитує, скільки в неї ядер. Діє від наступного запуску.",
   "Unsupported backend: ": "Непідтримуваний бекенд: ",
   "Update all": "Оновити все",
   "Updates": "Оновлення",
@@ -349,6 +353,7 @@
   "online": "активні",
   "operation cancelled": "операцію скасовано",
   "operation failed": "операція не вдалася",
+  "requested %d MB (%s)": "запитано %d МБ (%s)",
   "running": "запущене",
   "service unavailable": "служба недоступна",
   "sockets: ": "сокети: ",

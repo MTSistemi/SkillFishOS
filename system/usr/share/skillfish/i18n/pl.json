@@ -3,7 +3,7 @@
   "lingua": "pl",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "polacco di Cyryl Sochacki, unito dalle sei app",
-  "voci_totali": 377
+  "voci_totali": 382
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nTej operacji nie można cofnąć. Kontynuować?",
@@ -27,6 +27,9 @@
   "+ Add repository": "+ Dodaj repozytorium",
   "40 CU (max)": "40 CU (maks.)",
   "40 CU under load (vkpeak): %s GFLOPS%s": "40 CU pod obciążeniem (vkpeak): %s GFLOPS%s",
+  "8 cores": "8 rdzeni",
+  "8-core unlock %s. Takes effect on next reboot.": "Odblokowanie 8 rdzeni %s. Zadziała po następnym uruchomieniu.",
+  "8-core unlock: %s": "Odblokowanie 8 rdzeni: %s",
   "ACCESS": "DOSTĘP",
   "AI Engine (LLM) — %s": "Silnik AI (LLM) — %s",
   "APT repositories": "Repozytoria APT",
@@ -302,6 +305,7 @@
   "Undervolt (scale)": "Undervolt (skala)",
   "Uninstall": "Odinstaluj",
   "Uninstalling…": "Odinstalowywanie…",
+  "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Odblokowuje 2 rdzenie, które BC-250 trzyma wyłączone (6r/12w staje się 8r/16w).\n\nKosztuje jedno dodatkowe uruchomienie przy każdym zimnym starcie: tylko tak płyta\nodczytuje na nowo, ile ma rdzeni. Działa od następnego uruchomienia.",
   "Unsupported backend: ": "Nieobsługiwany backend: ",
   "Update all": "Aktualizuj wszystko",
   "Updates": "Aktualizacje",
@@ -349,6 +353,7 @@
   "online": "aktywne",
   "operation cancelled": "operacja anulowana",
   "operation failed": "operacja nie powiodła się",
+  "requested %d MB (%s)": "zażądano %d MB (%s)",
   "running": "uruchomiony",
   "service unavailable": "usługa niedostępna",
   "sockets: ": "gniazda: ",

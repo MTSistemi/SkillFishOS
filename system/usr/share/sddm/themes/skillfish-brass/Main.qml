@@ -33,21 +33,28 @@ Rectangle {
         if (n.indexOf("pl") === 0) return "pl";
         if (n.indexOf("uk") === 0 || n.indexOf("ua") === 0) return "uk";
         if (n.indexOf("ru") === 0) return "ru";
+        if (n.indexOf("es") === 0) return "es";
+        if (n.indexOf("pt") === 0) return "pt";
+        if (n.indexOf("de") === 0) return "de";
         return "en";
     }
     function tr(s) { return s[root.lang] !== undefined ? s[root.lang] : s["en"]; }
 
     property var txtLogin: {
-        "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти", "ru": "Войти"
+        "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти", "ru": "Войти",
+        "es": "Entrar", "pt": "Entrar", "de": "Anmelden"
     }
     property var txtPassword: {
-        "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль", "ru": "Пароль"
+        "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль", "ru": "Пароль",
+        "es": "Contraseña", "pt": "Senha", "de": "Kennwort"
     }
     property var txtShutdown: {
-        "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути", "ru": "Выключить"
+        "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути", "ru": "Выключить",
+        "es": "Apagar", "pt": "Desligar", "de": "Herunterfahren"
     }
     property var txtReboot: {
-        "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити", "ru": "Перезагрузить"
+        "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити", "ru": "Перезагрузить",
+        "es": "Reiniciar", "pt": "Reiniciar", "de": "Neu starten"
     }
 
     // background image (brass wallpaper) with dark overlay
