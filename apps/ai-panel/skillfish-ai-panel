@@ -29,6 +29,26 @@ WEBUI_URL  = "http://localhost:8080"
 # holds its own accounts — so this panel drives the service and opens the UI, and
 # never tries to mint credentials on the user's behalf.
 UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
+
+# Il pallino «?» condiviso: le spiegazioni stanno dietro, non nel pannello.
+# ⚠️ Se skillfish-base e' piu' vecchio e non ce l'ha, si resta senza pallino e
+# il testo torna dov'era: meglio una spiegazione di troppo che una finestra
+# che non si apre.
+AIUTO_GTT = L(
+    "Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
+    "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
+    "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
+    "possibile su questo hardware, verificato).",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
+    "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
+    "parameter → a reboot is required (a live change is not possible on this "
+    "hardware, verified).")
+
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    from aiuto import Aiuto
+except Exception:
+    Aiuto = None
 UNSLOTH_SVC = "skillfish-unsloth.service"
 UNSLOTH_URL = "http://localhost:8888"
 UNSLOTH_INSTALLER = "/usr/local/share/skillfish/install-unsloth.sh"
@@ -568,7 +588,19 @@ class Panel(QMainWindow):
         v.addWidget(gh)
 
         # Shared memory for the model (GTT)
-        gg = QGroupBox(L("Memoria condivisa per il modello", "Shared memory for the model")); ggv = QVBoxLayout(gg)
+        # ⚠️ Il titolo del riquadro non e' piu' quello del QGroupBox ma una riga
+        # sua, per poterci mettere accanto il pallino: dentro l'intestazione di
+        # un QGroupBox non si possono aggiungere altri widget.
+        gg = QGroupBox(); ggv = QVBoxLayout(gg)
+        _tt = QHBoxLayout()
+        _lb = QLabel(L("Memoria condivisa per il modello", "Shared memory for the model"))
+        _lb.setStyleSheet("font-weight:700;")
+        _tt.addWidget(_lb)
+        if Aiuto is not None:
+            _tt.addWidget(Aiuto(AIUTO_GTT, L("Memoria condivisa per il modello",
+                                             "Shared memory for the model")))
+        _tt.addStretch(1)
+        ggv.addLayout(_tt)
         self.gtt_lbl = QLabel("—"); self.gtt_lbl.setWordWrap(True); ggv.addWidget(self.gtt_lbl)
         sr = QHBoxLayout()
         self.gtt = QSlider(Qt.Orientation.Horizontal); self.gtt.setMinimum(2); self.gtt.setMaximum(14); self.gtt.setSingleStep(1)
@@ -577,15 +609,12 @@ class Panel(QMainWindow):
         sr.addWidget(self.gtt); sr.addWidget(self.gtt_val); ggv.addLayout(sr)
         self.gtt_apply = QPushButton(L("Applica e riavvia", "Apply and reboot"))
         self.gtt_apply.clicked.connect(self.apply_gtt); ggv.addWidget(self.gtt_apply)
-        hint = QLabel(L("Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
-                        "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
-                        "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
-                        "possibile su questo hardware, verificato).",
-                        "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
-                        "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
-                        "parameter → a reboot is required (a live change is not possible on this "
-                        "hardware, verified)."))
-        hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
+        # La spiegazione e' finita dietro al «?» del titolo, qui sopra. Se il
+        # pallino non c'e' (skillfish-base vecchio) si rimette com'era: meglio
+        # un paragrafo di troppo che una spiegazione che sparisce.
+        if Aiuto is None:
+            hint = QLabel(AIUTO_GTT)
+            hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
         v.addWidget(gg)
 
         # buttons

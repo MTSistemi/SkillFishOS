@@ -74,4 +74,15 @@ for n in $(ls -1 "$CARTELLA" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
         "$(campo "$i" pre_num)" \
         "$(campo "$i" description)"
 done
+
+# --- la manutenzione programmata ---------------------------------------------
+# Sta qui e non in un programma a parte perche' anche questa e' SOLA LETTURA, e
+# perche' meta' dei dati vuole comunque i privilegi: `btrfs scrub status` legge
+# /var/lib/btrfs, che e' di root, e `btrfs filesystem df` passa da una ioctl
+# privilegiata. Le periodicita' e i timer si leggerebbero anche da utente, ma
+# farne un programma a parte vorrebbe dire una terza autorizzazione polkit per
+# meta' delle informazioni.
+[ -x /usr/local/bin/skillfish-btrfs-manutenzione ] \
+    && /usr/local/bin/skillfish-btrfs-manutenzione stato 2>/dev/null
+
 exit 0

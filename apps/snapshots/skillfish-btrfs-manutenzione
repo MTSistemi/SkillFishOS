@@ -1,0 +1,201 @@
+#!/bin/bash
+# skillfish-btrfs-manutenzione — legge e imposta la manutenzione programmata di
+# btrfs. Si chiama con pkexec dalla nostra applicazione.
+#
+#   stato                              stampa com'e' messa, una riga per lavoro
+#   imposta <lavoro> <periodo> <ora>   programma un lavoro
+#
+#   lavoro:  verifica | spazio | trim | deframmenta
+#   periodo: mai | giorno | settimana | mese
+#   ora:     HH:MM
+#
+# SU COSA SI APPOGGIA, E PERCHE'
+# Il lavoro vero lo fa `btrfsmaintenance`, che c'e' gia' ed e' il modo standard
+# di fare queste cose su Debian: i suoi script sanno espandere i punti di
+# mount, applicare i filtri del balance e scrivere nel giornale. Riscriverlo
+# per avere una finestra nostra sarebbe rifare peggio una cosa che funziona.
+# Noi mettiamo davanti la parte che manca: poterlo programmare senza aprire un
+# file di configurazione a mano.
+#
+# ⚠️ TRE COSE IMPARATE GUARDANDO LA MACCHINA, non la documentazione:
+#
+# 1. `btrfsmaintenance-refresh.path` e' SPENTO. Dovrebbe accorgersi che
+#    /etc/default/btrfsmaintenance e' cambiato e rigenerare i timer; essendo
+#    spento, scrivere la configurazione da sola non cambia NIENTE. Qui lo
+#    script di rigenerazione lo chiamiamo noi, sempre.
+#
+# 2. Il periodo di btrfsmaintenance e' grossolano (daily/weekly/monthly) e non
+#    dice a che ora. L'ora esatta si ottiene con un drop-in del timer che viene
+#    letto DOPO il suo: si chiama zz-skillfish.conf apposta, perche' systemd
+#    legge i drop-in in ordine alfabetico e l'ultimo vince.
+#
+# 3. Il TRIM non passa da btrfsmaintenance: su Debian lo fa `fstrim.timer`, che
+#    e' gia' acceso. Accendere anche btrfs-trim.timer vorrebbe dire farlo due
+#    volte. Qui si programma quello di sistema.
+set -u
+export LC_ALL=C
+
+CONF=/etc/default/btrfsmaintenance
+REFRESH=/usr/share/btrfsmaintenance/btrfsmaintenance-refresh-cron.sh
+
+# lavoro -> unita' systemd e chiave nella configurazione
+unita() {
+    case "$1" in
+        verifica)     echo "btrfs-scrub" ;;
+        spazio)       echo "btrfs-balance" ;;
+        deframmenta)  echo "btrfs-defrag" ;;
+        trim)         echo "fstrim" ;;
+        *) return 1 ;;
+    esac
+}
+chiave() {
+    case "$1" in
+        verifica)     echo "BTRFS_SCRUB_PERIOD" ;;
+        spazio)       echo "BTRFS_BALANCE_PERIOD" ;;
+        deframmenta)  echo "BTRFS_DEFRAG_PERIOD" ;;
+        trim)         echo "" ;;          # fstrim non sta in quel file
+        *) return 1 ;;
+    esac
+}
+periodo_btrfsmaintenance() {
+    case "$1" in
+        mai)       echo "none" ;;
+        giorno)    echo "daily" ;;
+        settimana) echo "weekly" ;;
+        mese)      echo "monthly" ;;
+        *) return 1 ;;
+    esac
+}
+# L'espressione OnCalendar con l'ora scelta. Il giorno del mese e' il primo, e
+# il giorno della settimana il lunedi': sono gli stessi che usa systemd per
+# "weekly" e "monthly", cosi' cambiando solo l'ora non si sposta anche il giorno.
+calendario() {
+    case "$1" in
+        giorno)    echo "*-*-* $2:00" ;;
+        settimana) echo "Mon *-*-* $2:00" ;;
+        mese)      echo "*-*-01 $2:00" ;;
+        *) return 1 ;;
+    esac
+}
+
+leggi_conf() {   # leggi_conf <chiave>: il valore senza virgolette
+    [ -r "$CONF" ] || { echo ""; return; }
+    sed -n "s/^[[:space:]]*$1=[\"']\\?\\([^\"']*\\)[\"']\\?.*/\\1/p" "$CONF" | tail -1
+}
+
+scrivi_conf() {  # scrivi_conf <chiave> <valore>
+    if grep -qE "^[[:space:]]*$1=" "$CONF"; then
+        sed -i "s|^[[:space:]]*$1=.*|$1=\"$2\"|" "$CONF"
+    else
+        printf '%s="%s"\n' "$1" "$2" >> "$CONF"
+    fi
+}
+
+# --------------------------------------------------------------------------
+case "${1:-stato}" in
+
+stato)
+    # Una riga per lavoro, con tutto quello che serve alla finestra. Il
+    # formato e' a tabulazioni come quello degli snapshot: chi lo legge non
+    # deve indovinare dove finisce un campo.
+    for L in verifica spazio trim deframmenta; do
+        U=$(unita "$L")
+        K=$(chiave "$L")
+        if [ -n "$K" ]; then
+            P=$(leggi_conf "$K")
+        else
+            # fstrim: acceso o spento e basta, il periodo sta nel suo timer
+            P=$(systemctl is-enabled "$U.timer" 2>/dev/null)
+            [ "$P" = "enabled" ] && P="weekly" || P="none"
+        fi
+        case "$P" in
+            none|"") PERIODO=mai ;;
+            daily)   PERIODO=giorno ;;
+            weekly)  PERIODO=settimana ;;
+            monthly) PERIODO=mese ;;
+            *)       PERIODO="$P" ;;
+        esac
+        # ⚠️ `systemctl is-enabled` esce con codice DIVERSO DA ZERO quando
+        # l'unita' e' spenta, pur avendo stampato "disabled". Con
+        # `|| echo sconosciuto` scattava anche il ripiego e la riga usciva
+        # spezzata in due: la finestra leggeva un campo per un altro.
+        ATTIVO=$(systemctl is-enabled "$U.timer" 2>/dev/null)
+        [ -n "$ATTIVO" ] || ATTIVO=sconosciuto
+        PROSSIMA=$(systemctl show "$U.timer" -p NextElapseUSecRealtime --value 2>/dev/null)
+        ULTIMA=$(systemctl show "$U.timer" -p LastTriggerUSec --value 2>/dev/null)
+        ESITO=$(systemctl show "$U.service" -p Result --value 2>/dev/null)
+        # l'ora scelta da noi, se c'e'
+        ORA=$(sed -n 's/^OnCalendar=.*[ -]\([0-9][0-9]:[0-9][0-9]\):00$/\1/p' \
+              "/etc/systemd/system/$U.timer.d/zz-skillfish.conf" 2>/dev/null | tail -1)
+        printf 'LAVORO\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$L" "$PERIODO" "${ORA:-}" "$ATTIVO" "$PROSSIMA" "$ULTIMA" "$ESITO"
+    done
+
+    # lo stato del disco, che e' il motivo per cui uno guarda questa pagina
+    LIB=$(btrfs filesystem usage -b / 2>/dev/null | sed -n 's/.*Free (estimated):[[:space:]]*\([0-9]*\).*/\1/p' | head -1)
+    ALLOC=$(btrfs filesystem df -b / 2>/dev/null | sed -n 's/^Data.*total=\([0-9]*\),.*/\1/p' | head -1)
+    USATO=$(btrfs filesystem df -b / 2>/dev/null | sed -n 's/^Data.*used=\([0-9]*\).*/\1/p' | head -1)
+    printf 'DISCO\t%s\t%s\t%s\n' "${LIB:-0}" "${ALLOC:-0}" "${USATO:-0}"
+
+    # l'esito dell'ultima verifica: e' il dato che dice se il disco sta bene
+    S=$(btrfs scrub status / 2>/dev/null)
+    QUANDO=$(printf '%s' "$S" | sed -n 's/^[[:space:]]*Scrub started:[[:space:]]*//p' | head -1)
+    DURATA=$(printf '%s' "$S" | sed -n 's/^[[:space:]]*Duration:[[:space:]]*//p' | head -1)
+    ERRORI=$(printf '%s' "$S" | sed -n 's/^[[:space:]]*Error summary:[[:space:]]*//p' | head -1)
+    STATO=$(printf '%s' "$S" | sed -n 's/^[[:space:]]*Status:[[:space:]]*//p' | head -1)
+    printf 'VERIFICA\t%s\t%s\t%s\t%s\n' "${QUANDO:-}" "${DURATA:-}" "${ERRORI:-}" "${STATO:-}"
+    ;;
+
+imposta)
+    L="${2:-}"; P="${3:-}"; ORA="${4:-03:00}"
+    U=$(unita "$L")     || { echo "ERR:lavoro unknown job: $L" >&2; exit 2; }
+    PB=$(periodo_btrfsmaintenance "$P") || { echo "ERR:periodo unknown period: $P" >&2; exit 2; }
+    case "$ORA" in
+        [0-2][0-9]:[0-5][0-9]) ;;
+        *) echo "ERR:ora bad time: $ORA" >&2; exit 2 ;;
+    esac
+    [ "${ORA%%:*}" -le 23 ] || { echo "ERR:ora bad time: $ORA" >&2; exit 2; }
+
+    K=$(chiave "$L")
+    [ -n "$K" ] && scrivi_conf "$K" "$PB"
+
+    # ⚠️ Il refresh lo chiamiamo NOI: il .path che dovrebbe accorgersene e'
+    # spento su queste macchine, e senza questo passo la configurazione
+    # cambierebbe senza che cambi un solo timer.
+    if [ -x "$REFRESH" ]; then
+        "$REFRESH" >/dev/null 2>&1 || true
+    fi
+
+    DROP="/etc/systemd/system/$U.timer.d"
+    if [ "$P" = "mai" ]; then
+        rm -f "$DROP/zz-skillfish.conf"
+        systemctl disable --now "$U.timer" >/dev/null 2>&1 || true
+        systemctl daemon-reload
+        echo "OK spento $L"
+    else
+        mkdir -p "$DROP"
+        # Persistent: se la macchina era spenta all'ora prevista, il lavoro
+        # parte al primo avvio utile invece di saltare il giro. Su una console
+        # da gioco, che sta spenta piu' che accesa, senza questo la
+        # manutenzione non girerebbe quasi mai.
+        {
+            echo "# Scritto da SkillFishOS. Il nome comincia per zz perche' systemd"
+            echo "# legge i drop-in in ordine alfabetico e questo deve venire dopo"
+            echo "# schedule.conf, che btrfsmaintenance rigenera con la sola periodicita'."
+            echo "[Timer]"
+            echo "OnCalendar="
+            echo "OnCalendar=$(calendario "$P" "$ORA")"
+            echo "Persistent=true"
+        } > "$DROP/zz-skillfish.conf"
+        systemctl daemon-reload
+        systemctl enable --now "$U.timer" >/dev/null 2>&1 || true
+        echo "OK $L $P $ORA"
+    fi
+    systemctl show "$U.timer" -p NextElapseUSecRealtime --value 2>/dev/null | sed 's/^/prossima: /'
+    ;;
+
+*)
+    echo "ERR:uso usage: skillfish-btrfs-manutenzione stato | imposta <job> <period> <HH:MM>" >&2
+    exit 2 ;;
+esac
+exit 0

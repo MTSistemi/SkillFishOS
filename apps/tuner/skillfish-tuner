@@ -3,13 +3,31 @@
 # The GUI talks to the root daemon skillfish-tuner-helper (pkexec, one auth at start).
 # Interfaccia in IT/EN/PL/UK, scelta dal locale (LANG/LC_*).
 import sys, os, json, subprocess, re, collections
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QRect, QSize
 from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QSlider, QPushButton, QToolButton, QCheckBox,
-                             QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout, QButtonGroup)
+                             QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout, QButtonGroup,
+    QRadioButton,
+                             QLayout,
+                             QTabWidget)
 
 HELPER  = "/usr/local/bin/skillfish-tuner-helper"
+
+# Il pallino «?» condiviso. ⚠️ Arriva da skillfish-base, che e' un pacchetto
+# diverso: se manca (macchina aggiornata a meta') si ricade sul bottone di
+# prima, che fa la stessa cosa con l'aspetto di sistema.
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    from aiuto import Aiuto
+except Exception:
+    class Aiuto(QToolButton):
+        def __init__(self, testo, titolo=None, parent=None):
+            super().__init__(parent)
+            self.setText("?")
+            self.setToolTip(titolo or "")
+            self.clicked.connect(
+                lambda: QMessageBox.information(self.window(), titolo or "?", testo))
 PRESETS = "/usr/share/skillfish/tuner-presets.json"
 ICON    = "/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png"
 
@@ -110,14 +128,14 @@ PL = {
     "Presets": "Presety",
     "Apply": "Zastosuj",
     "Extreme preset": "Ekstremalny preset",
-    "🎰 My silicon": "🎰 Mój krzem",
+    "My silicon": "Mój krzem",
     "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d": "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Aktywne CU: %d  ·  Wykryte zawieszenia: %d",
-    "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.": "⚠ Ostatnie zawieszenie: %s — jeśli powtórzy się, zejdź o jeden poziom niżej za pomocą kreatorów 🎰.",
+    "⚠ Last freeze: %s — if it happens again, step down one notch with the wizards.": "⚠ Ostatnie zawieszenie: %s — jeśli powtórzy się, zejdź o jeden poziom niżej za pomocą kreatorów.",
     "Share to the silicon DB": "Udostępnij w bazie krzemu",
     "Max frequency": "Maksymalna częstotliwość",
     "Undervolt": "Undervolt",
     "Temperature limit": "Limit temperatury",
-    "🎰 Find my max": "🎰 Znajdź maksimum",
+    "Find my max": "Znajdź maksimum",
     "Suggest UV": "Zasugeruj UV",
     "Test (benchmark)": "Test (benchmark)",
     "CPU applied": "CPU zastosowane",
@@ -252,16 +270,16 @@ UK = {
     "Presets": "Заготовки",
     "Apply": "Застосувати",
     "Extreme preset": "Екстремальна заготовка",
-    "🎰 My silicon": "🎰 Мій кремній",
+    "My silicon": "Мій кремній",
     "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d":
         "ЦП %d МГц @ %d  ·  ГП %d МГц @ %d мВ  ·  Активних CU: %d  ·  Виявлено зависань: %d",
-    "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.":
-        "⚠ Останнє зависання: %s — якщо повториться, знизьте на один щабель за допомогою майстрів 🎰.",
+    "⚠ Last freeze: %s — if it happens again, step down one notch with the wizards.":
+        "⚠ Останнє зависання: %s — якщо повториться, знизьте на один щабель за допомогою майстрів.",
     "Share to the silicon DB": "Поділитися в базі кремнію",
     "Max frequency": "Максимальна частота",
     "Undervolt": "Зниження напруги",
     "Temperature limit": "Обмеження температури",
-    "🎰 Find my max": "🎰 Знайти мій максимум",
+    "Find my max": "Знайти мій максимум",
     "Suggest UV": "Порадити зниження",
     "Test (benchmark)": "Тест (бенчмарк)",
     "CPU applied": "ЦП застосовано",
@@ -384,6 +402,112 @@ HELP = {
    L("Le CU sono i core di calcolo della GPU. Qui le attivi/disattivi A CALDO, senza riavvio.\n\n• Ogni quadratino = 1 CU: VERDE = attiva, ROSSO = spenta.\n• CLIC su una coppia per accenderla/spegnerla manualmente (le coppie si gestiscono a 2 CU per volta = 1 WGP).\n• Oppure usa i PRESET (24 / 32 / 40 CU).\n• Le prime 3 coppie per fila (24 CU) sono il minimo del driver e restano sempre attive.\n• Premi «Applica a caldo» per rendere effettiva la scelta.\n\nPiù CU = più potenza grafica ma anche più calore e consumo.\n\nUsa «Test CU» per verificare che le CU attive siano stabili e senza difetti (lotteria del silicio).",
      "CUs are the GPU's compute cores. Here you enable/disable them LIVE, no reboot.\n\n• Each square = 1 CU: GREEN = active, RED = off.\n• CLICK a pair to toggle it manually (pairs are managed 2 CU at a time = 1 WGP).\n• Or use the PRESETS (24 / 32 / 40 CU).\n• The first 3 pairs per row (24 CU) are the driver minimum and stay always on.\n• Hit «Apply live» to make the choice effective.\n\nMore CU = more graphics power but also more heat and power draw.\n\nUse «Test CU» to verify the active CUs are stable and defect-free (silicon lottery).")),
 }
+
+
+
+# ColonneFlusso: mette le sezioni in una, due o tre colonne secondo lo spazio.
+# 
+# IL PROBLEMA MISURATO
+# La finestra del Tuner e' 1000x1012 su un'area utile di 1920x1040: alta quanto
+# tutto lo schermo, e continua comunque a scorrere. Nel frattempo meta' della
+# larghezza non la usa nessuno. Le otto sezioni stanno in una colonna sola, e una
+# colonna sola non ha modo di sfruttare uno schermo largo.
+# 
+# PERCHE' NON BASTA ALLARGARE E BASTA
+# Perche' il Tuner deve girare anche su schermi piu' piccoli — un portatile a
+# 1366x768, una TV a 1280x720. Una disposizione a due colonne fissa risolverebbe
+# il 1920 e romperebbe il 1366. Serve che il numero di colonne lo decida lo
+# spazio, e che cambi da solo quando la finestra cambia dimensione.
+# 
+# COME FUNZIONA
+# Le sezioni vengono distribuite nella colonna PIU' CORTA al momento, nell'ordine
+# in cui sono state aggiunte. Non e' un riempimento perfetto (sarebbe un problema
+# di bin packing), ma tiene le sezioni importanti in alto a sinistra e pareggia
+# le altezze abbastanza da non lasciare una colonna vuota a meta'.
+# 
+# ⚠️ heightForWidth deve rifare lo STESSO conto di setGeometry. Se i due si
+# scostano, l'area scorrevole calcola un'altezza diversa da quella che poi
+# disegna: compare una barra di scorrimento per pochi pixel, o ne manca una che
+# servirebbe. E' la classe di errore piu' facile da introdurre qui.
+
+class ColonneFlusso(QLayout):
+
+    def __init__(self, parent=None, margine=0, spazio=10, larghezza_min=430, colonne_max=3):
+        super().__init__(parent)
+        self._voci = []
+        self._spazio = spazio
+        self.larghezza_min = larghezza_min
+        self.colonne_max = colonne_max
+        self.setContentsMargins(margine, margine, margine, margine)
+
+    # --- gli obblighi di QLayout ------------------------------------------
+    def addItem(self, item):
+        self._voci.append(item)
+
+    def count(self):
+        return len(self._voci)
+
+    def itemAt(self, i):
+        return self._voci[i] if 0 <= i < len(self._voci) else None
+
+    def takeAt(self, i):
+        return self._voci.pop(i) if 0 <= i < len(self._voci) else None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, larghezza):
+        return self._disponi(QRect(0, 0, larghezza, 0), prova=True)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._disponi(rect, prova=False)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        # La minima e' UNA colonna larga quanto la sezione piu' larga: sotto
+        # quella larghezza i cursori e i bottoni si schiacciano.
+        w = 0
+        for v in self._voci:
+            w = max(w, v.minimumSize().width())
+        s, d, _, _ = self.getContentsMargins()
+        return QSize(max(w, self.larghezza_min) + s + d, 0)
+
+    # --- il conto vero -----------------------------------------------------
+    def quante_colonne(self, larghezza):
+        s, d, _, _ = self.getContentsMargins()
+        utile = larghezza - s - d
+        n = (utile + self._spazio) // (self.larghezza_min + self._spazio)
+        return max(1, min(int(n), self.colonne_max, len(self._voci) or 1))
+
+    def _disponi(self, rect, prova):
+        if not self._voci:
+            return 0
+        s, sup, d, inf = self.getContentsMargins()
+        n = self.quante_colonne(rect.width())
+        utile = rect.width() - s - d
+        larg = (utile - (n - 1) * self._spazio) // n
+
+        alte = [0] * n            # altezza accumulata di ogni colonna
+        for v in self._voci:
+            # la colonna piu' corta al momento; a parita', la piu' a sinistra
+            c = alte.index(min(alte))
+            h = v.sizeHint().height()
+            if v.hasHeightForWidth():
+                h = v.heightForWidth(larg)
+            if not prova:
+                x = rect.x() + s + c * (larg + self._spazio)
+                y = rect.y() + sup + alte[c]
+                v.setGeometry(QRect(x, y, larg, h))
+            alte[c] += h + self._spazio
+
+        # l'ultimo spazio non conta: sta sotto all'ultima sezione
+        return max(alte) - self._spazio + sup + inf
 
 
 class Daemon:
@@ -611,18 +735,30 @@ class TunerWindow(QMainWindow):
         self.setWindowTitle("SkillFishOS Tuner")
         self.setWindowIcon(QIcon(ICON))
         self._geomfile = os.path.expanduser("~/.config/skillfishos/tuner-geom.json")
+        self._geom_salvata = None
         try:
             with open(self._geomfile) as _gf:
                 gj = json.load(_gf)
-            self.resize(int(gj["w"]), int(gj["h"]))
+            self._geom_salvata = (int(gj["w"]), int(gj["h"]))
         except Exception:
-            self.resize(982, 1000)
+            pass
         self.cfg = (self.d.cmd(cmd="get").get("data")) or {}
         self._threads = []
 
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
-        body = QWidget(); self.box = QVBoxLayout(body)
-        self.box.setContentsMargins(16, 16, 16, 16); self.box.setSpacing(14)
+        # ⚠️ Niente barra ORIZZONTALE: la disposizione a colonne si stringe da
+        # sola fino a una colonna, quindi una barra orizzontale vorrebbe dire
+        # solo che qualcosa dentro non si e' voluto stringere. Meglio vederlo.
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        body = QWidget()
+        # Le sezioni si dispongono in una, due o tre colonne secondo la
+        # larghezza: e' cosi' che la finestra entra in uno schermo largo senza
+        # rompersi su uno stretto.
+        #
+        # ⚠️ Provate anche le linguette (quattro schede da due sezioni), poi
+        # tolte: la pagina unica si e' rivelata piu' bella da guardare, e su
+        # uno schermo largo mostra tutto senza bisogno di cambiare pagina.
+        self.box = ColonneFlusso(body, margine=14, spazio=12, larghezza_min=430)
         scroll.setWidget(body); self.setCentralWidget(scroll)
         self.statusBar()
 
@@ -634,7 +770,36 @@ class TunerWindow(QMainWindow):
         self.box.addWidget(self._cu())
         self.box.addWidget(self._sec_cpu_cores())
         self.box.addWidget(self._fan())
-        self.box.addStretch(1)
+        self._adatta_allo_schermo()
+
+    def _adatta_allo_schermo(self):
+        u"""Sceglie la dimensione guardando lo schermo, non un numero scritto a mano.
+
+        ⚠️ Il vecchio 982x1000 era il problema, non la soluzione: con 982 di
+        larghezza le sezioni stanno in una colonna sola su QUALUNQUE monitor, e
+        una colonna sola di otto sezioni non entra da nessuna parte. Qui la
+        larghezza si prende dallo schermo, e l'altezza si chiede alla
+        disposizione — che a quella larghezza sa quanto le serve davvero.
+        """
+        scr = self.screen() or QApplication.primaryScreen()
+        disp = scr.availableGeometry() if scr else None
+        if disp is None:
+            self.resize(1200, 800)
+            return
+        if self._geom_salvata:
+            # la dimensione scelta dall'utente vale, ma non oltre lo schermo:
+            # una finestra salvata su un monitor grande e riaperta su uno
+            # piccolo resterebbe con i bottoni fuori dal bordo.
+            w, h = self._geom_salvata
+            self.resize(min(w, disp.width()), min(h, disp.height()))
+            return
+        # Con OTTO sezioni su una pagina sola prendersi la larghezza dello
+        # schermo e' giusto: piu' larghezza vuol dire piu' colonne e quindi
+        # meno altezza. (Con le linguette non lo era, ed e' per questo che la
+        # regola era stata cambiata: tolte quelle, torna questa.)
+        larg = min(int(disp.width() * 0.94), 1560)
+        alta = self.box.heightForWidth(larg - 40) + 90   # barra di stato e cornice
+        self.resize(larg, min(alta, int(disp.height() * 0.94)))
 
     # ---------- UI helpers ----------
     def toast(self, msg, secs=4):
@@ -664,11 +829,12 @@ class TunerWindow(QMainWindow):
         super().closeEvent(e)
 
     def _help_btn(self, key):
-        b = QToolButton(); b.setText("?"); b.setToolTip(L("Aiuto", "Help"))
-        def show():
-            title, body = HELP.get(key, (L("Aiuto", "Help"), ""))
-            QMessageBox.information(self, title, body)
-        b.clicked.connect(show); return b
+        # Il pallino condiviso (/usr/share/skillfish/aiuto.py): stesso aspetto
+        # in tutte le applicazioni, e decide lui se il testo sta in una
+        # bollicina o vuole un riquadro. Gli aiuti del Tuner sono lunghi, quindi
+        # in pratica escono quasi tutti come riquadro, com'era prima.
+        titolo, corpo = HELP.get(key, (L("Aiuto", "Help"), ""))
+        return Aiuto(corpo, titolo, self)
 
     def _row(self, title, widget, helpkey=None):
         w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(8)
@@ -690,8 +856,19 @@ class TunerWindow(QMainWindow):
             h.addWidget(b)
         return w
 
-    def _section(self, title):
-        g = QGroupBox(title); v = QVBoxLayout(g); v.setSpacing(8)
+    def _section(self, title, helpkey=None):
+        # ⚠️ Senza titolo nel QGroupBox: dentro l'intestazione di un QGroupBox
+        # non ci si possono mettere altri widget, e il pallino «?» deve stare
+        # accanto al nome della sezione. Il titolo diventa una riga propria con
+        # lo stesso aspetto di prima.
+        g = QGroupBox(); v = QVBoxLayout(g); v.setSpacing(8)
+        riga = QHBoxLayout(); riga.setSpacing(6)
+        lab = QLabel(title); lab.setStyleSheet("font-weight:700;")
+        riga.addWidget(lab)
+        if helpkey:
+            riga.addWidget(self._help_btn(helpkey))
+        riga.addStretch(1)
+        v.addLayout(riga)
         return g, v
 
     def _run_async(self, fn, on_done, busy_msg):
@@ -709,16 +886,41 @@ class TunerWindow(QMainWindow):
                 data = json.load(_pf)["presets"]
         except Exception:
             data = []
-        for p in data:
+        # I preset si scelgono con un pallino e si applicano con UN bottone: cinque
+        # «Applica» in colonna erano cinque occasioni di premere quello sbagliato,
+        # e l'ultimo della fila e' «Crazy».
+        self._preset_dati = data
+        self._preset_grp = QButtonGroup(self)
+        for i, p in enumerate(data):
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0)
-            col = QVBoxLayout(); col.setSpacing(0)
-            name = QLabel(self._pname(p)); name.setStyleSheet("font-weight:bold;")
-            desc = QLabel(self._pdesc(p)); desc.setStyleSheet("color:#b9a07a;font-size:11px;")
-            col.addWidget(name); col.addWidget(desc)
-            h.addLayout(col); h.addStretch(1)
-            b = QPushButton(L("Applica", "Apply")); b.clicked.connect(lambda _=False, pr=p: self._apply_preset(pr))
-            h.addWidget(b); v.addWidget(w)
+            rb = QRadioButton(self._pname(p)); rb.setStyleSheet("font-weight:bold;")
+            self._preset_grp.addButton(rb, i)
+            h.addWidget(rb)
+            # La descrizione sta dietro al «?», non sotto al nome: cinque righe
+            # di spiegazione riempivano da sole il primo schermo della finestra.
+            _d = self._pdesc(p)
+            if _d:
+                h.addWidget(Aiuto(_d, self._pname(p)))
+            h.addStretch(1)
+            v.addWidget(w)
+
+        riga = QHBoxLayout(); riga.addStretch(1)
+        self._preset_btn = QPushButton(L("Applica", "Apply"))
+        # ⚠️ Spento finche' non si e' scelto: senza, il primo clic distratto
+        # applicherebbe... niente, e chi guarda non capirebbe perche'.
+        self._preset_btn.setEnabled(False)
+        self._preset_grp.idToggled.connect(
+            lambda _i, on: self._preset_btn.setEnabled(True) if on else None)
+        self._preset_btn.clicked.connect(self._apply_preset_scelto)
+        riga.addWidget(self._preset_btn)
+        v.addLayout(riga)
         return g
+
+    def _apply_preset_scelto(self):
+        i = self._preset_grp.checkedId()
+        if i < 0 or i >= len(self._preset_dati):
+            return
+        self._apply_preset(self._preset_dati[i])
 
     def _pname(self, p):
         return p.get("name_" + LANG) or p.get("name", "")
@@ -745,7 +947,7 @@ class TunerWindow(QMainWindow):
 
     # ---------- silicon status ----------
     def _silicon(self):
-        g, v = self._section(L("🎰 Il mio silicio", "🎰 My silicon"))
+        g, v = self._section(L("Il mio silicio", "My silicon"))
         cpu = self.cfg.get("cpu", {}); gp = self.cfg.get("gpu", {}); cu = self.cfg.get("cu", {})
         freezes = []
         try:
@@ -759,8 +961,8 @@ class TunerWindow(QMainWindow):
                         gp.get("max_mv", 0), cu.get("active", 0), len(freezes)))
         lab.setWordWrap(True); v.addWidget(lab)
         if freezes:
-            warn = QLabel(L("⚠ Ultimo blocco: %s — se ricapita, scendi di uno scalino con i wizard 🎰.",
-                            "⚠ Last freeze: %s — if it happens again, step down one notch with the 🎰 wizards.")
+            warn = QLabel(L("⚠ Ultimo blocco: %s — se ricapita, scendi di uno scalino con i wizard.",
+                            "⚠ Last freeze: %s — if it happens again, step down one notch with the wizards.")
                           % freezes[-1].split(" ")[0])
             warn.setStyleSheet("color:#e0a050;font-size:11px;"); warn.setWordWrap(True); v.addWidget(warn)
         v.addWidget(self._btns(
@@ -780,7 +982,7 @@ class TunerWindow(QMainWindow):
         v.addWidget(self._row(L("Limite temperatura", "Temperature limit"), self.ct, "cpu_temp"))
         vals = lambda: (self.cf.value(), self.cs.value(), self.ct.value())
         v.addWidget(self._btns(
-            (L("🎰 Trova il massimo", "🎰 Find my max"), self._cpu_wizard, False),
+            (L("Trova il massimo", "Find my max"), self._cpu_wizard, False),
             (L("Suggerisci UV", "Suggest UV"), lambda: self._suggest_uv(self.cf.value()), False),
             (L("Test (benchmark)", "Test (benchmark)"), lambda: self._test_cpu(*vals()), False),
             (L("Applica", "Apply"), lambda: (self.d.cmd(cmd="apply-cpu", mhz=vals()[0], scale=vals()[1], temp=vals()[2]), self.toast(L("CPU applicata", "CPU applied"))), True),
@@ -827,7 +1029,7 @@ class TunerWindow(QMainWindow):
         v.addWidget(self._row(L("Modalità governor", "Governor mode"), _gmw, "gov_mode"))
         vals = lambda: (self.gf.value(), self.gv.value())
         v.addWidget(self._btns(
-            (L("🎰 Trova il massimo", "🎰 Find my max"), self._gpu_wizard, False),
+            (L("Trova il massimo", "Find my max"), self._gpu_wizard, False),
             (L("Test (benchmark)", "Test (benchmark)"), lambda: self._test_gpu(*vals()), False),
             (L("Applica", "Apply"), lambda: (self.d.cmd(cmd="apply-gpu", minmhz=350, minmv=700, maxmhz=vals()[0], maxmv=vals()[1]), self.toast(L("GPU applicata", "GPU applied"))), True),
         ))
@@ -969,7 +1171,7 @@ class TunerWindow(QMainWindow):
 
     # ---------- COMPUTE UNIT (live grid) ----------
     def _cu(self):
-        g, v = self._section(L("Compute Unit (CU) — a caldo", "Compute Units (CU) — live"))
+        g, v = self._section(L("Compute Unit (CU) — a caldo", "Compute Units (CU) — live"), "cu")
         cu = self.cfg.get("cu", {})
         self.cu_floor = int(cu.get("floor", 7))
         self.cu_order = ["0.0", "0.1", "1.0", "1.1"]
@@ -994,7 +1196,6 @@ class TunerWindow(QMainWindow):
         pr = QHBoxLayout()
         for lbl, mk in (("24 CU", 0x07), ("32 CU", 0x0f), (L("40 CU (max)", "40 CU (max)"), 0x1f)):
             b = QPushButton(lbl); b.clicked.connect(lambda _=False, m=mk: self._cu_preset(m)); pr.addWidget(b)
-        pr.addWidget(self._help_btn("cu"))
         pr.addStretch(1)
         bt = QPushButton(L("Test CU", "Test CU")); bt.clicked.connect(self._test_cu); pr.addWidget(bt)
         ba = QPushButton(L("Applica", "Apply")); ba.setDefault(True); ba.clicked.connect(self._apply_cu); pr.addWidget(ba)
@@ -1002,7 +1203,7 @@ class TunerWindow(QMainWindow):
         return g
 
     def _sec_cpu_cores(self):
-        g, v = self._section(L("Core CPU — a caldo", "CPU cores — live"))
+        g, v = self._section(L("Core CPU — a caldo", "CPU cores — live"), "cpucores")
         st = self.d.cmd(cmd="cpu-cores") or {}
         self.cpu_cores = st.get("cores", [])
         self.cpu_want = {c["core"]: c["online"] for c in self.cpu_cores}
@@ -1020,11 +1221,16 @@ class TunerWindow(QMainWindow):
             b = QPushButton(lbl); b.clicked.connect(lambda _=False, k=n: self._cpu_preset(k)); pr.addWidget(b)
         self.smt_cb = QCheckBox("SMT")
         self.smt_cb.setChecked((st.get("smt") or "on") == "on")
-        self.smt_cb.setToolTip(L("Multi-threading: 2 thread per core. Spento = 1 thread per core.",
-                                 "Multi-threading: 2 threads per core. Off = 1 thread per core."))
+        # Il testo sta in una variabile e va in DUE posti: il suggerimento al
+        # passaggio del mouse (che c'era gia') e il pallino «?» (che mancava,
+        # quindi la spiegazione la trovava solo chi ci finiva sopra per caso).
+        aiuto_smt = L("Multi-threading: 2 thread per core. Spento = 1 thread per core.",
+                      "Multi-threading: 2 threads per core. Off = 1 thread per core.")
+        self.smt_cb.setToolTip(aiuto_smt)
         self.smt_cb.toggled.connect(self._cpu_smt)
         if not st.get("smt"): self.smt_cb.setEnabled(False)
         pr.addWidget(self.smt_cb)
+        pr.addWidget(Aiuto(aiuto_smt, "SMT"))
 
         # Sblocco degli 8 core: spento di serie dal 16/08/2026. Sulla ISO
         # rilasciata partiva da solo e riavviava la scheda anche nella live,
@@ -1033,17 +1239,18 @@ class TunerWindow(QMainWindow):
         cu = self.d.cmd(cmd="core-unlock") or {}
         self.core8_cb = QCheckBox(L("8 core", "8 cores"))
         self.core8_cb.setChecked(bool(cu.get("abilitato")))
-        self.core8_cb.setToolTip(L(
+        aiuto_core8 = L(
             "Sblocca i 2 core che la BC-250 tiene spenti (6c/12t diventa 8c/16t).\n\n"
             "Costa un riavvio in piu' a ogni accensione da spenta: e' il modo in cui\n"
             "la scheda rilegge quanti core ha. Ha effetto dal prossimo avvio.",
             "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\n"
             "Costs one extra reboot on every cold start: that is how the board\n"
-            "re-reads how many cores it has. Takes effect from the next boot."))
+            "re-reads how many cores it has. Takes effect from the next boot.")
+        self.core8_cb.setToolTip(aiuto_core8)
         self.core8_cb.toggled.connect(self._core8)
         if not cu.get("supportato"): self.core8_cb.setEnabled(False)
         pr.addWidget(self.core8_cb)
-        pr.addWidget(self._help_btn("cpucores"))
+        pr.addWidget(Aiuto(aiuto_core8, L("8 core", "8 cores")))
         pr.addStretch(1)
         ba = QPushButton(L("Applica", "Apply")); ba.clicked.connect(self._apply_cpu_cores); pr.addWidget(ba)
         pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
@@ -1148,7 +1355,7 @@ class TunerWindow(QMainWindow):
                  L("(atteso ~11300 a 40 CU)", "(expected ~11300 at 40 CU)"), "",
                  L("Stabilità per coppia di CU extra:", "Per extra-CU-pair stability:")]
         for r in res.get("results", []):
-            lines.append("  SE%s.SH%s  WGP%d (CU %s):  %s%s" % (
+            lines.append("  SE%s.SH%s WGP%d (CU %s):  %s%s" % (
                 r["row"][0], r["row"][2], r["wgp"], r["cu"], sym.get(r["verdict"], r["verdict"]),
                 (" · %d err" % r["errors"]) if r["errors"] else ""))
         bad = res.get("bad", 0)

@@ -247,6 +247,10 @@ put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bi
 # app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
 # restano dentro le app, dove hanno le sfumature per contesto.
 put $P 0644 system/usr/share/skillfish/i18n.py                       usr/share/skillfish/i18n.py
+# Il pallino «?» condiviso: le spiegazioni stanno dietro, non nella pagina.
+# Sta accanto a i18n.py perche' e' la stessa cosa — un modulo che tutte le
+# applicazioni importano da /usr/share/skillfish.
+put $P 0644 system/usr/share/skillfish/aiuto.py                      usr/share/skillfish/aiuto.py
 for _l in system/usr/share/skillfish/i18n/*.json; do
   put $P 0644 "$_l" "usr/share/skillfish/i18n/$(basename "$_l")"
 done
@@ -627,6 +631,10 @@ P=skillfish-snapshots
 put $P 0755 apps/snapshots/skillfish-snapshots        usr/local/bin/skillfish-snapshots
 put $P 0755 apps/snapshots/skillfish-snapshots-read   usr/local/bin/skillfish-snapshots-read
 put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-snapshots-helper
+# La manutenzione programmata: la chiamano sia il programma di lettura (per
+# lo stato) sia l'aiutante (per impostarla), e cosi' non serve una terza
+# autorizzazione polkit.
+put $P 0755 apps/snapshots/skillfish-btrfs-manutenzione usr/local/bin/skillfish-btrfs-manutenzione
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.snapshots.policy usr/share/polkit-1/actions/os.skillfish.snapshots.policy
 put $P 0644 system/usr/share/applications/os.skillfish.snapshots.desktop usr/share/applications/os.skillfish.snapshots.desktop
 # L'icona: il tema la porta gia' dentro skillfish-theme (tutto l'albero),
@@ -636,7 +644,7 @@ put $P 0644 system/usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png us
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
-ctrl $P "python3-pyqt6, snapper, btrfs-progs, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots in a window"
+ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance"
 
 
 P=skillfish-menu
@@ -780,6 +788,17 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-l
 # spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n.py 'def traduttore'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/aiuto.py 'class Aiuto'
+# La soglia decide se la spiegazione esce come bollicina o come riquadro:
+# se sparisse, i testi lunghi del Tuner tornerebbero in una bollicina che si
+# chiude al primo movimento del mouse.
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/aiuto.py 'SOGLIA'
+# ⚠️ Le tre applicazioni devono reggere l'assenza del modulo: base e le app
+# sono pacchetti diversi. Senza il try, un aggiornamento a meta' spegnerebbe
+# tre finestre invece di togliere tre pallini.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner 'from aiuto import Aiuto'
+check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel 'from aiuto import Aiuto'
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'from aiuto import Aiuto'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Телеметрия'
 # ⚠️ it.json NON serve alle app — per loro l'italiano sta nel codice, e i18n.py
 # lo esclude apposta. Serve alle PAGINE WEB della dashboard, che leggono un
@@ -793,9 +812,18 @@ check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 
 # Una traduzione che manca non da' nessun segno: l'app ripiega
 # sull'inglese e sembra tutto a posto.
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/de.json 'Jetzt einen Schnappschuss machen'
+# e le frasi della manutenzione, che sono arrivate dopo
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/de.json 'Datenprüfung'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/fr.json 'Vérification des données'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pl.json 'Sprawdzenie danych'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/uk.json 'Перевірка даних'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Проверка данных'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/es.json 'Comprobación de los datos'
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pt.json 'Verificação dos dados'
+# e l'italiano, che ora dice «snapshot» e non piu' «fotografie»
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 'Fai uno snapshot adesso'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/es.json 'Hacer una instantánea ahora'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/fr.json 'Prendre un instantané maintenant'
-check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/it.json 'Fai una fotografia adesso'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pl.json 'Zrób migawkę teraz'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/pt.json 'Tirar um snapshot agora'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Сделать снимок сейчас'
@@ -954,6 +982,21 @@ check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'de
 # E il programma di sola lettura non deve accettare argomenti: e' quello che
 # gira senza password.
 check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-read 'ERR:argomenti'
+# Il drop-in DEVE chiamarsi zz-...: systemd legge i drop-in in ordine
+# alfabetico, e questo deve venire dopo schedule.conf, che btrfsmaintenance
+# rigenera con la sola periodicita'. Rinominarlo vorrebbe dire che l'ora
+# scelta non ha piu' effetto, e nessuno se ne accorgerebbe.
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-btrfs-manutenzione 'zz-skillfish.conf'
+# Il refresh dei timer lo chiamiamo NOI: il .path che dovrebbe farlo e'
+# spento, e senza questa riga la configurazione cambierebbe a vuoto.
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-btrfs-manutenzione 'btrfsmaintenance-refresh-cron.sh'
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-read 'skillfish-btrfs-manutenzione stato'
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'def pagina_manutenzione'
+# Le spiegazioni stanno dietro a un «?», non nella pagina: e' lo standard
+# delle applicazioni nuove (come su PrintFlow). Se qualcuno rimettesse i
+# paragrafi nella finestra, questo controllo non se ne accorgerebbe, ma
+# almeno il pallino deve esserci.
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'class Aiuto'
 # Nella barra deve esserci il NOSTRO Hub. Il collegamento a Discover era rimasto
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.

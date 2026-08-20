@@ -115,6 +115,34 @@ case "$AZIONE" in
     [ "$FATTI" -gt 0 ] || exit 1
     ;;
 
+  manutenzione)
+    # Programma un lavoro di manutenzione. Il lavoro vero lo fa
+    # skillfish-btrfs-manutenzione; qui si passa solo da questa porta perche'
+    # e' quella che polkit conosce gia': aggiungere un programma privilegiato
+    # in piu' vorrebbe dire una terza autorizzazione da spiegare all'utente.
+    #
+    # ⚠️ Gli argomenti si controllano QUI e anche di la'. Non e' ridondanza
+    # inutile: questo e' il punto in cui arriva roba da un processo non
+    # privilegiato, e chi sta dall'altra parte potrebbe un giorno essere
+    # chiamato in un altro modo.
+    LAVORO="${2:-}"; PERIODO="${3:-}"; ORA="${4:-}"
+    case "$LAVORO" in
+        verifica|spazio|trim|deframmenta) ;;
+        *) echo "ERR:lavoro unknown maintenance job: $LAVORO" >&2; exit 2 ;;
+    esac
+    case "$PERIODO" in
+        mai|giorno|settimana|mese) ;;
+        *) echo "ERR:periodo unknown period: $PERIODO" >&2; exit 2 ;;
+    esac
+    case "$ORA" in
+        ""|[0-2][0-9]:[0-5][0-9]) ;;
+        *) echo "ERR:ora bad time: $ORA" >&2; exit 2 ;;
+    esac
+    [ -x /usr/local/bin/skillfish-btrfs-manutenzione ] \
+        || { echo "ERR:manca skillfish-btrfs-manutenzione is not installed" >&2; exit 2; }
+    /usr/local/bin/skillfish-btrfs-manutenzione imposta "$LAVORO" "$PERIODO" "${ORA:-03:00}" || exit 1
+    ;;
+
   ripristina)
     numero "${2:-}"
     # --si perche' qui la conferma l'ha gia' data la finestra, con scritto per

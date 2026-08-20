@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# SkillFishOS Snapshot — le fotografie del sistema in una finestra: guardarle,
-# farne una, tornare indietro. PyQt6, tema ottone/steampunk come le altre.
+# SkillFishOS Snapshot — gli snapshot del sistema in una finestra: guardarli,
+# farne uno, tornare indietro. PyQt6, tema ottone/steampunk come le altre.
 #
 # PERCHE' NON BASTAVA BTRFS ASSISTANT
 # Btrfs Assistant c'e' gia' ed e' un buon programma, ma parla la lingua del
@@ -9,10 +9,14 @@
 # un aggiornamento ha rotto qualcosa deve prima imparare tutto quello.
 #
 # Qui si risponde a tre domande e basta:
-#   - che fotografie ho?              -> l'elenco, con date leggibili
-#   - me ne faccio una adesso         -> un bottone
-#   - torno a quella                  -> un bottone e un riavvio
-# Btrfs Assistant resta installato per chi vuole entrare nel dettaglio.
+#   - che snapshot ho?                -> l'elenco, con date leggibili
+#   - me ne faccio uno adesso         -> un bottone
+#   - torno a quello                  -> un bottone e un riavvio
+# In piu' una seconda scheda programma la manutenzione di btrfs.
+#
+# ⚠️ Btrfs Assistant NON c'e' piu': tolto dalla distribuzione il 20/08/2026,
+# perche' questa applicazione non si appoggia a lui in nessun punto e due
+# porte per la stessa cosa sono una scelta in piu' da spiegare.
 #
 # COSA GIRA CON I PRIVILEGI E COSA NO
 # La finestra gira da utente normale. /.snapshots pero' e' leggibile solo da
@@ -25,11 +29,12 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-from PyQt6.QtCore import Qt, QLocale, QDateTime
+from PyQt6.QtCore import Qt, QLocale, QDateTime, QTime, QPoint
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QGroupBox, QPushButton, QRadioButton, QButtonGroup,
-                             QMessageBox, QFrame, QScrollArea, QInputDialog, QLineEdit)
+                             QMessageBox, QFrame, QScrollArea, QInputDialog, QLineEdit,
+                             QTabWidget, QComboBox, QTimeEdit, QToolButton, QToolTip)
 
 # ⚠️ Il nome dell'icona e' «skillfish-snapshots» e deve esistere ESATTAMENTE
 # cosi' dentro SkillFishSteampunk, anche in png: se nel tema attivo non c'e',
@@ -93,6 +98,44 @@ def sh(cmd, t=60):
         return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
     except Exception as e:
         return 1, "", str(e)
+
+
+# ---------- il pallino «?» ----------
+# La spiegazione sta dietro al pallino, non nella pagina: e' lo standard delle
+# nostre applicazioni (vedi /usr/share/skillfish/aiuto.py).
+#
+# ⚠️ Il modulo arriva da skillfish-base, che e' un pacchetto DIVERSO da questo:
+# su una macchina aggiornata a meta' puo' non esserci. In quel caso si usa la
+# copia qui sotto, che fa la stessa cosa in venti righe. Un aiuto meno curato
+# e' un fastidio; un'applicazione che non si apre e' un guasto.
+try:
+    from aiuto import Aiuto           # sys.path ha gia' /usr/share/skillfish
+except Exception:
+    class Aiuto(QToolButton):
+        def __init__(self, testo, parent=None):
+            super().__init__(parent)
+            self.testo = testo or ""
+            self.setText("?")
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setAutoRaise(True)
+            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self.setAccessibleName(self.testo)
+            self.setToolTip(self._ricco())
+            self.setStyleSheet(
+                "QToolButton{color:#c8a45c;border:1px solid #7a6034;border-radius:9px;"
+                "min-width:18px;max-width:18px;min-height:18px;max-height:18px;"
+                "font-weight:700;padding:0;}"
+                "QToolButton:hover{color:#f1e3c6;border-color:#c8a45c;}")
+            self.clicked.connect(self._mostra)
+
+        def _ricco(self):
+            import html as _html
+            return ("<div style='max-width:340px; white-space:normal'>%s</div>"
+                    % _html.escape(self.testo).replace("\n", "<br>"))
+
+        def _mostra(self):
+            QToolTip.showText(self.mapToGlobal(QPoint(0, self.height() + 2)),
+                              self._ricco(), self)
 
 
 def bytes_leggibili(n):
@@ -174,9 +217,9 @@ class Snapshot:
             return L("dopo aver installato o aggiornato programmi",
                      "after installing or updating software")
         if d == "timeline":
-            return L("fotografia periodica", "scheduled snapshot")
+            return L("snapshot periodico", "scheduled snapshot")
         if d in ("manual snapshot", ""):
-            return L("fatta da te", "made by you")
+            return L("fatto da te", "made by you")
         # ⚠️ «boot» e «clean install» li scrivono i nostri ganci, e restavano
         # cosi' com'erano: sulla Generic l'elenco diceva "boot" tre volte su
         # quattro. Sono le due descrizioni piu' frequenti in assoluto — quelle
@@ -203,21 +246,46 @@ def leggi_tutto():
         # 126 e 127 sono i codici con cui pkexec dice «non autorizzato» oppure
         # «non sono nemmeno riuscito a chiedere»: da' quasi sempre su chi ha
         # premuto Annulla, e non e' un guasto.
+        # ⚠️ Stesso numero di valori degli altri ritorni, o chi scompatta
+        # esplode con "not enough values to unpack" proprio quando qualcosa e'
+        # gia' andato storto.
         if rc in (126, 127):
-            return None, None, None, L("operazione annullata", "operation cancelled")
-        return None, None, None, L("Non riesco a leggere le fotografie.",
-                                   "cannot read the snapshots")
+            return (None, None, None,
+                    L("operazione annullata", "operation cancelled"), {}, None, None)
+        return (None, None, None,
+                L("Non riesco a leggere gli snapshot.", "cannot read the snapshots"),
+                {}, None, None)
     snap, spazio, daparte = [], None, []
+    manutenzione, disco, verifica = {}, None, None
     for riga in out.splitlines():
         p = riga.split("\t")
-        if p[0] == "SNAP" and len(p) >= 6:
+        # ⚠️ L'ULTIMA riga perde i campi vuoti in coda: l'output arriva da sh(),
+        # che fa .strip(), e lo strip si porta via anche il tabulatore finale.
+        # Cosi' la riga VERIFICA — che e' l'ultima — usciva con 4 campi invece
+        # di 5, il controllo sulla lunghezza la scartava, e nella finestra
+        # mancava l'esito dell'ultima verifica. Senza un errore, ovviamente.
+        #
+        # Si riempie fino alla lunghezza massima invece di contare i campi: un
+        # dato in meno vale come vuoto, che e' esattamente quello che era.
+        p += [""] * (8 - len(p))
+        if p[0] == "SNAP" and p[1]:
             snap.append(Snapshot(p[1], p[2], p[3], p[4], p[5]))
-        elif p[0] == "SPAZIO" and len(p) >= 3:
+        elif p[0] == "SPAZIO" and p[1]:
             spazio = (p[1], p[2])
-        elif p[0] == "DAPARTE" and len(p) >= 2:
+        elif p[0] == "DAPARTE" and p[1]:
             daparte.append(p[1])
+        # ⚠️ I campi si contano PRIMA di leggerli: una riga piu' corta del
+        # previsto — un lavoro spento, un systemctl che non risponde — manderebbe
+        # in errore la finestra invece di mostrare quello che c'e'.
+        elif p[0] == "LAVORO" and p[1]:
+            manutenzione[p[1]] = {"periodo": p[2], "ora": p[3], "attivo": p[4],
+                                  "prossima": p[5], "ultima": p[6], "esito": p[7]}
+        elif p[0] == "DISCO" and p[1]:
+            disco = (p[1], p[2], p[3])
+        elif p[0] == "VERIFICA":
+            verifica = (p[1], p[2], p[3], p[4])
     snap.sort(key=lambda s: int(s.num), reverse=True)   # i piu' recenti in cima
-    return snap, spazio, daparte, None
+    return snap, spazio, daparte, None, manutenzione, disco, verifica
 
 
 # ---------- finestra ----------
@@ -230,6 +298,9 @@ class Snapshots(QMainWindow):
         self.snap = []
         self.daparte = []
         self.spazio = None
+        self.manutenzione = {}
+        self.disco = None
+        self.verifica = None
 
         w = QWidget()
         self.setCentralWidget(w)
@@ -249,7 +320,7 @@ class Snapshots(QMainWindow):
         tcol.setSpacing(0)
         titolo = QLabel(L("Snapshot", "Snapshots"))
         titolo.setStyleSheet("font-size:20px;font-weight:800;color:#e8c878;")
-        self.sub = QLabel(L("Fotografie del sistema: se qualcosa si rompe, si torna a prima",
+        self.sub = QLabel(L("Snapshot del sistema: se qualcosa si rompe, si torna a prima",
                             "Pictures of the system: if something breaks, go back to before"))
         self.sub.setStyleSheet("color:#b9a07a;")
         tcol.addWidget(titolo)
@@ -277,8 +348,20 @@ class Snapshots(QMainWindow):
         self.avviso.hide()
         v.addWidget(self.avviso)
 
+        # Due schede: le fotografie e la manutenzione. Sono due cose che si
+        # fanno in momenti diversi — le fotografie quando qualcosa e' andato
+        # storto, la manutenzione una volta e poi mai piu' — e tenerle nella
+        # stessa pagina avrebbe riempito di comandi una finestra che vive di
+        # essere semplice.
+        self.schede = QTabWidget()
+        v.addWidget(self.schede, 1)
+
+        pagina_foto = QWidget()
+        pv = QVBoxLayout(pagina_foto)
+        pv.setContentsMargins(0, 8, 0, 0)
+
         # elenco
-        self.box = QGroupBox(L("Le tue fotografie", "Your snapshots"))
+        self.box = QGroupBox(L("I tuoi snapshot", "Your snapshots"))
         bv = QVBoxLayout(self.box)
         bv.setSpacing(6)
         self.listhost = QWidget()
@@ -290,20 +373,21 @@ class Snapshots(QMainWindow):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(self.listhost)
         bv.addWidget(scroll)
-        v.addWidget(self.box, 1)
+        pv.addWidget(self.box, 1)
 
         self.stato = QLabel("")
         self.stato.setWordWrap(True)
         self.stato.setStyleSheet("color:#b9a07a;")
-        v.addWidget(self.stato)
+        pv.addWidget(self.stato)
 
+        v = pv     # i bottoni qui sotto vanno nella pagina, non nella finestra
         b = QHBoxLayout()
         self.bcancella = QPushButton(L("Cancella", "Delete"))
         self.bcancella.clicked.connect(self.cancella)
         self.bcancella.setStyleSheet("QPushButton{color:#e0b0a0;} QPushButton:hover{color:#ff9a7a;}")
-        self.bcrea = QPushButton(L("Fai una fotografia adesso", "Take a snapshot now"))
+        self.bcrea = QPushButton(L("Fai uno snapshot adesso", "Take a snapshot now"))
         self.bcrea.clicked.connect(self.crea)
-        self.bripristina = QPushButton(L("Torna a questa", "Go back to this one"))
+        self.bripristina = QPushButton(L("Torna a questo", "Go back to this one"))
         self.bripristina.clicked.connect(self.ripristina)
         self.bpulizia = QPushButton(L("Fai pulizia", "Clean up"))
         self.bpulizia.clicked.connect(self.pulizia)
@@ -313,10 +397,247 @@ class Snapshots(QMainWindow):
         b.addWidget(self.bcrea)
         b.addWidget(self.bripristina)
         v.addLayout(b)
+        self.schede.addTab(pagina_foto, L("Snapshot", "Snapshots"))
+        self.schede.addTab(self.pagina_manutenzione(), L("Manutenzione", "Maintenance"))
         self.statusBar()
 
         self.grp = QButtonGroup(self)
         self.ricarica()
+
+    # ---- manutenzione ----
+    # I quattro lavori, nell'ordine in cui contano a chi usa la macchina.
+    # Il testo non dice mai "scrub" o "balance": sono i nomi dello strumento,
+    # non della cosa che fa. Chi sa cosa sono li riconosce dalla descrizione.
+    LAVORI = (
+        ("verifica",
+         L("Verifica dei dati", "Data check"),
+         L("Rilegge tutto il disco e controlla che niente si sia guastato in silenzio. "
+           "Ripara da sola le copie doppie quando può.",
+           "Reads the whole disk back and checks nothing has quietly gone bad. "
+           "Repairs from the duplicate copies where it can.")),
+        ("spazio",
+         L("Recupero dello spazio", "Space reclaim"),
+         L("Ricompatta le zone del disco rimaste quasi vuote. Su btrfs lo spazio "
+           "libero può risultare occupato finché non si fa questo.",
+           "Repacks the areas of the disk left nearly empty. On btrfs free space can "
+           "look taken until this is done.")),
+        ("trim",
+         L("Pulizia dell'SSD", "SSD cleanup"),
+         L("Dice all'SSD quali blocchi non servono più, così resta veloce nel tempo. "
+           "Sui dischi a piatti non serve.",
+           "Tells the SSD which blocks are no longer needed, so it stays fast over time. "
+           "Not needed on spinning disks.")),
+        ("deframmenta",
+         L("Deframmentazione", "Defragmentation"),
+         L("⚠ Sconsigliata qui. Deframmentare riscrive i file, e i dati condivisi con gli snapshot smettono di essere condivisi: lo spazio occupato può crescere di parecchio, tutto in una volta.",
+           "⚠ Not advised here. Defragmenting rewrites files, and data shared with the "
+           "snapshots stops being shared: used space can grow a lot, all at once.")),
+    )
+
+    PERIODI = (
+        ("mai",       L("mai", "never")),
+        ("giorno",    L("ogni giorno", "every day")),
+        ("settimana", L("ogni settimana", "every week")),
+        ("mese",      L("ogni mese", "every month")),
+    )
+
+    def pagina_manutenzione(self):
+        p = QWidget()
+        v = QVBoxLayout(p)
+        v.setContentsMargins(0, 8, 0, 0)
+        v.setSpacing(10)
+
+        self.m_testa = QLabel("")
+        self.m_testa.setWordWrap(True)
+        self.m_testa.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.m_testa)
+
+        ospite = QWidget()
+        ov = QVBoxLayout(ospite)
+        ov.setContentsMargins(0, 0, 0, 0)
+        ov.setSpacing(10)
+
+        self.m_righe = {}
+        for chiave, titolo, spiega in self.LAVORI:
+            # ⚠️ Niente QGroupBox col titolo: il titolo va in una riga sua,
+            # accanto al «?», o il pallino finirebbe dentro al riquadro e non
+            # accanto al nome di cio' che spiega.
+            g = QFrame()
+            g.setStyleSheet("QFrame{border:1px solid #4a3c26;border-radius:6px;}")
+            gv = QVBoxLayout(g)
+            gv.setSpacing(6)
+
+            testa = QHBoxLayout()
+            tt = QLabel(titolo)
+            tt.setStyleSheet("border:0;font-weight:700;color:#e8c878;")
+            testa.addWidget(tt)
+            # La spiegazione sta QUI DENTRO, non nella pagina.
+            a = Aiuto(spiega)
+            testa.addWidget(a)
+            testa.addStretch(1)
+            gv.addLayout(testa)
+
+            riga = QHBoxLayout()
+            quando = QComboBox()
+            for valore, etichetta in self.PERIODI:
+                quando.addItem(etichetta, valore)
+            ora = QTimeEdit()
+            ora.setDisplayFormat("HH:mm")
+            ora.setTime(QTime(3, 0))
+            etich_ora = QLabel(L("alle", "at"))
+            etich_ora.setStyleSheet("border:0;color:#b9a07a;")
+            riga.addWidget(quando)
+            riga.addWidget(etich_ora)
+            riga.addWidget(ora)
+            riga.addStretch(1)
+            gv.addLayout(riga)
+
+            stato = QLabel("")
+            stato.setWordWrap(True)
+            stato.setStyleSheet("border:0;color:#8d7a5c;")
+            gv.addWidget(stato)
+
+            # l'ora non ha senso se il lavoro non si fa mai
+            def collega(c=quando, o=ora, e=etich_ora):
+                def cambiato():
+                    attivo = c.currentData() != "mai"
+                    o.setEnabled(attivo)
+                    e.setEnabled(attivo)
+                return cambiato
+            f = collega()
+            quando.currentIndexChanged.connect(f)
+            self.m_righe[chiave] = {"quando": quando, "ora": ora, "stato": stato, "attiva": f}
+            ov.addWidget(g)
+
+        ov.addStretch(1)
+        s = QScrollArea()
+        s.setWidgetResizable(True)
+        s.setFrameShape(QFrame.Shape.NoFrame)
+        s.setWidget(ospite)
+        v.addWidget(s, 1)
+
+        self.m_stato = QLabel("")
+        self.m_stato.setWordWrap(True)
+        self.m_stato.setStyleSheet("color:#b9a07a;")
+        v.addWidget(self.m_stato)
+
+        b = QHBoxLayout()
+        b.addStretch(1)
+        # ⚠️ Un bottone solo, non uno per lavoro: pkexec ricorda l'autorizzazione
+        # per qualche minuto, ma cambiando quattro cose una per volta si
+        # rischierebbero quattro richieste di password.
+        self.m_salva = QPushButton(L("Salva la programmazione", "Save the schedule"))
+        self.m_salva.clicked.connect(self.salva_manutenzione)
+        b.addWidget(self.m_salva)
+        v.addLayout(b)
+        return p
+
+    def mostra_manutenzione(self):
+        """Riempie la scheda con quello che ha detto il programma di lettura."""
+        for chiave, r in self.m_righe.items():
+            d = self.manutenzione.get(chiave)
+            if d is None:
+                r["stato"].setText(L("stato sconosciuto", "state unknown"))
+                continue
+            # il periodo
+            i = r["quando"].findData(d["periodo"])
+            r["quando"].setCurrentIndex(i if i >= 0 else 0)
+            # l'ora: se non l'abbiamo scelta noi, il timer parte a mezzanotte
+            hh, mm = (d["ora"] or "03:00").split(":")[:2] if d["ora"] else ("00", "00")
+            r["ora"].setTime(QTime(int(hh), int(mm)))
+            r["attiva"]()
+
+            pezzi = []
+            if d["prossima"]:
+                pezzi.append(L("prossima volta: %s", "next time: %s") % d["prossima"])
+            elif d["periodo"] == "mai":
+                pezzi.append(L("non programmata", "not scheduled"))
+            if d["ultima"]:
+                pezzi.append(L("ultima: %s", "last: %s") % d["ultima"])
+            # Il dato che riguarda QUESTO lavoro sta sotto questo lavoro, non in
+            # un paragrafo in cima alla pagina: cosi' si legge accanto al
+            # comando che lo cambia.
+            if chiave == "spazio" and self.disco:
+                _libero, allocato, usato = self.disco
+                try:
+                    sprecato = int(allocato) - int(usato)
+                except (TypeError, ValueError):
+                    sprecato = 0
+                if sprecato > 1 << 30:
+                    pezzi.insert(0, L("da recuperare: %s", "to reclaim: %s")
+                                 % bytes_leggibili(sprecato))
+            if chiave == "verifica" and self.verifica:
+                _q, _d, errori, _s = self.verifica
+                if errori == "no errors found":
+                    pezzi.insert(0, L("nessun errore", "no errors"))
+                elif errori:
+                    pezzi.insert(0, errori)
+            r["stato"].setText("   ·   ".join(pezzi))
+
+        t = []
+        if self.disco:
+            libero, allocato, usato = self.disco
+            t.append(L("Spazio libero: %s.", "Free space: %s.") % bytes_leggibili(libero))
+        # ⚠️ In cima resta SOLO il dato. Prima qui c'erano tre frasi di fila —
+        # spazio libero, cos'e' lo spazio tenuto da parte, esito dell'ultima
+        # verifica — ed erano la prima cosa che si leggeva ogni volta che si
+        # apriva la pagina. Quello che riguarda un singolo lavoro e' finito
+        # sotto quel lavoro, e il perche' dietro al suo «?».
+        self.m_testa.setText(" ".join(t))
+
+    def salva_manutenzione(self):
+        # Solo cio' che e' cambiato davvero: riscrivere un lavoro che sta gia'
+        # cosi' vuol dire rigenerare i timer per niente.
+        da_fare = []
+        for chiave, r in self.m_righe.items():
+            periodo = r["quando"].currentData()
+            ora = r["ora"].time().toString("HH:mm")
+            d = self.manutenzione.get(chiave) or {}
+            if periodo == d.get("periodo") and (periodo == "mai" or ora == (d.get("ora") or "")):
+                continue
+            da_fare.append((chiave, periodo, ora))
+
+        if not da_fare:
+            self.m_stato.setText(L("Non hai cambiato niente.", "Nothing has changed."))
+            self.m_stato.setStyleSheet("color:#b9a07a;")
+            return
+
+        # ⚠️ La deframmentazione si accende solo dopo aver detto per esteso cosa
+        # comporta. E' l'unico lavoro che puo' far crescere lo spazio occupato
+        # invece di ridurlo, e chi la accende di solito si aspetta il contrario.
+        for chiave, periodo, _ora in da_fare:
+            if chiave == "deframmenta" and periodo != "mai":
+                r = QMessageBox.question(
+                    self, L("Accendere la deframmentazione?", "Turn defragmentation on?"),
+                    L("Su un sistema con gli snapshot questa operazione fa CRESCERE lo "
+                      "spazio occupato: i dati che uno snapshot condivide con il sistema "
+                      "vengono riscritti e smettono di essere condivisi.\n\n"
+                      "Su un disco pieno per metà di snapshot possono essere decine di "
+                      "gigabyte, in una notte sola.\n\nLa accendo lo stesso?",
+                      "On a system with snapshots this makes used space GROW: data a "
+                      "snapshot shares with the live system gets rewritten and stops being "
+                      "shared.\n\nOn a disk half full of snapshots that can be tens of "
+                      "gigabytes, in a single night.\n\nTurn it on anyway?"))
+                if r != QMessageBox.StandardButton.Yes:
+                    return
+
+        self.m_stato.setText(L("Sto programmando…", "Setting the schedule…"))
+        QApplication.processEvents()
+        errore = None
+        for chiave, periodo, ora in da_fare:
+            rc, out, err = self.esegui(["manutenzione", chiave, periodo, ora], 300)
+            if rc != 0:
+                errore = err or out
+                break
+        self.ricarica()
+        if errore:
+            self.m_stato.setText(self.spiega(errore))
+            self.m_stato.setStyleSheet("color:#cf8a6a;")
+        else:
+            self.m_stato.setText(L("Programmazione salvata.", "Schedule saved.")
+                                 if len(da_fare) > 1 else
+                                 L("Programmazione salvata.", "Schedule saved."))
+            self.m_stato.setStyleSheet("color:#9ccf6a;font-weight:600;")
 
     # ---- elenco ----
     def ricarica(self):
@@ -327,7 +648,8 @@ class Snapshots(QMainWindow):
             if it.widget():
                 it.widget().deleteLater()
 
-        self.snap, spazio, self.daparte, errore = leggi_tutto()
+        (self.snap, spazio, self.daparte, errore,
+         self.manutenzione, self.disco, self.verifica) = leggi_tutto()
         if errore:
             # ⚠️ Se l'utente annulla la richiesta di autorizzazione finiamo qui:
             # non e' un guasto, e non va detto come se lo fosse.
@@ -362,13 +684,12 @@ class Snapshots(QMainWindow):
             # appena ripristinato vorrebbe dire annunciargli di avergli perso
             # tutto. Visto sulla Generic subito dopo un ripristino vero.
             if self.daparte:
-                testo = L("Hai appena ripristinato. Le fotografie sono nel sistema "
-                          "che parte al prossimo riavvio: riappariranno tutte da li'.",
+                testo = L("Hai appena ripristinato. Gli snapshot sono nel sistema "
+                          "che parte al prossimo riavvio: riappariranno tutti da lì.",
                           "You have just restored. The snapshots are in the system that "
                           "boots on the next restart: they will all be there again.")
             else:
-                testo = L("Non c'è ancora nessuna fotografia. "
-                          "Il sistema ne fa una da solo prima di ogni installazione o aggiornamento.",
+                testo = L("Non c'è ancora nessuno snapshot. Il sistema ne fa uno da solo prima di ogni installazione o aggiornamento.",
                           "There are no snapshots yet. The system takes one by itself "
                           "before every install or update.")
             vuoto = QLabel(testo)
@@ -377,6 +698,9 @@ class Snapshots(QMainWindow):
             self.listlay.addWidget(vuoto)
             self.listlay.addStretch(1)
             self.aggiorna_bottoni()
+            # ⚠️ anche qui: senza elenco la scheda della manutenzione resterebbe
+            # vuota, e non c'entra niente col fatto che non ci siano fotografie.
+            self.mostra_manutenzione()
             return
 
         for i, s in enumerate(self.snap):
@@ -405,11 +729,12 @@ class Snapshots(QMainWindow):
         self.stato.setText(self.riga_conteggio())
         self.stato.setStyleSheet("color:#b9a07a;")
         self.aggiorna_bottoni()
+        self.mostra_manutenzione()
 
     def riga_conteggio(self):
         n = len(self.snap)
-        t = L("una fotografia.", "one snapshot.") if n == 1 else \
-            L("%d fotografie.", "%d snapshots.") % n
+        t = L("uno snapshot.", "one snapshot.") if n == 1 else \
+            L("%d snapshot.", "%d snapshots.") % n
         if self.spazio:
             t += "   " + L("Spazio libero: %s su %s",
                            "Free space: %s of %s") % (bytes_leggibili(self.spazio[0]),
@@ -459,17 +784,17 @@ class Snapshots(QMainWindow):
             return t
         etichetta, _, resto = t[4:].partition(" ")
         frasi = {
-            "zero": L("Lo snapshot 0 è il sistema in funzione, non è una fotografia.",
+            "zero": L("Lo snapshot 0 è il sistema in funzione, non è uno snapshot vero.",
                       "Snapshot 0 is the running system, not a snapshot."),
-            "non-numero": L("Non è un numero di fotografia.",
+            "non-numero": L("Non è un numero di snapshot.",
                             "That is not a snapshot number."),
-            "inesistente": L("Quella fotografia non esiste più.",
+            "inesistente": L("Quello snapshot non esiste più.",
                              "That snapshot no longer exists."),
-            "in-uso": L("Non si può: il sistema in funzione è partito da questa fotografia.",
+            "in-uso": L("Non si può: il sistema in funzione è partito da questo snapshot.",
                         "Not possible: the running system booted from this snapshot."),
             "vuoto": L("Non hai scelto niente da cancellare.",
                        "You have not chosen anything to delete."),
-            "cancellazione": L("Non sono riuscito a cancellare una delle fotografie.",
+            "cancellazione": L("Non sono riuscito a cancellare uno degli snapshot.",
                                "One of the snapshots could not be deleted."),
             "argomenti": L("Richiesta non valida.", "Invalid request."),
             "uso": L("Richiesta non valida.", "Invalid request."),
@@ -478,20 +803,20 @@ class Snapshots(QMainWindow):
 
     def crea(self):
         testo, ok = QInputDialog.getText(
-            self, L("Fai una fotografia", "Take a snapshot"),
+            self, L("Fai uno snapshot", "Take a snapshot"),
             L("A cosa ti serve? (per ritrovarla dopo)",
               "What is it for? (so you can find it later)"),
             QLineEdit.EchoMode.Normal,
             L("prima di una prova", "before trying something"))
         if not ok:
             return
-        self.stato.setText(L("Sto facendo la fotografia…", "Taking the snapshot…"))
+        self.stato.setText(L("Sto facendo lo snapshot…", "Taking the snapshot…"))
         QApplication.processEvents()
         rc, out, err = self.esegui(["crea", testo.strip()], 300)
         self.ricarica()          # prima l'elenco, poi l'esito: al contrario
                                  # la ricarica cancellava il messaggio
         if rc == 0:
-            self.bene(L("Fatta.", "Done."))
+            self.bene(L("Fatto.", "Done."))
         else:
             self.male(self.spiega(err or out))
 
@@ -501,8 +826,8 @@ class Snapshots(QMainWindow):
             return
         r = QMessageBox.question(
             self, L("Cancellare?", "Delete?"),
-            L("Cancello la fotografia del %s (%s)?\n\n"
-              "Sparisce solo la fotografia: il sistema di adesso non cambia.",
+            L("Cancello lo snapshot del %s (%s)?\n\n"
+              "Sparisce solo lo snapshot: il sistema di adesso non cambia.",
               "Delete the snapshot from %s (%s)?\n\n"
               "Only the snapshot goes: your current system does not change.")
             % (s.data_scritta(), s.in_parole()))
@@ -512,7 +837,7 @@ class Snapshots(QMainWindow):
         self.ricarica()          # prima l'elenco, poi l'esito: al contrario
                                  # la ricarica cancellava il messaggio
         if rc == 0:
-            self.bene(L("Cancellata.", "Deleted."))
+            self.bene(L("Cancellato.", "Deleted."))
         else:
             self.male(self.spiega(err or out))
 
@@ -546,7 +871,7 @@ class Snapshots(QMainWindow):
         butta, tieni = self.da_buttare()
         if not butta:
             self.stato.setText(
-                L("Non c'è niente da buttare: ci sono solo fotografie da tenere.",
+                L("Non c'è niente da buttare: ci sono solo snapshot da tenere.",
                   "Nothing to clean up: only snapshots worth keeping are here."))
             self.stato.setStyleSheet("color:#b9a07a;")
             return
@@ -561,11 +886,11 @@ class Snapshots(QMainWindow):
         # peggio che non dirla.
         d1 = QMessageBox(self)
         d1.setWindowTitle(L("Fare pulizia?", "Clean up?"))
-        d1.setText(L("Butto %d fotografie e ne tengo %d.",
+        d1.setText(L("Butto %d snapshot e ne tengo %d.",
                      "I will remove %d snapshots and keep %d.") % (len(butta), len(tieni)))
         d1.setInformativeText(
             L("VANNO VIA:\n%s\n\nRESTANO:\n%s\n\n"
-              "Lo spazio che si libera non si può dire in anticipo: le fotografie "
+              "Lo spazio che si libera non si può dire in anticipo: gli snapshot "
               "condividono i dati fra loro.",
               "GOING:\n%s\n\nSTAYING:\n%s\n\n"
               "How much space is freed cannot be known in advance: snapshots share "
@@ -580,11 +905,10 @@ class Snapshots(QMainWindow):
         d2 = QMessageBox(self)
         d2.setIcon(QMessageBox.Icon.Warning)
         d2.setWindowTitle(L("Sicuro?", "Are you sure?"))
-        d2.setText(L("Cancello per sempre %d fotografie.",
+        d2.setText(L("Cancello per sempre %d snapshot.",
                      "I will permanently delete %d snapshots.") % len(butta))
         d2.setInformativeText(
-            L("Non si torna indietro: una fotografia cancellata non si recupera. "
-              "Il sistema di adesso non viene toccato.",
+            L("Non si torna indietro: uno snapshot cancellato non si recupera. Il sistema di adesso non viene toccato.",
               "There is no undo: a deleted snapshot cannot be recovered. "
               "Your current system is not touched."))
         d2.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -597,7 +921,7 @@ class Snapshots(QMainWindow):
         rc, out, err = self.esegui(["cancella-molti", ",".join(s.num for s in butta)], 900)
         self.ricarica()
         if rc == 0:
-            self.bene(L("Buttate %d fotografie.", "Removed %d snapshots.") % len(butta))
+            self.bene(L("Buttati %d snapshot.", "Removed %d snapshots.") % len(butta))
         else:
             self.male(self.spiega(err or out))
 
