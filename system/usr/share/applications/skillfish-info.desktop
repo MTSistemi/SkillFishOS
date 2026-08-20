@@ -7,6 +7,7 @@ Name[ru]=Сведения о SkillFishOS
 Name[es]=Información de SkillFishOS
 Name[pt]=Informações do SkillFishOS
 Name[de]=SkillFishOS-Informationen
+Name[fr]=Informations SkillFishOS
 GenericName=System information
 GenericName[it]=Informazioni di sistema
 GenericName[pl]=Informacje o systemie
@@ -15,6 +16,7 @@ GenericName[ru]=Сведения о системе
 GenericName[es]=Información del sistema
 GenericName[pt]=Informações do sistema
 GenericName[de]=Angaben zum System
+GenericName[fr]=Informations sur le système
 Comment=Show hardware and operating system information
 Comment[it]=Mostra informazioni su hardware e sistema operativo
 Comment[pl]=Pokaż informacje o sprzęcie i systemie operacyjnym
@@ -23,6 +25,7 @@ Comment[ru]=Показать сведения о железе и операци�
 Comment[es]=Muestra información del hardware y del sistema operativo
 Comment[pt]=Mostra informações do hardware e do sistema operacional
 Comment[de]=Angaben zur Hardware und zum Betriebssystem anzeigen
+Comment[fr]=Affiche les informations sur le matériel et le système d'exploitation
 # Qui c'era tutto il comando con dentro il quoting di shell, e
 # desktop-file-validate lo rifiutava: "%s" nel campo Exec e' un codice di
 # sostituzione riservato (validi solo %f %F %u %U %i %c %k) e il "$" andava

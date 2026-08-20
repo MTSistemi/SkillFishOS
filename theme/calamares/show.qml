@@ -32,14 +32,14 @@ import calamares.slideshow 1.0;
  * Regola uguale a quella delle app: se una lingua manca, si ricade sull'inglese
  * invece di mostrare una stringa vuota.
  *
- * ⚠️ Ucraino, russo, spagnolo, portoghese e tedesco NON sono rivisti da
- * madrelingua: li ha scritti il team. Il polacco invece e' di Cyryl Sochacki.
- * Correzioni benvenute.
+ * ⚠️ Ucraino, russo, spagnolo, portoghese, tedesco e francese NON sono rivisti
+ * da madrelingua: li ha scritti il team. Il polacco invece e' di Cyryl
+ * Sochacki. Correzioni benvenute.
  */
 Presentation {
     id: presentation
 
-    // it / pl / uk / ru / es / pt / de / en, con l'inglese come base
+    // it / pl / uk / ru / es / pt / de / fr / en, con l'inglese come base
     property string lang: presentation.linguaDa(Qt.uiLanguage ? Qt.uiLanguage : Qt.locale().name)
 
     // accetta sia "pl_PL" sia "pl-PL" sia "pl"
@@ -55,6 +55,7 @@ Presentation {
         // meglio del ripiego inglese.
         if (s.indexOf("pt") === 0) return "pt";
         if (s.indexOf("de") === 0) return "de";
+        if (s.indexOf("fr") === 0) return "fr";
         return "en";
     }
 
@@ -68,7 +69,8 @@ Presentation {
         "ru": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>Linux-консоль, которая играет и учит</h2><p>Создана, чтобы дети пользовались Linux и учились ему — играя.</p>",
         "es": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>La consola Linux que juega y enseña</h2><p>Pensada para que los más pequeños usen Linux y lo aprendan — mientras juegan.</p>",
         "pt": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>O console Linux que joga e ensina</h2><p>Feito para as crianças usarem Linux e aprenderem — enquanto jogam.</p>",
-        "de": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>Die Linux-Konsole, die spielt und lehrt</h2><p>Gemacht, damit Kinder Linux benutzen und lernen — beim Spielen.</p>"
+        "de": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>Die Linux-Konsole, die spielt und lehrt</h2><p>Gemacht, damit Kinder Linux benutzen und lernen — beim Spielen.</p>",
+        "fr": "<h1 style='color:#d8a849'>SkillFishOS</h1><h2>La console Linux qui joue et qui apprend</h2><p>Faite pour que les enfants se servent de Linux et l'apprennent — en jouant.</p>"
     }
     property var s2: {
         "en": "<h2 style='color:#d8a849'>Gaming, no compromises</h2><h3>Steam, Heroic, emulators and gamescope</h3><p>All 40 Compute Units unlocked, PlayStation and Switch controllers ready out of the box.</p>",
@@ -78,7 +80,8 @@ Presentation {
         "ru": "<h2 style='color:#d8a849'>Игры без компромиссов</h2><h3>Steam, Heroic, эмуляторы и gamescope</h3><p>Все 40 вычислительных блоков разблокированы, геймпады PlayStation и Switch работают сразу.</p>",
         "es": "<h2 style='color:#d8a849'>Juegos sin concesiones</h2><h3>Steam, Heroic, emuladores y gamescope</h3><p>Las 40 unidades de cómputo desbloqueadas, mandos de PlayStation y Switch listos nada más empezar.</p>",
         "pt": "<h2 style='color:#d8a849'>Jogos sem concessões</h2><h3>Steam, Heroic, emuladores e gamescope</h3><p>As 40 unidades de computação liberadas, controles de PlayStation e Switch prontos de cara.</p>",
-        "de": "<h2 style='color:#d8a849'>Spielen ohne Abstriche</h2><h3>Steam, Heroic, Emulatoren und gamescope</h3><p>Alle 40 Recheneinheiten freigeschaltet, PlayStation- und Switch-Controller sofort einsatzbereit.</p>"
+        "de": "<h2 style='color:#d8a849'>Spielen ohne Abstriche</h2><h3>Steam, Heroic, Emulatoren und gamescope</h3><p>Alle 40 Recheneinheiten freigeschaltet, PlayStation- und Switch-Controller sofort einsatzbereit.</p>",
+        "fr": "<h2 style='color:#d8a849'>Jouer sans compromis</h2><h3>Steam, Heroic, émulateurs et gamescope</h3><p>Les 40 unités de calcul déverrouillées, manettes PlayStation et Switch prêtes tout de suite.</p>"
     }
     property var s3: {
         "en": "<h2 style='color:#d8a849'>Eight cores, not six</h2><h3>The two the board hides</h3><p>The BC-250 ships as 6 cores / 12 threads. The missing two are switched off by configuration, not by defect: SkillFishOS turns them back on at boot. <b>+20% measured</b> on multi-threaded work.</p>",
@@ -88,7 +91,8 @@ Presentation {
         "ru": "<h2 style='color:#d8a849'>Восемь ядер, а не шесть</h2><h3>Те два, которые плата прячет</h3><p>BC-250 представляется как 6 ядер / 12 потоков. Двух не хватает из-за конфигурации, а не из-за дефекта: SkillFishOS включает их при загрузке. <b>+20% измерено</b> в многопоточных задачах.</p>",
         "es": "<h2 style='color:#d8a849'>Ocho núcleos, no seis</h2><h3>Los dos que la placa esconde</h3><p>La BC-250 se presenta como 6 núcleos / 12 hilos. Los dos que faltan están apagados por configuración, no por defecto de fábrica: SkillFishOS los vuelve a encender al arrancar. <b>+20% medido</b> en cargas multihilo.</p>",
         "pt": "<h2 style='color:#d8a849'>Oito núcleos, não seis</h2><h3>Os dois que a placa esconde</h3><p>A BC-250 se apresenta como 6 núcleos / 12 threads. Os dois que faltam estão desligados por configuração, não por defeito: o SkillFishOS os religa no boot. <b>+20% medido</b> em cargas multithread.</p>",
-        "de": "<h2 style='color:#d8a849'>Acht Kerne, nicht sechs</h2><h3>Die zwei, die die Platine verbirgt</h3><p>Die BC-250 meldet sich mit 6 Kernen / 12 Threads. Die fehlenden zwei sind durch die Einrichtung abgeschaltet, nicht defekt: SkillFishOS schaltet sie beim Start wieder ein. <b>+20% gemessen</b> bei Last über viele Threads.</p>"
+        "de": "<h2 style='color:#d8a849'>Acht Kerne, nicht sechs</h2><h3>Die zwei, die die Platine verbirgt</h3><p>Die BC-250 meldet sich mit 6 Kernen / 12 Threads. Die fehlenden zwei sind durch die Einrichtung abgeschaltet, nicht defekt: SkillFishOS schaltet sie beim Start wieder ein. <b>+20% gemessen</b> bei Last über viele Threads.</p>",
+        "fr": "<h2 style='color:#d8a849'>Huit cœurs, pas six</h2><h3>Les deux que la carte cache</h3><p>La BC-250 se présente avec 6 cœurs / 12 fils. Les deux qui manquent sont éteints par la configuration, pas défectueux : SkillFishOS les rallume au démarrage. <b>+20% mesuré</b> sur les charges multifils.</p>"
     }
     property var s4: {
         "en": "<h2 style='color:#d8a849'>Tinker without fear</h2><h3>Automatic Btrfs snapshots</h3><p>Every change gets a safety net: if something goes wrong, you roll back in seconds — straight from the boot menu.</p>",
@@ -98,7 +102,8 @@ Presentation {
         "ru": "<h2 style='color:#d8a849'>Экспериментируйте без страха</h2><h3>Автоматические снимки Btrfs</h3><p>У каждого изменения есть страховка: если что-то пойдёт не так, вы вернётесь назад за секунды — прямо из загрузочного меню.</p>",
         "es": "<h2 style='color:#d8a849'>Trastea sin miedo</h2><h3>Instantáneas Btrfs automáticas</h3><p>Cada cambio tiene su red de seguridad: si algo sale mal, vuelves atrás en segundos — desde el propio menú de arranque.</p>",
         "pt": "<h2 style='color:#d8a849'>Mexa sem medo</h2><h3>Snapshots Btrfs automáticos</h3><p>Cada mudança tem a sua rede de segurança: se algo der errado, você volta atrás em segundos — direto do menu de boot.</p>",
-        "de": "<h2 style='color:#d8a849'>Bastle ohne Angst</h2><h3>Selbsttätige Btrfs-Schnappschüsse</h3><p>Jede Änderung hat ihr Sicherheitsnetz: geht etwas schief, bist du in Sekunden wieder zurück — direkt aus dem Startmenü.</p>"
+        "de": "<h2 style='color:#d8a849'>Bastle ohne Angst</h2><h3>Selbsttätige Btrfs-Schnappschüsse</h3><p>Jede Änderung hat ihr Sicherheitsnetz: geht etwas schief, bist du in Sekunden wieder zurück — direkt aus dem Startmenü.</p>",
+        "fr": "<h2 style='color:#d8a849'>Bricolez sans crainte</h2><h3>Instantanés Btrfs automatiques</h3><p>Chaque changement a son filet de sécurité : si quelque chose tourne mal, vous revenez en arrière en quelques secondes — depuis le menu de démarrage.</p>"
     }
     property var s5: {
         "en": "<h2 style='color:#d8a849'>Almost there...</h2><h3>Installing</h3><p>We are setting up your SkillFishOS. Time to play, shortly.</p>",
@@ -108,7 +113,8 @@ Presentation {
         "ru": "<h2 style='color:#d8a849'>Уже почти…</h2><h3>Идёт установка</h3><p>Готовим ваш SkillFishOS. Совсем скоро можно играть!</p>",
         "es": "<h2 style='color:#d8a849'>Ya casi...</h2><h3>Instalando</h3><p>Estamos preparando tu SkillFishOS. ¡En nada se juega!</p>",
         "pt": "<h2 style='color:#d8a849'>Quase lá...</h2><h3>Instalando</h3><p>Estamos preparando o seu SkillFishOS. Daqui a pouco é só jogar!</p>",
-        "de": "<h2 style='color:#d8a849'>Gleich geschafft ...</h2><h3>Wird installiert</h3><p>Wir richten dein SkillFishOS ein. Gleich geht es ans Spielen!</p>"
+        "de": "<h2 style='color:#d8a849'>Gleich geschafft ...</h2><h3>Wird installiert</h3><p>Wir richten dein SkillFishOS ein. Gleich geht es ans Spielen!</p>",
+        "fr": "<h2 style='color:#d8a849'>On y est presque…</h2><h3>Installation en cours</h3><p>Nous préparons votre SkillFishOS. On joue dans un instant !</p>"
     }
 
     function nextSlide() { presentation.goToNextSlide(); }

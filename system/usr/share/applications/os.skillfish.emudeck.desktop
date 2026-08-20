@@ -8,6 +8,7 @@ Name[ru]=Установить эмуляторы (EmuDeck)
 Name[es]=Instalar emuladores (EmuDeck)
 Name[pt]=Instalar emuladores (EmuDeck)
 Name[de]=Emulatoren einrichten (EmuDeck)
+Name[fr]=Installer des émulateurs (EmuDeck)
 GenericName=Emulator installer
 GenericName[it]=Installazione emulatori
 GenericName[pl]=Instalator emulatorów
@@ -16,6 +17,7 @@ GenericName[ru]=Установка эмуляторов
 GenericName[es]=Instalador de emuladores
 GenericName[pt]=Instalador de emuladores
 GenericName[de]=Einrichter für Emulatoren
+GenericName[fr]=Installateur d'émulateurs
 Comment=Download EmuDeck, which installs and configures emulators, ROM folders and controls
 Comment[it]=Scarica EmuDeck, che installa e configura emulatori, cartelle ROM e controlli
 Comment[pl]=Pobiera EmuDeck, który instaluje i konfiguruje emulatory, foldery ROM i sterowanie
@@ -24,6 +26,7 @@ Comment[ru]=Загружает EmuDeck, который ставит и наст�
 Comment[es]=Descarga EmuDeck, que instala y configura emuladores, carpetas de ROM y mandos
 Comment[pt]=Baixa o EmuDeck, que instala e configura emuladores, pastas de ROM e controles
 Comment[de]=Holt EmuDeck, das Emulatoren, ROM-Ordner und die Steuerung einrichtet
+Comment[fr]=Télécharge EmuDeck, qui installe et configure les émulateurs, les dossiers de ROM et les manettes
 # Terminal=true perche' lo script fa domande (dove tenere le ROM, quanto spazio
 # serve) e mostra l'avanzamento di uno scaricamento da 107 MB. Senza terminale
 # l'utente vedrebbe partire niente e non saprebbe cosa sta succedendo.

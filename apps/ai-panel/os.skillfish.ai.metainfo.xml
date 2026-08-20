@@ -5,6 +5,7 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS AI</name>
   <summary>Run local AI models on the integrated GPU, on demand</summary>
+  <summary xml:lang="fr">Faites tourner des modèles d'IA en local, sur le GPU intégré, quand vous voulez</summary>
   <summary xml:lang="uk">Запускайте моделі ШІ локально на вбудованому відеоядрі, коли потрібно</summary>
   <summary xml:lang="ru">Запускайте модели ИИ локально на встроенном видеоядре, когда нужно</summary>
   <summary xml:lang="es">Ejecuta modelos de IA en local, en la GPU integrada, cuando quieras</summary>
@@ -14,12 +15,14 @@
   <summary xml:lang="pl">Uruchamiaj lokalne modele AI na zintegrowanej GPU, na żądanie</summary>
   <description>
     <p>A one-click panel for a local LLM engine: Unsloth Studio, accelerated in Vulkan on the BC-250 GPU. A first-run wizard installs it and starts it; models are then downloaded from Unsloth's own interface.</p>
+    <p xml:lang="fr">Un panneau en un clic pour un moteur LLM local : Unsloth Studio, accéléré en Vulkan sur le GPU de la BC-250. Un assistant l'installe et le démarre à la première utilisation ; les modèles se téléchargent ensuite depuis l'interface d'Unsloth.</p>
     <p xml:lang="uk">Панель на один клац для локального рушія LLM: Unsloth Studio з прискоренням через Vulkan на відеоядрі BC-250. Майстер встановлює і запускає його під час першого запуску; моделі потім завантажують з власного вікна Unsloth.</p>
     <p xml:lang="ru">Панель в один щелчок для локального движка LLM: Unsloth Studio с ускорением через Vulkan на видеоядре BC-250. Мастер ставит и запускает его при первом запуске; модели затем скачивают из окна самого Unsloth.</p>
     <p xml:lang="es">Un panel de un clic para un motor LLM local: Unsloth Studio, acelerado en Vulkan sobre la GPU de la BC-250. Un asistente lo instala y lo arranca la primera vez; los modelos se descargan luego desde la interfaz del propio Unsloth.</p>
     <p xml:lang="pt">Um painel de um clique para um motor LLM local: o Unsloth Studio, acelerado em Vulkan na GPU da BC-250. Um assistente o instala e o inicia na primeira vez; os modelos são baixados depois pela interface do próprio Unsloth.</p>
     <p xml:lang="de">Eine Leiste mit einem Klick für einen örtlichen LLM-Motor: Unsloth Studio, über Vulkan auf der GPU der BC-250 beschleunigt. Ein Assistent richtet ihn beim ersten Start ein; die Modelle holst du danach über die Oberfläche von Unsloth.</p>
     <p>Shows live CPU, GPU, VRAM and RAM, and a slider to grow the shared memory available to the model. Turn the engine off with one click to free the GPU for gaming. Nothing leaves the machine.</p>
+    <p xml:lang="fr">Affiche en direct le CPU, le GPU, la mémoire graphique et la mémoire vive, avec un curseur pour agrandir la mémoire partagée dont dispose le modèle. Un clic éteint le moteur et libère le GPU pour les jeux. Rien ne quitte la machine.</p>
     <p xml:lang="uk">Показує процесор, відеоядро, відеопам'ять і оперативну пам'ять наживо, і повзунок, щоб збільшити спільну пам'ять для моделі. Один клац — і рушій вимкнено, відеоядро вільне для ігор. Нічого не залишає комп'ютер.</p>
     <p xml:lang="ru">Показывает процессор, видеоядро, видеопамять и оперативную память вживую, и ползунок, чтобы увеличить общую память для модели. Один щелчок — и движок выключен, видеоядро свободно для игр. Ничего не покидает компьютер.</p>
     <p xml:lang="es">Muestra CPU, GPU, VRAM y RAM en vivo, y un deslizador para ampliar la memoria compartida que el modelo puede usar. Apaga el motor con un clic para dejar la GPU libre para los juegos. Nada sale de la máquina.</p>
@@ -50,6 +53,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>AI panel with hardware readout</caption>
+      <caption xml:lang="fr">Panneau d'IA avec les relevés du matériel</caption>
       <caption xml:lang="uk">Панель ШІ з показниками заліза</caption>
       <caption xml:lang="ru">Панель ИИ с показаниями железа</caption>
       <caption xml:lang="es">Panel de IA con la lectura del hardware</caption>

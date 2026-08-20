@@ -36,25 +36,26 @@ Rectangle {
         if (n.indexOf("es") === 0) return "es";
         if (n.indexOf("pt") === 0) return "pt";
         if (n.indexOf("de") === 0) return "de";
+        if (n.indexOf("fr") === 0) return "fr";
         return "en";
     }
     function tr(s) { return s[root.lang] !== undefined ? s[root.lang] : s["en"]; }
 
     property var txtLogin: {
         "en": "Log in", "it": "Accedi", "pl": "Zaloguj się", "uk": "Увійти", "ru": "Войти",
-        "es": "Entrar", "pt": "Entrar", "de": "Anmelden"
+        "es": "Entrar", "pt": "Entrar", "de": "Anmelden", "fr": "Se connecter"
     }
     property var txtPassword: {
         "en": "Password", "it": "Password", "pl": "Hasło", "uk": "Пароль", "ru": "Пароль",
-        "es": "Contraseña", "pt": "Senha", "de": "Kennwort"
+        "es": "Contraseña", "pt": "Senha", "de": "Kennwort", "fr": "Mot de passe"
     }
     property var txtShutdown: {
         "en": "Shut down", "it": "Spegni", "pl": "Wyłącz", "uk": "Вимкнути", "ru": "Выключить",
-        "es": "Apagar", "pt": "Desligar", "de": "Herunterfahren"
+        "es": "Apagar", "pt": "Desligar", "de": "Herunterfahren", "fr": "Éteindre"
     }
     property var txtReboot: {
         "en": "Restart", "it": "Riavvia", "pl": "Uruchom ponownie", "uk": "Перезавантажити", "ru": "Перезагрузить",
-        "es": "Reiniciar", "pt": "Reiniciar", "de": "Neu starten"
+        "es": "Reiniciar", "pt": "Reiniciar", "de": "Neu starten", "fr": "Redémarrer"
     }
 
     // background image (brass wallpaper) with dark overlay

@@ -5,6 +5,7 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Kernel Manager</name>
   <summary>Choose the boot kernel and completely remove unused kernels</summary>
+  <summary xml:lang="fr">Choisissez le noyau de démarrage et retirez complètement ceux dont vous ne vous servez pas</summary>
   <summary xml:lang="uk">Виберіть ядро для завантаження і повністю вилучіть непотрібні</summary>
   <summary xml:lang="ru">Выберите ядро для загрузки и полностью удалите ненужные</summary>
   <summary xml:lang="es">Elige el núcleo de arranque y quita por completo los que no usas</summary>
@@ -14,12 +15,14 @@
   <summary xml:lang="pl">Wybieraj jądro startowe i całkowicie usuwaj nieużywane jądra</summary>
   <description>
     <p>Lists every installed kernel with its flavour (BC-250, Generic, Slim), size and running/default badges. Set the permanent GRUB default, boot a kernel just once, or completely uninstall a kernel (image, headers and modules) so they don't pile up.</p>
+    <p xml:lang="fr">Liste tous les noyaux installés avec leur variante (BC-250, Generic, Slim), leur taille et les mentions « en cours » et « par défaut ». Fixez le défaut de GRUB, démarrez un noyau une seule fois, ou désinstallez-en un complètement (image, en-têtes et modules) pour qu'ils ne s'accumulent pas.</p>
     <p xml:lang="uk">Перелічує всі встановлені ядра з різновидом (BC-250, Generic, Slim), розміром і позначками «працює» та «типове». Можна закріпити типове ядро в GRUB, завантажити якесь один-єдиний раз або повністю вилучити ядро (образ, заголовки й модулі), щоб вони не громадилися.</p>
     <p xml:lang="ru">Перечисляет все установленные ядра с разновидностью (BC-250, Generic, Slim), размером и пометками «работает» и «по умолчанию». Можно закрепить ядро по умолчанию в GRUB, загрузить какое-то один раз или полностью удалить ядро (образ, заголовки и модули), чтобы они не копились.</p>
     <p xml:lang="es">Lista todos los núcleos instalados con su variante (BC-250, Generic, Slim), su tamaño y las marcas de «en marcha» y «predeterminado». Fija el predeterminado de GRUB, arranca un núcleo una sola vez, o desinstala uno por completo (imagen, cabeceras y módulos) para que no se acumulen.</p>
     <p xml:lang="pt">Lista todos os kernels instalados com a variante (BC-250, Generic, Slim), o tamanho e as marcas de “em execução” e “padrão”. Fixe o padrão do GRUB, inicie um kernel só uma vez, ou desinstale um por completo (imagem, headers e módulos) para não se acumularem.</p>
     <p xml:lang="de">Führt jeden eingerichteten Kernel mit seiner Art (BC-250, Generic, Slim), seiner Größe und den Vermerken „läuft“ und „Vorgabe“ auf. Die dauerhafte GRUB-Vorgabe setzen, einen Kernel nur ein einziges Mal starten oder einen Kernel vollständig entfernen (Abbild, Kopfdateien und Module), damit sie sich nicht anhäufen.</p>
     <p>Safe by design: it never removes the running kernel or the last remaining one, and moves the GRUB default off a kernel before removing it. Privileged actions go through an authenticated helper.</p>
+    <p xml:lang="fr">Sûr par conception : il ne retire jamais le noyau en cours d'exécution ni le dernier qui reste, et déplace le défaut de GRUB avant de supprimer un noyau. Les actions privilégiées passent par un assistant authentifié.</p>
     <p xml:lang="uk">Убезпечений задумом: він ніколи не вилучає ядро, що працює, ані останнє, яке лишилося, і перед вилученням переносить типовий вибір GRUB на інше. Дії з правами йдуть через окремий перевірений помічник.</p>
     <p xml:lang="ru">Безопасен по устройству: он никогда не удаляет работающее ядро и последнее оставшееся, а перед удалением переносит выбор GRUB по умолчанию на другое. Привилегированные действия идут через отдельный проверенный помощник.</p>
     <p xml:lang="es">Seguro por diseño: nunca quita el núcleo en marcha ni el último que queda, y aparta el predeterminado de GRUB de un núcleo antes de borrarlo. Las acciones con privilegios pasan por un ayudante autenticado.</p>
@@ -50,6 +53,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>Installed kernels with flavour and size</caption>
+      <caption xml:lang="fr">Noyaux installés, avec la variante et la taille</caption>
       <caption xml:lang="uk">Встановлені ядра з різновидом і розміром</caption>
       <caption xml:lang="ru">Установленные ядра с разновидностью и размером</caption>
       <caption xml:lang="es">Núcleos instalados con su variante y tamaño</caption>
