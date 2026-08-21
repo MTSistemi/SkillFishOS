@@ -443,6 +443,9 @@ class Demone(object):
         self.conf_mtime = 0
         self.giochi = Giochi(self.conf)
         self.motivo = ""
+        # i canali che hanno letto qualcosa di diverso da zero almeno
+        # una volta da quando la macchina e' accesa (vedi pubblica)
+        self.mai_vivi = set()
 
     # -- i sensori ---------------------------------------------------------
     def _canali(self):
@@ -572,11 +575,32 @@ class Demone(object):
         return t, duty
 
     def pubblica(self, canali, t, w, duty, prelancio):
-        u"""Lo stato per la finestra, che gira da utente e non puo' leggere tutto."""
+        u"""Lo stato per la finestra, che gira da utente e non puo' leggere tutto.
+
+        ⚠️ NON SI PUBBLICA CIO' CHE NON E' MAI STATO VIVO. Sulla BC-250 il chip
+        dichiara otto canali ventola e ne esiste UNO: gli altri sette si
+        chiamano «System Fan #1..#6» e danno zero da sempre. Passandoli alla
+        finestra si otteneva una legenda con sette voci identiche e inutili, e
+        un elenco in cui la ventola vera era una su otto.
+        Non basta pero' togliere quelli che leggono zero ADESSO: una ventola
+        ferma legge zero e una ventola staccata pure. La regola e' un'altra:
+        **si tiene un canale che sia stato vivo almeno una volta da quando la
+        macchina e' accesa**. Cosi' un connettore vuoto non compare mai, e una
+        ventola collegata domani compare entro un secondo da quando gira — senza
+        riavviare niente e senza doverlo dire a nessuno.
+        L'elenco di chi e' stato vivo sta in memoria e si azzera allo spegnimento,
+        che e' la durata giusta: e' li' che si cambiano i cavi.
+        """
         etichette = hwmon.etichette_utente()
         sensori = []
         for k, c in sorted(canali.items()):
             v = c.leggi()
+            if v is not None and v != 0:
+                self.mai_vivi.add(k)
+            # le temperature e le tensioni sono gia' state filtrate da hwmon:
+            # qui si tratta soprattutto dei canali ventola dichiarati e vuoti.
+            if c.tipo == "fan" and k not in self.mai_vivi:
+                continue
             sensori.append({"key": k, "label": c.etichetta(etichette),
                             "type": c.tipo, "unit": c.unita, "value": v,
                             "source": k in (self.conf.get("sorgente") or [])})

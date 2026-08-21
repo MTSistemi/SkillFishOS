@@ -36,7 +36,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QGroupBox, QPushButton,
                              QRadioButton, QButtonGroup, QMessageBox, QLayout,
                              QScrollArea, QCheckBox, QSpinBox, QDoubleSpinBox,
-                             QLineEdit, QToolButton, QToolTip, QComboBox,
+                             QLineEdit, QToolButton, QComboBox, QInputDialog, QDialog, QGridLayout,
                              QSizePolicy, QFrame)
 
 # ⚠️ Il nome dell'icona deve esistere ESATTAMENTE cosi' nel tema, anche in png:
@@ -49,6 +49,14 @@ CONF = "/etc/skillfish/ventola.json"
 STATO = "/run/skillfish/ventola.json"
 ETICHETTE = "/etc/skillfish/sensori.json"
 PROVA = "/etc/skillfish/ventola-prova.json"
+
+# Quanto e' larga la colonna dei comandi. Fissa e non elastica: sotto i
+# quattrocento pixel i cursori e le caselle si schiacciano, e sopra i
+# cinquecento la colonna comincia a rubare spazio al grafico, che e' la
+# cosa che si guarda.
+LARGHEZZA_COLONNA = 250
+# La colonna delle tessere a destra del grafico.
+LARGHEZZA_TESSERE = 150
 
 
 # ---------- i18n ----------
@@ -196,6 +204,65 @@ AIUTO = {
         "previous one is raised back. Cooling less while getting hotter is not a "
         "choice, it is a slip of the mouse.")),
 
+    "vista": (L("Le due letture dello stesso grafico",
+                "Two readings of the same chart"), L(
+        "GRADI e' il piano della curva: ogni campione finisce dove si trovava la "
+        "temperatura in quel momento. La domanda a cui risponde e' quella che ti stai "
+        "ponendo mentre sposti un punto — a settanta gradi questa macchina cosa fa? "
+        "Quanti watt tira, quanto girava la ventola davvero. La nuvola della ventola si "
+        "posa sulla curva, ed e' la conferma a colpo d'occhio che il controllo sta "
+        "obbedendo.\n\n"
+        "⚠️ A macchina ferma la temperatura non si muove, quindi tutto si accumula in "
+        "una striscia sola. Non e' un guasto: e' che non sta succedendo niente.\n\n"
+        "TEMPO e' il piano del monitoraggio: gli ultimi cinque minuti che scorrono. Si "
+        "legge sempre, anche a riposo, ed e' il modo giusto per guardare una salita "
+        "mentre sta succedendo. Li' la curva non si puo' disegnare — e' una funzione "
+        "della temperatura, non del tempo — quindi i punti si trascinano solo nella "
+        "vista in gradi.",
+        "DEGREES is the curve's own plane: every sample lands where the temperature "
+        "was at that moment. It answers the question you are actually asking while you "
+        "drag a point — at seventy degrees, what does this machine do? How many watts, "
+        "how fast was the fan really turning. The fan's cloud settles onto the curve, "
+        "which is the at-a-glance proof that the controller is obeying.\n\n"
+        "⚠️ On an idle machine the temperature does not move, so everything piles into "
+        "a single strip. That is not a fault: it is nothing happening.\n\n"
+        "TIME is the monitoring plane: the last five minutes scrolling past. It reads "
+        "at any moment, idle included, and it is the right way to watch a rise as it "
+        "happens. The curve cannot be drawn there — it is a function of temperature, "
+        "not of time — so points are draggable only in the degrees view.")),
+
+    "grafico": (L("Il grafico", "The chart"), L(
+        "Un grafico solo, con dentro tutto: le temperature, la ventola, i giri, i watt e "
+        "le tensioni degli ultimi cinque minuti. Uno solo apposta — con due o tre "
+        "bisognerebbe passare da uno all'altro di continuo, e le cose che vuoi "
+        "confrontare finirebbero in due schermate diverse.\n\n"
+        "Ogni tessera e' una linea: cliccala per accenderla o spegnerla, doppio clic per "
+        "riscriverne il nome. Il nome resta anche dopo un riavvio, ed e' utile piu' di "
+        "quanto sembri: su molte schede il driver non sa come sono cablati gli ingressi "
+        "e li chiama in0, in2, in6.\n\n"
+        "⚠️ CI SONO CINQUE UNITA' DI MISURA INSIEME — gradi, percento, giri, watt, volt. "
+        "Un asse verticale solo non puo' andare bene per tutte, quindi ogni linea e' "
+        "portata su una scala sua e il numero vero si legge nella tessera. Le tensioni "
+        "in particolare sono disegnate attorno al loro valore di riposo, non da zero: "
+        "altrimenti un calo del cinque per cento — che e' il sintomo che interessa — "
+        "sarebbe una linea piatta.\n\n"
+        "L'aggiornamento si puo' rallentare: il grafico costa da ridisegnare, e mentre "
+        "giochi quel costo lo paghi sui fotogrammi.",
+        "One chart with everything in it: temperatures, the fan, its speed, the watts "
+        "and the voltages of the last five minutes. One on purpose — with two or three "
+        "you would be switching between them constantly, and the things you want to "
+        "compare would end up on different screens.\n\n"
+        "Every tile is a line: click it to show or hide it, double-click to rename it. "
+        "The name survives a reboot, and it matters more than it looks: on many boards "
+        "the driver does not know how the inputs are wired and calls them in0, in2, in6.\n\n"
+        "⚠️ FIVE UNITS SHARE THIS CHART — degrees, percent, rpm, watts, volts. No single "
+        "vertical axis can suit them all, so each line is mapped to its own scale and "
+        "the real number is read off the tile. Voltages in particular are drawn around "
+        "their resting value, not from zero: otherwise a five percent sag — which is the "
+        "symptom that matters — would be a flat line.\n\n"
+        "The refresh can be slowed down: redrawing the chart costs, and while you are "
+        "playing you pay that cost in frames.")),
+
     "sorgente": (L("Quale temperatura comanda", "Which temperature drives it"), L(
         "La curva si legge su UNA temperatura. Se ne scegli piu' d'una, comanda la piu' "
         "alta fra quelle: e' la scelta prudente, perche' la media nasconde il punto "
@@ -252,7 +319,7 @@ AIUTO = {
         "A title never seen is treated as heavy, to be safe, and what it drew is recorded "
         "when you quit. So a light game pre-cools once, the first time, and never again.")),
 
-    "prova": (L("Comanda davvero?", "Is it really in charge?"), L(
+    "prova": (L("Test PWM", "PWM test"), L(
         "Scrivere su un'uscita PWM non vuol dire che qualcosa si muova. Su molte "
         "schede, e soprattutto su server e portatili, il chip accetta il valore e le "
         "ventole se le governa il firmware: da fuori si vede un pannello che funziona "
@@ -340,87 +407,6 @@ def _aiuto(chiave, parent=None):
     return Aiuto(corpo, titolo, parent)
 
 
-# ---------- il layout a colonne ----------
-class ColonneFlusso(QLayout):
-    u"""Le sezioni scorrono in una, due o tre colonne secondo lo spazio.
-
-    E' lo stesso schema del Tuner, dove ha risolto una finestra alta quanto lo
-    schermo che scorreva lo stesso mentre meta' larghezza restava vuota. Qui
-    serve per la stessa ragione: su 1280x1024 (la macchina di sviluppo) le
-    sezioni devono stare in due colonne, su 1920 in tre, e su uno schermo
-    piccolo in una sola senza schiacciare niente.
-    """
-
-    def __init__(self, parent=None, margine=0, spazio=10, larghezza_min=420, colonne_max=3):
-        super().__init__(parent)
-        self._voci = []
-        self._spazio = spazio
-        self.larghezza_min = larghezza_min
-        self.colonne_max = colonne_max
-        self.setContentsMargins(margine, margine, margine, margine)
-
-    def addItem(self, item):
-        self._voci.append(item)
-
-    def count(self):
-        return len(self._voci)
-
-    def itemAt(self, i):
-        return self._voci[i] if 0 <= i < len(self._voci) else None
-
-    def takeAt(self, i):
-        return self._voci.pop(i) if 0 <= i < len(self._voci) else None
-
-    def expandingDirections(self):
-        return Qt.Orientation(0)
-
-    def hasHeightForWidth(self):
-        return True
-
-    def heightForWidth(self, larghezza):
-        return self._disponi(QRect(0, 0, larghezza, 0), prova=True)
-
-    def setGeometry(self, rect):
-        super().setGeometry(rect)
-        self._disponi(rect, prova=False)
-
-    def sizeHint(self):
-        return self.minimumSize()
-
-    def minimumSize(self):
-        w = 0
-        for v in self._voci:
-            w = max(w, v.minimumSize().width())
-        s, d, _, _ = self.getContentsMargins()
-        return QSize(max(w, self.larghezza_min) + s + d, 0)
-
-    def quante_colonne(self, larghezza):
-        s, d, _, _ = self.getContentsMargins()
-        utile = larghezza - s - d
-        n = (utile + self._spazio) // (self.larghezza_min + self._spazio)
-        return max(1, min(int(n), self.colonne_max, len(self._voci) or 1))
-
-    def _disponi(self, rect, prova):
-        if not self._voci:
-            return 0
-        s, sup, d, inf = self.getContentsMargins()
-        n = self.quante_colonne(rect.width())
-        utile = rect.width() - s - d
-        larg = (utile - (n - 1) * self._spazio) // n
-        alte = [0] * n
-        for v in self._voci:
-            c = alte.index(min(alte))
-            h = v.sizeHint().height()
-            if v.hasHeightForWidth():
-                h = v.heightForWidth(larg)
-            if not prova:
-                x = rect.x() + s + c * (larg + self._spazio)
-                y = rect.y() + sup + alte[c]
-                v.setGeometry(QRect(x, y, larg, h))
-            alte[c] += h + self._spazio
-        return max(alte) + sup + inf - self._spazio
-
-
 # ---------- il grafico ----------
 OTTONE = QColor("#d8a849")
 OTTONE_SCURO = QColor("#8a6a2a")
@@ -429,43 +415,234 @@ GRIGLIA = QColor("#3a322a")
 VIVO = QColor("#7fd4ff")
 
 
-class Curva(QWidget):
-    u"""Il grafico della curva, con i punti che si trascinano.
+class Grafico(QWidget):
+    u"""L'unico grafico: gli ultimi minuti che scorrono.
 
-    Gli assi sono fissi: 20-100 gradi in orizzontale, 0-100% in verticale. Fissi
-    apposta — una scala che si adatta ai dati fa sembrare identiche due curve
-    completamente diverse, ed e' un grafico che serve a confrontare.
+    Orizzontale = il tempo. Verticale = 0-100. Ci finisce dentro tutto quello
+    che la macchina legge davvero: temperature, la ventola in percento, i giri,
+    i watt, le tensioni.
+
+    ⚠️ CI SONO CINQUE UNITA' DI MISURA MESSE INSIEME. Non esiste un asse
+    verticale solo che vada bene per gradi, percento, giri, watt e volt, quindi
+    ogni serie viene portata su una scala 0-100 sua e IL VALORE VERO si legge
+    nella sua tessera, con la sua unita'. Le scale stanno in `_scala` e sono
+    fisse dove il campo di variazione e' noto: una scala che insegue i dati
+    trasforma il rumore di mezzo giro in una montagna russa.
+
+    ⚠️ UN GRAFICO SOLO, non due, ed e' il motivo per cui questa applicazione
+    esiste: con uno solo si tiene d'occhio tutto insieme, con due o tre si passa
+    da uno all'altro di continuo e le cose da confrontare finiscono su schermate
+    diverse. La curva sta DENTRO, in un inserto in alto a destra: copre un
+    angolo, ed e' il prezzo giusto da pagare.
     """
 
-    RAGGIO = 6
+    FINESTRA = 300            # secondi di storia tenuti
+
+    COLORI_TEMP = ["#e8703a", "#d85a5a", "#c78be0", "#7fd4ff",
+                   "#8fbf6a", "#e0d05a", "#b06a3a", "#5a8fd8"]
+    COL_DUTY = "#d8a849"
+    COL_RPM = "#5ad0c0"
+    COL_WATT = "#b98cff"
+    COL_VOLT = "#6a9fd8"
+
+    # Quanto e' grande l'inserto della curva, e quanto sta lontano dal bordo.
+    INS_L, INS_H, INS_M = 250, 156, 10
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.punti = [list(p) for p in PRESET["equilibrato"]]
-        self.vivo = None          # (temperatura, duty) adesso
-        self.storia = []          # ultimi punti vivi, per la scia
-        self.cambiata = None      # richiamo verso la finestra
-        self._trascinato = -1
-        self.setMinimumHeight(240)
-        self.setMouseTracking(True)
+        self.serie = {}
+        self.ordine = []
+        self.nuova_serie = None
+        # ⚠️ LA CURVA STA DENTRO AL GRAFICO, non accanto. Copre un angolo — non
+        # c'e' modo di evitarlo — quindi e' piccola, sta in alto a destra dove
+        # le linee arrivano solo quando la macchina e' al massimo, e si chiude
+        # col pulsante nel suo angolo. Metterla fuori voleva dire due riquadri
+        # da guardare per una cosa sola.
+        self.inserto = CurvaEditor(self)
+        self.bottone_inserto = QToolButton(self)
+        self.bottone_inserto.setText("▾")
+        self.bottone_inserto.setAutoRaise(True)
+        self.bottone_inserto.setToolTip(L("Nascondi la curva", "Hide the curve"))
+        self.bottone_inserto.clicked.connect(self._apri_chiudi)
+        self._inserto_aperto = True
+        self.setMinimumHeight(260)
+        self.setMinimumWidth(360)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    # -- conversioni fra gradi/percento e pixel ----------------------------
-    T_MIN, T_MAX = 20.0, 100.0
+    def _apri_chiudi(self):
+        self._inserto_aperto = not self._inserto_aperto
+        self.inserto.setVisible(self._inserto_aperto)
+        self.bottone_inserto.setText("▾" if self._inserto_aperto else "▸")
+        self.bottone_inserto.setToolTip(
+            L("Nascondi la curva", "Hide the curve") if self._inserto_aperto
+            else L("Mostra la curva", "Show the curve"))
+        self.update()
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        x = self.width() - self.INS_L - self.INS_M
+        y = self.INS_M
+        self.inserto.setGeometry(QRect(x, y, self.INS_L, self.INS_H))
+        self.bottone_inserto.setGeometry(
+            QRect(self.width() - self.INS_M - 20, self.INS_M - 2, 20, 18))
 
     def _bordo(self):
-        return 34, 12, 12, 26      # sinistra, sopra, destra, sotto
+        return 42, 10, 12, 24
 
     def _area(self):
         s, sup, d, inf = self._bordo()
         return QRect(s, sup, max(1, self.width() - s - d),
                      max(1, self.height() - sup - inf))
 
+    def _y(self, q):
+        a = self._area()
+        return a.bottom() - max(0.0, min(1.0, q)) * a.height()
+
+    def _colore(self, unita):
+        if unita == "C":
+            n = len([k for k in self.ordine if self.serie[k]["unita"] == "C"])
+            return QColor(self.COLORI_TEMP[n % len(self.COLORI_TEMP)])
+        return QColor({"%": self.COL_DUTY, "rpm": self.COL_RPM,
+                       "W": self.COL_WATT, "V": self.COL_VOLT}.get(unita, "#999999"))
+
+    def campiona(self, adesso, letture):
+        u"""letture: elenco di (chiave, etichetta, unita, valore)."""
+        nuove = False
+        for chiave, etichetta, unita, valore in letture:
+            if valore is None:
+                continue
+            s = self.serie.get(chiave)
+            if s is None:
+                s = {"etichetta": etichetta, "unita": unita, "punti": [],
+                     # ⚠️ di serie si accendono solo temperature e ventola: con
+                     # tutto acceso il grafico parte con dodici linee sovrapposte
+                     # e non si legge niente.
+                     # ⚠️ Di serie si accendono temperature, ventola, giri e
+                     # watt — cioe' esattamente i quattro numeri della striscia
+                     # in alto piu' le temperature. Accendere anche le tensioni
+                     # farebbe partire il grafico con dodici linee sovrapposte.
+                     "visibile": unita in ("C", "%", "rpm", "W"), "colore": None}
+                self.serie[chiave] = s
+                self.ordine.append(chiave)
+                s["colore"] = self._colore(unita)
+                nuove = True
+            s["etichetta"] = etichetta
+            s["punti"].append((adesso, valore))
+            limite = adesso - self.FINESTRA
+            if s["punti"][0][0] < limite:
+                s["punti"] = [x for x in s["punti"] if x[0] >= limite]
+        if nuove and self.nuova_serie:
+            self.nuova_serie()
+        self.update()
+
+    @staticmethod
+    def _scala(unita, valori):
+        u"""⚠️ Le tensioni si disegnano attorno alla LORO mediana con un piu' o
+        meno dieci per cento: su una scala 0-14 volt starebbero tutte
+        appiccicate e un calo del cinque per cento — che e' il sintomo che
+        interessa — sarebbe invisibile."""
+        if unita == "C":
+            return 20.0, 100.0
+        if unita == "%":
+            return 0.0, 100.0
+        if unita == "rpm":
+            m = max(valori) if valori else 1
+            return 0.0, max(500.0, (int(m / 500) + 1) * 500.0)
+        if unita == "W":
+            m = max(valori) if valori else 1
+            return 0.0, max(10.0, (int(m / 10) + 1) * 10.0)
+        if unita == "V":
+            o = sorted(valori)
+            med = o[len(o) // 2] if o else 1.0
+            return (0.0, 1.0) if med <= 0 else (med * 0.9, med * 1.1)
+        return (min(valori) if valori else 0.0), (max(valori) if valori else 1.0)
+
+    def elenco(self):
+        return [(k, self.serie[k]) for k in self.ordine if k in self.serie]
+
+    def paintEvent(self, ev):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.fillRect(self.rect(), FONDO)
+        a = self._area()
+        p.setFont(QFont(self.font().family(), 8))
+        for q in range(0, 101, 20):
+            y = self._y(q / 100.0)
+            p.setPen(QPen(GRIGLIA, 1))
+            p.drawLine(a.left(), int(y), a.right(), int(y))
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            p.drawText(8, int(y) + 4, "%d%%" % q)
+        for i in range(0, 6):
+            x = a.left() + a.width() * i / 5.0
+            p.setPen(QPen(GRIGLIA, 1))
+            p.drawLine(int(x), a.top(), int(x), a.bottom())
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            sec = int(self.FINESTRA * (5 - i) / 5.0)
+            p.drawText(int(x) - (16 if sec else 22), a.bottom() + 16,
+                       L("adesso", "now") if sec == 0 else "-%d s" % sec)
+
+        serie = [(k, s) for k, s in self.elenco() if s["visibile"] and s["punti"]]
+        if not serie:
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            p.drawText(a.left() + 12, a.center().y(),
+                       L("niente da mostrare", "nothing to show"))
+            return
+        fine = max(s["punti"][-1][0] for _, s in serie)
+        inizio = fine - self.FINESTRA
+        for chiave, s in serie:
+            valori = [v for _, v in s["punti"]]
+            basso, alto = self._scala(s["unita"], valori)
+            campo = (alto - basso) or 1.0
+            cam = QPainterPath()
+            primo = True
+            for tempo, v in s["punti"]:
+                if tempo < inizio:
+                    continue
+                x = a.left() + (tempo - inizio) / float(self.FINESTRA) * a.width()
+                y = self._y((v - basso) / campo)
+                if primo:
+                    cam.moveTo(x, y)
+                    primo = False
+                else:
+                    cam.lineTo(x, y)
+            if primo:
+                continue
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(s["colore"], 2.4 if s["unita"] == "%" else 1.5))
+            p.drawPath(cam)
+
+
+class CurvaEditor(QWidget):
+    u"""La curva: gradi in orizzontale, percento in verticale, punti trascinabili.
+
+    Sta nel suo riquadro accanto ai preset perche' e' una cosa che si MODIFICA,
+    non che si guarda scorrere: il grafico grande e' il monitoraggio, questo e'
+    il comando.
+
+    ⚠️ GLI ASSI SONO FISSI, 20-100 gradi e 0-100%. Una scala che si adatta ai
+    dati fa sembrare identiche due curve completamente diverse.
+    """
+
+    T_MIN, T_MAX = 20.0, 100.0
+    RAGGIO = 5
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.punti = [list(p) for p in PRESET["equilibrato"]]
+        self.vivo = None
+        self.cambiata = None
+        self._trascinato = -1
+        self.setMinimumHeight(190)
+        self.setMouseTracking(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def _area(self):
+        return QRect(30, 8, max(1, self.width() - 42), max(30, self.height() - 30))
+
     def _px(self, t, y):
         a = self._area()
-        x = a.left() + (t - self.T_MIN) / (self.T_MAX - self.T_MIN) * a.width()
-        yy = a.bottom() - y / 100.0 * a.height()
-        return QPointF(x, yy)
+        return QPointF(a.left() + (t - self.T_MIN) / (self.T_MAX - self.T_MIN) * a.width(),
+                       a.bottom() - y / 100.0 * a.height())
 
     def _val(self, pos):
         a = self._area()
@@ -473,85 +650,66 @@ class Curva(QWidget):
         y = (a.bottom() - pos.y()) / max(1, a.height()) * 100.0
         return max(self.T_MIN, min(self.T_MAX, t)), max(0.0, min(100.0, y))
 
-    # -- disegno ------------------------------------------------------------
     def paintEvent(self, ev):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         a = self._area()
-        p.fillRect(self.rect(), FONDO)
-
-        # griglia e numeri
-        p.setFont(QFont(self.font().family(), 8))
-        for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 10):
+        # ⚠️ Fondo pieno e bordo: sta SOPRA al grafico grande, e senza uno stacco
+        # netto le linee che ci passano dietro sembrerebbero parte della curva.
+        p.fillRect(self.rect(), QColor("#15110d"))
+        p.setPen(QPen(OTTONE_SCURO, 1))
+        p.drawRect(0, 0, self.width() - 1, self.height() - 1)
+        p.setFont(QFont(self.font().family(), 7))
+        for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 20):
             x = self._px(t, 0).x()
             p.setPen(QPen(GRIGLIA, 1))
             p.drawLine(int(x), a.top(), int(x), a.bottom())
             p.setPen(QPen(OTTONE_SCURO, 1))
-            p.drawText(int(x) - 10, a.bottom() + 16, "%d" % t)
-        for y in range(0, 101, 25):
+            p.drawText(int(x) - 8, a.bottom() + 14, "%d°" % t)
+        for y in (0, 50, 100):
             yy = self._px(self.T_MIN, y).y()
             p.setPen(QPen(GRIGLIA, 1))
             p.drawLine(a.left(), int(yy), a.right(), int(yy))
             p.setPen(QPen(OTTONE_SCURO, 1))
-            p.drawText(4, int(yy) + 4, "%d%%" % y)
-
+            p.drawText(2, int(yy) + 4, "%d%%" % y)
         if not self.punti:
             return
-
-        # l'area sotto la curva, in ottone sfumato
-        cammino = QPainterPath()
-        primo = self._px(max(self.T_MIN, self.punti[0][0]), self.punti[0][1])
-        cammino.moveTo(a.left(), primo.y())
+        cam = QPainterPath()
+        cam.moveTo(a.left(), self._px(max(self.T_MIN, self.punti[0][0]), self.punti[0][1]).y())
         for t, y in self.punti:
-            cammino.lineTo(self._px(max(self.T_MIN, min(self.T_MAX, t)), y))
-        ultimo = self.punti[-1]
-        cammino.lineTo(a.right(), self._px(self.T_MAX, ultimo[1]).y())
-        sotto = QPainterPath(cammino)
+            cam.lineTo(self._px(max(self.T_MIN, min(self.T_MAX, t)), y))
+        cam.lineTo(a.right(), self._px(self.T_MAX, self.punti[-1][1]).y())
+        sotto = QPainterPath(cam)
         sotto.lineTo(a.right(), a.bottom())
         sotto.lineTo(a.left(), a.bottom())
         sotto.closeSubpath()
-        sfum = QLinearGradient(0, a.top(), 0, a.bottom())
-        sfum.setColorAt(0.0, QColor(216, 168, 73, 90))
-        sfum.setColorAt(1.0, QColor(216, 168, 73, 15))
-        p.fillPath(sotto, QBrush(sfum))
+        sf = QLinearGradient(0, a.top(), 0, a.bottom())
+        sf.setColorAt(0.0, QColor(216, 168, 73, 80))
+        sf.setColorAt(1.0, QColor(216, 168, 73, 12))
+        p.fillPath(sotto, QBrush(sf))
+        p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(OTTONE, 2))
-        p.drawPath(cammino)
-
-        # la scia di dove e' stata la macchina
-        if len(self.storia) > 1:
-            p.setPen(QPen(QColor(127, 212, 255, 70), 1))
-            for i in range(1, len(self.storia)):
-                p.drawLine(self._px(*self.storia[i - 1]), self._px(*self.storia[i]))
-
-        # i punti da trascinare
+        p.drawPath(cam)
         for t, y in self.punti:
             c = self._px(max(self.T_MIN, min(self.T_MAX, t)), y)
             p.setPen(QPen(QColor("#2b241c"), 2))
             p.setBrush(QBrush(OTTONE))
             p.drawEllipse(c, self.RAGGIO, self.RAGGIO)
-
-        # dove sta la macchina adesso
         if self.vivo:
             c = self._px(max(self.T_MIN, min(self.T_MAX, self.vivo[0])), self.vivo[1])
             p.setBrush(QBrush(VIVO))
             p.setPen(QPen(QColor("#0d1a20"), 2))
-            p.drawEllipse(c, 5, 5)
-            p.setPen(QPen(VIVO, 1))
-            p.setFont(QFont(self.font().family(), 8, QFont.Weight.Bold))
-            p.drawText(int(c.x()) + 9, int(c.y()) - 6,
-                       "%.0f° → %.0f%%" % (self.vivo[0], self.vivo[1]))
+            p.drawEllipse(c, 4.5, 4.5)
 
-    # -- interazione --------------------------------------------------------
     def _vicino(self, pos):
         for i, (t, y) in enumerate(self.punti):
             c = self._px(max(self.T_MIN, min(self.T_MAX, t)), y)
-            if (c.x() - pos.x()) ** 2 + (c.y() - pos.y()) ** 2 <= (self.RAGGIO + 6) ** 2:
+            if (c.x() - pos.x()) ** 2 + (c.y() - pos.y()) ** 2 <= (self.RAGGIO + 7) ** 2:
                 return i
         return -1
 
     def mousePressEvent(self, ev):
-        pos = ev.position()
-        i = self._vicino(pos)
+        i = self._vicino(ev.position())
         if ev.button() == Qt.MouseButton.RightButton:
             # ⚠️ mai sotto due punti: con uno solo la curva non e' piu' una curva
             if i >= 0 and len(self.punti) > 2:
@@ -565,7 +723,6 @@ class Curva(QWidget):
             return
         t, y = self._val(ev.position())
         self.punti.append([round(t, 1), round(y)])
-        self.punti.sort()
         self._fatto()
 
     def mouseMoveEvent(self, ev):
@@ -603,13 +760,57 @@ class Curva(QWidget):
         self.update()
 
     def aggiorna_vivo(self, t, duty):
-        if t is None:
-            self.vivo = None
-        else:
-            self.vivo = (t, duty)
-            self.storia.append((t, duty))
-            self.storia = self.storia[-180:]
+        self.vivo = None if t is None else (t, duty)
         self.update()
+
+
+class Tessera(QFrame):
+    u"""Un valore: pallino del colore della linea, nome, numero con l'unita'.
+
+    Cliccandola si accende e si spegne la linea nel grafico; con un doppio clic
+    si riscrive il nome. Le tessere SONO la legenda: tenerne una copia altrove
+    vorrebbe dire due elenchi degli stessi numeri.
+    """
+    premuta = pyqtSignal(str)
+    rinominata = pyqtSignal(str)
+
+    def __init__(self, chiave, parent=None):
+        super().__init__(parent)
+        self.chiave = chiave
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        g = QVBoxLayout(self)
+        g.setContentsMargins(8, 4, 8, 4)
+        g.setSpacing(0)
+        self.nome = QLabel("")
+        self.nome.setStyleSheet("font-size: 10px;")
+        self.valore = QLabel("")
+        self.valore.setStyleSheet("font-size: 15px; font-weight: bold;")
+        g.addWidget(self.nome)
+        g.addWidget(self.valore)
+
+    def aggiorna(self, s):
+        col = s["colore"].name()
+        acceso = s["visibile"]
+        self.nome.setText(s["etichetta"])
+        v = s["punti"][-1][1] if s["punti"] else None
+        dec = {"C": 1, "%": 0, "rpm": 0, "W": 1, "V": 3}.get(s["unita"], 1)
+        self.valore.setText("—" if v is None
+                            else ("%." + str(dec) + "f %s") % (v, s["unita"]))
+        self.nome.setStyleSheet("font-size:10px; color:%s;"
+                                % (col if acceso else "#7a6c58"))
+        self.valore.setStyleSheet("font-size:15px; font-weight:bold; color:%s;"
+                                  % (col if acceso else "#8a7c68"))
+        self.setStyleSheet("QFrame { border:1px solid %s; border-radius:4px; "
+                           "background:%s; }"
+                           % (col if acceso else "#3a322a",
+                              "#241f19" if acceso else "#1b1713"))
+
+    def mousePressEvent(self, ev):
+        self.premuta.emit(self.chiave)
+
+    def mouseDoubleClickEvent(self, ev):
+        self.rinominata.emit(self.chiave)
 
 
 # ---------- utilita' ----------
@@ -692,6 +893,46 @@ class Prova(QThread):
         self.finita.emit(bool(d.get("risponde")), giri)
 
 
+class Pannello(QDialog):
+    u"""Un riquadro che si apre quando serve, e per il resto non c'e'.
+
+    LO STANDARD DELLE NOSTRE APPLICAZIONI: la finestra principale mostra quello
+    che si guarda, e le regolazioni si aprono a richiesta. Qui la differenza e'
+    grossa — sorgente, anticipo e freni sono tre gruppi di comandi che si
+    toccano una volta e poi restano fermi per mesi, e tenerli sempre a schermo
+    voleva dire una colonna alta quanto la finestra accanto alla cosa che invece
+    si guarda davvero, cioe' il grafico.
+
+    ⚠️ Non e' modale: si puo' regolare l'anticipo e intanto guardare il grafico
+    che risponde. Un pannello modale che copre il grafico mentre si regola il
+    grafico non serve a niente.
+
+    ⚠️ Il contenuto NON si ricostruisce a ogni apertura: e' sempre lo stesso
+    widget, che vive anche a pannello chiuso. Cosi' i valori restano quelli che
+    si stavano scrivendo, e chi aggiorna le letture non deve sapere se qualcuno
+    sta guardando.
+    """
+
+    def __init__(self, titolo, contenuto, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(titolo)
+        self.setModal(False)
+        v = QVBoxLayout(self)
+        v.setContentsMargins(10, 10, 10, 10)
+        v.addWidget(contenuto)
+        riga = QHBoxLayout()
+        riga.addStretch(1)
+        b = QPushButton(L("Chiudi", "Close"))
+        b.clicked.connect(self.hide)
+        riga.addWidget(b)
+        v.addLayout(riga)
+
+    def mostra(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+
 # ---------- la finestra ----------
 class Finestra(QMainWindow):
 
@@ -704,45 +945,121 @@ class Finestra(QMainWindow):
         self.stato = leggi_json(STATO, {})
         self.etichette = leggi_json(ETICHETTE, {})
         self.riposo = {}          # tensione -> valore di riposo imparato
-        self.campi_etichetta = {}
         self.caselle_sorgente = {}
+        self.tessere = {}
 
         centro = QWidget()
         self.setCentralWidget(centro)
         fuori = QVBoxLayout(centro)
         fuori.setContentsMargins(10, 10, 10, 10)
 
-        # Lo scorrimento resta come rete di sicurezza per gli schermi piccoli:
-        # a 1920 e a 1280 non serve, ma su un portatile basso si'.
+        # LA DISPOSIZIONE
+        #   a sinistra  i comandi: la curva coi suoi preset, la sorgente,
+        #               l'anticipo, i freni;
+        #   al centro   UN SOLO grafico, che scorre nel tempo;
+        #   sopra e a destra del grafico, i valori, in tessere.
+        #
+        # ⚠️ Le tessere SONO la legenda: si accendono e si spengono cliccandole,
+        # e con un doppio clic si riscrive il nome. Prima c'erano una legenda
+        # sotto al grafico E una sezione con gli stessi numeri nella colonna:
+        # due elenchi delle stesse cose, che e' esattamente la roba di troppo
+        # che questa applicazione doveva evitare.
+        corpo = QHBoxLayout()
+        corpo.setSpacing(10)
+        fuori.addLayout(corpo, 1)
+
         scorri = QScrollArea()
         scorri.setWidgetResizable(True)
         scorri.setFrameShape(QFrame.Shape.NoFrame)
+        scorri.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scorri.setFixedWidth(LARGHEZZA_COLONNA)
         dentro = QWidget()
-        self.colonne = ColonneFlusso(dentro, margine=0, spazio=10)
+        col = QVBoxLayout(dentro)
+        col.setContentsMargins(0, 0, 4, 0)
+        col.setSpacing(8)
+        col.addWidget(self._sez_preset())
+        # ⚠️ Le altre tre non stanno qui: si aprono a richiesta. Sono comandi
+        # che si toccano una volta e poi restano fermi, e tenerli sempre a
+        # schermo voleva dire una colonna alta quanto la finestra accanto alla
+        # cosa che invece si guarda davvero.
+        self.pannelli = {}
+        for nome, titolo, costruisci in (
+                ("sorgente", L("Sorgente", "Source"), self._sez_sorgente),
+                ("anticipo", L("Anticipo", "Lead"), self._sez_anticipo),
+                ("sicurezza", L("Sicurezza", "Safety"), self._sez_sicurezza)):
+            self.pannelli[nome] = Pannello(titolo, costruisci(), self)
+            b = QPushButton(titolo)
+            b.clicked.connect(lambda _c=False, k=nome: self.pannelli[k].mostra())
+            col.addWidget(b)
+        col.addStretch(1)
         scorri.setWidget(dentro)
-        fuori.addWidget(scorri, 1)
+        corpo.addWidget(scorri, 0)
 
-        self.colonne.addWidget(self._sez_adesso())
-        self.colonne.addWidget(self._sez_curva())
-        self.colonne.addWidget(self._sez_sorgente())
-        self.colonne.addWidget(self._sez_anticipo())
-        self.colonne.addWidget(self._sez_sicurezza())
-        self.colonne.addWidget(self._sez_tensioni())
+        destra = QVBoxLayout()
+        destra.setSpacing(6)
+        corpo.addLayout(destra, 1)
 
-        # la barra in fondo
+        # -- la striscia sopra: i numeri grossi e le scelte del grafico -------
+        cima = QHBoxLayout()
+        cima.setSpacing(6)
+        self.tessere_sopra = QHBoxLayout()
+        self.tessere_sopra.setSpacing(6)
+        cima.addLayout(self.tessere_sopra)
+        cima.addStretch(1)
+        cima.addWidget(QLabel(L("Aggiornamento", "Refresh")))
+        self.intervallo = QComboBox()
+        for testo, ms in ((L("1 s", "1 s"), 1000), (L("2 s", "2 s"), 2000),
+                          (L("5 s", "5 s"), 5000)):
+            self.intervallo.addItem(testo, ms)
+        self.intervallo.setCurrentIndex(0)
+        self.intervallo.currentIndexChanged.connect(self._cambia_intervallo)
+        cima.addWidget(self.intervallo)
+        cima.addWidget(_aiuto("grafico", self))
+        destra.addLayout(cima)
+
+        # -- il grafico, e a destra la colonna delle tessere ------------------
+        mezzo = QHBoxLayout()
+        mezzo.setSpacing(8)
+        self.grafico = Grafico()
+        self.grafico.nuova_serie = self._rifai_tessere
+        self.grafico.inserto.cambiata = self._curva_toccata
+        self.grafico.inserto.imposta(self.conf.get("curva") or PRESET["equilibrato"])
+        mezzo.addWidget(self.grafico, 1)
+        lato = QScrollArea()
+        lato.setWidgetResizable(True)
+        lato.setFrameShape(QFrame.Shape.NoFrame)
+        lato.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        lato.setFixedWidth(LARGHEZZA_TESSERE)
+        gabbia = QWidget()
+        self.tessere_lato = QVBoxLayout(gabbia)
+        self.tessere_lato.setContentsMargins(0, 0, 4, 0)
+        self.tessere_lato.setSpacing(5)
+        self.tessere_lato.addStretch(1)
+        lato.setWidget(gabbia)
+        mezzo.addWidget(lato, 0)
+        destra.addLayout(mezzo, 1)
+
+        self.et_allarme = QLabel("")
+        self.et_allarme.setWordWrap(True)
+        self.et_allarme.setStyleSheet("color:#e0703a; font-weight:bold;")
+        destra.addWidget(self.et_allarme)
+
+        # -- la barra in fondo: l'interruttore e il salvataggio ---------------
         barra = QHBoxLayout()
-        self.interruttore = QCheckBox(L("Controlla la ventola",
-                                        "Take control of the fan"))
+        self.interruttore = QCheckBox(L("Controllo", "Control"))
+        self.interruttore.setToolTip(L(
+            "Se e' spento la ventola resta al firmware e la curva non ha effetto.",
+            "With this off the fan stays with the firmware and the curve does nothing."))
         self.interruttore.setChecked(bool(self.conf.get("attivo")))
         barra.addWidget(self.interruttore)
         barra.addStretch(1)
         self.etichetta_salva = QLabel("")
+        self.etichetta_salva.setStyleSheet("color:#9a8a70;")
         barra.addWidget(self.etichetta_salva)
         b = QPushButton(L("Applica", "Apply"))
         b.clicked.connect(self.salva)
         barra.addWidget(b)
         fuori.addLayout(barra)
-        self.barra_bassa = max(36, b.sizeHint().height() + 12)
 
         self._adatta_allo_schermo()
 
@@ -752,39 +1069,43 @@ class Finestra(QMainWindow):
         self.aggiorna()
 
     def _adatta_allo_schermo(self):
-        u"""Grande quanto ci sta, senza uscire dallo spazio utile."""
+        u"""Grande quanto ci sta.
+
+        ⚠️ Qui non si stringe piu' sull'altezza del contenuto: adesso il
+        contenuto principale e' il grafico, che si allarga a riempire quello che
+        gli si da'. Stringere vorrebbe dire rimpicciolire la cosa che si guarda.
+        """
         sc = QApplication.primaryScreen()
         d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
-        larg = min(1500, max(760, int(d.width() * 0.82)))
-        alt = min(int(d.height() * 0.92), max(560, self.sizeHint().height()))
+        larg = min(1700, max(940, int(d.width() * 0.84)))
+        alt = min(1050, max(600, int(d.height() * 0.86)))
         self.resize(larg, alt)
-        self.move(d.left() + (d.width() - larg) // 2,
+        self.move(d.left() + max(0, (d.width() - larg) // 2),
                   d.top() + max(0, (d.height() - alt) // 2))
 
-    def showEvent(self, ev):
-        # ⚠️ La prima misura non vale: le sezioni scorrono in colonne e quante
-        # colonne siano dipende dalla larghezza, che a __init__ non e' ancora
-        # decisa. Alla prima comparsa il conto e' fatto davvero, e la finestra
-        # si stringe sull'altezza che serve invece di restare alta quanto lo
-        # schermo con meta' vuota sotto.
-        super().showEvent(ev)
-        if getattr(self, "_gia_stretta", False):
+    def _aggiorna_grafico(self, s, t):
+        u"""Porta al grafico tutto quello che il demone ha appena pubblicato.
+
+        Le letture arrivano gia' pronte in /run/skillfish/ventola.json: qui si
+        traducono in serie, una per canale, piu' la ventola in percento che il
+        demone non e' un sensore ma e' la cosa che si vuole confrontare con
+        tutto il resto.
+        """
+        adesso = float(s.get("aggiornato") or 0) or 0.0
+        if not adesso:
             return
-        self._gia_stretta = True
-        sc = QApplication.primaryScreen()
-        d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
-        # ⚠️ Non sizeHint() del contenitore: per un QLayout che dispone a
-        # colonne quel numero non vuol dire niente (la minima ha altezza zero,
-        # perche' l'altezza dipende da quante colonne ci stanno). Si chiede al
-        # layout la sola cosa che sa rispondere: quanto e' alto SE gli si da'
-        # questa larghezza. Col conto sbagliato la finestra si stringeva troppo
-        # e le tensioni finivano sotto il bordo.
-        largh = max(400, self.centralWidget().width() - 24)
-        serve = self.colonne.heightForWidth(largh) + self.barra_bassa + 40
-        alt = min(int(d.height() * 0.92), max(520, serve))
-        if abs(alt - self.height()) > 30:
-            self.resize(self.width(), alt)
-            self.move(self.x(), d.top() + max(0, (d.height() - alt) // 2))
+        letture = []
+        for x in s.get("sensori") or []:
+            if x.get("value") is None:
+                continue
+            letture.append((x["key"], x.get("label") or x["key"],
+                            x.get("unit") or "", x["value"]))
+        duty = s.get("duty")
+        if duty is not None:
+            letture.append(("__ventola__", L("Ventola", "Fan"), "%", float(duty)))
+        self.grafico.campiona(adesso, t, letture)
+        self.legenda.aggiorna_valori()
+        self.grafico.aggiorna_vivo(t, float(duty or 0))
 
     # -- le sezioni ---------------------------------------------------------
     @staticmethod
@@ -800,58 +1121,44 @@ class Finestra(QMainWindow):
         v.addLayout(intest)
         return g, v
 
-    def _sez_adesso(self):
-        g, v = self._box(L("Adesso", "Right now"))
-        self.et_temp = QLabel("—")
-        self.et_temp.setStyleSheet("font-size: 30px; color: #d8a849;")
-        self.et_giri = QLabel("—")
-        self.et_duty = QLabel("—")
-        self.et_watt = QLabel("—")
-        self.et_motivo = QLabel("—")
-        self.et_motivo.setWordWrap(True)
-        self.et_motivo.setStyleSheet("color: #9a8a70;")
-        v.addWidget(self.et_temp)
-        for e in (self.et_duty, self.et_giri, self.et_watt, self.et_motivo):
-            v.addWidget(e)
-        self.et_allarme = QLabel("")
-        self.et_allarme.setWordWrap(True)
-        self.et_allarme.setStyleSheet("color:#e0703a; font-weight:bold;")
-        v.addWidget(self.et_allarme)
-        return g
+    def _sez_preset(self):
+        g, v = self._box(L("Curva", "Curve"), "curva")
 
-    def _sez_curva(self):
-        g, v = self._box(L("La curva", "The curve"), "curva")
-        self.grafico = Curva()
-        self.grafico.cambiata = self._curva_toccata
-        punti = self.conf.get("curva") or PRESET["equilibrato"]
-        self.grafico.imposta(punti)
-        v.addWidget(self.grafico, 1)
-
-        # I preset: una spunta ciascuno e UN solo bottone.
-        # ⚠️ Cinque bottoni «applica» in colonna erano cinque occasioni di
-        # premere quello sbagliato, e l'ultimo della fila e' «sempre al massimo».
+        # ⚠️ Una spunta per preset e UN SOLO pulsante. Cinque pulsanti «applica»
+        # in fila erano cinque occasioni di premere quello sbagliato, e l'ultimo
+        # della fila e' «massimo».
         self.gruppo = QButtonGroup(g)
-        riga = QHBoxLayout()
-        for chiave in ("silenzioso", "equilibrato", "prestazioni", "massimo"):
+        # ⚠️ Due per riga, non quattro in fila: in fila l'ultimo finiva tagliato
+        # a meta' («Massi...») dentro alla colonna, e l'ultimo e' proprio quello
+        # che manda la ventola a tutta.
+        griglia = QGridLayout()
+        griglia.setSpacing(2)
+        for i, chiave in enumerate(("silenzioso", "equilibrato",
+                                    "prestazioni", "massimo")):
             r = QRadioButton(nome_preset(chiave))
             r.chiave = chiave
             self.gruppo.addButton(r)
-            riga.addWidget(r)
-            riga.addWidget(Aiuto(aiuto_preset(chiave), nome_preset(chiave), g))
+            griglia.addWidget(r, i // 2, (i % 2) * 2)
+            griglia.addWidget(Aiuto(aiuto_preset(chiave), nome_preset(chiave), g),
+                              i // 2, (i % 2) * 2 + 1)
             if self.conf.get("preset") == chiave:
                 r.setChecked(True)
-        riga.addStretch(1)
-        v.addLayout(riga)
-        self.bottone_preset = QPushButton(L("Usa questo preset", "Use this preset"))
+        griglia.setColumnStretch(1, 1)
+        griglia.setColumnStretch(3, 1)
+        v.addLayout(griglia)
+        self.bottone_preset = QPushButton(L("Usa", "Use"))
         self.bottone_preset.setEnabled(any(b.isChecked() for b in self.gruppo.buttons()))
         self.gruppo.buttonClicked.connect(lambda _: self.bottone_preset.setEnabled(True))
         self.bottone_preset.clicked.connect(self._usa_preset)
         v.addWidget(self.bottone_preset)
+        self.et_motivo = QLabel("")
+        self.et_motivo.setWordWrap(True)
+        self.et_motivo.setStyleSheet("color: #9a8a70;")
+        v.addWidget(self.et_motivo)
         return g
 
     def _sez_sorgente(self):
-        g, v = self._box(L("Quale temperatura comanda",
-                           "Which temperature drives it"), "sorgente")
+        g, v = self._box(L("Sorgente", "Source"), "sorgente")
         self.contenitore_sorgente = QVBoxLayout()
         v.addLayout(self.contenitore_sorgente)
         v.addStretch(1)
@@ -860,8 +1167,7 @@ class Finestra(QMainWindow):
     def _sez_anticipo(self):
         g, v = self._box(L("Anticipo", "Lead"), "anticipo")
         p = self.conf.get("predittivo") or {}
-        self.pred_attivo = QCheckBox(L("Sali prima che arrivi il calore",
-                                       "Speed up before the heat arrives"))
+        self.pred_attivo = QCheckBox(L("Attivo", "On"))
         self.pred_attivo.setChecked(bool(p.get("attivo", True)))
         v.addWidget(self.pred_attivo)
 
@@ -888,11 +1194,11 @@ class Finestra(QMainWindow):
         self.preraffredda = QSpinBox()
         self.preraffredda.setRange(20, 100)
         self.preraffredda.setValue(int(p.get("preraffredda", 55)))
-        riga(L("Quando parte un gioco pesante", "When a heavy game starts"),
+        riga(L("Pre-raffredda", "Pre-cool"),
              self.preraffredda, "%")
 
         h = QHBoxLayout()
-        h.addWidget(QLabel(L("Come riconosce i giochi", "How it recognises games")))
+        h.addWidget(QLabel(L("Giochi", "Games")))
         h.addStretch(1)
         h.addWidget(_aiuto("gioco", g))
         v.addLayout(h)
@@ -918,7 +1224,7 @@ class Finestra(QMainWindow):
         self.minimo = QSpinBox()
         self.minimo.setRange(20, 100)
         self.minimo.setValue(int(self.conf.get("minimo", 30)))
-        riga(L("Non scendere sotto", "Never go below"), self.minimo, "%")
+        riga(L("Minimo", "Minimum"), self.minimo, "%")
 
         self.isteresi = QDoubleSpinBox()
         self.isteresi.setRange(0.0, 20.0)
@@ -929,7 +1235,7 @@ class Finestra(QMainWindow):
         self.emergenza = QDoubleSpinBox()
         self.emergenza.setRange(60.0, 105.0)
         self.emergenza.setValue(float(self.conf.get("emergenza", 88.0)))
-        riga(L("Tutta al massimo sopra", "Full speed above"), self.emergenza, "°C")
+        riga(L("Emergenza", "Emergency"), self.emergenza, "°C")
 
         self.et_uscita = QLabel("")
         self.et_uscita.setStyleSheet("color:#9a8a70;")
@@ -937,8 +1243,7 @@ class Finestra(QMainWindow):
         v.addWidget(self.et_uscita)
 
         h = QHBoxLayout()
-        self.bottone_prova = QPushButton(L("Comanda davvero la ventola?",
-                                           "Is it really in charge of the fan?"))
+        self.bottone_prova = QPushButton(L("Test PWM", "PWM test"))
         self.bottone_prova.clicked.connect(self._prova_uscita)
         h.addWidget(self.bottone_prova, 1)
         h.addWidget(_aiuto("prova", g))
@@ -993,21 +1298,10 @@ class Finestra(QMainWindow):
         if dettaglio:
             self.et_prova.setText(self.et_prova.text() + chr(10) + dettaglio)
 
-    def _sez_tensioni(self):
-        g, v = self._box(L("Tensioni e assorbimento",
-                           "Voltages and power draw"), "tensioni")
-        self.contenitore_tensioni = QVBoxLayout()
-        v.addLayout(self.contenitore_tensioni)
-        h = QHBoxLayout()
-        h.addWidget(QLabel(L("Rinomina i sensori", "Rename the sensors")))
-        h.addStretch(1)
-        h.addWidget(_aiuto("etichette", g))
-        v.addLayout(h)
-        v.addStretch(1)
-        return g
-
-    # -- vita ---------------------------------------------------------------
     def _curva_toccata(self):
+        u"""Trascinare un punto vuol dire «personalizzata»: nessun preset e'
+        piu' quello scelto, e dirlo subito evita che si prema Usa credendo di
+        confermare la curva che si ha davanti."""
         for b in self.gruppo.buttons():
             self.gruppo.setExclusive(False)
             b.setChecked(False)
@@ -1019,7 +1313,7 @@ class Finestra(QMainWindow):
     def _usa_preset(self):
         for b in self.gruppo.buttons():
             if b.isChecked():
-                self.grafico.imposta(PRESET[b.chiave])
+                self.grafico.inserto.imposta(PRESET[b.chiave])
                 self.etichetta_salva.setText(
                     L("%s: premi Applica", "%s: press Apply") % nome_preset(b.chiave))
                 return
@@ -1039,6 +1333,80 @@ class Finestra(QMainWindow):
             elif v.layout():
                 self._svuota(v.layout())
 
+    # -- vita ---------------------------------------------------------------
+    def _cambia_intervallo(self):
+        u"""Ogni quanto la finestra rilegge e ridisegna.
+
+        ⚠️ Il demone campiona una volta al secondo e non cambia ritmo: questo e'
+        il ritmo della FINESTRA. Sotto il secondo non ci sarebbe niente di nuovo
+        da mostrare, quindi la scelta parte da un secondo. Rallentare serve su
+        una macchina carica: ridisegnare un grafico con dodici linee costa, e
+        mentre si gioca quel costo lo si paga sui fotogrammi."""
+        ms = self.intervallo.currentData() or 1000
+        self.orologio.setInterval(ms)
+
+    def _tessera(self, chiave):
+        t = self.tessere.get(chiave)
+        if t is None:
+            t = Tessera(chiave)
+            t.premuta.connect(self._accendi_serie)
+            t.rinominata.connect(self._rinomina_serie)
+            self.tessere[chiave] = t
+        return t
+
+    def _rifai_tessere(self):
+        u"""Le tessere: quattro sopra, il resto nella colonna a destra.
+
+        Sopra vanno i quattro numeri che si guardano sempre — la temperatura che
+        comanda, la ventola, i giri, i watt — e sono grossi. Le altre stanno di
+        lato. Nessuna compare due volte: erano due elenchi degli stessi numeri e
+        il secondo non serviva a niente.
+        """
+        elenco = self.grafico.elenco()
+        sopra = ["__temperatura__", "__ventola__"]
+        for unita in ("rpm", "W"):
+            for k, s in elenco:
+                if s["unita"] == unita:
+                    sopra.append(k)
+                    break
+        for lay in (self.tessere_sopra, self.tessere_lato):
+            while lay.count():
+                v = lay.takeAt(0)
+                if v.widget():
+                    v.widget().setParent(None)
+        for k in sopra:
+            if k in self.grafico.serie:
+                w = self._tessera(k)
+                w.setMinimumWidth(112)
+                self.tessere_sopra.addWidget(w)
+        for k, s in elenco:
+            if k in sopra:
+                continue
+            self.tessere_lato.addWidget(self._tessera(k))
+        self.tessere_lato.addStretch(1)
+
+    def _accendi_serie(self, chiave):
+        s = self.grafico.serie.get(chiave)
+        if s:
+            s["visibile"] = not s["visibile"]
+            self.grafico.update()
+            self._tessera(chiave).aggiorna(s)
+
+    def _rinomina_serie(self, chiave):
+        s = self.grafico.serie.get(chiave)
+        if not s or chiave.startswith("__"):
+            return
+        nuovo, ok = QInputDialog.getText(
+            self, L("Nome del sensore", "Sensor name"),
+            L("Come si chiama davvero questo sensore?",
+              "What is this sensor really called?"), text=s["etichetta"])
+        if not ok or not nuovo.strip():
+            return
+        self.etichette[chiave] = nuovo.strip()[:40]
+        s["etichetta"] = nuovo.strip()[:40]
+        self._tessera(chiave).aggiorna(s)
+        self._helper("etichette", self.etichette)
+
     def aggiorna(self):
         self.stato = leggi_json(STATO, {})
         s = self.stato
@@ -1049,44 +1417,73 @@ class Finestra(QMainWindow):
             return
 
         t = s.get("temperatura")
-        self.et_temp.setText("%.1f °C" % t if t is not None else "—")
-        self.et_duty.setText(L("Ventola: %s%%", "Fan: %s%%") % s.get("duty", "—"))
-        self.et_watt.setText(L("Assorbimento: %.1f W", "Power draw: %.1f W")
-                             % s["watt"] if s.get("watt") else "")
-        motivo = {
+        motivo = (s.get("motivo") or "")
+        testo = {
             "curve": L("segue la curva", "following the curve"),
             "no temperature: full speed": L(
                 "nessuna temperatura leggibile: al massimo per sicurezza",
                 "no readable temperature: full speed, to be safe"),
-        }.get(s.get("motivo") or "", s.get("motivo") or "")
-        if (s.get("motivo") or "").startswith("emergency"):
-            motivo = L("EMERGENZA: al massimo", "EMERGENCY: full speed")
-        if (s.get("motivo") or "").startswith("anticipating"):
-            motivo = L("sta anticipando la salita", "anticipating the rise")
-        if (s.get("motivo") or "").startswith("pre-cooling"):
-            motivo = L("pre-raffredda per %s", "pre-cooling for %s") % (s.get("gioco") or "")
-        self.et_motivo.setText(motivo)
-
+        }.get(motivo, motivo)
+        if motivo.startswith("emergency"):
+            testo = L("EMERGENZA: al massimo", "EMERGENCY: full speed")
+        elif motivo.startswith("anticipating"):
+            testo = L("sta anticipando la salita", "anticipating the rise")
+        elif motivo.startswith("pre-cooling"):
+            testo = L("pre-raffredda per %s", "pre-cooling for %s") % (s.get("gioco") or "")
         if not s.get("in_controllo"):
-            self.et_uscita.setText(L(
-                "La ventola e' ancora governata dal firmware: la curva non e' attiva.",
-                "The fan is still governed by the firmware: the curve is not in charge."))
-        else:
-            self.et_uscita.setText(L("Uscita comandata: %s", "Driving output: %s")
-                                   % (self.conf.get("pwm") or "—"))
+            testo = L("la ventola e' ancora del firmware: la curva non e' attiva",
+                      "the fan still belongs to the firmware: the curve is not in charge")
+        self.et_motivo.setText(testo)
 
         sensori = s.get("sensori") or []
-        giri = [x for x in sensori if x.get("type") == "fan" and x.get("value")]
-        self.et_giri.setText(L("Giri: %d rpm", "Speed: %d rpm") % giri[0]["value"]
-                             if giri else "")
-        if t is not None:
-            self.grafico.aggiorna_vivo(t, float(s.get("duty") or 0))
-
         self._riempi_sorgente(sensori)
-        self._riempi_tensioni(sensori)
+        self._allarmi(sensori)
+
+        adesso = float(s.get("aggiornato") or 0)
+        if adesso:
+            letture = [(x["key"], x.get("label") or x["key"], x.get("unit") or "",
+                        x["value"]) for x in sensori if x.get("value") is not None]
+            duty = s.get("duty")
+            if duty is not None:
+                letture.append(("__ventola__", L("Ventola", "Fan"), "%", float(duty)))
+            if t is not None:
+                letture.append(("__temperatura__", L("Temperatura", "Temperature"),
+                                "C", float(t)))
+            self.grafico.campiona(adesso, letture)
+            for chiave, serie in self.grafico.elenco():
+                w = self.tessere.get(chiave)
+                if w is not None:
+                    w.aggiorna(serie)
+        self.grafico.inserto.aggiorna_vivo(t, float(s.get("duty") or 0))
         if s.get("gioco"):
             self.et_gioco.setText(L("Ultimo riconosciuto: %s", "Last recognised: %s")
                                   % s["gioco"])
+
+    def _allarmi(self, sensori):
+        u"""Le tensioni fuori posto, dette una volta sola e in un posto solo."""
+        allarmi = []
+        for x in sensori:
+            if x.get("type") != "in" or x.get("value") is None:
+                continue
+            v = x["value"]
+            atteso = nominale(x.get("label"))
+            if atteso == "dinamica":
+                continue           # si muove per progetto: si mostra, non si allarma
+            if atteso is None:
+                storia = self.riposo.setdefault(x["key"], [])
+                if len(storia) < CAMPIONI_RIPOSO:
+                    storia.append(v)
+                    continue
+                o = sorted(storia)
+                atteso = o[len(o) // 2]
+                tolleranza = 0.10
+            else:
+                tolleranza = 0.05
+            if atteso and abs(v - atteso) / atteso > tolleranza:
+                allarmi.append(L("%s: %.3f V invece di %.2f V",
+                                 "%s: %.3f V instead of %.2f V")
+                               % (x.get("label") or x["key"], v, atteso))
+        self.et_allarme.setText("\n".join(allarmi[:3]))
 
     def _riempi_sorgente(self, sensori):
         temp = [x for x in sensori if x.get("type") == "temp"]
@@ -1112,57 +1509,6 @@ class Finestra(QMainWindow):
             if c is not None and x.get("value") is not None:
                 c.valore.setText("%.1f °C" % x["value"])
 
-    def _riempi_tensioni(self, sensori):
-        volt = [x for x in sensori if x.get("type") in ("in", "power")]
-        chiavi = [x["key"] for x in volt]
-        if set(chiavi) != set(self.campi_etichetta):
-            self._svuota(self.contenitore_tensioni)
-            self.campi_etichetta = {}
-            for x in volt:
-                h = QHBoxLayout()
-                campo = QLineEdit(x["label"])
-                campo.setMaximumWidth(150)
-                self.campi_etichetta[x["key"]] = campo
-                h.addWidget(campo)
-                h.addStretch(1)
-                val = QLabel("")
-                h.addWidget(val)
-                campo.valore = val
-                self.contenitore_tensioni.addLayout(h)
-        allarmi = []
-        for x in volt:
-            campo = self.campi_etichetta.get(x["key"])
-            if campo is None or x.get("value") is None:
-                continue
-            v = x["value"]
-            campo.valore.setText("%.3f V" % v if x["type"] == "in" else "%.1f W" % v)
-            if x["type"] != "in":
-                continue
-            atteso = nominale(x.get("label"))
-            if atteso == "dinamica":
-                continue           # si muove per progetto: si mostra, non si allarma
-            if atteso is None:
-                # Nessun nome riconoscibile — sul Fujitsu si chiamano in0, in2,
-                # in6 perche' il driver non sa come sono cablate. L'unica cosa
-                # onesta e' guardare per un po' e prendere la MEDIANA come
-                # valore di riposo. La mediana, non la prima lettura: se il
-                # primo campione capita durante un picco, quel picco diventa il
-                # riferimento e tutto il resto sembra sbagliato.
-                storia = self.riposo.setdefault(x["key"], [])
-                if len(storia) < CAMPIONI_RIPOSO:
-                    storia.append(v)
-                    continue       # ancora non si sa abbastanza per giudicare
-                ordinati = sorted(storia)
-                atteso = ordinati[len(ordinati) // 2]
-                tolleranza = 0.10
-            else:
-                tolleranza = 0.05
-            if atteso and abs(v - atteso) / atteso > tolleranza:
-                allarmi.append(L("%s: %.3f V invece di %.2f V",
-                                 "%s: %.3f V instead of %.2f V")
-                               % (campo.text(), v, atteso))
-        self.et_allarme.setText("\n".join(allarmi[:3]))
-
     # -- salvataggio --------------------------------------------------------
     def salva(self):
         sorgenti = [k for k, c in self.caselle_sorgente.items() if c.isChecked()]
@@ -1182,7 +1528,7 @@ class Finestra(QMainWindow):
             "attivo": self.interruttore.isChecked(),
             "pwm": pwm,
             "sorgente": sorgenti,
-            "curva": self.grafico.punti,
+            "curva": self.grafico.inserto.punti,
             "minimo": self.minimo.value(),
             "isteresi": self.isteresi.value(),
             "emergenza": self.emergenza.value(),
@@ -1194,15 +1540,7 @@ class Finestra(QMainWindow):
                 "preraffredda": self.preraffredda.value(),
             },
         }
-        etichette = dict(self.etichette)
-        for k, campo in self.campi_etichetta.items():
-            testo = campo.text().strip()
-            if testo:
-                etichette[k] = testo
-
         ok, msg = self._helper("scrivi", conf)
-        if ok and etichette:
-            self._helper("etichette", etichette)
         if ok:
             self.conf = conf
             self.etichetta_salva.setText(L("applicata", "applied"))
