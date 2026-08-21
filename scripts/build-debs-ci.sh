@@ -554,6 +554,10 @@ put $P 0644 apps/dashboard/web/i18n.js     usr/share/skillfish/dashboard/i18n.js
 put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.html
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
+# Il modulo Ventola del Remote Manager. ⚠️ Non rifa' il controllo: legge
+# quello che skillfish-fand pubblica e scrive dal suo helper. Due controllori
+# sullo stesso PWM li abbiamo gia' avuti una volta, e si vedeva.
+put $P 0644 apps/dashboard/web/ventola.html usr/share/skillfish/dashboard/ventola.html
 # La favicon delle pagine della dashboard: la stessa del sito. Senza questa
 # riga la pagina la chiede e prende un 404, che nella scheda del browser si
 # vede come icona vuota — cioe' come prima.
@@ -960,6 +964,9 @@ grep -q 'mask ttyd.service' "$OUT/skillfish-dashboard/DEBIAN/postinst" \
   || { echo "FATAL: il postinst non maschera ttyd.service" >&2; exit 1; }
 check    skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/usr/local/bin/skillfish-dashboard-stop'
 notcheck skillfish-dashboard_${VER}_all.deb ./etc/systemd/system/skillfish-dashboard.service 'ExecStopPost=/bin/sh'
+# la pagina della ventola, e che parli col demone e non col PWM
+check skillfish-dashboard_${VER}_all.deb  ./usr/share/skillfish/dashboard/ventola.html '/api/ventola'
+check skillfish-dashboard_${VER}_all.deb  ./usr/local/bin/skillfish-dashboardd 'ventola_demone'
 # 5. La tabella ACPI della BC-250 va TOLTA sulle macchine che non lo sono, non
 #    solo "non attivata": l'immagine se la porta dietro gia' attiva.
 check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-acpi-pstates '  auto)'
@@ -1115,6 +1122,23 @@ check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillf
 # Le applicazioni con la finestra: si controlla che si APRANO, non solo che
 # compilino. E' il controllo che mancava quando il pannello AI e' uscito rotto.
 avvia apps/fan/skillfish-fan
+
+# ⚠️ Ogni finestra deve dire a KDE qual e' il suo file .desktop, o la barra
+# delle applicazioni scrive «python3» e perde anche l'icona. Sette app su otto
+# lo facevano gia': la ottava se n'e' accorta solo passandoci sopra col mouse.
+for _app in apps/fan/skillfish-fan apps/tuner/skillfish-tuner \
+            apps/monitor/skillfish-monitor apps/hub/skillfish-hub \
+            apps/snapshots/skillfish-snapshots apps/ai-panel/skillfish-ai-panel \
+            apps/kernel-manager/skillfish-kernel-manager \
+            apps/dashboard/skillfish-remote-manager; do
+  if grep -q 'setDesktopFileName' "$_app"; then
+    echo "OK  dice il suo .desktop: $_app"
+  else
+    echo "FAIL $_app non chiama setDesktopFileName: nella barra si chiamera' python3" >&2
+    exit 1
+  fi
+done
+
 avvia apps/fan/skillfish-fand
 avvia apps/fan/skillfish-fan-helper
 avvia apps/ai-panel/skillfish-ai-panel

@@ -26,6 +26,7 @@ MODULE_META = {
     "telemetry":  {"icon": "📊", "name": "Telemetria",     "name_en": "Telemetry"},
     "status":     {"icon": "🧊", "name": "Stato sistema",   "name_en": "System status"},
     "tuner":      {"icon": "🎛️", "name": "Controlli",       "name_en": "Controls"},
+    "ventola":    {"icon": "🌀", "name": "Ventola",         "name_en": "Fan"},
     "hub":        {"icon": "📦", "name": "App e pacchetti", "name_en": "Apps & packages"},
     "logs":       {"icon": "📜", "name": "Log",             "name_en": "Logs"},
     "launcher":   {"icon": "🚀", "name": "Avvio app",       "name_en": "Launcher"},
@@ -304,10 +305,18 @@ def apply_preset(name):
         {"cmd": "apply-cpu", "mhz": c.get("frequency"), "scale": c.get("scale"), "temp": c.get("max_temperature", 85)},
         {"cmd": "apply-gpu", "minmhz": g.get("min_mhz"), "minmv": g.get("min_mv"),
          "maxmhz": g.get("max_mhz"), "maxmv": g.get("max_mv")},
-        {"cmd": "apply-fan", "mode": fan.get("mode", "auto"), "pct": fan.get("pct", 45)},
         {"cmd": "thermal-guard", "limit": pr.get("thermal_guard", 85)},
     ]
+    # ⚠️ La ventola NON si scrive piu' qui dentro quando c'e' skillfish-fand:
+    # il valore fisso del preset durerebbe un secondo e poi verrebbe riscritto
+    # dal demone, e chi ha premuto il pulsante vedrebbe «applicato» senza che la
+    # ventola faccia quello che il preset dice.
+    if not ventola_demone():
+        cmds.insert(2, {"cmd": "apply-fan", "mode": fan.get("mode", "auto"),
+                        "pct": fan.get("pct", 45)})
     tuner_cmd(cmds)
+    if ventola_demone():
+        ventola_percentuale(fan.get("pct", 45), fan.get("mode", "auto"))
     return {"ok": True, "preset": pr.get("name")}
 
 
@@ -358,7 +367,28 @@ def cu_profile_op(action, name, rows):
 
 
 # ---- temperature -> fan% curve (#3) ----
+#
+# ⚠️ DUE CONTROLLORI SULLO STESSO PWM: e' successo davvero, e si vedeva.
+# Da qui girava un ciclo che scriveva la ventola ogni tre secondi; dal
+# 21/08/2026 c'e' anche skillfish-fand, che la scrive ogni secondo con la sua
+# curva, il suo anticipo e la sua emergenza. Misurato sulla scheda con le due
+# curve diverse: il registro stava a 65 e ogni tre secondi saltava a 74 per un
+# istante, poi tornava. Vinceva il demone perche' scrive piu' spesso, ma la
+# ventola prendeva un calcio a ogni giro dell'altro.
+#
+# La regola adesso e' una sola: SE C'E' skillfish-fand, COMANDA LUI. Questo
+# modulo diventa un telecomando — legge e scrive la SUA configurazione, e non
+# tocca piu' nessun PWM. Cosi' dal web si ottiene lo stesso comportamento della
+# finestra, anticipo ed emergenza compresi, invece di una seconda copia piu'
+# debole.
+#
+# Il ciclo vecchio resta per le macchine dove skillfish-fand non c'e'
+# (dashboard installata da sola, o versioni precedenti): li' e' meglio di
+# niente. Si spegne da solo appena il demone compare, senza riavviare nulla.
 FAN_CURVE_F = "/etc/skillfish/fan-curve.json"
+VENTOLA_CONF = "/etc/skillfish/ventola.json"
+VENTOLA_STATO = "/run/skillfish/ventola.json"
+VENTOLA_HELPER = "/usr/local/bin/skillfish-fan-helper"
 # On by default: left to itself the board's EC parks the fan at a flat ~50% duty
 # whatever the temperature, which caps sustained CPU/GPU clocks. Measured on the
 # board, 100% duty holds the CPU 4 °C cooler than 31% under the same load, so the
@@ -368,7 +398,114 @@ FAN_CURVE_DEFAULT = {"enabled": True, "source": "max",
 _FAN = {"last_pct": None, "was_enabled": False}
 
 
+def ventola_demone():
+    u"""C'e' skillfish-fand, e sta girando? Allora comanda lui."""
+    try:
+        return subprocess.call(["systemctl", "is-active", "--quiet",
+                                "skillfish-fand.service"]) == 0
+    except Exception:
+        return False
+
+
+def ventola_stato():
+    u"""Quello che il demone pubblica: letture, storia, motivo."""
+    try:
+        with open(VENTOLA_STATO) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def ventola_conf():
+    try:
+        with open(VENTOLA_CONF) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def ventola_scrivi(conf):
+    u"""La configurazione passa SEMPRE dall'helper, mai scritta a mano.
+
+    L'helper rifa' ogni campo da zero e fa rispettare i limiti — il minimo che
+    non scende sotto la soglia, la curva che non puo' scendere mentre la
+    temperatura sale. Scrivere il file da qui vorrebbe dire avere due posti in
+    cui si controllano gli stessi numeri, e prima o poi uno dei due si scorda
+    un controllo."""
+    if not os.path.exists(VENTOLA_HELPER):
+        return {"ok": False, "error": "manca skillfish-fan-helper"}
+    try:
+        p = subprocess.run([VENTOLA_HELPER, "scrivi"], input=json.dumps(conf),
+                           capture_output=True, text=True, timeout=60)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if p.returncode != 0:
+        return {"ok": False, "error": (p.stderr or p.stdout or "").strip()}
+    return {"ok": True}
+
+
+VENTOLA_PROVA = "/etc/skillfish/ventola-prova.json"
+
+
+def ventola_prova_esito():
+    u"""L'esito dell'ultima prova del PWM, se e' mai stata fatta.
+
+    Su molte schede — server e portatili soprattutto — scrivere il PWM viene
+    accettato e non muove niente. E' l'informazione che distingue un pannello
+    che funziona da un pannello che sembra funzionare, quindi il web la mostra
+    come la mostra la finestra."""
+    try:
+        with open(VENTOLA_PROVA) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def ventola_etichette(d):
+    u"""I nomi che l'utente ha dato ai sensori, scritti dall'helper."""
+    if not os.path.exists(VENTOLA_HELPER):
+        return {"ok": False, "error": "manca skillfish-fan-helper"}
+    try:
+        p = subprocess.run([VENTOLA_HELPER, "etichette"], input=json.dumps(d),
+                           capture_output=True, text=True, timeout=30)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    return ({"ok": True} if p.returncode == 0
+            else {"ok": False, "error": (p.stderr or p.stdout or "").strip()})
+
+
+def ventola_prova(pwm, fan):
+    u"""La prova che dice se quel PWM muove davvero quella ventola.
+
+    ⚠️ Dura una trentina di secondi e ferma il controllo mentre misura. Da qui
+    si lancia con un tempo massimo generoso: se scadesse a meta', l'helper
+    rimette comunque tutto com'era nel suo `finally`, ma il web resterebbe senza
+    risposta e l'utente non saprebbe com'e' finita."""
+    if not os.path.exists(VENTOLA_HELPER):
+        return {"ok": False, "error": "manca skillfish-fan-helper"}
+    try:
+        p = subprocess.run([VENTOLA_HELPER, "prova"],
+                           input=json.dumps({"pwm": pwm, "fan": fan}),
+                           capture_output=True, text=True, timeout=180)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    if p.returncode != 0:
+        return {"ok": False, "error": (p.stderr or p.stdout or "").strip()}
+    try:
+        return {"ok": True, "esito": json.loads(p.stdout)}
+    except Exception:
+        return {"ok": False, "error": p.stdout[:200]}
+
+
 def fan_curve_load():
+    if ventola_demone():
+        c = ventola_conf()
+        return {"enabled": bool(c.get("attivo")),
+                # il demone prende SEMPRE la piu' alta fra le sorgenti scelte,
+                # che e' esattamente cio' che qui si chiamava "max"
+                "source": "max",
+                "points": [[int(round(p[0])), int(round(p[1]))]
+                           for p in (c.get("curva") or FAN_CURVE_DEFAULT["points"])]}
     try:
         with open(FAN_CURVE_F) as f:
             d = json.load(f)
@@ -380,6 +517,22 @@ def fan_curve_load():
 
 
 def fan_curve_save(d):
+    if ventola_demone():
+        c = ventola_conf()
+        if "enabled" in d:
+            c["attivo"] = bool(d["enabled"])
+        if isinstance(d.get("points"), list) and d["points"]:
+            c["curva"] = [[float(p[0]), float(p[1])] for p in d["points"]]
+            c["preset"] = "personalizzata"
+        # ⚠️ `source` non si traduce e viene ignorato apposta. Qui erano tre
+        # scelte fisse (cpu/gpu/max); il demone lascia scegliere QUALUNQUE
+        # canale vero, e sono elencati per nome nella sua configurazione.
+        # Sovrascriverli con "cpu" o "gpu" cancellerebbe una scelta piu' fine
+        # con una piu' grossolana.
+        r = ventola_scrivi(c)
+        if not r.get("ok"):
+            return r
+        return {"ok": True, "curve": fan_curve_load(), "preview": fan_curve_pct()}
     cur = fan_curve_load()
     if "enabled" in d:
         cur["enabled"] = bool(d["enabled"])
@@ -405,6 +558,8 @@ def fan_curve_save(d):
 
 def fan_curve_pct(cur=None):
     """Interpolate the target fan % for the current temperature."""
+    if cur is None and ventola_demone():
+        return ventola_stato().get("duty")
     cur = cur or fan_curve_load()
     v = read_all()
     g = v.get("gpu_temp") if isinstance(v.get("gpu_temp"), (int, float)) else 0
@@ -425,9 +580,40 @@ def fan_curve_pct(cur=None):
     return pts[-1][1]
 
 
+def ventola_percentuale(pct, modo="manual"):
+    u"""Una percentuale fissa, detta al demone invece che scritta sul registro.
+
+    ⚠️ Con skillfish-fand attivo, scrivere il PWM da qui non serve a niente: al
+    giro dopo lo riscrive lui. Una percentuale fissa si ottiene con una curva
+    piatta — due punti alla stessa altezza — che e' esattamente la stessa cosa
+    detta nella lingua del demone. «auto» invece vuol dire restituire la ventola
+    al firmware, cioe' spegnere il controllo.
+    """
+    c = ventola_conf()
+    if modo == "auto":
+        c["attivo"] = False
+    else:
+        p = max(20, min(100, int(pct)))
+        c["attivo"] = True
+        c["curva"] = [[0.0, float(p)], [100.0, float(p)]]
+        c["preset"] = "personalizzata"
+    r = ventola_scrivi(c)
+    return {"ok": bool(r.get("ok")), "error": r.get("error", ""),
+            "pct": None if modo == "auto" else int(pct), "mode": modo}
+
+
 def fan_curve_loop():
     while True:
         try:
+            # ⚠️ Il controllo vero e' di skillfish-fand quando c'e'. Qui non si
+            # scrive piu' niente: due programmi sullo stesso registro fanno
+            # oscillare la ventola, e l'abbiamo visto succedere.
+            if ventola_demone():
+                if _FAN["was_enabled"]:
+                    _FAN["was_enabled"] = False
+                    _FAN["last_pct"] = None
+                time.sleep(5)
+                continue
             cur = fan_curve_load()
             if cur["enabled"]:
                 pct = fan_curve_pct(cur)
@@ -442,6 +628,7 @@ def fan_curve_loop():
         except Exception:
             pass
         time.sleep(3)
+
 
 
 _TOPO = {}
@@ -1565,6 +1752,17 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
+        if path == "/api/ventola":
+            if not self._guard("ventola"):
+                return
+            s = ventola_stato()
+            return self._json(200, {
+                "ok": bool(s),
+                "demone": ventola_demone(),
+                "stato": s,
+                "conf": ventola_conf(),
+                "prova": ventola_prova_esito(),
+            })
         if path == "/api/tuner/fan-curve":
             if not self._guard("tuner"):
                 return
@@ -1691,9 +1889,32 @@ class Handler(BaseHTTPRequestHandler):
             if "cores" in data:
                 return self._json(200, tuner_cmd([{"cmd": "cpu-cores-set", "cores": data["cores"]}]))
             return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
+        if path == "/api/ventola/conf":
+            if not self._guard("ventola"):
+                return
+            c = ventola_conf()
+            # ⚠️ Si aggiorna solo cio' che e' arrivato: il web manda un pezzo
+            # per volta (la curva, oppure il minimo) e non deve poter azzerare
+            # i campi che non ha nominato.
+            for chiave in ("attivo", "pwm", "sorgente", "curva", "minimo",
+                           "isteresi", "emergenza", "preset", "predittivo"):
+                if chiave in data:
+                    c[chiave] = data[chiave]
+            return self._json(200, ventola_scrivi(c))
+        if path == "/api/ventola/etichette":
+            if not self._guard("ventola"):
+                return
+            return self._json(200, ventola_etichette(data))
+        if path == "/api/ventola/prova":
+            if not self._guard("ventola"):
+                return
+            return self._json(200, ventola_prova(data.get("pwm"), data.get("fan")))
         if path == "/api/tuner/fan":
             if not self._guard("tuner"):
                 return
+            if ventola_demone():
+                return self._json(200, ventola_percentuale(int(data.get("pct", 45)),
+                                                           data.get("mode", "auto")))
             return self._json(200, tuner_cmd([{"cmd": "apply-fan", "mode": data.get("mode", "auto"),
                                                "pct": int(data.get("pct", 45))}]))
         if path == "/api/tuner/cpu":

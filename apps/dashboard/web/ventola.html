@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS Ventola</title>
+<!--
+  SkillFishOS Ventola, dal web.
+
+  ⚠️ QUESTA PAGINA NON CONTROLLA NIENTE. La ventola la muove skillfish-fand
+  sulla macchina, esattamente come per la finestra: qui si guarda e si scrive la
+  sua configurazione, passando dall'helper. Se questa pagina rifacesse la sua
+  curva sarebbero due controllori sullo stesso PWM, che e' il guasto che
+  abbiamo appena tolto di mezzo dal Remote Manager.
+
+  La disposizione e' la stessa della finestra, e non per gusto: chi impara una
+  delle due sa gia' usare l'altra.
+    a sinistra   le tessere, che sono legenda e valori insieme;
+    al centro    UN SOLO grafico, che scorre nel tempo;
+    dentro       la curva, spostabile e ridimensionabile;
+    in basso     preset e comandi, il resto dietro ai pulsanti.
+-->
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;--gold-lt:#e8c878;--copper:#b9722f;
+        --cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2);--fondo:#15110d}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);height:100vh;
+       display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  header b{color:var(--gold-lt);font-size:1.05rem}
+  .sp{flex:1}
+  .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;
+        padding:2px 10px;font-size:.78rem;color:var(--gold-lt)}
+  select,input[type=number]{background:#120e08;color:var(--cream);border:1px solid var(--line);
+        border-radius:8px;padding:5px 8px;font-size:.85rem}
+  .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;
+       padding:8px 15px;font-weight:700;cursor:pointer;font-size:.88rem}
+  .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
+  .btn.sec{background:linear-gradient(160deg,#241b10,#1a140b);color:var(--gold-lt);border:1px solid var(--line)}
+
+  main{flex:1;display:flex;gap:10px;padding:10px;min-height:0}
+  /* ⚠️ Scorre ma la barra non si vede: la colonna dei valori e i riquadri sono
+     alti quanto serve, e una barra di scorrimento accanto a numeri grandi ruba
+     spazio e attira l'occhio su niente. Le tre righe servono tutte e tre:
+     Firefox, i vecchi Edge e i browser WebKit hanno ognuno la sua. */
+  .nobar{scrollbar-width:none;-ms-overflow-style:none}
+  .nobar::-webkit-scrollbar{display:none;width:0;height:0}
+  #tessere{width:168px;flex:none;overflow-y:auto;display:flex;flex-direction:column;gap:5px;
+           scrollbar-width:none;-ms-overflow-style:none}
+  #tessere::-webkit-scrollbar{display:none;width:0}
+  .tes{border:1px solid #3a322a;border-radius:6px;background:var(--fondo);padding:4px 8px;cursor:pointer;
+       user-select:none}
+  .tes .n{font-size:.66rem;color:#7a6c58;line-height:1.2}
+  .tes .v{font-size:.95rem;font-weight:700;color:#8a7c68;font-family:'DejaVu Sans Mono',monospace}
+  #area{flex:1;position:relative;min-width:0;display:flex;flex-direction:column}
+  #graf{flex:1;width:100%;background:var(--fondo);border:1px solid var(--line);border-radius:10px;display:block}
+  /* la curva: sta DENTRO al grafico, si sposta per la barretta e si tira dall'angolo */
+  #curvabox{position:absolute;width:340px;height:224px;background:var(--fondo);border:1px solid var(--copper);
+            border-radius:6px;overflow:hidden}
+  #curvabar{height:17px;background:#241f19;color:var(--gold);font-size:.68rem;font-weight:700;
+            padding:2px 7px;cursor:move;display:flex;align-items:center;gap:6px;user-select:none}
+  #curvabar .gr{flex:1;text-align:center;color:#7a6c58;letter-spacing:2px}
+  #curvabar .cl{cursor:pointer;color:var(--gold-lt)}
+  #curva{display:block;width:100%}
+  #tira{position:absolute;right:0;bottom:0;width:15px;height:15px;cursor:nwse-resize}
+  footer{display:flex;gap:14px;align-items:flex-end;padding:8px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .pset{display:flex;flex-direction:column;gap:2px;font-size:.85rem}
+  .pset label{cursor:pointer;color:var(--cream)}
+  .col{display:flex;flex-direction:column;gap:5px}
+  #motivo{color:var(--muted);font-size:.84rem}
+  #allarme{color:#e0703a;font-weight:700;font-size:.84rem}
+  /* i riquadri che si aprono quando servono */
+  .ov{position:fixed;inset:0;background:rgba(6,5,3,.72);display:none;align-items:center;justify-content:center;z-index:20}
+  .ov.on{display:flex}
+  .bx{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;
+      padding:16px;min-width:340px;max-width:92vw;max-height:88vh;overflow:auto;
+      scrollbar-width:none;-ms-overflow-style:none}
+  .bx::-webkit-scrollbar{display:none;width:0}
+  .bx h3{color:var(--gold-lt);font-size:1rem;margin-bottom:10px}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{min-width:150px;color:var(--muted);font-size:.88rem}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#241b10;border:1px solid var(--gold);
+         color:var(--cream);padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
+  #toast.show{opacity:1}
+</style></head>
+<body>
+<header>
+  <b>🌀 SkillFishOS Ventola</b>
+  <span class="pill" id="live">—</span>
+  <span id="motivo"></span>
+  <span class="sp"></span>
+  <span id="allarme"></span>
+  <span style="color:var(--muted);font-size:.85rem" data-i18n="v_refresh">Aggiornamento</span>
+  <select id="ogni">
+    <option value="1000">1 s</option><option value="2000">2 s</option>
+    <option value="5000">5 s</option><option value="10000">10 s</option>
+    <option value="15000">15 s</option><option value="30000">30 s</option>
+  </select>
+</header>
+
+<main>
+  <div id="tessere"></div>
+  <div id="area">
+    <canvas id="graf"></canvas>
+    <div id="curvabox">
+      <div id="curvabar"><span data-i18n="v_curve">Curva</span><span class="gr">||||||</span><span class="cl" id="chiudicurva">▾</span></div>
+      <canvas id="curva"></canvas>
+      <div id="tira"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="pset" id="preset"></div>
+  <div class="col">
+    <button class="btn sec" id="bsorg" data-i18n="v_source">Sorgente</button>
+    <button class="btn sec" id="bant" data-i18n="v_lead">Anticipo</button>
+    <button class="btn sec" id="bsic" data-i18n="v_safety">Sicurezza</button>
+  </div>
+  <span class="sp"></span>
+  <div class="col" style="align-items:flex-end">
+    <label style="font-size:.9rem"><input type="checkbox" id="attivo"/> <span data-i18n="v_control">Controllo</span></label>
+    <span id="salvato" style="color:var(--muted);font-size:.8rem"></span>
+    <button class="btn" id="applica" data-i18n="apply">Applica</button>
+  </div>
+</footer>
+
+<div class="ov" id="ov"><div class="bx" id="ovbx"></div></div>
+<div id="toast"></div>
+
+<script src="/static/i18n.js"></script>
+<script>
+const $=(s,r)=>(r||document).querySelector(s);
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+async function api(path, body){
+  const o = body ? {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)} : {};
+  const r = await fetch(path, o);
+  if (r.status === 401){ location.href = "/"; return {}; }
+  return r.json();
+}
+// ⚠️ Gli stessi colori della finestra: chi guarda il grafico sul monitor della
+// scheda e poi da remoto deve riconoscere le linee, non ricominciare da capo.
+const CT=["#e8703a","#d85a5a","#c78be0","#7fd4ff","#8fbf6a","#e0d05a","#b06a3a","#5a8fd8"];
+const COL={"%":"#d8a849","rpm":"#5ad0c0","W":"#b98cff","V":"#6a9fd8"};
+const DEC={"C":1,"%":0,"rpm":0,"W":1,"V":3};
+const FINESTRA=300;
+let S={}, CONF={}, SERIE={}, ORD=[], sotto=null, cur=null, PUNTI=[], toccata=false;
+
+function colore(u){
+  if(u!=="C") return COL[u]||"#999";
+  const n=ORD.filter(k=>SERIE[k].unita==="C").length;
+  return CT[n%CT.length];
+}
+// ⚠️ Cinque unita' su un asse solo non si possono mettere: ognuna va su una
+// scala sua e il numero vero si legge nella tessera. Le tensioni attorno alla
+// LORO mediana, o un calo del cinque per cento — il sintomo che interessa —
+// sarebbe una riga piatta.
+function scala(u,v){
+  if(u==="C") return [20,100];
+  if(u==="%") return [0,100];
+  if(u==="rpm"){const m=Math.max(...v,1);return [0,Math.max(500,(Math.floor(m/500)+1)*500)];}
+  if(u==="W"){const m=Math.max(...v,1);return [0,Math.max(10,(Math.floor(m/10)+1)*10)];}
+  if(u==="V"){const o=[...v].sort((a,b)=>a-b),m=o[Math.floor(o.length/2)]||1;
+              return m<=0?[0,1]:[m*0.9,m*1.1];}
+  return [Math.min(...v),Math.max(...v)];
+}
+function fmt(v,u){return v==null?"—":v.toFixed(DEC[u]!==undefined?DEC[u]:1)+" "+u;}
+
+/* ---------------- le tessere: legenda e valori insieme ---------------- */
+function rifaiTessere(){
+  const box=$("#tessere"); box.innerHTML="";
+  const primi=["__temperatura__","__ventola__"];
+  for(const u of ["rpm","W"]){const k=ORD.find(k=>SERIE[k].unita===u); if(k) primi.push(k);}
+  const ordine=[...primi.filter(k=>SERIE[k]),...ORD.filter(k=>!primi.includes(k))];
+  for(const k of ordine){
+    const s=SERIE[k], d=document.createElement("div");
+    d.className="tes"; d.id="tes-"+btoa(k).replace(/=/g,"");
+    d.innerHTML='<div class="n"></div><div class="v"></div>';
+    d.onclick=()=>{s.on=!s.on; disegna(); aggiornaTessere();};
+    d.ondblclick=async(e)=>{
+      e.preventDefault();
+      if(k.startsWith("__")) return;
+      const n=prompt(sfT("v_rename")||"Nome del sensore", s.et);
+      if(!n) return;
+      s.et=n.slice(0,40);
+      await api("/api/ventola/etichette",{[k]:s.et});
+      aggiornaTessere();
+    };
+    box.appendChild(d);
+  }
+  aggiornaTessere();
+}
+function aggiornaTessere(){
+  for(const k of ORD){
+    const s=SERIE[k], d=$("#tes-"+btoa(k).replace(/=/g,""));
+    if(!d) continue;
+    const c=s.on?s.col:"#7a6c58";
+    d.querySelector(".n").textContent=s.et;
+    d.querySelector(".n").style.color=c;
+    d.querySelector(".v").textContent=fmt(s.p.length?s.p[s.p.length-1][1]:null,s.unita);
+    d.querySelector(".v").style.color=s.on?s.col:"#8a7c68";
+    d.style.borderColor=s.on?s.col:"#3a322a";
+    d.style.background=s.on?"#241f19":"var(--fondo)";
+  }
+}
+
+/* ---------------- il grafico, uno solo ---------------- */
+function area(c){return {l:42,t:10,r:c.width-12,b:c.height-24};}
+function disegna(){
+  const c=$("#graf"), x=c.getContext("2d");
+  const dpr=window.devicePixelRatio||1;
+  c.width=c.clientWidth*dpr; c.height=c.clientHeight*dpr;
+  x.setTransform(dpr,0,0,dpr,0,0);
+  const w=c.clientWidth,h=c.clientHeight,a={l:42,t:10,r:w-12,b:h-24};
+  x.clearRect(0,0,w,h);
+  x.font="11px system-ui";
+  for(let q=0;q<=100;q+=20){
+    const y=a.b-(q/100)*(a.b-a.t);
+    x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(a.l,y); x.lineTo(a.r,y); x.stroke();
+    x.fillStyle="#8a6a2a"; x.fillText(q+"%",6,y+4);
+  }
+  for(let i=0;i<6;i++){
+    const px=a.l+(a.r-a.l)*i/5;
+    x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(px,a.t); x.lineTo(px,a.b); x.stroke();
+    const sec=Math.round(FINESTRA*(5-i)/5);
+    x.fillStyle="#8a6a2a";
+    x.fillText(sec===0?(sfT("v_now")||"adesso"):("-"+sec+" s"),px-(sec?16:22),a.b+16);
+  }
+  const vis=ORD.filter(k=>SERIE[k].on&&SERIE[k].p.length);
+  if(!vis.length){x.fillStyle="#8a6a2a";x.fillText(sfT("v_nothing")||"niente da mostrare",a.l+12,(a.t+a.b)/2);return;}
+  const fine=Math.max(...vis.map(k=>SERIE[k].p[SERIE[k].p.length-1][0])), ini=fine-FINESTRA;
+  for(const k of vis){
+    const s=SERIE[k], vv=s.p.map(p=>p[1]), [lo,hi]=scala(s.unita,vv), campo=(hi-lo)||1;
+    x.strokeStyle=s.col; x.lineWidth=s.unita==="%"?2.4:1.5; x.beginPath();
+    let primo=true;
+    for(const [t,v] of s.p){
+      if(t<ini) continue;
+      const px=a.l+(t-ini)/FINESTRA*(a.r-a.l);
+      const py=a.b-Math.max(0,Math.min(1,(v-lo)/campo))*(a.b-a.t);
+      primo?(x.moveTo(px,py),primo=false):x.lineTo(px,py);
+    }
+    x.stroke();
+  }
+  if(cur) cursore(x,a,ini,fine);
+}
+// ⚠️ Risponde UNA linea sola, quella sotto al puntatore, e in grande. Con dodici
+// linee l'elenco di tutte diventava un muro di righe piccole, e per leggere il
+// numero che interessava bisognava cercarlo.
+function cursore(x,a,ini,fine){
+  if(!sotto||!SERIE[sotto]) return;
+  const s=SERIE[sotto]; if(!s.p.length) return;
+  const px=Math.max(a.l,Math.min(a.r,cur.x));
+  const quando=ini+(px-a.l)/(a.r-a.l)*FINESTRA;
+  let best=null,dist=null;
+  for(const [t,v] of s.p){const d=Math.abs(t-quando); if(dist===null||d<dist){best=v;dist=d;}}
+  if(best===null) return;
+  const vv=s.p.map(p=>p[1]),[lo,hi]=scala(s.unita,vv),campo=(hi-lo)||1;
+  const py=a.b-Math.max(0,Math.min(1,(best-lo)/campo))*(a.b-a.t);
+  x.strokeStyle="rgba(216,168,73,.5)"; x.lineWidth=1; x.setLineDash([4,4]);
+  x.beginPath(); x.moveTo(px,a.t); x.lineTo(px,a.b); x.stroke(); x.setLineDash([]);
+  x.fillStyle=s.col; x.beginPath(); x.arc(px,py,5.5,0,7); x.fill();
+  const sec=Math.round(fine-quando);
+  const grosso=fmt(best,s.unita);
+  const piccolo=s.et+"  ·  "+(sec<=0?(sfT("v_now")||"adesso"):("-"+sec+" s"));
+  x.font="bold 22px system-ui"; const lg=x.measureText(grosso).width;
+  x.font="11px system-ui"; const lp=x.measureText(piccolo).width;
+  const larg=Math.max(lg,lp)+22, alt=54;
+  const bx=(px+16+larg<a.r)?px+16:px-16-larg;
+  const by=Math.max(a.t+2,Math.min(a.b-alt-2,py-alt/2));
+  x.fillStyle="rgba(21,17,13,.94)"; x.strokeStyle=s.col; x.lineWidth=1;
+  x.beginPath(); x.roundRect(bx,by,larg,alt,5); x.fill(); x.stroke();
+  x.fillStyle="#9a8a70"; x.font="11px system-ui"; x.fillText(piccolo,bx+11,by+17);
+  x.fillStyle=s.col; x.font="bold 22px system-ui"; x.fillText(grosso,bx+11,by+43);
+}
+function vicina(mx,my){
+  const c=$("#graf"),w=c.clientWidth,h=c.clientHeight,a={l:42,t:10,r:w-12,b:h-24};
+  if(mx<a.l||mx>a.r||my<a.t||my>a.b) return null;
+  const vis=ORD.filter(k=>SERIE[k].on&&SERIE[k].p.length);
+  if(!vis.length) return null;
+  const fine=Math.max(...vis.map(k=>SERIE[k].p[SERIE[k].p.length-1][0])), ini=fine-FINESTRA;
+  const quando=ini+(mx-a.l)/(a.r-a.l)*FINESTRA;
+  let mig=null,dist=null;
+  for(const k of vis){
+    const s=SERIE[k]; let best=null,dt=null;
+    for(const [t,v] of s.p){const d=Math.abs(t-quando); if(dt===null||d<dt){best=v;dt=d;}}
+    if(best===null) continue;
+    const vv=s.p.map(p=>p[1]),[lo,hi]=scala(s.unita,vv),campo=(hi-lo)||1;
+    const py=a.b-Math.max(0,Math.min(1,(best-lo)/campo))*(a.b-a.t);
+    const d=Math.abs(py-my);
+    if(dist===null||d<dist){mig=k;dist=d;}
+  }
+  return (dist!==null&&dist<40)?mig:null;
+}
+$("#graf").addEventListener("mousemove",e=>{
+  const r=e.target.getBoundingClientRect();
+  cur={x:e.clientX-r.left,y:e.clientY-r.top};
+  sotto=vicina(cur.x,cur.y);
+  e.target.style.cursor=sotto?"pointer":"default";
+  disegna();
+});
+$("#graf").addEventListener("mouseleave",()=>{cur=null;sotto=null;disegna();});
+$("#graf").addEventListener("click",e=>{
+  const r=e.target.getBoundingClientRect();
+  const k=vicina(e.clientX-r.left,e.clientY-r.top);
+  if(k) apriSerie(k);
+});
+
+/* --------- una serie sola, con i numeri veri sugli assi --------- */
+function apriSerie(k){
+  const s=SERIE[k];
+  apri(s.et, '<canvas id="uno" width="720" height="360" style="background:#15110d;border-radius:8px"></canvas>');
+  const x=$("#uno").getContext("2d"), w=720,h=360,a={l:66,t:12,r:w-14,b:h-30};
+  const vv=s.p.map(p=>p[1]);
+  if(!vv.length) return;
+  let lo=Math.min(...vv),hi=Math.max(...vv);
+  if(hi-lo<1e-9){lo-=1;hi+=1;}
+  const m=(hi-lo)*0.1; lo-=m; hi+=m; const campo=hi-lo;
+  const dec=DEC[s.unita]!==undefined?DEC[s.unita]:1;
+  x.font="11px system-ui";
+  for(let i=0;i<=4;i++){
+    const y=a.b-(a.b-a.t)*i/4;
+    x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(a.l,y); x.lineTo(a.r,y); x.stroke();
+    x.fillStyle="#8a6a2a"; x.fillText((lo+campo*i/4).toFixed(dec),4,y+4);
+  }
+  const fine=s.p[s.p.length-1][0], ini=fine-FINESTRA;
+  for(let i=0;i<=5;i++){
+    const px=a.l+(a.r-a.l)*i/5;
+    x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(px,a.t); x.lineTo(px,a.b); x.stroke();
+    const sec=Math.round(FINESTRA*(5-i)/5);
+    x.fillStyle="#8a6a2a"; x.fillText(sec===0?(sfT("v_now")||"adesso"):("-"+sec+" s"),px-(sec?16:22),a.b+18);
+  }
+  // ⚠️ L'unita' in basso a sinistra e grande: e' cio' che dice cosa sono tutti
+  // gli altri numeri del riquadro, e in piccolo in un angolo non la legge nessuno.
+  x.fillStyle="#d8a849"; x.font="bold 15px system-ui"; x.fillText(s.unita,6,h-8);
+  x.strokeStyle=s.col; x.lineWidth=2; x.beginPath();
+  let primo=true;
+  for(const [t,v] of s.p){
+    if(t<ini) continue;
+    const px=a.l+(t-ini)/FINESTRA*(a.r-a.l);
+    const py=a.b-(v-lo)/campo*(a.b-a.t);
+    primo?(x.moveTo(px,py),primo=false):x.lineTo(px,py);
+  }
+  x.stroke();
+}
+
+/* ---------------- la curva dentro al grafico ---------------- */
+const PRESET={
+  silenzioso:[[45,20],[60,30],[70,45],[80,70],[88,100]],
+  equilibrato:[[40,30],[55,40],[65,60],[75,85],[85,100]],
+  prestazioni:[[35,40],[50,60],[60,80],[70,100],[85,100]],
+  massimo:[[0,100],[100,100]]
+};
+let trascina=-1;
+function areaC(c){return {l:34,t:6,r:c.clientWidth-12,b:c.clientHeight-22};}
+function disegnaCurva(){
+  const c=$("#curva"); c.width=c.clientWidth; c.height=$("#curvabox").clientHeight-17;
+  const x=c.getContext("2d"), a=areaC(c);
+  a.b=c.height-22;
+  x.clearRect(0,0,c.width,c.height);
+  x.font="10px system-ui";
+  for(let t=20;t<=100;t+=10){
+    const px=a.l+(t-20)/80*(a.r-a.l);
+    x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(px,a.t); x.lineTo(px,a.b); x.stroke();
+    if(t%20===0){x.fillStyle="#8a6a2a"; x.fillText(t+"°",px-8,a.b+13);}
+  }
+  // ⚠️ Le percentuali ogni dieci: e' l'asse su cui si decide quanto gira la
+  // ventola, e con tre tacche si trascina un punto senza sapere se lo si mette
+  // al 55 o al 70.
+  for(let y=0;y<=100;y+=10){
+    const py=a.b-y/100*(a.b-a.t);
+    x.strokeStyle=(y%20)?"#3a322a":"#4a4036"; x.beginPath(); x.moveTo(a.l,py); x.lineTo(a.r,py); x.stroke();
+    if(y%20===0){x.fillStyle="#8a6a2a"; x.fillText(y+"%",4,py+4);}
+  }
+  if(!PUNTI.length) return;
+  const px=(t,y)=>[a.l+(Math.max(20,Math.min(100,t))-20)/80*(a.r-a.l), a.b-y/100*(a.b-a.t)];
+  x.beginPath(); x.moveTo(a.l,px(PUNTI[0][0],PUNTI[0][1])[1]);
+  for(const [t,y] of PUNTI){const q=px(t,y); x.lineTo(q[0],q[1]);}
+  x.lineTo(a.r,px(100,PUNTI[PUNTI.length-1][1])[1]);
+  x.strokeStyle="#d8a849"; x.lineWidth=2; x.stroke();
+  x.lineTo(a.r,a.b); x.lineTo(a.l,a.b); x.closePath();
+  x.fillStyle="rgba(216,168,73,.16)"; x.fill();
+  x.font="10px system-ui";
+  for(const [t,y] of PUNTI){
+    const q=px(t,y);
+    x.fillStyle="#d8a849"; x.beginPath(); x.arc(q[0],q[1],5,0,7); x.fill();
+    x.fillStyle="#c9b184"; x.fillText(Math.round(y)+"%",q[0]+7,q[1]-6);
+  }
+  const t=S.stato&&S.stato.temperatura, d=S.stato&&S.stato.duty;
+  if(t!=null&&d!=null){const q=px(t,d); x.fillStyle="#7fd4ff"; x.beginPath(); x.arc(q[0],q[1],4.5,0,7); x.fill();}
+}
+function puntoVicino(mx,my){
+  const c=$("#curva"), a=areaC(c); a.b=c.height-22;
+  for(let i=0;i<PUNTI.length;i++){
+    const qx=a.l+(Math.max(20,Math.min(100,PUNTI[i][0]))-20)/80*(a.r-a.l);
+    const qy=a.b-PUNTI[i][1]/100*(a.b-a.t);
+    if((qx-mx)**2+(qy-my)**2<=144) return i;
+  }
+  return -1;
+}
+function valCurva(mx,my){
+  const c=$("#curva"), a=areaC(c); a.b=c.height-22;
+  return [Math.max(20,Math.min(100,20+(mx-a.l)/(a.r-a.l)*80)),
+          Math.max(0,Math.min(100,(a.b-my)/(a.b-a.t)*100))];
+}
+function sistemaCurva(){
+  PUNTI.sort((p,q)=>p[0]-q[0]);
+  // non decrescente: un punto trascinato sotto il precedente e' quasi sempre
+  // uno scivolone del mouse, e vorrebbe dire raffreddare di meno scaldandosi
+  for(let i=1;i<PUNTI.length;i++) if(PUNTI[i][1]<PUNTI[i-1][1]) PUNTI[i][1]=PUNTI[i-1][1];
+  toccata=true; $("#salvato").textContent=sfT("v_changed")||"modificata, premi Applica";
+  document.querySelectorAll("#preset input").forEach(r=>r.checked=false);
+  disegnaCurva();
+}
+$("#curva").addEventListener("mousedown",e=>{
+  const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  const i=puntoVicino(mx,my);
+  if(e.button===2){ if(i>=0&&PUNTI.length>2){PUNTI.splice(i,1); sistemaCurva();} return; }
+  trascina=i;
+});
+$("#curva").addEventListener("contextmenu",e=>e.preventDefault());
+$("#curva").addEventListener("dblclick",e=>{
+  const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  if(puntoVicino(mx,my)>=0) return;
+  PUNTI.push(valCurva(mx,my).map((v,i)=>i?Math.round(v):Math.round(v*10)/10));
+  sistemaCurva();
+});
+window.addEventListener("mousemove",e=>{
+  if(trascina<0) return;
+  const c=$("#curva"), r=c.getBoundingClientRect();
+  let [t,y]=valCurva(e.clientX-r.left,e.clientY-r.top);
+  if(trascina>0) t=Math.max(t,PUNTI[trascina-1][0]+0.5);
+  if(trascina<PUNTI.length-1) t=Math.min(t,PUNTI[trascina+1][0]-0.5);
+  PUNTI[trascina]=[Math.round(t*10)/10,Math.round(y)];
+  disegnaCurva();
+});
+window.addEventListener("mouseup",()=>{ if(trascina>=0){trascina=-1; sistemaCurva();} });
+
+/* la barretta per spostare e l'angolo per ridimensionare */
+(function(){
+  const box=$("#curvabox"); let presa=null, tirata=null;
+  $("#curvabar").addEventListener("mousedown",e=>{
+    if(e.target.id==="chiudicurva") return;
+    presa={x:e.clientX-box.offsetLeft, y:e.clientY-box.offsetTop};
+  });
+  $("#tira").addEventListener("mousedown",e=>{
+    tirata={x:e.clientX,y:e.clientY,w:box.offsetWidth,h:box.offsetHeight}; e.stopPropagation();
+  });
+  window.addEventListener("mousemove",e=>{
+    const par=$("#area");
+    if(presa){
+      // sempre dentro ai bordi: un riquadro lasciato fuori non si riprende piu'
+      box.style.left=Math.max(0,Math.min(par.clientWidth-box.offsetWidth,e.clientX-presa.x))+"px";
+      box.style.top=Math.max(0,Math.min(par.clientHeight-box.offsetHeight,e.clientY-presa.y))+"px";
+    } else if(tirata){
+      box.style.width=Math.max(230,Math.min(par.clientWidth,tirata.w+e.clientX-tirata.x))+"px";
+      box.style.height=Math.max(150,Math.min(par.clientHeight,tirata.h+e.clientY-tirata.y))+"px";
+      disegnaCurva();
+    }
+  });
+  window.addEventListener("mouseup",()=>{presa=null;tirata=null;});
+  $("#chiudicurva").onclick=()=>{
+    const c=$("#curva"), t=$("#tira"), aperto=c.style.display!=="none";
+    c.style.display=aperto?"none":"block"; t.style.display=aperto?"none":"block";
+    box.style.height=aperto?"17px":"224px";
+    $("#chiudicurva").textContent=aperto?"▸":"▾";
+    if(!aperto) disegnaCurva();
+  };
+})();
+function posizionaCurva(){
+  const par=$("#area"), box=$("#curvabox");
+  if(box.dataset.mosso) return;
+  // di serie: l'angolo in basso a sinistra sull'origine degli assi del grafico
+  box.style.left="42px";
+  box.style.top=(par.clientHeight-24-box.offsetHeight)+"px";
+}
+
+/* ---------------- i riquadri che si aprono quando servono ---------------- */
+function apri(titolo, html){
+  $("#ovbx").innerHTML="<h3>"+titolo+"</h3>"+html+
+    '<div style="text-align:right;margin-top:12px"><button class="btn sec" onclick="chiudi()" data-i18n="close">Chiudi</button></div>';
+  sfApply($("#ovbx")); $("#ov").classList.add("on");
+}
+function chiudi(){ $("#ov").classList.remove("on"); }
+$("#ov").onclick=e=>{ if(e.target.id==="ov") chiudi(); };
+
+$("#bsorg").onclick=()=>{
+  const t=(S.stato&&S.stato.sensori||[]).filter(x=>x.type==="temp");
+  const sel=new Set(CONF.sorgente||[]);
+  apri(sfT("v_source")||"Sorgente",
+    '<p style="color:var(--muted);font-size:.85rem;margin-bottom:8px">'+
+    (sfT("v_source_h")||"La curva si legge su una temperatura sola. Sceglendone piu' d'una, comanda la piu' alta.")+'</p>'+
+    t.map(x=>'<div class="row"><label style="min-width:0;flex:1;color:var(--cream)">'+
+      '<input type="checkbox" class="srg" value="'+x.key+'"'+(sel.has(x.key)?" checked":"")+'/> '+
+      x.label+'</label><b style="color:var(--gold-lt)">'+fmt(x.value,"C")+'</b></div>').join(""));
+};
+$("#bant").onclick=()=>{
+  const p=CONF.predittivo||{};
+  apri(sfT("v_lead")||"Anticipo",
+    '<div class="row"><label>'+(sfT("v_on")||"Attivo")+'</label><input type="checkbox" id="pa"'+(p.attivo!==false?" checked":"")+'/></div>'+
+    '<div class="row"><label>'+(sfT("v_gain")||"Guadagno")+'</label><input type="number" id="pg" step="0.5" min="0" max="10" value="'+(p.guadagno!=null?p.guadagno:2.5)+'"/></div>'+
+    '<div class="row"><label>'+(sfT("v_window")||"Finestra")+'</label><input type="number" id="pf" min="2" max="30" value="'+(p.finestra||6)+'"/> s</div>'+
+    '<div class="row"><label>'+(sfT("v_precool")||"Pre-raffredda")+'</label><input type="number" id="pp" min="20" max="100" value="'+(p.preraffredda||55)+'"/> %</div>');
+};
+$("#bsic").onclick=()=>{
+  const pr=S.prova||{};
+  apri(sfT("v_safety")||"Sicurezza",
+    '<div class="row"><label>'+(sfT("v_min")||"Minimo")+'</label><input type="number" id="smin" min="20" max="100" value="'+(CONF.minimo||30)+'"/> %</div>'+
+    '<div class="row"><label>'+(sfT("v_hyst")||"Isteresi")+'</label><input type="number" id="sist" step="0.5" min="0" max="20" value="'+(CONF.isteresi!=null?CONF.isteresi:3)+'"/> °C</div>'+
+    '<div class="row"><label>'+(sfT("v_emerg")||"Emergenza")+'</label><input type="number" id="seme" step="0.5" min="60" max="105" value="'+(CONF.emergenza||88)+'"/> °C</div>'+
+    '<div class="row"><button class="btn sec" onclick="provaPwm()">Test PWM</button>'+
+    '<span id="pwmres" style="font-size:.84rem;color:'+(pr.risponde?"#8fbf6a":"#e0703a")+'">'+
+    (pr.quando?(pr.risponde?(sfT("v_pwm_ok")||"la ventola risponde ai comandi"):(sfT("v_pwm_no")||"la ventola NON risponde: il valore viene accettato e i giri non cambiano")):"")+
+    '</span></div>');
+};
+async function provaPwm(){
+  const f=(S.stato&&S.stato.sensori||[]).find(x=>x.type==="fan"&&x.value);
+  if(!f||!CONF.pwm){ toast(sfT("v_pwm_cant")||"serve un'uscita PWM e una ventola che dia i giri"); return; }
+  $("#pwmres").textContent=sfT("v_pwm_run")||"prova in corso, una trentina di secondi…";
+  const r=await api("/api/ventola/prova",{pwm:CONF.pwm,fan:f.key});
+  const ok=r.ok&&r.esito&&r.esito.risponde;
+  $("#pwmres").style.color=ok?"#8fbf6a":"#e0703a";
+  $("#pwmres").textContent=ok?(sfT("v_pwm_ok")||"la ventola risponde ai comandi")
+                             :(sfT("v_pwm_no")||"la ventola NON risponde");
+}
+
+/* ---------------- i preset: la curva cambia subito ---------------- */
+function rifaiPreset(){
+  const box=$("#preset"); box.innerHTML="";
+  for(const k of ["silenzioso","equilibrato","prestazioni","massimo"]){
+    const l=document.createElement("label");
+    l.innerHTML='<input type="radio" name="pset" value="'+k+'"'+(CONF.preset===k?" checked":"")+'/> '+
+                (sfT("v_p_"+k)||k);
+    l.querySelector("input").onchange=()=>{
+      // ⚠️ La curva si ridisegna SUBITO: il nome da solo non dice quanto sale la
+      // ventola ne' da che temperatura. Sulla macchina non cambia niente finche'
+      // non si preme Applica.
+      PUNTI=PRESET[k].map(p=>[...p]); disegnaCurva();
+      $("#salvato").textContent=(sfT("v_p_"+k)||k)+": "+(sfT("apply")||"Applica");
+      toccata=true;
+    };
+    box.appendChild(l);
+  }
+}
+
+/* ---------------- salvataggio ---------------- */
+$("#applica").onclick=async()=>{
+  const conf={attivo:$("#attivo").checked, curva:PUNTI,
+              preset:(document.querySelector("#preset input:checked")||{}).value||"personalizzata"};
+  const srg=[...document.querySelectorAll(".srg:checked")].map(x=>x.value);
+  if(srg.length) conf.sorgente=srg;
+  if($("#pa")) conf.predittivo={attivo:$("#pa").checked, guadagno:+$("#pg").value,
+                                finestra:+$("#pf").value, preraffredda:+$("#pp").value};
+  if($("#smin")) { conf.minimo=+$("#smin").value; conf.isteresi=+$("#sist").value; conf.emergenza=+$("#seme").value; }
+  const r=await api("/api/ventola/conf",conf);
+  toast(r.ok?(sfT("v_saved")||"applicata"):("Errore: "+(r.error||"?")));
+  if(r.ok){ toccata=false; $("#salvato").textContent=sfT("v_saved")||"applicata"; }
+};
+
+/* ---------------- il giro ---------------- */
+let timer=null;
+async function giro(){
+  const r=await api("/api/ventola");
+  if(!r.ok){ $("#motivo").textContent=sfT("v_nodaemon")||"il controllo ventola non sta girando"; return; }
+  S=r; CONF=r.conf||{};
+  const st=r.stato||{}, meta={};
+  for(const x of (st.sensori||[])) meta[x.key]=[x.label||x.key, x.unit||""];
+  meta["__ventola__"]=[sfT("v_fan")||"Ventola","%"];
+  meta["__temperatura__"]=[sfT("v_temp")||"Temperatura","C"];
+  let nuove=false;
+  for(const [k,h] of Object.entries(st.storia||{})){
+    const [et,u]=meta[k]||[k,""];
+    if(!SERIE[k]){ SERIE[k]={et:et,unita:u,p:[],on:["C","%","rpm","W"].includes(u),col:null};
+                   ORD.push(k); SERIE[k].col=colore(u); nuove=true; }
+    SERIE[k].et=et;
+    const t0=h.t0||0;
+    SERIE[k].p=(h.v||[]).map((v,i)=>[t0+i,v]).filter(p=>p[1]!==null);
+  }
+  if(nuove) rifaiTessere(); else aggiornaTessere();
+  if(!toccata){ PUNTI=(CONF.curva||PRESET.equilibrato).map(p=>[...p]); rifaiPreset(); }
+  $("#attivo").checked=!!CONF.attivo;
+  $("#live").textContent=(st.temperatura!=null?st.temperatura.toFixed(1)+" °C":"—")+"  ·  "+
+                         (st.duty!=null?Math.round(st.duty)+"%":"—");
+  const m=st.motivo||"";
+  $("#motivo").textContent= m.startsWith("emergency")?(sfT("v_emergency")||"EMERGENZA: al massimo")
+    : m.startsWith("anticipating")?(sfT("v_anticip")||"sta anticipando la salita")
+    : m.startsWith("pre-cooling")?(sfT("v_precooling")||"pre-raffredda")
+    : !st.in_controllo?(sfT("v_firmware")||"la ventola e' ancora del firmware")
+    : (sfT("v_curve_follow")||"segue la curva");
+  posizionaCurva(); disegna(); disegnaCurva();
+}
+function riavvia(){ if(timer) clearInterval(timer); timer=setInterval(giro,+$("#ogni").value); }
+$("#ogni").onchange=riavvia;
+window.addEventListener("resize",()=>{posizionaCurva();disegna();disegnaCurva();});
+giro(); riavvia();
+</script>
+</body></html>

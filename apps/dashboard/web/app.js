@@ -613,6 +613,26 @@ const RENDER = {
     card.querySelector("[data-fan]").onclick = () => action("/api/tuner/fan", { mode: "auto" }, T("c_fan") + ": " + T("c_auto"));
     card.querySelector("[data-fanmanual]").onclick = () => action("/api/tuner/fan", { mode: "manual", pct: +$("#fanp", card).value }, T("c_fan") + ": " + $("#fanp", card).value + "%");
   },
+  async ventola(card) {
+    // ⚠️ La scheda mostra i due numeri che si guardano e apre il modulo vero.
+    // Non rifà il controllo: quello è di skillfish-fand, e due controllori
+    // sullo stesso PWM li abbiamo già avuti una volta.
+    const nome = (typeof sfT === "function" ? sfT("v_fanmod") : "Ventola");
+    card.innerHTML = "<h3>🌀 " + nome + '</h3><div id="vk">…</div>';
+    let d = {};
+    try { d = await (await api("/api/ventola")).json(); } catch (e) {}
+    const s = d.stato || {};
+    const t = s.temperatura != null ? s.temperatura.toFixed(1) + " °C" : "—";
+    const p = s.duty != null ? Math.round(s.duty) + "%" : "—";
+    const g = (s.sensori || []).find(x => x.type === "fan" && x.value);
+    $("#vk", card).innerHTML =
+      '<div class="stub" style="margin-bottom:8px">' + t + "  ·  " + p +
+      (g ? "  ·  " + Math.round(g.value) + " rpm" : "") + "</div>" +
+      '<div class="brow"><button class="dbtn" id="openventola" style="border-color:var(--gold)">🌀 ' +
+      nome + "</button></div>";
+    $("#openventola", card).onclick =
+      () => openFrame("SkillFishOS Ventola", "/static/ventola.html");
+  },
   async hub(card) {
     card.innerHTML = "<h3>📦 " + (T("m_apps")) + '</h3><div id="hk">…</div>';
     let upd = ""; try { const u = await (await api("/api/hub/updates")).json(); upd = (u.count || 0) + " " + T("h_updates"); } catch (e) {}

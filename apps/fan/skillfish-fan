@@ -1350,6 +1350,11 @@ class Finestra(QMainWindow):
         lato.setWidgetResizable(True)
         lato.setFrameShape(QFrame.Shape.NoFrame)
         lato.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # ⚠️ Anche quella verticale sparisce: la rotellina continua a funzionare
+        # lo stesso, e una barra di scorrimento accanto ai numeri ruba spazio e
+        # attira l'occhio su niente. Stessa scelta della pagina web, cosi' le due
+        # si somigliano davvero invece che quasi.
+        lato.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         lato.setFixedWidth(LARGHEZZA_TESSERE)
         gabbia = QWidget()
         self.tessere_lato = QVBoxLayout(gabbia)
@@ -1996,6 +2001,13 @@ class Finestra(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("SkillFishOS Fan Control")
+    # ⚠️ SENZA QUESTA RIGA la barra delle applicazioni scrive «python3».
+    # KDE lega la finestra al file .desktop attraverso questo nome, e senza il
+    # legame ripiega sul nome dell'eseguibile — che per una applicazione Python
+    # e' l'interprete. Il suggerimento diceva «python3», e con lui se ne andava
+    # anche l'icona giusta. Le altre sette applicazioni ce l'avevano gia': era
+    # rimasta indietro solo questa.
+    app.setDesktopFileName("os.skillfish.fan")
     if os.path.exists(ICON):
         app.setWindowIcon(QIcon(ICON))
     f = Finestra()
