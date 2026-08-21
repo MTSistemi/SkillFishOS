@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS HUD</title>
+<!--
+  Il configuratore del HUD, dal web.
+
+  ⚠️ QUESTA PAGINA NON DISEGNA IL HUD. Il pannello lo disegna conky sulla
+  macchina e la configurazione la scrive skillfish-hud-config, che e' l'unico
+  posto che sa quali dati la scheda ha davvero e come diventano righe di conky.
+  Qui si sceglie e basta — esattamente come fa la finestra sulla scrivania.
+
+  ⚠️ E NON HA UN DIZIONARIO SUO. I testi sono gli stessi della finestra e stanno
+  gia' tradotti nel dizionario condiviso delle app: si leggono con sfC(), che
+  cerca per stringa INGLESE. Riscriverli qui sarebbe il terzo dizionario del
+  progetto, con le stesse frasi in tre posti che prima o poi divergono.
+
+  La disposizione e' quella della finestra, e non per gusto: chi impara una delle
+  due sa gia' usare l'altra.
+    a sinistra   le voci, con la spunta e trascinabili;
+    a destra     l'anteprima con i valori veri;
+    in basso     aspetto, interruttore e Applica.
+-->
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;--gold-lt:#e8c878;--copper:#b9722f;
+        --cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2);--fondo:#15110d}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);height:100vh;
+       display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  header b{color:var(--gold-lt);font-size:1.05rem}
+  .sp{flex:1}
+  .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;
+        padding:2px 10px;font-size:.78rem;color:var(--gold-lt)}
+  select,input[type=number]{background:#120e08;color:var(--cream);border:1px solid var(--line);
+        border-radius:8px;padding:5px 8px;font-size:.85rem}
+  .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;
+       padding:8px 15px;font-weight:700;cursor:pointer;font-size:.88rem}
+  .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
+  .btn.sec{background:linear-gradient(160deg,#241b10,#1a140b);color:var(--gold-lt);border:1px solid var(--line)}
+  main{flex:1;display:flex;gap:10px;padding:10px;min-height:0}
+  /* ⚠️ Scorre ma la barra non si vede: e' la scelta gia' fatta per la ventola,
+     e due moduli che scorrono in modo diverso si notano subito. */
+  .nobar{scrollbar-width:none;-ms-overflow-style:none}
+  .nobar::-webkit-scrollbar{display:none;width:0;height:0}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;
+       flex-direction:column;min-height:0}
+  .tit{color:var(--gold-lt);font-weight:700;font-size:.92rem;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  #voci{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+  .voce{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;
+        background:var(--panel2);cursor:grab;font-size:.88rem}
+  .voce.manca{color:#7a6c58}
+  .voce .perche{font-size:.72rem;color:#7a6c58;margin-left:auto}
+  .voce.drag{opacity:.4}
+  .anteprima{flex:1;display:flex;align-items:center;justify-content:center;background:var(--fondo);
+             border-radius:10px;overflow:hidden}
+  /* il riquadro finto: stesse proporzioni del HUD vero, non gli stessi pixel */
+  #hud{background:rgba(20,16,11,.92);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+       font-family:'DejaVu Sans Mono',monospace;line-height:1.45;color:var(--cream)}
+  #hud .nome{color:var(--gold-lt);font-weight:800}
+  #hud .k{color:var(--muted);display:inline-block;min-width:56px}
+  #hud .barre{color:var(--gold);letter-spacing:2px}
+  footer{border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  label{font-size:.82rem;color:var(--muted)}
+  .aiuto{width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:transparent;
+         color:var(--gold-lt);font-size:.7rem;cursor:pointer;line-height:1}
+  dialog{background:var(--panel);color:var(--cream);border:1px solid var(--line);border-radius:12px;
+         max-width:620px;padding:16px}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog h3{color:var(--gold-lt);margin-bottom:8px;font-size:1rem}
+  dialog p{white-space:pre-wrap;font-size:.86rem;line-height:1.5;color:#d9c8a8}
+  #stato{font-size:.8rem;color:var(--muted)}
+</style>
+</head><body>
+<header>
+  <b>🪟 SkillFishOS HUD</b>
+  <span class="pill" id="utente">—</span>
+  <span class="sp"></span>
+  <span id="stato"></span>
+</header>
+
+<main>
+  <div class="box" style="width:320px;flex:none">
+    <div class="tit"><span id="t_voci">What to show</span>
+      <button class="aiuto" id="a_voci">?</button></div>
+    <div id="voci" class="nobar"></div>
+  </div>
+  <div class="box" style="flex:1">
+    <div class="tit"><span id="t_ant">Preview</span>
+      <button class="aiuto" id="a_ant">?</button></div>
+    <div class="anteprima"><div id="hud"></div></div>
+  </div>
+</main>
+
+<footer>
+  <input type="checkbox" id="mostra"><label for="mostra" id="t_mostra">Show the HUD</label>
+  <button class="aiuto" id="a_mostra">?</button>
+  <span style="width:10px"></span>
+  <span id="t_asp" style="color:var(--gold-lt);font-weight:700;font-size:.85rem">Look</span>
+  <button class="aiuto" id="a_asp">?</button>
+  <select id="posizione"></select>
+  <label id="l_larg">Width</label><input type="number" id="larghezza" min="140" max="640" step="10" style="width:80px">
+  <label id="l_opac">Transparency</label><input type="number" id="opacita" min="0" max="255" step="5" style="width:70px">
+  <label id="l_font">Font</label><input type="number" id="font" min="6" max="18" style="width:60px">
+  <label id="l_int">Refresh</label><input type="number" id="intervallo" min="1" max="30" style="width:60px">
+  <span class="sp"></span>
+  <button class="btn sec" id="predef">Default</button>
+  <button class="btn" id="applica">Apply</button>
+</footer>
+
+<dialog id="dlg"><h3 id="dlg_t"></h3><p id="dlg_c"></p>
+  <div style="text-align:right;margin-top:12px"><button class="btn sec" id="dlg_x">×</button></div>
+</dialog>
+
+<script src="/static/i18n.js"></script>
+<script>
+// Le etichette delle voci: chiave del generatore -> stringa inglese, che e' la
+// chiave del dizionario condiviso. ⚠️ Le stesse della finestra, parola per
+// parola: se qui si scrivesse "CPU: frequency..." invece di "CPU: clock,
+// temperature, load" la traduzione non verrebbe trovata e uscirebbe l'inglese,
+// senza che niente segnali l'errore.
+const NOMI = {
+  titolo: "Name and clock", kernel: "Kernel version",
+  cpu: "CPU: clock, temperature, load", barre: "Thread bars",
+  gpu: "GPU: clock, temperature, load", gpubar: "GPU load bar",
+  volt: "GPU voltage and watts", vram: "Video memory", ram: "Memory",
+  fan: "Fans", disco: "Disk", rete: "Network", uptime: "Uptime",
+  bluetooth: "Bluetooth"
+};
+const POSNOMI = {
+  top_right: "top right", top_left: "top left", bottom_right: "bottom right",
+  bottom_left: "bottom left", middle_right: "right", middle_left: "left"
+};
+const AIUTO = {
+  voci: ["What to show",
+    "Tick what you want and drag to reorder: the HUD writes them one under the other, in this order.\n\n⚠️ An entry greyed out is not forbidden: it means this machine does not have that reading. Video memory does not exist on a laptop with integrated graphics; fans stay invisible until the Super-I/O driver is loaded. Choosing it does no harm — it simply will not be written.\n\n⚠️ Turn everything off and the name stays. A window with no text is one conky cannot measure, and it shrinks to a fifteen-pixel dot in a corner. That is the fault that had the HUD restricted to the BC-250 in the first place."],
+  mostra: ["Showing the HUD",
+    "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on."],
+  aspetto: ["How and where",
+    "• POSITION: which corner of the screen it hangs from.\n• WIDTH: how wide, in pixels. ⚠️ Narrow it and long lines get cut: the video memory line written out in full does not fit below 240 pixels, which is why it ships in short form.\n• TRANSPARENCY: 0 is invisible, 255 is solid.\n• FONT: the base size. The name and the kernel version scale with it.\n• REFRESH: how many seconds between readings. Below a second is current burnt for nothing: sensors do not change that fast."],
+  anteprima: ["The preview",
+    "It shows the entries you picked, in the order you picked, with this machine's real values read just now.\n\n⚠️ IT IS NOT CONKY. It is for deciding what goes in and in what order, not for counting pixels: fonts and spacing may come out slightly different. You see the real HUD by pressing Apply, which rewrites the configuration and restarts it."]
+};
+
+const $ = (s) => document.querySelector(s);
+let S = {};          // lo stato che arriva dal server
+let ordine = [];     // le chiavi, nell'ordine scelto
+let scelte = new Set();
+
+async function api(path, body) {
+  const o = body ? {method:"POST", headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify(body)} : {};
+  const r = await fetch(path, o);
+  if (r.status === 401) { location.href = "/"; return {}; }
+  return r.json();
+}
+
+function aiuto(chiave) {
+  const [t, c] = AIUTO[chiave];
+  $("#dlg_t").textContent = sfC(t);
+  $("#dlg_c").textContent = sfC(c);
+  $("#dlg").showModal();
+}
+
+function disegnaVoci() {
+  const cont = $("#voci"); cont.innerHTML = "";
+  ordine.forEach((k) => {
+    const ok = S.disponibili ? S.disponibili[k] !== false : true;
+    const d = document.createElement("div");
+    d.className = "voce" + (ok ? "" : " manca");
+    d.draggable = true; d.dataset.k = k;
+    d.innerHTML = '<input type="checkbox"' + (scelte.has(k) ? " checked" : "") + '>' +
+      "<span>" + sfC(NOMI[k] || k) + "</span>" +
+      (ok ? "" : '<span class="perche">' +
+        sfC("this machine does not provide this reading") + "</span>");
+    d.querySelector("input").onchange = (e) => {
+      if (e.target.checked) scelte.add(k); else scelte.delete(k);
+      anteprima();
+    };
+    d.ondragstart = (e) => { e.dataTransfer.setData("text/plain", k); d.classList.add("drag"); };
+    d.ondragend = () => d.classList.remove("drag");
+    d.ondragover = (e) => e.preventDefault();
+    d.ondrop = (e) => {
+      e.preventDefault();
+      const da = e.dataTransfer.getData("text/plain");
+      if (!da || da === k) return;
+      ordine.splice(ordine.indexOf(da), 1);
+      ordine.splice(ordine.indexOf(k), 0, da);
+      disegnaVoci(); anteprima();
+    };
+    cont.appendChild(d);
+  });
+}
+
+function riga(chiave, valore) {
+  return '<div><span class="k">' + chiave + "</span>" + valore + "</div>";
+}
+
+function anteprima() {
+  const d = S.dati || {};
+  const h = $("#hud");
+  h.style.width = ($("#larghezza").value || 240) + "px";
+  h.style.fontSize = (($("#font").value || 9) * 1.35) + "px";
+  h.style.opacity = Math.max(0.25, ($("#opacita").value || 165) / 255);
+  const out = [];
+  ordine.filter((k) => scelte.has(k)).forEach((k) => {
+    if (k === "titolo") out.push('<div class="nome">SkillFish<span style="color:var(--cream)">OS</span></div>');
+    else if (k === "kernel") out.push('<div style="color:var(--muted)">' + (d.kernel || "—") + "</div>");
+    else if (k === "cpu") out.push(riga("CPU", (d.cpu_mhz_g || "—") + " GHz  " +
+        (d.cpu_temp || "—") + "°C  " + (d.cpu_use || "0") + "%"));
+    else if (k === "barre") out.push('<div class="barre">' +
+        "▭".repeat(Math.min(16, d.thread || 8)) + "</div>");
+    else if (k === "gpu") out.push(riga("GPU", (d.gpu_freq || "—") + "  " +
+        (d.gpu_temp || "—") + "°C  " + (d.gpu_util || "0") + "%"));
+    else if (k === "gpubar") out.push('<div class="barre">' + "▬".repeat(10) + "</div>");
+    else if (k === "volt") out.push(riga("VDD", (d.gpu_mv || "—") + " mV   " +
+        (d.gpu_power || "—") + " W"));
+    else if (k === "vram") out.push(riga("VRAM", (d.vram || "—") + " / " + (d.vram_tot || "—")));
+    else if (k === "ram") out.push(riga("RAM", d.ram || "—"));
+    else if (k === "fan") out.push(riga("FAN", (d.fan || d.fan_all || "—")));
+    else if (k === "disco") out.push(riga("DISK", d.disco || "—"));
+    else if (k === "rete") out.push(riga("NET", d.rete || "—"));
+    else if (k === "uptime") out.push(riga("UP", d.uptime || "—"));
+    else if (k === "bluetooth") out.push('<div style="color:var(--gold)">— Bluetooth —</div>');
+  });
+  // ⚠️ Con tutto spento resta comunque il nome: e' cosi' anche nel HUD vero,
+  // perche' una finestra senza testo conky non riesce a misurarla e la riduce a
+  // un puntino in un angolo.
+  h.innerHTML = out.length ? out.join("")
+    : '<div class="nome">SkillFish<span style="color:var(--cream)">OS</span></div>';
+}
+
+function daPref(p) {
+  const voci = (p && p.voci) ? p.voci : (S.predefinito || []);
+  scelte = new Set(voci);
+  ordine = voci.concat((S.voci || []).filter((k) => voci.indexOf(k) < 0));
+  $("#posizione").value = (p && p.posizione) || "top_right";
+  $("#larghezza").value = (p && p.larghezza) || 240;
+  $("#opacita").value = (p && p.opacita !== undefined) ? p.opacita : 165;
+  $("#font").value = (p && p.font) || 9;
+  $("#intervallo").value = (p && p.intervallo) || 2;
+  $("#mostra").checked = S.acceso !== false;
+  disegnaVoci(); anteprima();
+}
+
+async function carica() {
+  await sfCarica();
+  ["t_voci:What to show", "t_ant:Preview", "t_mostra:Show the HUD", "t_asp:Look",
+   "l_larg:Width", "l_opac:Transparency", "l_font:Font", "l_int:Refresh"]
+    .forEach((v) => { const [id, en] = v.split(":"); $("#" + id).textContent = sfC(en); });
+  $("#predef").textContent = sfC("Default");
+  $("#applica").textContent = sfC("Apply");
+  S = await api("/api/hud");
+  if (!S.ok) { $("#stato").textContent = S.errore || sfC("Error"); return; }
+  $("#utente").textContent = S.utente || "—";
+  $("#posizione").innerHTML = (S.posizioni || []).map(
+    (p) => '<option value="' + p + '">' + sfC(POSNOMI[p] || p) + "</option>").join("");
+  daPref(S.pref);
+}
+
+$("#a_voci").onclick = () => aiuto("voci");
+$("#a_ant").onclick = () => aiuto("anteprima");
+$("#a_mostra").onclick = () => aiuto("mostra");
+$("#a_asp").onclick = () => aiuto("aspetto");
+$("#dlg_x").onclick = () => $("#dlg").close();
+["larghezza", "opacita", "font"].forEach((id) => { $("#" + id).oninput = anteprima; });
+
+$("#predef").onclick = () => { S.pref = null; daPref(null); };
+
+$("#applica").onclick = async () => {
+  $("#applica").disabled = true;
+  $("#stato").textContent = "…";
+  const r = await api("/api/hud/conf", {pref: {
+    mostra: $("#mostra").checked,
+    voci: ordine.filter((k) => scelte.has(k)),
+    posizione: $("#posizione").value,
+    larghezza: +$("#larghezza").value,
+    opacita: +$("#opacita").value,
+    font: +$("#font").value,
+    intervallo: +$("#intervallo").value
+  }});
+  $("#applica").disabled = false;
+  $("#stato").textContent = r.ok
+    ? ($("#mostra").checked ? sfC("applied") : sfC("HUD off"))
+    : (r.errore || sfC("Error"));
+};
+
+carica();
+</script>
+</body></html>

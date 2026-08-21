@@ -633,6 +633,23 @@ const RENDER = {
     $("#openventola", card).onclick =
       () => openFrame("SkillFishOS Ventola", "/static/ventola.html");
   },
+  async hud(card) {
+    // ⚠️ La scheda non configura niente: dice se il pannello e' acceso, di chi
+    // e' e quante voci mostra, e apre il modulo. Il HUD appartiene all'utente
+    // del desktop — non a chi e' collegato da qui — ed e' giusto vederlo.
+    card.innerHTML = '<h3>🪟 HUD</h3><div id="hdk">…</div>';
+    let d = {};
+    try { d = await (await api("/api/hud")).json(); } catch (e) {}
+    const scelte = (d.pref && d.pref.voci) ? d.pref.voci.length : 0;
+    const tutte = (d.voci || []).length;
+    $("#hdk", card).innerHTML =
+      '<div class="stub" style="margin-bottom:8px">' +
+      (d.acceso ? "● " : "○ ") + (d.utente || "—") +
+      "  ·  " + scelte + "/" + tutte + "</div>" +
+      '<div class="brow"><button class="dbtn" id="openhud" style="border-color:var(--gold)">🪟 HUD</button></div>';
+    $("#openhud", card).onclick =
+      () => openFrame("SkillFishOS HUD", "/static/hud.html");
+  },
   async hub(card) {
     card.innerHTML = "<h3>📦 " + (T("m_apps")) + '</h3><div id="hk">…</div>';
     let upd = ""; try { const u = await (await api("/api/hub/updates")).json(); upd = (u.count || 0) + " " + T("h_updates"); } catch (e) {}

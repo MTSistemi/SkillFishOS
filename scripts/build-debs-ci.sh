@@ -142,7 +142,7 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/
 put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/skillfish-cu.service
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Tuner - BC-250 hardware control GUI"
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base" "SkillFishOS Tuner - BC-250 hardware control GUI"
 # ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
@@ -354,6 +354,10 @@ put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bi
 # app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
 # restano dentro le app, dove hanno le sfumature per contesto.
 put $P 0644 system/usr/share/skillfish/i18n.py                       usr/share/skillfish/i18n.py
+# I dati del HUD, condivisi fra la finestra e il Remote Manager: sta qui per
+# lo stesso motivo di i18n.py, ed e' per questo che i due pacchetti che lo
+# usano dipendono da skillfish-base.
+put $P 0644 system/usr/share/skillfish/hud_dati.py                   usr/share/skillfish/hud_dati.py
 # Il pallino «?» condiviso: le spiegazioni stanno dietro, non nella pagina.
 # Sta accanto a i18n.py perche' e' la stessa cosa — un modulo che tutte le
 # applicazioni importano da /usr/share/skillfish.
@@ -625,6 +629,7 @@ put $P 0644 apps/dashboard/web/i18n.js     usr/share/skillfish/dashboard/i18n.js
 put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.html
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
+put $P 0644 apps/dashboard/web/hud.html    usr/share/skillfish/dashboard/hud.html
 # Il modulo Ventola del Remote Manager. ⚠️ Non rifa' il controllo: legge
 # quello che skillfish-fand pubblica e scrive dal suo helper. Due controllori
 # sullo stesso PWM li abbiamo gia' avuti una volta, e si vedeva.
@@ -651,7 +656,7 @@ Package: skillfish-dashboard
 Version: $VER
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1
+Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
 Recommends: ttyd, novnc, websockify, x11vnc, ethtool, wakeonlan, flatpak, snapd
 Suggests: zerotier-one, docker.io
 Section: utils
@@ -1284,5 +1289,19 @@ check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def firmware"
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-notify "notify-send"
 check skillfish-hub_${VER}_all.deb ./etc/systemd/system/skillfish-hub-refresh.timer "OnCalendar=daily"
 check skillfish-hub_${VER}_all.deb ./usr/lib/systemd/user/skillfish-hub-notify.timer "OnUnitActiveSec"
+
+
+# IL CONFIGURATORE DEL HUD, ANCHE DAL WEB.
+# ⚠️ La finestra e la pagina devono dire la STESSA cosa su quali voci la
+# macchina puo' dare: la logica sta in hud_dati.py e le due strade la
+# importano. Se qualcuno ne rimettesse una copia dentro all'applicazione,
+# al primo sensore nuovo le due direbbero cose diverse.
+check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/hud_dati.py 'def disponibili'
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-editor 'import hud_dati'
+check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd 'import hud_dati'
+check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hud.html 'api/hud/conf'
+# ⚠️ Il HUD e' dell'utente del desktop: il demone gira da root e se scrivesse
+# nella home di root non cambierebbe niente sullo schermo di nessuno.
+check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd 'def hud_utente'
 
 echo "ALL DEBS VERIFIED"

@@ -27,6 +27,7 @@ MODULE_META = {
     "status":     {"icon": "🧊", "name": "Stato sistema",   "name_en": "System status"},
     "tuner":      {"icon": "🎛️", "name": "Controlli",       "name_en": "Controls"},
     "ventola":    {"icon": "🌀", "name": "Ventola",         "name_en": "Fan"},
+    "hud":        {"icon": "🪟", "name": "HUD",             "name_en": "HUD"},
     "hub":        {"icon": "📦", "name": "App e pacchetti", "name_en": "Apps & packages"},
     "logs":       {"icon": "📜", "name": "Log",             "name_en": "Logs"},
     "launcher":   {"icon": "🚀", "name": "Avvio app",       "name_en": "Launcher"},
@@ -1566,6 +1567,248 @@ def zt_leave(nwid):
 CONFIG = load_conf()
 _login_fails = {}  # ip -> (count, first_ts)
 
+# ============================ IL HUD ============================
+# Il configuratore del pannello sulla scrivania, servito da qui.
+#
+# ⚠️ IL HUD E' DELL'UTENTE, NON DI ROOT.
+# Le preferenze stanno in ~/.config/skillfish/hud.json e conky gira dentro alla
+# sessione grafica. Questo demone gira da root e una sessione grafica non ce
+# l'ha: scrivere nella home di root vorrebbe dire salvare in un posto che non
+# guarda nessuno, e il pannello non cambierebbe mai. Percio' qui si cerca chi ha
+# davvero il desktop, si scrive nella SUA home lasciandogli i file, e conky lo si
+# riavvia nel SUO ambiente.
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    import hud_dati
+except ImportError:      # senza il modulo la pagina si spegne, il resto vive
+    hud_dati = None
+
+HUD_GEN = "/usr/local/bin/skillfish-hud-config"
+HUD_AVVIO = "/usr/local/bin/skillfish-hud"
+
+
+def hud_utente():
+    u"""Chi ha il desktop su questa macchina.
+
+    Tre tentativi, dal piu' attendibile al piu' probabile: la sessione grafica
+    secondo systemd, chi fa girare conky adesso, e infine il primo utente vero.
+    ⚠️ Nessuno di questi e' root: se il risultato fosse root avremmo scritto in
+    una home senza schermo davanti.
+    """
+    try:
+        p = subprocess.run(["loginctl", "list-sessions", "--no-legend"],
+                           capture_output=True, text=True, timeout=6)
+        for riga in (p.stdout or "").splitlines():
+            campi = riga.split()
+            if len(campi) >= 3 and campi[2] != "root":
+                if len(campi) < 4 or campi[3].startswith("seat"):
+                    return campi[2]
+    except Exception:
+        pass
+    try:
+        p = subprocess.run(["ps", "-eo", "user,comm"], capture_output=True,
+                           text=True, timeout=6)
+        for riga in (p.stdout or "").splitlines():
+            campi = riga.split()
+            if len(campi) == 2 and campi[1] == "conky" and campi[0] != "root":
+                return campi[0]
+    except Exception:
+        pass
+    try:
+        import pwd as _pwd
+        return _pwd.getpwuid(1000).pw_name
+    except Exception:
+        return ""
+
+
+def hud_ambiente(utente):
+    u"""DISPLAY e bus della sessione, presi da un processo che ci gira dentro.
+
+    ⚠️ Non si inventano: DISPLAY=:0 e' vero quasi sempre e «quasi» qui non basta
+    (Wayland, un secondo schermo, un utente entrato due volte). Si legge
+    l'ambiente di un processo della sessione, che quei valori li ha per forza
+    giusti — e se non c'e' nessun processo, non c'e' nessuna sessione da
+    aggiornare.
+    """
+    fuori = {}
+    try:
+        p = subprocess.run(["pgrep", "-u", utente, "-x", "plasmashell"],
+                           capture_output=True, text=True, timeout=6)
+        pid = (p.stdout or "").split()
+        if not pid:
+            p = subprocess.run(["pgrep", "-u", utente, "-x", "conky"],
+                               capture_output=True, text=True, timeout=6)
+            pid = (p.stdout or "").split()
+        if not pid:
+            return fuori
+        with open("/proc/%s/environ" % pid[0], "rb") as f:
+            for voce in f.read().split(b"\0"):
+                if b"=" not in voce:
+                    continue
+                k, v = voce.decode("utf-8", "replace").split("=", 1)
+                if k in ("DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR",
+                         "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY"):
+                    fuori[k] = v
+    except Exception:
+        pass
+    return fuori
+
+
+def hud_come_utente(utente, argv, ambiente=None, aspetta=True):
+    u"""Esegue qualcosa come l'utente del desktop, nel suo ambiente.
+
+    ⚠️ `aspetta=False` per cio' che NON finisce. Il HUD e' conky, e conky
+    resta li' finche' non lo si spegne: aspettarlo voleva dire restare
+    appesi fino al tempo massimo e poi ucciderlo. Il risultato era un
+    pannello che spariva e non tornava piu', dopo aver risposto che era
+    andato tutto bene.
+    """
+    import pwd as _pwd
+    try:
+        u = _pwd.getpwnam(utente)
+    except KeyError:
+        return 1, "utente sconosciuto: %s" % utente
+    env = {"HOME": u.pw_dir, "USER": utente, "LOGNAME": utente,
+           "PATH": "/usr/local/bin:/usr/bin:/bin",
+           "LANG": os.environ.get("LANG", "C.UTF-8")}
+    env.update(ambiente or {})
+
+    def diventa():
+        os.setgid(u.pw_gid)
+        try:
+            os.initgroups(utente, u.pw_gid)
+        except Exception:
+            pass
+        os.setuid(u.pw_uid)
+
+    if not aspetta:
+        try:
+            subprocess.Popen(argv, preexec_fn=diventa, env=env, cwd=u.pw_dir,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             stdin=subprocess.DEVNULL, start_new_session=True)
+            return 0, ""
+        except Exception as e:
+            return 1, str(e)
+    try:
+        p = subprocess.run(argv, preexec_fn=diventa, env=env, cwd=u.pw_dir,
+                           capture_output=True, text=True, timeout=90)
+        return p.returncode, ((p.stdout or "") + (p.stderr or "")).strip()
+    except Exception as e:
+        return 1, str(e)
+
+
+def hud_stato():
+    u"""Tutto quello che serve alla pagina: scelte, disponibilita', valori."""
+    if hud_dati is None:
+        return {"ok": False, "errore": "manca /usr/share/skillfish/hud_dati.py"}
+    utente = hud_utente()
+    if not utente:
+        return {"ok": False, "errore": "nessun utente con il desktop"}
+    import pwd as _pwd
+    try:
+        home = _pwd.getpwnam(utente).pw_dir
+    except KeyError:
+        return {"ok": False, "errore": "utente sconosciuto: %s" % utente}
+    d = hud_dati.dati()
+    pref = hud_dati.leggi_pref(hud_dati.percorso_pref(home))
+    return {
+        "ok": True,
+        "utente": utente,
+        "voci": hud_dati.CHIAVI,
+        "predefinito": hud_dati.ORDINE_PREDEFINITO,
+        "posizioni": hud_dati.POSIZIONI,
+        "disponibili": hud_dati.disponibili(d),
+        "dati": dict((k, v) for k, v in d.items() if not isinstance(v, bool)),
+        "gpu_util_c_e": bool(d.get("gpu_util_c_e")),
+        "bluetooth_c_e": bool(d.get("bluetooth")),
+        "pref": hud_dati.normalizza(pref) if pref else {},
+        "acceso": hud_dati.acceso(hud_dati.percorso_autostart(home)),
+        "conky": bool(subprocess.run(["pgrep", "-u", utente, "-x", "conky"],
+                                     capture_output=True).returncode == 0),
+    }
+
+
+def hud_accendi(utente, home, acceso):
+    u"""Scrive l'avvio automatico e fa partire o fermare conky ADESSO.
+
+    ⚠️ Sono due cose separate. Spegnere senza fermarlo lascia il HUD a schermo
+    fino al riavvio; fermarlo senza scrivere lo fa tornare da solo domani. Farne
+    una sola e' sbagliato in tutti e due i modi.
+    """
+    auto = hud_dati.percorso_autostart(home)
+    skel = "/etc/skel/.config/autostart/skillfish-conky.desktop"
+    cartella = os.path.dirname(auto)
+    if not os.path.isdir(cartella):
+        hud_come_utente(utente, ["mkdir", "-p", cartella])
+    if not os.path.exists(auto) and os.path.exists(skel):
+        # ⚠️ Si ricopia da /etc/skel invece di riscriverlo: quel file ha dentro
+        # una lezione (il percorso assoluto senza virgolette, perche' KDE
+        # trasforma l'avvio automatico in un servizio systemd e li' $HOME resta
+        # letterale) e riscriverlo a mano la perderebbe.
+        hud_come_utente(utente, ["cp", skel, auto])
+    try:
+        with open(auto, encoding="utf-8") as f:
+            righe = [r for r in f.read().split("\n")
+                     if not r.lower().startswith("hidden=")]
+    except (IOError, OSError):
+        righe = []
+    if righe:
+        if not acceso:
+            righe.append("Hidden=true")
+        testo = "\n".join(righe).rstrip() + "\n"
+        try:
+            with open(auto, "w", encoding="utf-8") as f:
+                f.write(testo)
+            import pwd as _pwd
+            u = _pwd.getpwnam(utente)
+            os.chown(auto, u.pw_uid, u.pw_gid)
+        except (IOError, OSError, KeyError):
+            pass
+    subprocess.run(["pkill", "-u", utente, "-x", "conky"], capture_output=True)
+    if acceso:
+        amb = hud_ambiente(utente)
+        if amb:
+            hud_come_utente(utente, [HUD_AVVIO], amb, aspetta=False)
+
+
+def hud_scrivi(pref_in):
+    u"""Salva le scelte, rigenera la configurazione, riavvia il pannello."""
+    if hud_dati is None:
+        return {"ok": False, "errore": "manca hud_dati.py"}
+    utente = hud_utente()
+    if not utente:
+        return {"ok": False, "errore": "nessun utente con il desktop"}
+    import pwd as _pwd
+    try:
+        u = _pwd.getpwnam(utente)
+    except KeyError:
+        return {"ok": False, "errore": "utente sconosciuto: %s" % utente}
+    pref = hud_dati.normalizza(pref_in or {})
+    percorso = hud_dati.percorso_pref(u.pw_dir)
+    cartella = os.path.dirname(percorso)
+    try:
+        if not os.path.isdir(cartella):
+            os.makedirs(cartella)
+            os.chown(cartella, u.pw_uid, u.pw_gid)
+        tmp = percorso + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(json.dumps(pref, indent=2, ensure_ascii=False, sort_keys=True))
+        os.rename(tmp, percorso)
+        # ⚠️ I file restano dell'UTENTE: scritti da root resterebbero di root, e
+        # la finestra sulla scrivania — che gira da lui — non potrebbe piu'
+        # salvare. Da remoto sembrerebbe tutto a posto e in locale sarebbe rotto.
+        os.chown(percorso, u.pw_uid, u.pw_gid)
+    except (IOError, OSError) as e:
+        return {"ok": False, "errore": str(e)}
+    # la configurazione la scrive skillfish-hud-config, che e' l'unico posto che
+    # sa quali dati la macchina ha davvero e come diventano righe di conky
+    rc, uscita = hud_come_utente(utente, [HUD_GEN])
+    if rc != 0:
+        return {"ok": False, "errore": uscita[:400] or "skillfish-hud-config ha fallito"}
+    hud_accendi(utente, u.pw_dir, pref["mostra"])
+    return {"ok": True, "pref": pref, "utente": utente}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "SkillFishRemote/1.0"
     protocol_version = "HTTP/1.1"
@@ -1752,6 +1995,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
+        if path == "/api/hud":
+            if not self._guard("hud"):
+                return
+            return self._json(200, hud_stato())
         if path == "/api/ventola":
             if not self._guard("ventola"):
                 return
@@ -1889,6 +2136,24 @@ class Handler(BaseHTTPRequestHandler):
             if "cores" in data:
                 return self._json(200, tuner_cmd([{"cmd": "cpu-cores-set", "cores": data["cores"]}]))
             return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
+        if path == "/api/hud/conf":
+            if not self._guard("hud"):
+                return
+            return self._json(200, hud_scrivi(data.get("pref") or data))
+        if path == "/api/hud/mostra":
+            if not self._guard("hud"):
+                return
+            # ⚠️ Il solo interruttore non tocca le scelte: chi spegne il HUD
+            # vuole ritrovare le sue voci quando lo riaccende, non un HUD
+            # vuoto o quello di serie.
+            s = hud_stato()
+            if not s.get("ok"):
+                return self._json(200, s)
+            pref = s.get("pref") or {}
+            pref["mostra"] = bool(data.get("mostra", True))
+            if not pref.get("voci"):
+                pref["voci"] = list(hud_dati.ORDINE_PREDEFINITO)
+            return self._json(200, hud_scrivi(pref))
         if path == "/api/ventola/conf":
             if not self._guard("ventola"):
                 return

@@ -43,6 +43,14 @@ PREF = os.path.expanduser("~/.config/skillfish/hud.json")
 AUTO = os.path.expanduser("~/.config/autostart/skillfish-conky.desktop")
 AUTO_SKEL = "/etc/skel/.config/autostart/skillfish-conky.desktop"
 
+# ⚠️ I DATI E LA DISPONIBILITA' NON SI CALCOLANO QUI.
+# Stanno in /usr/share/skillfish/hud_dati.py, che usa anche il Remote
+# Manager per servire lo stesso configuratore da remoto. Se ognuno dei due
+# se li calcolasse per conto suo, al primo sensore nuovo uno direbbe di si'
+# e l'altro di no — e l'utente non avrebbe modo di sapere quale ha ragione.
+sys.path.insert(0, "/usr/share/skillfish")
+import hud_dati
+
 
 # ---------- i18n ----------
 def _detect_lang():
@@ -196,29 +204,8 @@ POSIZIONI = [("top_right", L("in alto a destra", "top right")),
              ("middle_left", L("a sinistra", "left"))]
 
 
-def val(chiave):
-    try:
-        p = subprocess.run([VAL, chiave], capture_output=True, text=True, timeout=6)
-        v = (p.stdout or "").strip()
-        return v if v and v not in ("?", "0") else ""
-    except Exception:
-        return ""
-
-
-def c_e_util():
-    u"""Il carico della GPU esiste come DATO anche quando vale zero.
-
-    ⚠️ `val()` scarta lo zero, perche' per quasi tutte le chiavi zero vuol dire
-    «non lo so». Per il carico no: una macchina ferma sta davvero allo zero per
-    cento. Guardando il valore, l'anteprima nascondeva la barra della GPU su una
-    scheda a riposo mentre il HUD vero la mostrava — cioe' l'anteprima diceva
-    una cosa e lo schermo un'altra, che e' il difetto peggiore che possa avere
-    un'anteprima. Si guarda la FONTE, esattamente come fa skillfish-hud-config.
-    """
-    if os.path.exists("/run/skillfish-gpu-util"):
-        return True
-    import glob
-    return bool(glob.glob("/sys/class/drm/card[0-9]/device/gpu_busy_percent"))
+val = hud_dati.val
+c_e_util = hud_dati.c_e_util
 
 
 def leggi_pref():
@@ -604,56 +591,7 @@ class Finestra(QMainWindow):
 
     # ------------------------------------------------------------------ dati
     def aggiorna_dati(self):
-        d = {}
-        for k in ("kernel", "cpu_temp", "gpu_freq", "gpu_temp", "gpu_util",
-                  "gpu_mv", "gpu_power", "vram", "vram_tot", "fan", "fan_all"):
-            v = val(k)
-            if v:
-                d[k] = v
-        try:
-            with io.open("/proc/cpuinfo", encoding="utf-8") as f:
-                mhz = [float(r.split(":")[1]) for r in f if r.startswith("cpu MHz")]
-            d["cpu_mhz_g"] = "%.2f" % (max(mhz) / 1000.0) if mhz else "—"
-            d["thread"] = len(mhz) or os.cpu_count() or 8
-        except Exception:
-            d["thread"] = os.cpu_count() or 8
-        try:
-            with io.open("/proc/loadavg", encoding="utf-8") as f:
-                carico = float(f.read().split()[0])
-            d["cpu_use"] = "%d" % min(100, carico / max(1, d["thread"]) * 100)
-        except Exception:
-            pass
-        try:
-            with io.open("/proc/meminfo", encoding="utf-8") as f:
-                m = {}
-                for r in f:
-                    p = r.split()
-                    if p[0][:-1] in ("MemTotal", "MemAvailable"):
-                        m[p[0][:-1]] = int(p[1])
-            tot, disp = m.get("MemTotal", 0), m.get("MemAvailable", 0)
-            if tot:
-                d["ram"] = "%.1f / %.1f GiB   %d%%" % ((tot - disp) / 1048576.0,
-                                                       tot / 1048576.0,
-                                                       (tot - disp) * 100 // tot)
-        except Exception:
-            pass
-        try:
-            s = os.statvfs("/")
-            usati = (s.f_blocks - s.f_bfree) * s.f_frsize / 1073741824.0
-            tot = s.f_blocks * s.f_frsize / 1073741824.0
-            d["disco"] = "%.0f / %.0f GiB   %d%%" % (usati, tot, usati * 100 // max(1, tot))
-        except Exception:
-            pass
-        try:
-            with io.open("/proc/uptime", encoding="utf-8") as f:
-                sec = float(f.read().split()[0])
-            d["uptime"] = "%dg %dh" % (sec // 86400, (sec % 86400) // 3600)
-        except Exception:
-            pass
-        d["gpu_util_c_e"] = c_e_util()
-        d["rete"] = "0,0 ↓  0,0 ↑" if os.path.isdir("/sys/class/net") else ""
-        d["bluetooth"] = bool(os.path.isdir("/sys/class/bluetooth")
-                              and os.listdir("/sys/class/bluetooth"))
+        d = hud_dati.dati()
         self.anteprima.dati = d
         self.segna_disponibili()
         self.ridisegna()
@@ -670,16 +608,7 @@ class Finestra(QMainWindow):
         d = self.anteprima.dati
         motivo = L("questa macchina non dà questo dato",
                    "this machine does not provide this reading")
-        c_e = {
-            "kernel": bool(d.get("kernel")),
-            "gpu": bool(d.get("gpu_freq") or d.get("gpu_temp") or d.get("gpu_util_c_e")),
-            "gpubar": bool(d.get("gpu_util_c_e")),
-            "volt": bool(d.get("gpu_mv") or d.get("gpu_power")),
-            "vram": bool(d.get("vram") or d.get("vram_tot")),
-            "fan": bool(d.get("fan") or d.get("fan_all")),
-            "rete": bool(d.get("rete")),
-            "bluetooth": bool(d.get("bluetooth")),
-        }
+        c_e = hud_dati.disponibili(d)
         for i in range(self.elenco.count()):
             it = self.elenco.item(i)
             k = it.data(Qt.ItemDataRole.UserRole)
