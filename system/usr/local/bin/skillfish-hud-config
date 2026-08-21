@@ -1,5 +1,6 @@
 #!/bin/bash
-# Genera la configurazione del HUD dai sensori che questa macchina ha davvero.
+# Genera la configurazione del HUD dai sensori che questa macchina ha davvero,
+# e nell'ordine che ha scelto chi lo usa.
 #
 # PERCHE' ESISTE
 # La configurazione di conky era scritta a mano sulla BC-250: 16 barre perche'
@@ -15,6 +16,21 @@
 # BC-250 esce esattamente il HUD di prima; su un portatile Intel escono CPU,
 # RAM e disco; su un PC con scheda NVIDIA esce anche la temperatura della GPU.
 #
+# LE PREFERENZE (novita' del 21/08/2026)
+# Che cosa mostrare, in che ordine, dove e quanto grande lo decide chi usa la
+# macchina, con SkillFishOS HUD. Le scelte stanno in ~/.config/skillfish/hud.json
+# e questo script le legge.
+#
+# ⚠️ SENZA QUEL FILE NON CAMBIA NIENTE. L'ordine predefinito e i valori
+# predefiniti sono esattamente quelli di prima, byte per byte: chi ha gia' il
+# HUD sulla scheda non deve accorgersi che e' cambiato qualcosa finche' non
+# apre l'applicazione e sceglie.
+#
+# ⚠️ E le preferenze non possono far sparire il HUD. Un blocco scelto ma senza
+# dati non viene scritto (e' il motivo per cui questo script esiste), e se
+# l'utente li spegne TUTTI si rimette almeno il titolo: una finestra senza testo
+# e' la finestra da 15x15 pixel da cui siamo partiti.
+#
 #   uso:  skillfish-hud-config [percorso]     (default: ~/.config/conky/skillfish.conf)
 set -u
 
@@ -28,10 +44,49 @@ set -u
 # aggiornata: la riga della versione del kernel, aggiunta il 18/08, non
 # compariva a chi aveva gia il HUD in funzione. Misurato sulla BC-250, che
 # aveva ancora la configurazione del 9 agosto.
-VERSIONE=8
+#
+# ⚠️ Da 9 in poi la versione dipende ANCHE dalle preferenze: due macchine con
+# lo stesso hardware possono volere HUD diversi, quindi il confronto da solo
+# non basta piu' e skillfish-hud guarda anche la data del file delle scelte.
+VERSIONE=9
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
+PREF="${SKILLFISH_HUD_PREF:-$HOME/.config/skillfish/hud.json}"
 [ -x "$VAL" ] || { echo "manca $VAL" >&2; exit 1; }
+
+# --- le preferenze -----------------------------------------------------------
+# Si leggono con python3, che c'e' sempre (lo vogliono tutte le nostre app), e
+# senza fidarsi: un file rotto o scritto a mano non deve impedire al HUD di
+# partire, quindi ogni lettura ha il suo valore di ripiego.
+pref(){ python3 - "$PREF" "$1" "$2" <<'PY' 2>/dev/null || printf '%s' "$2"
+import io, json, sys
+percorso, chiave, ripiego = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with io.open(percorso, encoding="utf-8") as f:
+        d = json.load(f)
+    v = d.get(chiave, ripiego)
+    if isinstance(v, list):
+        v = " ".join(str(x) for x in v)
+    sys.stdout.write(str(v))
+except Exception:
+    sys.stdout.write(ripiego)
+PY
+}
+
+ORDINE_PREDEFINITO="titolo kernel cpu barre gpu gpubar volt vram ram fan disco bluetooth"
+# ⚠️ «nessuna preferenza» e «ho scelto di non mostrare niente» sono due cose
+# diverse, e trattarle uguali dava il risultato peggiore: chi spegneva tutte le
+# voci si ritrovava il HUD completo, cioe' l'esatto contrario di quello che
+# aveva chiesto. Il segnaposto distingue i due casi — la chiave assente ricade
+# sull'ordine di sempre, la lista vuota resta vuota e finisce sul ripiego del
+# titolo, che e' l'unica cosa che non si puo' togliere.
+ORDINE=$(pref voci "@@ASSENTE@@")
+[ "$ORDINE" = "@@ASSENTE@@" ] && ORDINE="$ORDINE_PREDEFINITO"
+POSIZIONE=$(pref posizione top_right)
+LARGHEZZA=$(pref larghezza 240)
+OPACITA=$(pref opacita 165)
+FONT=$(pref font 9)
+INTERVALLO=$(pref intervallo 2)
 
 # c'e' <chiave>: vero se il valore non e' vuoto e non e' un segnaposto
 ce(){ v=$("$VAL" "$1" 2>/dev/null); [ -n "$v" ] && [ "$v" != "?" ] && [ "$v" != "0" ]; }
@@ -42,8 +97,32 @@ ce_util(){ [ -r /run/skillfish-gpu-util ] || \
 
 THREAD=$(nproc 2>/dev/null || echo 4)
 PER_RIGA=8
+# la larghezza della barra della GPU segue la larghezza della finestra
+BARRA_GPU=$(( LARGHEZZA - 32 ))
 
-barre(){                       # disegna le barre dei thread, 8 per riga
+# ============================ i blocchi =====================================
+# Uno per riga del HUD. Ognuno scrive se stesso oppure NIENTE quando i dati non
+# ci sono: e' quello che permette alla stessa configurazione di funzionare su
+# una BC-250 e su un portatile Intel.
+
+b_titolo(){
+  printf '${font DejaVu Sans:bold:size=%s}${color D8A849}SkillFish${color1}OS${font}${alignr}${color1}${time %%a %%d  %%H:%%M}\n' "$((FONT+3))"
+}
+
+# La versione del kernel sotto al nome: e' identita', non una misura, quindi
+# sta in alto e in tono spento invece che fra i sensori.
+b_kernel(){
+  printf '${voffset 1}${color2}${font DejaVu Sans:size=%s}${execi 9999 skillfish-hud-val kernel}${font}\n' "$((FONT-2))"
+}
+
+# --- CPU: la frequenza e il carico ci sono su qualunque macchina -------------
+b_cpu(){
+  printf '${voffset 5}${color2}CPU   ${color1}${freq_g} GHz'
+  ce cpu_temp && printf '${color2}    ${color1}${execi %s skillfish-hud-val cpu_temp}°C' "$INTERVALLO"
+  printf '${color2}    ${execi 9999 skillfish-hud-val lbl_use} ${color1}${cpu cpu0}%%\n'
+}
+
+b_barre(){                       # disegna le barre dei thread, 8 per riga
   # La prima riga stacca di 3, le successive di 2: e' la spaziatura della
   # configurazione scritta a mano sulla BC-250, tenuta identica per non
   # cambiare di un pixel il HUD di chi ha gia' la scheda.
@@ -61,24 +140,147 @@ barre(){                       # disegna le barre dei thread, 8 per riga
   done
 }
 
+# --- GPU: solo le voci che questa scheda espone ------------------------------
+# I pezzi si uniscono con un separatore SOLO se qualcosa li precede, altrimenti
+# la riga comincia con uno spazio vuoto e sembra un difetto grafico.
+b_gpu(){
+  riga_gpu=""
+  unisci(){ [ -n "$riga_gpu" ] && riga_gpu="${riga_gpu}"'${color2}  '; riga_gpu="${riga_gpu}$1"; }
+  ce gpu_freq && unisci '${color1}${execi 2 skillfish-hud-val gpu_freq}'
+  ce gpu_temp && unisci '${color1}${execi 2 skillfish-hud-val gpu_temp}°C'
+  ce_util     && unisci '${execi 9999 skillfish-hud-val lbl_use} ${color1}${execi 2 skillfish-hud-val gpu_util}%'
+  [ -n "$riga_gpu" ] && printf '${voffset 6}${color2}GPU   %s\n' "$riga_gpu"
+}
+
+b_gpubar(){
+  ce_util && printf '${voffset 3}${color D8A849}${execibar 6,%s skillfish-hud-val gpu_util}\n' "$BARRA_GPU"
+}
+
+b_volt(){
+  linea=""
+  ce gpu_mv    && linea='${color2}VDDGFX ${color1}${execi 2 skillfish-hud-val gpu_mv} mV'
+  ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-hud-val gpu_power} W'
+  [ -n "$linea" ] && printf '%s\n' "$linea"
+}
+
+# VRAM: dove il driver dice quanta ne e' in uso si scrive "usata / totale",
+# dove dice solo quanta ce n'e' si scrive il totale e basta. Su AMD i due numeri
+# stanno in sysfs; altrove il totale lo dichiara Vulkan e lo deposita
+# skillfish-sensori all'avvio, mentre l'uso non lo espone nessuno.
+b_vram(){
+  linea=""
+  if ce vram && ce vram_tot; then
+    linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram}/${execi 9999 skillfish-hud-val vram_tot}'
+  elif ce vram_tot; then
+    linea='${color2}VRAM  ${color1}${execi 9999 skillfish-hud-val vram_tot} MiB'
+  elif ce vram; then
+    linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
+  fi
+  # La frequenza della memoria video la espone amdgpu; nouveau e i915 no.
+  # ⚠️ Forma compatta, senza unita'. Con "245 / 8192 MiB @ 450 MHz  CU 40/40" per
+  # esteso la riga usciva dalla finestra e le CU venivano tagliate: il HUD e' largo
+  # 240 pixel e allargarlo cambierebbe l'aspetto su tutte le macchine.
+  ce vram_mhz && linea="${linea}"'${color2} @${color1}${execi 5 skillfish-hud-val vram_mhz}'
+  # Unita' di calcolo: 40/40 sulla BC-250, il numero dichiarato da Vulkan altrove
+  # (CU su AMD, CUDA core su NVIDIA). Dove nessuno lo dice, la voce non compare.
+  ce cu   && linea="${linea}"'${color2}  CU ${color1}${execi 5 skillfish-hud-val cu}'
+  [ -n "$linea" ] && printf '%s\n' "$linea"
+}
+
+# --- memoria, ventola, disco -------------------------------------------------
+# Un solo segno di percento, non due: prima la riga si stampava con printf,
+# che converte il doppio in singolo; adesso passa da una variabile stampata
+# con %s, che non converte niente.
+b_ram(){
+  riga_ram='${color2}RAM   ${color1}${mem} / ${memmax}${color2}   ${color1}${memperc}%'
+  # La frequenza dei moduli la sa solo dmidecode, che vuole root: la legge
+  # skillfish-sensori all'avvio e la deposita in /run. Non cambia mai, quindi
+  # si chiede una volta sola.
+  # ⚠️ Forma compatta, senza unita'. Con " @ 2400 MT/s" per esteso la riga usciva
+  # dalla finestra e "MT/s" veniva tagliato a meta': il HUD e' largo 240 pixel e
+  # allargarlo cambierebbe l'aspetto anche sulla BC-250, dove va bene com'e'.
+  ce ram_mhz && riga_ram="${riga_ram}"'${color2} @${color1}${execi 9999 skillfish-hud-val ram_mhz}'
+  printf '%s\n' "$riga_ram"
+}
+
+# VENTOLE. Sulla BC-250 ce n'e' una sola e resta com'era. Su un PC normale ce
+# ne sono diverse - processore, case, a volte due sul case - e il driver quasi
+# mai dice quale sia quale: si mostrano tutte, nell'ordine in cui il chip le
+# espone, che almeno e' stabile fra un avvio e l'altro. Inventare le etichette
+# sarebbe peggio che non metterle.
+#
+# ⚠️ Su molte macchine le ventole NON si vedono finche' skillfish-sensori non
+# carica il driver del chip Super-I/O: sta su bus ISA e il kernel non puo'
+# enumerarlo, quindi nessuno lo carica da solo.
+b_fan(){
+  riga_fan=""
+  if ce fan_all; then
+    riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan_all} rpm'
+  elif ce fan; then
+    riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan} rpm'
+  fi
+  # La ventola della scheda video: giri se la scheda ha un contagiri, altrimenti
+  # la percentuale del PWM, che e' il solo dato vero che quelle schede dichiarano.
+  # ⚠️ Se la macchina non ha una ventola di sistema leggibile, qui riga_fan e'
+  # ancora vuota: accodare "   GPU 39%" lascerebbe la percentuale senza
+  # etichetta, due righe sotto "GPU 34°C", e si legge come carico della GPU.
+  # Visto sulla Generic (Xeon + GTX 1050 Ti). Sulla BC-250 non si manifesta,
+  # perche' li' la ventola di sistema c'e' sempre.
+  if ce fan_gpu; then
+    if [ -n "$riga_fan" ]; then
+      riga_fan="${riga_fan}"'${color2}   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+    else
+      riga_fan='${color2}FAN   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+    fi
+  fi
+  [ -n "$riga_fan" ] && printf '%s\n' "$riga_fan"
+}
+
+b_disco(){
+  printf '${color2}${execi 9999 skillfish-hud-val lbl_disk} ${color1}${fs_used /} / ${fs_size /}${color2}   ${color1}${fs_used_perc /}%%\n'
+}
+
+# --- Bluetooth: solo se la macchina ha un adattatore -------------------------
+b_bluetooth(){
+  if [ -d /sys/class/bluetooth ] && [ -n "$(ls /sys/class/bluetooth 2>/dev/null)" ]; then
+    printf '${voffset 4}${color D8A849}── Bluetooth ──${color}\n'
+    printf '${execpi 15 skillfish-hud-bt}\n'
+  fi
+}
+
+# la rete: non c'era, ed e' la voce che chiede chiunque non abbia una BC-250
+b_rete(){
+  iff=$(ip -o route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+' | head -1)
+  [ -n "$iff" ] || return 0
+  printf '${color2}NET   ${color1}${downspeed %s}${color2} ↓  ${color1}${upspeed %s}${color2} ↑\n' "$iff" "$iff"
+}
+
+# il tempo da cui la macchina e' accesa
+b_uptime(){
+  printf '${color2}UP    ${color1}${uptime_short}\n'
+}
+
+# ============================ la scrittura ==================================
 mkdir -p "$(dirname "$OUT")"
 {
 printf -- '-- skillfish-hud-config v%s
 ' "$VERSIONE"
-cat <<'TESTA'
-conky.config = {
-    alignment = 'top_right',
+printf 'conky.config = {
+    alignment = %s,
     gap_x = 16,
     gap_y = 16,
-    minimum_width = 240,
-    maximum_width = 240,
+    minimum_width = %s,
+    maximum_width = %s,
     own_window = true,
-    own_window_type = 'normal',
-    own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
-    own_window_class = 'Conky',
+    own_window_type = %s,
+    own_window_hints = %s,
+    own_window_class = %s,
     own_window_argb_visual = true,
-    own_window_argb_value = 165,
-    own_window_colour = '14100a',
+    own_window_argb_value = %s,
+    own_window_colour = %s,
+' "'$POSIZIONE'" "$LARGHEZZA" "$LARGHEZZA" "'normal'" \
+  "'undecorated,below,sticky,skip_taskbar,skip_pager'" "'Conky'" "$OPACITA" "'14100a'"
+cat <<TESTA
 -- background = false: conky NON deve sganciarsi.
 --
 -- KDE avvia l'autostart come servizio utente di systemd. Se conky forka e il
@@ -86,11 +288,11 @@ conky.config = {
 -- il gruppo, ammazzando anche il figlio.
 background = false,
     double_buffer = true,
-    update_interval = 2,
+    update_interval = $INTERVALLO,
     cpu_avg_samples = 2,
     use_xft = true,
     xftalpha = 1,
-    font = 'DejaVu Sans:size=9',
+    font = 'DejaVu Sans:size=$FONT',
     default_color = 'D8A849',
     color1 = 'F1E3C6',
     color2 = 'B9A07A',
@@ -103,113 +305,29 @@ background = false,
 conky.text = [[
 TESTA
 
-printf '${font DejaVu Sans:bold:size=12}${color D8A849}SkillFish${color1}OS${font}${alignr}${color1}${time %%a %%d  %%H:%%M}\n'
-
-# La versione del kernel sotto al nome: e' identita', non una misura, quindi
-# sta in alto e in tono spento invece che fra i sensori.
-printf '${voffset 1}${color2}${font DejaVu Sans:size=7}${execi 9999 skillfish-hud-val kernel}${font}\n'
-
-# --- CPU: la frequenza e il carico ci sono su qualunque macchina -------------
-printf '${voffset 5}${color2}CPU   ${color1}${freq_g} GHz'
-ce cpu_temp && printf '${color2}    ${color1}${execi 2 skillfish-hud-val cpu_temp}°C'
-printf '${color2}    ${execi 9999 skillfish-hud-val lbl_use} ${color1}${cpu cpu0}%%\n'
-barre
-
-# --- GPU: solo le voci che questa scheda espone ------------------------------
-# I pezzi si uniscono con un separatore SOLO se qualcosa li precede, altrimenti
-# la riga comincia con uno spazio vuoto e sembra un difetto grafico.
-riga_gpu=""
-unisci(){ [ -n "$riga_gpu" ] && riga_gpu="${riga_gpu}"'${color2}  '; riga_gpu="${riga_gpu}$1"; }
-ce gpu_freq && unisci '${color1}${execi 2 skillfish-hud-val gpu_freq}'
-ce gpu_temp && unisci '${color1}${execi 2 skillfish-hud-val gpu_temp}°C'
-ce_util     && unisci '${execi 9999 skillfish-hud-val lbl_use} ${color1}${execi 2 skillfish-hud-val gpu_util}%'
-if [ -n "$riga_gpu" ]; then
-  printf '${voffset 6}${color2}GPU   %s\n' "$riga_gpu"
-  ce_util && printf '${voffset 3}${color D8A849}${execibar 6,208 skillfish-hud-val gpu_util}\n'
-fi
-
-linea=""
-ce gpu_mv    && linea='${color2}VDDGFX ${color1}${execi 2 skillfish-hud-val gpu_mv} mV'
-ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-hud-val gpu_power} W'
-[ -n "$linea" ] && printf '%s\n' "$linea"
-
-# VRAM: dove il driver dice quanta ne e' in uso si scrive "usata / totale",
-# dove dice solo quanta ce n'e' si scrive il totale e basta. Su AMD i due numeri
-# stanno in sysfs; altrove il totale lo dichiara Vulkan e lo deposita
-# skillfish-sensori all'avvio, mentre l'uso non lo espone nessuno.
-linea=""
-if ce vram && ce vram_tot; then
-  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram}/${execi 9999 skillfish-hud-val vram_tot}'
-elif ce vram_tot; then
-  linea='${color2}VRAM  ${color1}${execi 9999 skillfish-hud-val vram_tot} MiB'
-elif ce vram; then
-  linea='${color2}VRAM  ${color1}${execi 2 skillfish-hud-val vram} MiB'
-fi
-# La frequenza della memoria video la espone amdgpu; nouveau e i915 no.
-# ⚠️ Forma compatta, senza unita'. Con "245 / 8192 MiB @ 450 MHz  CU 40/40" per
-# esteso la riga usciva dalla finestra e le CU venivano tagliate: il HUD e' largo
-# 240 pixel e allargarlo cambierebbe l'aspetto su tutte le macchine.
-ce vram_mhz && linea="${linea}"'${color2} @${color1}${execi 5 skillfish-hud-val vram_mhz}'
-# Unita' di calcolo: 40/40 sulla BC-250, il numero dichiarato da Vulkan altrove
-# (CU su AMD, CUDA core su NVIDIA). Dove nessuno lo dice, la voce non compare.
-ce cu   && linea="${linea}"'${color2}  CU ${color1}${execi 5 skillfish-hud-val cu}'
-[ -n "$linea" ] && printf '%s\n' "$linea"
-
-# --- memoria, ventola, disco -------------------------------------------------
-# Un solo segno di percento, non due: prima la riga si stampava con printf,
-# che converte il doppio in singolo; adesso passa da una variabile stampata
-# con %s, che non converte niente.
-riga_ram='${color2}RAM   ${color1}${mem} / ${memmax}${color2}   ${color1}${memperc}%'
-# La frequenza dei moduli la sa solo dmidecode, che vuole root: la legge
-# skillfish-sensori all'avvio e la deposita in /run. Non cambia mai, quindi
-# si chiede una volta sola.
-# ⚠️ Forma compatta, senza unita'. Con " @ 2400 MT/s" per esteso la riga usciva
-# dalla finestra e "MT/s" veniva tagliato a meta': il HUD e' largo 240 pixel e
-# allargarlo cambierebbe l'aspetto anche sulla BC-250, dove va bene com'e'.
-ce ram_mhz && riga_ram="${riga_ram}"'${color2} @${color1}${execi 9999 skillfish-hud-val ram_mhz}'
-printf '%s\n' "$riga_ram"
-# VENTOLE. Sulla BC-250 ce n'e' una sola e resta com'era. Su un PC normale ce
-# ne sono diverse - processore, case, a volte due sul case - e il driver quasi
-# mai dice quale sia quale: si mostrano tutte, nell'ordine in cui il chip le
-# espone, che almeno e' stabile fra un avvio e l'altro. Inventare le etichette
-# sarebbe peggio che non metterle.
-#
-# ⚠️ Su molte macchine le ventole NON si vedono finche' skillfish-sensori non
-# carica il driver del chip Super-I/O: sta su bus ISA e il kernel non puo'
-# enumerarlo, quindi nessuno lo carica da solo.
-riga_fan=""
-if ce fan_all; then
-  riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan_all} rpm'
-elif ce fan; then
-  riga_fan='${color2}FAN   ${color1}${execi 2 skillfish-hud-val fan} rpm'
-fi
-# La ventola della scheda video: giri se la scheda ha un contagiri, altrimenti
-# la percentuale del PWM, che e' il solo dato vero che quelle schede dichiarano.
-# ⚠️ Se la macchina non ha una ventola di sistema leggibile, qui riga_fan e'
-# ancora vuota: accodare "   GPU 39%" lascerebbe la percentuale senza
-# etichetta, due righe sotto "GPU 34°C", e si legge come carico della GPU.
-# Visto sulla Generic (Xeon + GTX 1050 Ti). Sulla BC-250 non si manifesta,
-# perche' li' la ventola di sistema c'e' sempre.
-if ce fan_gpu; then
-  if [ -n "$riga_fan" ]; then
-    riga_fan="${riga_fan}"'${color2}   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
-  else
-    riga_fan='${color2}FAN   GPU ${color1}${execi 2 skillfish-hud-val fan_gpu}'
+# ⚠️ Si esegue solo un blocco che esiste davvero: una voce scritta a mano nel
+# file delle preferenze non deve poter eseguire niente. `type` e' il controllo,
+# e il prefisso b_ e' la gabbia.
+scritto=0
+for voce in $ORDINE; do
+  case "$voce" in
+    *[!a-z_]*) continue ;;                     # solo lettere minuscole e trattino basso
+  esac
+  if type "b_$voce" >/dev/null 2>&1; then
+    prima=$( "b_$voce" )
+    [ -n "$prima" ] && { printf '%s\n' "$prima"; scritto=$((scritto+1)); }
   fi
-fi
-[ -n "$riga_fan" ] && printf '%s\n' "$riga_fan"
-printf '${color2}${execi 9999 skillfish-hud-val lbl_disk} ${color1}${fs_used /} / ${fs_size /}${color2}   ${color1}${fs_used_perc /}%%\n'
-
-# --- Bluetooth: solo se la macchina ha un adattatore -------------------------
-if [ -d /sys/class/bluetooth ] && [ -n "$(ls /sys/class/bluetooth 2>/dev/null)" ]; then
-  printf '${voffset 4}${color D8A849}── Bluetooth ──${color}\n'
-  printf '${execpi 15 skillfish-hud-bt}\n'
-fi
+done
+# ⚠️ Mai una finestra senza testo: conky non riesce a misurarne l'ingombro e la
+# riduce a un puntino di 15x15 pixel nell'angolo. E' il guasto da cui e' partito
+# tutto questo script, e le preferenze non devono poterlo far tornare.
+[ "$scritto" -gt 0 ] || b_titolo
 
 printf ']];\n'
 } > "$OUT"
 
 echo "scritta $OUT"
+echo "  ordine: $ORDINE"
 echo "  thread: $THREAD   righe di barre: $(( (THREAD + PER_RIGA - 1) / PER_RIGA ))"
 for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power vram vram_tot vram_mhz ram_mhz cu fan fan_all fan_gpu; do
   ce "$k" && echo "  presente: $k" || echo "  assente:  $k"

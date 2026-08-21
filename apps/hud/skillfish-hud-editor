@@ -1,0 +1,672 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# SkillFishOS HUD — scegliere cosa mostrare sul desktop, e come.
+#
+# PERCHE' ESISTE
+# Il HUD era una configurazione di conky scritta a mano sulla BC-250: sedici
+# barre perche' quella scheda ha sedici thread, i sensori di amdgpu, la ventola
+# del nct6686. Su un PC diverso quelle voci tornano vuote, conky non riesce a
+# misurare l'ingombro del testo e riduce la finestra a un puntino di 15x15
+# pixel. Per questo era stato limitato alla sola BC-250.
+# Poi skillfish-hud-config ha imparato a generarla dai sensori che la macchina
+# espone davvero, e il HUD ha ricominciato a funzionare ovunque — ma sempre con
+# le voci e l'ordine che avevamo scelto noi. Qui sceglie chi la macchina ce
+# l'ha davanti.
+#
+# ⚠️ QUESTA FINESTRA NON SCRIVE LA CONFIGURAZIONE DI CONKY. Scrive solo le
+# preferenze in ~/.config/skillfish/hud.json e chiama skillfish-hud-config, che
+# resta l'unico posto che sa tradurre una scelta in una riga di conky. Due posti
+# che scrivono lo stesso file sono due posti che prima o poi divergono.
+#
+# ⚠️ E non serve root: il HUD e le sue preferenze stanno nella cartella
+# dell'utente. E' l'unica delle nostre applicazioni che non chiede la password,
+# ed e' giusto cosi' — non tocca niente di sistema.
+import io
+import json
+import os
+import subprocess
+import sys
+import time
+
+from PyQt6.QtCore import Qt, QTimer, QRect
+from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QFont
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout, QLabel, QGroupBox, QPushButton,
+                             QCheckBox, QSpinBox, QComboBox, QMessageBox,
+                             QListWidget, QListWidgetItem, QToolButton,
+                             QSizePolicy, QFrame, QScrollArea)
+
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png"
+VAL = "/usr/local/bin/skillfish-hud-val"
+GEN = "/usr/local/bin/skillfish-hud-config"
+PREF = os.path.expanduser("~/.config/skillfish/hud.json")
+
+
+# ---------- i18n ----------
+def _detect_lang():
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"):
+        return "it"
+    if v.startswith("ua"):
+        return "uk"
+    c = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    return c if len(c) == 2 and c.isalpha() else "en"
+
+
+LANG = _detect_lang()
+
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
+
+def L(it, en):
+    u"""⚠️ Tutto cio' che chiama L() deve stare sotto questa riga: il corpo del
+    modulo si esegue dall'alto in basso, e una costante che chiama L() venti
+    righe piu' su ha gia' impedito a una nostra finestra di aprirsi."""
+    return it if LANG == "it" else _TR(en)
+
+
+try:
+    from aiuto import Aiuto
+except Exception:
+    class Aiuto(QToolButton):
+        def __init__(self, testo, titolo="", parent=None):
+            super().__init__(parent)
+            self.setText("?")
+            self._t, self._ti = testo, titolo
+            self.clicked.connect(self._mostra)
+
+        def _mostra(self):
+            QMessageBox.information(self.window(), self._ti or L("Aiuto", "Help"), self._t)
+
+
+# I blocchi che skillfish-hud-config sa scrivere. La chiave e' la stessa: qui e
+# li' si chiamano allo stesso modo, o l'ordine scritto non verrebbe capito.
+def blocchi():
+    return [
+        ("titolo", L("Nome e ora", "Name and clock")),
+        ("kernel", L("Versione del kernel", "Kernel version")),
+        ("cpu", L("CPU: frequenza, temperatura, carico", "CPU: clock, temperature, load")),
+        ("barre", L("Barre dei thread", "Thread bars")),
+        ("gpu", L("GPU: frequenza, temperatura, carico", "GPU: clock, temperature, load")),
+        ("gpubar", L("Barra del carico GPU", "GPU load bar")),
+        ("volt", L("Tensione e watt della GPU", "GPU voltage and watts")),
+        ("vram", L("Memoria video", "Video memory")),
+        ("ram", L("Memoria", "Memory")),
+        ("fan", L("Ventole", "Fans")),
+        ("disco", L("Disco", "Disk")),
+        ("rete", L("Rete", "Network")),
+        ("uptime", L("Uptime", "Uptime")),
+        ("bluetooth", L("Bluetooth", "Bluetooth")),
+    ]
+
+
+AIUTO = {
+    "voci": (L("Che cosa mostrare", "What to show"), L(
+        "Spunta le voci che vuoi e trascinale per cambiarne l'ordine: il HUD le scrive "
+        "una sotto l'altra, in quest'ordine.\n\n"
+        "⚠️ Una voce spenta dal grigio non e' un divieto: vuol dire che questa macchina "
+        "non ha quel dato. La memoria video non esiste su un portatile con grafica "
+        "integrata, le ventole non si vedono finche' non si carica il driver del chip "
+        "Super-I/O. Sceglierla non fa danni — semplicemente non verra' scritta.\n\n"
+        "⚠️ Se le spegni tutte resta il nome: una finestra senza testo conky non riesce "
+        "a misurarla e la riduce a un puntino di quindici pixel in un angolo. E' il "
+        "guasto per cui il HUD era stato limitato alla sola BC-250.",
+        "Tick what you want and drag to reorder: the HUD writes them one under the "
+        "other, in this order.\n\n"
+        "⚠️ An entry greyed out is not forbidden: it means this machine does not have "
+        "that reading. Video memory does not exist on a laptop with integrated "
+        "graphics; fans stay invisible until the Super-I/O driver is loaded. Choosing "
+        "it does no harm — it simply will not be written.\n\n"
+        "⚠️ Turn everything off and the name stays. A window with no text is one conky "
+        "cannot measure, and it shrinks to a fifteen-pixel dot in a corner. That is the "
+        "fault that had the HUD restricted to the BC-250 in the first place.")),
+
+    "aspetto": (L("Come e dove", "How and where"), L(
+        "• POSIZIONE: a quale angolo dello schermo si aggancia.\n"
+        "• LARGHEZZA: quanto è largo in pixel. ⚠️ Stringendolo, le righe lunghe vengono "
+        "tagliate: la riga della memoria video con tutto per esteso non ci sta sotto i "
+        "240 pixel, ed è per questo che di serie è scritta in forma compatta.\n"
+        "• TRASPARENZA: 0 è invisibile, 255 è pieno.\n"
+        "• CARATTERE: la dimensione di base. Il nome e la versione del kernel si "
+        "regolano da soli in proporzione.\n"
+        "• AGGIORNAMENTO: ogni quanti secondi rilegge i valori. Sotto il secondo si "
+        "spreca corrente per niente: i sensori non cambiano così in fretta.",
+        "• POSITION: which corner of the screen it hangs from.\n"
+        "• WIDTH: how wide, in pixels. ⚠️ Narrow it and long lines get cut: the video "
+        "memory line written out in full does not fit below 240 pixels, which is why it "
+        "ships in short form.\n"
+        "• TRANSPARENCY: 0 is invisible, 255 is solid.\n"
+        "• FONT: the base size. The name and the kernel version scale with it.\n"
+        "• REFRESH: how many seconds between readings. Below a second is current burnt "
+        "for nothing: sensors do not change that fast.")),
+
+    "anteprima": (L("L'anteprima", "The preview"), L(
+        "Mostra le voci che hai scelto, nell'ordine scelto, con i valori veri di questa "
+        "macchina letti adesso.\n\n"
+        "⚠️ NON E' CONKY. Serve a decidere cosa mettere e in che ordine, non a contare i "
+        "pixel: i caratteri e la spaziatura possono venire un filo diversi. Il HUD vero "
+        "lo vedi premendo Applica, che riscrive la configurazione e lo riavvia.",
+        "It shows the entries you picked, in the order you picked, with this machine's "
+        "real values read just now.\n\n"
+        "⚠️ IT IS NOT CONKY. It is for deciding what goes in and in what order, not for "
+        "counting pixels: fonts and spacing may come out slightly different. You see the "
+        "real HUD by pressing Apply, which rewrites the configuration and restarts it.")),
+}
+
+
+def _aiuto(chiave, parent=None):
+    titolo, corpo = AIUTO.get(chiave, (L("Aiuto", "Help"), ""))
+    return Aiuto(corpo, titolo, parent)
+
+
+ORDINE_PREDEFINITO = ["titolo", "kernel", "cpu", "barre", "gpu", "gpubar",
+                      "volt", "vram", "ram", "fan", "disco", "bluetooth"]
+
+POSIZIONI = [("top_right", L("in alto a destra", "top right")),
+             ("top_left", L("in alto a sinistra", "top left")),
+             ("bottom_right", L("in basso a destra", "bottom right")),
+             ("bottom_left", L("in basso a sinistra", "bottom left")),
+             ("middle_right", L("a destra", "right")),
+             ("middle_left", L("a sinistra", "left"))]
+
+
+def val(chiave):
+    try:
+        p = subprocess.run([VAL, chiave], capture_output=True, text=True, timeout=6)
+        v = (p.stdout or "").strip()
+        return v if v and v not in ("?", "0") else ""
+    except Exception:
+        return ""
+
+
+def c_e_util():
+    u"""Il carico della GPU esiste come DATO anche quando vale zero.
+
+    ⚠️ `val()` scarta lo zero, perche' per quasi tutte le chiavi zero vuol dire
+    «non lo so». Per il carico no: una macchina ferma sta davvero allo zero per
+    cento. Guardando il valore, l'anteprima nascondeva la barra della GPU su una
+    scheda a riposo mentre il HUD vero la mostrava — cioe' l'anteprima diceva
+    una cosa e lo schermo un'altra, che e' il difetto peggiore che possa avere
+    un'anteprima. Si guarda la FONTE, esattamente come fa skillfish-hud-config.
+    """
+    if os.path.exists("/run/skillfish-gpu-util"):
+        return True
+    import glob
+    return bool(glob.glob("/sys/class/drm/card[0-9]/device/gpu_busy_percent"))
+
+
+def leggi_pref():
+    try:
+        with io.open(PREF, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (IOError, OSError, ValueError):
+        return {}
+
+
+class Anteprima(QWidget):
+    u"""Come verrà il HUD: le voci scelte, con i valori veri di adesso.
+
+    ⚠️ Non e' conky e non finge di esserlo: serve a decidere cosa mettere e in
+    che ordine. Contare i pixel qui sarebbe una promessa che non possiamo
+    mantenere — conky ha il suo motore di testo — e prometterlo farebbe
+    sembrare rotto il HUD vero quando esce di mezzo pixel diverso.
+    """
+
+    OTTONE = QColor("#D8A849")
+    CHIARO = QColor("#F1E3C6")
+    SPENTO = QColor("#B9A07A")
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.voci = []
+        self.larghezza = 240
+        self.opacita = 165
+        self.dim = 9
+        self.dati = {}
+        self.setMinimumSize(360, 380)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def righe(self):
+        u"""Le righe da disegnare: (testo_a_sinistra, testo_a_destra, tipo)."""
+        d = self.dati
+        out = []
+        for v in self.voci:
+            if v == "titolo":
+                out.append(("SkillFishOS", time.strftime("%a %d  %H:%M"), "titolo"))
+            elif v == "kernel" and d.get("kernel"):
+                out.append((d["kernel"], "", "spento"))
+            elif v == "cpu":
+                p = [d.get("cpu_mhz_g", "—") + " GHz"]
+                if d.get("cpu_temp"):
+                    p.append(d["cpu_temp"] + "°C")
+                p.append(d.get("cpu_use", "—") + "%")
+                out.append(("CPU", "   ".join(p), "riga"))
+            elif v == "barre":
+                out.append(("", "", "barre"))
+            elif v == "gpu":
+                p = [x for x in (d.get("gpu_freq"),
+                                 (d.get("gpu_temp") + "°C") if d.get("gpu_temp") else "",
+                                 (d.get("gpu_util", "0") + "%") if d.get("gpu_util_c_e") else "") if x]
+                if p:
+                    out.append(("GPU", "  ".join(p), "riga"))
+            elif v == "gpubar" and d.get("gpu_util_c_e"):
+                out.append(("", "", "barra"))
+            elif v == "volt":
+                p = []
+                if d.get("gpu_mv"):
+                    p.append(d["gpu_mv"] + " mV")
+                if d.get("gpu_power"):
+                    p.append("Power " + d["gpu_power"] + " W")
+                if p:
+                    # ⚠️ Con l'etichetta vuota questa riga partiva dalla colonna
+                    # dei valori e sembrava rientrata rispetto a tutte le altre.
+                    # La tensione ha un nome: si scrive.
+                    out.append(("VDD", "   ".join(p), "riga"))
+            elif v == "vram":
+                if d.get("vram") and d.get("vram_tot"):
+                    out.append(("VRAM", d["vram"] + "/" + d["vram_tot"], "riga"))
+                elif d.get("vram_tot"):
+                    out.append(("VRAM", d["vram_tot"] + " MiB", "riga"))
+            elif v == "ram":
+                out.append(("RAM", d.get("ram", "—"), "riga"))
+            elif v == "fan" and (d.get("fan_all") or d.get("fan")):
+                out.append(("FAN", (d.get("fan_all") or d.get("fan")) + " rpm", "riga"))
+            elif v == "disco":
+                out.append(("DISK", d.get("disco", "—"), "riga"))
+            elif v == "rete" and d.get("rete"):
+                out.append(("NET", d["rete"], "riga"))
+            elif v == "uptime":
+                out.append(("UP", d.get("uptime", "—"), "riga"))
+            elif v == "bluetooth" and d.get("bluetooth"):
+                out.append(("── Bluetooth ──", "", "sezione"))
+        return out
+
+    def paintEvent(self, ev):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.fillRect(self.rect(), QColor("#0d0b06"))
+        larg = min(self.larghezza, self.width() - 24)
+        x0 = (self.width() - larg) // 2
+        righe = self.righe()
+        alt = 28 + sum(22 if t in ("riga", "titolo", "sezione") else
+                       (14 if t == "barra" else 9 * max(1, (self.dati.get("thread", 8) + 7) // 8))
+                       for _, _, t in righe)
+        y0 = max(10, (self.height() - alt) // 2)
+        # la finestra del HUD, col suo fondo e la sua trasparenza
+        p.setBrush(QBrush(QColor(20, 16, 10, self.opacita)))
+        p.setPen(QPen(QColor(216, 168, 73, 90), 1))
+        p.drawRoundedRect(QRect(x0, y0, larg, alt), 4, 4)
+
+        # ⚠️ La colonna dei valori si misura sull'etichetta piu' larga invece di
+        # essere fissa a 52 pixel. Con un carattere piu' grande, o con una
+        # etichetta lunga, i valori finivano addosso al nome o partivano da punti
+        # diversi riga per riga — ed e' proprio l'allineamento che si viene a
+        # guardare in un'anteprima.
+        p.setFont(QFont("DejaVu Sans", self.dim))
+        fm = p.fontMetrics()
+        colonna = max([fm.horizontalAdvance(s) for s, _, tp in righe
+                       if tp == "riga" and s] or [40]) + 12
+
+        y = y0 + 20
+        for sin, des, tipo in righe:
+            if tipo == "titolo":
+                p.setFont(QFont("DejaVu Sans", self.dim + 3, QFont.Weight.Bold))
+                p.setPen(QPen(self.OTTONE, 1))
+                p.drawText(x0 + 12, y, "SkillFish")
+                w = p.fontMetrics().horizontalAdvance("SkillFish")
+                p.setPen(QPen(self.CHIARO, 1))
+                p.drawText(x0 + 12 + w, y, "OS")
+                p.setFont(QFont("DejaVu Sans", self.dim))
+                p.drawText(QRect(x0, y - 14, larg - 12, 18),
+                           int(Qt.AlignmentFlag.AlignRight), des)
+                y += 22
+            elif tipo == "spento":
+                p.setFont(QFont("DejaVu Sans", max(6, self.dim - 2)))
+                p.setPen(QPen(self.SPENTO, 1))
+                p.drawText(x0 + 12, y, sin)
+                y += 16
+            elif tipo == "sezione":
+                p.setFont(QFont("DejaVu Sans", self.dim))
+                p.setPen(QPen(self.OTTONE, 1))
+                p.drawText(x0 + 12, y, sin)
+                y += 22
+            elif tipo == "barre":
+                n = self.dati.get("thread", 8)
+                i = 0
+                while i < n:
+                    x = x0 + 12
+                    for _ in range(min(8, n - i)):
+                        p.setPen(Qt.PenStyle.NoPen)
+                        p.setBrush(QBrush(QColor(216, 168, 73, 120)))
+                        p.drawRect(int(x), int(y - 6), 16, 6)
+                        x += 19
+                        i += 1
+                    y += 9
+                y += 4
+            elif tipo == "barra":
+                p.setPen(Qt.PenStyle.NoPen)
+                p.setBrush(QBrush(QColor(216, 168, 73, 120)))
+                p.drawRect(x0 + 12, int(y - 6), larg - 32, 6)
+                y += 14
+            else:
+                p.setFont(QFont("DejaVu Sans", self.dim))
+                p.setPen(QPen(self.SPENTO, 1))
+                p.drawText(x0 + 12, y, sin)
+                p.setPen(QPen(self.CHIARO, 1))
+                p.drawText(x0 + 12 + colonna, y, des)
+                y += 22
+
+
+class Finestra(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS HUD", "SkillFishOS HUD"))
+        if os.path.exists(ICON):
+            self.setWindowIcon(QIcon(ICON))
+        self.pref = leggi_pref()
+
+        centro = QWidget()
+        self.setCentralWidget(centro)
+        fuori = QVBoxLayout(centro)
+        fuori.setContentsMargins(10, 10, 10, 10)
+        fuori.setSpacing(8)
+
+        corpo = QHBoxLayout()
+        corpo.setSpacing(10)
+        fuori.addLayout(corpo, 1)
+
+        # -- a sinistra: che cosa mostrare, e in che ordine -------------------
+        col = QVBoxLayout()
+        col.setSpacing(6)
+        intest = QHBoxLayout()
+        intest.addWidget(QLabel("<b>%s</b>" % L("Che cosa mostrare", "What to show")))
+        intest.addWidget(_aiuto("voci", self))
+        intest.addStretch(1)
+        col.addLayout(intest)
+        self.elenco = QListWidget()
+        self.elenco.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+        self.elenco.setFixedWidth(300)
+        self.elenco.itemChanged.connect(lambda _i: self.ridisegna())
+        self.elenco.model().rowsMoved.connect(lambda *_a: self.ridisegna())
+        col.addWidget(self.elenco, 1)
+        corpo.addLayout(col)
+
+        # -- a destra: l'anteprima, che e' la cosa che si guarda --------------
+        destra = QVBoxLayout()
+        destra.setSpacing(6)
+        cima = QHBoxLayout()
+        cima.addWidget(QLabel("<b>%s</b>" % L("Anteprima", "Preview")))
+        cima.addWidget(_aiuto("anteprima", self))
+        cima.addStretch(1)
+        self.et_stato = QLabel("")
+        self.et_stato.setStyleSheet("color:#9a8a70;")
+        cima.addWidget(self.et_stato)
+        destra.addLayout(cima)
+        self.anteprima = Anteprima()
+        destra.addWidget(self.anteprima, 1)
+        corpo.addLayout(destra, 1)
+
+        # -- in basso: come e dove --------------------------------------------
+        basso = QHBoxLayout()
+        basso.setSpacing(10)
+        basso.addWidget(QLabel("<b>%s</b>" % L("Aspetto", "Look")))
+        basso.addWidget(_aiuto("aspetto", self))
+
+        self.posizione = QComboBox()
+        for chiave, testo in POSIZIONI:
+            self.posizione.addItem(testo, chiave)
+        i = self.posizione.findData(self.pref.get("posizione", "top_right"))
+        self.posizione.setCurrentIndex(max(0, i))
+        basso.addWidget(self.posizione)
+
+        def numero(etichetta, chiave, minimo, massimo, ripiego, suffisso=""):
+            basso.addWidget(QLabel(etichetta))
+            s = QSpinBox()
+            s.setRange(minimo, massimo)
+            s.setValue(int(self.pref.get(chiave, ripiego)))
+            if suffisso:
+                s.setSuffix(suffisso)
+            s.valueChanged.connect(lambda _v: self.ridisegna())
+            basso.addWidget(s)
+            return s
+
+        self.larghezza = numero(L("Larghezza", "Width"), "larghezza", 140, 640, 240, " px")
+        self.opacita = numero(L("Trasparenza", "Transparency"), "opacita", 0, 255, 165)
+        self.dim = numero(L("Carattere", "Font"), "font", 6, 18, 9)
+        self.intervallo = numero(L("Aggiornamento", "Refresh"), "intervallo", 1, 30, 2, " s")
+
+        basso.addStretch(1)
+        b_def = QPushButton(L("Predefinito", "Default"))
+        b_def.clicked.connect(self.predefinito)
+        basso.addWidget(b_def)
+        self.b_applica = QPushButton(L("Applica", "Apply"))
+        self.b_applica.clicked.connect(self.applica)
+        basso.addWidget(self.b_applica)
+        fuori.addLayout(basso)
+
+        self.riempi_elenco()
+        self.aggiorna_dati()
+        self._adatta()
+        self.orologio = QTimer(self)
+        self.orologio.timeout.connect(self.aggiorna_dati)
+        self.orologio.start(2000)
+
+    def _adatta(self):
+        sc = QApplication.primaryScreen()
+        d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
+        larg = min(1180, max(860, int(d.width() * 0.62)))
+        alt = min(820, max(560, int(d.height() * 0.7)))
+        self.resize(larg, alt)
+        self.move(d.left() + max(0, (d.width() - larg) // 2),
+                  d.top() + max(0, (d.height() - alt) // 2))
+
+    # ---------------------------------------------------------------- elenco
+    def riempi_elenco(self):
+        u"""Le voci scelte in cima nel loro ordine, poi tutte le altre.
+
+        ⚠️ Le voci che questa macchina non puo' dare restano in elenco, in
+        grigio e con scritto perche'. Nasconderle farebbe pensare che
+        l'applicazione sia piu' povera di quello che e', e chi collega una
+        scheda video domani non capirebbe dove cercare."""
+        scelte = self.pref.get("voci")
+        if not isinstance(scelte, list):
+            scelte = list(ORDINE_PREDEFINITO)
+        tutti = dict(blocchi())
+        ordine = [k for k in scelte if k in tutti] + \
+                 [k for k, _ in blocchi() if k not in scelte]
+        self.elenco.blockSignals(True)
+        self.elenco.clear()
+        for k in ordine:
+            it = QListWidgetItem(tutti[k])
+            it.setData(Qt.ItemDataRole.UserRole, k)
+            it.setFlags(it.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            it.setCheckState(Qt.CheckState.Checked if k in scelte
+                             else Qt.CheckState.Unchecked)
+            self.elenco.addItem(it)
+        self.elenco.blockSignals(False)
+
+    def scelte(self):
+        out = []
+        for i in range(self.elenco.count()):
+            it = self.elenco.item(i)
+            if it.checkState() == Qt.CheckState.Checked:
+                out.append(it.data(Qt.ItemDataRole.UserRole))
+        return out
+
+    def predefinito(self):
+        self.pref = {}
+        self.riempi_elenco()
+        self.posizione.setCurrentIndex(0)
+        self.larghezza.setValue(240)
+        self.opacita.setValue(165)
+        self.dim.setValue(9)
+        self.intervallo.setValue(2)
+        self.ridisegna()
+
+    # ------------------------------------------------------------------ dati
+    def aggiorna_dati(self):
+        d = {}
+        for k in ("kernel", "cpu_temp", "gpu_freq", "gpu_temp", "gpu_util",
+                  "gpu_mv", "gpu_power", "vram", "vram_tot", "fan", "fan_all"):
+            v = val(k)
+            if v:
+                d[k] = v
+        try:
+            with io.open("/proc/cpuinfo", encoding="utf-8") as f:
+                mhz = [float(r.split(":")[1]) for r in f if r.startswith("cpu MHz")]
+            d["cpu_mhz_g"] = "%.2f" % (max(mhz) / 1000.0) if mhz else "—"
+            d["thread"] = len(mhz) or os.cpu_count() or 8
+        except Exception:
+            d["thread"] = os.cpu_count() or 8
+        try:
+            with io.open("/proc/loadavg", encoding="utf-8") as f:
+                carico = float(f.read().split()[0])
+            d["cpu_use"] = "%d" % min(100, carico / max(1, d["thread"]) * 100)
+        except Exception:
+            pass
+        try:
+            with io.open("/proc/meminfo", encoding="utf-8") as f:
+                m = {}
+                for r in f:
+                    p = r.split()
+                    if p[0][:-1] in ("MemTotal", "MemAvailable"):
+                        m[p[0][:-1]] = int(p[1])
+            tot, disp = m.get("MemTotal", 0), m.get("MemAvailable", 0)
+            if tot:
+                d["ram"] = "%.1f / %.1f GiB   %d%%" % ((tot - disp) / 1048576.0,
+                                                       tot / 1048576.0,
+                                                       (tot - disp) * 100 // tot)
+        except Exception:
+            pass
+        try:
+            s = os.statvfs("/")
+            usati = (s.f_blocks - s.f_bfree) * s.f_frsize / 1073741824.0
+            tot = s.f_blocks * s.f_frsize / 1073741824.0
+            d["disco"] = "%.0f / %.0f GiB   %d%%" % (usati, tot, usati * 100 // max(1, tot))
+        except Exception:
+            pass
+        try:
+            with io.open("/proc/uptime", encoding="utf-8") as f:
+                sec = float(f.read().split()[0])
+            d["uptime"] = "%dg %dh" % (sec // 86400, (sec % 86400) // 3600)
+        except Exception:
+            pass
+        d["gpu_util_c_e"] = c_e_util()
+        d["rete"] = "0,0 ↓  0,0 ↑" if os.path.isdir("/sys/class/net") else ""
+        d["bluetooth"] = bool(os.path.isdir("/sys/class/bluetooth")
+                              and os.listdir("/sys/class/bluetooth"))
+        self.anteprima.dati = d
+        self.segna_disponibili()
+        self.ridisegna()
+
+    def segna_disponibili(self):
+        u"""Le voci che questa macchina non puo' dare vanno in grigio, col perche'.
+
+        ⚠️ Restano scegliibili. Sono spente perche' il dato non c'e' ADESSO — le
+        ventole non si vedono finche' non e' caricato il driver del Super-I/O, e
+        una scheda video la si puo' infilare domani. Toglierle dall'elenco
+        farebbe sembrare l'applicazione piu' povera di quello che e', e non ci
+        sarebbe modo di capire dove cercare quando il dato compare.
+        """
+        d = self.anteprima.dati
+        motivo = L("questa macchina non dà questo dato",
+                   "this machine does not provide this reading")
+        c_e = {
+            "kernel": bool(d.get("kernel")),
+            "gpu": bool(d.get("gpu_freq") or d.get("gpu_temp") or d.get("gpu_util_c_e")),
+            "gpubar": bool(d.get("gpu_util_c_e")),
+            "volt": bool(d.get("gpu_mv") or d.get("gpu_power")),
+            "vram": bool(d.get("vram") or d.get("vram_tot")),
+            "fan": bool(d.get("fan") or d.get("fan_all")),
+            "rete": bool(d.get("rete")),
+            "bluetooth": bool(d.get("bluetooth")),
+        }
+        for i in range(self.elenco.count()):
+            it = self.elenco.item(i)
+            k = it.data(Qt.ItemDataRole.UserRole)
+            ok = c_e.get(k, True)      # titolo, cpu, barre, ram, disco: sempre
+            nome = dict(blocchi()).get(k, k)
+            it.setText(nome if ok else nome + "  —  " + motivo)
+            it.setForeground(QColor("#efe6d3") if ok else QColor("#7a6c58"))
+
+    def ridisegna(self):
+        self.anteprima.voci = self.scelte()
+        self.anteprima.larghezza = self.larghezza.value()
+        self.anteprima.opacita = self.opacita.value()
+        self.anteprima.dim = self.dim.value()
+        self.anteprima.update()
+
+    # -------------------------------------------------------------- applica
+    def applica(self):
+        u"""Scrive le preferenze, rigenera la configurazione, riavvia il HUD.
+
+        ⚠️ La configurazione la scrive skillfish-hud-config, non questa
+        finestra: e' l'unico posto che sa quali dati la macchina ha davvero e
+        come si traducono in righe di conky. Qui si scrive solo la scelta."""
+        pref = {
+            "versione": 1,
+            "voci": self.scelte(),
+            "posizione": self.posizione.currentData(),
+            "larghezza": self.larghezza.value(),
+            "opacita": self.opacita.value(),
+            "font": self.dim.value(),
+            "intervallo": self.intervallo.value(),
+        }
+        try:
+            cartella = os.path.dirname(PREF)
+            if not os.path.isdir(cartella):
+                os.makedirs(cartella)
+            tmp = PREF + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                f.write(json.dumps(pref, indent=2, ensure_ascii=False, sort_keys=True))
+            os.rename(tmp, PREF)
+        except (IOError, OSError) as e:
+            QMessageBox.critical(self, L("Non riesco a salvare", "Could not save"), str(e))
+            return
+        self.pref = pref
+
+        try:
+            p = subprocess.run([GEN], capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            QMessageBox.critical(self, L("Errore", "Error"), str(e))
+            return
+        if p.returncode != 0:
+            QMessageBox.critical(self, L("Errore", "Error"),
+                                 (p.stderr or p.stdout or "")[:400])
+            return
+        # ⚠️ conky non rilegge la configurazione da solo: va riavviato, o si
+        # applica tutto e sullo schermo non cambia niente — e sembra rotto.
+        subprocess.call(["pkill", "-x", "conky"])
+        try:
+            subprocess.Popen(["/usr/local/bin/skillfish-hud"],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+        self.et_stato.setText(L("applicato", "applied"))
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS HUD")
+    # ⚠️ Senza questa riga la barra delle applicazioni scrive «python3»: KDE lega
+    # la finestra al file .desktop attraverso questo nome.
+    app.setDesktopFileName("os.skillfish.hud")
+    if os.path.exists(ICON):
+        app.setWindowIcon(QIcon(ICON))
+    f = Finestra()
+    f.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

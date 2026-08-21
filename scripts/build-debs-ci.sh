@@ -124,6 +124,13 @@ put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
 # .desktop: KDE converte l'autostart in un servizio systemd e in quel passaggio
 # $HOME resta letterale, quindi conky non trovava la configurazione.
 put $P 0755 system/usr/local/bin/skillfish-hud     usr/local/bin/skillfish-hud
+# Il configuratore del HUD. Sta qui e non in un pacchetto suo perche' senza
+# skillfish-hud-config e skillfish-hud-val non avrebbe niente da configurare
+# ne' da mostrare in anteprima.
+put $P 0755 apps/hud/skillfish-hud-editor usr/local/bin/skillfish-hud-editor
+put $P 0644 system/usr/share/applications/os.skillfish.hud.desktop usr/share/applications/os.skillfish.hud.desktop
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png usr/share/icons/hicolor/256x256/apps/skillfish-hud.png
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg
 put $P 0644 system/usr/share/skillfish/tuner-presets.json usr/share/skillfish/tuner-presets.json
 put $P 0644 system/usr/share/applications/os.skillfish.Tuner.desktop usr/share/applications/os.skillfish.Tuner.desktop
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
@@ -1040,6 +1047,13 @@ check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val  
 # pacchetto e senza che lo lanciasse nessuno, e non se n'e' accorto nessuno
 # perche' un file fuori da ogni elenco non manca a nessuno. Ora manca qui.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-sensori        modprobe
+# Il configuratore del HUD e il generatore devono restare d'accordo: le
+# chiavi dei blocchi sono le stesse scritte nelle preferenze, e se una delle
+# due parti le rinomina l'ordine salvato non viene piu' capito — in silenzio.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-editor     'ORDINE_PREDEFINITO'
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'ORDINE_PREDEFINITO'
+# e che il generatore non esegua una voce inventata nel file delle preferenze
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'type "b_\$voce"'
 check skillfish-tuner_${VER}_all.deb         ./etc/systemd/system/skillfish-sensori.service  ExecStart=/usr/local/bin/skillfish-sensori
 # L'autostart deve chiamare il percorso assoluto: con "sh -c" e le virgolette,
 # KDE lo converte in servizio systemd e $HOME resta letterale.
@@ -1122,11 +1136,13 @@ check skillfish-theme_${VER}_all.deb ./usr/share/plasma/look-and-feel/org.skillf
 # Le applicazioni con la finestra: si controlla che si APRANO, non solo che
 # compilino. E' il controllo che mancava quando il pannello AI e' uscito rotto.
 avvia apps/fan/skillfish-fan
+avvia apps/hud/skillfish-hud-editor
 
 # ⚠️ Ogni finestra deve dire a KDE qual e' il suo file .desktop, o la barra
 # delle applicazioni scrive «python3» e perde anche l'icona. Sette app su otto
 # lo facevano gia': la ottava se n'e' accorta solo passandoci sopra col mouse.
-for _app in apps/fan/skillfish-fan apps/tuner/skillfish-tuner \
+for _app in apps/fan/skillfish-fan apps/hud/skillfish-hud-editor \
+            apps/tuner/skillfish-tuner \
             apps/monitor/skillfish-monitor apps/hub/skillfish-hub \
             apps/snapshots/skillfish-snapshots apps/ai-panel/skillfish-ai-panel \
             apps/kernel-manager/skillfish-kernel-manager \

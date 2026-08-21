@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SkillFishOS HUD. Un pannello in ottone appoggiato a uno schermo, con dentro
+  le righe e le barrette che il HUD disegna davvero.
+
+  ⚠️ Tutti i gradienti sono definiti QUI DENTRO. Un gradiente referenziato ma
+  non definito nello stesso file viene digerito dai browser e RIFIUTATO da
+  qt6-svg: nel menu di KDE esce un riquadro vuoto e nessun errore da nessuna
+  parte. E' gia' successo con novantatre icone del tema.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="ottone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0cf86"/>
+      <stop offset="0.45" stop-color="#d8a849"/>
+      <stop offset="1" stop-color="#8a6a2a"/>
+    </linearGradient>
+    <radialGradient id="fondo" cx="0.5" cy="0.4" r="0.65">
+      <stop offset="0" stop-color="#2e2720"/>
+      <stop offset="1" stop-color="#17130f"/>
+    </radialGradient>
+    <linearGradient id="vetro" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241f19"/>
+      <stop offset="1" stop-color="#15110d"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="128" cy="128" r="120" fill="url(#fondo)"/>
+  <circle cx="128" cy="128" r="118" fill="none" stroke="url(#ottone)" stroke-width="8"/>
+
+  <!-- lo schermo -->
+  <rect x="40" y="58" width="176" height="118" rx="8"
+        fill="url(#vetro)" stroke="#5d4a20" stroke-width="3"/>
+  <rect x="106" y="176" width="44" height="12" fill="#5d4a20"/>
+  <rect x="80" y="188" width="96" height="9" rx="4" fill="url(#ottone)"/>
+
+  <!-- il pannello del HUD, appoggiato in alto a destra come di serie -->
+  <rect x="120" y="70" width="86" height="94" rx="5"
+        fill="#1b1610" stroke="#d8a849" stroke-width="2" opacity="0.96"/>
+  <!-- il titolo -->
+  <rect x="128" y="79" width="46" height="7" rx="3" fill="#d8a849"/>
+  <rect x="178" y="79" width="20" height="7" rx="3" fill="#f1e3c6"/>
+  <!-- due righe di valori -->
+  <rect x="128" y="94" width="26" height="5" rx="2" fill="#b9a07a"/>
+  <rect x="160" y="94" width="38" height="5" rx="2" fill="#f1e3c6"/>
+  <rect x="128" y="105" width="26" height="5" rx="2" fill="#b9a07a"/>
+  <rect x="160" y="105" width="30" height="5" rx="2" fill="#f1e3c6"/>
+  <!-- le barrette dei thread -->
+  <g fill="#d8a849">
+    <rect x="128" y="118" width="12" height="7" rx="1"/>
+    <rect x="144" y="118" width="12" height="7" rx="1"/>
+    <rect x="160" y="118" width="12" height="7" rx="1"/>
+    <rect x="176" y="118" width="12" height="7" rx="1"/>
+    <rect x="128" y="129" width="12" height="7" rx="1" opacity="0.55"/>
+    <rect x="144" y="129" width="12" height="7" rx="1" opacity="0.55"/>
+    <rect x="160" y="129" width="12" height="7" rx="1" opacity="0.55"/>
+    <rect x="176" y="129" width="12" height="7" rx="1" opacity="0.55"/>
+  </g>
+  <!-- la barra lunga del carico -->
+  <rect x="128" y="145" width="70" height="7" rx="3" fill="#3a322a"/>
+  <rect x="128" y="145" width="44" height="7" rx="3" fill="#d8a849"/>
+</svg>
