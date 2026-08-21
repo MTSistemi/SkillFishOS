@@ -490,14 +490,19 @@ class Grafico(QWidget):
         self.bottone_inserto.clicked.connect(self._apri_chiudi)
         self._inserto_aperto = True
         self._inserto_pos = None      # None = appoggiata all'origine
+        self._inserto_dim = None      # None = la misura di partenza
         self.inserto.spostata = self._sposta_inserto
+        self.inserto.ridimensionata = self._ridimensiona_inserto
         self.setMinimumHeight(240)
         self.setMinimumWidth(360)
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    # Quanto e' grande l'inserto della curva.
+    # Quanto e' grande l'inserto della curva quando non lo si e' ancora toccato,
+    # e sotto quale misura non lo si puo' stringere: piu' piccolo di cosi' i
+    # punti si sovrappongono e trascinarne uno diventa un terno al lotto.
     INS_L, INS_H = 340, 224
+    INS_MIN_L, INS_MIN_H = 230, 150
 
     def _apri_chiudi(self):
         self._inserto_aperto = not self._inserto_aperto
@@ -523,15 +528,31 @@ class Grafico(QWidget):
         dentro ai bordi: rimpicciolendo la finestra, un riquadro lasciato in
         basso a destra finirebbe fuori e non lo si riprenderebbe piu'."""
         a = self._area()
+        # la misura: quella di partenza, o quella a cui e' stata tirata, e mai
+        # piu' grande dell'area del grafico
+        l, h = self._inserto_dim or (self.INS_L, self.INS_H)
+        l = max(self.INS_MIN_L, min(a.width(), l))
+        h = max(self.INS_MIN_H, min(a.height(), h))
         if self._inserto_pos is None:
-            x, y = a.left(), a.bottom() - self.INS_H
+            x, y = a.left(), a.bottom() - h
         else:
             x, y = self._inserto_pos
-        x = max(a.left(), min(a.right() - self.INS_L, x))
-        y = max(a.top(), min(a.bottom() - self.INS_H, y))
-        self.inserto.setGeometry(QRect(int(x), int(y), self.INS_L, self.INS_H))
+        x = max(a.left(), min(a.right() - l, x))
+        y = max(a.top(), min(a.bottom() - h, y))
+        self.inserto.setGeometry(QRect(int(x), int(y), int(l), int(h)))
         self.bottone_inserto.setGeometry(
-            QRect(int(x) + self.INS_L - 21, int(y) + 1, 19, 15))
+            QRect(int(x) + int(l) - 21, int(y) + 1, 19, 15))
+
+    def _ridimensiona_inserto(self, l, h):
+        u"""⚠️ Tirando l'angolo si sposta il bordo in basso a destra, e quello in
+        alto a sinistra resta fermo: se la posizione non e' ancora stata scelta
+        a mano bisogna fissarla adesso, o il riquadro «appoggiato all'origine»
+        scivolerebbe verso l'alto man mano che lo si allunga."""
+        if self._inserto_pos is None:
+            g = self.inserto.geometry()
+            self._inserto_pos = (g.x(), g.y())
+        self._inserto_dim = (l, h)
+        self._posiziona_inserto()
 
     def _sposta_inserto(self, punto):
         p = self.mapFromGlobal(punto)
@@ -919,6 +940,7 @@ class CurvaEditor(QWidget):
     T_MIN, T_MAX = 20.0, 100.0
     RAGGIO = 5
     MANIGLIA = 17          # l'altezza della barretta per spostarla
+    ANGOLO = 15            # il quadratino in basso a destra per ridimensionarla
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -928,6 +950,8 @@ class CurvaEditor(QWidget):
         self.spostata = None       # richiamo verso il grafico che la contiene
         self._trascinato = -1
         self._presa = None         # da dove si sta spostando il riquadro
+        self._tira = None          # da dove si sta ridimensionando
+        self.ridimensionata = None
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -965,6 +989,13 @@ class CurvaEditor(QWidget):
         cx = self.width() // 2
         for i in range(-3, 4):
             p.drawLine(cx + i * 4, 5, cx + i * 4, self.MANIGLIA - 5)
+
+        # il quadratino per tirarla: tre trattini in diagonale, come si usa
+        p.setPen(QPen(OTTONE_SCURO, 1))
+        for i in range(3):
+            d = 4 + i * 4
+            p.drawLine(self.width() - 3, self.height() - 3 - d,
+                       self.width() - 3 - d, self.height() - 3)
 
         p.setFont(QFont(self.font().family(), 7))
         for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 10):
@@ -1026,7 +1057,14 @@ class CurvaEditor(QWidget):
                 return i
         return -1
 
+    def _nell_angolo(self, pos):
+        return (pos.x() >= self.width() - self.ANGOLO
+                and pos.y() >= self.height() - self.ANGOLO)
+
     def mousePressEvent(self, ev):
+        if self._nell_angolo(ev.position()):
+            self._tira = (ev.globalPosition().toPoint(), self.width(), self.height())
+            return
         if ev.position().y() <= self.MANIGLIA:
             self._presa = ev.globalPosition().toPoint() - self.pos()
             return
@@ -1040,21 +1078,31 @@ class CurvaEditor(QWidget):
         self._trascinato = i
 
     def mouseDoubleClickEvent(self, ev):
-        if ev.position().y() <= self.MANIGLIA or self._vicino(ev.position()) >= 0:
+        if (ev.position().y() <= self.MANIGLIA or self._nell_angolo(ev.position())
+                or self._vicino(ev.position()) >= 0):
             return
         t, y = self._val(ev.position())
         self.punti.append([round(t, 1), round(y)])
         self._fatto()
 
     def mouseMoveEvent(self, ev):
+        if self._tira is not None:
+            partenza, l0, h0 = self._tira
+            d = ev.globalPosition().toPoint() - partenza
+            if self.ridimensionata:
+                self.ridimensionata(l0 + d.x(), h0 + d.y())
+            return
         if self._presa is not None:
             if self.spostata:
                 self.spostata(ev.globalPosition().toPoint() - self._presa)
             return
         if self._trascinato < 0:
-            self.setCursor(Qt.CursorShape.SizeAllCursor
-                           if ev.position().y() <= self.MANIGLIA
-                           else Qt.CursorShape.ArrowCursor)
+            if self._nell_angolo(ev.position()):
+                self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif ev.position().y() <= self.MANIGLIA:
+                self.setCursor(Qt.CursorShape.SizeAllCursor)
+            else:
+                self.setCursor(Qt.CursorShape.ArrowCursor)
             return
         t, y = self._val(ev.position())
         i = self._trascinato
@@ -1068,6 +1116,7 @@ class CurvaEditor(QWidget):
 
     def mouseReleaseEvent(self, ev):
         self._presa = None
+        self._tira = None
         if self._trascinato >= 0:
             self._trascinato = -1
             self._fatto()
