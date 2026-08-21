@@ -116,6 +116,8 @@ CATALOGO = "/usr/share/skillfish/ventola-giochi.json"
 PERIODO = 1.0          # un giro al secondo
 SOGLIA_MINIMA = 20     # sotto questo il PWM non si scrive mai (vedi punto 4)
 PWM_MAX = 255
+# Quanti secondi di storia il demone tiene e pubblica per il grafico.
+STORIA = 300
 
 # Cosa si fa quando non si sa cosa fare.
 CONF_PREDEFINITA = {
@@ -446,6 +448,8 @@ class Demone(object):
         # i canali che hanno letto qualcosa di diverso da zero almeno
         # una volta da quando la macchina e' accesa (vedi pubblica)
         self.mai_vivi = set()
+        # la storia per il grafico: chiave -> [[secondo, valore], ...]
+        self.storia = {}
 
     # -- i sensori ---------------------------------------------------------
     def _canali(self):
@@ -580,18 +584,30 @@ class Demone(object):
         ⚠️ NON SI PUBBLICA CIO' CHE NON E' MAI STATO VIVO. Sulla BC-250 il chip
         dichiara otto canali ventola e ne esiste UNO: gli altri sette si
         chiamano «System Fan #1..#6» e danno zero da sempre. Passandoli alla
-        finestra si otteneva una legenda con sette voci identiche e inutili, e
-        un elenco in cui la ventola vera era una su otto.
+        finestra si otteneva una legenda con sette voci identiche e inutili.
         Non basta pero' togliere quelli che leggono zero ADESSO: una ventola
         ferma legge zero e una ventola staccata pure. La regola e' un'altra:
         **si tiene un canale che sia stato vivo almeno una volta da quando la
         macchina e' accesa**. Cosi' un connettore vuoto non compare mai, e una
-        ventola collegata domani compare entro un secondo da quando gira — senza
-        riavviare niente e senza doverlo dire a nessuno.
-        L'elenco di chi e' stato vivo sta in memoria e si azzera allo spegnimento,
-        che e' la durata giusta: e' li' che si cambiano i cavi.
+        ventola collegata domani compare entro un secondo da quando gira.
+        L'elenco di chi e' stato vivo sta in memoria e si azzera allo
+        spegnimento, che e' la durata giusta: e' li' che si cambiano i cavi.
+
+        ⚠️ LA STORIA LA TIENE IL DEMONE, NON LA FINESTRA. Prima il grafico si
+        costruiva la sua: la finestra leggeva a ogni aggiornamento e accodava un
+        punto. Funzionava finche' si aggiornava ogni secondo, ma bastava
+        rallentare a trenta secondi per avere dieci punti in cinque minuti —
+        cioe' un grafico che peggiora perche' lo si guarda meno spesso, che e'
+        il contrario di quello che deve succedere.
+        Adesso i campioni li prende il demone, sempre una volta al secondo, e li
+        pubblica insieme ai valori: la finestra li disegna e basta. Il tempo di
+        aggiornamento torna a essere solo il ritmo con cui si RIDISEGNA, e in
+        piu' riaprendo la finestra il grafico e' gia' pieno invece di ripartire
+        da zero.
+        Costo: qualche decina di kilobyte riscritti al secondo su un tmpfs.
         """
         etichette = hwmon.etichette_utente()
+        adesso = int(time.time())
         sensori = []
         for k, c in sorted(canali.items()):
             v = c.leggi()
@@ -604,8 +620,17 @@ class Demone(object):
             sensori.append({"key": k, "label": c.etichetta(etichette),
                             "type": c.tipo, "unit": c.unita, "value": v,
                             "source": k in (self.conf.get("sorgente") or [])})
+            if v is not None:
+                self._segna(k, adesso, v)
+
+        # le due grandezze che non sono sensori ma si guardano come tali
+        if duty is not None:
+            self._segna("__ventola__", adesso, round(duty, 1))
+        if t is not None:
+            self._segna("__temperatura__", adesso, round(t, 2))
+
         _scrivi_json(STATO, {
-            "aggiornato": int(time.time()),
+            "aggiornato": adesso,
             "attivo": bool(self.conf.get("attivo")),
             "in_controllo": bool(self.uscita and self.uscita.preso),
             "temperatura": t,
@@ -616,7 +641,36 @@ class Demone(object):
             "gioco": self.giochi.titolo,
             "preset": self.conf.get("preset", ""),
             "sensori": sensori,
+            "storia": self.storia,
         })
+
+    def _segna(self, chiave, adesso, valore):
+        u"""Un campione nella storia, e via quelli piu' vecchi della finestra.
+
+        ⚠️ NON si scrive un istante per ogni valore. I campioni sono a cadenza
+        fissa — uno al secondo — quindi basta il secondo del primo e poi la fila
+        dei valori: `{"t0": 1787…, "v": [49.6, 49.7, …]}`. Con quindici serie e
+        cinquecento secondi la differenza e' fra 250 e 80 kilobyte riscritti a
+        ogni giro, e questo file si riscrive una volta al secondo.
+
+        I buchi si riempiono con `null`: se un canale salta un secondo — un
+        sensore che sparisce per un attimo — senza il riempimento tutti i valori
+        successivi scivolerebbero indietro nel tempo, e il grafico mostrerebbe
+        cose vere all'ora sbagliata.
+        """
+        s = self.storia.get(chiave)
+        if s is None:
+            self.storia[chiave] = {"t0": adesso, "v": [valore]}
+            return
+        buchi = adesso - (s["t0"] + len(s["v"]))
+        if buchi > 0:
+            s["v"].extend([None] * min(buchi, STORIA))
+        s["v"].append(valore)
+        troppi = len(s["v"]) - STORIA
+        if troppi > 0:
+            del s["v"][:troppi]
+            s["t0"] += troppi
+
 
     def esegui(self):
         canali, pwm = self._canali()

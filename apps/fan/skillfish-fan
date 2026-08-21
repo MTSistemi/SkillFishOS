@@ -489,13 +489,15 @@ class Grafico(QWidget):
         self.bottone_inserto.setAutoRaise(True)
         self.bottone_inserto.clicked.connect(self._apri_chiudi)
         self._inserto_aperto = True
+        self._inserto_pos = None      # None = appoggiata all'origine
+        self.inserto.spostata = self._sposta_inserto
         self.setMinimumHeight(240)
         self.setMinimumWidth(360)
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    # Quanto e' grande l'inserto della curva, e quanto sta lontano dal bordo.
-    INS_L, INS_H, INS_M = 268, 168, 8
+    # Quanto e' grande l'inserto della curva.
+    INS_L, INS_H = 340, 224
 
     def _apri_chiudi(self):
         self._inserto_aperto = not self._inserto_aperto
@@ -508,12 +510,33 @@ class Grafico(QWidget):
 
     def resizeEvent(self, ev):
         super().resizeEvent(ev)
-        s, sup, d, inf = self._bordo()
-        x = s + self.INS_M
-        y = self.height() - inf - self.INS_H - self.INS_M
-        self.inserto.setGeometry(QRect(x, max(sup, y), self.INS_L, self.INS_H))
-        self.bottone_inserto.setGeometry(QRect(x + self.INS_L - 20, max(sup, y) - 2,
-                                               20, 18))
+        self._posiziona_inserto()
+
+    def _posiziona_inserto(self):
+        u"""Dove sta il riquadro della curva.
+
+        Di serie l'angolo in basso a sinistra coincide con l'ORIGINE DEGLI ASSI
+        del grafico: appoggiato esattamente dove si incontrano lo zero per cento
+        e il bordo sinistro, non a caso dentro all'area.
+
+        Se lo si e' spostato si tiene la sua posizione, ma sempre riportata
+        dentro ai bordi: rimpicciolendo la finestra, un riquadro lasciato in
+        basso a destra finirebbe fuori e non lo si riprenderebbe piu'."""
+        a = self._area()
+        if self._inserto_pos is None:
+            x, y = a.left(), a.bottom() - self.INS_H
+        else:
+            x, y = self._inserto_pos
+        x = max(a.left(), min(a.right() - self.INS_L, x))
+        y = max(a.top(), min(a.bottom() - self.INS_H, y))
+        self.inserto.setGeometry(QRect(int(x), int(y), self.INS_L, self.INS_H))
+        self.bottone_inserto.setGeometry(
+            QRect(int(x) + self.INS_L - 21, int(y) + 1, 19, 15))
+
+    def _sposta_inserto(self, punto):
+        p = self.mapFromGlobal(punto)
+        self._inserto_pos = (p.x(), p.y())
+        self._posiziona_inserto()
 
     def _bordo(self):
         return 42, 10, 12, 24
@@ -534,17 +557,25 @@ class Grafico(QWidget):
         return QColor({"%": self.COL_DUTY, "rpm": self.COL_RPM,
                        "W": self.COL_WATT, "V": self.COL_VOLT}.get(unita, "#999999"))
 
-    def campiona(self, adesso, letture):
-        u"""letture: elenco di (chiave, etichetta, unita, valore)."""
+    def carica(self, storia, meta):
+        u"""I campioni li ha presi il demone: qui si disegnano e basta.
+
+        ⚠️ Prima la finestra si costruiva la sua storia accodando un punto a
+        ogni aggiornamento. Reggeva finche' si aggiornava ogni secondo, ma
+        bastava rallentare per avere un grafico piu' povero — un grafico che
+        peggiora perche' lo si guarda meno spesso, che e' il contrario di quello
+        che deve succedere. E riaprendo la finestra si ripartiva da zero.
+
+        `meta` da' nome e unita' di ogni chiave; la storia da' i punti.
+        """
         nuove = False
-        for chiave, etichetta, unita, valore in letture:
-            if valore is None:
-                continue
+        for chiave, punti in (storia or {}).items():
+            etichetta, unita = meta.get(chiave, (chiave, ""))
             s = self.serie.get(chiave)
             if s is None:
                 s = {"etichetta": etichetta, "unita": unita, "punti": [],
                      # ⚠️ Di serie si accendono temperature, ventola, giri e watt
-                     # — i quattro numeri della striscia piu' le temperature.
+                     # — i quattro numeri della colonna piu' le temperature.
                      # Accendere anche le tensioni farebbe partire il grafico
                      # con dodici linee sovrapposte.
                      "visibile": unita in ("C", "%", "rpm", "W"), "colore": None}
@@ -553,10 +584,11 @@ class Grafico(QWidget):
                 s["colore"] = self._colore(unita)
                 nuove = True
             s["etichetta"] = etichetta
-            s["punti"].append((adesso, valore))
-            limite = adesso - self.FINESTRA
-            if s["punti"][0][0] < limite:
-                s["punti"] = [x for x in s["punti"] if x[0] >= limite]
+            # {"t0": primo secondo, "v": [valori]}: il tempo si ricava
+            # dall'indice, e i buchi (null) si saltano.
+            t0 = punti.get("t0") or 0
+            s["punti"] = [(t0 + i, v) for i, v in enumerate(punti.get("v") or [])
+                          if v is not None]
         if nuove and self.nuova_serie:
             self.nuova_serie()
         self.update()
@@ -870,9 +902,15 @@ class GraficoSingolo(QWidget):
 class CurvaEditor(QWidget):
     u"""La curva: gradi in orizzontale, percento in verticale, punti trascinabili.
 
-    Sta nel suo riquadro accanto ai preset perche' e' una cosa che si MODIFICA,
-    non che si guarda scorrere: il grafico grande e' il monitoraggio, questo e'
-    il comando.
+    Sta DENTRO al grafico grande, in un angolo. Copre un pezzo — non c'e' modo
+    di evitarlo — ma e' anche l'unica cosa che si MODIFICA invece di guardarla,
+    e tenerla dove si guarda ha senso.
+
+    ⚠️ SI PUO' SPOSTARE. Qualunque angolo si scelga, un giorno ci passa sotto la
+    linea che interessa: invece di indovinare l'angolo giusto per tutti, la si
+    prende per la barretta in alto e la si mette dove serve. La posizione viene
+    tenuta anche quando la finestra cambia dimensione, e resta comunque dentro
+    ai bordi del grafico.
 
     ⚠️ GLI ASSI SONO FISSI, 20-100 gradi e 0-100%. Una scala che si adatta ai
     dati fa sembrare identiche due curve completamente diverse.
@@ -880,19 +918,22 @@ class CurvaEditor(QWidget):
 
     T_MIN, T_MAX = 20.0, 100.0
     RAGGIO = 5
+    MANIGLIA = 17          # l'altezza della barretta per spostarla
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.punti = [list(p) for p in PRESET["equilibrato"]]
         self.vivo = None
         self.cambiata = None
+        self.spostata = None       # richiamo verso il grafico che la contiene
         self._trascinato = -1
-        self.setMinimumHeight(190)
+        self._presa = None         # da dove si sta spostando il riquadro
         self.setMouseTracking(True)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def _area(self):
-        return QRect(30, 8, max(1, self.width() - 42), max(30, self.height() - 30))
+        return QRect(34, self.MANIGLIA + 6, max(1, self.width() - 46),
+                     max(30, self.height() - self.MANIGLIA - 28))
 
     def _px(self, t, y):
         a = self._area()
@@ -914,19 +955,35 @@ class CurvaEditor(QWidget):
         p.fillRect(self.rect(), QColor("#15110d"))
         p.setPen(QPen(OTTONE_SCURO, 1))
         p.drawRect(0, 0, self.width() - 1, self.height() - 1)
+
+        # la barretta per spostarla, con i solchi che si vedono nelle maniglie
+        p.fillRect(QRect(1, 1, self.width() - 2, self.MANIGLIA), QColor("#241f19"))
+        p.setPen(QPen(OTTONE, 1))
+        p.setFont(QFont(self.font().family(), 8, QFont.Weight.Bold))
+        p.drawText(7, self.MANIGLIA - 4, L("Curva", "Curve"))
+        p.setPen(QPen(OTTONE_SCURO, 1))
+        cx = self.width() // 2
+        for i in range(-3, 4):
+            p.drawLine(cx + i * 4, 5, cx + i * 4, self.MANIGLIA - 5)
+
         p.setFont(QFont(self.font().family(), 7))
-        for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 20):
+        for t in range(int(self.T_MIN), int(self.T_MAX) + 1, 10):
             x = self._px(t, 0).x()
             p.setPen(QPen(GRIGLIA, 1))
             p.drawLine(int(x), a.top(), int(x), a.bottom())
-            p.setPen(QPen(OTTONE_SCURO, 1))
-            p.drawText(int(x) - 8, a.bottom() + 14, "%d°" % t)
-        for y in (0, 50, 100):
+            if t % 20 == 0:
+                p.setPen(QPen(OTTONE_SCURO, 1))
+                p.drawText(int(x) - 8, a.bottom() + 13, "%d°" % t)
+        # ⚠️ Le percentuali ogni dieci, non ogni cinquanta: e' l'asse su cui si
+        # decide quanto gira la ventola, e con tre sole tacche si trascinava un
+        # punto senza sapere se lo si stava mettendo al 55 o al 70.
+        for y in range(0, 101, 10):
             yy = self._px(self.T_MIN, y).y()
-            p.setPen(QPen(GRIGLIA, 1))
+            p.setPen(QPen(GRIGLIA if y % 20 else QColor("#4a4036"), 1))
             p.drawLine(a.left(), int(yy), a.right(), int(yy))
-            p.setPen(QPen(OTTONE_SCURO, 1))
-            p.drawText(2, int(yy) + 4, "%d%%" % y)
+            if y % 20 == 0:
+                p.setPen(QPen(OTTONE_SCURO, 1))
+                p.drawText(4, int(yy) + 4, "%d%%" % y)
         if not self.punti:
             return
         cam = QPainterPath()
@@ -945,11 +1002,17 @@ class CurvaEditor(QWidget):
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(OTTONE, 2))
         p.drawPath(cam)
+        p.setFont(QFont(self.font().family(), 7))
         for t, y in self.punti:
             c = self._px(max(self.T_MIN, min(self.T_MAX, t)), y)
             p.setPen(QPen(QColor("#2b241c"), 2))
             p.setBrush(QBrush(OTTONE))
             p.drawEllipse(c, self.RAGGIO, self.RAGGIO)
+            # il valore accanto al punto: trascinandolo si vede dove si sta
+            # mettendo, senza doverlo leggere sulla griglia
+            p.setPen(QPen(QColor("#c9b184"), 1))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawText(int(c.x()) + 7, int(c.y()) - 6, "%d%%" % round(y))
         if self.vivo:
             c = self._px(max(self.T_MIN, min(self.T_MAX, self.vivo[0])), self.vivo[1])
             p.setBrush(QBrush(VIVO))
@@ -964,6 +1027,9 @@ class CurvaEditor(QWidget):
         return -1
 
     def mousePressEvent(self, ev):
+        if ev.position().y() <= self.MANIGLIA:
+            self._presa = ev.globalPosition().toPoint() - self.pos()
+            return
         i = self._vicino(ev.position())
         if ev.button() == Qt.MouseButton.RightButton:
             # ⚠️ mai sotto due punti: con uno solo la curva non e' piu' una curva
@@ -974,14 +1040,21 @@ class CurvaEditor(QWidget):
         self._trascinato = i
 
     def mouseDoubleClickEvent(self, ev):
-        if self._vicino(ev.position()) >= 0:
+        if ev.position().y() <= self.MANIGLIA or self._vicino(ev.position()) >= 0:
             return
         t, y = self._val(ev.position())
         self.punti.append([round(t, 1), round(y)])
         self._fatto()
 
     def mouseMoveEvent(self, ev):
+        if self._presa is not None:
+            if self.spostata:
+                self.spostata(ev.globalPosition().toPoint() - self._presa)
+            return
         if self._trascinato < 0:
+            self.setCursor(Qt.CursorShape.SizeAllCursor
+                           if ev.position().y() <= self.MANIGLIA
+                           else Qt.CursorShape.ArrowCursor)
             return
         t, y = self._val(ev.position())
         i = self._trascinato
@@ -994,6 +1067,7 @@ class CurvaEditor(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, ev):
+        self._presa = None
         if self._trascinato >= 0:
             self._trascinato = -1
             self._fatto()
@@ -1249,7 +1323,12 @@ class Finestra(QMainWindow):
         cima.addStretch(1)
         cima.addWidget(QLabel(L("Aggiornamento", "Refresh")))
         self.intervallo = QComboBox()
-        for testo, ms in (("1 s", 1000), ("2 s", 2000), ("5 s", 5000)):
+        # ⚠️ Rallentare non impoverisce piu' il grafico: i campioni li prende
+        # il demone, sempre una volta al secondo. Questo e' solo il ritmo con
+        # cui la finestra RIDISEGNA, e sopra i cinque secondi si sente: mentre
+        # giochi, ridisegnare dodici linee lo paghi sui fotogrammi.
+        for testo, ms in (("1 s", 1000), ("2 s", 2000), ("5 s", 5000),
+                          ("10 s", 10000), ("15 s", 15000), ("30 s", 30000)):
             self.intervallo.addItem(testo, ms)
         self.intervallo.currentIndexChanged.connect(self._cambia_intervallo)
         cima.addWidget(self.intervallo)
@@ -1722,21 +1801,15 @@ class Finestra(QMainWindow):
         self._riempi_sorgente(sensori)
         self._allarmi(sensori)
 
-        adesso = float(s.get("aggiornato") or 0)
-        if adesso:
-            letture = [(x["key"], x.get("label") or x["key"], x.get("unit") or "",
-                        x["value"]) for x in sensori if x.get("value") is not None]
-            duty = s.get("duty")
-            if duty is not None:
-                letture.append(("__ventola__", L("Ventola", "Fan"), "%", float(duty)))
-            if t is not None:
-                letture.append(("__temperatura__", L("Temperatura", "Temperature"),
-                                "C", float(t)))
-            self.grafico.campiona(adesso, letture)
-            for chiave, serie in self.grafico.elenco():
-                w = self.tessere.get(chiave)
-                if w is not None:
-                    w.aggiorna(serie)
+        meta = {x["key"]: (x.get("label") or x["key"], x.get("unit") or "")
+                for x in sensori}
+        meta["__ventola__"] = (L("Ventola", "Fan"), "%")
+        meta["__temperatura__"] = (L("Temperatura", "Temperature"), "C")
+        self.grafico.carica(s.get("storia") or {}, meta)
+        for chiave, serie in self.grafico.elenco():
+            w = self.tessere.get(chiave)
+            if w is not None:
+                w.aggiorna(serie)
         self.curva.aggiorna_vivo(t, float(s.get("duty") or 0))
         if s.get("gioco"):
             self.et_gioco.setText(L("Ultimo riconosciuto: %s", "Last recognised: %s")
