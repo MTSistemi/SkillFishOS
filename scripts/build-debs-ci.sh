@@ -11,6 +11,7 @@ rm -rf "$OUT"; mkdir -p "$OUT/out"
 # Ogni put/opt/putdir annota la SORGENTE in .sources. Serve a generare il
 # changelog del pacchetto dai commit che toccano davvero i SUOI file, invece di
 # un testo generico uguale per tutti.
+
 note_src() { mkdir -p "$OUT/$1"; echo "$2" >> "$OUT/$1/.sources"; }
 
 put() { # put <pkg> <mode> <src> <dest-rel>
@@ -84,11 +85,23 @@ License: GPL-3+
 COPY
 }
 
-ctrl() { # ctrl <pkg> <depends> <desc-first-line>
+ctrl() { # ctrl <pkg> <depends> <desc-first-line> [<corpo>]
   mkdir -p "$OUT/$1/DEBIAN"
   docs "$1"
-  printf 'Package: %s\nVersion: %s\nArchitecture: all\nMaintainer: SkillFishOS <info@skillfishos.com>\nDepends: %s\nSection: utils\nPriority: optional\nHomepage: https://skillfishos.com\nDescription: %s\n built from git by CI.\n' \
-    "$1" "$VER" "$2" "$3" > "$OUT/$1/DEBIAN/control"
+  # ⚠️ IL CORPO DELLA DESCRIZIONE LO LEGGONO L'HUB E `apt show`.
+  # Fino al 22/08 qui c'era una riga sola, «built from git by CI»: chi apriva
+  # la scheda di un nostro pacchetto leggeva soltanto che era stato compilato.
+  # Nel control ogni riga del corpo va rientrata di uno spazio e le righe
+  # vuote diventano un punto: sed fa esattamente quello.
+  { printf 'Package: %s\nVersion: %s\nArchitecture: all\nMaintainer: SkillFishOS <info@skillfishos.com>\nDepends: %s\nSection: utils\nPriority: optional\nHomepage: https://skillfishos.com\nDescription: %s\n' \
+      "$1" "$VER" "$2" "$3"
+    if [ -n "${4:-}" ]; then
+      printf '%s\n' "$4" | sed 's/^[[:space:]]*$/./; s/^/ /'
+      printf ' .\n Part of SkillFishOS.\n'
+    else
+      printf ' Part of SkillFishOS.\n'
+    fi
+  } > "$OUT/$1/DEBIAN/control"
   printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$1/DEBIAN/postinst"
   chmod 0755 "$OUT/$1/DEBIAN/postinst"
 }
@@ -142,7 +155,14 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/
 put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/skillfish-cu.service
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base" "SkillFishOS Tuner - BC-250 hardware control GUI"
+# Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
+shot $P apps/hud/os.skillfish.hud.metainfo.xml
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base" "SkillFishOS Tuner - BC-250 hardware control GUI" \
+  "Controls what the board actually does: CPU and GPU clocks, the number of
+compute units in use, the memory split and the fan, with presets that go
+from silent to full and a wizard that finds what this particular chip can
+hold. Also carries the HUD and its configurator, which decides what the
+desktop overlay shows and where."
 # ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
@@ -183,7 +203,13 @@ put $P 0644 system/etc/systemd/system/skillfish-hub-refresh.timer   etc/systemd/
 put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.service usr/lib/systemd/user/skillfish-hub-notify.service
 put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.timer   usr/lib/systemd/user/skillfish-hub-notify.timer
 shot $P apps/hub/os.skillfish.hub.metainfo.xml
-ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd" "SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware"
+ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd" "SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware" \
+  "A software centre for APT, Flatpak, Snap and device firmware: search,
+categories, app pages with screenshots and ratings, source management, and
+system updates that keep running even if this window is closed, because
+the transaction is handed to systemd rather than kept as a child process.
+It also opens .deb, .flatpakref and .flatpakrepo files, and tells you when
+updates are waiting."
 # ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 #!/bin/sh
@@ -227,7 +253,15 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-fan.png usr/sh
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg
 # ⚠️ La dipendenza da skillfish-base non e' decorativa: li' dentro c'e' hwmon.py,
 # senza il quale il demone esce al primo giro. Meglio che lo sappia apt.
-ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1" "SkillFishOS Fan Control - fan curve with anticipation"
+# ⚠️ La scheda AppStream: senza, nell'Hub questa applicazione mostra solo la
+# riga del control, nessuno screenshot e nessuna novita'.
+shot $P apps/fan/os.skillfish.fan.metainfo.xml
+ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1" "SkillFishOS Fan Control - fan curve with anticipation" \
+  "The fan curve, with a controller that runs whether or not the window is
+open. It reads only the sensors this machine really has, watches how fast
+the temperature is rising to start spinning up before the heat arrives,
+and keeps an emergency threshold that cannot be switched off. Sensors can
+be renamed, and the names survive a reboot."
 # ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
 # Il servizio si accende all'installazione anche se non e' ancora configurato:
 # con `attivo` a falso non tocca la ventola, ma pubblica le letture, e senza di
@@ -250,7 +284,10 @@ put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png us
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png
 put $P 0644 system/usr/share/mime/packages/os.skillfish.monitor.xml usr/share/mime/packages/os.skillfish.monitor.xml
 shot $P apps/monitor/os.skillfish.monitor.metainfo.xml
-ctrl $P "python3, python3-pyqt6" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer"
+ctrl $P "python3, python3-pyqt6" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer" \
+  "Live charts of every sensor the machine reports, and a recorder: a session
+can be saved to a .sfmon file and read back later, which is how a change is
+compared against the run before it instead of against memory."
 # monitor ships a MIME type (.sfmon recordings) → also refresh the shared-mime db
 printf '#!/bin/sh\nset -e\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nupdate-desktop-database -q 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
@@ -264,7 +301,10 @@ put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-kernel.png usr/s
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png
 shot $P apps/kernel-manager/os.skillfish.kernel.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Manager"
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Manager" \
+  "Chooses which kernel the board boots and removes the ones no longer
+wanted, including the SkillFishOS builds with the BC-250 patches. It shows
+what is installed, what is running now, and what GRUB will pick next time."
 
 P=skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
@@ -284,7 +324,10 @@ put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-ai.png usr/share
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-ai.png usr/share/icons/hicolor/128x128/apps/skillfish-ai.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png usr/share/icons/hicolor/256x256/apps/skillfish-ai.png
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel" \
+  "Runs language models on the board itself, on the integrated GPU rather
+than on the processor, and keeps the download, the model list and the chat
+in one window. Nothing is sent anywhere: the model answers from here."
 # ⚠️ L'unita' del motore AI veniva spedita e non la accendeva nessuno: sulla
 # scheda risultava attiva solo perche' l'avevo abilitata a mano, e nella ISO ci
 # finiva per clonazione. Chi installa da apt si ritrovava il file dell'unita' e
@@ -294,6 +337,10 @@ printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-u
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfishos-archive-keyring
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfishos-archive-keyring.png usr/share/icons/hicolor/48x48/apps/skillfishos-archive-keyring.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfishos-archive-keyring.png usr/share/icons/hicolor/128x128/apps/skillfishos-archive-keyring.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfishos-archive-keyring.png usr/share/icons/hicolor/256x256/apps/skillfishos-archive-keyring.png
 # La sorgente apt e la chiave di firma erano gli ultimi due file di sistema che
 # non appartenevano a nessun pacchetto: scritti a mano sulla scheda, copiati
 # nella ISO, e da li' in poi immutabili. Se un giorno la chiave scade o cambia
@@ -305,9 +352,15 @@ P=skillfishos-archive-keyring
 # quel momento si aggiornano da soli con un apt upgrade.
 put $P 0644 system/usr/share/keyrings/skillfishos-archive-keyring.gpg usr/share/keyrings/skillfishos-archive-keyring.gpg
 put $P 0644 system/etc/apt/sources.list.d/skillfishos.sources          etc/apt/sources.list.d/skillfishos.sources
-ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source"
+ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source" \n  "The signing key of the SkillFishOS archive and the APT source that uses it.
+Without this package the other SkillFishOS packages have no way of proving
+where they came from."
 
 P=skillfish-base
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-base.svg usr/share/icons/hicolor/scalable/apps/skillfish-base.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-base.png usr/share/icons/hicolor/48x48/apps/skillfish-base.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-base.png usr/share/icons/hicolor/128x128/apps/skillfish-base.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-base.png usr/share/icons/hicolor/256x256/apps/skillfish-base.png
 # Script nostri che stavano solo dentro l'immagine e non in un pacchetto: una
 # correzione a uno di questi non poteva raggiungere chi ha gia' installato.
 put $P 0755 system/usr/local/bin/skillfish-dp-hotswap.sh    usr/local/bin/skillfish-dp-hotswap.sh
@@ -408,7 +461,11 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock"
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+  "The parts that have to be there before anything else: the hardware
+watchdog, the freeze detector that records what the board was doing when
+it stopped, the 8-core unlock, the shared translation dictionary and the
+sensor tables the other applications read."
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
@@ -587,6 +644,10 @@ PRERM
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-console
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-console.svg usr/share/icons/hicolor/scalable/apps/skillfish-console.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-console.png usr/share/icons/hicolor/48x48/apps/skillfish-console.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-console.png usr/share/icons/hicolor/128x128/apps/skillfish-console.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-console.png usr/share/icons/hicolor/256x256/apps/skillfish-console.png
 put $P 0755 system/usr/local/bin/skillfish-gaming-mode usr/local/bin/skillfish-gaming-mode
 put $P 0644 system/usr/share/wayland-sessions/skillfish-gaming.desktop usr/share/wayland-sessions/skillfish-gaming.desktop
 # Il comando che permette di USCIRE dalla console. Con -steamos3 Steam crede di
@@ -599,7 +660,9 @@ put $P 0644 system/usr/share/wayland-sessions/skillfish-gaming.desktop usr/share
 # proprio runtime e flatpak si rifiuta di montarci sopra il percorso dell'host.
 put $P 0755 system/usr/local/bin/steamos-session-select usr/local/bin/steamos-session-select
 put $P 0755 system/usr/local/bin/steamos-session-select opt/skillfish/steam-bin/steamos-session-select
-ctrl $P "gamescope, flatpak" "SkillFishOS Console - SteamOS-style Big Picture session"
+ctrl $P "gamescope, flatpak" "SkillFishOS Console - SteamOS-style Big Picture session" \
+  "A SteamOS-style session that starts straight into a controller-driven
+interface, for using the board on a television without a keyboard."
 # Steam deve poter trovare ed eseguire quel comando: la cartella, il PATH del
 # sandbox e il permesso di parlare col servizio Flatpak, che serve a
 # flatpak-spawn per agire sull'host.
@@ -667,7 +730,7 @@ Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
  the Tuner (CPU/GPU/compute-unit control), a full Hub app store, AI/OpenWebUI,
  logs, Wake-on-LAN and ZeroTier. Ships the always-available daemon plus the
- native Remote Manager toggle app. Built from git by CI.
+ native Remote Manager toggle app.
 EOF
 # ⚠️ Si MASCHERA ttyd.service, non lo si disabilita soltanto.
 # Il pacchetto Debian ttyd porta una sua unita' abilitata, che parte con le
@@ -683,10 +746,20 @@ printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then system
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-theme
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-theme.png usr/share/icons/hicolor/48x48/apps/skillfish-theme.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-theme.png usr/share/icons/hicolor/128x128/apps/skillfish-theme.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-theme.png usr/share/icons/hicolor/256x256/apps/skillfish-theme.png
 # The steampunk look used to be baked into the ISO filesystem only (no package
 # owned it), so a fix could not reach installed systems through apt. It ships
 # as a package now — same paths, so it simply takes ownership of the files.
 putdir $P theme/icons/SkillFishSteampunk              usr/share/icons/SkillFishSteampunk
+# ⚠️ La riparazione del pulsante del menu, per chi AGGIORNA.
+# La configurazione del pannello sta nella home dell'utente e un pacchetto
+# non tocca le home: /etc/skel vale solo per chi arriva nuovo. Senza questo,
+# aggiornare il tema significa consegnare a tutti un menu con l'icona
+# sbagliata — e nessun modo, per loro, di capire perche'.
+put $P 0755 system/usr/local/bin/skillfish-menu-icon-fix usr/local/bin/skillfish-menu-icon-fix
 putdir $P theme/cursors/SkillFish-Steampunk-Cursors   usr/share/icons/SkillFish-Steampunk-Cursors
 putdir $P theme/plasma-theme/SkillFishSteampunk       usr/share/plasma/desktoptheme/SkillFishSteampunk
 putdir $P theme/look-and-feel/org.skillfish.steampunk usr/share/plasma/look-and-feel/org.skillfish.steampunk
@@ -726,7 +799,11 @@ put $P 0644 system/etc/skel/.config/autostart/skillfish-wallpaper.desktop etc/sk
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
-ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours"
+ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours" \
+  "The steampunk look: brass and copper icons, cursors, Plasma theme, colour
+scheme and panel layout. It also repairs the menu button of anyone who is
+upgrading, because the panel configuration lives in each user's home and
+no package can reach in there on its own."
 # NON generare una icon-theme.cache per i nostri temi: TOGLIERLA.
 #
 # Qui c'era `gtk-update-icon-cache -f` sul tema, con `|| rm -f` come ripiego.
@@ -738,7 +815,7 @@ ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plas
 #
 # Senza cache Qt legge direttamente le cartelle del tema, che funziona sempre.
 # La cache di hicolor invece va aggiornata, e la fa gia' ctrl().
-printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\n[ -x /usr/local/bin/skillfish-menu-icon-fix ] && /usr/local/bin/skillfish-menu-icon-fix || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 
@@ -767,13 +844,19 @@ PYAVVIO
 
 echo "== building =="
 P=skillfish-iso-mount
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-iso-mount.svg usr/share/icons/hicolor/scalable/apps/skillfish-iso-mount.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-iso-mount.png usr/share/icons/hicolor/48x48/apps/skillfish-iso-mount.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-iso-mount.png usr/share/icons/hicolor/128x128/apps/skillfish-iso-mount.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-iso-mount.png usr/share/icons/hicolor/256x256/apps/skillfish-iso-mount.png
 # Era rimasto nel vecchio apps/build-debs.sh, che prende i file dal disco della
 # scheda: fuori dalla catena automatica, quindi fermo a 26.06 mentre tutto il
 # resto avanzava, e una correzione qui non sarebbe mai arrivata a nessuno.
 put $P 0755 system/usr/local/bin/skillfish-iso-mount usr/local/bin/skillfish-iso-mount
 put $P 0644 system/usr/share/kio/servicemenus/skillfish-iso.desktop usr/share/kio/servicemenus/skillfish-iso.desktop
 put $P 0644 system/etc/polkit-1/rules.d/49-skillfish-udisks.rules etc/polkit-1/rules.d/49-skillfish-udisks.rules
-ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KDE"
+ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KDE" \
+  "Mounts an ISO image by double-clicking it in the file manager, and
+releases it from the same menu, without a terminal and without root."
 P=skillfish-snapshots
 # «SkillFishOS Snapshot»: gli snapshot in una finestra, senza terminale e senza
 # il vocabolario del filesystem. Btrfs Assistant resta installato per chi vuole
@@ -802,10 +885,17 @@ put $P 0644 system/usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png us
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
-ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance"
+ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
+  "Snapshots of the system with snapper, before and after updates, plus the
+btrfs maintenance that keeps them from filling the disk. A snapshot can be
+browsed, compared and restored from the window."
 
 
 P=skillfish-menu
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-menu.png usr/share/icons/hicolor/48x48/apps/skillfish-menu.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-menu.png usr/share/icons/hicolor/128x128/apps/skillfish-menu.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-menu.png usr/share/icons/hicolor/256x256/apps/skillfish-menu.png
 # Questo non stava in NESSUNO script: esisteva solo come .deb costruito a mano
 # chissa' quando. Definisce la categoria "SkillFishOS" nel menu delle
 # applicazioni — i due .menu (uno per il menu XDG, uno per quello di Plasma) e
@@ -814,7 +904,9 @@ put $P 0644 system/etc/xdg/menus/applications-merged/skillfishos.menu etc/xdg/me
 put $P 0644 system/etc/xdg/menus/plasma-applications-merged/skillfishos.menu etc/xdg/menus/plasma-applications-merged/skillfishos.menu
 put $P 0644 system/usr/share/desktop-directories/skillfishos.directory usr/share/desktop-directories/skillfishos.directory
 
-ctrl $P "" "SkillFishOS application menu group"
+ctrl $P "" "SkillFishOS application menu group" \
+  "The SkillFishOS group in the application menu, so our tools are together
+instead of scattered among the system entries."
 
 P=skillfish-emulators
 # Gli emulatori NON possono viaggiare nella ISO: EmuDeck installa tutto nella
@@ -837,7 +929,9 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-emulators.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-emulators.png usr/share/icons/hicolor/48x48/apps/skillfish-emulators.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png
-ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
+ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation" \
+  "Installs game console emulators after the installation, either the whole
+EmuDeck set or one at a time, choosing what fits this hardware."
 
 for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
@@ -1194,10 +1288,18 @@ check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'cl
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
 check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc os.skillfish.hub.desktop
-# L'icona del menu va per NOME: da Plasma 6.7.4 un percorso assoluto lascia il
-# pulsante vuoto, senza dire niente nel giornale. Facile da riscrivere per
-# sbaglio salvando il pannello dall'interfaccia, quindi lo si controlla qui.
-check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=skillfish-tuner'
+# L'ICONA DEL MENU VA PER PERCORSO, E IL FILE DEVE ESSERE NEL TEMA.
+# Qui c'era scritto il contrario — «va per nome, un percorso assoluto lascia il
+# pulsante vuoto» — e il 22/08 la prova sulla scheda ha detto un'altra cosa:
+# col NOME il pannello disegna l'icona piu' piccola delle altre e slavata,
+# perche' la tratta come icona di tema (margini e ricolorazione); col PERCORSO
+# esce identica a com'era. Il pulsante vuoto di allora si spiega col file
+# puntato che non era dentro a nessun pacchetto: adesso il percorso punta al
+# tema, che quel file lo installa, e la riga sotto lo verifica.
+# ⚠️ Non e' piu' «skillfish-tuner»: quello era un nome di applicazione con
+# dentro il logo, e il giorno in cui il Tuner ha avuto la sua icona il menu si
+# e' ritrovato i cursori.
+check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png'
 # ...e l'icona con quel nome deve stare DENTRO al nostro tema. Se manca, KDE
 # taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
 # stilizzato al posto di quello di ottone, senza dire niente a nessuno.
@@ -1304,4 +1406,36 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/share/skillfish/dashboard/hud
 # nella home di root non cambierebbe niente sullo schermo di nessuno.
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd 'def hud_utente'
 
-echo "ALL DEBS VERIFIED"
+# L'HUB APRE I FILE CHE APRIVA DISCOVER.
+# .deb, .flatpakref, .flatpakrepo e i link appstream:// e apt://. Senza
+# queste tre righe si puo' togliere Discover e scoprire dopo che il doppio
+# clic su un pacchetto scaricato non apre piu' niente.
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def bersaglio"
+check skillfish-hub_${VER}_all.deb ./usr/share/applications/os.skillfish.hub.desktop 'application/vnd.flatpak.ref'
+# ⚠️ L'helper gira da root: ogni percorso che arriva da fuori si controlla.
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper 'percorso_sicuro'
+
+# IL PULSANTE DEL MENU.
+# ⚠️ Il pesce del pannello sta nel tema col nome del logo, e il pannello lo
+# chiede per PERCORSO: col nome Plasma lo ricolora e lo rimpicciolisce.
+# Prima stava in un file chiamato «skillfish-tuner» — un nome di
+# applicazione con dentro il logo — e il giorno in cui il Tuner ha avuto la
+# sua icona il menu si e' ritrovato i cursori.
+deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png" "skillfish-theme: il pesce del pannello"
+check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc 'customButtonImage=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png'
+check skillfish-theme_${VER}_all.deb ./usr/local/bin/skillfish-menu-icon-fix 'org.kde.plasma.kickoff'
+
+
+# LE ICONE DEI PACCHETTI DI SERVIZIO.
+# ⚠️ Il nome del file DEVE essere il nome del pacchetto: l'Hub cerca
+# quello, esatto, e una lettera sbagliata riporta il riquadro grigio
+# senza dire niente a nessuno.
+check skillfish-base_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-base.svg '<svg'
+check skillfish-console_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-console.svg '<svg'
+check skillfish-iso-mount_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-iso-mount.svg '<svg'
+check skillfish-menu_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg '<svg'
+check skillfish-theme_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg '<svg'
+check skillfishos-archive-keyring_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg '<svg'
+
+echo "
+ALL DEBS VERIFIED"

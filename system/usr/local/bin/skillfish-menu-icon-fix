@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""Rimette il pesce sul pulsante del menu, anche a chi aggiorna.
+
+IL GUASTO CHE RIPARA
+Fino al 21/08/2026 il pulsante del menu prendeva il logo da un file che si
+chiamava «skillfish-tuner»: un nome di applicazione con dentro il pesce. Ha
+funzionato finche' il Tuner non ha avuto un'icona sua; dandogliela — i cursori —
+il pulsante del menu di chiunque avesse quel percorso nella propria
+configurazione si e' ritrovato i cursori del Tuner.
+
+⚠️ PERCHE' SERVE UNO SCRIPT E NON BASTA IL PACCHETTO.
+La configurazione del pannello sta nella HOME dell'utente, e un pacchetto non
+tocca le home: /etc/skel vale solo per gli utenti nuovi. Senza questo, chi
+aggiorna si ritrova il menu rotto e nessun modo di collegarlo a noi.
+
+⚠️ SI TOCCA IL MINIMO INDISPENSABILE.
+Solo l'applet del menu (org.kde.plasma.kickoff), e solo se il valore e'
+esattamente uno dei due vecchi. Se qualcuno ha scelto apposta un'altra icona,
+resta la sua: una migrazione che sovrascrive le scelte altrui e' peggio del
+guasto che ripara.
+"""
+from __future__ import unicode_literals
+
+import glob
+import io
+import os
+import re
+import sys
+
+NUOVO = "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png"
+VECCHI = {
+    "skillfish-tuner",
+    "/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png",
+    "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png",
+    "skillfishos",   # i passaggi intermedi di quella sera: giusti come nome, ma
+    "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfishos.png",
+                     # Plasma li ricolora e li rimpicciolisce
+}
+SEZIONE = re.compile(r'^(\[Containments\]\[\d+\]\[Applets\]\[(\d+)\])'
+                     r'(\[Configuration\]\[General\])?$')
+
+
+def sistema(percorso):
+    u"""Torna True se il file e' stato cambiato."""
+    try:
+        with io.open(percorso, encoding="utf-8") as f:
+            testo = f.read()
+    except (IOError, OSError):
+        return False
+    if not any(v in testo for v in VECCHI):
+        return False
+
+    pezzi = re.split(r'(?m)^(\[.*\])$', testo)
+    # prima si segna QUALI applet sono il menu: la riga icon= sta in una
+    # sottosezione diversa da quella dove sta plugin=, e senza questo giro si
+    # finirebbe per cambiare l'icona a un lanciatore qualsiasi
+    kickoff = set()
+    for i in range(1, len(pezzi), 2):
+        m = SEZIONE.match(pezzi[i])
+        if m and re.search(r'(?m)^plugin=org\.kde\.plasma\.kickoff\s*$', pezzi[i + 1]):
+            kickoff.add(m.group(2))
+    if not kickoff:
+        return False
+
+    cambiato = False
+    for i in range(1, len(pezzi), 2):
+        m = SEZIONE.match(pezzi[i])
+        if not m or m.group(2) not in kickoff:
+            continue
+        def scambia(riga):
+            valore = riga.group(1).strip()
+            return "icon=" + NUOVO if valore in VECCHI else riga.group(0)
+        nuovo = re.sub(r'(?m)^icon=(.*)$', scambia, pezzi[i + 1])
+        if nuovo != pezzi[i + 1]:
+            # ⚠️ Con il solo `icon=` Plasma disegna l'icona come icona di
+            # tema: ricolorata e piu' piccola delle altre. Le due chiavi
+            # dell'immagine sono quelle che la fanno uscire com'e'.
+            nuovo = re.sub(r'(?m)^(useCustomButtonImage|customButtonImage)=.*\n?',
+                           "", nuovo)
+            nuovo = nuovo.rstrip("\n") + (
+                "\nuseCustomButtonImage=true\ncustomButtonImage=%s\n\n" % NUOVO)
+        if nuovo != pezzi[i + 1]:
+            pezzi[i + 1] = nuovo
+            cambiato = True
+    if not cambiato:
+        return False
+    try:
+        # ⚠️ Si scrive di fianco e si sposta: se la corrente va via a meta'
+        # scrittura, la configurazione del pannello resta quella di prima invece
+        # di diventare un file troncato che Plasma non sa leggere.
+        tmp = percorso + ".skillfish-tmp"
+        with io.open(tmp, "w", encoding="utf-8") as f:
+            f.write("".join(pezzi))
+        st = os.stat(percorso)
+        os.chown(tmp, st.st_uid, st.st_gid)
+        os.chmod(tmp, st.st_mode & 0o7777)
+        os.rename(tmp, percorso)
+    except (IOError, OSError):
+        return False
+    return True
+
+
+def main():
+    if not os.path.exists(NUOVO):
+        return 0          # il tema non c'e': non e' compito nostro rimediare
+    fatti = []
+    for p in (["/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc"]
+              + glob.glob("/home/*/.config/plasma-org.kde.plasma.desktop-appletsrc")
+              + glob.glob("/root/.config/plasma-org.kde.plasma.desktop-appletsrc")):
+        if sistema(p):
+            fatti.append(p)
+    for p in fatti:
+        print("pulsante del menu rimesso a posto: %s" % p)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -19,7 +19,12 @@ Comment[es]=Explora, instala y actualiza programas — APT, Flatpak y Snap
 Comment[pt]=Explore, instale e atualize programas — APT, Flatpak e Snap
 Comment[de]=Programme durchsehen, einrichten und aktualisieren — APT, Flatpak und Snap
 Comment[fr]=Parcourez, installez et mettez à jour des logiciels — APT, Flatpak et Snap
-Exec=/usr/local/bin/skillfish-hub
+# ⚠️ %u, non %f: KDE passa un file:// per i file e un appstream:// per i
+# link. Con %f i link non arriverebbero affatto.
+Exec=/usr/local/bin/skillfish-hub %u
+# I tipi che gestiva Discover. Toglierlo senza questa riga vuol dire
+# lasciare .deb e .flatpakref senza nessuno che li apra.
+MimeType=application/vnd.debian.binary-package;application/vnd.flatpak;application/vnd.flatpak.repo;application/vnd.flatpak.ref;x-scheme-handler/appstream;x-scheme-handler/apt;
 Icon=skillfish-hub
 Terminal=false
 Categories=Settings;PackageManager;X-SkillFishOS;

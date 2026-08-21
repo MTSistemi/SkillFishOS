@@ -132,3 +132,83 @@ def test_counting_stands_down_while_a_transaction_runs():
     testo = HELPER_SRC.read_text(encoding="utf-8")
     conta = testo.split("\n  conta)", 1)[1]
     assert "tx_attiva" in conta.split("apt-get update", 1)[0]
+
+
+# --------------------------------------------------------------------------
+# Opening a file the way Discover did: .deb, Flatpak refs, appstream:// links.
+# --------------------------------------------------------------------------
+def test_target_needs_a_real_file(hub, tmp_path):
+    """A path that is not a real file must never reach the root helper.
+
+    The helper runs as root through pkexec. A directory, a device node or a
+    made-up path has no business being handed to apt, and the cheapest place to
+    stop it is before it is even offered to the user.
+    """
+    finto = tmp_path / "inventato.deb"
+    assert hub.bersaglio([str(finto)]) is None
+    cartella = tmp_path / "cartella.deb"
+    cartella.mkdir()
+    assert hub.bersaglio([str(cartella)]) is None
+    vero = tmp_path / "vero.deb"
+    vero.write_bytes(b"!<arch>\n")
+    assert hub.bersaglio([str(vero)]) == ("deb", str(vero))
+
+
+def test_target_understands_what_kde_actually_passes(hub, tmp_path):
+    """KDE hands over a file:// URL, and percent-encodes the spaces in it."""
+    f = tmp_path / "un pacchetto.flatpakref"
+    f.write_text("[Flatpak Ref]\nName=org.example.App\n")
+    url = "file://" + str(f).replace(" ", "%20")
+    assert hub.bersaglio([url]) == ("flatpakref", str(f))
+
+
+def test_target_reads_the_two_schemes_discover_owned(hub):
+    """appstream:// and apt:// were Discover's; nothing else answers them."""
+    assert hub.bersaglio(["appstream://org.kde.kate"]) == ("app", "org.kde.kate")
+    assert hub.bersaglio(["apt://vlc"]) == ("app", "vlc")
+    # ⚠️ Options are not targets. Passed one, the Hub must open normally rather
+    # than treat "--something" as a package name.
+    assert hub.bersaglio(["--qwindowgeometry"]) is None
+    assert hub.bersaglio([]) is None
+
+
+def test_target_ignores_files_we_do_not_handle(hub, tmp_path):
+    """A .txt is not ours: no dialog, no transaction, just a normal start."""
+    f = tmp_path / "note.txt"
+    f.write_text("ciao")
+    assert hub.bersaglio([str(f)]) is None
+
+
+def test_flatpakref_description_names_the_app_and_its_origin(hub, tmp_path):
+    """The question 'do you want to install this?' needs a real answer.
+
+    Asking over a file name is not asking: it is making the user press Yes.
+    """
+    f = tmp_path / "app.flatpakref"
+    f.write_text("[Flatpak Ref]\nName=org.example.App\nUrl=https://example.org/repo\n")
+    nome, righe = hub.descrivi("flatpakref", str(f))
+    assert nome == "org.example.App"
+    assert any("example.org" in str(v) for _k, v in righe)
+
+
+def test_the_warning_says_it_is_unsigned():
+    """A file from outside is not a package from our repositories.
+
+    None of our keys signed it, and the person installing it is trusting
+    whoever gave it to them. That sentence is the whole difference between
+    installing from the Hub and installing something found lying around.
+    """
+    import pathlib
+    hubsrc = (pathlib.Path(__file__).resolve().parents[1]
+              / "apps" / "hub" / "skillfish-hub").read_text(encoding="utf-8")
+    assert "def avviso_bersaglio" in hubsrc
+    assert "avviso_bersaglio(tipo)" in hubsrc          # e viene mostrato davvero
+
+
+def test_helper_checks_every_path_it_is_given():
+    """Each file action must validate the path before touching it."""
+    testo = HELPER_SRC.read_text(encoding="utf-8")
+    corpo = testo.split("  tx-run)", 1)[1].split("  conta)", 1)[0]
+    for azione in ("deb)", "flatpakref)", "flatpakrepo)", "flatpakbundle)"):
+        pezzo = corpo.split("      " + azione, 1)[1].split(";;", 1)[0]
+        assert "percorso_sicuro" in pezzo, azione

@@ -58,7 +58,15 @@ Context=Emblems
 # nel tema, «skillfish-qualcosa» diventa «skillfish» e nel menu escono piu'
 # applicazioni con lo stesso pesce, anche se in hicolor l'icona giusta c'e'.
 # Il 21/08 e' successo con Telemetria, Gestore Kernel, Remote Manager, Info e AI.
-# Il pesce del pulsante del menu, in mappa di bit.
+# ⚠️ QUI NON C'E' PIU' IL PESCE DEL PULSANTE DEL MENU.
+# C'era, salvato col nome «skillfish-tuner», e il pannello lo otteneva
+# chiedendo quel nome. Ha funzionato finche' il Tuner non ha avuto
+# un'icona sua: il 21/08 gliel'abbiamo data, e il pulsante del menu si e'
+# ritrovato i cursori del Tuner. Ora il pannello chiede «skillfishos» —
+# il nome del logo, senza trattini da tagliare — e lo trova nel hicolor
+# ereditato. Un nome che dice una cosa e contiene un'altra e' una
+# trappola che scatta al primo che tocca l'icona giusta.
+# Le misure qui sotto restano quelle del Tuner, che e' quello che sono.
 #
 # PERCHE' STA QUI E NON SOLO IN hicolor
 # Il pannello chiede l'icona per nome, "skillfish-tuner". Quel nome nel tema non

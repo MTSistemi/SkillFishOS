@@ -38,6 +38,15 @@ mkdir -p "$STATO"; chmod 0755 /var/lib/skillfish "$STATO" 2>/dev/null || true
 
 safe_name() { case "$1" in (''|*/*|*..*) echo "bad name" >&2; exit 2;; esac; }
 
+# ⚠️ Un percorso che arriva da fuori, e qui siamo root: deve essere assoluto
+# e deve essere un FILE. Una cartella, un dispositivo o un percorso che non
+# esiste non devono nemmeno arrivare ad apt.
+percorso_sicuro() {
+  case "$1" in (/*) ;; (*) echo "percorso non assoluto: $1" >&2; return 1;; esac
+  [ -f "$1" ] || { echo "non e' un file: $1" >&2; return 1; }
+  return 0
+}
+
 # ⚠️ Le opzioni di apt qui sotto non sono decorazione:
 #   noninteractive + force-conf*  un apt che si ferma a chiedere di un file di
 #                                 configurazione, senza nessuno che risponda,
@@ -117,6 +126,36 @@ case "$ACTION" in
         for d in "$@"; do
           fwupdmgr update "$d" -y --no-reboot-check || RC=$?
         done
+        ;;
+      deb)
+        # Un pacchetto scaricato a mano. ⚠️ NON viene dai nostri repository e
+        # nessuna delle nostre chiavi lo ha firmato: e' una scelta esplicita
+        # dell'utente, che la finestra gli ha detto a chiare lettere.
+        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
+        percorso_sicuro "$1" || exit 2
+        apt-get "${APTOPT[@]}" install "$1" || RC=$?
+        ;;
+      flatpakref)
+        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
+        percorso_sicuro "$1" || exit 2
+        # --system come per tutto il resto: l'Hub e' un centro software di
+        # macchina, non del singolo utente.
+        flatpak install -y --noninteractive --system --from "$1" || RC=$?
+        ;;
+      flatpakrepo)
+        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
+        percorso_sicuro "$1" || exit 2
+        NOME=$(basename "$1"); NOME="${NOME%.flatpakrepo}"
+        # ⚠️ Il nome del remote viene dal nome del file: si tiene solo cio'
+        # che e' innocuo, perche' finisce in un percorso sotto /var/lib.
+        NOME=$(printf '%s' "$NOME" | tr -cd 'A-Za-z0-9_-')
+        [ -n "$NOME" ] || NOME=repo
+        flatpak remote-add --if-not-exists --system --from "$NOME" "$1" || RC=$?
+        ;;
+      flatpakbundle)
+        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
+        percorso_sicuro "$1" || exit 2
+        flatpak install -y --noninteractive --system --bundle "$1" || RC=$?
         ;;
       *) echo "azione sconosciuta: $AZIONE"; exit 2 ;;
     esac
