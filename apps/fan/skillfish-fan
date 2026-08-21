@@ -231,6 +231,33 @@ AIUTO = {
         "happens. The curve cannot be drawn there — it is a function of temperature, "
         "not of time — so points are draggable only in the degrees view.")),
 
+    "controllo": (L("Chi comanda la ventola", "Who is in charge of the fan"), L(
+        "Decide se la ventola e' nostra o del firmware. Ha effetto quando premi Applica.\n\n"
+        "ACCESA: il controllo si prende l'uscita — prima si salva il valore e il modo che "
+        "c'erano — e da li' in poi applica la curva una volta al secondo, con l'anticipo e "
+        "l'emergenza.\n\n"
+        "SPENTA: la ventola viene restituita esattamente com'era, valore e modo, e il "
+        "controllo smette di scrivere. La curva resta disegnata ma non comanda niente.\n\n"
+        "Il programma continua a girare in tutti e due i casi, quindi il grafico e i valori "
+        "si aggiornano lo stesso: spegnere il controllo non ti lascia cieco.\n\n"
+        "⚠️ A controllo spento NON C'E' NEMMENO L'EMERGENZA. Se l'uscita non e' in mano "
+        "nostra non possiamo alzare la ventola, e sopra i gradi di emergenza non succede "
+        "niente: resta quello che fa il firmware. Su questa scheda il firmware tiene un "
+        "valore fisso, non una curva.",
+        "Decides whether the fan is ours or the firmware's. It takes effect when you press "
+        "Apply.\n\n"
+        "ON: the controller takes the output — saving the value and mode that were there "
+        "first — and from then on applies the curve once a second, with the lead and the "
+        "emergency.\n\n"
+        "OFF: the fan is handed back exactly as it was, value and mode, and the controller "
+        "stops writing. The curve stays drawn but commands nothing.\n\n"
+        "The program keeps running either way, so the chart and the readings still update: "
+        "turning control off does not leave you blind.\n\n"
+        "⚠️ WITH CONTROL OFF THERE IS NO EMERGENCY EITHER. If we do not hold the output we "
+        "cannot raise the fan, and past the emergency temperature nothing happens: what the "
+        "firmware does is what you get. On this board the firmware holds a fixed value, not "
+        "a curve.")),
+
     "grafico": (L("Il grafico", "The chart"), L(
         "Un grafico solo, con dentro tutto: le temperature, la ventola, i giri, i watt e "
         "le tensioni degli ultimi cinque minuti. Uno solo apposta — con due o tre "
@@ -1284,7 +1311,16 @@ class Finestra(QMainWindow):
             "Se e' spento la ventola resta al firmware e la curva non ha effetto.",
             "With this off the fan stays with the firmware and the curve does nothing."))
         self.interruttore.setChecked(bool(self.conf.get("attivo")))
-        fine.addWidget(self.interruttore)
+        # ⚠️ Accorciare la voce a una parola l'ha resa ambigua: «Controllo» non
+        # dice che spegnendolo si perde anche l'emergenza termica. La parola
+        # resta corta e la spiegazione va dietro al «?», come nel resto delle
+        # nostre applicazioni.
+        ri = QHBoxLayout()
+        ri.setSpacing(4)
+        ri.addWidget(self.interruttore)
+        ri.addWidget(_aiuto("controllo", self))
+        ri.addStretch(1)
+        fine.addLayout(ri)
         self.etichetta_salva = QLabel("")
         self.etichetta_salva.setStyleSheet("color:#9a8a70;")
         self.etichetta_salva.setWordWrap(True)
