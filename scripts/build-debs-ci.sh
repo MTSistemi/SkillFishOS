@@ -129,10 +129,15 @@ put $P 0755 system/usr/local/bin/skillfish-hud     usr/local/bin/skillfish-hud
 # ne' da mostrare in anteprima.
 put $P 0755 apps/hud/skillfish-hud-editor usr/local/bin/skillfish-hud-editor
 put $P 0644 system/usr/share/applications/os.skillfish.hud.desktop usr/share/applications/os.skillfish.hud.desktop
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-hud.png usr/share/icons/hicolor/48x48/apps/skillfish-hud.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-hud.png usr/share/icons/hicolor/128x128/apps/skillfish-hud.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png usr/share/icons/hicolor/256x256/apps/skillfish-hud.png
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg
 put $P 0644 system/usr/share/skillfish/tuner-presets.json usr/share/skillfish/tuner-presets.json
 put $P 0644 system/usr/share/applications/os.skillfish.Tuner.desktop usr/share/applications/os.skillfish.Tuner.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-tuner.png usr/share/icons/hicolor/48x48/apps/skillfish-tuner.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
 put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/skillfish-cu.service
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
@@ -180,6 +185,8 @@ put $P 0755 apps/fan/skillfish-fan-helper        usr/local/bin/skillfish-fan-hel
 put $P 0644 system/etc/systemd/system/skillfish-fand.service etc/systemd/system/skillfish-fand.service
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.fan.policy usr/share/polkit-1/actions/os.skillfish.fan.policy
 put $P 0644 system/usr/share/applications/os.skillfish.fan.desktop usr/share/applications/os.skillfish.fan.desktop
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-fan.png usr/share/icons/hicolor/48x48/apps/skillfish-fan.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-fan.png usr/share/icons/hicolor/128x128/apps/skillfish-fan.png
 put $P 0644 system/usr/share/skillfish/ventola-giochi.json usr/share/skillfish/ventola-giochi.json
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-fan.png usr/share/icons/hicolor/256x256/apps/skillfish-fan.png
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg
@@ -202,6 +209,10 @@ chmod 0755 "$OUT/$P/DEBIAN/prerm"
 P=skillfish-monitor
 put $P 0755 apps/monitor/skillfish-monitor usr/local/bin/skillfish-monitor
 put $P 0644 system/usr/share/applications/os.skillfish.monitor.desktop usr/share/applications/os.skillfish.monitor.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-monitor.png usr/share/icons/hicolor/48x48/apps/skillfish-monitor.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png
 put $P 0644 system/usr/share/mime/packages/os.skillfish.monitor.xml usr/share/mime/packages/os.skillfish.monitor.xml
 shot $P apps/monitor/os.skillfish.monitor.metainfo.xml
 ctrl $P "python3, python3-pyqt6" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer"
@@ -213,6 +224,10 @@ P=skillfish-kernel-manager
 put $P 0755 apps/kernel-manager/skillfish-kernel-manager usr/local/bin/skillfish-kernel-manager
 put $P 0755 apps/kernel-manager/skillfish-kernel-helper  usr/local/bin/skillfish-kernel-helper
 put $P 0644 system/usr/share/applications/os.skillfish.kernel.desktop usr/share/applications/os.skillfish.kernel.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-kernel.png usr/share/icons/hicolor/48x48/apps/skillfish-kernel.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png
 shot $P apps/kernel-manager/os.skillfish.kernel.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Manager"
 
@@ -229,6 +244,10 @@ put $P 0755 system/usr/local/bin/skillfish-unsloth        usr/local/bin/skillfis
 put $P 0755 system/usr/local/bin/skillfish-unsloth-update usr/local/bin/skillfish-unsloth-update
 put $P 0644 system/etc/systemd/system/skillfish-unsloth.service etc/systemd/system/skillfish-unsloth.service
 put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/applications/os.skillfish.ai.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-ai.png usr/share/icons/hicolor/48x48/apps/skillfish-ai.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-ai.png usr/share/icons/hicolor/128x128/apps/skillfish-ai.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png usr/share/icons/hicolor/256x256/apps/skillfish-ai.png
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel"
 # ⚠️ L'unita' del motore AI veniva spedita e non la accendeva nessuno: sulla
@@ -341,6 +360,10 @@ put $P 0644 system/etc/skel/.config/autostart/blueman.desktop etc/skel/.config/a
 # va raddoppiato: desktop-file-validate rifiutava la vecchia riga.
 put $P 0755 system/usr/local/bin/skillfish-info                       usr/local/bin/skillfish-info
 put $P 0644 system/usr/share/applications/skillfish-info.desktop      usr/share/applications/skillfish-info.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-info.svg usr/share/icons/hicolor/scalable/apps/skillfish-info.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-info.png usr/share/icons/hicolor/48x48/apps/skillfish-info.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-info.png usr/share/icons/hicolor/128x128/apps/skillfish-info.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-info.png usr/share/icons/hicolor/256x256/apps/skillfish-info.png
 put $P 0755 system/usr/local/bin/skillfish-acpi-pstates               usr/local/bin/skillfish-acpi-pstates
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/skillfish/acpi/SSDT-PST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
@@ -578,6 +601,10 @@ put $P 0644 apps/dashboard/web/badge.png   usr/share/skillfish/dashboard/badge.p
 put $P 0644 system/etc/skillfish/dashboard.json usr/share/skillfish/dashboard-default.json
 put $P 0644 system/etc/systemd/system/skillfish-dashboard.service etc/systemd/system/skillfish-dashboard.service
 put $P 0644 system/usr/share/applications/os.skillfish.remote-manager.desktop usr/share/applications/os.skillfish.remote-manager.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-remote.png usr/share/icons/hicolor/48x48/apps/skillfish-remote.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-remote.png usr/share/icons/hicolor/128x128/apps/skillfish-remote.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-remote.png usr/share/icons/hicolor/256x256/apps/skillfish-remote.png
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.remote-manager.policy usr/share/polkit-1/actions/os.skillfish.remote-manager.policy
 mkdir -p "$OUT/$P/DEBIAN"
 # Questo pacchetto scrive il proprio control a mano invece di usare ctrl(),
@@ -727,6 +754,7 @@ put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-sn
 put $P 0755 apps/snapshots/skillfish-btrfs-manutenzione usr/local/bin/skillfish-btrfs-manutenzione
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.snapshots.policy usr/share/polkit-1/actions/os.skillfish.snapshots.policy
 put $P 0644 system/usr/share/applications/os.skillfish.snapshots.desktop usr/share/applications/os.skillfish.snapshots.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg
 # L'icona: il tema la porta gia' dentro skillfish-theme (tutto l'albero),
 # ma serve anche in hicolor, per chi cambia tema e per la finestra stessa.
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-snapshots.png usr/share/icons/hicolor/48x48/apps/skillfish-snapshots.png
@@ -760,7 +788,15 @@ P=skillfish-emulators
 put $P 0755 scripts/install-emudeck.sh    usr/local/share/skillfish/install-emudeck.sh
 put $P 0755 scripts/install-emulators.sh  usr/local/share/skillfish/install-emulators.sh
 put $P 0644 system/usr/share/applications/os.skillfish.emudeck.desktop   usr/share/applications/os.skillfish.emudeck.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-emudeck.svg usr/share/icons/hicolor/scalable/apps/skillfish-emudeck.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-emudeck.png usr/share/icons/hicolor/48x48/apps/skillfish-emudeck.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-emudeck.png usr/share/icons/hicolor/128x128/apps/skillfish-emudeck.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-emudeck.png usr/share/icons/hicolor/256x256/apps/skillfish-emudeck.png
 put $P 0644 system/usr/share/applications/os.skillfish.emulators.desktop usr/share/applications/os.skillfish.emulators.desktop
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-emulators.svg usr/share/icons/hicolor/scalable/apps/skillfish-emulators.svg
+put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-emulators.png usr/share/icons/hicolor/48x48/apps/skillfish-emulators.png
+put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png
+put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation"
 
 for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
@@ -1125,7 +1161,7 @@ check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.p
 # ...e l'icona con quel nome deve stare DENTRO al nostro tema. Se manca, KDE
 # taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
 # stilizzato al posto di quello di ottone, senza dire niente a nessuno.
-deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" "skillfish-theme: il pesce del menu e' dentro al tema"
+deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" "skillfish-theme: l icona del Tuner e dentro al tema"
 # La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
 # che il testo passi dalla funzione di traduzione e non sia piu' una costante.
 check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
@@ -1168,5 +1204,35 @@ avvia apps/fan/skillfish-fan-helper
 avvia apps/ai-panel/skillfish-ai-panel
 avvia apps/snapshots/skillfish-snapshots
 avvia apps/kernel-manager/skillfish-kernel-manager
+
+
+# LE ICONE DELLE APPLICAZIONI.
+# Ogni applicazione ha la sua: fino al 21/08 AI, Tuner e Info mostravano lo
+# stesso identico file e nel menu non si distinguevano. Qui si verifica sia
+# che il disegno viaggi dentro al pacchetto, sia che il .desktop lo chiami
+# PER NOME — col percorso di un PNG il tema non puo' sostituirlo e KDE non
+# puo' scegliere la misura.
+check skillfish-monitor_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg "<svg"
+check skillfish-monitor_${VER}_all.deb ./usr/share/applications/os.skillfish.monitor.desktop "Icon=skillfish-monitor"
+check skillfish-tuner_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg "<svg"
+check skillfish-tuner_${VER}_all.deb ./usr/share/applications/os.skillfish.Tuner.desktop "Icon=skillfish-tuner"
+check skillfish-fan_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg "<svg"
+check skillfish-fan_${VER}_all.deb ./usr/share/applications/os.skillfish.fan.desktop "Icon=skillfish-fan"
+check skillfish-tuner_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg "<svg"
+check skillfish-tuner_${VER}_all.deb ./usr/share/applications/os.skillfish.hud.desktop "Icon=skillfish-hud"
+check skillfish-kernel-manager_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg "<svg"
+check skillfish-kernel-manager_${VER}_all.deb ./usr/share/applications/os.skillfish.kernel.desktop "Icon=skillfish-kernel"
+check skillfish-dashboard_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg "<svg"
+check skillfish-dashboard_${VER}_all.deb ./usr/share/applications/os.skillfish.remote-manager.desktop "Icon=skillfish-remote"
+check skillfish-snapshots_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg "<svg"
+check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop "Icon=skillfish-snapshots"
+check skillfish-ai-panel_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg "<svg"
+check skillfish-ai-panel_${VER}_all.deb ./usr/share/applications/os.skillfish.ai.desktop "Icon=skillfish-ai"
+check skillfish-base_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-info.svg "<svg"
+check skillfish-base_${VER}_all.deb ./usr/share/applications/skillfish-info.desktop "Icon=skillfish-info"
+check skillfish-emulators_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-emudeck.svg "<svg"
+check skillfish-emulators_${VER}_all.deb ./usr/share/applications/os.skillfish.emudeck.desktop "Icon=skillfish-emudeck"
+check skillfish-emulators_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-emulators.svg "<svg"
+check skillfish-emulators_${VER}_all.deb ./usr/share/applications/os.skillfish.emulators.desktop "Icon=skillfish-emulators"
 
 echo "ALL DEBS VERIFIED"

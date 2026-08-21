@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QGridLayout, QLabel, QComboBox, QPushButton, QMessageBox, QSlider,
                              QFileDialog)
 
-ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png"
 REC_DIR = os.path.expanduser("~/SkillFishOS-benchmarks")
 SFMON_EXT = ".sfmon"
 

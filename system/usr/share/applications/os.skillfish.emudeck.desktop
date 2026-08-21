@@ -32,6 +32,6 @@ Comment[fr]=Télécharge EmuDeck, qui installe et configure les émulateurs, les
 # l'utente vedrebbe partire niente e non saprebbe cosa sta succedendo.
 Exec=/usr/local/share/skillfish/install-emudeck.sh
 Terminal=true
-Icon=applications-games
+Icon=skillfish-emudeck
 Categories=Game;Emulator;
 Keywords=emulator;emudeck;retro;roms;giochi;emulatori;

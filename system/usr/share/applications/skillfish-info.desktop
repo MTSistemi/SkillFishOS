@@ -32,7 +32,7 @@ Comment[fr]=Affiche les informations sur le matériel et le système d'exploitat
 # raddoppiato. Ora il comando sta in uno script e questo campo e' un semplice
 # percorso assoluto.
 Exec=alacritty -e /usr/local/bin/skillfish-info
-Icon=/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
+Icon=skillfish-info
 Terminal=false
 Type=Application
 Categories=System;X-SkillFishOS;

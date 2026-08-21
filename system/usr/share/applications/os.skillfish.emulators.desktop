@@ -31,6 +31,6 @@ Comment[fr]=Installe des émulateurs un par un depuis Flathub, sans EmuDeck : se
 # emulatori vuole.
 Exec=/usr/local/share/skillfish/install-emulators.sh
 Terminal=true
-Icon=applications-games
+Icon=skillfish-emulators
 Categories=Game;Emulator;
 Keywords=emulator;retroarch;dolphin;pcsx2;duckstation;ppsspp;giochi;emulatori;

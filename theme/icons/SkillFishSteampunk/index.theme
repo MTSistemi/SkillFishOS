@@ -53,6 +53,11 @@ MaxSize=512
 Type=Scalable
 Context=Emblems
 
+# ⚠️ OGNI applicazione SkillFishOS deve avere la sua icona QUI DENTRO.
+# Il ripiego sul prefisso descritto qui sotto vale per tutte: senza il file
+# nel tema, «skillfish-qualcosa» diventa «skillfish» e nel menu escono piu'
+# applicazioni con lo stesso pesce, anche se in hicolor l'icona giusta c'e'.
+# Il 21/08 e' successo con Telemetria, Gestore Kernel, Remote Manager, Info e AI.
 # Il pesce del pulsante del menu, in mappa di bit.
 #
 # PERCHE' STA QUI E NON SOLO IN hicolor

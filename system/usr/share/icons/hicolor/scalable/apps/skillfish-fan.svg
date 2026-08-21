@@ -1,65 +1,26 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  SkillFishOS Fan Control. Una girante in ottone dentro alla sua cornice.
-
-  ⚠️ Tutti i gradienti sono definiti QUI DENTRO e referenziati per id locale.
-  Un gradiente orfano - referenziato ma non definito nello stesso file - viene
-  digerito dai browser e RIFIUTATO da qt6-svg, che e' severo: nel menu di KDE
-  esce un riquadro vuoto e nessun errore da nessuna parte. E' gia' successo con
-  le icone del tema.
--->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="ottone" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="ottone" x1="0" y1="0" x2="0.35" y2="1">
       <stop offset="0" stop-color="#f0cf86"/>
       <stop offset="0.45" stop-color="#d8a849"/>
       <stop offset="1" stop-color="#8a6a2a"/>
     </linearGradient>
-    <linearGradient id="pala" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#e8c176"/>
-      <stop offset="1" stop-color="#a07c33"/>
+    <linearGradient id="rilievo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffeec2"/>
+      <stop offset="0.5" stop-color="#d8a849"/>
+      <stop offset="1" stop-color="#7d5f26"/>
     </linearGradient>
-    <radialGradient id="fondo" cx="0.5" cy="0.42" r="0.62">
+    <radialGradient id="fondo" cx="0.5" cy="0.4" r="0.66">
       <stop offset="0" stop-color="#2e2720"/>
       <stop offset="1" stop-color="#17130f"/>
     </radialGradient>
-    <radialGradient id="mozzo" cx="0.4" cy="0.35" r="0.7">
-      <stop offset="0" stop-color="#f4d693"/>
-      <stop offset="1" stop-color="#7d5f26"/>
-    </radialGradient>
   </defs>
-
   <circle cx="128" cy="128" r="120" fill="url(#fondo)"/>
   <circle cx="128" cy="128" r="118" fill="none" stroke="url(#ottone)" stroke-width="9"/>
-  <circle cx="128" cy="128" r="103" fill="none" stroke="#5d4a20" stroke-width="3"/>
-
-  <!-- le viti agli angoli, come su una griglia vera -->
-  <g fill="url(#ottone)">
-    <circle cx="52" cy="52" r="9"/>
-    <circle cx="204" cy="52" r="9"/>
-    <circle cx="52" cy="204" r="9"/>
-    <circle cx="204" cy="204" r="9"/>
+  <circle cx="128" cy="128" r="103" fill="none" stroke="#4a3a18" stroke-width="3"/>
+  <g fill="url(#ottone)" stroke="#4a3a18" stroke-width="2">
+    <circle cx="52" cy="52" r="8"/><circle cx="204" cy="52" r="8"/>
+    <circle cx="52" cy="204" r="8"/><circle cx="204" cy="204" r="8"/>
   </g>
-  <g stroke="#4a3a18" stroke-width="3" stroke-linecap="round">
-    <line x1="47" y1="52" x2="57" y2="52"/>
-    <line x1="199" y1="52" x2="209" y2="52"/>
-    <line x1="47" y1="204" x2="57" y2="204"/>
-    <line x1="199" y1="204" x2="209" y2="204"/>
-  </g>
-
-  <!-- cinque pale, ciascuna ruotata di 72 gradi -->
-  <g fill="url(#pala)" stroke="#5d4a20" stroke-width="2.5" stroke-linejoin="round">
-    <path d="M128 128 C 150 96, 178 84, 196 96 C 190 124, 166 142, 128 128 Z"/>
-    <path d="M128 128 C 150 96, 178 84, 196 96 C 190 124, 166 142, 128 128 Z"
-          transform="rotate(72 128 128)"/>
-    <path d="M128 128 C 150 96, 178 84, 196 96 C 190 124, 166 142, 128 128 Z"
-          transform="rotate(144 128 128)"/>
-    <path d="M128 128 C 150 96, 178 84, 196 96 C 190 124, 166 142, 128 128 Z"
-          transform="rotate(216 128 128)"/>
-    <path d="M128 128 C 150 96, 178 84, 196 96 C 190 124, 166 142, 128 128 Z"
-          transform="rotate(288 128 128)"/>
-  </g>
-
-  <circle cx="128" cy="128" r="27" fill="url(#mozzo)" stroke="#5d4a20" stroke-width="3"/>
-  <circle cx="128" cy="128" r="10" fill="#2e2720"/>
+  <g transform="translate(62.00 62.00) scale(1.3200)"><g fill="url(#rilievo)" stroke="#4a3a18" stroke-width="4.5" stroke-linejoin="round"><path d="M50 50 C 62 30, 80 24, 90 32 C 84 52, 68 60, 50 50 Z" transform="rotate(0 50 50)"/><path d="M50 50 C 62 30, 80 24, 90 32 C 84 52, 68 60, 50 50 Z" transform="rotate(120 50 50)"/><path d="M50 50 C 62 30, 80 24, 90 32 C 84 52, 68 60, 50 50 Z" transform="rotate(240 50 50)"/></g><circle cx="50" cy="50" r="13" fill="url(#rilievo)" stroke="#4a3a18" stroke-width="4.5"/></g>
 </svg>

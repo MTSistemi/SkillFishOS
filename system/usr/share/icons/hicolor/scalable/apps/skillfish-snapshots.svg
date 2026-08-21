@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="ottone" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#f0cf86"/>
+      <stop offset="0.45" stop-color="#d8a849"/>
+      <stop offset="1" stop-color="#8a6a2a"/>
+    </linearGradient>
+    <linearGradient id="rilievo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffeec2"/>
+      <stop offset="0.5" stop-color="#d8a849"/>
+      <stop offset="1" stop-color="#7d5f26"/>
+    </linearGradient>
+    <radialGradient id="fondo" cx="0.5" cy="0.4" r="0.66">
+      <stop offset="0" stop-color="#2e2720"/>
+      <stop offset="1" stop-color="#17130f"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#fondo)"/>
+  <circle cx="128" cy="128" r="118" fill="none" stroke="url(#ottone)" stroke-width="9"/>
+  <circle cx="128" cy="128" r="103" fill="none" stroke="#4a3a18" stroke-width="3"/>
+  <g fill="url(#ottone)" stroke="#4a3a18" stroke-width="2">
+    <circle cx="52" cy="52" r="8"/><circle cx="204" cy="52" r="8"/>
+    <circle cx="52" cy="204" r="8"/><circle cx="204" cy="204" r="8"/>
+  </g>
+  <g transform="translate(62.00 62.00) scale(1.3200)"><g fill="none" stroke="url(#ottone)" stroke-width="10" opacity="1.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 50 A 34 34 0 1 1 30 78"/></g><g fill="url(#rilievo)" stroke="#4a3a18" stroke-width="3.5" stroke-linejoin="round"><path d="M8 26 L34 34 L14 54 Z"/></g><g fill="none" stroke="url(#ottone)" stroke-width="8" opacity="1.0" stroke-linecap="round" stroke-linejoin="round"><path d="M50 30 L50 52 L66 62"/></g></g>
+</svg>

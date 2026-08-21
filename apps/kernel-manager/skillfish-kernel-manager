@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QGroupBox, QPushButton, QRadioButton,
                              QButtonGroup, QMessageBox, QFrame, QScrollArea)
 
-ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png"
 HELPER = "/usr/local/bin/skillfish-kernel-helper"
 
 # ---------- i18n ----------
