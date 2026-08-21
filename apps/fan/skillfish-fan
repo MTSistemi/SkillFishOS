@@ -449,12 +449,44 @@ class Grafico(QWidget):
         self.ordine = []
         self.nuova_serie = None
         self.apri_serie = None     # richiamo: apri questa serie da sola
-        self.cursore = None        # x del puntatore, in pixel
+        self.cursore = None        # posizione del puntatore
+        self.sotto = None          # la linea che ha sotto: e' l'unica che legge
         self._inizio = self._fine = 0.0
+        # ⚠️ LA CURVA STA DENTRO AL GRAFICO, nell'angolo in basso a sinistra.
+        # Copre un pezzo — non c'e' modo di evitarlo — ma quell'angolo e' il
+        # meno frequentato: sotto al venti per cento ci passano solo le linee di
+        # una macchina che sta ferma davvero. Si richiude col triangolino.
+        self.inserto = CurvaEditor(self)
+        self.bottone_inserto = QToolButton(self)
+        self.bottone_inserto.setText("▾")
+        self.bottone_inserto.setAutoRaise(True)
+        self.bottone_inserto.clicked.connect(self._apri_chiudi)
+        self._inserto_aperto = True
         self.setMinimumHeight(240)
         self.setMinimumWidth(360)
         self.setMouseTracking(True)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    # Quanto e' grande l'inserto della curva, e quanto sta lontano dal bordo.
+    INS_L, INS_H, INS_M = 268, 168, 8
+
+    def _apri_chiudi(self):
+        self._inserto_aperto = not self._inserto_aperto
+        self.inserto.setVisible(self._inserto_aperto)
+        self.bottone_inserto.setText("▾" if self._inserto_aperto else "▸")
+        self.bottone_inserto.setToolTip(
+            L("Nascondi la curva", "Hide the curve") if self._inserto_aperto
+            else L("Mostra la curva", "Show the curve"))
+        self.update()
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        s, sup, d, inf = self._bordo()
+        x = s + self.INS_M
+        y = self.height() - inf - self.INS_H - self.INS_M
+        self.inserto.setGeometry(QRect(x, max(sup, y), self.INS_L, self.INS_H))
+        self.bottone_inserto.setGeometry(QRect(x + self.INS_L - 20, max(sup, y) - 2,
+                                               20, 18))
 
     def _bordo(self):
         return 42, 10, 12, 24
@@ -600,61 +632,74 @@ class Grafico(QWidget):
         self._disegna_cursore(p, serie)
 
     def _disegna_cursore(self, p, serie):
-        u"""Il puntatore legge il grafico.
+        u"""Il puntatore legge UNA linea: quella che ha sotto.
 
-        Con dodici linee su cinque scale diverse, guardare l'altezza di una
-        linea non dice niente: bisogna poter chiedere «qui quanto vale?». Una
-        riga verticale sotto al puntatore e un riquadro con i valori di QUEL
-        momento, ciascuno col suo colore e la sua unita'.
-
-        Il riquadro si sposta dall'altra parte del puntatore quando starebbe per
-        uscire dal bordo destro: altrimenti proprio nella parte piu' importante
-        del grafico — quella di adesso — finirebbe mezzo fuori."""
-        if self.cursore is None:
+        ⚠️ Prima il riquadro elencava tutte le serie accese. Con dodici linee
+        diventava un muro di righe piccole proprio sopra al grafico, e per
+        leggere il numero che interessava bisognava cercarlo nell'elenco. Chi
+        avvicina il puntatore a una linea sta chiedendo quella: si risponde con
+        quella, grande, e basta.
+        """
+        if self.cursore is None or self.sotto is None:
+            return
+        s = self.serie.get(self.sotto)
+        if not s or not s["punti"]:
             return
         a = self._area()
-        x = max(a.left(), min(a.right(), self.cursore))
+        x = max(a.left(), min(a.right(), self.cursore.x()))
         quando = self._inizio + (x - a.left()) / float(max(1, a.width())) * self.FINESTRA
-        p.setPen(QPen(QColor(216, 168, 73, 140), 1, Qt.PenStyle.DashLine))
-        p.drawLine(int(x), a.top(), int(x), a.bottom())
-
-        righe = []
-        for chiave, s in serie:
-            v = self.valore_a(s, quando)
-            if v is None:
-                continue
-            dec = {"C": 1, "%": 0, "rpm": 0, "W": 1, "V": 3}.get(s["unita"], 1)
-            righe.append((s["colore"],
-                          ("%s  %." + str(dec) + "f %s")
-                          % (s["etichetta"], v, s["unita"])))
-        if not righe:
+        v = self.valore_a(s, quando)
+        if v is None:
             return
-        p.setFont(QFont(self.font().family(), 8))
-        fm = p.fontMetrics()
-        larg = max(fm.horizontalAdvance(t) for _, t in righe) + 18
-        alt = len(righe) * (fm.height() + 2) + 18
-        bx = x + 12 if x + 12 + larg < a.right() else x - 12 - larg
-        by = max(a.top(), min(a.bottom() - alt, a.top() + 8))
-        p.setBrush(QBrush(QColor(21, 17, 13, 235)))
-        p.setPen(QPen(OTTONE_SCURO, 1))
-        p.drawRoundedRect(QRect(int(bx), int(by), int(larg), int(alt)), 4, 4)
-        p.setPen(QPen(OTTONE_SCURO, 1))
+        basso, alto = self._scala(s["unita"], [y for _, y in s["punti"]])
+        y = self._y((v - basso) / ((alto - basso) or 1.0))
+
+        p.setPen(QPen(QColor(216, 168, 73, 130), 1, Qt.PenStyle.DashLine))
+        p.drawLine(int(x), a.top(), int(x), a.bottom())
+        p.setBrush(QBrush(s["colore"]))
+        p.setPen(QPen(QColor("#15110d"), 2))
+        p.drawEllipse(QPointF(x, y), 5.5, 5.5)
+
+        dec = {"C": 1, "%": 0, "rpm": 0, "W": 1, "V": 3}.get(s["unita"], 1)
+        grosso = ("%." + str(dec) + "f %s") % (v, s["unita"])
         sec = int(round(self._fine - quando))
-        p.drawText(int(bx) + 8, int(by) + fm.height(),
-                   L("adesso", "now") if sec <= 0 else "-%d s" % sec)
-        y = by + fm.height() + 10
-        for col, testo in righe:
-            p.setPen(QPen(col, 1))
-            p.drawText(int(bx) + 8, int(y) + fm.ascent(), testo)
-            y += fm.height() + 2
+        piccolo = "%s  ·  %s" % (s["etichetta"],
+                                 L("adesso", "now") if sec <= 0 else "-%d s" % sec)
+        fg = QFont(self.font().family(), 20, QFont.Weight.Bold)
+        fp = QFont(self.font().family(), 9)
+        p.setFont(fg)
+        fmg = p.fontMetrics()
+        lg = fmg.horizontalAdvance(grosso)
+        p.setFont(fp)
+        fmp = p.fontMetrics()
+        lp = fmp.horizontalAdvance(piccolo)
+        larg = max(lg, lp) + 22
+        alt = fmg.height() + fmp.height() + 18
+        # il riquadro sta dall'altra parte quando starebbe per uscire: verso il
+        # bordo destro c'e' proprio il pezzo che interessa di piu'.
+        bx = x + 16 if x + 16 + larg < a.right() else x - 16 - larg
+        by = max(a.top() + 2, min(a.bottom() - alt - 2, y - alt / 2.0))
+        p.setBrush(QBrush(QColor(21, 17, 13, 240)))
+        p.setPen(QPen(s["colore"], 1))
+        p.drawRoundedRect(QRect(int(bx), int(by), int(larg), int(alt)), 5, 5)
+        p.setPen(QPen(QColor("#9a8a70"), 1))
+        p.setFont(fp)
+        p.drawText(int(bx) + 11, int(by) + 6 + fmp.ascent(), piccolo)
+        p.setPen(QPen(s["colore"], 1))
+        p.setFont(fg)
+        p.drawText(int(bx) + 11, int(by) + 10 + fmp.height() + fmg.ascent(), grosso)
 
     # --------------------------------------------------------- interazione
     def mouseMoveEvent(self, ev):
-        self.cursore = ev.position().x()
+        self.cursore = ev.position()
+        self.sotto = self._serie_vicina(self.cursore)
+        self.setCursor(Qt.CursorShape.PointingHandCursor if self.sotto
+                       else Qt.CursorShape.ArrowCursor)
         self.update()
 
     def leaveEvent(self, ev):
         self.cursore = None
+        self.sotto = None
         self.update()
 
     def _serie_vicina(self, pos):
@@ -743,9 +788,13 @@ class GraficoSingolo(QWidget):
             sec = int(self.grafico.FINESTRA * (5 - i) / 5.0)
             p.drawText(int(x) - (16 if sec else 22), a.bottom() + 18,
                        L("adesso", "now") if sec == 0 else "-%d s" % sec)
-        # l'unita' va in alto a DESTRA: a sinistra finiva sopra al primo numero
-        p.setPen(QPen(OTTONE_SCURO, 1))
-        p.drawText(a.right() - 26, a.top() - 1, s["unita"])
+        # ⚠️ L'unita' sta in basso a sinistra, sotto all'angolo degli assi, e
+        # grande: e' l'informazione che dice cosa sono tutti gli altri numeri
+        # del riquadro, e in piccolo in un angolo in alto non la leggeva nessuno.
+        p.setPen(QPen(OTTONE, 1))
+        p.setFont(QFont(self.font().family(), 13, QFont.Weight.Bold))
+        p.drawText(6, self.height() - 8, s["unita"])
+        p.setFont(QFont(self.font().family(), 8))
 
         cam = QPainterPath()
         primo = True
@@ -1195,21 +1244,20 @@ class Finestra(QMainWindow):
         basso.setSpacing(10)
         fuori.addLayout(basso, 0)
 
+        # ⚠️ La curva non e' qui: sta nell'angolo in basso a sinistra DENTRO al
+        # grafico. Qui restano i preset, che sono la cosa che la cambia.
+        self.curva = self.grafico.inserto
+        self.curva.cambiata = self._curva_toccata
+        self.curva.imposta(self.conf.get("curva") or PRESET["equilibrato"])
         gc = QVBoxLayout()
         gc.setSpacing(2)
         intest = QHBoxLayout()
         intest.addWidget(QLabel("<b>%s</b>" % L("Curva", "Curve")))
-        intest.addStretch(1)
         intest.addWidget(_aiuto("curva", self))
+        intest.addStretch(1)
         gc.addLayout(intest)
-        self.curva = CurvaEditor()
-        self.curva.setFixedSize(300, 150)
-        self.curva.cambiata = self._curva_toccata
-        self.curva.imposta(self.conf.get("curva") or PRESET["equilibrato"])
-        gc.addWidget(self.curva)
+        gc.addLayout(self._preset())
         basso.addLayout(gc)
-
-        basso.addLayout(self._preset())
 
         pulsanti = QVBoxLayout()
         pulsanti.setSpacing(4)
@@ -1319,7 +1367,6 @@ class Finestra(QMainWindow):
         """
         v = QVBoxLayout()
         v.setSpacing(2)
-        v.addWidget(QLabel("<b>%s</b>" % L("Preset", "Presets")))
         self.gruppo = QButtonGroup(self)
         for chiave in ("silenzioso", "equilibrato", "prestazioni", "massimo"):
             r = QRadioButton(nome_preset(chiave))
