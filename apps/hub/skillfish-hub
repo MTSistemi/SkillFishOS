@@ -649,25 +649,59 @@ class Catalog:
         return uniq
 
     def updates(self):
+        u"""Cosa c'e' da aggiornare, sorgente per sorgente.
+
+        ⚠️ Le voci hanno CINQUE campi e il quinto vale solo per il firmware:
+        e' l'identificativo del dispositivo, l'unica cosa con cui fwupd sa quale
+        aggiornare. Per apt, flatpak e snap resta vuoto.
+        """
         ups = []
         if have("apt-get"):
             rc, out, _ = run(["apt-get", "-s", "full-upgrade"], 60)
             for ln in out.splitlines():
                 m = re.match(r'Inst (\S+) \[([^\]]*)\] \(([^ ]+)', ln)
-                if m: ups.append(("apt", m.group(1), m.group(2), m.group(3)))
+                if m: ups.append(("apt", m.group(1), m.group(2), m.group(3), ""))
         if have("flatpak"):
             rc, out, _ = run(["flatpak", "remote-ls", "--updates", "--columns=application,version"], 40)
             for ln in out.splitlines():
                 f = ln.split("\t")
                 if f and f[0] and f[0] != "Application ID":
-                    ups.append(("flatpak", f[0], "", f[1] if len(f) > 1 else ""))
+                    ups.append(("flatpak", f[0], "", f[1] if len(f) > 1 else "", ""))
         if have("snap"):
             rc, out, _ = run(["snap", "refresh", "--list"], 40)
             for ln in out.splitlines()[1:]:
                 f = ln.split()
-                if f: ups.append(("snap", f[0], "", f[1] if len(f) > 1 else ""))
+                if f: ups.append(("snap", f[0], "", f[1] if len(f) > 1 else "", ""))
+        ups.extend(self.firmware())
         return ups
 
+    @staticmethod
+    def firmware():
+        u"""I dispositivi che hanno un firmware nuovo.
+
+        E' la cosa che Discover faceva e noi no, ed e' anche quella da trattare
+        con piu' rispetto: un pacchetto sbagliato si reinstalla, un firmware
+        sbagliato lo si porta in assistenza. Per questo qui si LEGGE soltanto —
+        l'aggiornamento vero parte da un pulsante suo, uno per dispositivo, e
+        non dal pulsante «Aggiorna tutto».
+
+        ⚠️ `fwupdmgr get-updates` esce con codice diverso da zero quando non c'e'
+        niente da aggiornare: non e' un errore e non va trattato come tale.
+        """
+        if not have("fwupdmgr"):
+            return []
+        rc, out, _ = run(["fwupdmgr", "get-updates", "--json"], 60)
+        try:
+            dati = json.loads(out or "{}")
+        except ValueError:
+            return []
+        fuori = []
+        for d in (dati.get("Devices") or []):
+            versioni = d.get("Releases") or []
+            nuova = (versioni[0] or {}).get("Version", "") if versioni else ""
+            fuori.append(("firmware", d.get("Name") or "?", d.get("Version", ""),
+                          nuova, d.get("DeviceId", "")))
+        return fuori
 
 # ============================ THREADS ============================
 class Loader(QThread):
@@ -726,6 +760,142 @@ class ImgLoad(QThread):
             if not pm.isNull():
                 self.ready.emit(i, pm)
 
+
+# ============================ LA TRANSAZIONE ============================
+# ⚠️ L'AGGIORNAMENTO NON E' PIU' FIGLIO DELLA FINESTRA.
+# Prima l'apt girava come processo figlio dell'Hub, con l'uscita in una pipe:
+# bastava che la finestra morisse perche' la pipe si chiudesse e l'apt se ne
+# andasse a meta' strada, con dpkg in mezzo al guado. E la finestra muore
+# facile, perche' l'aggiornamento sostituisce sotto di lei le librerie Qt —
+# quando non aggiorna l'Hub stesso.
+# Ora il lavoro sta in una unita' systemd transitoria che non e' figlia di
+# nessuno: qui si LEGGE il suo registro. Chiudere la finestra non ferma niente,
+# e riaprendo l'Hub ci si riattacca a quello che sta girando.
+STATO_DIR = "/var/lib/skillfish/hub"
+TX_LOG = os.path.join(STATO_DIR, "tx.log")
+TX_JSON = os.path.join(STATO_DIR, "tx.json")
+CONTEGGIO = os.path.join(STATO_DIR, "updates.json")
+
+
+def _leggi_json(percorso):
+    try:
+        with open(percorso) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def tx_stato():
+    u"""Che sta facendo la transazione: {} se non ce n'e' mai stata una."""
+    return _leggi_json(TX_JSON)
+
+
+def tx_in_corso():
+    return tx_stato().get("stato") == "in-corso"
+
+
+def tx_avvia(azione, *argomenti):
+    u"""Chiede all'helper di avviarla. Torna (ok, messaggio).
+
+    Non aspetta la fine — sarebbe il contrario di tutto questo: torna appena la
+    transazione e' partita, e a seguirla ci pensa la finestra.
+    """
+    rc, out, err = run(["pkexec", HELPER, "tx-start", azione] + list(argomenti), 120)
+    if rc == 3:   # ne sta gia' girando una: ci si attacca a quella
+        return True, ""
+    return rc == 0, (err or out).strip()
+
+
+def conteggio():
+    u"""Quanti aggiornamenti aveva contato l'ultimo giro del timer."""
+    return _leggi_json(CONTEGGIO)
+
+
+class SeguiTransazione(QDialog):
+    u"""Guarda una transazione che gira per conto suo.
+
+    Non lancia niente e non uccide niente: apre il registro, legge i byte
+    aggiunti da quando ha guardato l'ultima volta e li mostra. Per questo il
+    pulsante «Chiudi» e' attivo da subito — chiudere la finestra qui non ha
+    nessun effetto sull'aggiornamento, ed e' il motivo per cui l'abbiamo
+    staccato.
+    """
+    def __init__(self, parent, titolo, alla_fine=None):
+        super().__init__(parent)
+        self.setWindowTitle("SkillFishOS Hub")
+        self.resize(720, 470)
+        self._alla_fine = alla_fine
+        self._pos = 0
+        v = QVBoxLayout(self)
+        t = QLabel(titolo)
+        t.setStyleSheet("color:#e8c878;font-size:15px;font-weight:700;")
+        v.addWidget(t)
+        nota = QLabel(L("Puoi chiudere questa finestra: l'aggiornamento va avanti "
+                        "per conto suo e lo ritrovi qui riaprendo l'Hub.",
+                        "You can close this window: the update carries on by "
+                        "itself, and you will find it here when you reopen the Hub."))
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:#b9a07a;font-size:12px;")
+        v.addWidget(nota)
+        self.log = QPlainTextEdit()
+        self.log.setReadOnly(True)
+        self.log.setStyleSheet("QPlainTextEdit{background:#120f0a;color:#d9c8a8;"
+                               "border:1px solid rgba(216,168,73,0.18);border-radius:8px;}")
+        v.addWidget(self.log)
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 0)
+        v.addWidget(self.bar)
+        self.chiudi = QPushButton(L("Chiudi", "Close"))
+        self.chiudi.clicked.connect(self.accept)
+        v.addWidget(self.chiudi)
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._giro)
+        self._timer.start(400)
+        self._giro()
+
+    def _giro(self):
+        try:
+            dimensione = os.path.getsize(TX_LOG)
+        except OSError:
+            dimensione = 0
+        # ⚠️ Il registro viene azzerato all'inizio di ogni transazione: se e'
+        # piu' corto di dove eravamo arrivati, e' una transazione NUOVA e si
+        # riparte da capo. Senza questo controllo non si vedrebbe piu' niente.
+        if dimensione < self._pos:
+            self._pos = 0
+            self.log.clear()
+        if dimensione > self._pos:
+            try:
+                with open(TX_LOG, "rb") as f:
+                    f.seek(self._pos)
+                    dati = f.read()
+                    self._pos = f.tell()
+            except OSError:
+                dati = b""
+            if dati:
+                testo = dati.decode("utf-8", "replace").rstrip("\n")
+                if testo:
+                    self.log.appendPlainText(testo)
+                    m = None
+                    for m in re.finditer(r'(\d{1,3})%', testo):
+                        pass
+                    if m:
+                        v = int(m.group(1))
+                        if 0 <= v <= 100:
+                            self.bar.setRange(0, 100)
+                            self.bar.setValue(v)
+        st = tx_stato()
+        if st.get("stato") == "finita":
+            self._timer.stop()
+            self.bar.setRange(0, 100)
+            self.bar.setValue(100)
+            rc = st.get("rc")
+            self.log.appendPlainText(
+                "\n" + (L("✓ Completato.", "✓ Done.") if rc in (0, "0")
+                        else L("! Non riuscito (rc=%s)", "! Failed (rc=%s)") % rc))
+            if self._alla_fine:
+                self._alla_fine(rc)
+                self._alla_fine = None
 
 # ============================ SMALL WIDGETS ============================
 class ToggleSwitch(QAbstractButton):
@@ -935,6 +1105,10 @@ class Hub(QMainWindow):
         self.cfg = load_cfg()
         self.cfg.setdefault("flatpak", have("flatpak")); self.cfg.setdefault("snap", have("snap"))
         self.cfg.setdefault("sort", "name"); self.cfg.setdefault("filter", "all")
+        # se una transazione sta gia' girando (l'Hub magari e' morto
+        # proprio perche' l'aggiornamento gli ha cambiato le Qt sotto),
+        # ci si riattacca invece di far finta di niente
+        QTimer.singleShot(800, self._riattacca_transazione)
 
         root = QWidget(); self.setCentralWidget(root)
         outer = QHBoxLayout(root); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
@@ -1421,6 +1595,16 @@ class Hub(QMainWindow):
 
     # ---------- operations ----------
     def do_op(self, app, action):
+        # ⚠️ Per APT si passa sempre dalla transazione staccata: un'installazione
+        # o una rimozione interrotta a meta' lascia dpkg da riparare a mano, e
+        # a interromperla basta che questa finestra muoia. Flatpak e snap no:
+        # li' un'interruzione al massimo lascia un file da riscaricare.
+        if app.backend == "apt":
+            azione = "installa" if action == "install" else "rimuovi"
+            verbo = (L("Installazione", "Installing") if action == "install"
+                     else L("Rimozione", "Removing"))
+            self._avvia_transazione(azione, [app.pkgid], "%s %s…" % (verbo, app.name))
+            return
         if action == "install":
             argv = self._install_cmd(app); verb = L("Installazione", "Installing")
         else:
@@ -1428,6 +1612,7 @@ class Hub(QMainWindow):
         if not argv:
             self.statusBar().showMessage(L("Backend non supportato: ", "Unsupported backend: ") + app.backend, 5000); return
         self._run_op(argv, "%s %s…" % (verb, app.name))
+
     # L'AMBITO DEI FLATPAK VA DETTO SEMPRE.
     #
     # Qui c'era `flatpak install -y --noninteractive flathub <id>`, senza
@@ -1500,53 +1685,129 @@ class Hub(QMainWindow):
         self._ut = Worker(self.cat.updates); self._ut.done.connect(lambda u, t=tok: self._updates_done(u or [], t)); self._ut.start()
     def _updates_done(self, ups, tok):
         if tok != getattr(self, "_vtok", 0): return  # user navigated away
-        ups = [u for u in ups if self.backend_on(u[0] if u[0] != "apt" else "apt")]
+        ups = [u for u in ups if u[0] == "firmware" or self.backend_on(u[0])]
+        pacchetti = [u for u in ups if u[0] != "firmware"]
+        firmware = [u for u in ups if u[0] == "firmware"]
         self._clear(); top = QHBoxLayout(); n = len(ups)
         t = QLabel(L("%d aggiornamenti disponibili", "%d updates available") % n if n
                    else L("Tutto aggiornato ✓", "Everything is up to date ✓"))
         t.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;"); top.addWidget(t); top.addStretch(1)
-        if n:
+        if pacchetti:
             allb = QPushButton(L("Aggiorna tutto", "Update all")); allb.clicked.connect(self.update_all)
             allb.setStyleSheet("QPushButton{background:#9ccf6a;color:#10240a;border-radius:10px;padding:8px 20px;font-weight:800;}"); top.addWidget(allb)
         hw = QWidget(); hw.setLayout(top); self.p_lay.addWidget(hw)
-        for backend, name, oldv, newv in ups:
+        for backend, name, oldv, newv, _id in pacchetti:
             row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(12, 8, 12, 8); row.setStyleSheet("QFrame{background:rgba(255,255,255,0.03);border:1px solid rgba(216,168,73,0.14);border-radius:10px;}")
             nm = QLabel(name); nm.setStyleSheet("color:#f1e3c6;font-weight:600;"); rl.addWidget(nm); rl.addWidget(badge(SRC_LABEL.get(backend, backend))); rl.addStretch(1)
             if newv: rl.addWidget(QLabel("→ %s" % newv))
             self.p_lay.addWidget(row)
+        # ⚠️ IL FIRMWARE STA PER CONTO SUO, E NON LO PORTA VIA «AGGIORNA TUTTO».
+        # Un pacchetto sbagliato si reinstalla; un firmware sbagliato lascia la
+        # scheda dov'e'. Perche' parta ci vuole un pulsante su QUEL dispositivo e
+        # un si' esplicito: e' l'unica operazione dell'Hub che non si puo'
+        # disfare.
+        if firmware:
+            fl = QLabel(L("Firmware", "Firmware"))
+            fl.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;margin-top:14px;")
+            self.p_lay.addWidget(fl)
+            av = QLabel(L("Il firmware non si disinstalla: se qualcosa va storto non "
+                          "si torna indietro da soli. Aggiornalo solo se sai perché "
+                          "lo stai facendo, e non mentre la scheda sta lavorando.",
+                          "Firmware cannot be uninstalled: if something goes wrong "
+                          "there is no way back on your own. Update it only if you "
+                          "know why you are doing it, and not while the machine is "
+                          "busy."))
+            av.setWordWrap(True); av.setStyleSheet("color:#d8a849;font-size:12px;")
+            self.p_lay.addWidget(av)
+            for _b, name, oldv, newv, ident in firmware:
+                row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(12, 8, 12, 8)
+                row.setStyleSheet("QFrame{background:rgba(216,168,73,0.06);border:1px solid rgba(216,168,73,0.28);border-radius:10px;}")
+                nm = QLabel(name); nm.setStyleSheet("color:#f1e3c6;font-weight:600;"); rl.addWidget(nm)
+                if oldv: rl.addWidget(QLabel("%s → %s" % (oldv, newv or "?")))
+                rl.addStretch(1)
+                b = QPushButton(L("Aggiorna", "Update"))
+                b.setStyleSheet("QPushButton{background:rgba(216,168,73,0.22);color:#f1e3c6;border-radius:9px;padding:6px 16px;font-weight:700;}")
+                b.clicked.connect(lambda _c=False, nn=name, ii=ident: self.aggiorna_firmware(nn, ii))
+                rl.addWidget(b)
+                self.p_lay.addWidget(row)
         self.p_lay.addStretch(1)
+
+    def aggiorna_firmware(self, nome, ident):
+        u"""Aggiorna il firmware di UN dispositivo, dopo averlo chiesto sul serio."""
+        if not ident:
+            self.statusBar().showMessage(
+                L("Questo dispositivo non dice il suo identificativo: fwupd non "
+                  "saprebbe quale aggiornare.",
+                  "This device does not report an id: fwupd would not know which "
+                  "one to update."), 6000)
+            return
+        r = QMessageBox.warning(
+            self, "SkillFishOS Hub",
+            L("Aggiornare il firmware di «%s»?\n\nNon si disinstalla e non si "
+              "torna indietro. Non spegnere la macchina finché non ha finito.",
+              "Update the firmware of “%s”?\n\nIt cannot be uninstalled and there "
+              "is no way back. Do not switch the machine off until it is done.") % nome,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        self._avvia_transazione("firmware", [ident],
+                                L("Aggiornamento del firmware di %s…",
+                                  "Updating the firmware of %s…") % nome)
+
     def update_all(self):
-        cmds = []
-        if have("apt-get"): cmds.append(["pkexec", HELPER, "apt-upgrade"])
-        if self.backend_on("flatpak"): cmds.append(["flatpak", "update", "-y", "--noninteractive"])
-        if self.backend_on("snap"): cmds.append(["pkexec", "snap", "refresh"])
-        self._run_chain(cmds, L("Aggiornamento di tutto il sistema…", "Updating the whole system…"))
-    def _run_chain(self, cmds, title):
-        dlg = QDialog(self); dlg.setWindowTitle("SkillFishOS Hub"); dlg.resize(700, 460)
-        v = QVBoxLayout(dlg); v.addWidget(QLabel(title)); log = QPlainTextEdit(); log.setReadOnly(True); v.addWidget(log)
-        bar = QProgressBar(); bar.setRange(0, 0); v.addWidget(bar)
-        cb = QPushButton(L("Chiudi", "Close")); cb.setEnabled(False); cb.clicked.connect(dlg.accept); v.addWidget(cb)
-        self._chain = list(cmds)
-        def nxt(_rc=0):
-            if not self._chain:
-                bar.setRange(0, 100); bar.setValue(100); cb.setEnabled(True); log.appendPlainText("\n" + L("✓ Aggiornamento completato.", "✓ Update complete.")); self.reload_catalog(); return
-            argv = self._chain.pop(0); log.appendPlainText("\n$ " + " ".join(argv))
-            self._op = Op(argv); self._op.line.connect(log.appendPlainText); self._op.done.connect(nxt); self._op.start()
-        nxt(); dlg.exec()
+        self._avvia_transazione("aggiorna", [],
+                                L("Aggiornamento di tutto il sistema…",
+                                  "Updating the whole system…"))
+
+    def _avvia_transazione(self, azione, argomenti, titolo):
+        u"""Fa partire il lavoro e apre la finestra che lo guarda.
+
+        ⚠️ Qui non si esegue niente: si chiede all'helper di farlo partire per
+        conto suo. Se la finestra muore — e durante un aggiornamento delle Qt
+        muore — il lavoro continua lo stesso, ed e' tutto il punto.
+        """
+        ok, messaggio = tx_avvia(azione, *argomenti)
+        if not ok:
+            QMessageBox.warning(self, "SkillFishOS Hub",
+                                messaggio or L("Non sono riuscito ad avviare l'operazione.",
+                                               "I could not start the operation."))
+            return
+        self._segui(titolo)
+
+    def _segui(self, titolo):
+        dlg = SeguiTransazione(self, titolo, alla_fine=lambda rc: self.reload_catalog())
+        dlg.exec()
+
+    def _riattacca_transazione(self):
+        u"""All'avvio: se qualcosa sta girando, riattaccatici.
+
+        E' la meta' che mancava allo staccare la transazione — se l'Hub riparte
+        e fa finta di niente, l'utente vede un sistema che si muove da solo
+        senza sapere perche'.
+        """
+        if not tx_in_corso():
+            return
+        self._dlg_tx = SeguiTransazione(
+            self, L("C'è un aggiornamento in corso", "An update is running"),
+            alla_fine=lambda rc: self.reload_catalog())
+        self._dlg_tx.show()   # non modale: l'Hub resta usabile mentre guarda
+
     def refresh_updates_badge(self):
         self._ub = Worker(self.cat.updates)
         self._ub.done.connect(lambda u: self.nav["updates"].setText("  ⟳   " + L("Aggiornamenti", "Updates") + ((" (%d)" % len(u)) if u else ""))); self._ub.start()
 
     def manual_refresh(self):
-        # a manual refresh should bypass the 24h ODRS ratings cache too
+        # un aggiornamento chiesto a mano deve saltare anche la cache di 24 ore
+        # delle valutazioni ODRS
         try:
             os.remove(os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
                                    "skillfish-hub", "odrs-ratings.json"))
         except OSError:
             pass  # no cache yet
-        cmds = [["pkexec", HELPER, "apt-update"]]
-        if self.backend_on("flatpak"): cmds.append(["flatpak", "update", "--appstream"])
-        self._run_chain(cmds, L("Aggiorno gli elenchi dei pacchetti…", "Refreshing the package lists…"))
+        self._avvia_transazione("elenchi", [],
+                                L("Aggiorno gli elenchi dei pacchetti…",
+                                  "Refreshing the package lists…"))
 
     def reload_catalog(self):
         self.statusBar().showMessage(L("Ricarico…", "Reloading…"))

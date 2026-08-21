@@ -1,0 +1,21 @@
+[Unit]
+# Conta cosa c'e' da aggiornare, per SkillFishOS Hub.
+#
+# ⚠️ Il conteggio sta QUI, in un servizio di sistema, e non nella sessione
+# dell'utente: aggiornare gli elenchi vuol dire prendere il lock di apt, e un
+# programma dell'utente che se lo prende ogni tanto e' un modo sicuro per far
+# fallire l'aggiornamento vero mentre parte.
+# ⚠️ L'helper si sfila da solo se una transazione sta girando: aspettare il lock
+# qui vorrebbe dire un timer appeso per mezz'ora.
+Description=Count available updates for SkillFishOS Hub
+Documentation=https://github.com/MTSistemi/SkillFishOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-hub-helper conta
+# Senza rete non e' un guasto: si riprovera' domani.
+SuccessExitStatus=0 1
+Nice=10
+IOSchedulingClass=idle

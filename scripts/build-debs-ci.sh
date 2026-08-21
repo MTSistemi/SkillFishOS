@@ -168,8 +168,43 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg usr/s
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-hub.png   usr/share/icons/hicolor/48x48/apps/skillfish-hub.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-hub.png usr/share/icons/hicolor/128x128/apps/skillfish-hub.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png usr/share/icons/hicolor/256x256/apps/skillfish-hub.png
+# L'AVVISATORE E I DUE TIMER.
+# ⚠️ Sono la meta' che mancava per fare a meno di Discover. L'Hub gli
+# aggiornamenti li vede benissimo — ma solo quando lo apri, e nessuno apre un
+# centro software per sapere se ha qualcosa da fare. Senza l'avviso, togliere
+# Discover vorrebbe dire togliere l'unica cosa che avvisa l'utente.
+# Sono due timer separati perche' fanno due mestieri diversi: contare vuol dire
+# prendere il lock di apt (e si fa da root, una volta al giorno), avvisare vuol
+# dire parlare col bus della sessione (e si fa da utente, o la notifica non
+# arriva da nessuna parte).
+put $P 0755 apps/hub/skillfish-hub-notify usr/local/bin/skillfish-hub-notify
+put $P 0644 system/etc/systemd/system/skillfish-hub-refresh.service etc/systemd/system/skillfish-hub-refresh.service
+put $P 0644 system/etc/systemd/system/skillfish-hub-refresh.timer   etc/systemd/system/skillfish-hub-refresh.timer
+put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.service usr/lib/systemd/user/skillfish-hub-notify.service
+put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.timer   usr/lib/systemd/user/skillfish-hub-notify.timer
 shot $P apps/hub/os.skillfish.hub.metainfo.xml
-ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1" "SkillFishOS Hub - Discover-style software centre"
+ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd" "SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware"
+# ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+update-desktop-database -q 2>/dev/null || true
+gtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload || true
+  systemctl enable --now skillfish-hub-refresh.timer 2>/dev/null || true
+  # --global: l'avviso vale per TUTTI gli utenti, compresi quelli creati
+  # dopo. Abilitarlo per l'utente corrente non servirebbe a niente:
+  # durante l'installazione l'utente corrente e' root, che il desktop non
+  # ce l'ha.
+  systemctl --global enable skillfish-hub-notify.timer 2>/dev/null || true
+  # Il primo conteggio subito e in sottofondo, per non far aspettare fino a
+  # domani chi ha appena installato.
+  systemctl start --no-block skillfish-hub-refresh.service 2>/dev/null || true
+fi
+exit 0
+POSTINST
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-fan
 # SkillFishOS Fan Control. Tre programmi, e non e' una complicazione gratuita:
@@ -1234,5 +1269,20 @@ check skillfish-emulators_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps
 check skillfish-emulators_${VER}_all.deb ./usr/share/applications/os.skillfish.emudeck.desktop "Icon=skillfish-emudeck"
 check skillfish-emulators_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-emulators.svg "<svg"
 check skillfish-emulators_${VER}_all.deb ./usr/share/applications/os.skillfish.emulators.desktop "Icon=skillfish-emulators"
+
+
+# L'HUB SENZA DISCOVER.
+# ⚠️ La transazione deve partire STACCATA (systemd-run): se torna a essere un
+# processo figlio della finestra, il primo aggiornamento che sostituisce le Qt
+# la uccide a meta' e lascia dpkg da riparare a mano.
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "systemd-run"
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "tx-start"
+# Il firmware c'e', e NON viene portato via da «Aggiorna tutto».
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "fwupdmgr"
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def firmware"
+# L'avviso e i suoi due timer.
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-notify "notify-send"
+check skillfish-hub_${VER}_all.deb ./etc/systemd/system/skillfish-hub-refresh.timer "OnCalendar=daily"
+check skillfish-hub_${VER}_all.deb ./usr/lib/systemd/user/skillfish-hub-notify.timer "OnUnitActiveSec"
 
 echo "ALL DEBS VERIFIED"

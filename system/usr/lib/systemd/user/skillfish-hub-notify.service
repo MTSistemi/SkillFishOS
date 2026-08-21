@@ -1,0 +1,19 @@
+[Unit]
+# L'avviso che ci sono aggiornamenti, per SkillFishOS Hub.
+#
+# ⚠️ Gira nella SESSIONE dell'utente e non come servizio di sistema: una
+# notifica sul desktop ha bisogno del bus della sessione, e da root non
+# arriverebbe da nessuna parte.
+Description=Tell the user there are updates (SkillFishOS Hub)
+Documentation=https://github.com/MTSistemi/SkillFishOS
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-hub-notify
+# Con il pulsante «Apri l'Hub» notify-send resta in attesa della risposta: il
+# programma si ferma da solo dopo tre minuti, questo e' solo la rete di
+# sicurezza.
+TimeoutStartSec=5min
+Nice=15

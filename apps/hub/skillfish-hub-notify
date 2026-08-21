@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""SkillFishOS Hub — l'avviso che ci sono aggiornamenti.
+
+PERCHE' ESISTE
+E' l'ultima cosa che Discover faceva e noi no. L'Hub gli aggiornamenti li vede
+benissimo — ma solo quando lo apri, e nessuno apre un centro software per
+scoprire se ha qualcosa da fare. Senza questo, togliere Discover avrebbe voluto
+dire togliere l'unica cosa che avvisa l'utente.
+
+COME
+Non conta niente da solo: legge il numero che il timer di sistema ha gia'
+scritto in /var/lib/skillfish/hub/updates.json. Contare qui vorrebbe dire
+lanciare apt da dentro la sessione dell'utente ogni volta, e apt il lock lo
+vuole tutto per se'.
+
+⚠️ NON RIPETE. Lo stesso identico gruppo di aggiornamenti si annuncia UNA volta:
+un avviso che ricompare ogni sei ore per la stessa cosa e' la via piu' rapida
+perche' l'utente disattivi gli avvisi — e allora non serve piu' a niente. Se
+pero' passa una settimana e sono ancora li', si torna a dirlo una volta sola.
+"""
+from __future__ import unicode_literals
+
+import io
+import json
+import os
+import subprocess
+import sys
+import time
+
+CONTEGGIO = "/var/lib/skillfish/hub/updates.json"
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
+                     "skillfish-hub")
+VISTO = os.path.join(CACHE, "avvisato.json")
+RICORDA = 7 * 24 * 3600     # dopo una settimana si torna a dirlo
+
+
+# ---------- le lingue ----------
+def _lingua():
+    val = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG") or os.environ.get("LANGUAGE") or "")
+    v = val.lower()
+    if v.startswith("it"):
+        return "it"
+    if v.startswith("ua"):
+        return "uk"
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    return codice if (len(codice) == 2 and codice.isalpha()) else "en"
+
+
+LANG = _lingua()
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
+
+def L(it, en):
+    return it if LANG == "it" else _TR(en)
+
+
+def leggi(percorso):
+    try:
+        with io.open(percorso, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def scrivi(percorso, dati):
+    try:
+        if not os.path.isdir(os.path.dirname(percorso)):
+            os.makedirs(os.path.dirname(percorso))
+        with io.open(percorso, "w", encoding="utf-8") as f:
+            f.write(json.dumps(dati))
+    except (IOError, OSError):
+        pass   # non poter ricordare l'avviso non e' un buon motivo per non darlo
+
+
+def avvisa(titolo, corpo):
+    u"""Manda la notifica, col pulsante per aprire l'Hub se libnotify lo sa fare.
+
+    ⚠️ Con `-A` notify-send RESTA IN ATTESA finche' l'utente non risponde o la
+    notifica non scade: senza un tempo massimo questo servizio resterebbe
+    appeso. Se il pulsante non e' supportato si manda la notifica semplice —
+    meglio un avviso senza pulsante che nessun avviso.
+    """
+    base = ["notify-send", "-a", "SkillFishOS Hub", "-i", "skillfish-hub",
+            "-u", "normal", "-t", "20000"]
+    apri = L("Apri l'Hub", "Open the Hub")
+    try:
+        p = subprocess.Popen(base + ["-A", "apri=%s" % apri, titolo, corpo],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            fuori, _ = p.communicate(timeout=180)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            return
+        if p.returncode == 0:
+            if (fuori or b"").decode("utf-8", "replace").strip() == "apri":
+                subprocess.Popen(["/usr/local/bin/skillfish-hub"],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+    except (OSError, ValueError):
+        pass
+    try:
+        subprocess.call(base + [titolo, corpo])
+    except OSError:
+        pass   # niente notify-send: non c'e' altro da fare, e non e' un guasto
+
+
+def main():
+    conto = leggi(CONTEGGIO)
+    if not conto:
+        return 0
+    pacchetti = int(conto.get("apt", 0)) + int(conto.get("flatpak", 0)) + int(conto.get("snap", 0))
+    firmware = int(conto.get("firmware", 0))
+    if pacchetti + firmware == 0:
+        scrivi(VISTO, {})      # tutto aggiornato: si riparte puliti
+        return 0
+
+    impronta = "%s/%s/%s/%s" % (conto.get("apt", 0), conto.get("flatpak", 0),
+                                conto.get("snap", 0), firmware)
+    visto = leggi(VISTO)
+    if (visto.get("impronta") == impronta
+            and (time.time() - float(visto.get("quando", 0))) < RICORDA):
+        return 0
+
+    if pacchetti and firmware:
+        corpo = L("%d aggiornamenti e %d firmware.",
+                  "%d updates and %d firmware.") % (pacchetti, firmware)
+    elif firmware:
+        corpo = L("%d aggiornamenti del firmware.",
+                  "%d firmware updates.") % firmware
+    else:
+        corpo = L("%d aggiornamenti disponibili.",
+                  "%d updates available.") % pacchetti
+
+    scrivi(VISTO, {"impronta": impronta, "quando": time.time()})
+    avvisa("SkillFishOS Hub", corpo)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

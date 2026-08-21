@@ -1,0 +1,13 @@
+[Unit]
+Description=Check now and then whether to tell the user about updates
+Documentation=https://github.com/MTSistemi/SkillFishOS
+
+[Timer]
+# Non subito dopo l'accesso: chi accende la macchina per giocare non vuole una
+# notifica in faccia mentre il desktop sta ancora finendo di comparire.
+OnStartupSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=20min
+
+[Install]
+WantedBy=timers.target
