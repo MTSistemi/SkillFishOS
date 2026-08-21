@@ -90,6 +90,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>New: the package now also carries the HUD configurator, which chooses what the desktop overlay shows, where it hangs and whether it is shown at all.</p>
+        <p xml:lang="it">Novità: il pacchetto porta anche il configuratore del HUD, che decide cosa mostra il pannello sulla scrivania, a che angolo si aggancia e se mostrarlo o no.</p>
+        <p xml:lang="fr">Nouveau : le paquet embarque aussi le configurateur du HUD, qui choisit ce que l'affichage du bureau montre, à quel coin il s'accroche et s'il s'affiche.</p>
+        <p xml:lang="uk">Нове: пакунок несе також налаштування HUD, яке обирає, що показує панель на стільниці, за який кут вона чіпляється і чи показувати її взагалі.</p>
+        <p xml:lang="ru">Новое: пакет несёт и настройку HUD, которая выбирает, что показывает панель на рабочем столе, за какой угол она цепляется и показывать ли её вообще.</p>
+        <p xml:lang="es">Novedad: el paquete lleva también el configurador del HUD, que elige qué muestra el panel del escritorio, a qué esquina se engancha y si mostrarlo o no.</p>
+        <p xml:lang="pt">Novidade: o pacote leva também o configurador do HUD, que escolhe o que o painel da área de trabalho mostra, a que canto se prende e se deve aparecer.</p>
+        <p xml:lang="de">Neu: Das Paket bringt auch den HUD-Einrichter mit, der wählt, was die Anzeige auf dem Schreibtisch zeigt, an welcher Ecke sie hängt und ob sie überhaupt erscheint.</p>
+        <p xml:lang="pl">Nowość: pakiet niesie też konfigurator HUD, który wybiera, co pokazuje panel na pulpicie, przy którym rogu wisi i czy w ogóle ma być widoczny.</p>
+      </description>
+    </release>
     <release version="26.06.7" date="2026-06-10">
       <description><p>Find-my-max wizards for CPU and GPU with per-step benchmark-and-rollback; crash-safe testing; Turbo/Crazy presets capped at the validated 2200 MHz; extreme-preset warning; anonymous silicon-lottery sharing.</p></description>
     </release>

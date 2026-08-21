@@ -703,6 +703,7 @@ put $P 0644 apps/dashboard/web/ventola.html usr/share/skillfish/dashboard/ventol
 put $P 0644 apps/dashboard/web/badge.png   usr/share/skillfish/dashboard/badge.png
 put $P 0644 system/etc/skillfish/dashboard.json usr/share/skillfish/dashboard-default.json
 put $P 0644 system/etc/systemd/system/skillfish-dashboard.service etc/systemd/system/skillfish-dashboard.service
+shot $P apps/dashboard/os.skillfish.remote-manager.metainfo.xml
 put $P 0644 system/usr/share/applications/os.skillfish.remote-manager.desktop usr/share/applications/os.skillfish.remote-manager.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-remote.png usr/share/icons/hicolor/48x48/apps/skillfish-remote.png
@@ -876,6 +877,7 @@ put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-sn
 # autorizzazione polkit.
 put $P 0755 apps/snapshots/skillfish-btrfs-manutenzione usr/local/bin/skillfish-btrfs-manutenzione
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.snapshots.policy usr/share/polkit-1/actions/os.skillfish.snapshots.policy
+shot $P apps/snapshots/os.skillfish.snapshots.metainfo.xml
 put $P 0644 system/usr/share/applications/os.skillfish.snapshots.desktop usr/share/applications/os.skillfish.snapshots.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg
 # L'icona: il tema la porta gia' dentro skillfish-theme (tutto l'albero),
