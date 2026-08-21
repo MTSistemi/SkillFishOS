@@ -48,7 +48,7 @@ set -u
 # ⚠️ Da 9 in poi la versione dipende ANCHE dalle preferenze: due macchine con
 # lo stesso hardware possono volere HUD diversi, quindi il confronto da solo
 # non basta piu' e skillfish-hud guarda anche la data del file delle scelte.
-VERSIONE=9
+VERSIONE=10
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
 PREF="${SKILLFISH_HUD_PREF:-$HOME/.config/skillfish/hud.json}"
@@ -111,8 +111,13 @@ b_titolo(){
 
 # La versione del kernel sotto al nome: e' identita', non una misura, quindi
 # sta in alto e in tono spento invece che fra i sensori.
+#
+# ⚠️ Della stessa dimensione delle altre righe, non due punti piu' piccola.
+# Resta spenta di COLORE — che e' quello che la fa leggere come identita' e non
+# come un sensore — ma a sette punti su uno schermo grande non si leggeva
+# proprio, ed e' la riga che serve quando qualcuno chiede «che kernel hai?».
 b_kernel(){
-  printf '${voffset 1}${color2}${font DejaVu Sans:size=%s}${execi 9999 skillfish-hud-val kernel}${font}\n' "$((FONT-2))"
+  printf '${voffset 1}${color2}${font DejaVu Sans:size=%s}${execi 9999 skillfish-hud-val kernel}${font}\n' "$FONT"
 }
 
 # --- CPU: la frequenza e il carico ci sono su qualunque macchina -------------

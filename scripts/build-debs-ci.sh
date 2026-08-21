@@ -329,6 +329,12 @@ put $P 0644 system/etc/skel/.config/conky/skillfish.conf              etc/skel/.
 # che punta a un file che non c'e'. Prima non apparteneva a NESSUN pacchetto,
 # quindi arrivava solo a chi installava dalla ISO.
 put $P 0644 system/etc/skel/.config/autostart/skillfish-conky.desktop etc/skel/.config/autostart/skillfish-conky.desktop
+# Spegne l'avvio automatico di Blueman: e' l'applet Bluetooth di GTK e Plasma ha
+# gia' il suo, a tema e nel vassoio. Con tutti e due accesi ne compaiono DUE, e
+# quello di Blueman passa da xembedsniproxy — fondo scuro quadrato, icona sua.
+# ⚠️ Non si disinstalla niente: si scrive Hidden=true in un file dell'utente, che
+# ha la precedenza su /etc/xdg/autostart. Chi vuole Blueman toglie quel file.
+put $P 0644 system/etc/skel/.config/autostart/blueman.desktop etc/skel/.config/autostart/blueman.desktop
 # skillfish-info: fastfetch in un terminale che resta aperto. Anche questi due
 # non appartenevano a nessun pacchetto. Il comando sta in uno script perche' nel
 # campo Exec di un .desktop "%s" e' un codice di sostituzione riservato e il "$"
@@ -1059,6 +1065,8 @@ check skillfish-tuner_${VER}_all.deb         ./etc/systemd/system/skillfish-sens
 # KDE lo converte in servizio systemd e $HOME resta letterale.
 check skillfish-base_${VER}_all.deb          ./etc/skel/.config/autostart/skillfish-conky.desktop "Exec=/usr/local/bin/skillfish-hud"
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-info           fastfetch
+check skillfish-base_${VER}_all.deb          ./etc/skel/.config/autostart/blueman.desktop 'Hidden=true'
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-kde-firstrun.sh 'blueman'
 # L'icona dell'Hub: che sia davvero un'immagine e non un file vuoto.
 check skillfish-hub_${VER}_all.deb           ./usr/share/icons/hicolor/scalable/apps/skillfish-hub.svg "svg"
 # Gli emulatori: il repository giusto e' emudeck-electron, non dragoonDorise —

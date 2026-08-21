@@ -40,6 +40,8 @@ ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png"
 VAL = "/usr/local/bin/skillfish-hud-val"
 GEN = "/usr/local/bin/skillfish-hud-config"
 PREF = os.path.expanduser("~/.config/skillfish/hud.json")
+AUTO = os.path.expanduser("~/.config/autostart/skillfish-conky.desktop")
+AUTO_SKEL = "/etc/skel/.config/autostart/skillfish-conky.desktop"
 
 
 # ---------- i18n ----------
@@ -128,6 +130,22 @@ AIUTO = {
         "⚠️ Turn everything off and the name stays. A window with no text is one conky "
         "cannot measure, and it shrinks to a fifteen-pixel dot in a corner. That is the "
         "fault that had the HUD restricted to the BC-250 in the first place.")),
+
+    "mostra": (L("Mostrare il HUD", "Showing the HUD"), L(
+        "Toglie o rimette il pannello dal desktop. Vale subito e vale anche dopo il "
+        "riavvio: si scrive nell'avvio automatico, non si limita a chiudere la "
+        "finestra.\n\n"
+        "Spegnendolo il file dell'avvio automatico resta, solo disattivato: così "
+        "riaccenderlo è una spunta e non c'è niente da ricostruire.\n\n"
+        "Le scelte su cosa mostrare restano come le hai lasciate: le ritrovi quando lo "
+        "riaccendi.",
+        "Takes the panel off the desktop, or puts it back. It applies now and it "
+        "applies after a reboot: it is written into the autostart entry, not just a "
+        "window being closed.\n\n"
+        "Turning it off leaves the autostart file in place, only disabled, so turning "
+        "it back on is one tick with nothing to rebuild.\n\n"
+        "What you chose to show stays as you left it, and is there when you switch it "
+        "back on.")),
 
     "aspetto": (L("Come e dove", "How and where"), L(
         "• POSIZIONE: a quale angolo dello schermo si aggancia.\n"
@@ -330,10 +348,12 @@ class Anteprima(QWidget):
                            int(Qt.AlignmentFlag.AlignRight), des)
                 y += 22
             elif tipo == "spento":
-                p.setFont(QFont("DejaVu Sans", max(6, self.dim - 2)))
+                # stessa dimensione delle altre righe, colore spento: si legge
+                # e continua a distinguersi dai sensori
+                p.setFont(QFont("DejaVu Sans", self.dim))
                 p.setPen(QPen(self.SPENTO, 1))
                 p.drawText(x0 + 12, y, sin)
-                y += 16
+                y += 18
             elif tipo == "sezione":
                 p.setFont(QFont("DejaVu Sans", self.dim))
                 p.setPen(QPen(self.OTTONE, 1))
@@ -364,6 +384,67 @@ class Anteprima(QWidget):
                 p.setPen(QPen(self.CHIARO, 1))
                 p.drawText(x0 + 12 + colonna, y, des)
                 y += 22
+
+
+def hud_acceso():
+    u"""Il HUD si accenderà al prossimo accesso?
+
+    Si guarda l'avvio automatico, non se conky sta girando adesso: chi lo
+    spegne vuole che resti spento anche dopo un riavvio, e chi lo accende vuole
+    ritrovarlo. `Hidden=true` è il modo previsto dallo standard per disattivare
+    un avvio automatico senza cancellare il file — cancellarlo vorrebbe dire
+    non sapere più come rimetterlo.
+    """
+    try:
+        with io.open(AUTO, encoding="utf-8") as f:
+            return "hidden=true" not in f.read().lower()
+    except (IOError, OSError):
+        return False
+
+
+def hud_accendi(acceso):
+    u"""Scrive l'avvio automatico e fa partire o fermare conky adesso.
+
+    ⚠️ Sono due cose separate: quello che succede al prossimo accesso (il file)
+    e quello che succede adesso (il processo). Farne una sola sarebbe sbagliato
+    in tutti e due i modi — spegnere senza fermarlo lascia il HUD a schermo fino
+    al riavvio, e fermarlo senza scrivere lo fa tornare da solo domani.
+    """
+    cartella = os.path.dirname(AUTO)
+    if not os.path.isdir(cartella):
+        try:
+            os.makedirs(cartella)
+        except OSError:
+            pass
+    # ⚠️ Se il file non c'è si ricopia da /etc/skel invece di scriverlo qui:
+    # quel file ha dentro una lezione (il percorso assoluto senza virgolette,
+    # perché KDE converte l'autostart in un servizio systemd e in quel passaggio
+    # $HOME resta letterale), e riscriverlo a mano la perderebbe.
+    if not os.path.exists(AUTO) and os.path.exists(AUTO_SKEL):
+        try:
+            with io.open(AUTO_SKEL, encoding="utf-8") as s:
+                testo = s.read()
+            with io.open(AUTO, "w", encoding="utf-8") as d:
+                d.write(testo)
+        except (IOError, OSError):
+            pass
+    try:
+        with io.open(AUTO, encoding="utf-8") as f:
+            righe = [r for r in f.read().split("\n")
+                     if not r.lower().startswith("hidden=")]
+        if not acceso:
+            righe.append("Hidden=true")
+        with io.open(AUTO, "w", encoding="utf-8") as f:
+            f.write("\n".join(righe).rstrip() + "\n")
+    except (IOError, OSError):
+        pass
+    subprocess.call(["pkill", "-x", "conky"])
+    if acceso:
+        try:
+            subprocess.Popen(["/usr/local/bin/skillfish-hud"],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
 
 
 class Finestra(QMainWindow):
@@ -419,6 +500,14 @@ class Finestra(QMainWindow):
         # -- in basso: come e dove --------------------------------------------
         basso = QHBoxLayout()
         basso.setSpacing(10)
+        self.mostra = QCheckBox(L("Mostra il HUD", "Show the HUD"))
+        self.mostra.setChecked(hud_acceso())
+        self.mostra.setToolTip(L(
+            "Spento resta spento anche dopo il riavvio.",
+            "Off stays off after a reboot too."))
+        basso.addWidget(self.mostra)
+        basso.addWidget(_aiuto("mostra", self))
+        basso.addSpacing(10)
         basso.addWidget(QLabel("<b>%s</b>" % L("Aspetto", "Look")))
         basso.addWidget(_aiuto("aspetto", self))
 
@@ -615,6 +704,7 @@ class Finestra(QMainWindow):
         come si traducono in righe di conky. Qui si scrive solo la scelta."""
         pref = {
             "versione": 1,
+            "mostra": self.mostra.isChecked(),
             "voci": self.scelte(),
             "posizione": self.posizione.currentData(),
             "larghezza": self.larghezza.value(),
@@ -646,13 +736,10 @@ class Finestra(QMainWindow):
             return
         # ⚠️ conky non rilegge la configurazione da solo: va riavviato, o si
         # applica tutto e sullo schermo non cambia niente — e sembra rotto.
-        subprocess.call(["pkill", "-x", "conky"])
-        try:
-            subprocess.Popen(["/usr/local/bin/skillfish-hud"],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
-        self.et_stato.setText(L("applicato", "applied"))
+        # hud_accendi fa tutte e due le cose, spegnimento compreso.
+        hud_accendi(self.mostra.isChecked())
+        self.et_stato.setText(L("applicato", "applied") if self.mostra.isChecked()
+                              else L("HUD spento", "HUD off"))
 
 
 def main():

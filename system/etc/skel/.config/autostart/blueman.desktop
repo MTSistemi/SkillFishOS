@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=Blueman Applet
+Hidden=true
+# ⚠️ NON è un file di Blueman: è la nostra disattivazione del suo avvio
+# automatico, e sta nella cartella dell'utente perché quella ha la precedenza
+# su /etc/xdg/autostart senza toccare un file di un altro pacchetto.
+#
+# PERCHÉ
+# Blueman è l'applet Bluetooth di GTK. Plasma ha già il suo
+# (org.kde.plasma.bluetooth), che è nel vassoio e usa le icone del nostro tema.
+# Con tutti e due accesi nel vassoio compaiono DUE indicatori Bluetooth, e
+# quello di Blueman passa da xembedsniproxy: esce con il suo fondo scuro
+# quadrato e la sua icona, che accanto alle nostre stona e basta.
+# Visto confrontando le due macchine di sviluppo: stesse icone byte per byte
+# nel tema, eppure i due vassoi diversi — la differenza non era l'icona, era
+# che su una girava anche Blueman.
+#
+# ⚠️ Non si disinstalla e non si tocca il suo file in /etc/xdg/autostart. Chi
+# vuole Blueman deve poterlo riavere: basta togliere questo file, o l'unica
+# riga che conta qui dentro.
