@@ -57,7 +57,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.08.48
+Version: 26.08.50
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -66,11 +66,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.48_all.deb
-Size: 268004
-SHA256: 8fa8f994453ae6fca08847213949d87ee6d741a27523303cc0d3bd526a40c11f
-SHA1: d7abeec434912344b1a14a64495b054fb08ff22b
-MD5sum: 023246841bc0792874fb713627ace01c
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.50_all.deb
+Size: 269320
+SHA256: 7626b26f970ce1462b2ab5babb541749ed0b9362afc240d0dfc8264434d6505a
+SHA1: 50cc9a262ddb6b8a9d0444627f8bdcfb427ae698
+MD5sum: ba05bdac75f0425cf6c2c5cb673e1fe2
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
