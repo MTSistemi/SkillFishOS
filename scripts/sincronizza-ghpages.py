@@ -187,13 +187,23 @@ print("   file del sito lasciati intatti: %s" % ", ".join(rimasti))
 pacchetti = []
 for radice, _, files in os.walk(os.path.join(CLONE, "pool")):
     pacchetti += [f for f in files if f.endswith(".deb")]
+# ⚠️ NON si cerca la versione in skillfish-base: da quando si pubblica solo
+# cio' che cambia davvero, un rilascio puo' non toccarlo affatto (la 26.08.45
+# ha cambiato il solo skillfish-hub). Si controlla invece che la versione ci
+# sia in QUALCUNO dei nostri pacchetti e che l'albero non sia monco.
 base = [p for p in pacchetti if p.startswith("skillfish-base_")]
-print("   pacchetti nell'albero: %d, fra cui %s" % (len(pacchetti), base or "NESSUN skillfish-base"))
+con_versione = [p for p in pacchetti if ("_%s_" % VERSIONE) in p]
+print("   pacchetti nell'albero: %d, alla %s: %s"
+      % (len(pacchetti), VERSIONE, ", ".join(sorted(con_versione)) or "NESSUNO"))
 if not base:
-    sys.exit("   FERMO: nell'albero non c'e' skillfish-base, non pubblico")
-if VERSIONE not in base[0]:
-    sys.exit("   FERMO: mi aspettavo la %s e trovo %s, non pubblico"
-             % (VERSIONE, base[0]))
+    sys.exit("   FERMO: nell'albero non c'e' skillfish-base, e' monco: non pubblico")
+if len(pacchetti) < 10:
+    sys.exit("   FERMO: solo %d pacchetti nell'albero, sembra monco: non pubblico"
+             % len(pacchetti))
+if not con_versione:
+    sys.exit("   FERMO: nell'albero non c'e' nessun pacchetto alla %s.\n"
+             "   Hai gia' fatto «skillfish-rilascio --pubblica» sul container?"
+             % VERSIONE)
 
 git("add", "-A")
 git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",

@@ -1,12 +1,12 @@
 [Unit]
-Description=Count available updates for SkillFishOS Hub, once a day
+Description=Count available updates for SkillFishOS Hub, every hour
 Documentation=https://github.com/MTSistemi/SkillFishOS
 
 [Timer]
-OnCalendar=daily
+OnCalendar=hourly
 # ⚠️ Il ritardo a caso non e' pignoleria: senza, tutte le macchine con
 # SkillFishOS bussano al mirror allo stesso secondo di mezzanotte.
-RandomizedDelaySec=4h
+RandomizedDelaySec=10min
 # Se la scheda era spenta all'ora prevista, si recupera al primo avvio: una
 # scheda da gioco sta spenta molto piu' di quanto sta accesa.
 Persistent=true

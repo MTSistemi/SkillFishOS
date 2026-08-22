@@ -1413,7 +1413,7 @@ check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "fw-list
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def firmware"
 # L'avviso e i suoi due timer.
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-notify "notify-send"
-check skillfish-hub_${VER}_all.deb ./etc/systemd/system/skillfish-hub-refresh.timer "OnCalendar=daily"
+check skillfish-hub_${VER}_all.deb ./etc/systemd/system/skillfish-hub-refresh.timer "OnCalendar=hourly"
 check skillfish-hub_${VER}_all.deb ./usr/lib/systemd/user/skillfish-hub-notify.timer "OnUnitActiveSec"
 
 

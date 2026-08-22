@@ -6,8 +6,8 @@ Documentation=https://github.com/MTSistemi/SkillFishOS
 # Non subito dopo l'accesso: chi accende la macchina per giocare non vuole una
 # notifica in faccia mentre il desktop sta ancora finendo di comparire.
 OnStartupSec=5min
-OnUnitActiveSec=6h
-RandomizedDelaySec=20min
+OnUnitActiveSec=1h
+RandomizedDelaySec=5min
 
 [Install]
 WantedBy=timers.target

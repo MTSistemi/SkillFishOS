@@ -36,6 +36,37 @@ at every release and never shrinks. On 12 August 2026 it filled the hosting
 quota mid-upload and left the repository incomplete, with `apt` erroring out for
 anyone updating at that moment.
 
+## Release checklist
+
+Building the `.deb` is the middle of the job, not the end. The changelog inside
+each package is generated from the git commits that touch **that** package's
+files, so it takes care of itself. Nothing else does, and the parts that don't
+are the parts a user actually reads.
+
+1. Build everything: `OUT=/root/dist-debs bash scripts/build-debs-ci.sh <version>`
+2. Compare the **contents** against what is already published and ship only what
+   changed. In 26.08.43 that was 5 packages out of 15; publishing all fifteen
+   makes every user re-download 1.4 MB of identical files.
+3. **Re-read the `ctrl()` description** of each package that changed. The Hub and
+   `apt show` display it — it is the page a user sees before installing. Until
+   22 August 2026 it said "built from git by CI" and nothing else, which told
+   the reader precisely nothing. If the behaviour changed, the description
+   changes; if the wording is now wrong on screen, fix it here too.
+4. Copy the `.deb` files to the container and compare checksums **before**
+   signing.
+5. `skillfish-rilascio <files>` — indexes and signs, stays in the house.
+6. `skillfish-rilascio --pubblica` — out to OVH.
+7. From the PC: `python scripts/sincronizza-ghpages.py <version>` — the mirror
+   installed machines actually use.
+8. `apt update && apt install` on the board, from the real repository, not by
+   hand.
+9. **Write the news entry on the site, in every language.** What changed for the
+   person using it, not the commit list.
+10. Check the published site really shows it.
+
+Steps 3 and 9 are the ones that get skipped, and they are the only two the user
+ever sees.
+
 ## Pulling from the board
 
 `--dalla-scheda` copies the freshly built `.deb` files off the BC-250 over SSH.
