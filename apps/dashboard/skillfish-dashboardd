@@ -1469,11 +1469,19 @@ _RULES = {"hot": 0, "last_action": ""}
 
 
 def save_conf():
+    u"""Scrive la configurazione. Non solleva, ma non tace piu'.
+
+    Un salvataggio fallito in silenzio si presenta all'utente come un'opzione
+    che si rimette da sola al riavvio: il posto peggiore dove cercare la causa.
+    """
     try:
         with open(CONF, "w") as f:
             json.dump(CONFIG, f, indent=2)
-    except Exception:
-        pass
+        return True
+    except OSError as e:
+        sys.stderr.write("dashboard: configurazione non salvata in %s (%s)\n"
+                         % (CONF, e))
+        return False
 
 
 def rules_cfg():
@@ -2452,9 +2460,20 @@ def ensure_cert():
          "-subj", "/CN=%s" % host,
          "-addext", "subjectAltName=DNS:%s,DNS:%s.local,DNS:localhost" % (host, host)],
         check=False)
+    # Questa e' la chiave privata del certificato con cui la dashboard si
+    # presenta. Se il permesso non si riesce a stringere, il difetto non e' che
+    # il chmod fallisce: e' che la chiave resta leggibile e nessuno lo sa.
     try:
         os.chmod(KEY_F, 0o600)
-    except Exception:
+    except OSError as e:
+        sys.stderr.write("dashboard: non riesco a proteggere %s (%s)\n" % (KEY_F, e))
+    try:
+        modo = os.stat(KEY_F).st_mode & 0o077
+        if modo:
+            sys.stderr.write("dashboard: ATTENZIONE, la chiave privata %s e' "
+                             "leggibile da altri utenti (permessi %o)\n"
+                             % (KEY_F, os.stat(KEY_F).st_mode & 0o777))
+    except OSError:
         pass
 
 
