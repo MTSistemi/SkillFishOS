@@ -10,7 +10,7 @@ Package: skillfishos-kernel
 Version: ${DEBVER}
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
-Depends: curl | wget, initramfs-tools
+Depends: curl | wget, initramfs-tools, skillfish-base (>= 26.08.27)
 Section: kernel
 Priority: optional
 Description: SkillFishOS BC-250 kernel (linux-tkg ${KVER})
@@ -34,7 +34,22 @@ else
   dl "\$BASE/\$IMG" "\$TMP/\$IMG"
   dl "\$BASE/\$HDR" "\$TMP/\$HDR"
   dpkg -i "\$TMP/\$IMG" "\$TMP/\$HDR" || apt-get -f install -y
-  apt-mark hold linux-image-${KVER} linux-headers-${KVER} 2>/dev/null || true
+fi
+# ⚠️ IL BLOCCO, e perche' prima non c'era mai.
+# Sta fuori dal ramo perche' non dipende dall'aver scaricato: se il kernel era
+# gia' li' — messo a mano dal rilascio GitHub, o perche' e' la macchina su cui
+# l'abbiamo costruito — restava senza.
+# E soprattutto: `apt-mark hold` scrive le selezioni di dpkg e vuole il lock del
+# frontend, che dentro un postinst ce l'ha dpkg stesso. Esce 100 e non fa
+# niente. Con `2>/dev/null || true` davanti non se ne accorgeva nessuno, e la
+# riga «il kernel e' trattenuto» nella documentazione era falsa da mesi.
+# Si prova subito (fuori da una transazione funziona), e se non passa si
+# riprova quando dpkg ha mollato il lock.
+if ! apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null 2>&1; then
+  if command -v systemd-run >/dev/null 2>&1; then
+    systemd-run --quiet --on-active=15 --unit=skillfishos-kernel-hold \
+      /usr/bin/apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null 2>&1 || true
+  fi
 fi
 rm -rf "\$TMP"
 command -v update-grub >/dev/null 2>&1 && update-grub || true
