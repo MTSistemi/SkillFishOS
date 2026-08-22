@@ -403,15 +403,15 @@ export const news: Post[] = [
     quando: { it: '23 agosto 2026', en: '23 August 2026', pl: '23 sierpnia 2026', uk: '23 серпня 2026', ru: '23 августа 2026', es: '23 de agosto de 2026', pt: '23 de agosto de 2026', de: '23. August 2026', fr: '23 août 2026' },
     etichetta: { it: 'aggiornamento', en: 'update', pl: 'aktualizacja', uk: 'оновлення', ru: 'обновление', es: 'actualización', pt: 'atualização', de: 'Update', fr: 'mise à jour' },
     titolo: {
-      it: "Il kernel 7.2.0 arriva con l'aggiornamento",
-      en: "Kernel 7.2.0 arrives with an update",
-      pl: "Jądro 7.2.0 przychodzi z aktualizacją",
-      uk: "Ядро 7.2.0 приходить з оновленням",
-      ru: "Ядро 7.2.0 приходит с обновлением",
-      es: "El núcleo 7.2.0 llega con la actualización",
-      pt: "O kernel 7.2.0 chega com a atualização",
-      de: "Kernel 7.2.0 kommt mit einem Update",
-      fr: "Le noyau 7.2.0 arrive avec une mise à jour"
+      it: "Il kernel 7.2.0 arriva con l'aggiornamento Il driver grafico intanto è alla <strong>Mesa 26.1.6</strong>, la stessa versione che montano le distribuzioni da gioco più aggiornate. Arriva da Debian, non la compiliamo noi.",
+      en: "Kernel 7.2.0 arrives with an update The graphics driver meanwhile is at <strong>Mesa 26.1.6</strong>, the same version the most up-to-date gaming distributions carry. It comes from Debian; we do not build it.",
+      pl: "Jądro 7.2.0 przychodzi z aktualizacją Sterownik graficzny jest tymczasem w wersji <strong>Mesa 26.1.6</strong>, tej samej, którą mają najbardziej aktualne dystrybucje do grania. Pochodzi z Debiana, nie budujemy go sami.",
+      uk: "Ядро 7.2.0 приходить з оновленням Графічний драйвер тим часом має версію <strong>Mesa 26.1.6</strong> — ту саму, що й найсвіжіші ігрові дистрибутиви. Він приходить з Debian, ми його не збираємо.",
+      ru: "Ядро 7.2.0 приходит с обновлением Графический драйвер тем временем — <strong>Mesa 26.1.6</strong>, та же версия, что и в самых свежих игровых дистрибутивах. Он приходит из Debian, мы его не собираем.",
+      es: "El núcleo 7.2.0 llega con la actualización El controlador gráfico está mientras tanto en <strong>Mesa 26.1.6</strong>, la misma versión que llevan las distribuciones de juego más al día. Viene de Debian, no la compilamos nosotros.",
+      pt: "O kernel 7.2.0 chega com a atualização O controlador gráfico está entretanto na <strong>Mesa 26.1.6</strong>, a mesma versão que as distribuições de jogo mais atuais levam. Vem do Debian, não somos nós que a compilamos.",
+      de: "Kernel 7.2.0 kommt mit einem Update Der Grafiktreiber ist inzwischen bei <strong>Mesa 26.1.6</strong>, derselben Fassung, die die aktuellsten Spieldistributionen mitbringen. Sie kommt von Debian, wir bauen sie nicht selbst.",
+      fr: "Le noyau 7.2.0 arrive avec une mise à jour Le pilote graphique en est entre-temps à <strong>Mesa 26.1.6</strong>, la même version que celle des distributions de jeu les plus à jour. Elle vient de Debian, ce n'est pas nous qui la compilons."
     },
     testo: {
       it: "Il kernel <strong>7.2.0</strong> ora arriva con un normale aggiornamento. Prima stava solo fra i file da scaricare a mano su GitHub. Non è più veloce del 7.1.7, le differenze che abbiamo misurato stanno dentro il rumore. Serve a stare al passo con il kernel di riferimento e con i driver.",

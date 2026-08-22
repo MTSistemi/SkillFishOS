@@ -1,0 +1,32 @@
+# sched_ext per il kernel SkillFishOS
+#
+# Accende la classe di scheduling estendibile: schedulatori di processo scritti
+# in BPF, che si caricano e si sostituiscono a sistema acceso senza riavviare.
+# E' l'unica differenza di kernel vera fra noi e CachyOS (verificato il
+# 23/08/2026: nella nostra configurazione CONFIG_SCHED_CLASS_EXT non compariva
+# proprio).
+#
+# ⚠️ DA SOLO NON BASTA, E VA SAPUTO PRIMA
+# Il kernel diventa capace di OSPITARE uno schedulatore BPF, ma lo schedulatore
+# e' un programma a parte. In Debian sid non c'e': ne' `scx-scheds` ne' `scx`
+# esistono nell'archivio (controllato con apt-cache). Finche' non li
+# impacchettiamo noi, questa opzione non cambia niente per l'utente: il kernel
+# resta su BORE, che e' il nostro predefinito e va benissimo.
+#
+# ⚠️ IL PREZZO
+# sched_ext ha bisogno di BTF, e BTF ha bisogno delle informazioni di debug.
+# Oggi la nostra configurazione ha CONFIG_DEBUG_INFO_NONE=y, cioe' nessuna. Va
+# tolto, e questo allunga la compilazione e ingrossa l'immagine di qualche MB.
+# Sulla macchina che compila serve `pahole` (pacchetto `dwarves`).
+#
+# ⚠️ NON disattivare FTRACE: `_ftracedisable` deve restare "false", altrimenti
+# lo schedulatore LAVD non funziona. Lo dice anche customization.cfg.
+
+CONFIG_SCHED_CLASS_EXT=y
+
+# le informazioni di debug, che servono a BTF
+# CONFIG_DEBUG_INFO_NONE is not set
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_INFO_DWARF5=y
+CONFIG_DEBUG_INFO_BTF=y
+CONFIG_DEBUG_INFO_BTF_MODULES=y

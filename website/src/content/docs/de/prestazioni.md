@@ -19,7 +19,7 @@ Gelten für **alle** folgenden Messungen, sofern nichts anderes steht.
 | Speicher | **16 GB GDDR6**, gemeinsam genutzt (UMA) |
 | Recheneinheiten | **40 / 40 aktiv** (im Betrieb umgeschaltet, siehe [GPU](/de/docs/gpu-overclock)) |
 | Kernel | **7.0.10-skillfishos** (linux-tkg) — die Fassung, mit der diese Zahlen entstanden; heute liefern wir **7.2.0** aus; 7.1.7 wurde mit weniger als 2 % Abweichung nachgemessen |
-| Treiber | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO |
+| Treiber | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; heute liefern wir **26.1.6** aus |
 | GPU-Governor | cyan-skillfish — Leerlauf **350 MHz / 700 mV**, Last **2230 MHz / ~1000 mV** |
 | Übertaktungsprofil | **Turbo/Crazy** (GPU-Grenze 2230 MHz, CPU 3,9–4,0 GHz) |
 | Wärmegrenze | **85 °C** (SMU und thermal-guard), Lüfter auf **automatisch** |

@@ -20,9 +20,37 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
      ⚠️ Once this ships, check whether the Monitor's SMU sampler is still needed:
      it works around this very bug, and two fixes for one bug is one too many.)
  (drops the cosmetic per-CPU `pr_emerg("RDSEED is not reliable...")` boot spam in arch/x86/kernel/cpu/amd.c; RDSEED is still correctly disabled via clear_cpu_cap/msr_clear_bit, just silently)
+4b. Copy `config-fragments/*.myfrag` into the linux-tkg root (same folder as
+   the PKGBUILD). `customization.cfg` already has `_config_fragments="true"` and
+   `_config_fragments_no_confirm="true"`, so they are applied without asking.
+   - `skillfish-sched-ext.myfrag` — turns on `CONFIG_SCHED_CLASS_EXT`, the
+     extensible scheduler class, plus the BTF it needs.
+     Install `dwarves` on the build host first (`pahole`), or the build fails
+     late with a missing tool.
 5. ./install.sh install  -> .deb in DEBS/  (then publish via scripts/publish-kernel.sh)
 
-Key config: BORE, GCC -O3, -march=znver2, 1000Hz, NTsync+fsync, no LTO, localversion=skillfishos.
+Key config: BORE, GCC -O3, -march=znver2, 1000Hz, NTsync+fsync, no LTO,
+localversion=skillfishos, and from 7.2.1 onwards `sched_ext` enabled.
+
+### sched_ext: what it does and does not give you
+
+`CONFIG_SCHED_CLASS_EXT` lets the kernel host a scheduler written in BPF and
+swap it at runtime. It is the one real kernel-level difference between this
+kernel and CachyOS's — measured on 2026-08-23, our config did not have the
+symbol at all.
+
+⚠️ On its own it changes nothing for a user. The scheduler itself is a separate
+userspace program, and Debian sid ships neither `scx-scheds` nor `scx`. Until we
+package them the kernel keeps running BORE, which is the default and is fine.
+Enabling it now means the kernel is ready the day those land, instead of asking
+people to wait for a rebuild.
+
+⚠️ It is not free. sched_ext needs BTF, BTF needs debug info, and this config
+had `CONFIG_DEBUG_INFO_NONE=y` — none at all. Turning it on lengthens the build
+and adds a few MB to the image. The build host needs `pahole` from `dwarves`.
+
+⚠️ Leave `_ftracedisable="false"`. With FTRACE off the LAVD scheduler does not
+work — customization.cfg says so on the line above the option.
 
 ## Two traps that cost a build each
 
