@@ -62,7 +62,7 @@
       <caption xml:lang="de">Hauptfenster des Tuners</caption>
       <caption xml:lang="it">Finestra principale del Tuner</caption>
       <caption xml:lang="pl">Główne okno Tunera</caption>
-      <image type="source">file:///usr/share/skillfish/screenshots/tuner.jpg</image>
+      <image type="source" width="982" height="1028">https://skillfishos.com/screenshots/tuner.jpg</image>
     </screenshot>
     <screenshot>
       <caption>Live Compute Unit grid</caption>
@@ -74,7 +74,7 @@
       <caption xml:lang="de">Raster der Recheneinheiten im Betrieb</caption>
       <caption xml:lang="it">Griglia Compute Unit live</caption>
       <caption xml:lang="pl">Siatka Compute Unit na żywo</caption>
-      <image type="source">file:///usr/share/skillfish/screenshots/tuner-full.png</image>
+      <image type="source" width="982" height="1028">https://skillfishos.com/screenshots/tuner-full.png</image>
     </screenshot>
     <screenshot>
       <caption>CU health test</caption>
@@ -86,21 +86,21 @@
       <caption xml:lang="de">Zustandsprüfung der CU</caption>
       <caption xml:lang="it">Test di salute delle CU</caption>
       <caption xml:lang="pl">Test kondycji CU</caption>
-      <image type="source">file:///usr/share/skillfish/screenshots/cu-test.jpg</image>
+      <image type="source" width="453" height="316">https://skillfishos.com/screenshots/cu-test.jpg</image>
     </screenshot>
   </screenshots>
   <releases>
-    <release version="26.08.44" date="2026-08-22">
+    <release version="26.08.51" date="2026-08-23">
       <description>
-        <p>The CPU undervolt is read in millivolts instead of the SMU's own step number: -150 mV rather than -24, and the summary line shows both voltages the same way. The conversion is measured on the board, not estimated — one step is 6.25 mV.</p>
-        <p xml:lang="it">L'undervolt della CPU si legge in millivolt invece che con il numero di scalini dell'SMU: -150 mV al posto di -24, e la riga di riepilogo mostra le due tensioni allo stesso modo. La conversione è misurata sulla scheda, non stimata: uno scalino vale 6,25 mV.</p>
-        <p xml:lang="fr">L'undervolt du processeur se lit en millivolts au lieu du numéro de palier du SMU : -150 mV plutôt que -24, et la ligne de résumé montre les deux tensions de la même façon. La conversion est mesurée sur la carte, pas estimée — un palier vaut 6,25 mV.</p>
-        <p xml:lang="uk">Андервольт процесора читається в мілівольтах, а не номером щабля SMU: -150 мВ замість -24, і підсумковий рядок показує обидві напруги однаково. Перетворення виміряне на платі, а не оцінене — один щабель це 6,25 мВ.</p>
-        <p xml:lang="ru">Андервольт процессора читается в милливольтах, а не номером шага SMU: -150 мВ вместо -24, и строка сводки показывает оба напряжения одинаково. Пересчёт измерен на плате, а не прикинут — один шаг это 6,25 мВ.</p>
-        <p xml:lang="es">El undervolt de la CPU se lee en milivoltios en vez del número de paso del SMU: -150 mV en lugar de -24, y la línea de resumen muestra los dos voltajes igual. La conversión está medida en la placa, no estimada: un paso vale 6,25 mV.</p>
-        <p xml:lang="pt">O undervolt da CPU lê-se em milivolts em vez do número de passo do SMU: -150 mV em vez de -24, e a linha de resumo mostra as duas tensões da mesma forma. A conversão é medida na placa, não estimada — um passo vale 6,25 mV.</p>
-        <p xml:lang="de">Das CPU-Undervolting wird in Millivolt gelesen statt in der Schrittzahl der SMU: -150 mV statt -24, und die Übersichtszeile zeigt beide Spannungen gleich. Die Umrechnung ist auf der Platine gemessen, nicht geschätzt — ein Schritt sind 6,25 mV.</p>
-        <p xml:lang="pl">Undervolt procesora czyta się w miliwoltach zamiast numeru kroku SMU: -150 mV zamiast -24, a wiersz podsumowania pokazuje obie wartości tak samo. Przelicznik jest zmierzony na płycie, nie oszacowany — jeden krok to 6,25 mV.</p>
+          <p>The screenshots on this page now show up. They were declared with a file:// address, which AppStream refuses, so the gallery was empty for every one of our applications — in the Hub, in Discover and in GNOME Software alike. They are served from skillfishos.com now, and a copy still travels inside the package for machines with no network.</p>
+          <p xml:lang="it">Gli screenshot di questa pagina finalmente si vedono. Erano dichiarati con un indirizzo file://, che AppStream rifiuta: la galleria restava vuota per tutte le nostre applicazioni, nell'Hub come in Discover e in GNOME Software. Ora arrivano da skillfishos.com, e una copia resta dentro al pacchetto per le macchine senza rete.</p>
+          <p xml:lang="fr">Les captures d'écran de cette page s'affichent enfin. Elles étaient déclarées avec une adresse file://, que AppStream refuse : la galerie restait vide pour toutes nos applications, dans le Hub comme dans Discover et GNOME Software. Elles viennent maintenant de skillfishos.com, et une copie reste dans le paquet pour les machines sans réseau.</p>
+          <p xml:lang="uk">Знімки екрана на цій сторінці нарешті видно. Їх було оголошено адресою file://, яку AppStream відхиляє: галерея лишалася порожньою для всіх наших програм — і в Hub, і в Discover, і в GNOME Software. Тепер вони надходять із skillfishos.com, а копія лишається в пакунку для машин без мережі.</p>
+          <p xml:lang="ru">Снимки экрана на этой странице наконец видны. Они были объявлены адресом file://, который AppStream отвергает: галерея оставалась пустой у всех наших приложений — и в Hub, и в Discover, и в GNOME Software. Теперь они приходят с skillfishos.com, а копия остаётся в пакете для машин без сети.</p>
+          <p xml:lang="es">Las capturas de esta página por fin se ven. Estaban declaradas con una dirección file://, que AppStream rechaza: la galería quedaba vacía en todas nuestras aplicaciones, tanto en el Hub como en Discover y GNOME Software. Ahora llegan desde skillfishos.com, y una copia sigue viajando dentro del paquete para las máquinas sin red.</p>
+          <p xml:lang="pt">As capturas desta página finalmente aparecem. Estavam declaradas com um endereço file://, que o AppStream recusa: a galeria ficava vazia em todas as nossas aplicações, tanto no Hub como no Discover e no GNOME Software. Agora vêm de skillfishos.com, e uma cópia continua a viajar dentro do pacote para as máquinas sem rede.</p>
+          <p xml:lang="de">Die Bildschirmfotos auf dieser Seite erscheinen endlich. Sie waren mit einer file://-Adresse angegeben, die AppStream ablehnt: die Galerie blieb bei allen unseren Anwendungen leer — im Hub ebenso wie in Discover und GNOME Software. Sie kommen jetzt von skillfishos.com, und eine Kopie reist weiterhin im Paket mit, für Rechner ohne Netz.</p>
+          <p xml:lang="pl">Zrzuty ekranu na tej stronie wreszcie się pokazują. Były zadeklarowane adresem file://, którego AppStream nie przyjmuje: galeria była pusta we wszystkich naszych programach — w Hubie, w Discoverze i w GNOME Software. Teraz przychodzą z skillfishos.com, a kopia nadal jedzie w pakiecie, dla maszyn bez sieci.</p>
       </description>
     </release>
   </releases>

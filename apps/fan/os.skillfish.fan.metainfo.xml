@@ -76,22 +76,22 @@
       <caption xml:lang="pt">Temperaturas, ventoinha, watts e tensões num só gráfico, com a curva dentro</caption>
       <caption xml:lang="de">Temperaturen, Lüfter, Watt und Spannungen in einem Diagramm, die Kurve darin</caption>
       <caption xml:lang="pl">Temperatury, wentylator, waty i napięcia na jednym wykresie, krzywa w środku</caption>
-      <image type="source">file:///usr/share/skillfish/screenshots/fan.png</image>
+      <image type="source" width="1612" height="894">https://skillfishos.com/screenshots/fan.png</image>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.43" date="2026-08-22">
+    <release version="26.08.51" date="2026-08-23">
       <description>
-        <p>Maintenance release: a not-a-number check now says what it means, and dead imports are gone. Nothing changes in how the fan behaves.</p>
-        <p xml:lang="it">Versione di manutenzione: un controllo su un valore non numerico ora dice quello che significa, e le import inutilizzate sono sparite. Nel comportamento della ventola non cambia niente.</p>
-        <p xml:lang="fr">Version de maintenance : un contrôle sur une valeur non numérique dit maintenant ce qu'il signifie, et les imports inutilisés ont disparu. Rien ne change dans le comportement du ventilateur.</p>
-        <p xml:lang="uk">Версія обслуговування: перевірка на нечислове значення тепер каже, що означає, а невикористані імпорти зникли. У поведінці вентилятора нічого не змінюється.</p>
-        <p xml:lang="ru">Версия обслуживания: проверка на нечисловое значение теперь говорит, что означает, а неиспользуемые импорты исчезли. В поведении вентилятора ничего не меняется.</p>
-        <p xml:lang="es">Versión de mantenimiento: una comprobación de valor no numérico ahora dice lo que significa, y los imports sin usar han desaparecido. En el comportamiento del ventilador no cambia nada.</p>
-        <p xml:lang="pt">Versão de manutenção: uma verificação de valor não numérico diz agora o que significa, e os imports não usados desapareceram. No comportamento da ventoinha nada muda.</p>
-        <p xml:lang="de">Wartungsversion: eine Prüfung auf einen Nicht-Zahlenwert sagt jetzt, was sie meint, und ungenutzte Importe sind weg. Am Verhalten des Lüfters ändert sich nichts.</p>
-        <p xml:lang="pl">Wersja konserwacyjna: sprawdzenie wartości nieliczbowej mówi teraz, co znaczy, a nieużywane importy zniknęły. W zachowaniu wentylatora nic się nie zmienia.</p>
+          <p>The screenshots on this page now show up. They were declared with a file:// address, which AppStream refuses, so the gallery was empty for every one of our applications — in the Hub, in Discover and in GNOME Software alike. They are served from skillfishos.com now, and a copy still travels inside the package for machines with no network.</p>
+          <p xml:lang="it">Gli screenshot di questa pagina finalmente si vedono. Erano dichiarati con un indirizzo file://, che AppStream rifiuta: la galleria restava vuota per tutte le nostre applicazioni, nell'Hub come in Discover e in GNOME Software. Ora arrivano da skillfishos.com, e una copia resta dentro al pacchetto per le macchine senza rete.</p>
+          <p xml:lang="fr">Les captures d'écran de cette page s'affichent enfin. Elles étaient déclarées avec une adresse file://, que AppStream refuse : la galerie restait vide pour toutes nos applications, dans le Hub comme dans Discover et GNOME Software. Elles viennent maintenant de skillfishos.com, et une copie reste dans le paquet pour les machines sans réseau.</p>
+          <p xml:lang="uk">Знімки екрана на цій сторінці нарешті видно. Їх було оголошено адресою file://, яку AppStream відхиляє: галерея лишалася порожньою для всіх наших програм — і в Hub, і в Discover, і в GNOME Software. Тепер вони надходять із skillfishos.com, а копія лишається в пакунку для машин без мережі.</p>
+          <p xml:lang="ru">Снимки экрана на этой странице наконец видны. Они были объявлены адресом file://, который AppStream отвергает: галерея оставалась пустой у всех наших приложений — и в Hub, и в Discover, и в GNOME Software. Теперь они приходят с skillfishos.com, а копия остаётся в пакете для машин без сети.</p>
+          <p xml:lang="es">Las capturas de esta página por fin se ven. Estaban declaradas con una dirección file://, que AppStream rechaza: la galería quedaba vacía en todas nuestras aplicaciones, tanto en el Hub como en Discover y GNOME Software. Ahora llegan desde skillfishos.com, y una copia sigue viajando dentro del paquete para las máquinas sin red.</p>
+          <p xml:lang="pt">As capturas desta página finalmente aparecem. Estavam declaradas com um endereço file://, que o AppStream recusa: a galeria ficava vazia em todas as nossas aplicações, tanto no Hub como no Discover e no GNOME Software. Agora vêm de skillfishos.com, e uma cópia continua a viajar dentro do pacote para as máquinas sem rede.</p>
+          <p xml:lang="de">Die Bildschirmfotos auf dieser Seite erscheinen endlich. Sie waren mit einer file://-Adresse angegeben, die AppStream ablehnt: die Galerie blieb bei allen unseren Anwendungen leer — im Hub ebenso wie in Discover und GNOME Software. Sie kommen jetzt von skillfishos.com, und eine Kopie reist weiterhin im Paket mit, für Rechner ohne Netz.</p>
+          <p xml:lang="pl">Zrzuty ekranu na tej stronie wreszcie się pokazują. Były zadeklarowane adresem file://, którego AppStream nie przyjmuje: galeria była pusta we wszystkich naszych programach — w Hubie, w Discoverze i w GNOME Software. Teraz przychodzą z skillfishos.com, a kopia nadal jedzie w pakiecie, dla maszyn bez sieci.</p>
       </description>
     </release>
   </releases>
