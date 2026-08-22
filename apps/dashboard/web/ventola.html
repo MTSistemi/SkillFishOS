@@ -144,6 +144,11 @@ const COL={"%":"#d8a849","rpm":"#5ad0c0","W":"#b98cff","V":"#6a9fd8"};
 const DEC={"C":1,"%":0,"rpm":0,"W":1,"V":3};
 const FINESTRA=300;
 let S={}, CONF={}, SERIE={}, ORD=[], sotto=null, cur=null, PUNTI=[], toccata=false;
+// La spunta «Controllo» e' l'INTENZIONE di chi guarda, non lo stato letto dal
+// demone: finche' non e' stata applicata non la sovrascrive nessuno. seqSalvato
+// conta i salvataggi andati a buon fine, e serve a buttare via le risposte
+// partite prima di uno di quelli — vedi giro().
+let attivoToccato=false, seqSalvato=0, salvando=0, attesaConferma=false;
 
 function colore(u){
   if(u!=="C") return COL[u]||"#999";
@@ -534,12 +539,26 @@ function rifaiPreset(){
       // ventola ne' da che temperatura. Sulla macchina non cambia niente finche'
       // non si preme Applica.
       PUNTI=PRESET[k].map(p=>[...p]); disegnaCurva();
-      $("#salvato").textContent=(sfT("v_p_"+k)||k)+": "+(sfT("apply")||"Applica");
-      toccata=true;
+      toccata=true; mostraStato();
     };
     box.appendChild(l);
   }
 }
+
+/* ---------------- cosa sta succedendo davvero ---------------- */
+// La casella dice cosa vuoi, questa riga dice cosa c'e'. Prima non c'era e
+// l'unico segnale era la casella stessa, che dopo «Applica» tornava indietro.
+function mostraStato(){
+  const e=$("#salvato"); if(!e) return;
+  // ⚠️ Anche dopo la risposta si aspetta: lo stato lo pubblica il demone in
+  // /run, e il primo giro che arriva puo' portare ancora quello di prima.
+  if(salvando||attesaConferma){ e.textContent=sfT("v_applying")||"applying…"; e.style.color="var(--muted)"; return; }
+  if(attivoToccato||toccata){ e.textContent=sfT("v_pending")||"not applied yet"; e.style.color="var(--gold-lt)"; return; }
+  const inc=(S.stato||{}).in_controllo;
+  e.textContent=inc?(sfT("v_on_now")||"control on"):(sfT("v_off_now")||"fan left to the firmware");
+  e.style.color=inc?"#8fbf6a":"var(--muted)";
+}
+$("#attivo").onchange=()=>{ attivoToccato=true; mostraStato(); };
 
 /* ---------------- salvataggio ---------------- */
 $("#applica").onclick=async()=>{
@@ -550,17 +569,38 @@ $("#applica").onclick=async()=>{
   if($("#pa")) conf.predittivo={attivo:$("#pa").checked, guadagno:+$("#pg").value,
                                 finestra:+$("#pf").value, preraffredda:+$("#pp").value};
   if($("#smin")) { conf.minimo=+$("#smin").value; conf.isteresi=+$("#sist").value; conf.emergenza=+$("#seme").value; }
-  const r=await api("/api/ventola/conf",conf);
-  toast(r.ok?(sfT("v_saved")||"applicata"):("Errore: "+(r.error||"?")));
-  if(r.ok){ toccata=false; $("#salvato").textContent=sfT("v_saved")||"applicata"; }
+  salvando++; mostraStato();
+  let r;
+  try { r=await api("/api/ventola/conf",conf); } finally { salvando--; }
+  if(r && r.ok){
+    // Da qui ogni giro partito PRIMA porta una conf vecchia: se la lasciassimo
+    // scrivere, la spunta appena applicata tornerebbe indietro sotto le dita.
+    seqSalvato++; attesaConferma=true;
+    CONF=Object.assign({},CONF,conf);
+    toccata=false; attivoToccato=false;
+    toast(sfT("v_saved")||"applied");
+  } else {
+    // ⚠️ La spunta resta come l'ha messa l'utente. Non l'ha cambiata lui: ha
+    // fallito il salvataggio, e toglierla in silenzio e' esattamente il motivo
+    // per cui non si capiva se il controllo fosse acceso o no.
+    toast("Errore: "+((r&&r.error)||"?"));
+  }
+  mostraStato();
 };
 
 /* ---------------- il giro ---------------- */
 let timer=null;
 async function giro(){
+  // Quanti salvataggi erano passati quando questa richiesta e' partita. La
+  // scrittura dura ~0,4 s e qui si chiede ogni secondo: senza questo numero una
+  // risposta vecchia arriva dopo il salvataggio e rimette tutto com'era prima.
+  const seqMio=seqSalvato;
   const r=await api("/api/ventola");
-  if(!r.ok){ $("#motivo").textContent=sfT("v_nodaemon")||"il controllo ventola non sta girando"; return; }
-  S=r; CONF=r.conf||{};
+  if(!r.ok){ $("#motivo").textContent=sfT("v_nodaemon")||"the fan control is not running"; return; }
+  S=r;
+  // Lo stato (temperature, storia) si prende sempre; la configurazione no, se
+  // nel frattempo ne abbiamo scritta una piu' nuova.
+  if(seqMio===seqSalvato){ CONF=r.conf||{}; attesaConferma=false; }
   const st=r.stato||{}, meta={};
   for(const x of (st.sensori||[])) meta[x.key]=[x.label||x.key, x.unit||""];
   meta["__ventola__"]=[sfT("v_fan")||"Ventola","%"];
@@ -575,8 +615,8 @@ async function giro(){
     SERIE[k].p=(h.v||[]).map((v,i)=>[t0+i,v]).filter(p=>p[1]!==null);
   }
   if(nuove) rifaiTessere(); else aggiornaTessere();
-  if(!toccata){ PUNTI=(CONF.curva||PRESET.equilibrato).map(p=>[...p]); rifaiPreset(); }
-  $("#attivo").checked=!!CONF.attivo;
+  if(!toccata && seqMio===seqSalvato){ PUNTI=(CONF.curva||PRESET.equilibrato).map(p=>[...p]); rifaiPreset(); }
+  if(!attivoToccato && !salvando && seqMio===seqSalvato) $("#attivo").checked=!!CONF.attivo;
   $("#live").textContent=(st.temperatura!=null?st.temperatura.toFixed(1)+" °C":"—")+"  ·  "+
                          (st.duty!=null?Math.round(st.duty)+"%":"—");
   const m=st.motivo||"";
@@ -585,7 +625,7 @@ async function giro(){
     : m.startsWith("pre-cooling")?(sfT("v_precooling")||"pre-raffredda")
     : !st.in_controllo?(sfT("v_firmware")||"la ventola e' ancora del firmware")
     : (sfT("v_curve_follow")||"segue la curva");
-  posizionaCurva(); disegna(); disegnaCurva();
+  posizionaCurva(); disegna(); disegnaCurva(); mostraStato();
 }
 function riavvia(){ if(timer) clearInterval(timer); timer=setInterval(giro,+$("#ogni").value); }
 $("#ogni").onchange=riavvia;
