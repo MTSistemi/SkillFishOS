@@ -591,25 +591,14 @@ fi
 # errori ACPI a ogni avvio.
 /usr/local/bin/skillfish-acpi-pstates auto || true
 
-# HUD migration: the desktop widget was wired for 6c/12t. Now that the 8 cores are
-# unlocked it needs 16 bars. Only the two cpubar rows are rewritten, and only when
-# they still match what we originally shipped — any other customisation is kept,
-# and a hand-edited HUD is left alone.
-OLD_A='${voffset 3}${color D8A849}${cpubar cpu1 6,16} ${cpubar cpu2 6,16} ${cpubar cpu3 6,16} ${cpubar cpu4 6,16} ${cpubar cpu5 6,16} ${cpubar cpu6 6,16}'
-OLD_B='${voffset 2}${color D8A849}${cpubar cpu7 6,16} ${cpubar cpu8 6,16} ${cpubar cpu9 6,16} ${cpubar cpu10 6,16} ${cpubar cpu11 6,16} ${cpubar cpu12 6,16}'
-NEW_A='${voffset 3}${color D8A849}${cpubar cpu1 6,16} ${cpubar cpu2 6,16} ${cpubar cpu3 6,16} ${cpubar cpu4 6,16} ${cpubar cpu5 6,16} ${cpubar cpu6 6,16} ${cpubar cpu7 6,16} ${cpubar cpu8 6,16}'
-NEW_B='${voffset 2}${color D8A849}${cpubar cpu9 6,16} ${cpubar cpu10 6,16} ${cpubar cpu11 6,16} ${cpubar cpu12 6,16} ${cpubar cpu13 6,16} ${cpubar cpu14 6,16} ${cpubar cpu15 6,16} ${cpubar cpu16 6,16}'
-for cfg in /home/*/.config/conky/skillfish.conf /root/.config/conky/skillfish.conf; do
-  [ -f "$cfg" ] || continue
-  grep -qF "$OLD_B" "$cfg" || continue
-  python3 - "$cfg" "$OLD_A" "$OLD_B" "$NEW_A" "$NEW_B" <<'PY' || true
-import sys
-p, oa, ob, na, nb = sys.argv[1:6]
-t = open(p, encoding='utf-8').read()
-open(p, 'w', encoding='utf-8').write(t.replace(oa, na).replace(ob, nb))
-PY
-  echo "skillfish-base: HUD aggiornato a 16 thread in $cfg"
-done
+# HUD: niente piu' migrazione delle barre a mano.
+# Serviva quando le barre stavano scritte nella configurazione: passando da 6
+# a 8 core andavano riscritte le due righe. Da skillfish-hud-config v11 le
+# barre non stanno piu' li' - le stampa skillfish-hud-cpubars a ogni giro di
+# conky - e una configurazione piu' vecchia della v11 viene rigenerata da
+# skillfish-hud al primo avvio, grazie alla firma del generatore. Riscrivere
+# righe che non esistono piu' non farebbe danno, ma direbbe una bugia a chi
+# legge il codice.
 
 # Le quattro lingue di SkillFishOS.
 #
@@ -1245,7 +1234,6 @@ check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud      
 # deve esserci, ed e' l'unico posto dove il numero di thread viene deciso.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-cpubars    cpubar
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     skillfish-hud-cpubars
-check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'cpubar cpu'
 # e che i ripieghi generici dei sensori non vengano persi in una riscrittura
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val        cpu_temp_generico
 # I sensori della scheda madre: lo script E l'unita' che lo fa partire.
