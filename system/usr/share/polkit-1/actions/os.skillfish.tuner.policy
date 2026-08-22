@@ -2,15 +2,54 @@
 <!DOCTYPE policyconfig PUBLIC
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  Il Tuner chiede la password.
+
+  Fino al 22/08/2026 qui c'era "yes" su tutte e tre le righe: chiunque poteva
+  far girare l'helper senza autenticarsi, e non solo dalla sessione davanti allo
+  schermo. allow_any copre anche le sessioni remote, allow_inactive quelle non
+  attive: un utente collegato in SSH poteva alzare le frequenze della scheda
+  senza che nessuno gli chiedesse niente.
+
+  Adesso:
+    allow_active         auth_admin_keep  la password una volta per sessione
+    allow_inactive       auth_admin       ogni volta
+    allow_any            auth_admin       ogni volta
+
+  ⚠️ auth_admin_keep e non auth_admin sulla sessione attiva perche' il Tuner
+  scrive piu' impostazioni di fila: con la richiesta a ogni comando si finirebbe
+  per digitare la password cinque volte per applicare un preset.
+
+  ⚠️ polkit lega l'autorizzazione al PERCORSO dell'eseguibile. Se un giorno
+  l'helper si sposta, va cambiato anche qui, o pkexec ricade sul comportamento
+  predefinito.
+-->
 <policyconfig>
   <vendor>SkillFishOS</vendor>
+
   <action id="os.skillfish.tuner.helper">
-    <description>SkillFishOS Tuner privileged helper</description>
-    <message>Autenticazione richiesta per modificare le impostazioni hardware</message>
+    <description>Change the hardware settings of the board</description>
+    <description xml:lang="it">Modificare le impostazioni hardware della scheda</description>
+    <description xml:lang="fr">Modifier les réglages matériels de la carte</description>
+    <description xml:lang="uk">Змінити апаратні налаштування плати</description>
+    <description xml:lang="ru">Изменить аппаратные настройки платы</description>
+    <description xml:lang="es">Cambiar los ajustes de hardware de la placa</description>
+    <description xml:lang="pt">Alterar as definições de hardware da placa</description>
+    <description xml:lang="de">Die Hardware-Einstellungen der Karte ändern</description>
+    <description xml:lang="pl">Zmiana ustawień sprzętowych płyty</description>
+    <message>Authentication is required to change clocks, voltage and fan</message>
+    <message xml:lang="it">È richiesta l'autenticazione per cambiare frequenze, tensione e ventola</message>
+    <message xml:lang="fr">Une authentification est requise pour changer fréquences, tension et ventilateur</message>
+    <message xml:lang="uk">Для зміни частот, напруги та вентилятора потрібна автентифікація</message>
+    <message xml:lang="ru">Для изменения частот, напряжения и вентилятора требуется аутентификация</message>
+    <message xml:lang="es">Se requiere autenticación para cambiar frecuencias, voltaje y ventilador</message>
+    <message xml:lang="pt">É necessária autenticação para alterar frequências, tensão e ventoinha</message>
+    <message xml:lang="de">Zum Ändern von Takt, Spannung und Lüfter ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="pl">Do zmiany zegarów, napięcia i wentylatora wymagane jest uwierzytelnienie</message>
     <defaults>
-      <allow_any>yes</allow_any>
-      <allow_inactive>yes</allow_inactive>
-      <allow_active>yes</allow_active>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-tuner-helper</annotate>
     <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>

@@ -195,6 +195,9 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png usr/sh
 # prendere il lock di apt (e si fa da root, una volta al giorno), avvisare vuol
 # dire parlare col bus della sessione (e si fa da utente, o la notifica non
 # arriva da nessuna parte).
+# Il blocco che tiene Discover fuori: sta qui perche' e' l'Hub a prenderne il
+# posto, e va tolto insieme all'Hub se un giorno si torna indietro.
+put $P 0644 system/etc/apt/preferences.d/skillfish-no-discover.pref etc/apt/preferences.d/skillfish-no-discover.pref
 put $P 0755 apps/hub/skillfish-hub-notify usr/local/bin/skillfish-hub-notify
 put $P 0644 system/etc/systemd/system/skillfish-hub-refresh.service etc/systemd/system/skillfish-hub-refresh.service
 put $P 0644 system/etc/systemd/system/skillfish-hub-refresh.timer   etc/systemd/system/skillfish-hub-refresh.timer
@@ -1447,6 +1450,17 @@ check skillfish-iso-mount_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps
 check skillfish-menu_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg '<svg'
 check skillfish-theme_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg '<svg'
 check skillfishos-archive-keyring_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg '<svg'
+
+
+# ⚠️ IL TUNER DEVE CHIEDERE LA PASSWORD.
+# Fino al 22/08 la sua politica diceva <allow_any>yes</allow_any>: l'helper
+# che cambia frequenze e tensioni partiva senza autenticazione, anche da una
+# sessione remota. Se qualcuno rimette 'yes', questa riga lo ferma.
+check skillfish-tuner_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.tuner.policy '<allow_active>auth_admin_keep</allow_active>'
+notcheck skillfish-tuner_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.tuner.policy '<allow_any>yes</allow_any>'
+
+
+check skillfish-hub_${VER}_all.deb ./etc/apt/preferences.d/skillfish-no-discover.pref 'Pin-Priority: -1'
 
 echo "
 ALL DEBS VERIFIED"

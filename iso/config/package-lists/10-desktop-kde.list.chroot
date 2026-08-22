@@ -142,8 +142,15 @@ papirus-icon-theme
 adwaita-icon-theme
 
 # --- Centro software ---
-# plasma-discover arriva come Depends del backend.
-plasma-discover-backend-flatpak
+# Discover non c'e': il centro software e' SkillFishOS Hub, che gestisce
+# apt, Flatpak, Snap e il firmware. Qui c'era plasma-discover-backend-flatpak,
+# che si portava dietro plasma-discover come Depends.
+# ⚠️ Non basta toglierlo da questa lista: plasma-desktop CONSIGLIA
+# plasma-discover e apt i consigli li installa. A tenerlo fuori e' il blocco
+# in /etc/apt/preferences.d/skillfish-no-discover.pref, che spedisce
+# skillfish-hub.
+# Il nostro Hub parla con Flatpak dalla riga di comando: il backend di
+# Discover non gli serve.
 
 # --- Dischi ---
 gparted

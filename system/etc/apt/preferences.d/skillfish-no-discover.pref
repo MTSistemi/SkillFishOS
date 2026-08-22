@@ -1,0 +1,17 @@
+# Discover non si installa: al suo posto c'è SkillFishOS Hub.
+#
+# PERCHÉ SERVE UN BLOCCO E NON BASTA TOGLIERLO DALLA LISTA
+# plasma-desktop CONSIGLIA plasma-discover (Recommends), e apt di serie i
+# consigli li installa. Senza questo file, il primo aggiornamento di Plasma se
+# lo riporta in casa e l'utente si ritrova due centri software: due elenchi di
+# aggiornamenti che non sanno l'uno dell'altro, e due posti da cui installare.
+#
+# ⚠️ Priorità -1 vuol dire "mai": apt non lo installerà nemmeno se glielo chiedi
+# per nome. Chi lo rivuole toglie questo file e reinstalla, ed è una riga sola.
+#
+# ⚠️ Se un giorno plasma-desktop passasse da Recommends a Depends, questo blocco
+# impedirebbe l'aggiornamento del desktop. In quel caso va tolto: il segnale è
+# apt che dice di non poter installare plasma-desktop.
+Package: plasma-discover plasma-discover-common plasma-discover-backend-*
+Pin: release *
+Pin-Priority: -1
