@@ -1,0 +1,80 @@
+Give the BC-250 its video engine a chance
+
+The die declares UVD/VCN 2.0.3 in its IP discovery table, and its harvest
+table -- the list of blocks fused off -- is empty. The hardware is there.
+amdgpu skips it anyway: the switch that registers multimedia blocks carries an
+explicit empty case for exactly this version, so there is no ring, no firmware
+request and no VA-API.
+
+The versions on either side (2.0.0, 2.0.2, 2.2.0) are driven by vcn_v2_0, the
+same generation. This registers the same blocks for 2.0.3.
+
+Behind a parameter, off by default, for two reasons. Upstream did not leave
+that case empty by accident, and no VCN firmware was ever published for this
+chip -- the driver asks for amdgpu/vcn_2_0_3.bin and finds nothing unless
+somebody puts a donor blob there by hand. A machine that boots today has to
+keep booting after installing this kernel.
+
+  amdgpu.bc250_vcn=1
+
+diff -Naur a/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c	2026-08-22 11:23:38.440781148 +0200
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_discovery.c	2026-08-22 11:23:38.933770911 +0200
+@@ -2665,6 +2665,17 @@
+ 				amdgpu_device_ip_block_add(adev, &jpeg_v2_0_ip_block);
+ 			break;
+ 		case IP_VERSION(2, 0, 3):
++			/* BC-250 (Cyan Skillfish): the die declares this block and
++			 * its harvest table is empty, so the hardware is there.
++			 * Upstream leaves the case empty and AMD never published a
++			 * firmware for it, so this stays behind a parameter: a
++			 * machine that boots today must keep booting.
++			 */
++			if (amdgpu_bc250_vcn) {
++				amdgpu_device_ip_block_add(adev, &vcn_v2_0_ip_block);
++				if (!amdgpu_sriov_vf(adev))
++					amdgpu_device_ip_block_add(adev, &jpeg_v2_0_ip_block);
++			}
+ 			break;
+ 		case IP_VERSION(2, 5, 0):
+ 			amdgpu_device_ip_block_add(adev, &vcn_v2_5_ip_block);
+diff -Naur a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c	2026-08-22 11:23:38.687781566 +0200
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c	2026-08-22 11:23:38.934828886 +0200
+@@ -183,6 +183,7 @@
+ uint amdgpu_sdma_phase_quantum = 32;
+ char *amdgpu_disable_cu;
+ char *amdgpu_virtual_display;
++int amdgpu_bc250_vcn;
+ int amdgpu_enforce_isolation = -1;
+ int amdgpu_modeset = -1;
+ 
+@@ -1032,6 +1033,17 @@
+ module_param_named(modeset, amdgpu_modeset, int, 0444);
+ 
+ /**
++ * DOC: bc250_vcn (int)
++ * Register the VCN 2.0.3 video engine that the BC-250 declares in its IP
++ * discovery table but that upstream leaves disabled. It needs
++ * amdgpu/vcn_2_0_3.bin, which AMD never published: without a firmware the
++ * block fails to initialise, so the default is off.
++ */
++MODULE_PARM_DESC(bc250_vcn,
++	"Register VCN 2.0.3 on Cyan Skillfish (0 = off (default), 1 = on)");
++module_param_named(bc250_vcn, amdgpu_bc250_vcn, int, 0444);
++
++/**
+  * DOC: seamless (int)
+  * Seamless boot will keep the image on the screen during the boot process.
+  */
+diff -Naur a/drivers/gpu/drm/amd/amdgpu/amdgpu.h b/drivers/gpu/drm/amd/amdgpu/amdgpu.h
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu.h	2026-08-22 11:23:38.900781926 +0200
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu.h	2026-08-22 11:23:38.935128124 +0200
+@@ -267,6 +267,7 @@
+ extern int amdgpu_rebar;
+ 
+ extern int amdgpu_wbrf;
++extern int amdgpu_bc250_vcn;
+ extern int amdgpu_user_queue;
+ extern int amdgpu_ptl;
+ 

@@ -1,4 +1,4 @@
-# SkillFishOS kernel build recipe (linux-tkg 7.0.10-skillfishos)
+# SkillFishOS kernel build recipe (linux-tkg, currently 7.2-skillfishos)
 
 Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-tkg
 
@@ -13,6 +13,55 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
 5. ./install.sh install  -> .deb in DEBS/  (then publish via scripts/publish-kernel.sh)
 
 Key config: BORE, GCC -O3, -march=znver2, 1000Hz, NTsync+fsync, no LTO, localversion=skillfishos.
+
+## Two traps that cost a build each
+
+### The config in this repo is not the one that gets used
+
+`install.sh` reads `~/.config/frogminer/linux-tkg.cfg` **if it exists**, and that
+file **overrides** `customization.cfg` — the one in this repository. It says so in
+one line of output that scrolls past in a second:
+
+    -> External configuration file /root/.config/frogminer/linux-tkg.cfg will be
+       used and will override customization.cfg values
+
+On 2026-08-22 that leftover file still said `_version="7.1-latest"`, so a build
+started for 7.2 quietly checked out 7.1 instead. Nothing failed; it just built
+the wrong kernel.
+
+Before every build, check what will actually be used:
+
+```bash
+grep -E '^_(version|kernel_localversion)=' ~/.config/frogminer/linux-tkg.cfg
+```
+
+and make it agree with `customization.cfg`, or move it aside.
+
+### `_version` takes `x.y-latest` or an exact tag
+
+`_version="7.2"` is refused — the value has to be either `7.2-latest` (resolves to
+the newest 7.2.z) or a tag that exists in the remote, like `v7.2`. Getting this
+wrong stops the build at the first step, which at least is honest.
+
+### Userpatches live in a version-specific folder
+
+`linux72-tkg-userpatches` — VERSION and PATCHLEVEL glued together, no dot. Put
+them in the wrong folder and **the build succeeds without them**: no core unlock,
+no frequency unlock, and nothing says so. Check the log:
+
+```bash
+grep 'Applying your own' /root/build-*.log
+```
+
+There should be one line per patch.
+
+### A patch with a hunk header that lies
+
+`0004-rtw89-fw-O2.mypatch` claimed three lines of context (`@@ -1,3 +1,6 @@`) and
+carried none. `patch(1)` cannot place a hunk it cannot match, and linux-tkg
+aborts the whole build on a failed patch. Never hand-write a hunk header:
+generate patches with `diff` against the real tree, the way
+`0005-bc250-vcn.mypatch` was made.
 
 ## Naming: the flavour belongs in the name
 
