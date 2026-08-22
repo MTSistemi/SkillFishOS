@@ -118,18 +118,18 @@ Description: SkillFishOS Fan Control - fan curve with anticipation
  Part of SkillFishOS.
 
 Package: skillfish-hub
-Version: 26.08.42
+Version: 26.08.45
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.42_all.deb
-Size: 325240
-SHA256: ee7468df2269d5e306dc4e9e7435f617c751d5a3f99f9c182eacf4971d9ef20e
-SHA1: cf30dee3949e37cb392aa8440ffafce9a9d5f210
-MD5sum: de6b300e2044ee349adf8cc0776a835a
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.45_all.deb
+Size: 325312
+SHA256: 7b3ad7285b2ae73d2fa57252cbb999ea6e54b6bceba3592e9d8989fe0f8404ad
+SHA1: c320ea734a38dedc116cf8aedaa207616db53f9e
+MD5sum: 6bb39c90ea60bdeafe75f6c38ea773ba
 Description: SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware
  One place for apt, Flatpak, Snap and device firmware: search, categories, app
  pages, sources. Updates keep running if the window closes, because the work is
