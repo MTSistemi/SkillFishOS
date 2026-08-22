@@ -438,7 +438,13 @@ class Catalog:
         arr = comps.as_array() if hasattr(comps, "as_array") else list(comps)
         for c in arr:
             try:
-                if c.get_kind() != AS.ComponentKind.DESKTOP_APP:
+                # ⚠️ Non solo le applicazioni con finestra: un pacchetto di
+                # servizio (il tema, la base, il portachiavi) puo' avere la sua
+                # scheda, ed e' l'unico modo perche' la sua descrizione esista
+                # in una lingua diversa dall'inglese.
+                if c.get_kind() not in (AS.ComponentKind.DESKTOP_APP,
+                                        AS.ComponentKind.GENERIC,
+                                        AS.ComponentKind.ADDON):
                     continue
                 bundle = None
                 try: bundle = c.get_bundle(AS.BundleKind.FLATPAK)
@@ -1682,7 +1688,22 @@ class Hub(QMainWindow):
 
     def show_home(self):
         self.title.setText(""); self._clear()
-        ours = sorted([a for a in self.cat.apps.values() if a.backend == "apt" and a.origin == AETHERIUM], key=lambda a: a.name.lower())
+        # ⚠️ Si riconosce dal NOME del pacchetto, non dall'origine: le nostre
+        # applicazioni installate da un .deb locale non hanno origine, e la
+        # vetrina restava senza il Tuner, l'Hub, la Ventola e le altre.
+        def e_nostro(a):
+            if a.backend != "apt":
+                return False
+            return (a.origin == AETHERIUM
+                    or (a.pkgid or "").startswith(("skillfish-", "skillfishos-"))
+                    or (a.appid or "").startswith("os.skillfish."))
+        # prima le applicazioni, poi i pacchetti di servizio: in vetrina si
+        # mette cio' che si apre, non la base del sistema.
+        nostri = [a for a in self.cat.apps.values() if e_nostro(a)]
+        ours = (sorted([a for a in nostri if a.appid.startswith("os.skillfish.")],
+                       key=lambda a: a.name.lower())
+                + sorted([a for a in nostri if not a.appid.startswith("os.skillfish.")],
+                         key=lambda a: a.name.lower()))
         if ours:
             self.p_lay.addWidget(self._section_title(L("In evidenza · SkillFishOS", "Featured · SkillFishOS")))
             self.p_lay.addWidget(self._tile_grid(ours))

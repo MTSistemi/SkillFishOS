@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.emulators</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Emulators</name>
+  <summary>Install the emulators after the system</summary>
+  <summary xml:lang="it">Installa gli emulatori dopo il sistema</summary>
+  <summary xml:lang="fr">Installez les émulateurs après le système</summary>
+  <summary xml:lang="uk">Встановлює емулятори після системи</summary>
+  <summary xml:lang="ru">Ставит эмуляторы после системы</summary>
+  <summary xml:lang="es">Instala los emuladores después del sistema</summary>
+  <summary xml:lang="pt">Instala os emuladores depois do sistema</summary>
+  <summary xml:lang="de">Emulatoren nach dem System einrichten</summary>
+  <summary xml:lang="pl">Instaluje emulatory po systemie</summary>
+  <description>
+    <p>Emulators are big and change often, so they are not inside the image. You install them afterwards: the whole EmuDeck set at once, or one at a time. The installation is the upstream one, nothing is repackaged.</p>
+    <p xml:lang="it">Gli emulatori sono grossi e cambiano spesso, quindi non stanno dentro all'immagine. Li installi dopo: tutto il gruppo EmuDeck in una volta, oppure uno per uno. L'installazione è quella originale, non si ripacchetta niente.</p>
+    <p xml:lang="fr">Les émulateurs sont lourds et changent souvent, ils ne sont donc pas dans l'image. Vous les installez ensuite : tout le lot EmuDeck d'un coup, ou un par un. L'installation est celle d'origine, rien n'est reconditionné.</p>
+    <p xml:lang="uk">Емулятори важкі й часто змінюються, тож в образі їх немає. Ставиш їх потім: увесь набір EmuDeck за раз або по одному. Встановлення оригінальне, нічого не перепаковується.</p>
+    <p xml:lang="ru">Эмуляторы тяжёлые и часто меняются, поэтому в образе их нет. Ставишь их потом: весь набор EmuDeck разом или по одному. Установка оригинальная, ничего не перепаковывается.</p>
+    <p xml:lang="es">Los emuladores son grandes y cambian a menudo, así que no van en la imagen. Los instalas después: todo el grupo EmuDeck de una vez, o uno a uno. La instalación es la original, no se reempaqueta nada.</p>
+    <p xml:lang="pt">Os emuladores são grandes e mudam muitas vezes, por isso não estão dentro da imagem. Instala-os depois: todo o grupo EmuDeck de uma vez, ou um a um. A instalação é a original, nada é reempacotado.</p>
+    <p xml:lang="de">Emulatoren sind groß und ändern sich oft, deshalb stecken sie nicht im Abbild. Du richtest sie danach ein: den ganzen EmuDeck-Satz auf einmal oder einzeln. Die Installation ist die originale, nichts wird umgepackt.</p>
+    <p xml:lang="pl">Emulatory są duże i często się zmieniają, więc nie ma ich w obrazie. Instalujesz je potem: cały zestaw EmuDeck naraz albo po jednym. Instalacja jest oryginalna, nic nie jest przepakowywane.</p>
+  </description>
+  <icon type="stock">skillfish-emulators</icon>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-emulators</pkgname>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Choosing which emulators to install</caption>
+      <caption xml:lang="it">La scelta di quali emulatori installare</caption>
+      <caption xml:lang="fr">Le choix des émulateurs à installer</caption>
+      <caption xml:lang="uk">Вибір, які емулятори встановити</caption>
+      <caption xml:lang="ru">Выбор, какие эмуляторы поставить</caption>
+      <caption xml:lang="es">La elección de qué emuladores instalar</caption>
+      <caption xml:lang="pt">A escolha de quais emuladores instalar</caption>
+      <caption xml:lang="de">Die Auswahl der Emulatoren</caption>
+      <caption xml:lang="pl">Wybór, które emulatory zainstalować</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/emudeck.jpg</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>It has its own page here now, with an icon and a description in every language we ship.</p>
+        <p xml:lang="it">Adesso ha una pagina sua qui, con un'icona e la descrizione in tutte le lingue che spediamo.</p>
+        <p xml:lang="fr">Il a maintenant sa page ici, avec une icône et la description dans toutes les langues que nous livrons.</p>
+        <p xml:lang="uk">Тепер має тут свою сторінку, з піктограмою й описом усіма мовами, які ми постачаємо.</p>
+        <p xml:lang="ru">Теперь у него здесь своя страница, с иконкой и описанием на всех языках, которые мы поставляем.</p>
+        <p xml:lang="es">Ahora tiene aquí su página, con un icono y la descripción en todos los idiomas que enviamos.</p>
+        <p xml:lang="pt">Agora tem aqui a sua página, com um ícone e a descrição em todas as línguas que enviamos.</p>
+        <p xml:lang="de">Hat jetzt eine eigene Seite hier, mit Symbol und Beschreibung in allen Sprachen, die wir ausliefern.</p>
+        <p xml:lang="pl">Ma teraz tutaj własną stronę, z ikoną i opisem we wszystkich językach, które dostarczamy.</p>
+      </description>
+    </release>
+  </releases>
+</component>

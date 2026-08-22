@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.console</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Console</name>
+  <summary>The board on a TV, with a controller</summary>
+  <summary xml:lang="it">La scheda sul televisore, con un pad</summary>
+  <summary xml:lang="fr">La carte sur un téléviseur, à la manette</summary>
+  <summary xml:lang="uk">Плата на телевізорі, з геймпадом</summary>
+  <summary xml:lang="ru">Плата на телевизоре, с геймпадом</summary>
+  <summary xml:lang="es">La placa en un televisor, con un mando</summary>
+  <summary xml:lang="pt">A placa na televisão, com um controle</summary>
+  <summary xml:lang="de">Die Karte am Fernseher, mit Gamepad</summary>
+  <summary xml:lang="pl">Płyta na telewizorze, z padem</summary>
+  <description>
+    <p>A session that opens straight into a full-screen interface you drive with the controller: no desktop, no mouse, no keyboard. It is a separate session, so the usual desktop stays where it is and you pick one at login.</p>
+    <p xml:lang="it">Una sessione che si apre dritta su un'interfaccia a schermo intero da pilotare col pad: niente scrivania, niente mouse, niente tastiera. È una sessione separata, quindi la scrivania di sempre resta dov'è e si sceglie all'accesso.</p>
+    <p xml:lang="fr">Une session qui s'ouvre directement sur une interface plein écran pilotée à la manette : pas de bureau, pas de souris, pas de clavier. C'est une session à part, le bureau habituel reste donc en place et l'on choisit à la connexion.</p>
+    <p xml:lang="uk">Сеанс, що відкривається одразу на повноекранному інтерфейсі під геймпад: без стільниці, без миші, без клавіатури. Це окремий сеанс, тож звична стільниця лишається на місці, а вибираєш при вході.</p>
+    <p xml:lang="ru">Сеанс, который открывается сразу в полноэкранном интерфейсе под геймпад: без рабочего стола, без мыши, без клавиатуры. Это отдельный сеанс, поэтому привычный рабочий стол остаётся на месте, а выбираешь при входе.</p>
+    <p xml:lang="es">Una sesión que se abre directa en una interfaz a pantalla completa que se lleva con el mando: sin escritorio, sin ratón, sin teclado. Es una sesión aparte, así que el escritorio de siempre se queda donde está y se elige al entrar.</p>
+    <p xml:lang="pt">Uma sessão que abre direto numa interface em ecrã inteiro conduzida pelo comando: sem área de trabalho, sem rato, sem teclado. É uma sessão à parte, por isso a área de trabalho de sempre fica onde está e escolhe-se ao entrar.</p>
+    <p xml:lang="de">Eine Sitzung, die direkt in eine bildschirmfüllende Oberfläche für das Gamepad startet: kein Schreibtisch, keine Maus, keine Tastatur. Es ist eine eigene Sitzung, der gewohnte Schreibtisch bleibt also, und man wählt bei der Anmeldung.</p>
+    <p xml:lang="pl">Sesja, która otwiera się wprost w pełnoekranowym interfejsie pod pada: bez pulpitu, bez myszy, bez klawiatury. To osobna sesja, więc zwykły pulpit zostaje na miejscu, a wybiera się przy logowaniu.</p>
+  </description>
+  <icon type="stock">skillfish-console</icon>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-console</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>It has its own page here now, with an icon and a description in every language we ship.</p>
+        <p xml:lang="it">Adesso ha una pagina sua qui, con un'icona e la descrizione in tutte le lingue che spediamo.</p>
+        <p xml:lang="fr">Il a maintenant sa page ici, avec une icône et la description dans toutes les langues que nous livrons.</p>
+        <p xml:lang="uk">Тепер має тут свою сторінку, з піктограмою й описом усіма мовами, які ми постачаємо.</p>
+        <p xml:lang="ru">Теперь у него здесь своя страница, с иконкой и описанием на всех языках, которые мы поставляем.</p>
+        <p xml:lang="es">Ahora tiene aquí su página, con un icono y la descripción en todos los idiomas que enviamos.</p>
+        <p xml:lang="pt">Agora tem aqui a sua página, com um ícone e a descrição em todas as línguas que enviamos.</p>
+        <p xml:lang="de">Hat jetzt eine eigene Seite hier, mit Symbol und Beschreibung in allen Sprachen, die wir ausliefern.</p>
+        <p xml:lang="pl">Ma teraz tutaj własną stronę, z ikoną i opisem we wszystkich językach, które dostarczamy.</p>
+      </description>
+    </release>
+  </releases>
+</component>

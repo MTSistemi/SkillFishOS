@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS HUD</name>
-  <summary>Choose what the desktop overlay shows, and where</summary>
-  <summary xml:lang="it">Scegli cosa mostra il pannello sulla scrivania, e dove</summary>
-  <summary xml:lang="fr">Choisissez ce que l'affichage sur le bureau montre, et où</summary>
-  <summary xml:lang="uk">Оберіть, що показує панель на стільниці, і де</summary>
-  <summary xml:lang="ru">Выберите, что показывает панель на рабочем столе и где</summary>
-  <summary xml:lang="es">Elige qué muestra el panel del escritorio, y dónde</summary>
-  <summary xml:lang="pt">Escolha o que o painel na área de trabalho mostra, e onde</summary>
-  <summary xml:lang="de">Wählen Sie, was die Anzeige auf dem Schreibtisch zeigt und wo</summary>
-  <summary xml:lang="pl">Wybierz, co pokazuje panel na pulpicie i gdzie</summary>
+  <summary>Decide what the desktop panel shows</summary>
+  <summary xml:lang="it">Decidi cosa mostra il pannello sulla scrivania</summary>
+  <summary xml:lang="fr">Décidez ce qu'affiche le panneau du bureau</summary>
+  <summary xml:lang="uk">Вирішуєш, що показує панель на стільниці</summary>
+  <summary xml:lang="ru">Решаешь, что показывает панель на рабочем столе</summary>
+  <summary xml:lang="es">Decide qué muestra el panel del escritorio</summary>
+  <summary xml:lang="pt">Decida o que o painel da área de trabalho mostra</summary>
+  <summary xml:lang="de">Entscheide, was die Anzeige auf dem Schreibtisch zeigt</summary>
+  <summary xml:lang="pl">Decydujesz, co pokazuje panel na pulpicie</summary>
   <description>
-    <p>The overlay that sits on the desktop and shows what the machine is doing: name and clock, kernel, CPU and GPU with their temperatures and load, video memory, RAM, fans, disk, network, uptime, Bluetooth. Tick the entries you want and drag them into the order you want them written.</p>
-    <p xml:lang="it">Il pannello che sta sulla scrivania e dice cosa sta facendo la macchina: nome e ora, kernel, CPU e GPU con temperature e carico, memoria video, RAM, ventole, disco, rete, uptime, Bluetooth. Spunti le voci che vuoi e le trascini nell'ordine in cui vuoi vederle scritte.</p>
-    <p xml:lang="fr">L'affichage posé sur le bureau qui dit ce que fait la machine : nom et heure, noyau, CPU et GPU avec températures et charge, mémoire vidéo, RAM, ventilateurs, disque, réseau, temps d'allumage, Bluetooth. Cochez ce que vous voulez et glissez-le dans l'ordre voulu.</p>
-    <p xml:lang="uk">Панель, що лежить на стільниці й каже, що робить машина: назва й час, ядро, процесор і відеоядро з температурами та завантаженням, відеопам'ять, RAM, вентилятори, диск, мережа, час роботи, Bluetooth. Позначте потрібне й перетягніть у той порядок, у якому хочете бачити.</p>
-    <p xml:lang="ru">Панель на рабочем столе, которая говорит, что делает машина: имя и время, ядро, процессор и видеоядро с температурами и загрузкой, видеопамять, ОЗУ, вентиляторы, диск, сеть, время работы, Bluetooth. Отметьте нужное и перетащите в тот порядок, в каком хотите видеть.</p>
-    <p xml:lang="es">El panel que se queda en el escritorio y dice qué está haciendo la máquina: nombre y hora, núcleo, CPU y GPU con temperaturas y carga, memoria de vídeo, RAM, ventiladores, disco, red, tiempo encendido, Bluetooth. Marca lo que quieras y arrástralo al orden en que quieres verlo.</p>
-    <p xml:lang="pt">O painel que fica na área de trabalho e diz o que a máquina está fazendo: nome e hora, núcleo, CPU e GPU com temperaturas e carga, memória de vídeo, RAM, ventoinhas, disco, rede, tempo ligado, Bluetooth. Marque o que quiser e arraste para a ordem em que quer ver.</p>
-    <p xml:lang="de">Die Anzeige auf dem Schreibtisch, die sagt, was die Maschine tut: Name und Uhr, Kernel, CPU und GPU mit Temperaturen und Auslastung, Grafikspeicher, RAM, Lüfter, Datenträger, Netzwerk, Betriebszeit, Bluetooth. Haken Sie an, was Sie wollen, und ziehen Sie es in die gewünschte Reihenfolge.</p>
-    <p xml:lang="pl">Panel leżący na pulpicie, który mówi, co robi maszyna: nazwa i zegar, jądro, CPU i GPU z temperaturami i obciążeniem, pamięć wideo, RAM, wentylatory, dysk, sieć, czas działania, Bluetooth. Zaznacz, co chcesz, i przeciągnij w kolejność, w jakiej ma być wypisane.</p>
-    <p>Entries this machine cannot provide are greyed out with the reason instead of quietly disappearing: video memory does not exist on a laptop with integrated graphics, and fans stay invisible until the Super-I/O driver is loaded. A preview shows the result with the machine's real values, and one tick takes the overlay off the desktop or puts it back — now and after a reboot.</p>
-    <p xml:lang="it">Le voci che questa macchina non può dare restano in grigio con il perché, invece di sparire in silenzio: la memoria video non esiste su un portatile con grafica integrata, e le ventole non si vedono finché non è caricato il driver del Super-I/O. Un'anteprima mostra il risultato con i valori veri, e una spunta toglie o rimette il pannello — adesso e dopo il riavvio.</p>
-    <p xml:lang="fr">Les entrées que cette machine ne peut pas fournir restent en gris avec la raison, au lieu de disparaître en silence : la mémoire vidéo n'existe pas sur un portable à circuit graphique intégré, et les ventilateurs restent invisibles tant que le pilote Super-I/O n'est pas chargé. Un aperçu montre le résultat avec les vraies valeurs, et une case enlève ou remet l'affichage — tout de suite et après un redémarrage.</p>
-    <p xml:lang="uk">Рядки, яких ця машина дати не може, лишаються сірими з поясненням, а не зникають мовчки: відеопам'яті немає в ноутбуці з вбудованою графікою, а вентилятори невидимі, доки не завантажено драйвер Super-I/O. Перегляд показує результат зі справжніми значеннями, а одна позначка прибирає панель або повертає її — зараз і після перезавантаження.</p>
-    <p xml:lang="ru">Строки, которых эта машина дать не может, остаются серыми с пояснением, а не исчезают молча: видеопамяти нет в ноутбуке со встроенной графикой, а вентиляторы невидимы, пока не загружен драйвер Super-I/O. Предпросмотр показывает результат с настоящими значениями, а одна галочка убирает панель или возвращает её — сейчас и после перезагрузки.</p>
-    <p xml:lang="es">Las entradas que esta máquina no puede dar quedan en gris con el motivo, en vez de desaparecer en silencio: la memoria de vídeo no existe en un portátil con gráficos integrados, y los ventiladores no se ven hasta que se carga el controlador Super-I/O. Una vista previa muestra el resultado con los valores reales, y una casilla quita o repone el panel: ahora y tras reiniciar.</p>
-    <p xml:lang="pt">As entradas que esta máquina não pode dar ficam em cinza com o motivo, em vez de sumir em silêncio: a memória de vídeo não existe num portátil com gráficos integrados, e as ventoinhas ficam invisíveis até o driver Super-I/O ser carregado. Uma pré-visualização mostra o resultado com os valores reais, e uma caixa tira ou repõe o painel — agora e depois de reiniciar.</p>
-    <p xml:lang="de">Einträge, die diese Maschine nicht liefern kann, bleiben grau mit dem Grund, statt stillschweigend zu verschwinden: Grafikspeicher gibt es auf einem Notebook mit integrierter Grafik nicht, und Lüfter bleiben unsichtbar, solange der Super-I/O-Treiber nicht geladen ist. Eine Vorschau zeigt das Ergebnis mit den echten Werten, und ein Haken nimmt die Anzeige weg oder stellt sie zurück — jetzt und nach einem Neustart.</p>
-    <p xml:lang="pl">Pozycje, których ta maszyna nie potrafi podać, zostają wyszarzone wraz z powodem, zamiast znikać po cichu: pamięci wideo nie ma w laptopie z grafiką zintegrowaną, a wentylatory są niewidoczne, dopóki nie wczyta się sterownik Super-I/O. Podgląd pokazuje wynik z prawdziwymi wartościami, a jedno zaznaczenie zdejmuje panel albo go przywraca — teraz i po ponownym uruchomieniu.</p>
+    <p>Tick the lines you want and drag them into order: clock, kernel, CPU, GPU, video memory, RAM, fans, disk, network, uptime, Bluetooth. The preview on the right shows the result with this machine's numbers.</p>
+    <p xml:lang="it">Spunti le righe che vuoi e le trascini in ordine: ora, kernel, CPU, GPU, memoria video, RAM, ventole, disco, rete, uptime, Bluetooth. L'anteprima a destra mostra il risultato con i numeri di questa macchina.</p>
+    <p xml:lang="fr">Cochez les lignes voulues et glissez-les dans l'ordre : heure, noyau, CPU, GPU, mémoire vidéo, RAM, ventilateurs, disque, réseau, temps d'allumage, Bluetooth. L'aperçu à droite montre le résultat avec les chiffres de cette machine.</p>
+    <p xml:lang="uk">Позначаєш потрібні рядки й перетягуєш у потрібний порядок: час, ядро, CPU, GPU, відеопам'ять, RAM, вентилятори, диск, мережа, час роботи, Bluetooth. Перегляд праворуч показує результат із числами цієї машини.</p>
+    <p xml:lang="ru">Отмечаешь нужные строки и перетаскиваешь в нужный порядок: время, ядро, CPU, GPU, видеопамять, ОЗУ, вентиляторы, диск, сеть, время работы, Bluetooth. Предпросмотр справа показывает результат с числами этой машины.</p>
+    <p xml:lang="es">Marca las líneas que quieres y arrástralas en orden: hora, núcleo, CPU, GPU, memoria de vídeo, RAM, ventiladores, disco, red, tiempo encendido, Bluetooth. La vista previa de la derecha muestra el resultado con los números de esta máquina.</p>
+    <p xml:lang="pt">Marca as linhas que quer e arrasta-as pela ordem: hora, núcleo, CPU, GPU, memória de vídeo, RAM, ventoinhas, disco, rede, tempo ligado, Bluetooth. A pré-visualização à direita mostra o resultado com os números desta máquina.</p>
+    <p xml:lang="de">Hake die gewünschten Zeilen an und zieh sie in die Reihenfolge: Uhr, Kernel, CPU, GPU, Grafikspeicher, RAM, Lüfter, Datenträger, Netzwerk, Betriebszeit, Bluetooth. Die Vorschau rechts zeigt das Ergebnis mit den Zahlen dieser Maschine.</p>
+    <p xml:lang="pl">Zaznaczasz wiersze, które chcesz, i przeciągasz je w kolejności: zegar, jądro, CPU, GPU, pamięć wideo, RAM, wentylatory, dysk, sieć, czas działania, Bluetooth. Podgląd po prawej pokazuje wynik z liczbami tej maszyny.</p>
+    <p>Lines this machine cannot give are greyed out with the reason. You also choose the corner, the width, the transparency, the font size and how often it refreshes. One tick takes the panel away and puts it back, now and after a reboot.</p>
+    <p xml:lang="it">Le righe che questa macchina non può dare restano in grigio, con il motivo. Scegli anche l'angolo, la larghezza, la trasparenza, il carattere e ogni quanto si aggiorna. Una spunta toglie e rimette il pannello, adesso e dopo il riavvio.</p>
+    <p xml:lang="fr">Les lignes que cette machine ne peut pas donner restent en gris, avec la raison. Vous choisissez aussi le coin, la largeur, la transparence, la taille du texte et la fréquence de rafraîchissement. Une case enlève et remet le panneau, tout de suite et après un redémarrage.</p>
+    <p xml:lang="uk">Рядки, яких ця машина дати не може, лишаються сірими з поясненням. Обираєш також кут, ширину, прозорість, розмір шрифту й частоту оновлення. Одна позначка прибирає панель і повертає її, зараз і після перезавантаження.</p>
+    <p xml:lang="ru">Строки, которых эта машина дать не может, остаются серыми с пояснением. Выбираешь также угол, ширину, прозрачность, размер шрифта и частоту обновления. Одна галочка убирает панель и возвращает её, сейчас и после перезагрузки.</p>
+    <p xml:lang="es">Las líneas que esta máquina no puede dar quedan en gris, con el motivo. También eliges la esquina, el ancho, la transparencia, el tamaño de letra y cada cuánto se actualiza. Una casilla quita y repone el panel, ahora y tras reiniciar.</p>
+    <p xml:lang="pt">As linhas que esta máquina não pode dar ficam em cinza, com o motivo. Também escolhe o canto, a largura, a transparência, o tamanho da letra e de quanto em quanto tempo se atualiza. Uma caixa tira e repõe o painel, agora e depois de reiniciar.</p>
+    <p xml:lang="de">Zeilen, die diese Maschine nicht geben kann, bleiben grau, mit dem Grund. Du wählst auch die Ecke, die Breite, die Transparenz, die Schriftgröße und wie oft aktualisiert wird. Ein Haken nimmt die Anzeige weg und stellt sie zurück, jetzt und nach einem Neustart.</p>
+    <p xml:lang="pl">Wiersze, których ta maszyna nie potrafi podać, zostają szare, z powodem. Wybierasz też róg, szerokość, przezroczystość, rozmiar pisma i co ile się odświeża. Jedno zaznaczenie zdejmuje panel i przywraca go, teraz i po ponownym uruchomieniu.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.hud.desktop</launchable>
   <icon type="stock">skillfish-hud</icon>
@@ -57,15 +57,15 @@
   </provides>
   <screenshots>
     <screenshot type="default">
-      <caption>The configurator: entries on the left, live preview on the right</caption>
-      <caption xml:lang="it">Il configuratore: le voci a sinistra, l'anteprima viva a destra</caption>
-      <caption xml:lang="fr">Le configurateur : les entrées à gauche, l'aperçu en direct à droite</caption>
-      <caption xml:lang="uk">Налаштування: рядки ліворуч, живий перегляд праворуч</caption>
-      <caption xml:lang="ru">Настройка: строки слева, живой предпросмотр справа</caption>
-      <caption xml:lang="es">El configurador: las entradas a la izquierda, la vista previa viva a la derecha</caption>
-      <caption xml:lang="pt">O configurador: as entradas à esquerda, a pré-visualização ao vivo à direita</caption>
-      <caption xml:lang="de">Der Einrichter: die Einträge links, die lebende Vorschau rechts</caption>
-      <caption xml:lang="pl">Konfigurator: pozycje po lewej, żywy podgląd po prawej</caption>
+      <caption>Lines on the left, live preview on the right</caption>
+      <caption xml:lang="it">Le righe a sinistra, l'anteprima viva a destra</caption>
+      <caption xml:lang="fr">Les lignes à gauche, l'aperçu en direct à droite</caption>
+      <caption xml:lang="uk">Рядки ліворуч, живий перегляд праворуч</caption>
+      <caption xml:lang="ru">Строки слева, живой предпросмотр справа</caption>
+      <caption xml:lang="es">Las líneas a la izquierda, la vista previa a la derecha</caption>
+      <caption xml:lang="pt">As linhas à esquerda, a pré-visualização à direita</caption>
+      <caption xml:lang="de">Die Zeilen links, die lebende Vorschau rechts</caption>
+      <caption xml:lang="pl">Wiersze po lewej, żywy podgląd po prawej</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/hud.png</image>
     </screenshot>
   </screenshots>
@@ -73,24 +73,24 @@
   <releases>
     <release version="26.08.40" date="2026-08-22">
       <description>
-        <p>New: the configurator also works from the Remote Manager, and a tick shows or hides the overlay — written into the autostart entry, so it holds after a reboot.</p>
-        <p xml:lang="it">Novità: il configuratore si usa anche dal Remote Manager, e una spunta mostra o nasconde il pannello — scritta nell'avvio automatico, quindi vale anche dopo il riavvio.</p>
-        <p xml:lang="fr">Nouveau : le configurateur fonctionne aussi depuis le Remote Manager, et une case affiche ou masque l'affichage — écrite dans le démarrage automatique, donc valable après un redémarrage.</p>
-        <p xml:lang="uk">Нове: налаштування працює й з Remote Manager, а позначка показує або ховає панель — записана в автозапуск, тож діє й після перезавантаження.</p>
-        <p xml:lang="ru">Новое: настройка работает и из Remote Manager, а галочка показывает или прячет панель — записана в автозапуск, поэтому действует и после перезагрузки.</p>
-        <p xml:lang="es">Novedad: el configurador también funciona desde el Remote Manager, y una casilla muestra u oculta el panel: se escribe en el arranque automático, así que vale tras reiniciar.</p>
-        <p xml:lang="pt">Novidade: o configurador também funciona pelo Remote Manager, e uma caixa mostra ou esconde o painel — escrita no arranque automático, então vale depois de reiniciar.</p>
-        <p xml:lang="de">Neu: Der Einrichter läuft auch im Remote Manager, und ein Haken zeigt die Anzeige oder blendet sie aus — in den Autostart geschrieben, also auch nach einem Neustart gültig.</p>
-        <p xml:lang="pl">Nowość: konfigurator działa też z Remote Managera, a zaznaczenie pokazuje lub ukrywa panel — zapisane w autostarcie, więc działa też po ponownym uruchomieniu.</p>
-        <p>Fixed: the kernel line was two points smaller than everything else and unreadable on a large screen; and turning every entry off used to bring the whole default overlay back instead of leaving it empty.</p>
-        <p xml:lang="it">Corretto: la riga del kernel era due punti più piccola delle altre e su uno schermo grande non si leggeva; e spegnendo tutte le voci tornava il pannello intero di serie invece di restare vuoto.</p>
-        <p xml:lang="fr">Corrigé : la ligne du noyau était deux points plus petite que le reste et illisible sur un grand écran ; et en décochant tout, l'affichage complet d'origine revenait au lieu de rester vide.</p>
-        <p xml:lang="uk">Виправлено: рядок ядра був на два пункти менший за решту й не читався на великому екрані; а якщо вимкнути всі рядки, поверталася повна типова панель замість порожньої.</p>
-        <p xml:lang="ru">Исправлено: строка ядра была на два пункта меньше остальных и не читалась на большом экране; а если выключить все строки, возвращалась полная панель по умолчанию вместо пустой.</p>
-        <p xml:lang="es">Corregido: la línea del núcleo era dos puntos más pequeña que el resto y no se leía en una pantalla grande; y al apagar todas las entradas volvía el panel completo de serie en vez de quedarse vacío.</p>
-        <p xml:lang="pt">Corrigido: a linha do núcleo era dois pontos menor que o resto e não se lia numa tela grande; e ao desligar todas as entradas voltava o painel inteiro padrão em vez de ficar vazio.</p>
-        <p xml:lang="de">Behoben: Die Kernel-Zeile war zwei Punkt kleiner als alles andere und auf einem großen Bildschirm nicht zu lesen; und wenn man alle Einträge abschaltete, kam die vollständige Standardanzeige zurück, statt leer zu bleiben.</p>
-        <p xml:lang="pl">Poprawione: wiersz jądra był o dwa punkty mniejszy od reszty i na dużym ekranie nieczytelny; a po wyłączeniu wszystkich pozycji wracał pełny domyślny panel zamiast pozostać pusty.</p>
+        <p>Now also in the Remote Manager. A tick shows or hides the panel, and it stays that way after a reboot.</p>
+        <p xml:lang="it">Adesso c'è anche nel Remote Manager. Una spunta mostra o nasconde il pannello, e resta così anche dopo il riavvio.</p>
+        <p xml:lang="fr">Désormais aussi dans le Remote Manager. Une case affiche ou masque le panneau, et cela tient après un redémarrage.</p>
+        <p xml:lang="uk">Тепер є і в Remote Manager. Позначка показує або ховає панель, і це тримається після перезавантаження.</p>
+        <p xml:lang="ru">Теперь есть и в Remote Manager. Галочка показывает или прячет панель, и это держится после перезагрузки.</p>
+        <p xml:lang="es">Ahora también en el Remote Manager. Una casilla muestra u oculta el panel, y sigue así tras reiniciar.</p>
+        <p xml:lang="pt">Agora também no Remote Manager. Uma caixa mostra ou esconde o painel, e continua assim depois de reiniciar.</p>
+        <p xml:lang="de">Jetzt auch im Remote Manager. Ein Haken zeigt die Anzeige oder blendet sie aus, und das bleibt nach einem Neustart.</p>
+        <p xml:lang="pl">Teraz jest też w Remote Managerze. Zaznaczenie pokazuje lub ukrywa panel i tak zostaje po ponownym uruchomieniu.</p>
+        <p>Fixed: the kernel line was smaller than the rest and hard to read. Turning every line off no longer brings the default panel back.</p>
+        <p xml:lang="it">Corretto: la riga del kernel era più piccola delle altre e si leggeva male. Spegnendo tutte le righe non torna più il pannello di serie.</p>
+        <p xml:lang="fr">Corrigé : la ligne du noyau était plus petite que les autres et peu lisible. En décochant toutes les lignes, le panneau d'origine ne revient plus.</p>
+        <p xml:lang="uk">Виправлено: рядок ядра був менший за інші й погано читався. Якщо вимкнути всі рядки, типова панель більше не повертається.</p>
+        <p xml:lang="ru">Исправлено: строка ядра была меньше остальных и плохо читалась. Если выключить все строки, панель по умолчанию больше не возвращается.</p>
+        <p xml:lang="es">Corregido: la línea del núcleo era más pequeña que las demás y se leía mal. Al apagar todas las líneas ya no vuelve el panel de serie.</p>
+        <p xml:lang="pt">Corrigido: a linha do núcleo era menor que as outras e lia-se mal. Ao desligar todas as linhas já não volta o painel padrão.</p>
+        <p xml:lang="de">Behoben: Die Kernel-Zeile war kleiner als die übrigen und schlecht zu lesen. Werden alle Zeilen abgeschaltet, kommt die Standardanzeige nicht mehr zurück.</p>
+        <p xml:lang="pl">Poprawione: wiersz jądra był mniejszy od reszty i źle się czytał. Po wyłączeniu wszystkich wierszy domyślny panel już nie wraca.</p>
       </description>
     </release>
   </releases>

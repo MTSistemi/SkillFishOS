@@ -4,34 +4,25 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Kernel Manager</name>
-  <summary>Choose the boot kernel and completely remove unused kernels</summary>
-  <summary xml:lang="fr">Choisissez le noyau de démarrage et retirez complètement ceux dont vous ne vous servez pas</summary>
-  <summary xml:lang="uk">Виберіть ядро для завантаження і повністю вилучіть непотрібні</summary>
-  <summary xml:lang="ru">Выберите ядро для загрузки и полностью удалите ненужные</summary>
-  <summary xml:lang="es">Elige el núcleo de arranque y quita por completo los que no usas</summary>
-  <summary xml:lang="pt">Escolha o kernel de boot e remova por completo os que não usa</summary>
-  <summary xml:lang="de">Den Kernel zum Starten wählen und ungenutzte vollständig entfernen</summary>
-  <summary xml:lang="it">Scegli il kernel di avvio e rimuovi completamente quelli inutilizzati</summary>
-  <summary xml:lang="pl">Wybieraj jądro startowe i całkowicie usuwaj nieużywane jądra</summary>
+  <summary>Choose which kernel the board boots</summary>
+  <summary xml:lang="it">Scegli con quale kernel parte la scheda</summary>
+  <summary xml:lang="fr">Choisissez avec quel noyau la carte démarre</summary>
+  <summary xml:lang="uk">Обираєш, з яким ядром стартує плата</summary>
+  <summary xml:lang="ru">Выбираешь, с каким ядром стартует плата</summary>
+  <summary xml:lang="es">Elige con qué núcleo arranca la placa</summary>
+  <summary xml:lang="pt">Escolhe com que núcleo a placa arranca</summary>
+  <summary xml:lang="de">Wähle, mit welchem Kernel die Karte startet</summary>
+  <summary xml:lang="pl">Wybierasz, z którym jądrem startuje płyta</summary>
   <description>
-    <p>Lists every installed kernel with its flavour (BC-250, Generic, Slim), size and running/default badges. Set the permanent GRUB default, boot a kernel just once, or completely uninstall a kernel (image, headers and modules) so they don't pile up.</p>
-    <p xml:lang="fr">Liste tous les noyaux installés avec leur variante (BC-250, Generic, Slim), leur taille et les mentions « en cours » et « par défaut ». Fixez le défaut de GRUB, démarrez un noyau une seule fois, ou désinstallez-en un complètement (image, en-têtes et modules) pour qu'ils ne s'accumulent pas.</p>
-    <p xml:lang="uk">Перелічує всі встановлені ядра з різновидом (BC-250, Generic, Slim), розміром і позначками «працює» та «типове». Можна закріпити типове ядро в GRUB, завантажити якесь один-єдиний раз або повністю вилучити ядро (образ, заголовки й модулі), щоб вони не громадилися.</p>
-    <p xml:lang="ru">Перечисляет все установленные ядра с разновидностью (BC-250, Generic, Slim), размером и пометками «работает» и «по умолчанию». Можно закрепить ядро по умолчанию в GRUB, загрузить какое-то один раз или полностью удалить ядро (образ, заголовки и модули), чтобы они не копились.</p>
-    <p xml:lang="es">Lista todos los núcleos instalados con su variante (BC-250, Generic, Slim), su tamaño y las marcas de «en marcha» y «predeterminado». Fija el predeterminado de GRUB, arranca un núcleo una sola vez, o desinstala uno por completo (imagen, cabeceras y módulos) para que no se acumulen.</p>
-    <p xml:lang="pt">Lista todos os kernels instalados com a variante (BC-250, Generic, Slim), o tamanho e as marcas de “em execução” e “padrão”. Fixe o padrão do GRUB, inicie um kernel só uma vez, ou desinstale um por completo (imagem, headers e módulos) para não se acumularem.</p>
-    <p xml:lang="de">Führt jeden eingerichteten Kernel mit seiner Art (BC-250, Generic, Slim), seiner Größe und den Vermerken „läuft“ und „Vorgabe“ auf. Die dauerhafte GRUB-Vorgabe setzen, einen Kernel nur ein einziges Mal starten oder einen Kernel vollständig entfernen (Abbild, Kopfdateien und Module), damit sie sich nicht anhäufen.</p>
-    <p>Safe by design: it never removes the running kernel or the last remaining one, and moves the GRUB default off a kernel before removing it. Privileged actions go through an authenticated helper.</p>
-    <p xml:lang="fr">Sûr par conception : il ne retire jamais le noyau en cours d'exécution ni le dernier qui reste, et déplace le défaut de GRUB avant de supprimer un noyau. Les actions privilégiées passent par un assistant authentifié.</p>
-    <p xml:lang="uk">Убезпечений задумом: він ніколи не вилучає ядро, що працює, ані останнє, яке лишилося, і перед вилученням переносить типовий вибір GRUB на інше. Дії з правами йдуть через окремий перевірений помічник.</p>
-    <p xml:lang="ru">Безопасен по устройству: он никогда не удаляет работающее ядро и последнее оставшееся, а перед удалением переносит выбор GRUB по умолчанию на другое. Привилегированные действия идут через отдельный проверенный помощник.</p>
-    <p xml:lang="es">Seguro por diseño: nunca quita el núcleo en marcha ni el último que queda, y aparta el predeterminado de GRUB de un núcleo antes de borrarlo. Las acciones con privilegios pasan por un ayudante autenticado.</p>
-    <p xml:lang="pt">Seguro por projeto: nunca remove o kernel em execução nem o último que sobra, e tira o padrão do GRUB de um kernel antes de apagá-lo. As ações com privilégio passam por um auxiliar autenticado.</p>
-    <p xml:lang="de">Von Haus aus sicher: er entfernt nie den laufenden Kernel und nie den letzten verbliebenen, und nimmt die GRUB-Vorgabe von einem Kernel weg, bevor er ihn entfernt. Vorgänge mit Rechten laufen über einen angemeldeten Helfer.</p>
-    <p xml:lang="it">Elenca ogni kernel installato con il suo tipo (BC-250, Generic, Slim), la dimensione e i badge in esecuzione/predefinito. Imposta il default GRUB permanente, avvia un kernel una sola volta, o disinstalla completamente un kernel (immagine, header e moduli) così non si accumulano.</p>
-    <p xml:lang="pl">Wyświetla listę każdego zainstalowanego jądra z jego rodzajem (BC-250, Generic, Slim), rozmiarem oraz odznakami działające/domyślne. Ustawia trwały domyślny wpis GRUB, pozwala uruchomić jądro jednorazowo lub całkowicie odinstalować jądro (obraz, nagłówki i moduły), żeby się nie gromadziły.</p>
-    <p xml:lang="it">Sicuro per progettazione: non rimuove mai il kernel in esecuzione né l'ultimo rimasto, e sposta il default GRUB prima di rimuoverlo. Le azioni privilegiate passano da un helper autenticato.</p>
-    <p xml:lang="pl">Bezpieczny z założenia: nigdy nie usuwa działającego jądra ani ostatniego pozostałego, a przed usunięciem jądra przenosi domyślny wpis GRUB na inne. Uprzywilejowane operacje przechodzą przez uwierzytelniony helper.</p>
+    <p>Shows the kernels installed, which one is running now and which one GRUB will pick next time. You choose the next boot and remove the ones you no longer want, including our BC-250 builds.</p>
+    <p xml:lang="it">Mostra i kernel installati, quale sta girando adesso e quale sceglierà GRUB la prossima volta. Scegli quello del prossimo avvio e togli quelli che non vuoi più, compresi i nostri per la BC-250.</p>
+    <p xml:lang="fr">Affiche les noyaux installés, celui qui tourne et celui que GRUB prendra la prochaine fois. Vous choisissez le prochain démarrage et supprimez ceux dont vous ne voulez plus, y compris les nôtres pour la BC-250.</p>
+    <p xml:lang="uk">Показує встановлені ядра, яке працює зараз і яке GRUB візьме наступного разу. Обираєш ядро для наступного старту й прибираєш ті, яких більше не хочеш, зокрема наші для BC-250.</p>
+    <p xml:lang="ru">Показывает установленные ядра, какое работает сейчас и какое GRUB возьмёт в следующий раз. Выбираешь ядро для следующего старта и убираешь те, что больше не нужны, включая наши для BC-250.</p>
+    <p xml:lang="es">Muestra los núcleos instalados, cuál está corriendo y cuál elegirá GRUB la próxima vez. Eliges el del próximo arranque y quitas los que ya no quieres, incluidos los nuestros para la BC-250.</p>
+    <p xml:lang="pt">Mostra os núcleos instalados, qual está a correr e qual o GRUB vai escolher da próxima vez. Escolhes o do próximo arranque e removes os que já não queres, incluindo os nossos para a BC-250.</p>
+    <p xml:lang="de">Zeigt die eingerichteten Kernel, welcher gerade läuft und welchen GRUB beim nächsten Mal nimmt. Du wählst den nächsten Start und entfernst die, die du nicht mehr willst, auch unsere für die BC-250.</p>
+    <p xml:lang="pl">Pokazuje zainstalowane jądra, które działa teraz i które GRUB wybierze następnym razem. Wybierasz to na następny start i usuwasz te, których już nie chcesz, w tym nasze dla BC-250.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.kernel.desktop</launchable>
   <icon type="stock">skillfishos</icon>

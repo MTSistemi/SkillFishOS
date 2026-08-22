@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Tuner</name>
-  <summary>Overclock, undervolt and tune the AMD BC-250 without a terminal</summary>
-  <summary xml:lang="fr">Overclock, undervolt et réglage de l'AMD BC-250 sans terminal</summary>
-  <summary xml:lang="uk">Розгін, зниження напруги та налаштування AMD BC-250 без термінала</summary>
-  <summary xml:lang="ru">Разгон, снижение напряжения и настройка AMD BC-250 без терминала</summary>
-  <summary xml:lang="es">Overclock, undervolt y ajuste de la AMD BC-250 sin terminal</summary>
-  <summary xml:lang="pt">Overclock, undervolt e ajuste da AMD BC-250 sem terminal</summary>
-  <summary xml:lang="de">Übertakten, Undervolting und Einstellen der AMD BC-250 ohne Terminal</summary>
-  <summary xml:lang="it">Overclock, undervolt e tuning della AMD BC-250 senza terminale</summary>
-  <summary xml:lang="pl">Overclocking, undervolting i tuning AMD BC-250 bez terminala</summary>
+  <summary>Clocks, cores and fan of this board</summary>
+  <summary xml:lang="it">Frequenze, core e ventola di questa scheda</summary>
+  <summary xml:lang="fr">Fréquences, cœurs et ventilateur de cette carte</summary>
+  <summary xml:lang="uk">Частоти, ядра й вентилятор цієї плати</summary>
+  <summary xml:lang="ru">Частоты, ядра и вентилятор этой платы</summary>
+  <summary xml:lang="es">Frecuencias, núcleos y ventilador de esta placa</summary>
+  <summary xml:lang="pt">Frequências, núcleos e ventoinha desta placa</summary>
+  <summary xml:lang="de">Takte, Kerne und Lüfter dieser Karte</summary>
+  <summary xml:lang="pl">Zegary, rdzenie i wentylator tej płyty</summary>
   <description>
-    <p>The control centre for the AMD BC-250: overclock and undervolt the CPU, drive the GPU safe-point governor, control the fan, resize the shared VRAM, and manage Compute Units live — a grid of CU squares (24/32/40 presets, no reboot) with a CU health test for the silicon lottery.</p>
-    <p xml:lang="fr">Le centre de commande de l'AMD BC-250 : overclock et undervolt du CPU, gouverneur du GPU à points sûrs, commande du ventilateur, redimensionnement de la mémoire graphique partagée et gestion des unités de calcul à chaud — une grille de cases CU (profils 24/32/40, sans redémarrage) avec un test de santé des CU pour la loterie du silicium.</p>
-    <p xml:lang="uk">Центр керування AMD BC-250: розгін і зниження напруги процесора, керування регулятором безпечних точок відеоядра, керування вентилятором, зміна розміру спільної відеопам'яті та керування обчислювальними блоками наживо — сітка квадратиків CU (набори 24/32/40, без перезавантаження) з перевіркою стану CU для кремнієвої лотереї.</p>
-    <p xml:lang="ru">Центр управления AMD BC-250: разгон и снижение напряжения процессора, управление регулятором безопасных точек видеоядра, управление вентилятором, изменение размера общей видеопамяти и управление вычислительными блоками вживую — сетка квадратиков CU (наборы 24/32/40, без перезагрузки) с проверкой состояния CU для кремниевой лотереи.</p>
-    <p xml:lang="es">El centro de control de la AMD BC-250: overclock y undervolt de la CPU, gobernador de puntos seguros de la GPU, control del ventilador, cambio de tamaño de la VRAM compartida y manejo de las unidades de cómputo en caliente — una rejilla de casillas de CU (perfiles 24/32/40, sin reiniciar) con una prueba de salud de las CU para la lotería del silicio.</p>
-    <p xml:lang="pt">A central de controle da AMD BC-250: overclock e undervolt da CPU, governador de pontos seguros da GPU, controle da ventoinha, mudança de tamanho da VRAM compartilhada e manejo das unidades de computação em tempo real — uma grade de quadradinhos de CU (perfis 24/32/40, sem reiniciar) com um teste de saúde das CU para a loteria do silício.</p>
-    <p xml:lang="de">Die Steuerzentrale der AMD BC-250: Übertakten und Undervolting der CPU, der Governor mit sicheren Punkten für die GPU, Lüftersteuerung, Ändern des gemeinsamen Grafikspeichers und Verwalten der Recheneinheiten im Betrieb — ein Raster aus CU-Kästchen (Vorgaben 24/32/40, ohne Neustart) mit einer Zustandsprüfung der CU für die Silizium-Lotterie.</p>
-    <p>Four ready presets (Stock, Performance, Turbo, Crazy), benchmark-and-rollback testing that applies a setting, stresses it and reverts if unstable, and a pop-up live monitor during any test. Translated into nine languages; privileged actions go through a single authenticated helper.</p>
-    <p xml:lang="fr">Quatre profils prêts à l'emploi (Stock, Performance, Turbo, Crazy), un test « mesurer et revenir en arrière » qui applique une valeur, la met sous charge et l'annule si elle ne tient pas, et une fenêtre de suivi en direct pendant chaque test. Traduit en neuf langues ; les actions privilégiées passent par un seul assistant authentifié.</p>
-    <p xml:lang="uk">Чотири готові набори (Stock, Performance, Turbo, Crazy), перевірка «виміряй і відкоти», яка застосовує значення, навантажує його і повертає назад, якщо воно нестійке, та спливне вікно спостереження під час кожної перевірки. Перекладено дев'ятьма мовами; дії з правами йдуть через один перевірений помічник.</p>
-    <p xml:lang="ru">Четыре готовых набора (Stock, Performance, Turbo, Crazy), проверка «измерь и откати», которая применяет значение, нагружает его и возвращает назад, если оно неустойчиво, и всплывающее окно наблюдения во время каждой проверки. Переведён на девять языков; действия с правами идут через один проверенный помощник.</p>
-    <p xml:lang="es">Cuatro perfiles listos (Stock, Performance, Turbo, Crazy), pruebas de medir-y-deshacer que aplican un valor, lo esfuerzan y lo revierten si no aguanta, y un monitor en vivo emergente durante cada prueba. Traducido a nueve idiomas; las acciones con privilegios pasan por un único ayudante autenticado.</p>
-    <p xml:lang="pt">Quatro perfis prontos (Stock, Performance, Turbo, Crazy), testes de medir-e-desfazer que aplicam um valor, o forçam e o revertem se não aguentar, e um monitor ao vivo que aparece durante cada teste. Traduzido para nove idiomas; as ações com privilégio passam por um único auxiliar autenticado.</p>
-    <p xml:lang="de">Vier fertige Vorgaben (Stock, Performance, Turbo, Crazy), Prüfen mit Messen-und-Zurücknehmen, das einen Wert anwendet, ihn belastet und zurücknimmt, wenn er nicht trägt, und ein Fenster mit Echtzeitwerten während jeder Prüfung. In neun Sprachen übersetzt; Vorgänge mit Rechten laufen über einen einzigen angemeldeten Helfer.</p>
-    <p xml:lang="it">Il centro di controllo della AMD BC-250: overclock e undervolt della CPU, governor GPU al safe-point, controllo ventola, ridimensionamento della VRAM condivisa e gestione live delle Compute Unit — una griglia di quadratini CU (preset 24/32/40, senza riavvio) con un test di salute CU per la lotteria del silicio.</p>
-    <p xml:lang="pl">Centrum sterowania dla AMD BC-250: overclocking i undervolting CPU, sterowanie governorem GPU w bezpiecznym punkcie pracy, kontrola wentylatora, zmiana rozmiaru współdzielonego VRAM oraz zarządzanie Compute Units na żywo — siatka kwadratów CU (presety 24/32/40, bez restartu) z testem kondycji CU dla loterii krzemowej.</p>
-    <p xml:lang="it">Quattro preset pronti (Stock, Performance, Turbo, Crazy), test con benchmark-e-rollback che applica un'impostazione, la stressa e la ripristina se instabile, e un monitor live durante ogni test. Tradotto in nove lingue; le azioni privilegiate passano da un singolo helper autenticato.</p>
-    <p xml:lang="pl">Cztery gotowe presety (Stock, Performance, Turbo, Crazy), testowanie benchmark-i-rollback, które stosuje ustawienie, obciąża je testem i cofa, jeśli jest niestabilne, oraz podręczny monitor na żywo podczas każdego testu. Przetłumaczony na dziewięć języków; uprzywilejowane operacje przechodzą przez jeden uwierzytelniony helper.</p>
+    <p>Set the CPU and GPU clocks, the voltage offset, how many compute units are in use and how much memory the graphics take. Presets go from quiet to full, and a wizard finds what this particular chip holds without crashing.</p>
+    <p xml:lang="it">Imposti le frequenze di CPU e GPU, l'offset di tensione, quante unità di calcolo restano accese e quanta memoria prende la grafica. I preset vanno da silenzioso a massimo, e una procedura guidata trova quanto regge questo chip senza piantarsi.</p>
+    <p xml:lang="fr">Réglez les fréquences du CPU et du GPU, l'offset de tension, le nombre d'unités de calcul actives et la mémoire allouée au graphique. Les préréglages vont de silencieux à maximum, et un assistant trouve ce que tient cette puce sans planter.</p>
+    <p xml:lang="uk">Задаєш частоти CPU і GPU, зсув напруги, скільки обчислювальних блоків працює і скільки пам'яті бере графіка. Набори — від тихого до максимуму, а майстер знаходить, скільки тримає саме цей чип, не зависаючи.</p>
+    <p xml:lang="ru">Задаёшь частоты CPU и GPU, смещение напряжения, сколько вычислительных блоков работает и сколько памяти берёт графика. Наборы — от тихого до максимума, а мастер находит, сколько держит именно этот чип, не зависая.</p>
+    <p xml:lang="es">Ajustas las frecuencias de CPU y GPU, el offset de voltaje, cuántas unidades de cálculo quedan activas y cuánta memoria toma la gráfica. Los ajustes van de silencioso a máximo, y un asistente encuentra cuánto aguanta este chip sin colgarse.</p>
+    <p xml:lang="pt">Defines as frequências de CPU e GPU, o desvio de tensão, quantas unidades de cálculo ficam ativas e quanta memória a gráfica leva. As predefinições vão de silencioso a máximo, e um assistente descobre quanto este chip aguenta sem travar.</p>
+    <p xml:lang="de">Du stellst die Takte von CPU und GPU ein, den Spannungsversatz, wie viele Recheneinheiten laufen und wie viel Speicher die Grafik bekommt. Voreinstellungen reichen von leise bis voll, und ein Assistent findet, was genau dieser Chip aushält, ohne abzustürzen.</p>
+    <p xml:lang="pl">Ustawiasz zegary CPU i GPU, przesunięcie napięcia, ile jednostek obliczeniowych działa i ile pamięci bierze grafika. Ustawienia gotowe idą od cichego do maksimum, a kreator znajduje, ile wytrzyma akurat ten układ, bez zawieszania.</p>
+    <p>Every setting can be applied for now or kept at boot. The package also brings the HUD configurator, which decides what the panel on the desktop shows.</p>
+    <p xml:lang="it">Ogni impostazione si può applicare adesso o tenere all'avvio. Il pacchetto porta anche il configuratore del HUD, che decide cosa mostra il pannello sulla scrivania.</p>
+    <p xml:lang="fr">Chaque réglage s'applique tout de suite ou se garde au démarrage. Le paquet embarque aussi le configurateur du HUD, qui décide ce qu'affiche le panneau du bureau.</p>
+    <p xml:lang="uk">Кожне налаштування можна застосувати зараз або лишити на завантаження. Пакунок несе й налаштування HUD, яке вирішує, що показує панель на стільниці.</p>
+    <p xml:lang="ru">Любую настройку можно применить сейчас или оставить на загрузку. Пакет несёт и настройку HUD, которая решает, что показывает панель на рабочем столе.</p>
+    <p xml:lang="es">Cada ajuste se aplica ahora o se mantiene al arranque. El paquete trae además el configurador del HUD, que decide qué muestra el panel del escritorio.</p>
+    <p xml:lang="pt">Cada definição aplica-se agora ou fica no arranque. O pacote traz também o configurador do HUD, que decide o que o painel na área de trabalho mostra.</p>
+    <p xml:lang="de">Jede Einstellung gilt sofort oder bleibt beim Start erhalten. Das Paket bringt auch den HUD-Einrichter mit, der entscheidet, was die Anzeige auf dem Schreibtisch zeigt.</p>
+    <p xml:lang="pl">Każde ustawienie można zastosować teraz albo zachować przy starcie. Pakiet niesie też konfigurator HUD, który decyduje, co pokazuje panel na pulpicie.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.Tuner.desktop</launchable>
   <icon type="stock">skillfishos</icon>

@@ -4,34 +4,43 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Fan Control</name>
-  <summary>Fan curve that gets ahead of the heat</summary>
-  <summary xml:lang="it">La curva della ventola che anticipa il calore</summary>
-  <summary xml:lang="fr">Courbe de ventilateur qui prend les devants sur la chaleur</summary>
-  <summary xml:lang="uk">Крива вентилятора, що випереджає тепло</summary>
-  <summary xml:lang="ru">Кривая вентилятора, опережающая нагрев</summary>
-  <summary xml:lang="es">Curva del ventilador que se adelanta al calor</summary>
-  <summary xml:lang="pt">Curva da ventoinha que se antecipa ao calor</summary>
-  <summary xml:lang="de">Lüfterkurve, die der Wärme zuvorkommt</summary>
-  <summary xml:lang="pl">Krzywa wentylatora, która wyprzedza ciepło</summary>
+  <summary>Set the fan curve, and let it start before the heat does</summary>
+  <summary xml:lang="it">Imposti la curva della ventola, e parte prima che arrivi il calore</summary>
+  <summary xml:lang="fr">Réglez la courbe du ventilateur : il démarre avant la chaleur</summary>
+  <summary xml:lang="uk">Задаєш криву вентилятора, і він рушає раніше за тепло</summary>
+  <summary xml:lang="ru">Задаёшь кривую вентилятора, и он трогается раньше жары</summary>
+  <summary xml:lang="es">Ajusta la curva del ventilador y arranca antes que el calor</summary>
+  <summary xml:lang="pt">Defina a curva da ventoinha, e ela arranca antes do calor</summary>
+  <summary xml:lang="de">Lüfterkurve einstellen, und er läuft vor der Wärme an</summary>
+  <summary xml:lang="pl">Ustawiasz krzywą wentylatora, a on rusza przed ciepłem</summary>
   <description>
-    <p>Every point on the curve says how fast the fan should turn at that temperature, and the controller applies it once a second whether or not this window is open. Only the sensors the machine really reads are offered: the ones the chip declares but never updates are hidden, because a channel that never changes would drive a fan that never rises.</p>
-    <p xml:lang="it">Ogni punto della curva dice a che velocità girare a quella temperatura, e il controllore la applica una volta al secondo, che questa finestra sia aperta o no. Si possono scegliere solo i sensori che la macchina legge davvero: quelli che il chip dichiara ma non aggiorna restano nascosti, perché un canale che non cambia mai comanderebbe una ventola che non sale mai.</p>
-    <p xml:lang="fr">Chaque point de la courbe dit à quelle vitesse tourner à cette température, et le contrôleur l'applique une fois par seconde, que cette fenêtre soit ouverte ou non. Seuls les capteurs que la machine lit vraiment sont proposés : ceux que la puce déclare sans jamais les mettre à jour restent cachés, car un canal qui ne change jamais piloterait un ventilateur qui ne monte jamais.</p>
-    <p xml:lang="uk">Кожна точка кривої каже, з якою швидкістю крутитися за цієї температури, і регулятор застосовує її раз на секунду, хай це вікно відкрите чи ні. Пропонуються лише датчики, які машина справді читає: ті, що мікросхема оголошує, але не оновлює, лишаються схованими — канал, який ніколи не змінюється, керував би вентилятором, який ніколи не підніметься.</p>
-    <p xml:lang="ru">Каждая точка кривой говорит, с какой скоростью крутиться при этой температуре, и регулятор применяет её раз в секунду — открыто это окно или нет. Предлагаются только те датчики, которые машина действительно читает: те, что микросхема объявляет, но не обновляет, скрыты, потому что канал, который никогда не меняется, управлял бы вентилятором, который никогда не поднимется.</p>
-    <p xml:lang="es">Cada punto de la curva dice a qué velocidad girar a esa temperatura, y el controlador la aplica una vez por segundo, esté esta ventana abierta o no. Solo se ofrecen los sensores que la máquina lee de verdad: los que el chip declara pero no actualiza quedan ocultos, porque un canal que nunca cambia movería un ventilador que nunca sube.</p>
-    <p xml:lang="pt">Cada ponto da curva diz a que velocidade girar naquela temperatura, e o controlador a aplica uma vez por segundo, com esta janela aberta ou não. Só são oferecidos os sensores que a máquina lê de verdade: os que o chip declara mas não atualiza ficam escondidos, porque um canal que nunca muda moveria uma ventoinha que nunca sobe.</p>
-    <p xml:lang="de">Jeder Punkt der Kurve sagt, wie schnell der Lüfter bei dieser Temperatur drehen soll, und die Steuerung wendet sie einmal pro Sekunde an — ob dieses Fenster offen ist oder nicht. Angeboten werden nur die Fühler, die die Maschine wirklich liest: die, die der Chip meldet, aber nie aktualisiert, bleiben verborgen, denn ein Kanal, der sich nie ändert, würde einen Lüfter steuern, der nie hochdreht.</p>
-    <p xml:lang="pl">Każdy punkt krzywej mówi, jak szybko kręcić w tej temperaturze, a sterownik stosuje ją raz na sekundę, niezależnie od tego, czy to okno jest otwarte. Wybrać można tylko czujniki, które maszyna naprawdę odczytuje: te, które układ deklaruje, ale ich nie aktualizuje, są ukryte, bo kanał, który nigdy się nie zmienia, sterowałby wentylatorem, który nigdy nie ruszy w górę.</p>
-    <p>It also watches how fast the temperature is climbing — and, on the BC-250, how many watts the APU is drawing, which rise before the temperature does — so the fan can start spinning up before the heat arrives. Above the emergency threshold it goes to full speed without consulting the curve, and that cannot be switched off.</p>
-    <p xml:lang="it">Guarda anche quanto in fretta la temperatura sta salendo — e, sulla BC-250, quanti watt sta tirando l'APU, che salgono prima della temperatura — così la ventola può partire prima che il calore arrivi. Oltre la soglia di emergenza va al massimo senza consultare la curva, e non si può spegnere.</p>
-    <p xml:lang="fr">Il regarde aussi à quelle vitesse la température monte — et, sur la BC-250, combien de watts l'APU tire, qui montent avant la température — pour que le ventilateur démarre avant l'arrivée de la chaleur. Au-delà du seuil d'urgence il passe à fond sans consulter la courbe, et cela ne se coupe pas.</p>
-    <p xml:lang="uk">Він також стежить, як швидко зростає температура — і, на BC-250, скільки ватів бере APU, які зростають раніше за температуру — щоб вентилятор рушив ще до приходу тепла. Понад аварійний поріг він іде на максимум, не питаючи криву, і вимкнути це не можна.</p>
-    <p xml:lang="ru">Он также следит, как быстро растёт температура — и, на BC-250, сколько ватт берёт APU, которые растут раньше температуры — чтобы вентилятор тронулся до прихода тепла. Выше аварийного порога он идёт на максимум, не спрашивая кривую, и отключить это нельзя.</p>
-    <p xml:lang="es">También vigila a qué velocidad sube la temperatura —y, en la BC-250, cuántos vatios está tirando la APU, que suben antes que la temperatura— para que el ventilador arranque antes de que llegue el calor. Por encima del umbral de emergencia va al máximo sin consultar la curva, y eso no se apaga.</p>
-    <p xml:lang="pt">Também observa a que velocidade a temperatura sobe — e, na BC-250, quantos watts a APU está puxando, que sobem antes da temperatura — para a ventoinha arrancar antes de o calor chegar. Acima do limiar de emergência vai ao máximo sem consultar a curva, e isso não se desliga.</p>
-    <p xml:lang="de">Sie beobachtet außerdem, wie schnell die Temperatur steigt — und auf der BC-250, wie viele Watt die APU zieht, die vor der Temperatur steigen —, damit der Lüfter anläuft, bevor die Wärme ankommt. Oberhalb der Notfallschwelle geht er auf volle Drehzahl, ohne die Kurve zu fragen, und das lässt sich nicht abschalten.</p>
-    <p xml:lang="pl">Obserwuje też, jak szybko rośnie temperatura — a na BC-250 ile watów ciągnie APU, które rosną wcześniej niż temperatura — żeby wentylator ruszył, zanim ciepło nadejdzie. Powyżej progu awaryjnego idzie na maksimum bez pytania krzywej i nie da się tego wyłączyć.</p>
+    <p>You set the curve by points: 30% at 50 degrees, 60% at 70, and so on. The controller applies it every second, also when this window is closed.</p>
+    <p xml:lang="it">Imposti la curva a punti: a 50 gradi il 30%, a 70 il 60%, e via così. Il controllore la applica ogni secondo, anche con la finestra chiusa.</p>
+    <p xml:lang="fr">Vous réglez la courbe par points : 30 % à 50 degrés, 60 % à 70, et ainsi de suite. Le contrôleur l'applique chaque seconde, même fenêtre fermée.</p>
+    <p xml:lang="uk">Криву задаєш точками: на 50 градусах 30%, на 70 — 60%, і так далі. Регулятор застосовує її щосекунди, навіть із закритим вікном.</p>
+    <p xml:lang="ru">Кривую задаёшь точками: на 50 градусах 30%, на 70 — 60%, и так далее. Регулятор применяет её каждую секунду, даже с закрытым окном.</p>
+    <p xml:lang="es">La curva se ajusta por puntos: 30% a 50 grados, 60% a 70, y así. El controlador la aplica cada segundo, también con la ventana cerrada.</p>
+    <p xml:lang="pt">A curva define-se por pontos: 30% aos 50 graus, 60% aos 70, e assim por diante. O controlador aplica-a a cada segundo, mesmo com a janela fechada.</p>
+    <p xml:lang="de">Die Kurve stellst du über Punkte ein: 30 % bei 50 Grad, 60 % bei 70, und so weiter. Die Steuerung wendet sie jede Sekunde an, auch bei geschlossenem Fenster.</p>
+    <p xml:lang="pl">Krzywą ustawiasz punktami: przy 50 stopniach 30%, przy 70 — 60%, i tak dalej. Sterownik stosuje ją co sekundę, także przy zamkniętym oknie.</p>
+    <p>In the list you only find the sensors the board really reads. The fake ones, declared by the chip but never updated, are left out: with one of those the fan would never spin up.</p>
+    <p xml:lang="it">Nell'elenco ci sono solo i sensori che la scheda legge per davvero. Quelli finti, che il chip dichiara ma non aggiorna mai, non compaiono: con uno di quelli la ventola non partirebbe mai.</p>
+    <p xml:lang="fr">Dans la liste, seuls les capteurs que la carte lit vraiment. Les faux, déclarés par la puce mais jamais mis à jour, n'y sont pas : avec l'un d'eux le ventilateur ne démarrerait jamais.</p>
+    <p xml:lang="uk">У списку лише ті датчики, які плата справді читає. Фальшивих, які мікросхема оголошує, але ніколи не оновлює, там немає: з таким вентилятор ніколи б не рушив.</p>
+    <p xml:lang="ru">В списке только те датчики, которые плата действительно читает. Фальшивых, объявленных микросхемой, но никогда не обновляемых, там нет: с таким вентилятор никогда бы не тронулся.</p>
+    <p xml:lang="es">En la lista solo están los sensores que la placa lee de verdad. Los falsos, que el chip declara pero nunca actualiza, no salen: con uno de esos el ventilador no arrancaría nunca.</p>
+    <p xml:lang="pt">Na lista só estão os sensores que a placa lê mesmo. Os falsos, que o chip declara mas nunca atualiza, não aparecem: com um desses a ventoinha nunca arrancaria.</p>
+    <p xml:lang="de">In der Liste stehen nur die Fühler, die die Karte wirklich liest. Die falschen, vom Chip gemeldet und nie aktualisiert, fehlen: mit so einem würde der Lüfter nie anlaufen.</p>
+    <p xml:lang="pl">Na liście są tylko czujniki, które płyta naprawdę odczytuje. Fałszywych, które układ deklaruje, ale nigdy nie aktualizuje, nie ma: z takim wentylator nigdy by nie ruszył.</p>
+    <p>It also looks at how fast the temperature is climbing, and on the BC-250 at the watts the APU is pulling. The watts move first, so the fan can start early. Past the emergency temperature it goes to 100% and stays there.</p>
+    <p xml:lang="it">Guarda anche quanto in fretta sale la temperatura, e sulla BC-250 i watt che tira l'APU. I watt si muovono per primi, così la ventola può partire in anticipo. Oltre la temperatura di emergenza va al 100% e ci resta.</p>
+    <p xml:lang="fr">Il regarde aussi la vitesse de montée de la température, et sur la BC-250 les watts que tire l'APU. Les watts bougent en premier, le ventilateur peut donc démarrer en avance. Au-delà de la température d'urgence, il passe à 100 % et y reste.</p>
+    <p xml:lang="uk">Він також дивиться, як швидко зростає температура, а на BC-250 — на вати, які тягне APU. Вати рухаються першими, тож вентилятор може рушити завчасно. За аварійною температурою він іде на 100% і там лишається.</p>
+    <p xml:lang="ru">Он также смотрит, как быстро растёт температура, а на BC-250 — на ватты, которые тянет APU. Ватты двигаются первыми, поэтому вентилятор может тронуться заранее. За аварийной температурой он идёт на 100% и там остаётся.</p>
+    <p xml:lang="es">También mira a qué velocidad sube la temperatura y, en la BC-250, los vatios que tira la APU. Los vatios se mueven primero, así el ventilador puede arrancar antes. Pasada la temperatura de emergencia va al 100% y se queda ahí.</p>
+    <p xml:lang="pt">Também olha para a velocidade com que a temperatura sobe e, na BC-250, para os watts que a APU puxa. Os watts mexem-se primeiro, então a ventoinha pode arrancar antes. Passada a temperatura de emergência vai a 100% e fica lá.</p>
+    <p xml:lang="de">Sie sieht außerdem, wie schnell die Temperatur steigt, und auf der BC-250 auf die Watt, die die APU zieht. Die Watt bewegen sich zuerst, also kann der Lüfter früher anlaufen. Jenseits der Notfalltemperatur geht er auf 100 % und bleibt dort.</p>
+    <p xml:lang="pl">Patrzy też, jak szybko rośnie temperatura, a na BC-250 na waty, które ciągnie APU. Waty ruszają pierwsze, więc wentylator może wystartować wcześniej. Powyżej temperatury awaryjnej idzie na 100% i tam zostaje.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.fan.desktop</launchable>
   <icon type="stock">skillfish-fan</icon>
@@ -58,15 +67,15 @@
   </provides>
   <screenshots>
     <screenshot type="default">
-      <caption>One chart with temperatures, fan speed, watts and voltages, and the curve inside it</caption>
-      <caption xml:lang="it">Un grafico solo con temperature, giri della ventola, watt e tensioni, e dentro la curva</caption>
-      <caption xml:lang="fr">Un seul graphique avec températures, vitesse du ventilateur, watts et tensions, et la courbe dedans</caption>
-      <caption xml:lang="uk">Один графік із температурами, обертами вентилятора, ватами й напругами, і крива в ньому</caption>
-      <caption xml:lang="ru">Один график с температурами, оборотами вентилятора, ваттами и напряжениями, и кривая внутри</caption>
-      <caption xml:lang="es">Una sola gráfica con temperaturas, revoluciones del ventilador, vatios y tensiones, y la curva dentro</caption>
-      <caption xml:lang="pt">Um único gráfico com temperaturas, rotação da ventoinha, watts e tensões, e a curva dentro</caption>
-      <caption xml:lang="de">Ein Diagramm mit Temperaturen, Lüfterdrehzahl, Watt und Spannungen, und die Kurve darin</caption>
-      <caption xml:lang="pl">Jeden wykres z temperaturami, obrotami wentylatora, watami i napięciami, a w nim krzywa</caption>
+      <caption>Temperatures, fan, watts and voltages in one chart, with the curve inside</caption>
+      <caption xml:lang="it">Temperature, ventola, watt e tensioni in un grafico solo, con dentro la curva</caption>
+      <caption xml:lang="fr">Températures, ventilateur, watts et tensions dans un seul graphique, la courbe dedans</caption>
+      <caption xml:lang="uk">Температури, вентилятор, вати й напруги на одному графіку, крива всередині</caption>
+      <caption xml:lang="ru">Температуры, вентилятор, ватты и напряжения на одном графике, кривая внутри</caption>
+      <caption xml:lang="es">Temperaturas, ventilador, vatios y tensiones en una sola gráfica, con la curva dentro</caption>
+      <caption xml:lang="pt">Temperaturas, ventoinha, watts e tensões num só gráfico, com a curva dentro</caption>
+      <caption xml:lang="de">Temperaturen, Lüfter, Watt und Spannungen in einem Diagramm, die Kurve darin</caption>
+      <caption xml:lang="pl">Temperatury, wentylator, waty i napięcia na jednym wykresie, krzywa w środku</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/fan.png</image>
     </screenshot>
   </screenshots>
@@ -74,37 +83,37 @@
   <releases>
     <release version="26.08.40" date="2026-08-22">
       <description>
-        <p>New: the whole fan controller can now be used from the Remote Manager, in a browser, with the same layout as the window.</p>
-        <p xml:lang="it">Novità: il controllo della ventola si usa anche dal Remote Manager, da browser, con la stessa disposizione della finestra.</p>
-        <p xml:lang="fr">Nouveau : le contrôle du ventilateur s'utilise aussi depuis le Remote Manager, dans un navigateur, avec la même disposition que la fenêtre.</p>
-        <p xml:lang="uk">Нове: керування вентилятором тепер доступне і з Remote Manager, у браузері, з тим самим розташуванням, що й у вікні.</p>
-        <p xml:lang="ru">Новое: управление вентилятором теперь доступно и из Remote Manager, в браузере, с той же раскладкой, что и в окне.</p>
-        <p xml:lang="es">Novedad: el control del ventilador también se usa desde el Remote Manager, en un navegador, con la misma disposición que la ventana.</p>
-        <p xml:lang="pt">Novidade: o controle da ventoinha também se usa pelo Remote Manager, no navegador, com a mesma disposição da janela.</p>
-        <p xml:lang="de">Neu: Die Lüftersteuerung lässt sich jetzt auch im Remote Manager im Browser bedienen, mit derselben Aufteilung wie im Fenster.</p>
-        <p xml:lang="pl">Nowość: sterowanie wentylatorem działa też z Remote Managera, w przeglądarce, z tym samym układem co okno.</p>
-        <p>Fixed: the web dashboard and the fan controller were both writing to the same PWM output, so the fan received two different orders a second apart. Only the controller writes now.</p>
-        <p xml:lang="it">Corretto: il cruscotto web e il controllore scrivevano tutti e due sullo stesso PWM, e la ventola riceveva due ordini diversi a un secondo di distanza. Ora scrive solo il controllore.</p>
-        <p xml:lang="fr">Corrigé : le tableau de bord web et le contrôleur écrivaient tous deux sur la même sortie PWM, et le ventilateur recevait deux ordres différents à une seconde d'intervalle. Seul le contrôleur écrit désormais.</p>
-        <p xml:lang="uk">Виправлено: вебпанель і регулятор писали в той самий вихід PWM, і вентилятор отримував два різні накази з різницею в секунду. Тепер пише лише регулятор.</p>
-        <p xml:lang="ru">Исправлено: веб-панель и регулятор писали в один и тот же выход PWM, и вентилятор получал два разных приказа с разницей в секунду. Теперь пишет только регулятор.</p>
-        <p xml:lang="es">Corregido: el panel web y el controlador escribían los dos en la misma salida PWM, y el ventilador recibía dos órdenes distintas con un segundo de diferencia. Ahora solo escribe el controlador.</p>
-        <p xml:lang="pt">Corrigido: o painel web e o controlador escreviam ambos na mesma saída PWM, e a ventoinha recebia duas ordens diferentes com um segundo de diferença. Agora só o controlador escreve.</p>
-        <p xml:lang="de">Behoben: Das Web-Panel und die Steuerung schrieben beide auf denselben PWM-Ausgang, der Lüfter bekam also im Sekundenabstand zwei verschiedene Befehle. Jetzt schreibt nur noch die Steuerung.</p>
-        <p xml:lang="pl">Poprawione: panel webowy i sterownik pisały do tego samego wyjścia PWM, więc wentylator dostawał dwa różne polecenia w odstępie sekundy. Teraz pisze tylko sterownik.</p>
+        <p>Now it also works from the Remote Manager, in a browser, with the same layout.</p>
+        <p xml:lang="it">Adesso si usa anche dal Remote Manager, da browser, con la stessa disposizione.</p>
+        <p xml:lang="fr">Il fonctionne maintenant aussi depuis le Remote Manager, dans un navigateur, avec la même disposition.</p>
+        <p xml:lang="uk">Тепер працює і з Remote Manager, у браузері, з тим самим розташуванням.</p>
+        <p xml:lang="ru">Теперь работает и из Remote Manager, в браузере, с той же раскладкой.</p>
+        <p xml:lang="es">Ahora también se usa desde el Remote Manager, en un navegador, con la misma disposición.</p>
+        <p xml:lang="pt">Agora também se usa pelo Remote Manager, no navegador, com a mesma disposição.</p>
+        <p xml:lang="de">Läuft jetzt auch im Remote Manager im Browser, mit derselben Aufteilung.</p>
+        <p xml:lang="pl">Teraz działa też z Remote Managera, w przeglądarce, z tym samym układem.</p>
+        <p>Fixed: the web dashboard was writing to the fan output too, so the fan got two different orders a second apart. Now only the controller writes.</p>
+        <p xml:lang="it">Corretto: anche il cruscotto web scriveva sull'uscita della ventola, e la ventola riceveva due ordini diversi a un secondo di distanza. Ora scrive solo il controllore.</p>
+        <p xml:lang="fr">Corrigé : le tableau de bord web écrivait lui aussi sur la sortie du ventilateur, qui recevait deux ordres différents à une seconde d'intervalle. Seul le contrôleur écrit maintenant.</p>
+        <p xml:lang="uk">Виправлено: вебпанель теж писала у вихід вентилятора, і той отримував два різні накази з різницею в секунду. Тепер пише лише регулятор.</p>
+        <p xml:lang="ru">Исправлено: веб-панель тоже писала в выход вентилятора, и тот получал два разных приказа с разницей в секунду. Теперь пишет только регулятор.</p>
+        <p xml:lang="es">Corregido: el panel web también escribía en la salida del ventilador, que recibía dos órdenes distintas con un segundo de diferencia. Ahora solo escribe el controlador.</p>
+        <p xml:lang="pt">Corrigido: o painel web também escrevia na saída da ventoinha, que recebia duas ordens diferentes com um segundo de diferença. Agora só o controlador escreve.</p>
+        <p xml:lang="de">Behoben: Auch das Web-Panel schrieb auf den Lüfterausgang, der Lüfter bekam im Sekundenabstand zwei verschiedene Befehle. Jetzt schreibt nur die Steuerung.</p>
+        <p xml:lang="pl">Poprawione: panel webowy też pisał do wyjścia wentylatora, który dostawał dwa różne polecenia w odstępie sekundy. Teraz pisze tylko sterownik.</p>
       </description>
     </release>
     <release version="26.08.38" date="2026-08-21">
       <description>
-        <p>New: one single chart holds temperatures, fan speed, watts and voltages together, with the curve inside it, movable and resizable; presets redraw the curve as you pick them; a PWM test says whether the fan really obeys.</p>
-        <p xml:lang="it">Novità: un grafico solo tiene insieme temperature, giri, watt e tensioni, con la curva dentro, spostabile e ridimensionabile; i preset ridisegnano la curva mentre li scegli; una prova PWM dice se la ventola obbedisce davvero.</p>
-        <p xml:lang="fr">Nouveau : un seul graphique réunit températures, vitesse, watts et tensions, avec la courbe dedans, déplaçable et redimensionnable ; les préréglages redessinent la courbe au moment où on les choisit ; un test PWM dit si le ventilateur obéit vraiment.</p>
-        <p xml:lang="uk">Нове: один графік тримає разом температури, оберти, вати й напруги, а крива всередині — її можна пересувати й міняти розмір; набори перемальовують криву, щойно їх обереш; перевірка PWM каже, чи вентилятор справді слухається.</p>
-        <p xml:lang="ru">Новое: один график держит вместе температуры, обороты, ватты и напряжения, а кривая внутри — её можно двигать и менять в размере; наборы перерисовывают кривую сразу при выборе; проверка PWM говорит, слушается ли вентилятор на самом деле.</p>
-        <p xml:lang="es">Novedad: una sola gráfica reúne temperaturas, revoluciones, vatios y tensiones, con la curva dentro, movible y redimensionable; los ajustes predefinidos redibujan la curva al elegirlos; una prueba de PWM dice si el ventilador obedece de verdad.</p>
-        <p xml:lang="pt">Novidade: um único gráfico junta temperaturas, rotação, watts e tensões, com a curva dentro, que se move e se redimensiona; as predefinições redesenham a curva ao serem escolhidas; um teste de PWM diz se a ventoinha obedece mesmo.</p>
-        <p xml:lang="de">Neu: Ein einziges Diagramm hält Temperaturen, Drehzahl, Watt und Spannungen zusammen, mit der Kurve darin, verschiebbar und in der Größe änderbar; Voreinstellungen zeichnen die Kurve beim Auswählen neu; ein PWM-Test sagt, ob der Lüfter wirklich gehorcht.</p>
-        <p xml:lang="pl">Nowość: jeden wykres trzyma razem temperatury, obroty, waty i napięcia, a krzywa jest w środku — można ją przesuwać i zmieniać jej rozmiar; ustawienia gotowe przerysowują krzywą przy wyborze; test PWM mówi, czy wentylator naprawdę słucha.</p>
+        <p>One chart for everything: temperatures, fan, watts, voltages, with the curve inside it. You can move and resize the curve. Presets redraw it while you pick them, and a PWM test says whether the fan really obeys.</p>
+        <p xml:lang="it">Un grafico per tutto: temperature, ventola, watt, tensioni, con la curva dentro. La curva si sposta e si ridimensiona. I preset la ridisegnano mentre li scegli, e una prova PWM dice se la ventola obbedisce davvero.</p>
+        <p xml:lang="fr">Un graphique pour tout : températures, ventilateur, watts, tensions, avec la courbe dedans. La courbe se déplace et se redimensionne. Les préréglages la redessinent pendant qu'on les choisit, et un test PWM dit si le ventilateur obéit vraiment.</p>
+        <p xml:lang="uk">Один графік на все: температури, вентилятор, вати, напруги, а крива всередині. Криву можна пересувати й міняти їй розмір. Набори перемальовують її під час вибору, а перевірка PWM каже, чи вентилятор справді слухається.</p>
+        <p xml:lang="ru">Один график на всё: температуры, вентилятор, ватты, напряжения, а кривая внутри. Кривую можно двигать и менять ей размер. Наборы перерисовывают её во время выбора, а проверка PWM говорит, слушается ли вентилятор.</p>
+        <p xml:lang="es">Una gráfica para todo: temperaturas, ventilador, vatios, tensiones, con la curva dentro. La curva se mueve y se redimensiona. Los ajustes la redibujan mientras los eliges, y una prueba de PWM dice si el ventilador obedece de verdad.</p>
+        <p xml:lang="pt">Um gráfico para tudo: temperaturas, ventoinha, watts, tensões, com a curva dentro. A curva move-se e redimensiona-se. As predefinições redesenham-na enquanto as escolhes, e um teste de PWM diz se a ventoinha obedece mesmo.</p>
+        <p xml:lang="de">Ein Diagramm für alles: Temperaturen, Lüfter, Watt, Spannungen, mit der Kurve darin. Die Kurve lässt sich verschieben und in der Größe ändern. Voreinstellungen zeichnen sie beim Auswählen neu, und ein PWM-Test sagt, ob der Lüfter wirklich gehorcht.</p>
+        <p xml:lang="pl">Jeden wykres na wszystko: temperatury, wentylator, waty, napięcia, a krzywa w środku. Krzywą można przesuwać i zmieniać jej rozmiar. Ustawienia gotowe przerysowują ją podczas wyboru, a test PWM mówi, czy wentylator naprawdę słucha.</p>
       </description>
     </release>
   </releases>

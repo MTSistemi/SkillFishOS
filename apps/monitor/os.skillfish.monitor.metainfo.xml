@@ -6,34 +6,34 @@
   <name>SkillFishOS Telemetry</name>
   <name xml:lang="it">SkillFishOS Telemetry</name>
   <name xml:lang="pl">SkillFishOS Telemetry</name>
-  <summary>Live sensor charts + benchmark recorder/analyzer</summary>
-  <summary xml:lang="fr">Courbes de capteurs en direct + enregistrement et analyse des mesures</summary>
-  <summary xml:lang="uk">Графіки датчиків наживо + запис і аналіз вимірювань</summary>
-  <summary xml:lang="ru">Графики датчиков вживую + запись и разбор измерений</summary>
-  <summary xml:lang="es">Gráficas de sensores en vivo + grabación y análisis de pruebas</summary>
-  <summary xml:lang="pt">Gráficos de sensores ao vivo + gravação e análise de medições</summary>
-  <summary xml:lang="de">Sensorkurven in Echtzeit + Aufzeichnung und Auswertung von Messungen</summary>
-  <summary xml:lang="it">Grafici live dei sensori + registratore/analizzatore di benchmark</summary>
-  <summary xml:lang="pl">Wykresy sensorów na żywo + rejestrator/analizator benchmarków</summary>
+  <summary>Live charts, and a recorder to compare runs</summary>
+  <summary xml:lang="it">Grafici dal vivo, e un registratore per confrontare le prove</summary>
+  <summary xml:lang="fr">Courbes en direct, et un enregistreur pour comparer les essais</summary>
+  <summary xml:lang="uk">Графіки наживо і запис, щоб порівнювати прогони</summary>
+  <summary xml:lang="ru">Графики вживую и запись, чтобы сравнивать прогоны</summary>
+  <summary xml:lang="es">Gráficas en vivo y un grabador para comparar pruebas</summary>
+  <summary xml:lang="pt">Gráficos ao vivo e um gravador para comparar corridas</summary>
+  <summary xml:lang="de">Kurven in Echtzeit und eine Aufzeichnung zum Vergleichen</summary>
+  <summary xml:lang="pl">Wykresy na żywo i rejestrator do porównywania przebiegów</summary>
   <description>
-    <p>A standalone live dashboard for the AMD BC-250: real-time line charts of CPU and GPU temperature, clock frequency, GPU voltage and fan speed, read straight from the hardware sensors.</p>
-    <p xml:lang="fr">Un tableau de bord en direct et autonome pour l'AMD BC-250 : courbes en temps réel de la température du CPU et du GPU, de la fréquence, de la tension du GPU et de la vitesse du ventilateur, lues directement sur les capteurs du matériel.</p>
-    <p xml:lang="uk">Самостійна панель наживо для AMD BC-250: графіки температури процесора й відеоядра, частоти, напруги відеоядра та обертів вентилятора в реальному часі, зчитані просто з датчиків заліза.</p>
-    <p xml:lang="ru">Самостоятельная панель вживую для AMD BC-250: графики температуры процессора и видеоядра, частоты, напряжения видеоядра и оборотов вентилятора в реальном времени, считанные прямо с датчиков железа.</p>
-    <p xml:lang="es">Un panel en vivo independiente para la AMD BC-250: gráficas en tiempo real de la temperatura de CPU y GPU, la frecuencia, el voltaje de la GPU y la velocidad del ventilador, leídas directamente de los sensores del hardware.</p>
-    <p xml:lang="pt">Um painel ao vivo independente para a AMD BC-250: gráficos em tempo real da temperatura de CPU e GPU, da frequência, da tensão da GPU e da rotação da ventoinha, lidos direto dos sensores do hardware.</p>
-    <p xml:lang="de">Eine eigenständige Anzeige in Echtzeit für die AMD BC-250: Kurven von CPU- und GPU-Temperatur, Takt, GPU-Spannung und Lüfterdrehzahl, direkt von den Fühlern der Hardware gelesen.</p>
-    <p>Sensor sampling runs on a background thread so the interface stays smooth, and the refresh interval is adjustable. Part of the native SkillFishOS app suite.</p>
-    <p xml:lang="fr">La lecture des capteurs tourne sur un fil séparé pour que l'interface reste fluide, et l'intervalle de rafraîchissement se règle. Fait partie des applications natives de SkillFishOS.</p>
-    <p xml:lang="uk">Опитування датчиків іде окремим потоком, тож вікно лишається плавним, а частоту оновлення можна змінювати. Частина набору рідних програм SkillFishOS.</p>
-    <p xml:lang="ru">Опрос датчиков идёт в отдельном потоке, поэтому окно остаётся плавным, а частоту обновления можно менять. Часть набора родных приложений SkillFishOS.</p>
-    <p xml:lang="es">La lectura de los sensores corre en un hilo aparte para que la interfaz siga fluida, y el intervalo de refresco se puede cambiar. Forma parte del conjunto de aplicaciones propias de SkillFishOS.</p>
-    <p xml:lang="pt">A leitura dos sensores roda numa thread à parte para a interface seguir fluida, e o intervalo de atualização é ajustável. Faz parte do conjunto de aplicativos nativos do SkillFishOS.</p>
-    <p xml:lang="de">Das Abfragen der Fühler läuft in einem eigenen Thread, damit die Oberfläche flüssig bleibt, und der Abstand zwischen den Messungen lässt sich einstellen. Teil der eigenen Anwendungen von SkillFishOS.</p>
-    <p xml:lang="it">Un cruscotto live indipendente per l'AMD BC-250: grafici in tempo reale di temperatura CPU e GPU, frequenza di clock, voltaggio GPU e velocità della ventola, letti direttamente dai sensori hardware.</p>
-    <p xml:lang="pl">Samodzielny pulpit na żywo dla AMD BC-250: wykresy liniowe w czasie rzeczywistym temperatury CPU i GPU, częstotliwości zegara, napięcia GPU i prędkości wentylatora, odczytywane bezpośrednio z czujników sprzętowych.</p>
-    <p xml:lang="it">Il campionamento dei sensori gira su un thread dedicato così l'interfaccia resta fluida, e l'intervallo di aggiornamento è regolabile. Fa parte della suite di app native di SkillFishOS.</p>
-    <p xml:lang="pl">Próbkowanie czujników działa na osobnym wątku, dzięki czemu interfejs pozostaje płynny, a interwał odświeżania jest regulowany. Część natywnego zestawu aplikacji SkillFishOS.</p>
+    <p>Temperatures, clocks, GPU voltage, watts, load and fan speed, read straight from the sensors and drawn as they change. The refresh can go down to half a second.</p>
+    <p xml:lang="it">Temperature, frequenze, tensione della GPU, watt, carico e giri della ventola, letti dai sensori e disegnati mentre cambiano. L'aggiornamento arriva fino a mezzo secondo.</p>
+    <p xml:lang="fr">Températures, fréquences, tension du GPU, watts, charge et vitesse du ventilateur, lus sur les capteurs et tracés au fil des variations. Le rafraîchissement descend à une demi-seconde.</p>
+    <p xml:lang="uk">Температури, частоти, напруга GPU, вати, завантаження й оберти вентилятора, зчитані з датчиків і намальовані в русі. Оновлення можна опустити до пів секунди.</p>
+    <p xml:lang="ru">Температуры, частоты, напряжение GPU, ватты, загрузка и обороты вентилятора, считанные с датчиков и нарисованные на ходу. Обновление можно опустить до полусекунды.</p>
+    <p xml:lang="es">Temperaturas, frecuencias, tensión de la GPU, vatios, carga y revoluciones del ventilador, leídos de los sensores y dibujados mientras cambian. El refresco baja hasta medio segundo.</p>
+    <p xml:lang="pt">Temperaturas, frequências, tensão da GPU, watts, carga e rotação da ventoinha, lidos dos sensores e desenhados enquanto mudam. A atualização desce até meio segundo.</p>
+    <p xml:lang="de">Temperaturen, Takte, GPU-Spannung, Watt, Auslastung und Lüfterdrehzahl, direkt von den Fühlern gelesen und im Verlauf gezeichnet. Die Auffrischung geht bis auf eine halbe Sekunde herunter.</p>
+    <p xml:lang="pl">Temperatury, zegary, napięcie GPU, waty, obciążenie i obroty wentylatora, odczytane z czujników i rysowane na bieżąco. Odświeżanie schodzi do pół sekundy.</p>
+    <p>Press record and the session is saved to a .sfmon file. Open it again later and you can walk through the whole run second by second, which is how you compare a change against the run before it.</p>
+    <p xml:lang="it">Premi registra e la sessione finisce in un file .sfmon. Lo riapri dopo e ripercorri tutta la prova secondo per secondo: è così che confronti una modifica con la prova di prima.</p>
+    <p xml:lang="fr">Appuyez sur enregistrer et la séance part dans un fichier .sfmon. Rouvrez-le ensuite et parcourez tout l'essai seconde par seconde : c'est ainsi qu'on compare un changement à l'essai précédent.</p>
+    <p xml:lang="uk">Тиснеш «запис» — і сеанс іде у файл .sfmon. Відкриваєш його потім і проходиш увесь прогін секунда за секундою: саме так порівнюєш зміну з попереднім прогоном.</p>
+    <p xml:lang="ru">Нажимаешь «запись» — и сеанс уходит в файл .sfmon. Открываешь его потом и проходишь весь прогон секунда за секундой: именно так сравниваешь изменение с прошлым прогоном.</p>
+    <p xml:lang="es">Pulsas grabar y la sesión va a un archivo .sfmon. Lo vuelves a abrir después y recorres toda la prueba segundo a segundo: así comparas un cambio con la prueba anterior.</p>
+    <p xml:lang="pt">Carregas em gravar e a sessão vai para um ficheiro .sfmon. Abres outra vez depois e percorres a corrida inteira segundo a segundo: é assim que comparas uma alteração com a corrida anterior.</p>
+    <p xml:lang="de">Auf Aufnahme drücken, und die Sitzung landet in einer .sfmon-Datei. Später wieder öffnen und den ganzen Durchlauf Sekunde für Sekunde durchgehen: so vergleicht man eine Änderung mit dem Lauf davor.</p>
+    <p xml:lang="pl">Naciskasz nagrywanie i sesja trafia do pliku .sfmon. Otwierasz go później i przechodzisz cały przebieg sekunda po sekundzie: tak porównuje się zmianę z poprzednim przebiegiem.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.monitor.desktop</launchable>
   <icon type="stock">skillfishos</icon>

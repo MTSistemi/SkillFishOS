@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.menu</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS menu group</name>
+  <summary>Our tools in one place in the menu</summary>
+  <summary xml:lang="it">I nostri strumenti in un posto solo del menù</summary>
+  <summary xml:lang="fr">Nos outils au même endroit dans le menu</summary>
+  <summary xml:lang="uk">Наші інструменти в одному місці меню</summary>
+  <summary xml:lang="ru">Наши инструменты в одном месте меню</summary>
+  <summary xml:lang="es">Nuestras herramientas en un solo sitio del menú</summary>
+  <summary xml:lang="pt">As nossas ferramentas num só lugar do menu</summary>
+  <summary xml:lang="de">Unsere Werkzeuge an einer Stelle im Menü</summary>
+  <summary xml:lang="pl">Nasze narzędzia w jednym miejscu menu</summary>
+  <description>
+    <p>One group in the application menu that holds the SkillFishOS tools, instead of leaving them scattered among the system entries. It is only the group: the tools come from their own packages.</p>
+    <p xml:lang="it">Un gruppo nel menù delle applicazioni che tiene insieme gli strumenti SkillFishOS, invece di lasciarli sparsi fra le voci di sistema. È solo il gruppo: gli strumenti arrivano dai loro pacchetti.</p>
+    <p xml:lang="fr">Un groupe dans le menu des applications qui rassemble les outils SkillFishOS au lieu de les laisser éparpillés parmi les entrées système. Ce n'est que le groupe : les outils viennent de leurs propres paquets.</p>
+    <p xml:lang="uk">Одна група в меню програм, яка тримає разом інструменти SkillFishOS, замість того щоб лишати їх серед системних пунктів. Це лише група: інструменти приходять зі своїх пакунків.</p>
+    <p xml:lang="ru">Одна группа в меню приложений, которая держит вместе инструменты SkillFishOS, вместо того чтобы оставлять их среди системных пунктов. Это только группа: инструменты приходят из своих пакетов.</p>
+    <p xml:lang="es">Un grupo en el menú de aplicaciones que reúne las herramientas de SkillFishOS, en vez de dejarlas repartidas entre las entradas del sistema. Es solo el grupo: las herramientas vienen de sus paquetes.</p>
+    <p xml:lang="pt">Um grupo no menu de aplicações que junta as ferramentas do SkillFishOS, em vez de as deixar espalhadas entre as entradas do sistema. É só o grupo: as ferramentas vêm dos seus pacotes.</p>
+    <p xml:lang="de">Eine Gruppe im Anwendungsmenü, die die SkillFishOS-Werkzeuge zusammenhält, statt sie zwischen den Systemeinträgen zu verstreuen. Es ist nur die Gruppe: die Werkzeuge kommen aus ihren eigenen Paketen.</p>
+    <p xml:lang="pl">Jedna grupa w menu aplikacji, która trzyma razem narzędzia SkillFishOS, zamiast zostawiać je wśród pozycji systemowych. To tylko grupa: narzędzia pochodzą z własnych pakietów.</p>
+  </description>
+  <icon type="stock">skillfish-menu</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-menu</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>It has its own page here now, with an icon and a description in every language we ship.</p>
+        <p xml:lang="it">Adesso ha una pagina sua qui, con un'icona e la descrizione in tutte le lingue che spediamo.</p>
+        <p xml:lang="fr">Il a maintenant sa page ici, avec une icône et la description dans toutes les langues que nous livrons.</p>
+        <p xml:lang="uk">Тепер має тут свою сторінку, з піктограмою й описом усіма мовами, які ми постачаємо.</p>
+        <p xml:lang="ru">Теперь у него здесь своя страница, с иконкой и описанием на всех языках, которые мы поставляем.</p>
+        <p xml:lang="es">Ahora tiene aquí su página, con un icono y la descripción en todos los idiomas que enviamos.</p>
+        <p xml:lang="pt">Agora tem aqui a sua página, com um ícone e a descrição em todas as línguas que enviamos.</p>
+        <p xml:lang="de">Hat jetzt eine eigene Seite hier, mit Symbol und Beschreibung in allen Sprachen, die wir ausliefern.</p>
+        <p xml:lang="pl">Ma teraz tutaj własną stronę, z ikoną i opisem we wszystkich językach, które dostarczamy.</p>
+      </description>
+    </release>
+  </releases>
+</component>

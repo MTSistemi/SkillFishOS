@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Remote Manager</name>
-  <summary>The board from a browser: telemetry, controls, desktop and terminal</summary>
-  <summary xml:lang="it">La scheda da un browser: telemetria, controlli, desktop e terminale</summary>
-  <summary xml:lang="fr">La carte depuis un navigateur : télémétrie, réglages, bureau et terminal</summary>
-  <summary xml:lang="uk">Плата з браузера: телеметрія, керування, стільниця й термінал</summary>
-  <summary xml:lang="ru">Плата из браузера: телеметрия, управление, рабочий стол и терминал</summary>
-  <summary xml:lang="es">La placa desde un navegador: telemetría, controles, escritorio y terminal</summary>
-  <summary xml:lang="pt">A placa a partir de um navegador: telemetria, controles, área de trabalho e terminal</summary>
-  <summary xml:lang="de">Die Karte aus dem Browser: Telemetrie, Regler, Schreibtisch und Terminal</summary>
-  <summary xml:lang="pl">Płyta z przeglądarki: telemetria, sterowanie, pulpit i terminal</summary>
+  <summary>The board from a browser, on any device</summary>
+  <summary xml:lang="it">La scheda da un browser, da qualsiasi dispositivo</summary>
+  <summary xml:lang="fr">La carte depuis un navigateur, sur n'importe quel appareil</summary>
+  <summary xml:lang="uk">Плата з браузера, з будь-якого пристрою</summary>
+  <summary xml:lang="ru">Плата из браузера, с любого устройства</summary>
+  <summary xml:lang="es">La placa desde un navegador, en cualquier dispositivo</summary>
+  <summary xml:lang="pt">A placa a partir de um navegador, em qualquer dispositivo</summary>
+  <summary xml:lang="de">Die Karte aus dem Browser, auf jedem Gerät</summary>
+  <summary xml:lang="pl">Płyta z przeglądarki, na dowolnym urządzeniu</summary>
   <description>
-    <p>A dashboard the machine serves itself, over HTTPS and behind the system login: live temperatures and clocks, the Tuner, the fan curve, the HUD configurator, the software Hub, the desktop through noVNC, a web terminal, logs and Wake-on-LAN. Each module can be switched off, and what is off is not served at all.</p>
-    <p xml:lang="it">Un cruscotto che la macchina serve da sé, in HTTPS e dietro l'accesso di sistema: temperature e frequenze dal vivo, il Tuner, la curva della ventola, il configuratore del HUD, l'Hub del software, il desktop via noVNC, un terminale web, i log e il Wake-on-LAN. Ogni modulo si può spegnere, e quello spento non viene proprio servito.</p>
-    <p xml:lang="fr">Un tableau de bord que la machine sert elle-même, en HTTPS et derrière la connexion du système : températures et fréquences en direct, le Tuner, la courbe du ventilateur, le configurateur du HUD, le Hub logiciel, le bureau via noVNC, un terminal web, les journaux et le Wake-on-LAN. Chaque module se coupe, et ce qui est coupé n'est pas servi du tout.</p>
-    <p xml:lang="uk">Панель, яку машина віддає сама, через HTTPS і за системним входом: температури й частоти наживо, Tuner, крива вентилятора, налаштування HUD, програмний Hub, стільниця через noVNC, вебтермінал, журнали та Wake-on-LAN. Кожен модуль можна вимкнути, і вимкнений не віддається взагалі.</p>
-    <p xml:lang="ru">Панель, которую машина отдаёт сама, по HTTPS и за системным входом: температуры и частоты вживую, Tuner, кривая вентилятора, настройка HUD, программный Hub, рабочий стол через noVNC, веб-терминал, журналы и Wake-on-LAN. Каждый модуль можно выключить, и выключенный не отдаётся вовсе.</p>
-    <p xml:lang="es">Un panel que la máquina sirve por sí misma, por HTTPS y tras el inicio de sesión del sistema: temperaturas y frecuencias en vivo, el Tuner, la curva del ventilador, el configurador del HUD, el Hub de software, el escritorio por noVNC, un terminal web, los registros y Wake-on-LAN. Cada módulo se puede apagar, y lo apagado no se sirve en absoluto.</p>
-    <p xml:lang="pt">Um painel que a máquina serve sozinha, por HTTPS e atrás do login do sistema: temperaturas e frequências ao vivo, o Tuner, a curva da ventoinha, o configurador do HUD, o Hub de software, a área de trabalho por noVNC, um terminal web, os logs e Wake-on-LAN. Cada módulo pode ser desligado, e o que está desligado não é servido de todo.</p>
-    <p xml:lang="de">Eine Anzeige, die die Maschine selbst ausliefert, über HTTPS und hinter der Systemanmeldung: Temperaturen und Takte in Echtzeit, der Tuner, die Lüfterkurve, der HUD-Einrichter, der Software-Hub, der Schreibtisch über noVNC, ein Web-Terminal, die Protokolle und Wake-on-LAN. Jedes Modul lässt sich abschalten, und was aus ist, wird gar nicht erst ausgeliefert.</p>
-    <p xml:lang="pl">Pulpit, który maszyna serwuje sama, po HTTPS i za logowaniem systemowym: temperatury i zegary na żywo, Tuner, krzywa wentylatora, konfigurator HUD, Hub oprogramowania, pulpit przez noVNC, terminal webowy, dzienniki i Wake-on-LAN. Każdy moduł można wyłączyć, a wyłączony nie jest w ogóle serwowany.</p>
-    <p>The login is the machine's own: the same user and password as the system, checked by PAM, over a certificate the board generates for itself. Nothing is sent anywhere else and there is no account to create.</p>
-    <p xml:lang="it">L'accesso è quello della macchina: stesso utente e stessa password del sistema, verificati da PAM, su un certificato che la scheda si genera da sola. Niente esce da qui e non c'è nessun account da creare.</p>
-    <p xml:lang="fr">La connexion est celle de la machine : même utilisateur et même mot de passe que le système, vérifiés par PAM, sur un certificat que la carte se génère elle-même. Rien ne part ailleurs et il n'y a aucun compte à créer.</p>
-    <p xml:lang="uk">Вхід — це вхід самої машини: той самий користувач і пароль, що й у системі, перевіряє PAM, через сертифікат, який плата створює сама. Нічого нікуди не йде, і жодного облікового запису створювати не треба.</p>
-    <p xml:lang="ru">Вход — это вход самой машины: тот же пользователь и пароль, что и в системе, проверяет PAM, по сертификату, который плата создаёт сама. Ничего никуда не уходит, и никакой учётной записи создавать не надо.</p>
-    <p xml:lang="es">El acceso es el de la máquina: mismo usuario y contraseña que el sistema, comprobados por PAM, sobre un certificado que la placa se genera sola. Nada sale de aquí y no hay ninguna cuenta que crear.</p>
-    <p xml:lang="pt">O acesso é o da própria máquina: mesmo usuário e senha do sistema, verificados pelo PAM, sobre um certificado que a placa gera sozinha. Nada sai daqui e não há conta nenhuma para criar.</p>
-    <p xml:lang="de">Die Anmeldung ist die der Maschine: derselbe Benutzer und dasselbe Passwort wie im System, von PAM geprüft, über ein Zertifikat, das die Karte sich selbst ausstellt. Nichts geht irgendwo anders hin, und es gibt kein Konto anzulegen.</p>
-    <p xml:lang="pl">Logowanie jest logowaniem samej maszyny: ten sam użytkownik i hasło co w systemie, sprawdzane przez PAM, po certyfikacie, który płyta generuje sobie sama. Nic nigdzie nie wychodzi i nie ma żadnego konta do zakładania.</p>
+    <p>Temperatures and clocks, the Tuner, the fan curve, the HUD, the software Hub, the desktop over noVNC, a terminal, the logs and Wake-on-LAN. Each module can be switched off, and what is off is not served.</p>
+    <p xml:lang="it">Temperature e frequenze, il Tuner, la curva della ventola, il HUD, l'Hub del software, il desktop via noVNC, un terminale, i log e il Wake-on-LAN. Ogni modulo si può spegnere, e quello spento non viene servito.</p>
+    <p xml:lang="fr">Températures et fréquences, le Tuner, la courbe du ventilateur, le HUD, le Hub logiciel, le bureau via noVNC, un terminal, les journaux et le Wake-on-LAN. Chaque module se coupe, et ce qui est coupé n'est pas servi.</p>
+    <p xml:lang="uk">Температури й частоти, Tuner, крива вентилятора, HUD, програмний Hub, стільниця через noVNC, термінал, журнали та Wake-on-LAN. Кожен модуль можна вимкнути, і вимкнений не віддається.</p>
+    <p xml:lang="ru">Температуры и частоты, Tuner, кривая вентилятора, HUD, программный Hub, рабочий стол через noVNC, терминал, журналы и Wake-on-LAN. Каждый модуль можно выключить, и выключенный не отдаётся.</p>
+    <p xml:lang="es">Temperaturas y frecuencias, el Tuner, la curva del ventilador, el HUD, el Hub de software, el escritorio por noVNC, un terminal, los registros y Wake-on-LAN. Cada módulo se puede apagar, y lo apagado no se sirve.</p>
+    <p xml:lang="pt">Temperaturas e frequências, o Tuner, a curva da ventoinha, o HUD, o Hub de software, a área de trabalho por noVNC, um terminal, os logs e Wake-on-LAN. Cada módulo pode ser desligado, e o que está desligado não é servido.</p>
+    <p xml:lang="de">Temperaturen und Takte, der Tuner, die Lüfterkurve, das HUD, der Software-Hub, der Schreibtisch über noVNC, ein Terminal, die Protokolle und Wake-on-LAN. Jedes Modul lässt sich abschalten, und was aus ist, wird nicht ausgeliefert.</p>
+    <p xml:lang="pl">Temperatury i zegary, Tuner, krzywa wentylatora, HUD, Hub oprogramowania, pulpit przez noVNC, terminal, dzienniki i Wake-on-LAN. Każdy moduł można wyłączyć, a wyłączony nie jest serwowany.</p>
+    <p>You log in with the machine's own user and password, over HTTPS with a certificate the board makes for itself. There is no account to create and nothing leaves the machine.</p>
+    <p xml:lang="it">Entri con l'utente e la password della macchina, in HTTPS con un certificato che la scheda si fa da sola. Non c'è nessun account da creare e non esce niente dalla macchina.</p>
+    <p xml:lang="fr">Vous entrez avec l'utilisateur et le mot de passe de la machine, en HTTPS avec un certificat que la carte fabrique elle-même. Aucun compte à créer et rien ne quitte la machine.</p>
+    <p xml:lang="uk">Заходиш з користувачем і паролем самої машини, через HTTPS із сертифікатом, який плата робить сама. Створювати обліковий запис не треба, і з машини нічого не виходить.</p>
+    <p xml:lang="ru">Входишь с пользователем и паролем самой машины, по HTTPS с сертификатом, который плата делает сама. Учётную запись создавать не надо, и с машины ничего не уходит.</p>
+    <p xml:lang="es">Entras con el usuario y la contraseña de la máquina, por HTTPS con un certificado que la placa se hace sola. No hay cuenta que crear y nada sale de la máquina.</p>
+    <p xml:lang="pt">Entra com o utilizador e a palavra-passe da máquina, por HTTPS com um certificado que a placa faz sozinha. Não há conta para criar e nada sai da máquina.</p>
+    <p xml:lang="de">Du meldest dich mit Benutzer und Passwort der Maschine an, über HTTPS mit einem Zertifikat, das die Karte selbst erstellt. Es gibt kein Konto anzulegen, und nichts verlässt die Maschine.</p>
+    <p xml:lang="pl">Logujesz się użytkownikiem i hasłem samej maszyny, po HTTPS z certyfikatem, który płyta robi sobie sama. Nie ma konta do zakładania i nic nie wychodzi z maszyny.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.remote-manager.desktop</launchable>
   <icon type="stock">skillfish-remote</icon>
@@ -58,39 +58,40 @@
   </provides>
   <screenshots>
     <screenshot type="default">
-      <caption>The switch that starts and stops the dashboard, with the address to reach it</caption>
-      <caption xml:lang="it">L'interruttore che accende e spegne il cruscotto, con l'indirizzo per raggiungerlo</caption>
-      <caption xml:lang="fr">L'interrupteur qui démarre et arrête le tableau de bord, avec l'adresse pour l'atteindre</caption>
-      <caption xml:lang="uk">Перемикач, що вмикає й вимикає панель, і адреса, за якою її знайти</caption>
-      <caption xml:lang="ru">Переключатель, который включает и выключает панель, и адрес, по которому её найти</caption>
-      <caption xml:lang="es">El interruptor que enciende y apaga el panel, con la dirección para alcanzarlo</caption>
-      <caption xml:lang="pt">O interruptor que liga e desliga o painel, com o endereço para alcançá-lo</caption>
-      <caption xml:lang="de">Der Schalter, der die Anzeige startet und stoppt, mit der Adresse dazu</caption>
-      <caption xml:lang="pl">Przełącznik, który włącza i wyłącza pulpit, wraz z adresem do niego</caption>
+      <caption>The switch that starts the dashboard, with the address to reach it</caption>
+      <caption xml:lang="it">L'interruttore che accende il cruscotto, con l'indirizzo per raggiungerlo</caption>
+      <caption xml:lang="fr">L'interrupteur qui démarre le tableau de bord, avec l'adresse pour y accéder</caption>
+      <caption xml:lang="uk">Перемикач, що вмикає панель, і адреса, за якою її відкрити</caption>
+      <caption xml:lang="ru">Переключатель, который включает панель, и адрес для входа</caption>
+      <caption xml:lang="es">El interruptor que enciende el panel, con la dirección para llegar</caption>
+      <caption xml:lang="pt">O interruptor que liga o painel, com o endereço para chegar lá</caption>
+      <caption xml:lang="de">Der Schalter, der die Anzeige startet, mit der Adresse dazu</caption>
+      <caption xml:lang="pl">Przełącznik, który włącza pulpit, wraz z adresem do niego</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/remote.png</image>
     </screenshot>
   </screenshots>
+  <content_rating type="oars-1.1"/>
   <releases>
     <release version="26.08.40" date="2026-08-22">
       <description>
-        <p>New: the fan controller and the HUD configurator are now two modules of the dashboard, with the same layout as the windows on the desktop.</p>
-        <p xml:lang="it">Novità: il controllo della ventola e il configuratore del HUD sono due moduli del cruscotto, con la stessa disposizione delle finestre sulla scrivania.</p>
-        <p xml:lang="fr">Nouveau : le contrôle du ventilateur et le configurateur du HUD sont deux modules du tableau de bord, avec la même disposition que les fenêtres du bureau.</p>
-        <p xml:lang="uk">Нове: керування вентилятором і налаштування HUD стали двома модулями панелі, з тим самим розташуванням, що й вікна на стільниці.</p>
-        <p xml:lang="ru">Новое: управление вентилятором и настройка HUD стали двумя модулями панели, с той же раскладкой, что и окна на рабочем столе.</p>
-        <p xml:lang="es">Novedad: el control del ventilador y el configurador del HUD son dos módulos del panel, con la misma disposición que las ventanas del escritorio.</p>
-        <p xml:lang="pt">Novidade: o controle da ventoinha e o configurador do HUD são dois módulos do painel, com a mesma disposição das janelas na área de trabalho.</p>
-        <p xml:lang="de">Neu: Die Lüftersteuerung und der HUD-Einrichter sind zwei Module der Anzeige, mit derselben Aufteilung wie die Fenster auf dem Schreibtisch.</p>
-        <p xml:lang="pl">Nowość: sterowanie wentylatorem i konfigurator HUD to dwa moduły pulpitu, z tym samym układem co okna na pulpicie.</p>
-        <p>Fixed: writing the HUD settings from the dashboard used to leave the files owned by root, so the window on the desktop could no longer save them.</p>
-        <p xml:lang="it">Corretto: scrivendo le impostazioni del HUD dal cruscotto i file restavano di root, e la finestra sulla scrivania non riusciva più a salvarle.</p>
-        <p xml:lang="fr">Corrigé : en écrivant les réglages du HUD depuis le tableau de bord, les fichiers restaient à root, et la fenêtre du bureau ne pouvait plus les enregistrer.</p>
-        <p xml:lang="uk">Виправлено: коли налаштування HUD писалися з панелі, файли лишалися власністю root, і вікно на стільниці більше не могло їх зберегти.</p>
-        <p xml:lang="ru">Исправлено: при записи настроек HUD из панели файлы оставались во владении root, и окно на рабочем столе больше не могло их сохранить.</p>
-        <p xml:lang="es">Corregido: al escribir los ajustes del HUD desde el panel, los archivos quedaban de root y la ventana del escritorio ya no podía guardarlos.</p>
-        <p xml:lang="pt">Corrigido: ao escrever as configurações do HUD pelo painel, os arquivos ficavam de root e a janela na área de trabalho já não conseguia salvá-las.</p>
-        <p xml:lang="de">Behoben: Beim Schreiben der HUD-Einstellungen aus der Anzeige gehörten die Dateien danach root, und das Fenster auf dem Schreibtisch konnte sie nicht mehr sichern.</p>
-        <p xml:lang="pl">Poprawione: przy zapisie ustawień HUD z pulpitu pliki zostawały własnością roota i okno na pulpicie nie mogło ich już zapisać.</p>
+        <p>Two new modules: the fan curve and the HUD, with the same layout as the windows on the desktop.</p>
+        <p xml:lang="it">Due moduli nuovi: la curva della ventola e il HUD, con la stessa disposizione delle finestre sulla scrivania.</p>
+        <p xml:lang="fr">Deux nouveaux modules : la courbe du ventilateur et le HUD, avec la même disposition que les fenêtres du bureau.</p>
+        <p xml:lang="uk">Два нові модулі: крива вентилятора і HUD, з тим самим розташуванням, що й вікна на стільниці.</p>
+        <p xml:lang="ru">Два новых модуля: кривая вентилятора и HUD, с той же раскладкой, что и окна на рабочем столе.</p>
+        <p xml:lang="es">Dos módulos nuevos: la curva del ventilador y el HUD, con la misma disposición que las ventanas del escritorio.</p>
+        <p xml:lang="pt">Dois módulos novos: a curva da ventoinha e o HUD, com a mesma disposição das janelas na área de trabalho.</p>
+        <p xml:lang="de">Zwei neue Module: die Lüfterkurve und das HUD, mit derselben Aufteilung wie die Fenster auf dem Schreibtisch.</p>
+        <p xml:lang="pl">Dwa nowe moduły: krzywa wentylatora i HUD, z tym samym układem co okna na pulpicie.</p>
+        <p>Fixed: settings written from the dashboard stayed owned by root, so the window on the desktop could no longer save them.</p>
+        <p xml:lang="it">Corretto: le impostazioni scritte dal cruscotto restavano di root, e la finestra sulla scrivania non riusciva più a salvarle.</p>
+        <p xml:lang="fr">Corrigé : les réglages écrits depuis le tableau de bord restaient à root, et la fenêtre du bureau ne pouvait plus les enregistrer.</p>
+        <p xml:lang="uk">Виправлено: налаштування, записані з панелі, лишалися власністю root, і вікно на стільниці більше не могло їх зберегти.</p>
+        <p xml:lang="ru">Исправлено: настройки, записанные из панели, оставались во владении root, и окно на рабочем столе больше не могло их сохранить.</p>
+        <p xml:lang="es">Corregido: los ajustes escritos desde el panel quedaban de root y la ventana del escritorio ya no podía guardarlos.</p>
+        <p xml:lang="pt">Corrigido: as definições escritas pelo painel ficavam de root e a janela na área de trabalho já não conseguia guardá-las.</p>
+        <p xml:lang="de">Behoben: Aus der Anzeige geschriebene Einstellungen gehörten danach root, und das Fenster auf dem Schreibtisch konnte sie nicht mehr sichern.</p>
+        <p xml:lang="pl">Poprawione: ustawienia zapisane z pulpitu zostawały własnością roota i okno na pulpicie nie mogło ich już zapisać.</p>
       </description>
     </release>
   </releases>

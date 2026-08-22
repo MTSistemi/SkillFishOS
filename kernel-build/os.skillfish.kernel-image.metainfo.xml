@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.kernel-image</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS kernel</name>
+  <summary>The kernel built for this board, with the BC-250 patches</summary>
+  <summary xml:lang="it">Il kernel compilato per questa scheda, con le patch della BC-250</summary>
+  <summary xml:lang="fr">Le noyau compilé pour cette carte, avec les correctifs de la BC-250</summary>
+  <summary xml:lang="uk">Ядро, зібране для цієї плати, із латками для BC-250</summary>
+  <summary xml:lang="ru">Ядро, собранное для этой платы, с патчами для BC-250</summary>
+  <summary xml:lang="es">El núcleo compilado para esta placa, con los parches de la BC-250</summary>
+  <summary xml:lang="pt">O núcleo compilado para esta placa, com os patches da BC-250</summary>
+  <summary xml:lang="de">Der für diese Karte gebaute Kernel, mit den BC-250-Korrekturen</summary>
+  <summary xml:lang="pl">Jądro zbudowane dla tej płyty, z łatami dla BC-250</summary>
+  <description>
+    <p>A linux-tkg kernel built for the AMD BC-250: the GPU frequency unlocked from 350 to 2230 MHz, all forty compute units available, and the boot spam about RDSEED silenced — the chip's own quirks, fixed where they can be fixed and worked around where they cannot.</p>
+    <p xml:lang="it">Un kernel linux-tkg compilato per l'AMD BC-250: la frequenza della GPU sbloccata da 350 a 2230 MHz, tutte e quaranta le unità di calcolo disponibili, e il rumore di avvio su RDSEED zittito — i difetti di questo chip, corretti dove si può e aggirati dove non si può.</p>
+    <p xml:lang="fr">Un noyau linux-tkg compilé pour l'AMD BC-250 : la fréquence du GPU débloquée de 350 à 2230 MHz, les quarante unités de calcul disponibles, et le bavardage de démarrage sur RDSEED réduit au silence — les défauts propres à cette puce, corrigés là où c'est possible et contournés là où ça ne l'est pas.</p>
+    <p xml:lang="uk">Ядро linux-tkg, зібране для AMD BC-250: частота відеоядра розблокована з 350 до 2230 МГц, доступні всі сорок обчислювальних блоків, а балаканина про RDSEED під час завантаження стишена — вади саме цього чипа, виправлені там, де можна, і обійдені там, де ні.</p>
+    <p xml:lang="ru">Ядро linux-tkg, собранное для AMD BC-250: частота видеоядра разблокирована с 350 до 2230 МГц, доступны все сорок вычислительных блоков, а болтовня про RDSEED при загрузке заглушена — недостатки именно этого чипа, исправленные там, где можно, и обойдённые там, где нельзя.</p>
+    <p xml:lang="es">Un núcleo linux-tkg compilado para la AMD BC-250: la frecuencia de la GPU desbloqueada de 350 a 2230 MHz, las cuarenta unidades de cálculo disponibles, y el ruido de arranque sobre RDSEED callado — los defectos propios de este chip, corregidos donde se puede y sorteados donde no.</p>
+    <p xml:lang="pt">Um núcleo linux-tkg compilado para a AMD BC-250: a frequência da GPU destravada de 350 a 2230 MHz, as quarenta unidades de cálculo disponíveis, e a tagarelice de arranque sobre o RDSEED calada — os defeitos próprios deste chip, corrigidos onde dá e contornados onde não dá.</p>
+    <p xml:lang="de">Ein linux-tkg-Kernel, gebaut für die AMD BC-250: der GPU-Takt von 350 auf 2230 MHz freigeschaltet, alle vierzig Recheneinheiten verfügbar und das Startgeschwätz über RDSEED zum Schweigen gebracht — die Eigenheiten genau dieses Chips, behoben, wo es geht, und umgangen, wo nicht.</p>
+    <p xml:lang="pl">Jądro linux-tkg zbudowane dla AMD BC-250: częstotliwość GPU odblokowana z 350 do 2230 MHz, dostępne wszystkie czterdzieści jednostek obliczeniowych, a gadanina o RDSEED przy starcie wyciszona — wady akurat tego układu, naprawione tam, gdzie się da, i obejście tam, gdzie się nie da.</p>
+    <p>The package itself is a small one: the kernel image and its headers are about 150 MB, more than a package repository is meant to carry, so they are fetched from our release and installed on the spot. Once installed they are held, so an update of the distribution cannot replace them by surprise.</p>
+    <p xml:lang="it">Il pacchetto in sé è piccolo: l'immagine del kernel e i suoi header pesano circa 150 MB, più di quanto un repository di pacchetti debba portarsi dietro, quindi si scaricano dalla nostra release e si installano sul posto. Una volta installati vengono bloccati, così un aggiornamento della distribuzione non può sostituirli a sorpresa.</p>
+    <p xml:lang="fr">Le paquet lui-même est petit : l'image du noyau et ses en-têtes pèsent environ 150 Mo, plus qu'un dépôt de paquets n'est censé transporter, ils sont donc récupérés depuis notre publication et installés sur place. Une fois installés, ils sont gelés, pour qu'une mise à jour de la distribution ne les remplace pas par surprise.</p>
+    <p xml:lang="uk">Сам пакунок маленький: образ ядра та його заголовки важать близько 150 МБ — більше, ніж має носити репозиторій пакунків, — тож їх завантажують із нашого випуску і встановлюють на місці. Після встановлення їх фіксують, щоб оновлення дистрибутива не замінило їх зненацька.</p>
+    <p xml:lang="ru">Сам пакет маленький: образ ядра и его заголовки весят около 150 МБ — больше, чем должен нести репозиторий пакетов, — поэтому их скачивают из нашего выпуска и ставят на месте. После установки их фиксируют, чтобы обновление дистрибутива не заменило их внезапно.</p>
+    <p xml:lang="es">El paquete en sí es pequeño: la imagen del núcleo y sus cabeceras pesan unos 150 MB, más de lo que un repositorio de paquetes debería cargar, así que se descargan de nuestra publicación y se instalan sobre la marcha. Una vez instalados quedan bloqueados, para que una actualización de la distribución no los sustituya por sorpresa.</p>
+    <p xml:lang="pt">O pacote em si é pequeno: a imagem do núcleo e os seus cabeçalhos pesam cerca de 150 MB, mais do que um repositório de pacotes deve carregar, então são baixados da nossa publicação e instalados na hora. Depois de instalados ficam travados, para que uma atualização da distribuição não os substitua de surpresa.</p>
+    <p xml:lang="de">Das Paket selbst ist klein: das Kernel-Abbild und seine Header wiegen rund 150 MB, mehr als ein Paketarchiv tragen sollte, also werden sie aus unserer Veröffentlichung geholt und an Ort und Stelle eingerichtet. Einmal eingerichtet werden sie festgehalten, damit eine Aktualisierung der Distribution sie nicht überraschend ersetzt.</p>
+    <p xml:lang="pl">Sam pakiet jest mały: obraz jądra i jego nagłówki ważą około 150 MB, więcej niż powinno nieść repozytorium pakietów, więc pobiera się je z naszego wydania i instaluje na miejscu. Po instalacji są przytrzymane, żeby aktualizacja dystrybucji nie podmieniła ich znienacka.</p>
+  </description>
+  <icon type="stock">skillfishos-kernel</icon>
+  <categories>
+    <category>System</category>
+  </categories>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfishos-kernel</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="7.1.7" date="2026-08-10">
+      <description>
+        <p>The BC-250 patches carry over to the 7.1 series; the ACPI table that gives the processor its frequency steps is in place, so it idles at 800 MHz instead of holding its top clock.</p>
+        <p xml:lang="it">Le patch della BC-250 reggono anche sulla serie 7.1; la tabella ACPI che dà al processore i suoi passi di frequenza è a posto, così a riposo sta a 800 MHz invece di tenere il clock massimo.</p>
+        <p xml:lang="fr">Les correctifs de la BC-250 tiennent aussi sur la série 7.1 ; la table ACPI qui donne au processeur ses paliers de fréquence est en place, il se repose donc à 800 MHz au lieu de garder sa fréquence maximale.</p>
+        <p xml:lang="uk">Латки для BC-250 тримаються й на серії 7.1; таблиця ACPI, що дає процесорові його щаблі частоти, на місці, тож у спокої він стоїть на 800 МГц замість того, щоб тримати найвищу частоту.</p>
+        <p xml:lang="ru">Патчи для BC-250 держатся и на серии 7.1; таблица ACPI, дающая процессору его ступени частоты, на месте, поэтому в покое он стоит на 800 МГц вместо того, чтобы держать высшую частоту.</p>
+        <p xml:lang="es">Los parches de la BC-250 aguantan también en la serie 7.1; la tabla ACPI que da al procesador sus escalones de frecuencia está puesta, así que en reposo se queda a 800 MHz en vez de mantener el reloj máximo.</p>
+        <p xml:lang="pt">Os patches da BC-250 seguram também na série 7.1; a tabela ACPI que dá ao processador os seus degraus de frequência está no lugar, então em repouso ele fica a 800 MHz em vez de manter o clock máximo.</p>
+        <p xml:lang="de">Die BC-250-Korrekturen tragen auch in der 7.1-Reihe; die ACPI-Tabelle, die dem Prozessor seine Frequenzstufen gibt, ist vorhanden, er ruht also bei 800 MHz, statt seinen Höchsttakt zu halten.</p>
+        <p xml:lang="pl">Łaty dla BC-250 trzymają się też w serii 7.1; tablica ACPI dająca procesorowi jego stopnie częstotliwości jest na miejscu, więc na biegu jałowym stoi na 800 MHz zamiast trzymać maksymalny zegar.</p>
+      </description>
+    </release>
+  </releases>
+</component>

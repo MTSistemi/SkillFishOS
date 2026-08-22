@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.base</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS base</name>
+  <summary>What the rest of the system stands on</summary>
+  <summary xml:lang="it">Quello su cui sta in piedi il resto del sistema</summary>
+  <summary xml:lang="fr">Ce sur quoi repose le reste du système</summary>
+  <summary xml:lang="uk">Те, на чому тримається решта системи</summary>
+  <summary xml:lang="ru">То, на чём держится остальная система</summary>
+  <summary xml:lang="es">Aquello sobre lo que se apoya el resto del sistema</summary>
+  <summary xml:lang="pt">Aquilo sobre o que o resto do sistema se apoia</summary>
+  <summary xml:lang="de">Das, worauf der Rest des Systems steht</summary>
+  <summary xml:lang="pl">To, na czym stoi reszta systemu</summary>
+  <description>
+    <p>The watchdog that reboots the board if it stops answering, the detector that writes down what it was doing when it froze, and the unlock that turns six cores into eight. Here too are the shared dictionary the applications translate with and the sensor tables they all read. Nothing here opens a window.</p>
+    <p xml:lang="it">Il watchdog che riavvia la scheda se smette di rispondere, il rilevatore che annota cosa stava facendo quando si è bloccata, e lo sblocco che da sei core ne fa otto. Qui stanno anche il dizionario condiviso con cui le applicazioni si traducono e le tabelle dei sensori che leggono tutte. Niente di questo apre una finestra.</p>
+    <p xml:lang="fr">Le chien de garde qui redémarre la carte si elle cesse de répondre, le détecteur qui note ce qu'elle faisait au moment du blocage, et le déverrouillage qui fait passer de six cœurs à huit. Ici se trouvent aussi le dictionnaire partagé des traductions et les tables de capteurs que tout le monde lit. Rien de tout cela n'ouvre de fenêtre.</p>
+    <p xml:lang="uk">Сторож, що перезапускає плату, коли вона перестає відповідати, виявляч, який записує, що вона робила під час зависання, і розблокування, що з шести ядер робить вісім. Тут же спільний словник перекладів і таблиці датчиків, які читають усі. Нічого з цього не відкриває вікна.</p>
+    <p xml:lang="ru">Сторож, который перезапускает плату, если она перестала отвечать, определитель, записывающий, что она делала при зависании, и разблокировка, превращающая шесть ядер в восемь. Здесь же общий словарь переводов и таблицы датчиков, которые читают все. Ничего из этого не открывает окна.</p>
+    <p xml:lang="es">El guardián que reinicia la placa si deja de responder, el detector que anota qué hacía cuando se bloqueó, y el desbloqueo que de seis núcleos hace ocho. Aquí están también el diccionario compartido de las traducciones y las tablas de sensores que leen todas. Nada de esto abre una ventana.</p>
+    <p xml:lang="pt">O guardião que reinicia a placa se ela deixar de responder, o detector que anota o que fazia quando travou, e o desbloqueio que de seis núcleos faz oito. Aqui estão também o dicionário partilhado das traduções e as tabelas de sensores que todos leem. Nada disto abre uma janela.</p>
+    <p xml:lang="de">Der Wachhund, der die Karte neu startet, wenn sie nicht mehr antwortet, der Melder, der aufschreibt, was sie beim Einfrieren tat, und die Freischaltung, die aus sechs Kernen acht macht. Hier liegen auch das gemeinsame Wörterbuch der Übersetzungen und die Fühlertabellen, die alle lesen. Nichts davon öffnet ein Fenster.</p>
+    <p xml:lang="pl">Stróż, który restartuje płytę, gdy przestaje odpowiadać, wykrywacz zapisujący, co robiła w chwili zawieszenia, i odblokowanie, które z sześciu rdzeni robi osiem. Tu też jest wspólny słownik tłumaczeń i tabele czujników, z których korzystają wszystkie. Nic z tego nie otwiera okna.</p>
+  </description>
+  <icon type="stock">skillfish-base</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-base</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>The table that says which HUD lines this machine can give now lives here, so the window and the Remote Manager answer the same.</p>
+        <p xml:lang="it">La tabella che dice quali righe del HUD questa macchina può dare sta qui, così la finestra e il Remote Manager rispondono uguale.</p>
+        <p xml:lang="fr">La table qui dit quelles lignes du HUD cette machine peut fournir est ici, ainsi la fenêtre et le Remote Manager répondent pareil.</p>
+        <p xml:lang="uk">Таблиця, яка каже, які рядки HUD ця машина може дати, тепер тут, тож вікно й Remote Manager відповідають однаково.</p>
+        <p xml:lang="ru">Таблица, которая говорит, какие строки HUD эта машина может дать, теперь здесь, поэтому окно и Remote Manager отвечают одинаково.</p>
+        <p xml:lang="es">La tabla que dice qué líneas del HUD puede dar esta máquina está aquí, así la ventana y el Remote Manager responden igual.</p>
+        <p xml:lang="pt">A tabela que diz quais linhas do HUD esta máquina pode dar está aqui, assim a janela e o Remote Manager respondem igual.</p>
+        <p xml:lang="de">Die Tabelle, die sagt, welche HUD-Zeilen diese Maschine geben kann, liegt jetzt hier, damit Fenster und Remote Manager dasselbe antworten.</p>
+        <p xml:lang="pl">Tabela mówiąca, które wiersze HUD ta maszyna może podać, jest teraz tutaj, więc okno i Remote Manager odpowiadają tak samo.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.iso-mount</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS ISO mount</name>
+  <summary>Open an ISO with a double click</summary>
+  <summary xml:lang="it">Apri una ISO con un doppio clic</summary>
+  <summary xml:lang="fr">Ouvrez une ISO d'un double clic</summary>
+  <summary xml:lang="uk">Відкрий ISO подвійним клацанням</summary>
+  <summary xml:lang="ru">Открой ISO двойным щелчком</summary>
+  <summary xml:lang="es">Abre una ISO con doble clic</summary>
+  <summary xml:lang="pt">Abra uma ISO com duplo clique</summary>
+  <summary xml:lang="de">Ein ISO mit Doppelklick öffnen</summary>
+  <summary xml:lang="pl">Otwórz ISO podwójnym kliknięciem</summary>
+  <description>
+    <p>Mounts an ISO from the file manager and releases it from the same menu. No terminal and no root: it goes through udisks, the same way a USB stick is mounted.</p>
+    <p xml:lang="it">Monta una ISO dal gestore dei file e la smonta dallo stesso menù. Niente terminale e niente root: passa da udisks, come per una chiavetta USB.</p>
+    <p xml:lang="fr">Monte une ISO depuis le gestionnaire de fichiers et la libère depuis le même menu. Ni terminal ni root : cela passe par udisks, comme pour une clé USB.</p>
+    <p xml:lang="uk">Монтує ISO з файлового менеджера і відпускає її з того самого меню. Без термінала й без root: іде через udisks, як USB-флешка.</p>
+    <p xml:lang="ru">Монтирует ISO из файлового менеджера и отпускает её из того же меню. Без терминала и без root: идёт через udisks, как USB-флешка.</p>
+    <p xml:lang="es">Monta una ISO desde el gestor de archivos y la libera desde el mismo menú. Sin terminal y sin root: pasa por udisks, igual que un pendrive.</p>
+    <p xml:lang="pt">Monta uma ISO pelo gestor de ficheiros e liberta-a pelo mesmo menu. Sem terminal e sem root: passa pelo udisks, tal como uma pen USB.</p>
+    <p xml:lang="de">Hängt ein ISO aus dem Dateimanager ein und gibt es über dasselbe Menü frei. Kein Terminal und kein root: es läuft über udisks, wie bei einem USB-Stick.</p>
+    <p xml:lang="pl">Montuje ISO z menedżera plików i zwalnia je z tego samego menu. Bez terminala i bez roota: idzie przez udisks, jak pendrive.</p>
+  </description>
+  <icon type="stock">skillfish-iso-mount</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-iso-mount</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>It has its own page here now, with an icon and a description in every language we ship.</p>
+        <p xml:lang="it">Adesso ha una pagina sua qui, con un'icona e la descrizione in tutte le lingue che spediamo.</p>
+        <p xml:lang="fr">Il a maintenant sa page ici, avec une icône et la description dans toutes les langues que nous livrons.</p>
+        <p xml:lang="uk">Тепер має тут свою сторінку, з піктограмою й описом усіма мовами, які ми постачаємо.</p>
+        <p xml:lang="ru">Теперь у него здесь своя страница, с иконкой и описанием на всех языках, которые мы поставляем.</p>
+        <p xml:lang="es">Ahora tiene aquí su página, con un icono y la descripción en todos los idiomas que enviamos.</p>
+        <p xml:lang="pt">Agora tem aqui a sua página, com um ícone e a descrição em todas as línguas que enviamos.</p>
+        <p xml:lang="de">Hat jetzt eine eigene Seite hier, mit Symbol und Beschreibung in allen Sprachen, die wir ausliefern.</p>
+        <p xml:lang="pl">Ma teraz tutaj własną stronę, z ikoną i opisem we wszystkich językach, które dostarczamy.</p>
+      </description>
+    </release>
+  </releases>
+</component>

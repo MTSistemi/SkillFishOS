@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Snapshots</name>
-  <summary>Pictures of the system: if something breaks, go back to before</summary>
-  <summary xml:lang="it">Fotografie del sistema: se qualcosa si rompe, si torna a prima</summary>
-  <summary xml:lang="fr">Des photos du système : si quelque chose casse, on revient à avant</summary>
-  <summary xml:lang="uk">Знімки системи: якщо щось зламалося, повертаєшся до того, що було</summary>
-  <summary xml:lang="ru">Снимки системы: если что-то сломалось, возвращаешься к тому, что было</summary>
-  <summary xml:lang="es">Fotos del sistema: si algo se rompe, se vuelve a antes</summary>
-  <summary xml:lang="pt">Fotografias do sistema: se algo quebrar, volta-se ao antes</summary>
-  <summary xml:lang="de">Aufnahmen des Systems: geht etwas kaputt, kehrt man zu vorher zurück</summary>
-  <summary xml:lang="pl">Zdjęcia systemu: jeśli coś się zepsuje, wraca się do stanu sprzed</summary>
+  <summary>Go back to how the system was before</summary>
+  <summary xml:lang="it">Torni a com'era il sistema prima</summary>
+  <summary xml:lang="fr">Revenez à l'état d'avant du système</summary>
+  <summary xml:lang="uk">Повертаєшся до того, яким система була раніше</summary>
+  <summary xml:lang="ru">Возвращаешься к тому, какой система была раньше</summary>
+  <summary xml:lang="es">Vuelve a como estaba el sistema antes</summary>
+  <summary xml:lang="pt">Volta a como o sistema estava antes</summary>
+  <summary xml:lang="de">Zurück zu dem, wie das System vorher war</summary>
+  <summary xml:lang="pl">Wracasz do tego, jak system wyglądał wcześniej</summary>
   <description>
-    <p>Snapshots are taken automatically before and after every APT operation, so the state right before an update is always there. Each one can be looked at, compared with today, and restored — and restoring does not copy files back one by one: it swaps the subvolume, which is why it takes seconds instead of an afternoon.</p>
-    <p xml:lang="it">Le fotografie si prendono da sole prima e dopo ogni operazione di APT, così lo stato di appena prima di un aggiornamento c'è sempre. Ognuna si può guardare, confrontare con oggi e ripristinare — e ripristinare non ricopia i file uno per uno: scambia il sottovolume, ed è per questo che ci mette secondi invece di un pomeriggio.</p>
-    <p xml:lang="fr">Les instantanés se prennent tout seuls avant et après chaque opération d'APT, donc l'état juste avant une mise à jour est toujours là. Chacun se regarde, se compare à aujourd'hui et se restaure — et restaurer ne recopie pas les fichiers un par un : cela échange le sous-volume, d'où quelques secondes au lieu d'un après-midi.</p>
-    <p xml:lang="uk">Знімки робляться самі до і після кожної дії APT, тож стан просто перед оновленням є завжди. Кожен можна переглянути, порівняти з нинішнім і відновити — а відновлення не копіює файли по одному: воно міняє підтом, тому триває секунди, а не пів дня.</p>
-    <p xml:lang="ru">Снимки делаются сами до и после каждой операции APT, поэтому состояние прямо перед обновлением есть всегда. Каждый можно посмотреть, сравнить с сегодняшним и восстановить — а восстановление не копирует файлы по одному: оно меняет подтом, поэтому занимает секунды, а не полдня.</p>
-    <p xml:lang="es">Las instantáneas se toman solas antes y después de cada operación de APT, así que el estado justo antes de una actualización siempre está. Cada una se puede mirar, comparar con hoy y restaurar — y restaurar no copia los archivos uno a uno: intercambia el subvolumen, por eso tarda segundos en vez de una tarde.</p>
-    <p xml:lang="pt">Os snapshots são tirados sozinhos antes e depois de cada operação do APT, então o estado logo antes de uma atualização está sempre lá. Cada um pode ser visto, comparado com hoje e restaurado — e restaurar não copia os arquivos um a um: troca o subvolume, por isso leva segundos em vez de uma tarde.</p>
-    <p xml:lang="de">Schnappschüsse entstehen von selbst vor und nach jeder APT-Aktion, der Zustand kurz vor einer Aktualisierung ist also immer da. Jeder lässt sich ansehen, mit heute vergleichen und zurückholen — und Zurückholen kopiert die Dateien nicht einzeln: es tauscht das Untervolume, deshalb dauert es Sekunden statt eines Nachmittags.</p>
-    <p xml:lang="pl">Migawki robią się same przed i po każdej operacji APT, więc stan tuż przed aktualizacją zawsze jest. Każdą można obejrzeć, porównać z dzisiejszym i przywrócić — a przywracanie nie kopiuje plików po jednym: podmienia podwolumen, dlatego trwa sekundy, a nie pół dnia.</p>
-    <p>The maintenance side keeps btrfs from filling up on its own: scrub, balance and defragment on a schedule, with an explanation of what each one actually does and when it is worth running. Reading the list of snapshots never asks for a password — looking changes nothing — while deleting or restoring asks once.</p>
-    <p xml:lang="it">La parte di manutenzione tiene a bada btrfs, che da solo si riempie: scrub, bilanciamento e deframmentazione a calendario, con la spiegazione di cosa fa davvero ognuno e quando conviene. Leggere l'elenco non chiede mai la password — guardare non cambia niente — mentre cancellare o ripristinare la chiede una volta.</p>
-    <p xml:lang="fr">Le volet entretien empêche btrfs de se remplir tout seul : nettoyage, rééquilibrage et défragmentation programmés, avec l'explication de ce que chacun fait vraiment et quand cela vaut la peine. Lire la liste ne demande jamais de mot de passe — regarder ne change rien — alors que supprimer ou restaurer le demande une fois.</p>
-    <p xml:lang="uk">Частина з обслуговуванням не дає btrfs заповнитися: перевірка, балансування й дефрагментація за розкладом, із поясненням, що кожна насправді робить і коли її варто запускати. Читання списку ніколи не питає пароля — дивитися нічого не змінює — а вилучення чи відновлення питає раз.</p>
-    <p xml:lang="ru">Часть с обслуживанием не даёт btrfs заполниться: проверка, балансировка и дефрагментация по расписанию, с пояснением, что каждая на самом деле делает и когда её стоит запускать. Чтение списка никогда не спрашивает пароль — смотреть ничего не меняет — а удаление или восстановление спрашивает один раз.</p>
-    <p xml:lang="es">La parte de mantenimiento evita que btrfs se llene solo: scrub, balanceo y desfragmentación programados, con la explicación de qué hace cada uno de verdad y cuándo conviene. Leer la lista nunca pide la contraseña —mirar no cambia nada— mientras que borrar o restaurar la pide una vez.</p>
-    <p xml:lang="pt">A parte de manutenção impede que o btrfs se encha sozinho: scrub, balanceamento e desfragmentação agendados, com a explicação do que cada um faz de verdade e quando vale a pena. Ler a lista nunca pede senha — olhar não muda nada — enquanto apagar ou restaurar pede uma vez.</p>
-    <p xml:lang="de">Der Wartungsteil hält btrfs davon ab, von selbst vollzulaufen: Prüfen, Ausgleichen und Defragmentieren nach Zeitplan, mit der Erklärung, was jedes davon wirklich tut und wann es sich lohnt. Die Liste zu lesen fragt nie nach einem Passwort — Hinsehen ändert nichts —, Löschen oder Zurückholen fragt einmal.</p>
-    <p xml:lang="pl">Część konserwacyjna nie pozwala btrfs zapełnić się samemu: scrub, balansowanie i defragmentacja według harmonogramu, z wyjaśnieniem, co każde z nich naprawdę robi i kiedy warto je uruchomić. Odczyt listy nigdy nie prosi o hasło — patrzenie niczego nie zmienia — a usunięcie lub przywrócenie prosi raz.</p>
+    <p>A snapshot is taken before and after every apt operation, so the state from just before an update is always there. Restoring one takes a few seconds: btrfs swaps the subvolume instead of copying files back.</p>
+    <p xml:lang="it">Una fotografia si prende prima e dopo ogni operazione di apt, così lo stato di appena prima di un aggiornamento c'è sempre. Ripristinarne una richiede pochi secondi: btrfs scambia il sottovolume invece di ricopiare i file.</p>
+    <p xml:lang="fr">Un instantané est pris avant et après chaque opération d'apt, l'état juste avant une mise à jour est donc toujours là. En restaurer un prend quelques secondes : btrfs échange le sous-volume au lieu de recopier les fichiers.</p>
+    <p xml:lang="uk">Знімок робиться до і після кожної дії apt, тож стан просто перед оновленням є завжди. Відновлення триває кілька секунд: btrfs міняє підтом замість копіювати файли назад.</p>
+    <p xml:lang="ru">Снимок делается до и после каждой операции apt, поэтому состояние прямо перед обновлением есть всегда. Восстановление занимает несколько секунд: btrfs меняет подтом вместо копирования файлов обратно.</p>
+    <p xml:lang="es">Se toma una instantánea antes y después de cada operación de apt, así que el estado justo antes de una actualización siempre está. Restaurar una lleva pocos segundos: btrfs intercambia el subvolumen en vez de copiar archivos.</p>
+    <p xml:lang="pt">Um snapshot é tirado antes e depois de cada operação do apt, então o estado logo antes de uma atualização está sempre lá. Restaurar um leva poucos segundos: o btrfs troca o subvolume em vez de copiar ficheiros de volta.</p>
+    <p xml:lang="de">Vor und nach jeder apt-Aktion entsteht ein Schnappschuss, der Zustand kurz vor einer Aktualisierung ist also immer da. Einen zurückzuholen dauert Sekunden: btrfs tauscht das Untervolume, statt Dateien zurückzukopieren.</p>
+    <p xml:lang="pl">Migawka powstaje przed i po każdej operacji apt, więc stan tuż przed aktualizacją zawsze jest. Przywrócenie trwa kilka sekund: btrfs podmienia podwolumen, zamiast kopiować pliki z powrotem.</p>
+    <p>The second tab keeps btrfs in shape: scrub, balance and defragment on a schedule, with a note on when each one is worth running. Reading the list never asks for a password; deleting or restoring asks once.</p>
+    <p xml:lang="it">La seconda scheda tiene in forma btrfs: scrub, bilanciamento e deframmentazione a calendario, con una nota su quando conviene farli. Leggere l'elenco non chiede mai la password; cancellare o ripristinare la chiede una volta.</p>
+    <p xml:lang="fr">Le second onglet garde btrfs en forme : nettoyage, rééquilibrage et défragmentation programmés, avec une note sur le moment où c'est utile. Lire la liste ne demande jamais de mot de passe ; supprimer ou restaurer le demande une fois.</p>
+    <p xml:lang="uk">Друга вкладка тримає btrfs у формі: перевірка, балансування й дефрагментація за розкладом, із приміткою, коли їх варто робити. Читання списку ніколи не питає пароля; вилучення чи відновлення питає раз.</p>
+    <p xml:lang="ru">Вторая вкладка держит btrfs в форме: проверка, балансировка и дефрагментация по расписанию, с пометкой, когда их стоит делать. Чтение списка никогда не спрашивает пароль; удаление или восстановление спрашивает один раз.</p>
+    <p xml:lang="es">La segunda pestaña mantiene btrfs en forma: scrub, balanceo y desfragmentación programados, con una nota sobre cuándo conviene hacerlos. Leer la lista nunca pide contraseña; borrar o restaurar la pide una vez.</p>
+    <p xml:lang="pt">O segundo separador mantém o btrfs em forma: scrub, balanceamento e desfragmentação agendados, com uma nota sobre quando vale a pena. Ler a lista nunca pede senha; apagar ou restaurar pede uma vez.</p>
+    <p xml:lang="de">Der zweite Reiter hält btrfs in Form: Prüfen, Ausgleichen und Defragmentieren nach Zeitplan, mit einer Notiz, wann sich das lohnt. Die Liste zu lesen fragt nie nach einem Passwort; Löschen oder Zurückholen fragt einmal.</p>
+    <p xml:lang="pl">Druga karta trzyma btrfs w formie: scrub, balansowanie i defragmentacja według harmonogramu, z notką, kiedy warto je robić. Odczyt listy nigdy nie prosi o hasło; usunięcie lub przywrócenie prosi raz.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.snapshots.desktop</launchable>
   <icon type="stock">skillfish-snapshots</icon>
@@ -57,30 +57,31 @@
   </provides>
   <screenshots>
     <screenshot type="default">
-      <caption>The snapshots of this machine, and the maintenance tab beside them</caption>
-      <caption xml:lang="it">Le fotografie di questa macchina, e accanto la manutenzione</caption>
-      <caption xml:lang="fr">Les instantanés de cette machine, et l'entretien à côté</caption>
-      <caption xml:lang="uk">Знімки цієї машини, а поруч — обслуговування</caption>
-      <caption xml:lang="ru">Снимки этой машины, а рядом — обслуживание</caption>
-      <caption xml:lang="es">Las instantáneas de esta máquina, y al lado el mantenimiento</caption>
-      <caption xml:lang="pt">Os snapshots desta máquina, e ao lado a manutenção</caption>
+      <caption>The snapshots of this machine, with the maintenance tab next to them</caption>
+      <caption xml:lang="it">Le fotografie di questa macchina, con accanto la manutenzione</caption>
+      <caption xml:lang="fr">Les instantanés de cette machine, avec l'entretien à côté</caption>
+      <caption xml:lang="uk">Знімки цієї машини, а поруч обслуговування</caption>
+      <caption xml:lang="ru">Снимки этой машины, рядом обслуживание</caption>
+      <caption xml:lang="es">Las instantáneas de esta máquina, con el mantenimiento al lado</caption>
+      <caption xml:lang="pt">Os snapshots desta máquina, com a manutenção ao lado</caption>
       <caption xml:lang="de">Die Schnappschüsse dieser Maschine, daneben die Wartung</caption>
-      <caption xml:lang="pl">Migawki tej maszyny, a obok konserwacja</caption>
+      <caption xml:lang="pl">Migawki tej maszyny, obok konserwacja</caption>
       <image type="source">file:///usr/share/skillfish/screenshots/snapshots.png</image>
     </screenshot>
   </screenshots>
+  <content_rating type="oars-1.1"/>
   <releases>
     <release version="26.08.40" date="2026-08-22">
       <description>
-        <p>New: the package now carries its own card in the Hub — what it does, a screenshot and these notes — and its own icon.</p>
-        <p xml:lang="it">Novità: il pacchetto ha finalmente la sua scheda nell'Hub — cosa fa, una schermata e queste note — e la sua icona.</p>
-        <p xml:lang="fr">Nouveau : le paquet a enfin sa fiche dans le Hub — ce qu'il fait, une capture et ces notes — et sa propre icône.</p>
-        <p xml:lang="uk">Нове: пакунок нарешті має свою картку в Hub — що робить, знімок екрана й ці нотатки — і власну піктограму.</p>
-        <p xml:lang="ru">Новое: у пакета наконец есть своя карточка в Hub — что делает, снимок экрана и эти заметки — и своя иконка.</p>
-        <p xml:lang="es">Novedad: el paquete por fin tiene su ficha en el Hub —qué hace, una captura y estas notas— y su propio icono.</p>
-        <p xml:lang="pt">Novidade: o pacote finalmente tem a sua ficha no Hub — o que faz, uma captura e estas notas — e o seu próprio ícone.</p>
-        <p xml:lang="de">Neu: Das Paket hat endlich seine eigene Karte im Hub — was es tut, ein Bildschirmfoto und diese Notizen — und ein eigenes Symbol.</p>
-        <p xml:lang="pl">Nowość: pakiet ma wreszcie swoją kartę w Hubie — co robi, zrzut ekranu i te notatki — oraz własną ikonę.</p>
+        <p>The package now has its own page here, with a picture and its own icon.</p>
+        <p xml:lang="it">Il pacchetto ha una pagina sua qui, con una foto e la sua icona.</p>
+        <p xml:lang="fr">Le paquet a désormais sa page ici, avec une image et sa propre icône.</p>
+        <p xml:lang="uk">Пакунок має тут свою сторінку, зі знімком і власною піктограмою.</p>
+        <p xml:lang="ru">У пакета теперь своя страница здесь, со снимком и своей иконкой.</p>
+        <p xml:lang="es">El paquete tiene aquí su propia página, con una imagen y su icono.</p>
+        <p xml:lang="pt">O pacote tem aqui a sua própria página, com uma imagem e o seu ícone.</p>
+        <p xml:lang="de">Das Paket hat hier eine eigene Seite, mit Bild und eigenem Symbol.</p>
+        <p xml:lang="pl">Pakiet ma tutaj własną stronę, ze zdjęciem i własną ikoną.</p>
       </description>
     </release>
   </releases>

@@ -41,6 +41,15 @@ command -v update-grub >/dev/null 2>&1 && update-grub || true
 exit 0
 EOF
 chmod 0755 "$OUT/DEBIAN/postinst"
+# ⚠️ LA SCHEDA E L'ICONA VANNO QUI, non in scripts/build-debs-ci.sh.
+# Questo .deb lo scrive questo file, e per questo era l'unico nostro pacchetto
+# che nell'Hub restava senza descrizione tradotta, senza icona e senza note.
+SRC=/root/sfx-src
+install -Dm644 "$SRC/kernel-build/os.skillfish.kernel-image.metainfo.xml" "$OUT/usr/share/metainfo/os.skillfish.kernel-image.metainfo.xml"
+install -Dm644 "$SRC/system/usr/share/icons/hicolor/scalable/apps/skillfishos-kernel.svg" "$OUT/usr/share/icons/hicolor/scalable/apps/skillfishos-kernel.svg"
+for M in 48 128 256; do
+  install -Dm644 "$SRC/system/usr/share/icons/hicolor/${M}x${M}/apps/skillfishos-kernel.png" "$OUT/usr/share/icons/hicolor/${M}x${M}/apps/skillfishos-kernel.png"
+done
 dpkg-deb --root-owner-group --build "$OUT" "/root/skillfishos-kernel_${DEBVER}_amd64.deb"
 echo "=== built ==="; dpkg-deb -I "/root/skillfishos-kernel_${DEBVER}_amd64.deb" | grep -E 'Package|Version|Description' | head -3
 echo "--- postinst preview ---"; sed -n '1,8p' "$OUT/DEBIAN/postinst"

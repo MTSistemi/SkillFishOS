@@ -158,11 +158,9 @@ shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 # Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
 shot $P apps/hud/os.skillfish.hud.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base" "SkillFishOS Tuner - BC-250 hardware control GUI" \
-  "Controls what the board actually does: CPU and GPU clocks, the number of
-compute units in use, the memory split and the fan, with presets that go
-from silent to full and a wizard that finds what this particular chip can
-hold. Also carries the HUD and its configurator, which decides what the
-desktop overlay shows and where."
+  "Sets the CPU and GPU clocks, the voltage offset, how many compute units are
+in use and how much memory the graphics take. Presets from quiet to full, and
+a wizard that finds what this chip holds. Also brings the HUD configurator."
 # ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
@@ -204,11 +202,9 @@ put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.service usr/lib/sys
 put $P 0644 system/usr/lib/systemd/user/skillfish-hub-notify.timer   usr/lib/systemd/user/skillfish-hub-notify.timer
 shot $P apps/hub/os.skillfish.hub.metainfo.xml
 ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd" "SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware" \
-  "A software centre for APT, Flatpak, Snap and device firmware: search,
-categories, app pages with screenshots and ratings, source management, and
-system updates that keep running even if this window is closed, because
-the transaction is handed to systemd rather than kept as a child process.
-It also opens .deb, .flatpakref and .flatpakrepo files, and tells you when
+  "One place for apt, Flatpak, Snap and device firmware: search, categories, app
+pages, sources. Updates keep running if the window closes, because the work is
+handed to systemd. Opens .deb and .flatpakref files, and tells you when
 updates are waiting."
 # ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
@@ -257,11 +253,9 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg usr/s
 # riga del control, nessuno screenshot e nessuna novita'.
 shot $P apps/fan/os.skillfish.fan.metainfo.xml
 ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1" "SkillFishOS Fan Control - fan curve with anticipation" \
-  "The fan curve, with a controller that runs whether or not the window is
-open. It reads only the sensors this machine really has, watches how fast
-the temperature is rising to start spinning up before the heat arrives,
-and keeps an emergency threshold that cannot be switched off. Sensors can
-be renamed, and the names survive a reboot."
+  "The fan curve, applied every second by a controller that runs with or without
+the window. It watches how fast the temperature climbs, and the watts on the
+BC-250, to start early. The emergency threshold cannot be switched off."
 # ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
 # Il servizio si accende all'installazione anche se non e' ancora configurato:
 # con `attivo` a falso non tocca la ventola, ma pubblica le letture, e senza di
@@ -285,9 +279,9 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png us
 put $P 0644 system/usr/share/mime/packages/os.skillfish.monitor.xml usr/share/mime/packages/os.skillfish.monitor.xml
 shot $P apps/monitor/os.skillfish.monitor.metainfo.xml
 ctrl $P "python3, python3-pyqt6" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer" \
-  "Live charts of every sensor the machine reports, and a recorder: a session
-can be saved to a .sfmon file and read back later, which is how a change is
-compared against the run before it instead of against memory."
+  "Live charts of temperatures, clocks, voltage, watts, load and fan speed. Press
+record and the session goes to a .sfmon file you can reopen and walk through
+second by second."
 # monitor ships a MIME type (.sfmon recordings) → also refresh the shared-mime db
 printf '#!/bin/sh\nset -e\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nupdate-desktop-database -q 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
@@ -302,9 +296,8 @@ put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png usr
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png
 shot $P apps/kernel-manager/os.skillfish.kernel.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Manager" \
-  "Chooses which kernel the board boots and removes the ones no longer
-wanted, including the SkillFishOS builds with the BC-250 patches. It shows
-what is installed, what is running now, and what GRUB will pick next time."
+  "Shows the kernels installed, which one is running and which one GRUB will pick
+next. Choose the next boot, remove the ones you no longer want."
 
 P=skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
@@ -325,9 +318,8 @@ put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-ai.png usr/sha
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png usr/share/icons/hicolor/256x256/apps/skillfish-ai.png
 shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
 ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel" \
-  "Runs language models on the board itself, on the integrated GPU rather
-than on the processor, and keeps the download, the model list and the chat
-in one window. Nothing is sent anywhere: the model answers from here."
+  "Downloads a language model and runs it on the integrated GPU, about five times
+faster than on the processor. Questions and answers stay on this machine."
 # ⚠️ L'unita' del motore AI veniva spedita e non la accendeva nessuno: sulla
 # scheda risultava attiva solo perche' l'avevo abilitata a mano, e nella ISO ci
 # finiva per clonazione. Chi installa da apt si ritrovava il file dell'unita' e
@@ -337,6 +329,9 @@ printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-u
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfishos-archive-keyring
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/keyring/os.skillfish.archive-keyring.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg usr/share/icons/hicolor/scalable/apps/skillfishos-archive-keyring.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfishos-archive-keyring.png usr/share/icons/hicolor/48x48/apps/skillfishos-archive-keyring.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfishos-archive-keyring.png usr/share/icons/hicolor/128x128/apps/skillfishos-archive-keyring.png
@@ -352,11 +347,14 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfishos-archive-keyr
 # quel momento si aggiornano da soli con un apt upgrade.
 put $P 0644 system/usr/share/keyrings/skillfishos-archive-keyring.gpg usr/share/keyrings/skillfishos-archive-keyring.gpg
 put $P 0644 system/etc/apt/sources.list.d/skillfishos.sources          etc/apt/sources.list.d/skillfishos.sources
-ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source" \n  "The signing key of the SkillFishOS archive and the APT source that uses it.
-Without this package the other SkillFishOS packages have no way of proving
-where they came from."
+ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source" \
+  "The signing key of our archive and the apt source that uses it. Without it apt
+cannot check where a SkillFishOS package came from."
 
 P=skillfish-base
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/base/os.skillfish.base.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-base.svg usr/share/icons/hicolor/scalable/apps/skillfish-base.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-base.png usr/share/icons/hicolor/48x48/apps/skillfish-base.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-base.png usr/share/icons/hicolor/128x128/apps/skillfish-base.png
@@ -462,10 +460,9 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
 ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
-  "The parts that have to be there before anything else: the hardware
-watchdog, the freeze detector that records what the board was doing when
-it stopped, the 8-core unlock, the shared translation dictionary and the
-sensor tables the other applications read."
+  "The watchdog that reboots the board if it stops answering, the freeze detector,
+the 8-core unlock, the shared translation dictionary and the sensor tables the
+applications read."
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.
@@ -644,6 +641,9 @@ PRERM
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-console
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/console/os.skillfish.console.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-console.svg usr/share/icons/hicolor/scalable/apps/skillfish-console.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-console.png usr/share/icons/hicolor/48x48/apps/skillfish-console.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-console.png usr/share/icons/hicolor/128x128/apps/skillfish-console.png
@@ -661,8 +661,8 @@ put $P 0644 system/usr/share/wayland-sessions/skillfish-gaming.desktop usr/share
 put $P 0755 system/usr/local/bin/steamos-session-select usr/local/bin/steamos-session-select
 put $P 0755 system/usr/local/bin/steamos-session-select opt/skillfish/steam-bin/steamos-session-select
 ctrl $P "gamescope, flatpak" "SkillFishOS Console - SteamOS-style Big Picture session" \
-  "A SteamOS-style session that starts straight into a controller-driven
-interface, for using the board on a television without a keyboard."
+  "A session that opens straight into a full-screen interface driven with a
+controller. Separate from the desktop session, chosen at login."
 # Steam deve poter trovare ed eseguire quel comando: la cartella, il PATH del
 # sandbox e il permesso di parlare col servizio Flatpak, che serve a
 # flatpak-spawn per agire sull'host.
@@ -747,6 +747,9 @@ printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then system
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-theme
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/theme/os.skillfish.theme.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-theme.png usr/share/icons/hicolor/48x48/apps/skillfish-theme.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-theme.png usr/share/icons/hicolor/128x128/apps/skillfish-theme.png
@@ -801,10 +804,8 @@ for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
 ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours" \
-  "The steampunk look: brass and copper icons, cursors, Plasma theme, colour
-scheme and panel layout. It also repairs the menu button of anyone who is
-upgrading, because the panel configuration lives in each user's home and
-no package can reach in there on its own."
+  "Icons, cursors, Plasma theme, colours and panel layout. Also puts the menu
+button back if an update changed it."
 # NON generare una icon-theme.cache per i nostri temi: TOGLIERLA.
 #
 # Qui c'era `gtk-update-icon-cache -f` sul tema, con `|| rm -f` come ripiego.
@@ -845,6 +846,9 @@ PYAVVIO
 
 echo "== building =="
 P=skillfish-iso-mount
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/iso-mount/os.skillfish.iso-mount.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-iso-mount.svg usr/share/icons/hicolor/scalable/apps/skillfish-iso-mount.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-iso-mount.png usr/share/icons/hicolor/48x48/apps/skillfish-iso-mount.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-iso-mount.png usr/share/icons/hicolor/128x128/apps/skillfish-iso-mount.png
@@ -856,8 +860,8 @@ put $P 0755 system/usr/local/bin/skillfish-iso-mount usr/local/bin/skillfish-iso
 put $P 0644 system/usr/share/kio/servicemenus/skillfish-iso.desktop usr/share/kio/servicemenus/skillfish-iso.desktop
 put $P 0644 system/etc/polkit-1/rules.d/49-skillfish-udisks.rules etc/polkit-1/rules.d/49-skillfish-udisks.rules
 ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KDE" \
-  "Mounts an ISO image by double-clicking it in the file manager, and
-releases it from the same menu, without a terminal and without root."
+  "Mounts an ISO from the file manager and releases it from the same menu,
+through udisks. No terminal, no root."
 P=skillfish-snapshots
 # «SkillFishOS Snapshot»: gli snapshot in una finestra, senza terminale e senza
 # il vocabolario del filesystem. Btrfs Assistant resta installato per chi vuole
@@ -888,12 +892,14 @@ put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png 
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
 ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
-  "Snapshots of the system with snapper, before and after updates, plus the
-btrfs maintenance that keeps them from filling the disk. A snapshot can be
-browsed, compared and restored from the window."
+  "Snapshots before and after every apt operation, restored in seconds because
+btrfs swaps the subvolume. The second tab keeps btrfs in shape on a schedule."
 
 
 P=skillfish-menu
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/menu/os.skillfish.menu.metainfo.xml
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg usr/share/icons/hicolor/scalable/apps/skillfish-menu.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-menu.png usr/share/icons/hicolor/48x48/apps/skillfish-menu.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-menu.png usr/share/icons/hicolor/128x128/apps/skillfish-menu.png
@@ -907,10 +913,13 @@ put $P 0644 system/etc/xdg/menus/plasma-applications-merged/skillfishos.menu etc
 put $P 0644 system/usr/share/desktop-directories/skillfishos.directory usr/share/desktop-directories/skillfishos.directory
 
 ctrl $P "" "SkillFishOS application menu group" \
-  "The SkillFishOS group in the application menu, so our tools are together
-instead of scattered among the system entries."
+  "One group in the application menu holding the SkillFishOS tools, instead of
+leaving them among the system entries."
 
 P=skillfish-emulators
+# La scheda AppStream: senza, la descrizione esiste solo in inglese,
+# perche' apt la tiene nel control e li' la lingua e' una sola.
+shot $P apps/emulators/os.skillfish.emulators.metainfo.xml
 # Gli emulatori NON possono viaggiare nella ISO: EmuDeck installa tutto nella
 # home dell'utente (flatpak --user e AppImage in ~/Applications), e la ISO
 # replica /etc/skel, non la home di chi ha costruito il sistema. Vanno quindi
@@ -932,8 +941,8 @@ put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-emulators.png us
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png usr/share/icons/hicolor/128x128/apps/skillfish-emulators.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png usr/share/icons/hicolor/256x256/apps/skillfish-emulators.png
 ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the installation" \
-  "Installs game console emulators after the installation, either the whole
-EmuDeck set or one at a time, choosing what fits this hardware."
+  "Installs console emulators after the system is in place: the whole EmuDeck set
+or one at a time. Upstream installers, nothing repackaged."
 
 for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true

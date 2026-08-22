@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS Hub</name>
-  <summary>A software centre for APT, Flatpak and Snap</summary>
-  <summary xml:lang="fr">Une logithèque pour APT, Flatpak et Snap</summary>
-  <summary xml:lang="uk">Центр програм для APT, Flatpak і Snap</summary>
-  <summary xml:lang="ru">Центр программ для APT, Flatpak и Snap</summary>
-  <summary xml:lang="es">Un centro de software para APT, Flatpak y Snap</summary>
-  <summary xml:lang="pt">Uma central de programas para APT, Flatpak e Snap</summary>
-  <summary xml:lang="de">Eine Programmzentrale für APT, Flatpak und Snap</summary>
-  <summary xml:lang="it">Un centro software per APT, Flatpak e Snap</summary>
-  <summary xml:lang="pl">Centrum oprogramowania dla APT, Flatpak i Snap</summary>
+  <summary>Install, update, and see what changed</summary>
+  <summary xml:lang="it">Installi, aggiorni, e vedi cosa è cambiato</summary>
+  <summary xml:lang="fr">Installez, mettez à jour, voyez ce qui a changé</summary>
+  <summary xml:lang="uk">Встановлюєш, оновлюєш і бачиш, що змінилося</summary>
+  <summary xml:lang="ru">Ставишь, обновляешь и видишь, что изменилось</summary>
+  <summary xml:lang="es">Instala, actualiza y ve qué ha cambiado</summary>
+  <summary xml:lang="pt">Instala, atualiza e vê o que mudou</summary>
+  <summary xml:lang="de">Installieren, aktualisieren, sehen was sich geändert hat</summary>
+  <summary xml:lang="pl">Instalujesz, aktualizujesz i widzisz, co się zmieniło</summary>
   <description>
-    <p>A Discover-style software centre: browse software by category, search, and read app pages with screenshots, ratings and reviews. Install, remove and update across APT (including the SkillFishOS repository), Flatpak and Snap, switch each backend on or off, and manage software sources.</p>
-    <p xml:lang="fr">Une logithèque dans l'esprit de Discover : parcourez les logiciels par catégorie, cherchez, et lisez des fiches d'applications avec captures, notes et avis. Installez, retirez et mettez à jour via APT (dépôt SkillFishOS compris), Flatpak et Snap, allumez ou éteignez chaque moteur, et gérez les sources de logiciels.</p>
-    <p xml:lang="uk">Центр програм у дусі Discover: перегляд за категоріями, пошук і сторінки програм зі знімками, оцінками та відгуками. Встановлення, вилучення й оновлення через APT (разом зі сховищем SkillFishOS), Flatpak і Snap, вмикання й вимикання кожного рушія та керування джерелами програм.</p>
-    <p xml:lang="ru">Центр программ в духе Discover: просмотр по разделам, поиск и страницы приложений со снимками, оценками и отзывами. Установка, удаление и обновление через APT (включая репозиторий SkillFishOS), Flatpak и Snap, включение и выключение каждого движка и управление источниками программ.</p>
-    <p xml:lang="es">Un centro de software al estilo de Discover: explora por categorías, busca y lee fichas de aplicaciones con capturas, valoraciones y reseñas. Instala, quita y actualiza a través de APT (incluido el repositorio de SkillFishOS), Flatpak y Snap, enciende o apaga cada motor y gestiona las fuentes de programas.</p>
-    <p xml:lang="pt">Uma central de programas no estilo do Discover: navegue por categorias, busque e leia páginas de aplicativos com capturas, avaliações e resenhas. Instale, remova e atualize por APT (incluindo o repositório do SkillFishOS), Flatpak e Snap, ligue ou desligue cada motor e gerencie as fontes de programas.</p>
-    <p xml:lang="de">Eine Programmzentrale im Stil von Discover: nach Kategorien stöbern, suchen und Programmseiten mit Bildschirmfotos, Bewertungen und Besprechungen lesen. Einrichten, entfernen und aktualisieren über APT (samt der Paketquelle von SkillFishOS), Flatpak und Snap, jeden Motor ein- oder ausschalten und die Programmquellen verwalten.</p>
-    <p>One place to keep the whole system up to date, with sort and filter controls and a one-click "update all" across every backend.</p>
-    <p xml:lang="fr">Un seul endroit pour garder tout le système à jour, avec tri et filtres et un « tout mettre à jour » en un clic sur tous les moteurs à la fois.</p>
-    <p xml:lang="uk">Одне місце, щоб тримати всю систему свіжою: впорядкування, фільтри та «оновити все» одним клацом для всіх рушіїв разом.</p>
-    <p xml:lang="ru">Одно место, чтобы держать всю систему свежей: сортировка, фильтры и «обновить всё» одним щелчком для всех движков сразу.</p>
-    <p xml:lang="es">Un solo sitio para tener todo el sistema al día, con orden y filtros y un «actualizar todo» de un clic para todos los motores a la vez.</p>
-    <p xml:lang="pt">Um só lugar para manter o sistema inteiro em dia, com ordenação e filtros e um “atualizar tudo” de um clique para todos os motores de uma vez.</p>
-    <p xml:lang="de">Ein Ort, um das ganze System aktuell zu halten, mit Ordnen und Filtern und einem „alles aktualisieren“ mit einem Klick über alle Motoren hinweg.</p>
-    <p xml:lang="it">Un centro software in stile Discover: sfoglia per categoria, cerca e leggi le pagine app con screenshot, valutazioni e recensioni. Installa, rimuovi e aggiorna su APT (incluso il repository SkillFishOS), Flatpak e Snap, attiva o disattiva ogni backend e gestisci le sorgenti software.</p>
-    <p xml:lang="pl">Centrum oprogramowania w stylu Discover: przeglądaj oprogramowanie według kategorii, wyszukuj i czytaj strony aplikacji ze zrzutami ekranu, ocenami i recenzjami. Instaluj, usuwaj i aktualizuj w APT (w tym repozytorium SkillFishOS), Flatpak i Snap, włączaj lub wyłączaj każdy backend i zarządzaj źródłami oprogramowania.</p>
-    <p xml:lang="it">Un solo posto per tenere tutto il sistema aggiornato, con filtri e ordinamento e un "aggiorna tutto" su ogni backend con un clic.</p>
-    <p xml:lang="pl">Jedno miejsce, by trzymać cały system aktualny, z sortowaniem, filtrami i jednoklikowym „zaktualizuj wszystko" dla każdego backendu.</p>
+    <p>One place for apt, Flatpak, Snap and device firmware: search, categories, pages with pictures and ratings, and the sources you install from. It also opens .deb and .flatpakref files.</p>
+    <p xml:lang="it">Un posto solo per apt, Flatpak, Snap e il firmware dei dispositivi: ricerca, categorie, pagine con foto e voti, e le sorgenti da cui installi. Apre anche i file .deb e .flatpakref.</p>
+    <p xml:lang="fr">Un seul endroit pour apt, Flatpak, Snap et le micrologiciel des appareils : recherche, catégories, pages avec images et notes, et les sources d'installation. Il ouvre aussi les fichiers .deb et .flatpakref.</p>
+    <p xml:lang="uk">Одне місце для apt, Flatpak, Snap і мікропрограми пристроїв: пошук, категорії, сторінки зі знімками й оцінками, і джерела, з яких ставиш. Відкриває також файли .deb і .flatpakref.</p>
+    <p xml:lang="ru">Одно место для apt, Flatpak, Snap и прошивки устройств: поиск, категории, страницы со снимками и оценками, и источники, откуда ставишь. Открывает также файлы .deb и .flatpakref.</p>
+    <p xml:lang="es">Un solo sitio para apt, Flatpak, Snap y el firmware de los dispositivos: búsqueda, categorías, páginas con imágenes y valoraciones, y las fuentes desde las que instalas. También abre archivos .deb y .flatpakref.</p>
+    <p xml:lang="pt">Um só lugar para apt, Flatpak, Snap e o firmware dos dispositivos: pesquisa, categorias, páginas com imagens e avaliações, e as fontes de onde instalas. Também abre ficheiros .deb e .flatpakref.</p>
+    <p xml:lang="de">Ein Ort für apt, Flatpak, Snap und Geräte-Firmware: Suche, Kategorien, Seiten mit Bildern und Bewertungen, und die Quellen, aus denen du installierst. Es öffnet auch .deb- und .flatpakref-Dateien.</p>
+    <p xml:lang="pl">Jedno miejsce dla apt, Flatpaka, Snapa i firmware'u urządzeń: wyszukiwanie, kategorie, strony ze zdjęciami i ocenami oraz źródła, z których instalujesz. Otwiera też pliki .deb i .flatpakref.</p>
+    <p>Updates keep running even if you close the window: the work is handed to systemd, not tied to this program. A timer tells you when updates are waiting, so you do not have to come and look.</p>
+    <p xml:lang="it">Gli aggiornamenti vanno avanti anche se chiudi la finestra: il lavoro passa a systemd, non è legato a questo programma. Un timer ti avvisa quando ci sono aggiornamenti, così non devi venire a guardare.</p>
+    <p xml:lang="fr">Les mises à jour continuent même si vous fermez la fenêtre : le travail est confié à systemd, pas lié à ce programme. Une minuterie prévient quand des mises à jour attendent, pas besoin de venir voir.</p>
+    <p xml:lang="uk">Оновлення тривають, навіть якщо закрити вікно: роботу передано systemd, вона не прив'язана до цієї програми. Таймер повідомляє, коли оновлення чекають, тож не треба приходити й дивитися.</p>
+    <p xml:lang="ru">Обновления продолжаются, даже если закрыть окно: работа передана systemd, она не привязана к этой программе. Таймер сообщает, когда обновления ждут, так что приходить и смотреть не нужно.</p>
+    <p xml:lang="es">Las actualizaciones siguen aunque cierres la ventana: el trabajo pasa a systemd, no está atado a este programa. Un temporizador avisa cuando hay actualizaciones, así no tienes que venir a mirar.</p>
+    <p xml:lang="pt">As atualizações continuam mesmo que feches a janela: o trabalho passa para o systemd, não está preso a este programa. Um temporizador avisa quando há atualizações, assim não precisas de vir ver.</p>
+    <p xml:lang="de">Aktualisierungen laufen weiter, auch wenn du das Fenster schließt: die Arbeit übernimmt systemd, sie hängt nicht an diesem Programm. Ein Zeitgeber meldet, wenn Aktualisierungen warten, du musst also nicht nachsehen.</p>
+    <p xml:lang="pl">Aktualizacje idą dalej, nawet gdy zamkniesz okno: pracę przejmuje systemd, nie jest przywiązana do tego programu. Licznik czasu informuje, gdy czekają aktualizacje, więc nie musisz przychodzić i sprawdzać.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.hub.desktop</launchable>
   <icon type="stock">skillfishos</icon>

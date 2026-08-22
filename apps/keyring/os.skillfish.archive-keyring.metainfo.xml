@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.archive-keyring</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS archive keyring</name>
+  <summary>The key our packages are signed with</summary>
+  <summary xml:lang="it">La chiave con cui firmiamo i pacchetti</summary>
+  <summary xml:lang="fr">La clé qui signe nos paquets</summary>
+  <summary xml:lang="uk">Ключ, яким ми підписуємо пакунки</summary>
+  <summary xml:lang="ru">Ключ, которым мы подписываем пакеты</summary>
+  <summary xml:lang="es">La clave con la que firmamos los paquetes</summary>
+  <summary xml:lang="pt">A chave com que assinamos os pacotes</summary>
+  <summary xml:lang="de">Der Schlüssel, mit dem wir Pakete signieren</summary>
+  <summary xml:lang="pl">Klucz, którym podpisujemy pakiety</summary>
+  <description>
+    <p>The signing key of our archive and the apt source that uses it. Without it apt cannot check where a SkillFishOS package came from, and would either refuse it or take it on trust.</p>
+    <p xml:lang="it">La chiave di firma del nostro archivio e la sorgente apt che la usa. Senza, apt non può controllare da dove arriva un pacchetto SkillFishOS: o lo rifiuta o se lo prende sulla fiducia.</p>
+    <p xml:lang="fr">La clé de signature de notre dépôt et la source apt qui l'utilise. Sans elle, apt ne peut pas vérifier d'où vient un paquet SkillFishOS : il le refuse ou le prend sur parole.</p>
+    <p xml:lang="uk">Підписний ключ нашого архіву і джерело apt, яке ним користується. Без нього apt не може перевірити, звідки пакунок SkillFishOS: або відмовить, або візьме на віру.</p>
+    <p xml:lang="ru">Подписной ключ нашего архива и источник apt, который им пользуется. Без него apt не может проверить, откуда пакет SkillFishOS: либо откажет, либо примет на веру.</p>
+    <p xml:lang="es">La clave de firma de nuestro archivo y la fuente apt que la usa. Sin ella, apt no puede comprobar de dónde viene un paquete de SkillFishOS: o lo rechaza o se lo cree.</p>
+    <p xml:lang="pt">A chave de assinatura do nosso arquivo e a fonte apt que a usa. Sem ela, o apt não consegue verificar de onde vem um pacote do SkillFishOS: ou o recusa ou aceita-o na confiança.</p>
+    <p xml:lang="de">Der Signaturschlüssel unseres Archivs und die apt-Quelle, die ihn nutzt. Ohne ihn kann apt nicht prüfen, woher ein SkillFishOS-Paket kommt: es lehnt es ab oder nimmt es auf Treu und Glauben.</p>
+    <p xml:lang="pl">Klucz podpisujący nasze archiwum i źródło apt, które go używa. Bez niego apt nie sprawdzi, skąd pochodzi pakiet SkillFishOS: albo go odrzuci, albo przyjmie na słowo.</p>
+  </description>
+  <icon type="stock">skillfishos-archive-keyring</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfishos-archive-keyring</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>It has its own page here now, with an icon and a description in every language we ship.</p>
+        <p xml:lang="it">Adesso ha una pagina sua qui, con un'icona e la descrizione in tutte le lingue che spediamo.</p>
+        <p xml:lang="fr">Il a maintenant sa page ici, avec une icône et la description dans toutes les langues que nous livrons.</p>
+        <p xml:lang="uk">Тепер має тут свою сторінку, з піктограмою й описом усіма мовами, які ми постачаємо.</p>
+        <p xml:lang="ru">Теперь у него здесь своя страница, с иконкой и описанием на всех языках, которые мы поставляем.</p>
+        <p xml:lang="es">Ahora tiene aquí su página, con un icono y la descripción en todos los idiomas que enviamos.</p>
+        <p xml:lang="pt">Agora tem aqui a sua página, com um ícone e a descrição em todas as línguas que enviamos.</p>
+        <p xml:lang="de">Hat jetzt eine eigene Seite hier, mit Symbol und Beschreibung in allen Sprachen, die wir ausliefern.</p>
+        <p xml:lang="pl">Ma teraz tutaj własną stronę, z ikoną i opisem we wszystkich językach, które dostarczamy.</p>
+      </description>
+    </release>
+  </releases>
+</component>

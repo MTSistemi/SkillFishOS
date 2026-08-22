@@ -4,34 +4,34 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>SkillFishOS AI</name>
-  <summary>Run local AI models on the integrated GPU, on demand</summary>
-  <summary xml:lang="fr">Faites tourner des modèles d'IA en local, sur le GPU intégré, quand vous voulez</summary>
-  <summary xml:lang="uk">Запускайте моделі ШІ локально на вбудованому відеоядрі, коли потрібно</summary>
-  <summary xml:lang="ru">Запускайте модели ИИ локально на встроенном видеоядре, когда нужно</summary>
-  <summary xml:lang="es">Ejecuta modelos de IA en local, en la GPU integrada, cuando quieras</summary>
-  <summary xml:lang="pt">Rode modelos de IA localmente, na GPU integrada, quando quiser</summary>
-  <summary xml:lang="de">KI-Modelle örtlich auf der eingebauten GPU laufen lassen, wenn du willst</summary>
-  <summary xml:lang="it">Esegui modelli AI locali sulla GPU integrata, on-demand</summary>
-  <summary xml:lang="pl">Uruchamiaj lokalne modele AI na zintegrowanej GPU, na żądanie</summary>
+  <summary>Run a model on the board, not in the cloud</summary>
+  <summary xml:lang="it">Fai girare un modello sulla scheda, non nel cloud</summary>
+  <summary xml:lang="fr">Faites tourner un modèle sur la carte, pas dans le cloud</summary>
+  <summary xml:lang="uk">Запускаєш модель на платі, а не в хмарі</summary>
+  <summary xml:lang="ru">Запускаешь модель на плате, а не в облаке</summary>
+  <summary xml:lang="es">Ejecuta un modelo en la placa, no en la nube</summary>
+  <summary xml:lang="pt">Corre um modelo na placa, não na nuvem</summary>
+  <summary xml:lang="de">Ein Modell auf der Karte laufen lassen, nicht in der Cloud</summary>
+  <summary xml:lang="pl">Uruchamiasz model na płycie, nie w chmurze</summary>
   <description>
-    <p>A one-click panel for a local LLM engine: Unsloth Studio, accelerated in Vulkan on the BC-250 GPU. A first-run wizard installs it and starts it; models are then downloaded from Unsloth's own interface.</p>
-    <p xml:lang="fr">Un panneau en un clic pour un moteur LLM local : Unsloth Studio, accéléré en Vulkan sur le GPU de la BC-250. Un assistant l'installe et le démarre à la première utilisation ; les modèles se téléchargent ensuite depuis l'interface d'Unsloth.</p>
-    <p xml:lang="uk">Панель на один клац для локального рушія LLM: Unsloth Studio з прискоренням через Vulkan на відеоядрі BC-250. Майстер встановлює і запускає його під час першого запуску; моделі потім завантажують з власного вікна Unsloth.</p>
-    <p xml:lang="ru">Панель в один щелчок для локального движка LLM: Unsloth Studio с ускорением через Vulkan на видеоядре BC-250. Мастер ставит и запускает его при первом запуске; модели затем скачивают из окна самого Unsloth.</p>
-    <p xml:lang="es">Un panel de un clic para un motor LLM local: Unsloth Studio, acelerado en Vulkan sobre la GPU de la BC-250. Un asistente lo instala y lo arranca la primera vez; los modelos se descargan luego desde la interfaz del propio Unsloth.</p>
-    <p xml:lang="pt">Um painel de um clique para um motor LLM local: o Unsloth Studio, acelerado em Vulkan na GPU da BC-250. Um assistente o instala e o inicia na primeira vez; os modelos são baixados depois pela interface do próprio Unsloth.</p>
-    <p xml:lang="de">Eine Leiste mit einem Klick für einen örtlichen LLM-Motor: Unsloth Studio, über Vulkan auf der GPU der BC-250 beschleunigt. Ein Assistent richtet ihn beim ersten Start ein; die Modelle holst du danach über die Oberfläche von Unsloth.</p>
-    <p>Shows live CPU, GPU, VRAM and RAM, and a slider to grow the shared memory available to the model. Turn the engine off with one click to free the GPU for gaming. Nothing leaves the machine.</p>
-    <p xml:lang="fr">Affiche en direct le CPU, le GPU, la mémoire graphique et la mémoire vive, avec un curseur pour agrandir la mémoire partagée dont dispose le modèle. Un clic éteint le moteur et libère le GPU pour les jeux. Rien ne quitte la machine.</p>
-    <p xml:lang="uk">Показує процесор, відеоядро, відеопам'ять і оперативну пам'ять наживо, і повзунок, щоб збільшити спільну пам'ять для моделі. Один клац — і рушій вимкнено, відеоядро вільне для ігор. Нічого не залишає комп'ютер.</p>
-    <p xml:lang="ru">Показывает процессор, видеоядро, видеопамять и оперативную память вживую, и ползунок, чтобы увеличить общую память для модели. Один щелчок — и движок выключен, видеоядро свободно для игр. Ничего не покидает компьютер.</p>
-    <p xml:lang="es">Muestra CPU, GPU, VRAM y RAM en vivo, y un deslizador para ampliar la memoria compartida que el modelo puede usar. Apaga el motor con un clic para dejar la GPU libre para los juegos. Nada sale de la máquina.</p>
-    <p xml:lang="pt">Mostra CPU, GPU, VRAM e RAM ao vivo, e um controle deslizante para aumentar a memória compartilhada que o modelo pode usar. Desligue o motor com um clique para liberar a GPU para os jogos. Nada sai da máquina.</p>
-    <p xml:lang="de">Zeigt CPU, GPU, Grafikspeicher und Arbeitsspeicher in Echtzeit und einen Schieberegler, um den gemeinsamen Speicher für das Modell zu vergrößern. Mit einem Klick den Motor ausschalten und die GPU fürs Spielen freigeben. Nichts verlässt den Rechner.</p>
-    <p xml:lang="it">Un pannello a un clic per un motore LLM locale: Unsloth Studio, accelerato in Vulkan sulla GPU della BC-250. Una procedura guidata lo installa e lo avvia al primo uso; i modelli si scaricano poi dall'interfaccia di Unsloth.</p>
-    <p xml:lang="pl">Panel na jedno kliknięcie dla lokalnego silnika LLM: Unsloth Studio, przyspieszany w Vulkanie na GPU BC-250. Kreator instaluje go i uruchamia przy pierwszym użyciu; modele pobiera się potem z własnego interfejsu Unslotha.</p>
-    <p xml:lang="it">Mostra CPU, GPU, VRAM e RAM in tempo reale, e un cursore per aumentare la memoria condivisa disponibile al modello. Spegni il motore con un clic per liberare la GPU per i giochi. Nessun dato lascia la macchina.</p>
-    <p xml:lang="pl">Pokazuje na żywo zużycie CPU, GPU, VRAM i RAM oraz suwak do zwiększania pamięci współdzielonej dostępnej dla modelu. Wyłącz silnik jednym kliknięciem, by zwolnić GPU do grania. Żadne dane nie opuszczają komputera.</p>
+    <p>Downloads a language model, runs it on the integrated GPU and gives you a chat window. The questions and the answers stay on this machine.</p>
+    <p xml:lang="it">Scarica un modello linguistico, lo fa girare sulla GPU integrata e ti dà una finestra di chat. Le domande e le risposte restano su questa macchina.</p>
+    <p xml:lang="fr">Télécharge un modèle de langage, le fait tourner sur le GPU intégré et vous donne une fenêtre de discussion. Les questions et les réponses restent sur cette machine.</p>
+    <p xml:lang="uk">Завантажує мовну модель, запускає її на вбудованому GPU і дає вікно чату. Питання й відповіді лишаються на цій машині.</p>
+    <p xml:lang="ru">Скачивает языковую модель, запускает её на встроенном GPU и даёт окно чата. Вопросы и ответы остаются на этой машине.</p>
+    <p xml:lang="es">Descarga un modelo de lenguaje, lo ejecuta en la GPU integrada y te da una ventana de chat. Las preguntas y las respuestas se quedan en esta máquina.</p>
+    <p xml:lang="pt">Descarrega um modelo de linguagem, corre-o na GPU integrada e dá-te uma janela de conversa. As perguntas e as respostas ficam nesta máquina.</p>
+    <p xml:lang="de">Lädt ein Sprachmodell herunter, lässt es auf der eingebauten GPU laufen und gibt dir ein Chatfenster. Fragen und Antworten bleiben auf dieser Maschine.</p>
+    <p xml:lang="pl">Pobiera model językowy, uruchamia go na zintegrowanym GPU i daje okno czatu. Pytania i odpowiedzi zostają na tej maszynie.</p>
+    <p>On the BC-250 the model runs on the GPU through Vulkan, which is about five times faster than the processor. You pick the model and the panel keeps the download and the chat in one window.</p>
+    <p xml:lang="it">Sulla BC-250 il modello gira sulla GPU con Vulkan, che è circa cinque volte più veloce del processore. Scegli il modello, e il pannello tiene insieme scaricamento e chat in una finestra sola.</p>
+    <p xml:lang="fr">Sur la BC-250, le modèle tourne sur le GPU via Vulkan, environ cinq fois plus vite que sur le processeur. Vous choisissez le modèle, et le panneau réunit téléchargement et discussion dans une seule fenêtre.</p>
+    <p xml:lang="uk">На BC-250 модель іде на GPU через Vulkan — це приблизно вп'ятеро швидше за процесор. Обираєш модель, а панель тримає завантаження й чат в одному вікні.</p>
+    <p xml:lang="ru">На BC-250 модель идёт на GPU через Vulkan — это примерно в пять раз быстрее процессора. Выбираешь модель, а панель держит загрузку и чат в одном окне.</p>
+    <p xml:lang="es">En la BC-250 el modelo corre en la GPU con Vulkan, unas cinco veces más rápido que en el procesador. Eliges el modelo, y el panel reúne descarga y chat en una sola ventana.</p>
+    <p xml:lang="pt">Na BC-250 o modelo corre na GPU com Vulkan, cerca de cinco vezes mais rápido que no processador. Escolhes o modelo, e o painel junta descarga e conversa numa só janela.</p>
+    <p xml:lang="de">Auf der BC-250 läuft das Modell über Vulkan auf der GPU, rund fünfmal schneller als auf dem Prozessor. Du wählst das Modell, und das Panel hält Download und Chat in einem Fenster zusammen.</p>
+    <p xml:lang="pl">Na BC-250 model idzie na GPU przez Vulkana, jakieś pięć razy szybciej niż na procesorze. Wybierasz model, a panel trzyma pobieranie i czat w jednym oknie.</p>
   </description>
   <launchable type="desktop-id">os.skillfish.ai.desktop</launchable>
   <icon type="stock">skillfishos</icon>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.theme</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Steampunk theme</name>
+  <summary>Brass, copper and gears, everywhere</summary>
+  <summary xml:lang="it">Ottone, rame e ingranaggi, dappertutto</summary>
+  <summary xml:lang="fr">Laiton, cuivre et engrenages, partout</summary>
+  <summary xml:lang="uk">Латунь, мідь і шестерні, скрізь</summary>
+  <summary xml:lang="ru">Латунь, медь и шестерни, повсюду</summary>
+  <summary xml:lang="es">Latón, cobre y engranajes, por todas partes</summary>
+  <summary xml:lang="pt">Latão, cobre e engrenagens, por todo o lado</summary>
+  <summary xml:lang="de">Messing, Kupfer und Zahnräder, überall</summary>
+  <summary xml:lang="pl">Mosiądz, miedź i zębatki, wszędzie</summary>
+  <description>
+    <p>Icons, cursors, the Plasma theme, the colours and the panel layout, in one package. It also puts the menu button back if an update changed it, because the panel settings live in your home and a package cannot reach in there.</p>
+    <p xml:lang="it">Icone, cursori, tema di Plasma, colori e disposizione del pannello, in un pacchetto solo. Rimette anche il pulsante del menù se un aggiornamento l'ha cambiato, perché la configurazione del pannello sta nella tua home e un pacchetto lì non arriva.</p>
+    <p xml:lang="fr">Icônes, curseurs, thème Plasma, couleurs et disposition du panneau, en un seul paquet. Il remet aussi le bouton du menu si une mise à jour l'a changé, car les réglages du panneau vivent dans votre dossier et un paquet n'y accède pas.</p>
+    <p xml:lang="uk">Піктограми, курсори, тема Plasma, кольори й розкладка панелі, в одному пакунку. Він також повертає кнопку меню, якщо оновлення її змінило, бо налаштування панелі живуть у твоїй домівці, а пакунок туди не дістає.</p>
+    <p xml:lang="ru">Иконки, курсоры, тема Plasma, цвета и раскладка панели, в одном пакете. Он также возвращает кнопку меню, если обновление её изменило, потому что настройки панели живут в твоей домашней папке, а пакет туда не дотягивается.</p>
+    <p xml:lang="es">Iconos, cursores, tema de Plasma, colores y disposición del panel, en un solo paquete. También repone el botón del menú si una actualización lo cambió, porque los ajustes del panel viven en tu carpeta y un paquete no llega allí.</p>
+    <p xml:lang="pt">Ícones, cursores, tema do Plasma, cores e disposição do painel, num só pacote. Também repõe o botão do menu se uma atualização o mudou, porque as definições do painel vivem na tua pasta e um pacote não chega lá.</p>
+    <p xml:lang="de">Symbole, Zeiger, Plasma-Thema, Farben und Leistenaufteilung, in einem Paket. Es stellt auch die Menütaste zurück, falls eine Aktualisierung sie verändert hat, denn die Leisteneinstellungen liegen in deinem Ordner, und ein Paket kommt dort nicht hin.</p>
+    <p xml:lang="pl">Ikony, kursory, motyw Plazmy, kolory i układ panelu, w jednym pakiecie. Przywraca też przycisk menu, jeśli aktualizacja go zmieniła, bo ustawienia panelu żyją w twoim katalogu, a pakiet tam nie sięga.</p>
+  </description>
+  <icon type="stock">skillfish-theme</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-theme</pkgname>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The desktop as the theme leaves it</caption>
+      <caption xml:lang="it">La scrivania come la lascia il tema</caption>
+      <caption xml:lang="fr">Le bureau tel que le thème le laisse</caption>
+      <caption xml:lang="uk">Стільниця такою, якою її лишає тема</caption>
+      <caption xml:lang="ru">Рабочий стол таким, каким его оставляет тема</caption>
+      <caption xml:lang="es">El escritorio tal como lo deja el tema</caption>
+      <caption xml:lang="pt">A área de trabalho como o tema a deixa</caption>
+      <caption xml:lang="de">Der Schreibtisch, wie das Thema ihn hinterlässt</caption>
+      <caption xml:lang="pl">Pulpit taki, jakim zostawia go motyw</caption>
+      <image type="source">file:///usr/share/skillfish/screenshots/desktop.jpg</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.08.40" date="2026-08-22">
+      <description>
+        <p>The menu button has an image of its own now, instead of borrowing the Tuner's icon.</p>
+        <p xml:lang="it">Il pulsante del menù ha un'immagine sua, invece di prendere in prestito l'icona del Tuner.</p>
+        <p xml:lang="fr">Le bouton du menu a désormais sa propre image, au lieu d'emprunter l'icône du Tuner.</p>
+        <p xml:lang="uk">Кнопка меню тепер має власне зображення, а не позичену піктограму Tuner.</p>
+        <p xml:lang="ru">У кнопки меню теперь своё изображение, а не позаимствованная иконка Tuner.</p>
+        <p xml:lang="es">El botón del menú tiene ahora imagen propia, en vez de tomar prestado el icono del Tuner.</p>
+        <p xml:lang="pt">O botão do menu tem agora imagem própria, em vez de pedir emprestado o ícone do Tuner.</p>
+        <p xml:lang="de">Die Menütaste hat jetzt ein eigenes Bild, statt sich das Symbol des Tuners zu leihen.</p>
+        <p xml:lang="pl">Przycisk menu ma teraz własny obrazek zamiast pożyczonej ikony Tunera.</p>
+      </description>
+    </release>
+  </releases>
+</component>
