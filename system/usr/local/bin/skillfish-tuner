@@ -97,8 +97,8 @@ PL = {
 
     "Max CPU frequency": "Maksymalna częstotliwość CPU",
     "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.": "Limit boostu CPU w MHz.\n\n• 3500 = bezpieczna baza\n• 3700 = zweryfikowana stabilność na tym układzie\n• 3800-3900 = poza limitami, możliwy throttling termiczny\n\nNapięcie (Vid) zawsze pozostaje poniżej 1,325 V dla bezpieczeństwa.",
-    "Undervolt (scale)": "Undervolt (skala)",
-    "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.": "Obniża napięcie CPU względem fabrycznej krzywej.\n\n• 0 = brak undervoltu (domyślnie)\n• wartości ujemne (-1, -2 ...) = mniej napięcia\n\nUndervolt obniża temperatury i pobór mocy, ale zbyt duży czyni system niestabilnym. Użyj «Test», aby sprawdzić.",
+    "Undervolt (mV)": "Undervolt (skala)",
+    "Lowers the CPU voltage below the factory curve.\n\n• 0 mV = no undervolt (default)\n• the SMU moves in steps of 6.25 mV, so the value jumps by 6 or 7\n\nLess voltage means lower temperatures and less power, but going too far makes the system unstable. «Suggest UV» proposes a value, «Test (benchmark)» verifies it.": "Obniża napięcie CPU poniżej fabrycznej krzywej.\n\n• 0 mV = brak undervoltu (domyślnie)\n• SMU zmienia napięcie skokami po 6,25 mV, więc wartość skacze o 6 lub 7\n\nMniejsze napięcie to niższe temperatury i mniejszy pobór mocy, ale przesada powoduje niestabilność. «Zasugeruj UV» proponuje wartość, «Test (benchmark)» ją sprawdza.",
     "CPU temperature limit": "Limit temperatury CPU",
     "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.": "Próg termiczny, powyżej którego SMU ogranicza częstotliwość.\n\nZalecane 85 °C. Powyżej tej wartości system automatycznie obniża zegar, aby chronić sprzęt.",
     "Max GPU frequency": "Maksymalna częstotliwość GPU",
@@ -128,7 +128,7 @@ PL = {
     "Apply": "Zastosuj",
     "Extreme preset": "Ekstremalny preset",
     "My silicon": "Mój krzem",
-    "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d": "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Aktywne CU: %d  ·  Wykryte zawieszenia: %d",
+    "CPU %d MHz @ %d mV  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d": "CPU %d MHz @ %d mV  ·  GPU %d MHz @ %d mV  ·  Aktywne CU: %d  ·  Wykryte zawieszenia: %d",
     "⚠ Last freeze: %s — if it happens again, step down one notch with the wizards.": "⚠ Ostatnie zawieszenie: %s — jeśli powtórzy się, zejdź o jeden poziom niżej za pomocą kreatorów.",
     "Share to the silicon DB": "Udostępnij w bazie krzemu",
     "Max frequency": "Maksymalna częstotliwość",
@@ -230,9 +230,9 @@ UK = {
     "Max CPU frequency": "Максимальна частота ЦП",
     "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.":
         "Обмеження буст-частоти ЦП у МГц.\n\n• 3500 = безпечна база\n• 3700 = перевірено стабільно на цьому чипі\n• 3800-3900 = за межами норми, можливий тепловий тротлінг\n\nНапруга (Vid) задля безпеки завжди залишається нижче 1,325 В.",
-    "Undervolt (scale)": "Зниження напруги (шкала)",
-    "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.":
-        "Знижує напругу ЦП відносно заводської кривої.\n\n• 0 = без зниження (типово)\n• від’ємні значення (-1, -2 ...) = менша напруга\n\nЗниження напруги зменшує температуру і споживання, але надмірне робить систему нестабільною. Скористайтеся «Тест», щоб перевірити.",
+    "Undervolt (mV)": "Зниження напруги (шкала)",
+    "Lowers the CPU voltage below the factory curve.\n\n• 0 mV = no undervolt (default)\n• the SMU moves in steps of 6.25 mV, so the value jumps by 6 or 7\n\nLess voltage means lower temperatures and less power, but going too far makes the system unstable. «Suggest UV» proposes a value, «Test (benchmark)» verifies it.":
+        "Знижує напругу процесора відносно заводської кривої.\n\n• 0 мВ = без андервольту (типово)\n• SMU працює кроками по 6,25 мВ, тому значення змінюється на 6 або 7\n\nМенше напруги — нижчі температури й споживання, але надмір робить систему нестабільною. «Порадити зниження» запропонує значення, «Тест (бенчмарк)» його перевірить.",
     "CPU temperature limit": "Обмеження температури ЦП",
     "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.":
         "Тепловий поріг, вище якого SMU знижує частоту.\n\nРекомендовано 85 °C. Вище цього значення система автоматично знижує частоту, щоб захистити обладнання.",
@@ -269,8 +269,8 @@ UK = {
     "Apply": "Застосувати",
     "Extreme preset": "Екстремальна заготовка",
     "My silicon": "Мій кремній",
-    "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d":
-        "ЦП %d МГц @ %d  ·  ГП %d МГц @ %d мВ  ·  Активних CU: %d  ·  Виявлено зависань: %d",
+    "CPU %d MHz @ %d mV  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d":
+        "ЦП %d МГц @ %d мВ  ·  ГП %d МГц @ %d мВ  ·  Активних CU: %d  ·  Виявлено зависань: %d",
     "⚠ Last freeze: %s — if it happens again, step down one notch with the wizards.":
         "⚠ Останнє зависання: %s — якщо повториться, знизьте на один щабель за допомогою майстрів.",
     "Share to the silicon DB": "Поділитися в базі кремнію",
@@ -371,9 +371,9 @@ HELP = {
  "cpu_freq": (L("Frequenza massima CPU", "Max CPU frequency"),
    L("Limite di boost della CPU in MHz.\n\n• 3500 = base sicura\n• 3700 = stabile verificato su questo chip\n• 3800-3900 = oltre i limiti, possibile throttling termico\n\nIl voltaggio (Vid) resta sempre sotto 1.325 V per sicurezza.",
      "CPU boost limit in MHz.\n\n• 3500 = safe base\n• 3700 = verified stable on this chip\n• 3800-3900 = beyond limits, possible thermal throttling\n\nVoltage (Vid) always stays below 1.325 V for safety.")),
- "cpu_scale": (L("Undervolt (scale)", "Undervolt (scale)"),
-   L("Riduce il voltaggio della CPU rispetto alla curva di fabbrica.\n\n• 0 = nessun undervolt (default)\n• valori negativi (-1, -2 ...) = meno voltaggio\n\nUn undervolt fa scendere temperature e consumi, ma se eccessivo rende il sistema instabile. Usa «Test» per verificare.",
-     "Lowers the CPU voltage relative to the factory curve.\n\n• 0 = no undervolt (default)\n• negative values (-1, -2 ...) = less voltage\n\nUndervolting lowers temperatures and power draw, but too much makes the system unstable. Use «Test» to verify.")),
+ "cpu_scale": (L("Undervolt (mV)", "Undervolt (mV)"),
+   L("Riduce il voltaggio della CPU sotto la curva di fabbrica.\n\n• 0 mV = nessun undervolt (predefinito)\n• l'SMU si muove a scalini da 6,25 mV, quindi il valore salta di 6 o 7\n\nMeno voltaggio vuol dire temperature più basse e meno consumo, ma se si esagera il sistema diventa instabile. «Suggerisci UV» propone un valore, «Test (benchmark)» lo verifica.",
+     "Lowers the CPU voltage below the factory curve.\n\n• 0 mV = no undervolt (default)\n• the SMU moves in steps of 6.25 mV, so the value jumps by 6 or 7\n\nLess voltage means lower temperatures and less power, but going too far makes the system unstable. «Suggest UV» proposes a value, «Test (benchmark)» verifies it.")),
  "cpu_temp": (L("Limite temperatura CPU", "CPU temperature limit"),
    L("Soglia termica oltre la quale l'SMU limita la frequenza.\n\nConsigliato 85 °C. Oltre, il sistema riduce automaticamente il clock per proteggere l'hardware.",
      "Thermal threshold above which the SMU throttles frequency.\n\nRecommended 85 °C. Above it, the system automatically lowers the clock to protect the hardware.")),
@@ -547,11 +547,28 @@ class CmdThread(QThread):
         self.done.emit(self.fn())
 
 
+# Un scalino di undervolt della CPU quanto vale in millivolt.
+# Misurato sulla scheda il 05/06/2026 leggendo la tensione vera dall'SMU
+# (q3_0x36) a 3700 MHz sotto carico: scale 0 = 1206 mV, scale -32 = 1012 mV,
+# cioe' 194 mV in 32 scalini. E' il passo VID standard di AMD.
+MV_PER_SCALINO = 6.25
+
+
+def mv_undervolt(scalini):
+    """Da scalini dell'SMU a millivolt, come li legge una persona."""
+    return "0 mV" if not scalini else "%d mV" % round(scalini * MV_PER_SCALINO)
+
+
 class Stepper(QWidget):
-    """[-] [slider] [+] [value] — fine ±1 increment on the buttons."""
-    def __init__(self, lo, hi, val, unit):
+    """[-] [slider] [+] [value] — fine ±1 increment on the buttons.
+
+    «mostra» serve quando il numero che vuole l'hardware non e' il numero che
+    ha senso per chi guarda: l'undervolt della CPU si manda all'SMU a scalini,
+    ma si legge in millivolt.
+    """
+    def __init__(self, lo, hi, val, unit, mostra=None):
         super().__init__()
-        self.lo, self.hi, self.unit = lo, hi, unit
+        self.lo, self.hi, self.unit, self.mostra = lo, hi, unit, mostra
         h = QHBoxLayout(self); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(6)
         self.minus = QToolButton(); self.minus.setText("−")
         self.s = QSlider(Qt.Orientation.Horizontal); self.s.setRange(lo, hi); self.s.setValue(int(val))
@@ -565,7 +582,7 @@ class Stepper(QWidget):
         self.plus.clicked.connect(lambda: self.s.setValue(min(hi, self.s.value() + 1)))
         self.s.valueChanged.connect(self._upd); self._upd(int(val))
     def _upd(self, v):
-        self.lbl.setText(f"{v} {self.unit}".strip())
+        self.lbl.setText(self.mostra(v) if self.mostra else f"{v} {self.unit}".strip())
     def value(self):
         return self.s.value()
 
@@ -952,9 +969,10 @@ class TunerWindow(QMainWindow):
                 freezes = [ln.strip() for ln in fh if ln.strip()]
         except OSError:
             pass  # no freezes recorded (or log unreadable): show 0
-        lab = QLabel(L("CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  CU attive: %d  ·  Blocchi rilevati: %d",
-                       "CPU %d MHz @ %d  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d")
-                     % (cpu.get("frequency", 0), cpu.get("scale", 0), gp.get("max_mhz", 0),
+        lab = QLabel(L("CPU %d MHz @ %d mV  ·  GPU %d MHz @ %d mV  ·  CU attive: %d  ·  Blocchi rilevati: %d",
+                       "CPU %d MHz @ %d mV  ·  GPU %d MHz @ %d mV  ·  Active CUs: %d  ·  Detected freezes: %d")
+                     % (cpu.get("frequency", 0), round(cpu.get("scale", 0) * MV_PER_SCALINO),
+                          gp.get("max_mhz", 0),
                         gp.get("max_mv", 0), cu.get("active", 0), len(freezes)))
         lab.setWordWrap(True); v.addWidget(lab)
         if freezes:
@@ -972,7 +990,7 @@ class TunerWindow(QMainWindow):
     def _cpu(self):
         g, v = self._section("CPU"); cpu = self.cfg.get("cpu", {})
         self.cf = Stepper(3500, 4500, cpu.get("frequency", 3700), "MHz")
-        self.cs = Stepper(-50, 0, cpu.get("scale", 0), "")
+        self.cs = Stepper(-50, 0, cpu.get("scale", 0), "", mostra=mv_undervolt)
         self.ct = Stepper(60, 95, cpu.get("max_temperature", 85), "°C")
         v.addWidget(self._row(L("Frequenza massima", "Max frequency"), self.cf, "cpu_freq"))
         v.addWidget(self._row(L("Undervolt", "Undervolt"), self.cs, "cpu_scale"))
