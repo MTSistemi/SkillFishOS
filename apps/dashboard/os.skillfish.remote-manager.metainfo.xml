@@ -72,26 +72,17 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.40" date="2026-08-22">
+    <release version="26.08.43" date="2026-08-22">
       <description>
-        <p>Two new modules: the fan curve and the HUD, with the same layout as the windows on the desktop.</p>
-        <p xml:lang="it">Due moduli nuovi: la curva della ventola e il HUD, con la stessa disposizione delle finestre sulla scrivania.</p>
-        <p xml:lang="fr">Deux nouveaux modules : la courbe du ventilateur et le HUD, avec la même disposition que les fenêtres du bureau.</p>
-        <p xml:lang="uk">Два нові модулі: крива вентилятора і HUD, з тим самим розташуванням, що й вікна на стільниці.</p>
-        <p xml:lang="ru">Два новых модуля: кривая вентилятора и HUD, с той же раскладкой, что и окна на рабочем столе.</p>
-        <p xml:lang="es">Dos módulos nuevos: la curva del ventilador y el HUD, con la misma disposición que las ventanas del escritorio.</p>
-        <p xml:lang="pt">Dois módulos novos: a curva da ventoinha e o HUD, com a mesma disposição das janelas na área de trabalho.</p>
-        <p xml:lang="de">Zwei neue Module: die Lüfterkurve und das HUD, mit derselben Aufteilung wie die Fenster auf dem Schreibtisch.</p>
-        <p xml:lang="pl">Dwa nowe moduły: krzywa wentylatora i HUD, z tym samym układem co okna na pulpicie.</p>
-        <p>Fixed: settings written from the dashboard stayed owned by root, so the window on the desktop could no longer save them.</p>
-        <p xml:lang="it">Corretto: le impostazioni scritte dal cruscotto restavano di root, e la finestra sulla scrivania non riusciva più a salvarle.</p>
-        <p xml:lang="fr">Corrigé : les réglages écrits depuis le tableau de bord restaient à root, et la fenêtre du bureau ne pouvait plus les enregistrer.</p>
-        <p xml:lang="uk">Виправлено: налаштування, записані з панелі, лишалися власністю root, і вікно на стільниці більше не могло їх зберегти.</p>
-        <p xml:lang="ru">Исправлено: настройки, записанные из панели, оставались во владении root, и окно на рабочем столе больше не могло их сохранить.</p>
-        <p xml:lang="es">Corregido: los ajustes escritos desde el panel quedaban de root y la ventana del escritorio ya no podía guardarlos.</p>
-        <p xml:lang="pt">Corrigido: as definições escritas pelo painel ficavam de root e a janela na área de trabalho já não conseguia guardá-las.</p>
-        <p xml:lang="de">Behoben: Aus der Anzeige geschriebene Einstellungen gehörten danach root, und das Fenster auf dem Schreibtisch konnte sie nicht mehr sichern.</p>
-        <p xml:lang="pl">Poprawione: ustawienia zapisane z pulpitu zostawały własnością roota i okno na pulpicie nie mogło ich już zapisać.</p>
+        <p>Security and reliability fixes. The private key of the web certificate is checked after it is written, and says so loudly if it is readable by other users. Saving a setting no longer fails in silence — a failed write used to look like a setting that undid itself after a reboot. The translation files are chosen from what is actually in the folder rather than from the request, and the AI chat always answers with a readable message instead of an empty reply.</p>
+        <p xml:lang="it">Correzioni di sicurezza e di affidabilità. La chiave privata del certificato viene ricontrollata dopo essere stata scritta, e se resta leggibile da altri utenti lo dice forte. Salvare un'impostazione non fallisce più in silenzio — prima una scrittura fallita sembrava un'impostazione che si rimetteva da sola al riavvio. I file delle traduzioni si scelgono fra quelli che ci sono davvero nella cartella invece che dalla richiesta, e la chat AI risponde sempre con una frase leggibile invece che con un vuoto.</p>
+        <p xml:lang="fr">Corrections de sécurité et de fiabilité. La clé privée du certificat est vérifiée après écriture, et si elle reste lisible par d'autres utilisateurs elle le dit fort. Enregistrer un réglage n'échoue plus en silence — une écriture ratée ressemblait à un réglage qui se défaisait au redémarrage. Les fichiers de traduction sont choisis parmi ceux réellement présents dans le dossier plutôt que d'après la requête, et le chat IA répond toujours par une phrase lisible au lieu d'un vide.</p>
+        <p xml:lang="uk">Виправлення безпеки й надійності. Закритий ключ сертифіката перевіряється після запису, і якщо він лишається доступним іншим користувачам, про це кажуть уголос. Збереження налаштування більше не зривається мовчки — невдалий запис виглядав як налаштування, що саме скасовується після перезавантаження. Файли перекладів обираються з тих, що справді є в теці, а не з запиту, і чат ШІ завжди відповідає зрозумілою фразою замість порожнечі.</p>
+        <p xml:lang="ru">Исправления безопасности и надёжности. Закрытый ключ сертификата проверяется после записи, и если он остаётся доступным другим пользователям, об этом говорится громко. Сохранение настройки больше не срывается молча — неудачная запись выглядела как настройка, которая сама отменяется после перезагрузки. Файлы переводов выбираются из тех, что действительно есть в папке, а не из запроса, и чат ИИ всегда отвечает понятной фразой вместо пустоты.</p>
+        <p xml:lang="es">Correcciones de seguridad y fiabilidad. La clave privada del certificado se comprueba después de escribirla, y si queda legible por otros usuarios lo dice alto. Guardar un ajuste ya no falla en silencio — una escritura fallida parecía un ajuste que se deshacía al reiniciar. Los archivos de traducción se eligen entre los que realmente hay en la carpeta y no según la petición, y el chat de IA siempre responde con una frase legible en vez de un vacío.</p>
+        <p xml:lang="pt">Correções de segurança e fiabilidade. A chave privada do certificado é verificada depois de escrita, e se ficar legível por outros utilizadores diz-o alto. Guardar uma definição já não falha em silêncio — uma escrita falhada parecia uma definição que se desfazia ao reiniciar. Os ficheiros de tradução são escolhidos entre os que existem mesmo na pasta e não a partir do pedido, e o chat de IA responde sempre com uma frase legível em vez de um vazio.</p>
+        <p xml:lang="de">Sicherheits- und Zuverlässigkeitskorrekturen. Der private Schlüssel des Zertifikats wird nach dem Schreiben geprüft, und wenn er für andere Benutzer lesbar bleibt, wird das laut gesagt. Das Speichern einer Einstellung scheitert nicht mehr stillschweigend — ein fehlgeschlagener Schreibvorgang sah aus wie eine Einstellung, die sich beim Neustart selbst rückgängig macht. Die Übersetzungsdateien werden aus dem gewählt, was tatsächlich im Ordner liegt, statt aus der Anfrage, und der KI-Chat antwortet immer mit einem lesbaren Satz statt mit Leere.</p>
+        <p xml:lang="pl">Poprawki bezpieczeństwa i niezawodności. Klucz prywatny certyfikatu jest sprawdzany po zapisaniu i głośno mówi, jeśli pozostaje czytelny dla innych użytkowników. Zapis ustawienia nie kończy się już milczącym niepowodzeniem — nieudany zapis wyglądał jak ustawienie, które само się cofa po restarcie. Pliki tłumaczeń wybierane są spośród tych, które naprawdę są w katalogu, a nie z zapytania, a czat AI zawsze odpowiada czytelnym zdaniem zamiast pustką.</p>
       </description>
     </release>
   </releases>

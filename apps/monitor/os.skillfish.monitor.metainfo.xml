@@ -82,9 +82,5 @@
         <p xml:lang="de">Monitor v2: Kurven für die Leistungsaufnahme (W) und die Auslastung von CPU und GPU kommen dazu (insgesamt sechs Felder); der Abstand zwischen den Messungen lässt sich jetzt bis auf 0,5 s wählen. Aufzeichnungen werden als .sfmon-Dateien gesichert (innen CSV) und lassen sich im Monitor als Auswertung wieder öffnen, mit einem Zeitregler, um den ganzen Durchlauf Sekunde für Sekunde anzusehen.</p>
       </description>
     </release>
-    <release version="26.06.5" date="2026-06-10">
-      <description><p>REC button: record telemetry to CSV with a min/avg/max summary at the end of the session.</p></description>
-    </release>
-    <release version="26.06.3" date="2026-06-08"/>
   </releases>
 </component>

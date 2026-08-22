@@ -65,6 +65,18 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="26.06.3" date="2026-06-08"/>
+    <release version="26.08.43" date="2026-08-22">
+      <description>
+        <p>Maintenance release: leftover scaffolding removed from the setup wizard. Nothing changes in what it does.</p>
+        <p xml:lang="it">Versione di manutenzione: tolta un'impalcatura rimasta nella procedura di installazione. In quello che fa non cambia niente.</p>
+        <p xml:lang="fr">Version de maintenance : suppression d'un échafaudage resté dans l'assistant d'installation. Rien ne change dans ce qu'il fait.</p>
+        <p xml:lang="uk">Версія обслуговування: прибрано риштування, що лишилося в майстрі встановлення. У тому, що він робить, нічого не змінюється.</p>
+        <p xml:lang="ru">Версия обслуживания: убраны строительные леса, оставшиеся в мастере установки. В том, что он делает, ничего не меняется.</p>
+        <p xml:lang="es">Versión de mantenimiento: quitado un andamiaje que quedaba en el asistente de instalación. En lo que hace no cambia nada.</p>
+        <p xml:lang="pt">Versão de manutenção: removido um andaime que ficara no assistente de instalação. No que faz nada muda.</p>
+        <p xml:lang="de">Wartungsversion: im Einrichtungsassistenten zurückgebliebenes Gerüst entfernt. An dem, was er tut, ändert sich nichts.</p>
+        <p xml:lang="pl">Wersja konserwacyjna: usunięto rusztowanie pozostałe w kreatorze instalacji. W tym, co robi, nic się nie zmienia.</p>
+      </description>
+    </release>
   </releases>
 </component>

@@ -33,17 +33,17 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.40" date="2026-08-22">
+    <release version="26.08.44" date="2026-08-22">
       <description>
-        <p>The table that says which HUD lines this machine can give now lives here, so the window and the Remote Manager answer the same.</p>
-        <p xml:lang="it">La tabella che dice quali righe del HUD questa macchina può dare sta qui, così la finestra e il Remote Manager rispondono uguale.</p>
-        <p xml:lang="fr">La table qui dit quelles lignes du HUD cette machine peut fournir est ici, ainsi la fenêtre et le Remote Manager répondent pareil.</p>
-        <p xml:lang="uk">Таблиця, яка каже, які рядки HUD ця машина може дати, тепер тут, тож вікно й Remote Manager відповідають однаково.</p>
-        <p xml:lang="ru">Таблица, которая говорит, какие строки HUD эта машина может дать, теперь здесь, поэтому окно и Remote Manager отвечают одинаково.</p>
-        <p xml:lang="es">La tabla que dice qué líneas del HUD puede dar esta máquina está aquí, así la ventana y el Remote Manager responden igual.</p>
-        <p xml:lang="pt">A tabela que diz quais linhas do HUD esta máquina pode dar está aqui, assim a janela e o Remote Manager respondem igual.</p>
-        <p xml:lang="de">Die Tabelle, die sagt, welche HUD-Zeilen diese Maschine geben kann, liegt jetzt hier, damit Fenster und Remote Manager dasselbe antworten.</p>
-        <p xml:lang="pl">Tabela mówiąca, które wiersze HUD ta maszyna może podać, jest teraz tutaj, więc okno i Remote Manager odpowiadają tak samo.</p>
+        <p>The undervolt figures shown by the Tuner are translated into every language the system speaks, and the Cyrillic ones use мВ rather than mV. Internal fixes to the core-unlock and memory-configuration tools, which were leaving file handles behind.</p>
+        <p xml:lang="it">I valori di undervolt mostrati dal Tuner sono tradotti in tutte le lingue del sistema, e in cirillico si scrivono мВ invece di mV. Correzioni interne agli strumenti di sblocco core e configurazione della memoria, che lasciavano indietro dei file aperti.</p>
+        <p xml:lang="fr">Les valeurs d'undervolt affichées par le Tuner sont traduites dans toutes les langues du système, et en cyrillique s'écrivent мВ plutôt que mV. Corrections internes aux outils de déverrouillage des cœurs et de configuration mémoire, qui laissaient des fichiers ouverts derrière eux.</p>
+        <p xml:lang="uk">Значення андервольту, які показує Tuner, перекладено всіма мовами системи, а кирилицею пишуться мВ, а не mV. Внутрішні виправлення в засобах розблокування ядер і налаштування пам'яті, які лишали по собі відкриті файли.</p>
+        <p xml:lang="ru">Значения андервольта, которые показывает Tuner, переведены на все языки системы, а кириллицей пишутся мВ, а не mV. Внутренние исправления в средствах разблокировки ядер и настройки памяти, оставлявших после себя открытые файлы.</p>
+        <p xml:lang="es">Los valores de undervolt que muestra el Tuner están traducidos a todos los idiomas del sistema, y en cirílico se escriben мВ en vez de mV. Correcciones internas en las herramientas de desbloqueo de núcleos y configuración de memoria, que dejaban archivos abiertos.</p>
+        <p xml:lang="pt">Os valores de undervolt que o Tuner mostra estão traduzidos em todas as línguas do sistema, e em cirílico escrevem-se мВ em vez de mV. Correções internas nas ferramentas de destravamento de núcleos e configuração de memória, que deixavam ficheiros abertos.</p>
+        <p xml:lang="de">Die vom Tuner angezeigten Undervolting-Werte sind in alle Sprachen des Systems übersetzt, und kyrillisch schreibt man мВ statt mV. Interne Korrekturen an den Werkzeugen für Kernfreischaltung und Speicherkonfiguration, die Dateien offen ließen.</p>
+        <p xml:lang="pl">Wartości undervoltu pokazywane przez Tuner są przetłumaczone na wszystkie języki systemu, a cyrylicą pisze się мВ zamiast mV. Wewnętrzne poprawki w narzędziach odblokowania rdzeni i konfiguracji pamięci, które zostawiały otwarte pliki.</p>
       </description>
     </release>
   </releases>

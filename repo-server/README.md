@@ -50,28 +50,37 @@ are the parts a user actually reads.
    executes the module body: on 22 August 2026 it was green while the shipped
    Hub showed no installed flatpaks at all and segfaulted on the first filter
    change. Both lived behind a click.
-4. Compare the **contents** against what is already published and ship only what
-   changed. In 26.08.43 that was 5 packages out of 15; publishing all fifteen
-   makes every user re-download 1.4 MB of identical files.
 3. **Re-read the `ctrl()` description** of each package that changed. The Hub and
    `apt show` display it — it is the page a user sees before installing. Until
    22 August 2026 it said "built from git by CI" and nothing else, which told
-   the reader precisely nothing. If the behaviour changed, the description
-   changes; if the wording is now wrong on screen, fix it here too.
-5. Copy the `.deb` files to the container and compare checksums **before**
+   the reader precisely nothing.
+4. **Update the `<release>` block in the app's metainfo.** That is the "What's
+   new" shown when the app's page is opened in the Hub. **One entry only, the
+   version being released** — old versions stacking up turn the page into a
+   changelog nobody asked for, and the real changelog is generated from the
+   commits anyway. Nine languages, as everywhere else, and `мВ` rather than `mV`
+   in Cyrillic. If the only change is internal, say it is a maintenance release
+   instead of inventing a feature.
+5. Compare the **contents** against what is already published and ship only what
+   changed. In 26.08.43 that was 5 packages out of 15; publishing all fifteen
+   makes every user re-download 1.4 MB of identical files.
+6. Copy the `.deb` files to the container and compare checksums **before**
    signing.
-6. `skillfish-rilascio <files>` — indexes and signs, stays in the house.
-7. `skillfish-rilascio --pubblica` — out to OVH.
-8. From the PC: `python scripts/sincronizza-ghpages.py <version>` — the mirror
+7. `skillfish-rilascio <files>` — indexes and signs, stays in the house.
+8. `skillfish-rilascio --pubblica` — out to OVH.
+9. From the PC: `python scripts/sincronizza-ghpages.py <version>` — the mirror
    installed machines actually use.
-9. `apt update && apt install` on the board, from the real repository, not by
-   hand.
-10. **Write the news entry on the site, in every language.** What changed for the
-   person using it, not the commit list.
-11. Check the published site really shows it.
+10. `apt update && apt install` on the board, from the real repository, not by
+   hand. Then `appstreamcli refresh-cache --force`, or the Hub keeps reading the
+   old catalogue and the new release notes never appear.
+11. **The site news is for big things only.** FSR 4 working on the board, a Mesa
+   build of our own, a new ISO, a feature that changes how the system is used.
+   Not every point release: a note for each small fix drowns the news that
+   matter. When you do write one, every language of the site — and then check
+   the published site really shows it.
 
-Steps 3 and 9 are the ones that get skipped, and they are the only two the user
-ever sees.
+Steps 2, 4 and 11 are the ones that get skipped, and they are the ones the user
+actually sees.
 
 ## Pulling from the board
 

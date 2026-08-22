@@ -81,39 +81,17 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.40" date="2026-08-22">
+    <release version="26.08.43" date="2026-08-22">
       <description>
-        <p>Now it also works from the Remote Manager, in a browser, with the same layout.</p>
-        <p xml:lang="it">Adesso si usa anche dal Remote Manager, da browser, con la stessa disposizione.</p>
-        <p xml:lang="fr">Il fonctionne maintenant aussi depuis le Remote Manager, dans un navigateur, avec la même disposition.</p>
-        <p xml:lang="uk">Тепер працює і з Remote Manager, у браузері, з тим самим розташуванням.</p>
-        <p xml:lang="ru">Теперь работает и из Remote Manager, в браузере, с той же раскладкой.</p>
-        <p xml:lang="es">Ahora también se usa desde el Remote Manager, en un navegador, con la misma disposición.</p>
-        <p xml:lang="pt">Agora também se usa pelo Remote Manager, no navegador, com a mesma disposição.</p>
-        <p xml:lang="de">Läuft jetzt auch im Remote Manager im Browser, mit derselben Aufteilung.</p>
-        <p xml:lang="pl">Teraz działa też z Remote Managera, w przeglądarce, z tym samym układem.</p>
-        <p>Fixed: the web dashboard was writing to the fan output too, so the fan got two different orders a second apart. Now only the controller writes.</p>
-        <p xml:lang="it">Corretto: anche il cruscotto web scriveva sull'uscita della ventola, e la ventola riceveva due ordini diversi a un secondo di distanza. Ora scrive solo il controllore.</p>
-        <p xml:lang="fr">Corrigé : le tableau de bord web écrivait lui aussi sur la sortie du ventilateur, qui recevait deux ordres différents à une seconde d'intervalle. Seul le contrôleur écrit maintenant.</p>
-        <p xml:lang="uk">Виправлено: вебпанель теж писала у вихід вентилятора, і той отримував два різні накази з різницею в секунду. Тепер пише лише регулятор.</p>
-        <p xml:lang="ru">Исправлено: веб-панель тоже писала в выход вентилятора, и тот получал два разных приказа с разницей в секунду. Теперь пишет только регулятор.</p>
-        <p xml:lang="es">Corregido: el panel web también escribía en la salida del ventilador, que recibía dos órdenes distintas con un segundo de diferencia. Ahora solo escribe el controlador.</p>
-        <p xml:lang="pt">Corrigido: o painel web também escrevia na saída da ventoinha, que recebia duas ordens diferentes com um segundo de diferença. Agora só o controlador escreve.</p>
-        <p xml:lang="de">Behoben: Auch das Web-Panel schrieb auf den Lüfterausgang, der Lüfter bekam im Sekundenabstand zwei verschiedene Befehle. Jetzt schreibt nur die Steuerung.</p>
-        <p xml:lang="pl">Poprawione: panel webowy też pisał do wyjścia wentylatora, który dostawał dwa różne polecenia w odstępie sekundy. Teraz pisze tylko sterownik.</p>
-      </description>
-    </release>
-    <release version="26.08.38" date="2026-08-21">
-      <description>
-        <p>One chart for everything: temperatures, fan, watts, voltages, with the curve inside it. You can move and resize the curve. Presets redraw it while you pick them, and a PWM test says whether the fan really obeys.</p>
-        <p xml:lang="it">Un grafico per tutto: temperature, ventola, watt, tensioni, con la curva dentro. La curva si sposta e si ridimensiona. I preset la ridisegnano mentre li scegli, e una prova PWM dice se la ventola obbedisce davvero.</p>
-        <p xml:lang="fr">Un graphique pour tout : températures, ventilateur, watts, tensions, avec la courbe dedans. La courbe se déplace et se redimensionne. Les préréglages la redessinent pendant qu'on les choisit, et un test PWM dit si le ventilateur obéit vraiment.</p>
-        <p xml:lang="uk">Один графік на все: температури, вентилятор, вати, напруги, а крива всередині. Криву можна пересувати й міняти їй розмір. Набори перемальовують її під час вибору, а перевірка PWM каже, чи вентилятор справді слухається.</p>
-        <p xml:lang="ru">Один график на всё: температуры, вентилятор, ватты, напряжения, а кривая внутри. Кривую можно двигать и менять ей размер. Наборы перерисовывают её во время выбора, а проверка PWM говорит, слушается ли вентилятор.</p>
-        <p xml:lang="es">Una gráfica para todo: temperaturas, ventilador, vatios, tensiones, con la curva dentro. La curva se mueve y se redimensiona. Los ajustes la redibujan mientras los eliges, y una prueba de PWM dice si el ventilador obedece de verdad.</p>
-        <p xml:lang="pt">Um gráfico para tudo: temperaturas, ventoinha, watts, tensões, com a curva dentro. A curva move-se e redimensiona-se. As predefinições redesenham-na enquanto as escolhes, e um teste de PWM diz se a ventoinha obedece mesmo.</p>
-        <p xml:lang="de">Ein Diagramm für alles: Temperaturen, Lüfter, Watt, Spannungen, mit der Kurve darin. Die Kurve lässt sich verschieben und in der Größe ändern. Voreinstellungen zeichnen sie beim Auswählen neu, und ein PWM-Test sagt, ob der Lüfter wirklich gehorcht.</p>
-        <p xml:lang="pl">Jeden wykres na wszystko: temperatury, wentylator, waty, napięcia, a krzywa w środku. Krzywą można przesuwać i zmieniać jej rozmiar. Ustawienia gotowe przerysowują ją podczas wyboru, a test PWM mówi, czy wentylator naprawdę słucha.</p>
+        <p>Maintenance release: a not-a-number check now says what it means, and dead imports are gone. Nothing changes in how the fan behaves.</p>
+        <p xml:lang="it">Versione di manutenzione: un controllo su un valore non numerico ora dice quello che significa, e le import inutilizzate sono sparite. Nel comportamento della ventola non cambia niente.</p>
+        <p xml:lang="fr">Version de maintenance : un contrôle sur une valeur non numérique dit maintenant ce qu'il signifie, et les imports inutilisés ont disparu. Rien ne change dans le comportement du ventilateur.</p>
+        <p xml:lang="uk">Версія обслуговування: перевірка на нечислове значення тепер каже, що означає, а невикористані імпорти зникли. У поведінці вентилятора нічого не змінюється.</p>
+        <p xml:lang="ru">Версия обслуживания: проверка на нечисловое значение теперь говорит, что означает, а неиспользуемые импорты исчезли. В поведении вентилятора ничего не меняется.</p>
+        <p xml:lang="es">Versión de mantenimiento: una comprobación de valor no numérico ahora dice lo que significa, y los imports sin usar han desaparecido. En el comportamiento del ventilador no cambia nada.</p>
+        <p xml:lang="pt">Versão de manutenção: uma verificação de valor não numérico diz agora o que significa, e os imports não usados desapareceram. No comportamento da ventoinha nada muda.</p>
+        <p xml:lang="de">Wartungsversion: eine Prüfung auf einen Nicht-Zahlenwert sagt jetzt, was sie meint, und ungenutzte Importe sind weg. Am Verhalten des Lüfters ändert sich nichts.</p>
+        <p xml:lang="pl">Wersja konserwacyjna: sprawdzenie wartości nieliczbowej mówi teraz, co znaczy, a nieużywane importy zniknęły. W zachowaniu wentylatora nic się nie zmienia.</p>
       </description>
     </release>
   </releases>

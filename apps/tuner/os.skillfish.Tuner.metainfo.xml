@@ -90,25 +90,18 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="26.08.40" date="2026-08-22">
+    <release version="26.08.44" date="2026-08-22">
       <description>
-        <p>New: the package now also carries the HUD configurator, which chooses what the desktop overlay shows, where it hangs and whether it is shown at all.</p>
-        <p xml:lang="it">Novità: il pacchetto porta anche il configuratore del HUD, che decide cosa mostra il pannello sulla scrivania, a che angolo si aggancia e se mostrarlo o no.</p>
-        <p xml:lang="fr">Nouveau : le paquet embarque aussi le configurateur du HUD, qui choisit ce que l'affichage du bureau montre, à quel coin il s'accroche et s'il s'affiche.</p>
-        <p xml:lang="uk">Нове: пакунок несе також налаштування HUD, яке обирає, що показує панель на стільниці, за який кут вона чіпляється і чи показувати її взагалі.</p>
-        <p xml:lang="ru">Новое: пакет несёт и настройку HUD, которая выбирает, что показывает панель на рабочем столе, за какой угол она цепляется и показывать ли её вообще.</p>
-        <p xml:lang="es">Novedad: el paquete lleva también el configurador del HUD, que elige qué muestra el panel del escritorio, a qué esquina se engancha y si mostrarlo o no.</p>
-        <p xml:lang="pt">Novidade: o pacote leva também o configurador do HUD, que escolhe o que o painel da área de trabalho mostra, a que canto se prende e se deve aparecer.</p>
-        <p xml:lang="de">Neu: Das Paket bringt auch den HUD-Einrichter mit, der wählt, was die Anzeige auf dem Schreibtisch zeigt, an welcher Ecke sie hängt und ob sie überhaupt erscheint.</p>
-        <p xml:lang="pl">Nowość: pakiet niesie też konfigurator HUD, który wybiera, co pokazuje panel na pulpicie, przy którym rogu wisi i czy w ogóle ma być widoczny.</p>
+        <p>The CPU undervolt is read in millivolts instead of the SMU's own step number: -150 mV rather than -24, and the summary line shows both voltages the same way. The conversion is measured on the board, not estimated — one step is 6.25 mV.</p>
+        <p xml:lang="it">L'undervolt della CPU si legge in millivolt invece che con il numero di scalini dell'SMU: -150 mV al posto di -24, e la riga di riepilogo mostra le due tensioni allo stesso modo. La conversione è misurata sulla scheda, non stimata: uno scalino vale 6,25 mV.</p>
+        <p xml:lang="fr">L'undervolt du processeur se lit en millivolts au lieu du numéro de palier du SMU : -150 mV plutôt que -24, et la ligne de résumé montre les deux tensions de la même façon. La conversion est mesurée sur la carte, pas estimée — un palier vaut 6,25 mV.</p>
+        <p xml:lang="uk">Андервольт процесора читається в мілівольтах, а не номером щабля SMU: -150 мВ замість -24, і підсумковий рядок показує обидві напруги однаково. Перетворення виміряне на платі, а не оцінене — один щабель це 6,25 мВ.</p>
+        <p xml:lang="ru">Андервольт процессора читается в милливольтах, а не номером шага SMU: -150 мВ вместо -24, и строка сводки показывает оба напряжения одинаково. Пересчёт измерен на плате, а не прикинут — один шаг это 6,25 мВ.</p>
+        <p xml:lang="es">El undervolt de la CPU se lee en milivoltios en vez del número de paso del SMU: -150 mV en lugar de -24, y la línea de resumen muestra los dos voltajes igual. La conversión está medida en la placa, no estimada: un paso vale 6,25 mV.</p>
+        <p xml:lang="pt">O undervolt da CPU lê-se em milivolts em vez do número de passo do SMU: -150 mV em vez de -24, e a linha de resumo mostra as duas tensões da mesma forma. A conversão é medida na placa, não estimada — um passo vale 6,25 mV.</p>
+        <p xml:lang="de">Das CPU-Undervolting wird in Millivolt gelesen statt in der Schrittzahl der SMU: -150 mV statt -24, und die Übersichtszeile zeigt beide Spannungen gleich. Die Umrechnung ist auf der Platine gemessen, nicht geschätzt — ein Schritt sind 6,25 mV.</p>
+        <p xml:lang="pl">Undervolt procesora czyta się w miliwoltach zamiast numeru kroku SMU: -150 mV zamiast -24, a wiersz podsumowania pokazuje obie wartości tak samo. Przelicznik jest zmierzony na płycie, nie oszacowany — jeden krok to 6,25 mV.</p>
       </description>
     </release>
-    <release version="26.06.7" date="2026-06-10">
-      <description><p>Find-my-max wizards for CPU and GPU with per-step benchmark-and-rollback; crash-safe testing; Turbo/Crazy presets capped at the validated 2200 MHz; extreme-preset warning; anonymous silicon-lottery sharing.</p></description>
-    </release>
-    <release version="26.06.6" date="2026-06-10">
-      <description><p>GPU governor Balanced/Performance mode toggle (+11% FPS in GPU-bound loads) and the safe multi-point voltage curve.</p></description>
-    </release>
-    <release version="26.06.3" date="2026-06-08"/>
   </releases>
 </component>
