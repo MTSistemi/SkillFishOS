@@ -9,7 +9,7 @@ Das Herz der Optimierungen von SkillFishOS ist ein **eigens gebauter Kernel** f�
 
 ## Fassung und Patches
 
-Der Kernel von SkillFishOS trägt die Fassung **`7.1.7-skillfishos`** (die Reihe 7.0 wird nicht mehr gepflegt). Zusätzlich zu den üblichen linux-tkg-Patches enthält er:
+Der Kernel von SkillFishOS trägt die Fassung **`7.2.0-skillfishos`** (die Reihen 7.0 und 7.1 werden nicht mehr gepflegt). Zusätzlich zu den üblichen linux-tkg-Patches enthält er:
 
 - den Patch zum **Entsperren der Taktraten** der BC-250 (Bereich 350–2230 MHz);
 - den **40-CU-Patch**, der alle Recheneinheiten der GPU einschaltet;

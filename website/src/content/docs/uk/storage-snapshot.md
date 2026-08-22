@@ -27,7 +27,7 @@ SkillFishOS користується **[Snapper](http://snapper.io/)** з кон
 
 - обмеження кількості збережених знімків, щоб диск не переповнився;
 - знімки, збережені на важливих *віхах* системи;
-- керування також через графічний засіб **Btrfs Assistant**.
+- керування з вікна через **SkillFishOS Знімки**, застосунок, який написали ми самі.
 
 ## Скільки їх лишається
 
@@ -74,4 +74,3 @@ SkillFishOS обрав **Btrfs + Snapper + grub-btrfs** замість ріше�
 - [документація Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

@@ -266,7 +266,7 @@ export const ru: Record<string, string> = {
 
   // --- testi lunghi ---
   "bm.note": "Измерения <strong>vkpeak</strong> (вычисления на Vulkan) на одной и той же плате, с холода и из простоя. С 40 активными CU видеоядро даёт <strong>в 1,84 раза</strong> больше, чем исходная система. В простое регулятор опускается до 350 МГц; край около 54 °C после вычислительной нагрузки.",
-  "bs.hv.c": "Unigine Heaven 4.0 — <strong>113,7 кадр/с</strong>, результат <strong>2865</strong> (1080p Ultra, 8× AA, тесселяция Extreme). Ядро 7.0.10-skillfishos.",
+  "bs.hv.c": "Unigine Heaven 4.0 — <strong>113,7 кадр/с</strong>, результат <strong>2865</strong> (1080p Ultra, 8× AA, тесселяция Extreme). Ядро 7.0.10-skillfishos (сегодня мы поставляем 7.2.0).",
   "bs.sub": "Никаких рендеров и макетов: настоящие снимки экрана, сделанные во время тестов на <strong>нашей собственной</strong> BC-250 со SkillFishOS. Нажмите на изображение, чтобы увеличить.",
   "bs.wk.c": "Black Myth: Wukong — <strong>112 кадр/с</strong> в среднем при 1080p (максимум 128, 1% low 101). APU AMD BC-250, GPU RADV gfx1013.",
   "cmp.gpu.note": "Чистые вычисления уровня RX&nbsp;6700 (~11,3 TFLOPS) и игровая производительность RX&nbsp;6600/6600&nbsp;XT — на плате примерно за 50 евро. <strong>Полузаказной кристалл RDNA&nbsp;2 консольного класса</strong> («Oberon», gfx1013), раскрытый на Linux.",

@@ -27,7 +27,7 @@ Les points saillants de la configuration :
 
 - un plafond sur le nombre d'instantanés gardés, pour que le disque ne se remplisse pas ;
 - des instantanés conservés aux *étapes* importantes du système ;
-- la gestion possible aussi par l'outil graphique **Btrfs Assistant**.
+- la gestion depuis une fenêtre avec **SkillFishOS Instantanés**, l'application que nous avons écrite.
 
 ## Combien en sont gardés
 
@@ -102,4 +102,3 @@ SkillFishOS a choisi **Btrfs + Snapper + grub-btrfs** plutôt que des solutions 
 - [La documentation de Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

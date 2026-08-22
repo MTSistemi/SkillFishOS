@@ -27,7 +27,7 @@ Configuration highlights:
 
 - a cap on the number of retained snapshots so the disk doesn't fill up;
 - snapshots kept at important system *milestones*;
-- management also via the **Btrfs Assistant** graphical tool.
+- management from a window with **SkillFishOS Snapshots**, the application we wrote ourselves.
 
 ## How many are kept
 
@@ -98,4 +98,3 @@ SkillFishOS chose **Btrfs + Snapper + grub-btrfs** over solutions like Timeshift
 - [Btrfs documentation](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

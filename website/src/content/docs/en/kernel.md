@@ -9,7 +9,7 @@ The heart of SkillFishOS's optimizations is a **custom-built kernel** for the BC
 
 ## Version and patches
 
-The SkillFishOS kernel is version **`7.1.7-skillfishos`** (the 7.0 series is end of life). On top of the standard linux-tkg patches it includes:
+The SkillFishOS kernel is version **`7.2.0-skillfishos`** (the 7.0 and 7.1 series are end of life). On top of the standard linux-tkg patches it includes:
 
 - the BC-250 **frequency-unlock patch** (range 350–2230 MHz);
 - the **40-CU patch** that enables all of the GPU's Compute Units;

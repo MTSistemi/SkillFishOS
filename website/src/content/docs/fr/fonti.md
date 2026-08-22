@@ -40,7 +40,7 @@ SkillFishOS est un travail d'assemblage : il réunit l'effort de nombreuses comm
 
 ## Stockage et instantanés
 
-- **[Btrfs](https://btrfs.readthedocs.io/)** · **[Snapper](http://snapper.io/)** · **[grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)** · **[Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)**
+- **[Btrfs](https://btrfs.readthedocs.io/)** · **[Snapper](http://snapper.io/)** · **[grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)**
 
 ## Bureau, thème et accès à distance
 

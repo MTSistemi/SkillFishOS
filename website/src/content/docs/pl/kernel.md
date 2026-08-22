@@ -9,7 +9,7 @@ Sercem optymalizacji SkillFishOS jest **jądro budowane na zamówienie** pod BC-
 
 ## Wersja i łatki
 
-Jądro SkillFishOS ma wersję **`7.1.7-skillfishos`** (seria 7.0 dobiegła końca). Poza standardowymi łatkami linux-tkg zawiera:
+Jądro SkillFishOS ma wersję **`7.2.0-skillfishos`** (serie 7.0 i 7.1 dobiegły końca). Poza standardowymi łatkami linux-tkg zawiera:
 
 - łatkę **odblokowującą częstotliwości** BC-250 (zakres 350–2230 MHz);
 - łatkę **40 CU**, która włącza wszystkie jednostki obliczeniowe grafiki;

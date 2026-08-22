@@ -27,7 +27,7 @@ Da configuração vale destacar:
 
 - um limite de snapshots guardados para o disco não encher;
 - snapshots preservados nos *marcos* importantes do sistema;
-- gerenciamento também pela ferramenta gráfica **Btrfs Assistant**.
+- gestão a partir de uma janela com **SkillFishOS Snapshots**, a aplicação que escrevemos nós.
 
 ## Quantos ficam guardados
 
@@ -74,4 +74,3 @@ O SkillFishOS escolheu **Btrfs + Snapper + grub-btrfs** em vez de soluções com
 - [Documentação do Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

@@ -641,8 +641,8 @@ export const strings: Record<string, Entry> = {
     en: "Black Myth: Wukong — <strong>112 FPS</strong> average at 1080p (max 128, 1% low 101). AMD BC-250 APU, RADV gfx1013 GPU.",
   },
   "bs.hv.c": {
-    it: "Unigine Heaven 4.0 — <strong>113.7 FPS</strong>, punteggio <strong>2865</strong> (1080p Ultra, 8× AA, tassellazione Extreme). Kernel 7.0.10-skillfishos.",
-    en: "Unigine Heaven 4.0 — <strong>113.7 FPS</strong>, score <strong>2865</strong> (1080p Ultra, 8× AA, Extreme tessellation). Kernel 7.0.10-skillfishos.",
+    it: "Unigine Heaven 4.0 — <strong>113.7 FPS</strong>, punteggio <strong>2865</strong> (1080p Ultra, 8× AA, tassellazione Extreme). Kernel 7.0.10-skillfishos (oggi spediamo la 7.2.0).",
+    en: "Unigine Heaven 4.0 — <strong>113.7 FPS</strong>, score <strong>2865</strong> (1080p Ultra, 8× AA, Extreme tessellation). Kernel 7.0.10-skillfishos (we ship 7.2.0 today).",
   },
   "bs.sc.c": {
     it: "Unigine Heaven — la scena renderizzata in tempo reale sulla BC-250 durante il test.",

@@ -9,7 +9,7 @@ El corazón de las optimizaciones de SkillFishOS es un **núcleo compilado a med
 
 ## Versión y parches
 
-El núcleo de SkillFishOS es la versión **`7.1.7-skillfishos`** (la serie 7.0 está fuera de mantenimiento). Sobre los parches estándar de linux-tkg incluye:
+El núcleo de SkillFishOS es la versión **`7.2.0-skillfishos`** (las series 7.0 y 7.1 están fuera de mantenimiento). Sobre los parches estándar de linux-tkg incluye:
 
 - el parche de **desbloqueo de frecuencia** de la BC-250 (rango 350–2230 MHz);
 - el parche de **40 CU**, que activa todas las unidades de cómputo de la GPU;

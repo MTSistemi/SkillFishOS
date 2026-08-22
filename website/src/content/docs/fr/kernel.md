@@ -9,7 +9,7 @@ Le cœur des optimisations de SkillFishOS est un **noyau construit sur mesure** 
 
 ## Version et correctifs
 
-Le noyau de SkillFishOS est en version **`7.1.7-skillfishos`** (la série 7.0 est arrivée en fin de vie). En plus des correctifs habituels de linux-tkg il contient :
+Le noyau de SkillFishOS est en version **`7.2.0-skillfishos`** (les séries 7.0 et 7.1 sont arrivées en fin de vie). En plus des correctifs habituels de linux-tkg il contient :
 
 - le correctif de **déverrouillage des fréquences** de la BC-250 (plage 350–2230 MHz) ;
 - le correctif des **40 CU**, qui active toutes les unités de calcul du GPU ;

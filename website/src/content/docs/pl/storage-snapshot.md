@@ -27,7 +27,7 @@ Najważniejsze z konfiguracji:
 
 - limit liczby przechowywanych migawek, żeby dysk się nie zapełnił;
 - migawki trzymane przy ważnych *kamieniach milowych* systemu;
-- zarządzanie także przez graficzne narzędzie **Btrfs Assistant**.
+- zarządzanie z okna przez **SkillFishOS Migawki**, aplikację, którą napisaliśmy sami.
 
 ## Ile ich zostaje
 
@@ -74,4 +74,3 @@ SkillFishOS wybrał **Btrfs + Snapper + grub-btrfs** zamiast rozwiązań w rodza
 - [dokumentacja Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

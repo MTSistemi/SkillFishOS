@@ -9,7 +9,7 @@ O coração das otimizações do SkillFishOS é um **kernel compilado sob medida
 
 ## Versão e patches
 
-O kernel do SkillFishOS é a versão **`7.1.7-skillfishos`** (a série 7.0 saiu de manutenção). Além dos patches padrão do linux-tkg, ele inclui:
+O kernel do SkillFishOS é a versão **`7.2.0-skillfishos`** (as séries 7.0 e 7.1 saíram de manutenção). Além dos patches padrão do linux-tkg, ele inclui:
 
 - o patch de **liberação de frequência** da BC-250 (faixa de 350 a 2230 MHz);
 - o patch de **40 CU**, que ativa todas as unidades de computação da GPU;

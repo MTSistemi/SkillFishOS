@@ -18,7 +18,7 @@ Valen para **todas** las pruebas de abajo salvo que se diga otra cosa.
 | Placa | **AMD BC-250** — APU Zen 2 «Oberon» + RDNA 2 «Cyan Skillfish» (`gfx1013`) |
 | Memoria | **16 GB GDDR6** unificada (UMA) |
 | Unidades de cómputo | **40 / 40 activas** (conmutadas en caliente, ver [GPU](/es/docs/gpu-overclock)) |
-| Núcleo | **7.0.10-skillfishos** (linux-tkg) — la versión con la que se tomaron estas cifras; hoy entregamos el **7.1.7**, vuelto a medir con menos de un 2 % de diferencia |
+| Núcleo | **7.0.10-skillfishos** (linux-tkg) — la versión con la que se tomaron estas cifras; hoy entregamos el **7.2.0**; el 7.1.7 se volvió a medir con menos de un 2 % de diferencia |
 | Controlador | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO |
 | Gobernador de GPU | cyan-skillfish — reposo **350 MHz / 700 mV**, carga **2230 MHz / ~1000 mV** |
 | Perfil de OC | **Turbo/Crazy** (tope de GPU 2230 MHz, CPU 3,9–4,0 GHz) |

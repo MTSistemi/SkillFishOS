@@ -27,7 +27,7 @@ SkillFishOS использует **[Snapper](http://snapper.io/)** с настр
 
 - ограничение на число хранимых снимков, чтобы диск не переполнялся;
 - снимки на важных *вехах* системы;
-- управление и через графическое средство **Btrfs Assistant**.
+- управление из окна через **SkillFishOS Снимки**, приложение, которое написали мы сами.
 
 ## Сколько хранится
 
@@ -74,4 +74,3 @@ SkillFishOS выбрал **Btrfs + Snapper + grub-btrfs** вместо реше�
 - [Документация Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

@@ -27,7 +27,7 @@ De la configuración conviene destacar:
 
 - un tope de instantáneas conservadas para que el disco no se llene;
 - instantáneas guardadas en los *hitos* importantes del sistema;
-- gestión también con la herramienta gráfica **Btrfs Assistant**.
+- gestión desde una ventana con **SkillFishOS Instantáneas**, la aplicación que hemos escrito nosotros.
 
 ## Cuántas se guardan
 
@@ -74,4 +74,3 @@ SkillFishOS eligió **Btrfs + Snapper + grub-btrfs** frente a soluciones como Ti
 - [Documentación de Btrfs](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)

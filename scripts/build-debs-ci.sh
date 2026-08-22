@@ -884,8 +884,11 @@ ctrl $P "udisks2, polkitd | policykit-1" "SkillFishOS native ISO mounting for KD
 through udisks. No terminal, no root."
 P=skillfish-snapshots
 # «SkillFishOS Snapshot»: gli snapshot in una finestra, senza terminale e senza
-# il vocabolario del filesystem. Btrfs Assistant resta installato per chi vuole
-# entrare nel dettaglio; questa risponde a tre domande e basta.
+# il vocabolario del filesystem. Risponde a tre domande e basta: che snapshot
+# ho, fammene uno adesso, riportami li'.
+# ⚠️ Btrfs Assistant NON e' piu' installato: tolto il 20/08/2026, perche'
+# questa applicazione non si appoggia a lui in nessun punto e due porte per la
+# stessa cosa sono una scelta in piu' da spiegare all'utente.
 #
 # Tre file e non uno perche' /.snapshots e' leggibile solo da root: anche solo
 # per MOSTRARE l'elenco serve passare da pkexec, e polkit lega l'autorizzazione

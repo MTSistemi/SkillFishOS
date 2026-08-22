@@ -27,7 +27,7 @@ Aus der Konfiguration hervorzuheben:
 
 - eine Obergrenze für die Zahl der aufbewahrten Schnappschüsse, damit die Platte nicht volläuft;
 - Schnappschüsse an wichtigen *Wegmarken* des Systems;
-- Verwaltung auch über das grafische Werkzeug **Btrfs Assistant**.
+- Verwaltung in einem Fenster mit **SkillFishOS Schnappschüsse**, der Anwendung, die wir selbst geschrieben haben.
 
 ## Wie viele aufbewahrt werden
 
@@ -74,4 +74,3 @@ SkillFishOS hat sich für **Btrfs + Snapper + grub-btrfs** statt für Lösungen 
 - [Btrfs-Dokumentation](https://btrfs.readthedocs.io/)
 - [Snapper](http://snapper.io/)
 - [grub-btrfs (Antynea)](https://github.com/Antynea/grub-btrfs)
-- [Btrfs Assistant](https://gitlab.com/btrfs-assistant/btrfs-assistant)
