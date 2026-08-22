@@ -13,8 +13,10 @@ import io, re, struct, sys
 
 ROM = sys.argv[1] if len(sys.argv) > 1 else "vbios.rom"
 HDR = sys.argv[2] if len(sys.argv) > 2 else "atomfirmware.h"
-d = open(ROM, "rb").read()
-h = io.open(HDR, encoding="utf-8", errors="replace").read()
+with open(ROM, "rb") as f:
+    d = f.read()
+with io.open(HDR, encoding="utf-8", errors="replace") as f:
+    h = f.read()
 
 TIPI = {"uint8_t": ("B", 1), "int8_t": ("b", 1), "uint16_t": ("H", 2),
         "int16_t": ("h", 2), "uint32_t": ("I", 4), "int32_t": ("i", 4),

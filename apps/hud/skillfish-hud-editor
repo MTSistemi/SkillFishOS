@@ -31,10 +31,10 @@ import time
 from PyQt6.QtCore import Qt, QTimer, QRect
 from PyQt6.QtGui import QIcon, QPainter, QColor, QPen, QBrush, QFont
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QLabel, QGroupBox, QPushButton,
+                             QHBoxLayout, QLabel, QPushButton,
                              QCheckBox, QSpinBox, QComboBox, QMessageBox,
                              QListWidget, QListWidgetItem, QToolButton,
-                             QSizePolicy, QFrame, QScrollArea)
+                             QSizePolicy)
 
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png"
 VAL = "/usr/local/bin/skillfish-hud-val"

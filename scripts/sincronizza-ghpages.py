@@ -128,8 +128,17 @@ def git(*args, cwd=CLONE):
 # --- 1. l'archivio dal container --------------------------------------------
 butta(SCARICO)
 c = paramiko.SSHClient()
-c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(APT_HOST, username=APT_USER, password=APT_PASS, timeout=40)
+# Qui dentro viaggia la password del container. Accettare qualunque chiave
+# dell'host significa consegnarla al primo che si mette in mezzo sulla rete:
+# si controlla che sia quella conosciuta, e se non lo e' ci si ferma.
+c.load_system_host_keys()
+c.set_missing_host_key_policy(paramiko.RejectPolicy())
+try:
+    c.connect(APT_HOST, username=APT_USER, password=APT_PASS, timeout=40)
+except paramiko.SSHException as e:
+    sys.exit("   FERMO: la chiave host di %s non e' fra quelle conosciute (%s).\n"
+             "   Collegati una volta a mano con «ssh %s@%s» per registrarla."
+             % (APT_HOST, e, APT_USER, APT_HOST))
 sf = c.open_sftp()
 tot = 0
 for cartella in ("dists", "pool"):
@@ -187,9 +196,9 @@ if VERSIONE not in base[0]:
              % (VERSIONE, base[0]))
 
 git("add", "-A")
-r = git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",
-        "commit", "-m",
-        "apt archive %s\n\n"
+git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",
+    "commit", "-m",
+    "apt archive %s\n\n"
         "Brings GitHub Pages level with skillfishos.com/apt. Installed images\n"
         "point their apt source at this branch, so while it lags behind, users\n"
         "silently stop receiving fixes and new images are built with stale\n"

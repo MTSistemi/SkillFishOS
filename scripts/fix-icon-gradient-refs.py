@@ -10,7 +10,7 @@ Fix: riscrive ogni riferimento orfano usando il gradiente OMONIMO del file
 stesso (stesso suffisso). Se il file non ha quel suffisso, lo segnala e NON
 tocca il file.
 """
-import re, sys, os, pathlib, collections
+import re, sys, pathlib, collections
 
 THEME = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/icons/SkillFishSteampunk"
 APPLY = "--apply" in sys.argv

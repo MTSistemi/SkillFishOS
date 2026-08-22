@@ -31,8 +31,6 @@ print("   versione da mostrare: %s" % NOME)
 # --- 1. il generatore di eggs ------------------------------------------------
 f = "/usr/lib/penguins-eggs/dist/classes/incubation/branding.js"
 if os.path.exists(f):
-    with open(f, encoding="utf-8") as _f:
-        s = _f.read()
     if not os.path.exists(f + ".skfbak"):
         shutil.copy(f, f + ".skfbak")
     # si riparte SEMPRE dall'originale: applicare la toppa su una gia' toppata

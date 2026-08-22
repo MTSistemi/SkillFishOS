@@ -9,15 +9,19 @@ from __future__ import unicode_literals
 import io, re, struct, sys
 
 BIN = sys.argv[1] if len(sys.argv) > 1 else "discovery.bin"
-dati = open(BIN, "rb").read()
+with open(BIN, "rb") as f:
+    dati = f.read()
 
 # --- i nomi dei blocchi, dal sorgente -------------------------------------
-h = io.open("discovery.h", encoding="utf-8", errors="replace").read()
+with io.open("discovery.h", encoding="utf-8", errors="replace") as f:
+    h = f.read()
 # ⚠️ Gli HWID NON stanno in discovery.h: sono in soc15_hw_ip.h. Senza
 # questo file il lettore stampa «sconosciuto» per ogni blocco, e sembra
 # che il chip non dichiari niente.
-h += io.open("soc15_hw_ip.h", encoding="utf-8", errors="replace").read()
-c = io.open("amdgpu_discovery.c", encoding="utf-8", errors="replace").read()
+with io.open("soc15_hw_ip.h", encoding="utf-8", errors="replace") as f:
+    h += f.read()
+with io.open("amdgpu_discovery.c", encoding="utf-8", errors="replace") as f:
+    c = f.read()
 
 hwid = {}
 for m in re.finditer(r'#define\s+(\w+)_HWID\s+(\d+)', h):

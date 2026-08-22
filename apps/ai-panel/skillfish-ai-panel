@@ -452,17 +452,16 @@ class SetupWizard(QWizard):
     def _welcome(self):
         p = QWizardPage(); p.setTitle(L("Benvenuto in SkillFish AI", "Welcome to SkillFish AI"))
         v = QVBoxLayout(p)
-        if True:
-            t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
-                         "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
-                         "ti chiederà di impostare una password: la scegli tu, non viene "
-                         "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
-                         "\n\nTutto gira in locale: nessun dato lascia il PC.",
-                         "This wizard installs and starts Unsloth Studio, the local LLM engine "
-                         "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
-                         "to set a password: you choose it, it is not created from here. Models "
-                         "are then downloaded from its own interface."
-                         "\n\nEverything runs locally: no data leaves your PC."))
+        t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
+                     "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
+                     "ti chiederà di impostare una password: la scegli tu, non viene "
+                     "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
+                     "\n\nTutto gira in locale: nessun dato lascia il PC.",
+                     "This wizard installs and starts Unsloth Studio, the local LLM engine "
+                     "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
+                     "to set a password: you choose it, it is not created from here. Models "
+                     "are then downloaded from its own interface."
+                     "\n\nEverything runs locally: no data leaves your PC."))
         t.setWordWrap(True); v.addWidget(t)
         # hardware summary
         gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
@@ -487,12 +486,11 @@ class InstallPage(QWizardPage):
         self.setTitle(L("Installazione del motore", "Installing the engine"))
         self.ok = False
         v = QVBoxLayout(self)
-        if True:
-            self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
-                                 "con il backend Vulkan. Sono circa 2 GB: può richiedere "
-                                 "qualche minuto.",
-                                 "Press “Install” to download and set up Unsloth Studio with the "
-                                 "Vulkan backend. It is about 2 GB: this may take a few minutes."))
+        self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
+                             "con il backend Vulkan. Sono circa 2 GB: può richiedere "
+                             "qualche minuto.",
+                             "Press “Install” to download and set up Unsloth Studio with the "
+                             "Vulkan backend. It is about 2 GB: this may take a few minutes."))
         self.info.setWordWrap(True); v.addWidget(self.info)
         self.btn = QPushButton(L("Installa / Avvia", "Install / Start")); self.btn.clicked.connect(self.run)
         v.addWidget(self.btn)

@@ -782,7 +782,6 @@ const RENDER = {
       const j = await (await post("/api/aiops/diagnose", { question: $("#aq", card).value })).json().catch(() => ({})); out.textContent = j.ok ? (j.answer || T("ao_none")) : (T("err") + (j.error || "")); };
   },
   zerotier(card) {
-    const it = LANG === "it";
     card.innerHTML = "<h3>🌐 ZeroTier</h3><div id=\"zt\">…</div>";
     const refresh = async () => {
       let s; try { s = await (await api("/api/zerotier")).json(); } catch (e) { return; }

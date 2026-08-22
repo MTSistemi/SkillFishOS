@@ -9,8 +9,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QGroupBox, QSlider, QPushButton, QToolButton, QCheckBox,
                              QComboBox, QScrollArea, QMessageBox, QFrame, QGridLayout, QButtonGroup,
     QRadioButton,
-                             QLayout,
-                             QTabWidget)
+                             QLayout)
 
 HELPER  = "/usr/local/bin/skillfish-tuner-helper"
 
@@ -150,7 +149,6 @@ PL = {
     "Governor: Performance — 2230 MHz under load": "Governor: Performance — 2230 MHz pod obciążeniem",
     "Governor mode": "Tryb governora",
     "GPU applied": "GPU zastosowane",
-    "Find my max": "Znajdź maksimum",
     "The wizard steps the GPU up (2000 → 2200 MHz at 1000 mV), validating each step with a benchmark and rolling back if unstable.\n\n~2 minutes per step under full GPU load: set the fan high first.\nWhen done it applies the highest stable point for YOUR board.\n\nProceed?": "Kreator zwiększa zegar GPU krok po kroku (2000 → 2200 MHz przy 1000 mV), sprawdzając każdy krok benchmarkiem i cofając się w razie niestabilności.\n\n~2 minuty na krok przy pełnym obciążeniu GPU: najpierw ustaw wysokie obroty wentylatora.\nPo zakończeniu zastosuje najwyższy stabilny punkt dla TWOJEJ płyty.\n\nKontynuować?",
     "✗ Not even 2000 MHz is stable on this board: keeping the current profile.": "✗ Nawet 2000 MHz nie jest stabilne na tej płycie: zachowuję bieżący profil.",
     "Highest stable point: %d MHz @ 1000 mV%s (already applied).": "Najwyższy stabilny punkt: %d MHz @ 1000 mV%s (już zastosowano).",
@@ -296,7 +294,6 @@ UK = {
         "Регулятор: продуктивність — 2230 МГц під навантаженням",
     "Governor mode": "Режим регулятора",
     "GPU applied": "ГП застосовано",
-    "Find my max": "Знайти мій максимум",
     "The wizard steps the GPU up (2000 → 2200 MHz at 1000 mV), validating each step with a benchmark and rolling back if unstable.\n\n~2 minutes per step under full GPU load: set the fan high first.\nWhen done it applies the highest stable point for YOUR board.\n\nProceed?":
         "Майстер піднімає ГП щабель за щаблем (2000 → 2200 МГц за 1000 мВ), перевіряючи кожен щабель бенчмарком і відкочуючи його, якщо нестабільно.\n\n~2 хвилини на щабель за повного навантаження ГП: спершу виставте вентилятор на високу швидкість.\nНаприкінці застосовується найвища стабільна точка саме ВАШОЇ плати.\n\nПродовжити?",
     "✗ Not even 2000 MHz is stable on this board: keeping the current profile.":

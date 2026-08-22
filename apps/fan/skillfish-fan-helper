@@ -22,6 +22,7 @@ uso:
 """
 import io
 import json
+import math
 import os
 import subprocess
 import sys
@@ -48,7 +49,7 @@ def _num(v, minimo, massimo, ripiego):
         x = float(v)
     except (TypeError, ValueError):
         return ripiego
-    if x != x:                      # NaN: si riconosce cosi' e basta
+    if math.isnan(x):
         return ripiego
     return max(minimo, min(massimo, x))
 

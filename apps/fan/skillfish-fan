@@ -29,14 +29,14 @@ import os
 import subprocess
 import sys
 
-from PyQt6.QtCore import Qt, QTimer, QRect, QSize, QPoint, QPointF, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QRect, QPointF, QThread, pyqtSignal
 from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QFont,
                          QPainterPath, QLinearGradient)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QGroupBox, QPushButton,
-                             QRadioButton, QButtonGroup, QMessageBox, QLayout,
+                             QRadioButton, QButtonGroup, QMessageBox,
                              QScrollArea, QCheckBox, QSpinBox, QDoubleSpinBox,
-                             QLineEdit, QToolButton, QComboBox, QInputDialog, QDialog, QGridLayout,
+                             QToolButton, QComboBox, QInputDialog, QDialog,
                              QSizePolicy, QFrame)
 
 # ⚠️ Il nome dell'icona deve esistere ESATTAMENTE cosi' nel tema, anche in png:

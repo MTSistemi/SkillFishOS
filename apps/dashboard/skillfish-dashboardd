@@ -120,9 +120,16 @@ def i18n_voci(lang):
     Non solleva mai: una traduzione assente e' un fastidio, una pagina che non
     si apre e' un guasto. Stessa regola di /usr/share/skillfish/i18n.py.
     """
-    if not (isinstance(lang, str) and len(lang) == 2 and lang.isalpha() and lang.islower()):
+    if not (isinstance(lang, str) and len(lang) == 2
+            and lang.isascii() and lang.isalpha() and lang.islower()):
         return {}
-    p = os.path.join(I18N_DIR, lang + ".json")
+    # Il nome della lingua arriva dalla richiesta web. Due lettere ASCII non
+    # potrebbero uscire dalla cartella, ma la garanzia deve stare nel codice e
+    # non nel ragionamento: si ricompone il percorso e si verifica dove e'
+    # finito.
+    p = os.path.realpath(os.path.join(I18N_DIR, lang + ".json"))
+    if os.path.dirname(p) != os.path.realpath(I18N_DIR):
+        return {}
     try:
         m = os.path.getmtime(p)
     except OSError:
@@ -1393,6 +1400,12 @@ def ai_chat(model, messages):
                     "message": msg.get("content") or msg.get("reasoning_content", "")}
         except Exception as e:
             return {"ok": False, "error": "Unsloth: %s" % e}
+
+    # ai_engine() oggi risponde sempre «unsloth», ma e' rimasta una funzione
+    # apposta perche' domani il motore puo' cambiare. Il giorno in cui risponde
+    # altro, senza questa riga si tornava None: chi chiama fa r.get("ok") e si
+    # prende un AttributeError, cioe' un errore 500 al posto di una frase.
+    return {"ok": False, "error": "Motore AI sconosciuto: %s" % ai_engine()}
 
 
 # ---------------- Wake-on-LAN / power schedule ----------------

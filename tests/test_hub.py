@@ -195,7 +195,7 @@ def test_flatpakref_description_names_the_app_and_its_origin(hub, tmp_path):
     f.write_text("[Flatpak Ref]\nName=org.example.App\nUrl=https://example.org/repo\n")
     nome, righe = hub.descrivi("flatpakref", str(f))
     assert nome == "org.example.App"
-    assert any("example.org" in str(v) for _k, v in righe)
+    assert any("https://example.org/repo" in str(v) for _k, v in righe)
 
 
 def test_the_warning_says_it_is_unsigned():

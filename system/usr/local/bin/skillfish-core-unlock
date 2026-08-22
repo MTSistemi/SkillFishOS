@@ -37,7 +37,9 @@ if not os.path.exists(CFG):
 #    meta'. Segnalato da un utente sulla 26.06.3: "l'installer crasha e la
 #    board si riavvia una volta al primo avvio" - due sintomi, un fatto solo.
 try:
-    if "boot=live" in open("/proc/cmdline").read().split():
+    with open("/proc/cmdline") as f:
+        cmdline = f.read().split()
+    if "boot=live" in cmdline:
         sys.stderr.write("skillfish-core-unlock: sessione live, non tocco i core "
                          "(il riavvio ucciderebbe l'installazione)\n")
         sys.exit(0)
