@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QGridLayout, QLabel, QPushButton, QLineEdit, QScrollArea,
                              QStackedWidget, QFrame, QToolButton, QButtonGroup, QMessageBox,
                              QDialog, QFormLayout, QComboBox, QCheckBox, QPlainTextEdit,
+                             QStyledItemDelegate,
                              QSizePolicy, QProgressBar, QAbstractButton, QLayout)
 
 ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
@@ -385,6 +386,54 @@ def top_category_of(cats):
 SRC_LABEL = {"apt": "APT", "flatpak": "Flatpak", "snap": "Snap"}
 
 
+# Le tendine: lo stile del progetto, elenco aperto compreso.
+#
+# ⚠️ Vestire QComboBox non basta: l'elenco che si apre e' un widget suo
+# (QAbstractItemView) e senza una regola propria resta con l'aspetto di sistema,
+# fondo chiaro e testo nero in mezzo all'ottone.
+STILE_TENDINA = """
+QComboBox{background:#171206;color:#f1e3c6;border:1px solid rgba(216,168,73,0.30);
+          border-radius:9px;padding:5px 30px 5px 11px;min-height:20px;}
+QComboBox:hover{border-color:rgba(216,168,73,0.60);background:#1d1608;}
+QComboBox:focus{border-color:#d8a849;}
+QComboBox:on{border-color:#d8a849;background:#1d1608;}
+QComboBox::drop-down{border:none;width:26px;subcontrol-origin:padding;subcontrol-position:center right;}
+QComboBox::down-arrow{image:none;width:0;height:0;margin-right:10px;
+                      border-left:5px solid transparent;border-right:5px solid transparent;
+                      border-top:6px solid rgba(216,168,73,0.85);}
+QComboBox::down-arrow:on{border-top:none;border-bottom:6px solid #d8a849;}
+QComboBox QAbstractItemView{background:#1c150c;color:#f1e3c6;
+                            border:1px solid rgba(216,168,73,0.45);border-radius:9px;
+                            padding:5px;outline:none;
+                            selection-background-color:rgba(216,168,73,0.30);
+                            selection-color:#fff3d6;}
+QComboBox QAbstractItemView::item{padding:7px 12px;border-radius:6px;min-height:22px;}
+QComboBox QAbstractItemView::item:selected{background:rgba(216,168,73,0.30);color:#fff3d6;}
+QComboBox QAbstractItemView::item:hover{background:rgba(216,168,73,0.16);}
+"""
+
+
+def vesti_tendina(c):
+    u"""Applica lo stile a una tendina, elenco compreso.
+
+    Il delegato non e' un vezzo: con quello predefinito parecchi stili Qt
+    ignorano il foglio di stile sulle VOCI, e rientro e colore di selezione non
+    si vedono — sembra che lo stile non funzioni mentre e' Qt che non lo guarda.
+    """
+    c.setStyleSheet(STILE_TENDINA)
+    try:
+        c.setItemDelegate(QStyledItemDelegate(c))
+    except Exception:
+        pass          # senza, si perde solo un po' di finitura
+    try:
+        v = c.view()
+        if v is not None:
+            v.setSpacing(1)
+    except Exception:
+        pass
+    return c
+
+
 class App:
     __slots__ = ("backend", "appid", "pkgid", "name", "summary", "description",
                  "icon", "screens", "cats", "installed", "ver", "ver_inst", "origin",
@@ -459,7 +508,20 @@ class Catalog:
                 except Exception: bundle = None
                 if bundle is not None:
                     a = self._mk(AS, c, "flatpak", bundle.get_id(), bundle.get_id())
-                    a.installed = bundle.get_id() in fp_inst or (a.appid in fp_inst)
+                    # ⚠️ bundle.get_id() e' il riferimento LUNGO,
+                    # «app/<id>/<architettura>/<ramo>», mentre «flatpak list
+                    # --columns=application» stampa il solo <id>. Confrontarli
+                    # cosi' com'erano non riusciva mai, e nella scheda
+                    # «Installati» non compariva un solo flatpak nemmeno
+                    # avendone quindici sul disco.
+                    rif = bundle.get_id() or ""
+                    ident = (rif.split("/")[1]
+                             if rif.startswith("app/") and rif.count("/") >= 2
+                             else rif)
+                    a.installed = (bool(ident) and ident in fp_inst) or rif in fp_inst \
+                        or (c.get_id() or "") in fp_inst
+                    if a.installed:
+                        a.ver_inst = fp_inst.get(ident) or fp_inst.get(rif) or ""
                     a.origin = "flathub"
                 else:
                     pkg = c.get_pkgname()
@@ -1581,9 +1643,9 @@ class Hub(QMainWindow):
     def backend_on(self, b):
         if b == "apt": return True
         return bool(self.cfg.get(b)) and have(b)
-    def _visible(self, apps):
+    def _visible(self, apps, ignora_filtro=False):
         out = [a for a in apps if self.backend_on(a.backend)]
-        if self.cfg.get("filter", "all") != "all":
+        if not ignora_filtro and self.cfg.get("filter", "all") != "all":
             out = [a for a in out if a.backend == self.cfg["filter"]]
         if self.cfg.get("sort") == "rating":
             out.sort(key=lambda a: (-a.rating, a.name.lower()))
@@ -1625,17 +1687,32 @@ class Hub(QMainWindow):
         fl = QComboBox(); fl.addItem(L("Tutte le fonti", "All sources"), "all")
         for b in ("apt", "flatpak", "snap"):
             if self.backend_on(b) or b == "apt": fl.addItem(SRC_LABEL[b], b)
-        idx = fl.findData(self.cfg.get("filter", "all")); fl.setCurrentIndex(idx if idx >= 0 else 0)
-        fl.currentIndexChanged.connect(lambda: (self.cfg.__setitem__("filter", fl.currentData()), save_cfg(self.cfg), self._refresh_current()))
+        # ⚠️ Un filtro salvato che punta a una fonte non installata NON si
+        # applica: altrimenti la pagina esce vuota e sembra un guasto. E'
+        # successo davvero con «snap» rimasto in configurazione su una scheda
+        # dove snap non c'e'.
+        salvato = self.cfg.get("filter", "all")
+        if salvato not in ("all", "apt") and not self.backend_on(salvato):
+            salvato = "all"
+            self.cfg["filter"] = "all"
+            save_cfg(self.cfg)
+        idx = fl.findData(salvato); fl.setCurrentIndex(idx if idx >= 0 else 0)
+        # ⚠️ NON ricostruire la pagina qui dentro: _refresh_current() distrugge
+        # la barra, cioe' questo stesso menu, mentre Qt sta ancora elaborando il
+        # clic. Al ritorno Qt cerca l'oggetto per l'accessibilita' e trova
+        # memoria liberata: segmentation fault, non un'eccezione Python.
+        # singleShot(0) rimanda al primo momento in cui Qt ha finito.
+        fl.currentIndexChanged.connect(lambda: (self.cfg.__setitem__("filter", fl.currentData()), save_cfg(self.cfg), QTimer.singleShot(0, self._refresh_current)))
         so = QComboBox(); so.addItem(L("Nome", "Name"), "name"); so.addItem(L("Valutazione", "Rating"), "rating")
         so.setCurrentIndex(0 if self.cfg.get("sort") == "name" else 1)
-        so.currentIndexChanged.connect(lambda: (self.cfg.__setitem__("sort", so.currentData()), save_cfg(self.cfg), self._refresh_current()))
-        for c in (fl, so): c.setStyleSheet("QComboBox{background:#171206;color:#f1e3c6;border:1px solid rgba(216,168,73,0.25);border-radius:8px;padding:4px 8px;}")
+        so.currentIndexChanged.connect(lambda: (self.cfg.__setitem__("sort", so.currentData()), save_cfg(self.cfg), QTimer.singleShot(0, self._refresh_current)))
+        for c in (fl, so): vesti_tendina(c)
         bar.addWidget(QLabel(L("Filtro:", "Filter:"))); bar.addWidget(fl)
         bar.addSpacing(8); bar.addWidget(QLabel(L("Ordina:", "Sort:"))); bar.addWidget(so); bar.addStretch(1)
         w = QWidget(); w.setLayout(bar); return w
 
     def _grid(self, apps, toolbar=True):
+        tutte = apps
         apps = self._visible(apps)
         if toolbar:
             tb = self._toolbar()
@@ -1643,7 +1720,26 @@ class Hub(QMainWindow):
             tb.layout().addWidget(cnt)
             self.p_lay.addWidget(tb)
         if not apps:
-            e = QLabel(L("Nessun risultato.", "No results.")); e.setStyleSheet("color:#b9a07a;"); self.p_lay.addWidget(e); self.p_lay.addStretch(1); return
+            # Quante ce ne sarebbero senza filtro: se sono tante, il vuoto non
+            # e' «non hai niente installato», e' «stai guardando dalla fessura
+            # sbagliata». Dirlo evita di far credere che l'Hub sia rotto.
+            filtro = self.cfg.get("filter", "all")
+            senza = len(self._visible(tutte, ignora_filtro=True)) if toolbar else 0
+            if toolbar and filtro != "all" and senza:
+                msg = L("Nessun risultato con il filtro «%s».\nSenza filtro qui ci sono %d voci.",
+                        "No results with the «%s» filter.\nWithout it there are %d here.") % (
+                            SRC_LABEL.get(filtro, filtro), senza)
+                e = QLabel(msg); e.setStyleSheet("color:#b9a07a;")
+                self.p_lay.addWidget(e)
+                b = QPushButton(L("Mostra tutte le fonti", "Show all sources"))
+                b.setStyleSheet("QPushButton{background:rgba(216,168,73,0.18);color:#f1e3c6;border-radius:9px;padding:6px 14px;}")
+                b.clicked.connect(lambda: (self.cfg.__setitem__("filter", "all"),
+                                           save_cfg(self.cfg), self._refresh_current()))
+                self.p_lay.addWidget(b, alignment=Qt.AlignmentFlag.AlignLeft)
+            else:
+                e = QLabel(L("Nessun risultato.", "No results.")); e.setStyleSheet("color:#b9a07a;")
+                self.p_lay.addWidget(e)
+            self.p_lay.addStretch(1); return
         self._page_apps = apps; self._page_shown = 0
         self._render_more(first=True)
 
@@ -1982,7 +2078,7 @@ class Hub(QMainWindow):
     def _set_channels(self, app, chs):
         if not chs or self._chanrow is None: return
         lab = QLabel(L("Canale:", "Channel:")); lab.setStyleSheet("color:#b9a07a;")
-        cb = QComboBox(); cb.addItems(chs); cb.setStyleSheet("QComboBox{background:#171206;color:#f1e3c6;border:1px solid rgba(216,168,73,0.25);border-radius:8px;padding:3px 8px;}")
+        cb = QComboBox(); cb.addItems(chs); vesti_tendina(cb)
         self._snap_channel = chs[0]; cb.currentTextChanged.connect(lambda t: setattr(self, "_snap_channel", t))
         self._chanrow.addWidget(lab); self._chanrow.addWidget(cb); self._chanrow.addStretch(1)
 

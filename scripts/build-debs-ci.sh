@@ -832,6 +832,17 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 # Qui il corpo del modulo viene ESEGUITO davvero (import, costanti, classi) con
 # un nome diverso da __main__, quindi main() non parte: niente finestre, niente
 # password, nessun demone. Serve solo a rispondere alla domanda "si apre?".
+#
+# ⚠️⚠️ E QUESTO NON BASTA. NON CONFONDERE QUESTA PROVA CON UNA PROVA.
+# Il 22/08/2026 questo passo era verde mentre l'Hub, gia' nelle mani degli
+# utenti, non mostrava NESSUN flatpak installato (mai, su nessuna macchina) e
+# moriva di SIGSEGV al primo cambio di filtro. Nessuna delle due cose si vede
+# eseguendo il corpo del modulo: vivono dietro un clic.
+#
+# Prima di pubblicare un'applicazione la si apre sulla BC-250 e si tocca OGNI
+# scheda, OGNI filtro, OGNI tendina, OGNI pulsante, guardando il risultato con
+# una schermata. Anche il caso vuoto. E si guarda coredumpctl dopo, perche' un
+# crash nativo non stampa niente in Python.
 avvia() { # avvia <sorgente-python>
   # I moduli condivisi (hud_dati, aiuto, i18n) su una macchina vera stanno in
   # /usr/share/skillfish, messi li' da skillfish-base. Qui quel pacchetto non

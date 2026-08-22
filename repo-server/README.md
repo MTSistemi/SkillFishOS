@@ -44,7 +44,13 @@ files, so it takes care of itself. Nothing else does, and the parts that don't
 are the parts a user actually reads.
 
 1. Build everything: `OUT=/root/dist-debs bash scripts/build-debs-ci.sh <version>`
-2. Compare the **contents** against what is already published and ship only what
+2. **If an application changed, open it on the board and use it.** Every tab,
+   every filter, every dropdown, every button, at least once, looking at the
+   result rather than assuming it. The build's "does it start?" step only
+   executes the module body: on 22 August 2026 it was green while the shipped
+   Hub showed no installed flatpaks at all and segfaulted on the first filter
+   change. Both lived behind a click.
+4. Compare the **contents** against what is already published and ship only what
    changed. In 26.08.43 that was 5 packages out of 15; publishing all fifteen
    makes every user re-download 1.4 MB of identical files.
 3. **Re-read the `ctrl()` description** of each package that changed. The Hub and
@@ -52,17 +58,17 @@ are the parts a user actually reads.
    22 August 2026 it said "built from git by CI" and nothing else, which told
    the reader precisely nothing. If the behaviour changed, the description
    changes; if the wording is now wrong on screen, fix it here too.
-4. Copy the `.deb` files to the container and compare checksums **before**
+5. Copy the `.deb` files to the container and compare checksums **before**
    signing.
-5. `skillfish-rilascio <files>` — indexes and signs, stays in the house.
-6. `skillfish-rilascio --pubblica` — out to OVH.
-7. From the PC: `python scripts/sincronizza-ghpages.py <version>` — the mirror
+6. `skillfish-rilascio <files>` — indexes and signs, stays in the house.
+7. `skillfish-rilascio --pubblica` — out to OVH.
+8. From the PC: `python scripts/sincronizza-ghpages.py <version>` — the mirror
    installed machines actually use.
-8. `apt update && apt install` on the board, from the real repository, not by
+9. `apt update && apt install` on the board, from the real repository, not by
    hand.
-9. **Write the news entry on the site, in every language.** What changed for the
+10. **Write the news entry on the site, in every language.** What changed for the
    person using it, not the commit list.
-10. Check the published site really shows it.
+11. Check the published site really shows it.
 
 Steps 3 and 9 are the ones that get skipped, and they are the only two the user
 ever sees.
