@@ -131,6 +131,11 @@ put $P 0644 system/etc/systemd/system/skillfish-sensori.service etc/systemd/syst
 put $P 0755 system/usr/local/bin/skillfish-hud-val usr/local/bin/skillfish-hud-val
 put $P 0755 system/usr/local/bin/skillfish-hud-config usr/local/bin/skillfish-hud-config
 put $P 0755 system/usr/local/bin/skillfish-hud-bt usr/local/bin/skillfish-hud-bt
+# ⚠️ Le barre dei thread NON stanno piu' nella configurazione di conky: le
+# stampa questo, a ogni giro, cosi' seguono i core che si accendono e si
+# spengono. Se manca dal pacchetto, la configurazione chiama un comando che
+# non c'e' e al posto delle barre resta una riga vuota.
+put $P 0755 system/usr/local/bin/skillfish-hud-cpubars usr/local/bin/skillfish-hud-cpubars
 # Il lanciatore del HUD sta qui e non in un pacchetto suo perche' legge i due
 # helper qui sopra: separarli permetterebbe di installarlo senza i sensori che
 # gli servono. Deve essere un file eseguibile e non un comando dentro il
@@ -1236,6 +1241,10 @@ notcheck skillfish-dashboard_${VER}_all.deb  ./usr/share/skillfish/dashboard/app
 # ripiegherebbe sulla configurazione di /etc/skel, cablata sulla scheda, e su un
 # PC qualunque conky tornerebbe a rimpicciolirsi fino a sparire.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud            skillfish-hud-config
+# e il pezzo che disegna le barre: la configurazione lo chiama per nome, quindi
+# deve esserci, ed e' l'unico posto dove il numero di thread viene deciso.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-cpubars    cpubar
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     skillfish-hud-cpubars
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     'cpubar cpu'
 # e che i ripieghi generici dei sensori non vengano persi in una riscrittura
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val        cpu_temp_generico
