@@ -2,7 +2,7 @@
 u"""Legge la tabella di scoperta della BC-250: quali blocchi il chip dichiara.
 
 Le strutture non sono indovinate: i nomi degli HWID e i formati vengono letti
-da discovery.h e amdgpu_discovery.c presi dal kernel, così se domani AMD
+da discovery.h e soc15_hw_ip.h presi dal kernel, così se domani AMD
 aggiunge un blocco il lettore non racconta bugie.
 """
 from __future__ import unicode_literals
@@ -20,8 +20,6 @@ with io.open("discovery.h", encoding="utf-8", errors="replace") as f:
 # che il chip non dichiari niente.
 with io.open("soc15_hw_ip.h", encoding="utf-8", errors="replace") as f:
     h += f.read()
-with io.open("amdgpu_discovery.c", encoding="utf-8", errors="replace") as f:
-    c = f.read()
 
 hwid = {}
 for m in re.finditer(r'#define\s+(\w+)_HWID\s+(\d+)', h):
