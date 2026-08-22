@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=x11vnc remote
-Exec=/usr/local/bin/skillfish-x11vnc.sh
-X-KDE-autostart-phase=2

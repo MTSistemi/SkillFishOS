@@ -17,6 +17,14 @@
 #                                           pannello in ascolto su 0.0.0.0 come root
 #   /var/lib/dkms/mok.key                   la chiave privata con cui si firmano
 #                                           i moduli per Secure Boot, uguale per tutti
+#   ~/.config/autostart/x11vnc.desktop      avvia x11vnc SENZA PASSWORD su tutte
+#                                           le interfacce al login. Sulla scheda
+#                                           di sviluppo serve e resta; dentro
+#                                           l'immagine sarebbe il desktop di
+#                                           chiunque installi, aperto a chiunque
+#                                           passi. Il VNC che l'utente deve avere
+#                                           e' quello del Remote Manager: 5901,
+#                                           solo localhost, con password.
 #   /var/lib/bluetooth/                     le chiavi di accoppiamento e i MAC dei
 #                                           suoi dispositivi personali
 #   /etc/shadow                             l'hash della password di root della
@@ -65,6 +73,7 @@ IDENTITA_MACCHINA="
 /var/lib/fwupd
 /var/lib/transmission-daemon
 /var/lib/AccountsService/users
+/home/skillfish/.config/autostart/x11vnc.desktop
 "
 
 # --- 1bis. come si entra in QUESTA macchina --------------------------------

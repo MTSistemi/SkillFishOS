@@ -380,7 +380,6 @@ put $P 0755 system/usr/local/bin/skillfish-dp-hotswap.sh    usr/local/bin/skillf
 put $P 0755 system/usr/local/bin/skillfish-thermal-guard.sh usr/local/bin/skillfish-thermal-guard.sh
 put $P 0755 system/usr/local/bin/skillfish-gpu-util.sh      usr/local/bin/skillfish-gpu-util.sh
 put $P 0755 system/usr/local/bin/skillfish-kde-firstrun.sh  usr/local/bin/skillfish-kde-firstrun.sh
-put $P 0755 system/usr/local/bin/skillfish-x11vnc.sh        usr/local/bin/skillfish-x11vnc.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillfish-freeze-check.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-notify.sh usr/local/bin/skillfish-freeze-notify.sh
 put $P 0644 system/etc/systemd/system/skillfish-freeze-check.service etc/systemd/system/skillfish-freeze-check.service

@@ -423,14 +423,14 @@ def vesti_tendina(c):
     c.setStyleSheet(STILE_TENDINA)
     try:
         c.setItemDelegate(QStyledItemDelegate(c))
-    except Exception:
-        pass          # senza, si perde solo un po' di finitura
-    try:
-        v = c.view()
-        if v is not None:
-            v.setSpacing(1)
-    except Exception:
-        pass
+    except Exception as e:
+        # Non e' fatale: la tendina funziona lo stesso, solo con le voci meno
+        # rifinite. Ma se succede vogliamo saperlo, perche' vuol dire che lo
+        # stile non si applica e sembrera' che il foglio di stile sia rotto.
+        print("hub: delegato della tendina non applicato (%s)" % e, file=sys.stderr)
+    v = c.view()
+    if v is not None:
+        v.setSpacing(1)
     return c
 
 
