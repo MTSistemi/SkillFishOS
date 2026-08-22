@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  Due autorizzazioni, e questo è il motivo per cui i programmi privilegiati
+  dell'Hub sono due invece di uno.
+
+  DAI NOSTRI REPOSITORY (aggiornare, installare, rimuovere, firmware): la
+  password una volta per sessione. Quello che arriva da lì è firmato dalla
+  nostra chiave, e un aggiornamento tocca decine di pacchetti: chiedere a ogni
+  passo vorrebbe dire cinque richieste per un clic.
+
+  DA FUORI (un .deb scaricato, un file di Flathub, una sorgente o una chiave
+  nuova): la password ogni volta. Nessuna nostra chiave li ha firmati, e
+  aggiungere una sorgente vuol dire fidarsi di chi la tiene da adesso in avanti.
+
+  ⚠️ Prima l'Hub non aveva nessuna politica. pkexec ricadeva sul suo
+  comportamento predefinito — password di amministratore a ogni operazione — e
+  la finestra diceva soltanto «serve autenticarsi per eseguire
+  /usr/local/bin/skillfish-hub-helper come root», che non dice all'utente cosa
+  sta per succedere.
+
+  ⚠️ polkit lega l'autorizzazione al PERCORSO del programma. Se uno dei due si
+  sposta, va cambiato anche qui, oppure si torna al ripiego predefinito.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.hub.helper">
+    <description>Install and update software from the SkillFishOS repositories</description>
+    <description xml:lang="it">Installare e aggiornare programmi dai repository SkillFishOS</description>
+    <description xml:lang="fr">Installer et mettre à jour des logiciels depuis les dépôts SkillFishOS</description>
+    <description xml:lang="uk">Встановлення й оновлення програм із репозиторіїв SkillFishOS</description>
+    <description xml:lang="ru">Установка и обновление программ из репозиториев SkillFishOS</description>
+    <description xml:lang="es">Instalar y actualizar programas desde los repositorios de SkillFishOS</description>
+    <description xml:lang="pt">Instalar e atualizar programas a partir dos repositórios SkillFishOS</description>
+    <description xml:lang="de">Programme aus den SkillFishOS-Paketquellen installieren und aktualisieren</description>
+    <description xml:lang="pl">Instalowanie i aktualizowanie programów z repozytoriów SkillFishOS</description>
+    <message>Authentication is required to install or update software</message>
+    <message xml:lang="it">È richiesta l'autenticazione per installare o aggiornare programmi</message>
+    <message xml:lang="fr">Une authentification est requise pour installer ou mettre à jour des logiciels</message>
+    <message xml:lang="uk">Для встановлення або оновлення програм потрібна автентифікація</message>
+    <message xml:lang="ru">Для установки или обновления программ требуется аутентификация</message>
+    <message xml:lang="es">Se requiere autenticación para instalar o actualizar programas</message>
+    <message xml:lang="pt">É necessária autenticação para instalar ou atualizar programas</message>
+    <message xml:lang="de">Zum Installieren oder Aktualisieren von Programmen ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="pl">Do instalowania lub aktualizowania programów wymagane jest uwierzytelnienie</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-hub-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+
+  <action id="os.skillfish.hub.local">
+    <description>Install a file from outside the repositories, or add a software source</description>
+    <description xml:lang="it">Installare un file preso da fuori, o aggiungere una sorgente di software</description>
+    <description xml:lang="fr">Installer un fichier venu d'ailleurs, ou ajouter une source de logiciels</description>
+    <description xml:lang="uk">Встановити файл ззовні або додати джерело програм</description>
+    <description xml:lang="ru">Установить файл извне или добавить источник программ</description>
+    <description xml:lang="es">Instalar un archivo de fuera, o añadir una fuente de software</description>
+    <description xml:lang="pt">Instalar um ficheiro vindo de fora, ou acrescentar uma fonte de software</description>
+    <description xml:lang="de">Eine Datei von außerhalb installieren oder eine Softwarequelle hinzufügen</description>
+    <description xml:lang="pl">Zainstalowanie pliku spoza repozytoriów lub dodanie źródła oprogramowania</description>
+    <message>This file is not signed by SkillFishOS: authentication is required every time</message>
+    <message xml:lang="it">Questo file non è firmato da SkillFishOS: l'autenticazione è richiesta ogni volta</message>
+    <message xml:lang="fr">Ce fichier n'est pas signé par SkillFishOS : une authentification est requise à chaque fois</message>
+    <message xml:lang="uk">Цей файл не підписаний SkillFishOS: автентифікація потрібна щоразу</message>
+    <message xml:lang="ru">Этот файл не подписан SkillFishOS: аутентификация требуется каждый раз</message>
+    <message xml:lang="es">Este archivo no está firmado por SkillFishOS: se requiere autenticación cada vez</message>
+    <message xml:lang="pt">Este ficheiro não está assinado pelo SkillFishOS: é necessária autenticação de cada vez</message>
+    <message xml:lang="de">Diese Datei ist nicht von SkillFishOS signiert: jedes Mal ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="pl">Ten plik nie jest podpisany przez SkillFishOS: uwierzytelnienie wymagane za każdym razem</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-hub-local</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

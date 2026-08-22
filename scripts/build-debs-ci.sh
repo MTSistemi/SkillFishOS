@@ -170,6 +170,13 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 P=skillfish-hub
 put $P 0755 apps/hub/skillfish-hub        usr/local/bin/skillfish-hub
 put $P 0755 apps/hub/skillfish-hub-helper usr/local/bin/skillfish-hub-helper
+# La seconda porta e il motore che condividono. ⚠️ Sono programmi separati
+# perche' polkit lega l'autorizzazione al percorso: una regola per quello che
+# arriva dai nostri repository, una piu' severa per i file presi da fuori.
+put $P 0755 apps/hub/skillfish-hub-local usr/local/bin/skillfish-hub-local
+put $P 0644 system/usr/local/lib/skillfish/hub-comune.sh usr/local/lib/skillfish/hub-comune.sh
+put $P 0755 system/usr/local/lib/skillfish/hub-run usr/local/lib/skillfish/hub-run
+put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.hub.policy usr/share/polkit-1/actions/os.skillfish.hub.policy
 put $P 0644 system/usr/share/applications/os.skillfish.hub.desktop usr/share/applications/os.skillfish.hub.desktop
 # L'icona e' la borsa steampunk del NOSTRO tema — quella che SkillFishSteampunk
 # usa per Discover, di cui l'Hub prende il posto nella barra — copiata come
@@ -1396,10 +1403,10 @@ check skillfish-emulators_${VER}_all.deb ./usr/share/applications/os.skillfish.e
 # ⚠️ La transazione deve partire STACCATA (systemd-run): se torna a essere un
 # processo figlio della finestra, il primo aggiornamento che sostituisce le Qt
 # la uccide a meta' e lascia dpkg da riparare a mano.
-check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "systemd-run"
+check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh "systemd-run"
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "tx-start"
 # Il firmware c'e', e NON viene portato via da «Aggiorna tutto».
-check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "fwupdmgr"
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper "fw-list"
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def firmware"
 # L'avviso e i suoi due timer.
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-notify "notify-send"
@@ -1427,7 +1434,7 @@ check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboard
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub "def bersaglio"
 check skillfish-hub_${VER}_all.deb ./usr/share/applications/os.skillfish.hub.desktop 'application/vnd.flatpak.ref'
 # ⚠️ L'helper gira da root: ogni percorso che arriva da fuori si controlla.
-check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper 'percorso_sicuro'
+check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'percorso_sicuro'
 
 # IL PULSANTE DEL MENU.
 # ⚠️ Il pesce del pannello sta nel tema col nome del logo, e il pannello lo
@@ -1461,6 +1468,17 @@ notcheck skillfish-tuner_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfis
 
 
 check skillfish-hub_${VER}_all.deb ./etc/apt/preferences.d/skillfish-no-discover.pref 'Pin-Priority: -1'
+
+
+# LE DUE PORTE DELL'HUB.
+# ⚠️ La differenza fra le due regole vive nel fatto che l'helper comodo NON
+# sappia fare le azioni dell'altro. Se qualcuno gli aggiunge «deb», la
+# password una volta per sessione varrebbe anche per un pacchetto che
+# nessuno ha firmato, e la divisione non servirebbe piu' a niente.
+check skillfish-hub_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.hub.policy 'os.skillfish.hub.local'
+check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-local 'flatpakbundle'
+notcheck skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper 'flatpakbundle'
+check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'systemd-run'
 
 echo "
 ALL DEBS VERIFIED"

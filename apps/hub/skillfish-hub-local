@@ -1,0 +1,30 @@
+#!/bin/bash
+# skillfish-hub-local — quello che arriva da FUORI dai nostri repository.
+#
+# Chiede la password OGNI VOLTA (os.skillfish.hub.local), e la differenza non è
+# il capriccio: qui passano un .deb scaricato, un file di Flathub, una sorgente
+# nuova o una chiave nuova. Nessuna delle nostre chiavi li ha firmati, e
+# aggiungere una sorgente vuol dire fidarsi di chi la tiene, da adesso in poi.
+#
+#   tx-start deb|flatpakref|flatpakrepo|flatpakbundle <percorso>
+#   repo-add <nome> <base64>   repo-remove <nome>   repo-enable <nome> <0|1>
+#   key-add  <nome> <base64>
+set -uo pipefail
+. /usr/local/lib/skillfish/hub-comune.sh
+
+AZIONE="${1:-}"; shift || true
+case "$AZIONE" in
+  tx-start)
+    SOTTO="${1:-}"
+    case "$SOTTO" in
+      deb|flatpakref|flatpakrepo|flatpakbundle) ;;
+      *) echo "questa azione non passa da qui: usa skillfish-hub-helper" >&2; exit 2 ;;
+    esac
+    tx_start "$@"
+    ;;
+  repo-add)     repo_aggiungi "${1:-}" "${2:-}" ;;
+  repo-remove)  repo_togli "${1:-}" ;;
+  repo-enable)  repo_accendi "${1:-}" "${2:-1}" ;;
+  key-add)      chiave_aggiungi "${1:-}" "${2:-}" ;;
+  *) echo "uso: skillfish-hub-local tx-start deb|flatpakref|flatpakrepo|flatpakbundle <percorso> | repo-add | repo-remove | repo-enable | key-add"; exit 2 ;;
+esac

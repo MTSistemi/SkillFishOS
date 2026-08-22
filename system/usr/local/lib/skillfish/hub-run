@@ -1,0 +1,26 @@
+#!/bin/bash
+# Il lavoro vero della transazione. Lo lancia systemd, non l'utente.
+#
+# ⚠️ Non ha una politica polkit e non deve averla: non è una porta d'ingresso.
+# Chi lo eseguisse senza essere root non combinerebbe niente — apt gli direbbe
+# di no — e chi è già root non ha bisogno di chiedere il permesso a nessuno.
+set -uo pipefail
+. /usr/local/lib/skillfish/hub-comune.sh
+
+# ⚠️ LO STATO FINALE SI SCRIVE SEMPRE, ANCHE QUANDO SI ESCE PRIMA.
+# Le azioni si fermano subito se il file non esiste o mancano gli argomenti, e
+# se ne vanno senza passare dalla riga che scrive «finita»: la finestra
+# resterebbe a guardare in eterno una transazione in corso, con il pulsante
+# spento e nessun modo di capire cosa è successo. Il trap chiude il conto in
+# ogni caso. Se l'azione è arrivata in fondo da sola riscrive gli stessi valori,
+# che non fa danno.
+#
+# ⚠️ Gli argomenti si salvano QUI, non si leggono dentro il trap. Quando si esce
+# con «exit» da dentro una funzione il trap gira ancora nel contesto della
+# funzione, che nel frattempo ha fatto shift: «$*» darebbe il resto degli
+# argomenti senza il nome dell'azione, e lo stato finale direbbe «finita» senza
+# dire di cosa.
+RICHIESTA="$*"
+trap 'scrivi_stato finita $? "$RICHIESTA"' EXIT
+
+esegui_azione "$@"

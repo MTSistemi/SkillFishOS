@@ -44,7 +44,14 @@ def test_app_defaults_are_safe(hub):
 # --------------------------------------------------------------------------
 # The detached transaction, firmware, and the rules that must not drift back.
 # --------------------------------------------------------------------------
-HELPER_SRC = pathlib.Path(__file__).resolve().parents[1] / "apps" / "hub" / "skillfish-hub-helper"
+RADICE = pathlib.Path(__file__).resolve().parents[1]
+HELPER_SRC = RADICE / "apps" / "hub" / "skillfish-hub-helper"
+# La porta severa e il motore che le due porte condividono.
+LOCAL_SRC = RADICE / "apps" / "hub" / "skillfish-hub-local"
+MOTORE_SRC = RADICE / "system" / "usr" / "local" / "lib" / "skillfish" / "hub-comune.sh"
+RUN_SRC = RADICE / "system" / "usr" / "local" / "lib" / "skillfish" / "hub-run"
+POLICY_SRC = (RADICE / "system" / "usr" / "share" / "polkit-1" / "actions"
+              / "os.skillfish.hub.policy")
 
 
 def test_updates_always_have_five_fields(hub, monkeypatch):
@@ -120,7 +127,7 @@ def test_helper_starts_the_work_detached():
     If this ever goes back to running apt as a child process, the first upgrade
     that replaces Qt kills it halfway and leaves dpkg to be repaired by hand.
     """
-    testo = HELPER_SRC.read_text(encoding="utf-8")
+    testo = MOTORE_SRC.read_text(encoding="utf-8")
     assert "systemd-run" in testo
     assert "setsid nohup" in testo          # il ripiego senza systemd
     assert "--force-confold" in testo       # apt non deve fermarsi a chiedere
@@ -129,8 +136,8 @@ def test_helper_starts_the_work_detached():
 
 def test_counting_stands_down_while_a_transaction_runs():
     """The daily count must not fight the real transaction for apt's lock."""
-    testo = HELPER_SRC.read_text(encoding="utf-8")
-    conta = testo.split("\n  conta)", 1)[1]
+    testo = MOTORE_SRC.read_text(encoding="utf-8")
+    conta = testo.split("conta_aggiornamenti()", 1)[1]
     assert "tx_attiva" in conta.split("apt-get update", 1)[0]
 
 
@@ -207,8 +214,97 @@ def test_the_warning_says_it_is_unsigned():
 
 def test_helper_checks_every_path_it_is_given():
     """Each file action must validate the path before touching it."""
-    testo = HELPER_SRC.read_text(encoding="utf-8")
-    corpo = testo.split("  tx-run)", 1)[1].split("  conta)", 1)[0]
+    testo = MOTORE_SRC.read_text(encoding="utf-8")
+    corpo = testo.split("esegui_azione()", 1)[1]
     for azione in ("deb)", "flatpakref)", "flatpakrepo)", "flatpakbundle)"):
-        pezzo = corpo.split("      " + azione, 1)[1].split(";;", 1)[0]
+        pezzo = corpo.split("\n    " + azione, 1)[1].split(";;", 1)[0]
         assert "percorso_sicuro" in pezzo, azione
+
+
+# --------------------------------------------------------------------------
+# Le due porte. Chi arriva dai nostri repository paga la password una volta per
+# sessione; chi porta un file preso da fuori la paga sempre. La differenza sta
+# tutta nel fatto che le due porte NON sappiano fare il lavoro l'una dell'altra.
+# --------------------------------------------------------------------------
+DA_FUORI = ("deb", "flatpakref", "flatpakrepo", "flatpakbundle")
+DA_NOI = ("aggiorna", "installa", "rimuovi", "elenchi", "firmware")
+
+
+def test_the_easy_door_cannot_install_a_file_from_outside():
+    """If it could, the split would be decoration.
+
+    The convenient door asks for the password once per session. The moment it
+    also accepts a .deb nobody signed, that one password covers installing
+    anything at all — which is exactly what we are trying to avoid.
+    """
+    testo = HELPER_SRC.read_text(encoding="utf-8")
+    tx = testo.split("tx-start)", 1)[1].split("esac", 1)[0]
+    for azione in DA_FUORI:
+        assert azione + "|" not in tx and azione + ")" not in tx, azione
+
+
+def test_the_strict_door_cannot_run_the_repository_work():
+    """And not the other way round either.
+
+    Otherwise someone would route the daily upgrade through it and hand the
+    user a password prompt for every single package.
+    """
+    testo = LOCAL_SRC.read_text(encoding="utf-8")
+    for azione in DA_NOI:
+        assert azione + ")" not in testo, azione
+
+
+def test_neither_door_calls_the_other():
+    """The doors share the engine, never each other.
+
+    A delegation would put the strict actions back behind the easy password.
+    """
+    for src in (HELPER_SRC, LOCAL_SRC):
+        testo = src.read_text(encoding="utf-8")
+        altro = "skillfish-hub-local" if src is HELPER_SRC else "skillfish-hub-helper"
+        for riga in testo.splitlines():
+            spoglia = riga.strip()
+            if spoglia.startswith("#") or altro not in spoglia:
+                continue
+            # nominarlo in un messaggio d'errore va bene: eseguirlo no
+            assert 'echo' in spoglia or 'usa ' in spoglia, spoglia
+
+
+def test_the_window_picks_the_door_by_the_action():
+    """The routing lives in one place, and the two lists must agree."""
+    testo = HUB.read_text(encoding="utf-8")
+    assert 'DA_FUORI = ("deb", "flatpakref", "flatpakrepo", "flatpakbundle")' in testo
+    assert "porta = LOCALE if azione in DA_FUORI else HELPER" in testo
+    # sorgenti e chiavi passano sempre dalla porta severa: aggiungere un
+    # repository vuol dire fidarsi di chi lo tiene, da adesso in avanti
+    for op in ("repo-add", "repo-remove", "repo-enable", "key-add"):
+        assert 'HELPER, "%s"' % op not in testo, op
+        assert 'LOCALE, "%s"' % op in testo, op
+
+
+def test_the_policy_declares_both_and_only_the_easy_one_keeps():
+    """Without a policy pkexec falls back to asking every time, with a message
+    that names an executable instead of saying what is about to happen."""
+    testo = POLICY_SRC.read_text(encoding="utf-8")
+    comoda = testo.split('id="os.skillfish.hub.helper"', 1)[1].split("</action>", 1)[0]
+    severa = testo.split('id="os.skillfish.hub.local"', 1)[1].split("</action>", 1)[0]
+    assert "<allow_active>auth_admin_keep</allow_active>" in comoda
+    assert "auth_admin_keep" not in severa
+    # polkit lega l'autorizzazione al percorso: se non combacia, si torna al ripiego
+    assert "/usr/local/bin/skillfish-hub-helper" in comoda
+    assert "/usr/local/bin/skillfish-hub-local" in severa
+
+
+def test_the_runner_has_no_door_of_its_own():
+    """hub-run is called by systemd, already as root. A policy on it would be a
+    third way in, and the only one without a reason to exist."""
+    assert "os.skillfish.hub.run" not in POLICY_SRC.read_text(encoding="utf-8")
+
+
+def test_the_final_state_is_written_even_when_the_action_stops_early():
+    """A missing file must not leave the window watching a transaction that
+    never ends: the button stays dead and nothing says why."""
+    testo = RUN_SRC.read_text(encoding="utf-8")
+    assert "trap 'scrivi_stato finita" in testo
+    # gli argomenti si salvano prima: il trap gira dopo lo shift della funzione
+    assert 'RICHIESTA="$*"' in testo

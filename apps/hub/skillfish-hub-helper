@@ -1,232 +1,37 @@
 #!/bin/bash
-# skillfish-hub-helper — le operazioni con i privilegi, per SkillFishOS Hub.
-# Lo chiama pkexec. Da qui passano APT, Flatpak, Snap, il firmware e i repository.
+# skillfish-hub-helper — quello che viene dai NOSTRI repository.
 #
-# ⚠️ PERCHE' ESISTE «tx»: L'AGGIORNAMENTO NON DEVE MORIRE CON LA FINESTRA.
-# Prima l'apt era un processo FIGLIO della finestra, con la sua uscita in una
-# pipe. Bastava che la finestra morisse — e muore facile, visto che
-# l'aggiornamento sostituisce sotto di lei PyQt6 e le librerie Qt, quando non
-# aggiorna l'Hub stesso — perche' la pipe si chiudesse e l'apt se ne andasse a
-# meta' strada, lasciando dpkg in mezzo al guado. Il danno non era la finestra
-# chiusa: era il sistema da riparare a mano.
-# Ora la transazione parte in una unita' systemd TRANSITORIA, che non e' figlia
-# di nessuno. La finestra non la esegue: la GUARDA, leggendo il registro. Se la
-# finestra muore, o la chiude l'utente, o si riavvia la sessione, la transazione
-# continua e alla riapertura l'Hub si riattacca.
+# Chiede la password una volta per sessione (os.skillfish.hub.helper), perché
+# quello che passa da qui è firmato dalla nostra chiave: aggiornamenti,
+# installazioni e rimozioni dai repository configurati, firmware, conteggio.
 #
-# ⚠️ NON C'E' UN «ANNULLA», ed e' voluto. Fermare un apt mentre dpkg sta
-# scompattando e' esattamente il modo di rompere il sistema che stiamo evitando.
+# ⚠️ QUI NON SI INSTALLA NIENTE PRESO DA FUORI e non si aggiungono sorgenti.
+# Quelle cose stanno in skillfish-hub-local, che la password la chiede sempre.
+# Se un domani qualcuno aggiungesse qui l'azione «deb», la differenza fra le due
+# porte sparirebbe e resterebbe solo la comodità.
 #
-#   tx-start <azione> [argomenti...]   avvia (aggiorna|installa|rimuovi|elenchi|firmware)
-#   tx-run   <azione> [argomenti...]   il lavoro vero: lo invoca systemd, non tu
-#   conta                              aggiorna gli elenchi e conta cosa c'e' da aggiornare
-#   fw-refresh | fw-list               firmware: metadati e dispositivi aggiornabili
+#   tx-start aggiorna|installa|rimuovi|elenchi|firmware [argomenti...]
+#   conta | fw-refresh | fw-list
 #   apt-update | apt-upgrade | apt-install | apt-remove
-#   repo-add | repo-remove | repo-enable | key-add
 set -uo pipefail
-export DEBIAN_FRONTEND=noninteractive
-SRCDIR=/etc/apt/sources.list.d
-KEYDIR=/usr/share/keyrings
-STATO=/var/lib/skillfish/hub
-REGISTRO="$STATO/tx.log"
-TXJSON="$STATO/tx.json"
-CONTEGGIO="$STATO/updates.json"
-UNITA=skillfish-hub-tx
-ACTION="${1:-}"; shift || true
+. /usr/local/lib/skillfish/hub-comune.sh
 
-mkdir -p "$STATO"; chmod 0755 /var/lib/skillfish "$STATO" 2>/dev/null || true
-
-safe_name() { case "$1" in (''|*/*|*..*) echo "bad name" >&2; exit 2;; esac; }
-
-# ⚠️ Un percorso che arriva da fuori, e qui siamo root: deve essere assoluto
-# e deve essere un FILE. Una cartella, un dispositivo o un percorso che non
-# esiste non devono nemmeno arrivare ad apt.
-percorso_sicuro() {
-  case "$1" in (/*) ;; (*) echo "percorso non assoluto: $1" >&2; return 1;; esac
-  [ -f "$1" ] || { echo "non e' un file: $1" >&2; return 1; }
-  return 0
-}
-
-# ⚠️ Le opzioni di apt qui sotto non sono decorazione:
-#   noninteractive + force-conf*  un apt che si ferma a chiedere di un file di
-#                                 configurazione, senza nessuno che risponda,
-#                                 resta li' per sempre e blocca il lock di dpkg.
-#   Dpkg::Use-Pty=0               senza terminale l'uscita esce a blocchi e il
-#                                 registro si vede a scatti.
-APTOPT=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
-        -o Dpkg::Use-Pty=0)
-
-tx_attiva() { systemctl is-active --quiet "${UNITA}.service"; }
-
-scrivi_stato() {   # scrivi_stato <stato> <rc> <azione...>
-  local st="$1" rc="$2"; shift 2
-  printf '{"stato":"%s","rc":%s,"azione":"%s","quando":%s}\n' \
-         "$st" "$rc" "$*" "$(date +%s)" > "$TXJSON"
-  chmod 0644 "$TXJSON"
-}
-
-case "$ACTION" in
-
+AZIONE="${1:-}"; shift || true
+case "$AZIONE" in
   tx-start)
-    [ $# -ge 1 ] || { echo "manca l'azione"; exit 2; }
-    if tx_attiva; then
-      echo "una transazione e' gia' in corso"; exit 3
-    fi
-    : > "$REGISTRO"; chmod 0644 "$REGISTRO"
-    scrivi_stato in-corso null "$@"
-    # --collect: se l'unita' di ieri e' rimasta li' fallita, systemd la raccoglie
-    # invece di rifiutarsi di riusare il nome.
-    if command -v systemd-run >/dev/null 2>&1; then
-      systemd-run --quiet --collect --unit="$UNITA" --service-type=exec \
-        --property=StandardOutput=append:"$REGISTRO" \
-        --property=StandardError=append:"$REGISTRO" \
-        /usr/local/bin/skillfish-hub-helper tx-run "$@" \
-        || { scrivi_stato finita 1 "$@"; echo "systemd-run ha rifiutato"; exit 1; }
-    else
-      # ⚠️ Ripiego per un sistema senza systemd: setsid stacca comunque il
-      # processo dalla sessione, che e' l'unica cosa che conta qui.
-      setsid nohup /usr/local/bin/skillfish-hub-helper tx-run "$@" \
-             >> "$REGISTRO" 2>&1 < /dev/null &
-    fi
-    echo "avviata: $*"
-    ;;
-
-  tx-run)
-    AZIONE="${1:-}"; shift || true
-    RC=0
-    case "$AZIONE" in
-      elenchi)
-        apt-get update || RC=$?
-        command -v flatpak >/dev/null 2>&1 && flatpak update --appstream -y || true
-        ;;
-      aggiorna)
-        apt-get update || RC=$?
-        apt-get "${APTOPT[@]}" full-upgrade || RC=$?
-        if command -v flatpak >/dev/null 2>&1; then
-          flatpak update -y --noninteractive || RC=$?
-        fi
-        if command -v snap >/dev/null 2>&1; then
-          snap refresh || true   # snap dice "no updates" con uscita diversa da 0
-        fi
-        ;;
-      installa)
-        [ $# -ge 1 ] || { echo "nessun pacchetto"; exit 2; }
-        apt-get update || true
-        apt-get "${APTOPT[@]}" install "$@" || RC=$?
-        ;;
-      rimuovi)
-        [ $# -ge 1 ] || { echo "nessun pacchetto"; exit 2; }
-        apt-get "${APTOPT[@]}" purge "$@" || RC=$?
-        apt-get "${APTOPT[@]}" autoremove || true
-        ;;
-      firmware)
-        # ⚠️ Il firmware si aggiorna UNO alla volta e solo se richiesto per id.
-        # Non e' un pacchetto: se va storto non si reinstalla, si cambia scheda.
-        [ $# -ge 1 ] || { echo "nessun dispositivo"; exit 2; }
-        for d in "$@"; do
-          fwupdmgr update "$d" -y --no-reboot-check || RC=$?
-        done
-        ;;
-      deb)
-        # Un pacchetto scaricato a mano. ⚠️ NON viene dai nostri repository e
-        # nessuna delle nostre chiavi lo ha firmato: e' una scelta esplicita
-        # dell'utente, che la finestra gli ha detto a chiare lettere.
-        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
-        percorso_sicuro "$1" || exit 2
-        apt-get "${APTOPT[@]}" install "$1" || RC=$?
-        ;;
-      flatpakref)
-        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
-        percorso_sicuro "$1" || exit 2
-        # --system come per tutto il resto: l'Hub e' un centro software di
-        # macchina, non del singolo utente.
-        flatpak install -y --noninteractive --system --from "$1" || RC=$?
-        ;;
-      flatpakrepo)
-        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
-        percorso_sicuro "$1" || exit 2
-        NOME=$(basename "$1"); NOME="${NOME%.flatpakrepo}"
-        # ⚠️ Il nome del remote viene dal nome del file: si tiene solo cio'
-        # che e' innocuo, perche' finisce in un percorso sotto /var/lib.
-        NOME=$(printf '%s' "$NOME" | tr -cd 'A-Za-z0-9_-')
-        [ -n "$NOME" ] || NOME=repo
-        flatpak remote-add --if-not-exists --system --from "$NOME" "$1" || RC=$?
-        ;;
-      flatpakbundle)
-        [ $# -ge 1 ] || { echo "nessun file"; exit 2; }
-        percorso_sicuro "$1" || exit 2
-        flatpak install -y --noninteractive --system --bundle "$1" || RC=$?
-        ;;
-      *) echo "azione sconosciuta: $AZIONE"; exit 2 ;;
+    SOTTO="${1:-}"
+    case "$SOTTO" in
+      aggiorna|installa|rimuovi|elenchi|firmware) ;;
+      *) echo "questa azione non passa da qui: usa skillfish-hub-local" >&2; exit 2 ;;
     esac
-    # il conteggio si rifa' SEMPRE a fine transazione, cosi' il numero accanto
-    # ad «Aggiornamenti» e' vero appena finito invece che vecchio di un giorno
-    /usr/local/bin/skillfish-hub-helper conta >/dev/null 2>&1 || true
-    scrivi_stato finita "$RC" "$AZIONE" "$@"
-    exit "$RC"
+    tx_start "$@"
     ;;
-
-  conta)
-    # ⚠️ Se una transazione sta girando NON si tocca apt: il lock e' suo, e
-    # aspettarlo qui vorrebbe dire un timer appeso per mezz'ora.
-    if tx_attiva; then echo "transazione in corso: non conto"; exit 0; fi
-    apt-get update >/dev/null 2>&1 || true
-    APT=$(apt-get -s full-upgrade 2>/dev/null | grep -c '^Inst ')
-    FLAT=0; SNAP=0; FW=0
-    if command -v flatpak >/dev/null 2>&1; then
-      FLAT=$(flatpak remote-ls --updates --columns=application 2>/dev/null | grep -cv '^Application ID$')
-    fi
-    if command -v snap >/dev/null 2>&1; then
-      SNAP=$(snap refresh --list 2>/dev/null | tail -n +2 | grep -c .)
-    fi
-    if command -v fwupdmgr >/dev/null 2>&1; then
-      fwupdmgr refresh --force >/dev/null 2>&1 || true
-      FW=$(fwupdmgr get-updates --json 2>/dev/null | grep -c '"DeviceId"')
-    fi
-    printf '{"quando":%s,"apt":%s,"flatpak":%s,"snap":%s,"firmware":%s}\n' \
-           "$(date +%s)" "$APT" "$FLAT" "$SNAP" "$FW" > "$CONTEGGIO"
-    chmod 0644 "$CONTEGGIO"
-    cat "$CONTEGGIO"
-    ;;
-
-  fw-refresh)  fwupdmgr refresh --force ;;
-  fw-list)     fwupdmgr get-updates --json 2>/dev/null || echo '{"Devices":[]}' ;;
-
+  conta)        conta_aggiornamenti ;;
+  fw-refresh)   fwupdmgr refresh --force ;;
+  fw-list)      fwupdmgr get-updates --json 2>/dev/null || echo '{"Devices":[]}' ;;
   apt-update)   apt-get update ;;
   apt-upgrade)  apt-get update && apt-get "${APTOPT[@]}" full-upgrade ;;
-  apt-install)  [ $# -ge 1 ] || { echo "no package"; exit 2; }; apt-get update; apt-get "${APTOPT[@]}" install "$@" ;;
-  apt-remove)   [ $# -ge 1 ] || { echo "no package"; exit 2; }; apt-get "${APTOPT[@]}" purge "$@"; apt-get "${APTOPT[@]}" autoremove ;;
-
-  repo-add)
-    NAME="${1:-}"; B64="${2:-}"; safe_name "$NAME"
-    printf '%s' "$B64" | base64 -d > "${SRCDIR}/${NAME}.sources"
-    chmod 0644 "${SRCDIR}/${NAME}.sources"
-    apt-get update
-    echo "OK repo-add ${NAME}"
-    ;;
-  repo-remove)
-    NAME="${1:-}"; safe_name "$NAME"
-    rm -f "${SRCDIR}/${NAME}.sources" "${SRCDIR}/${NAME}.list"
-    apt-get update || true
-    echo "OK repo-remove ${NAME}"
-    ;;
-  repo-enable)
-    NAME="${1:-}"; EN="${2:-1}"; safe_name "$NAME"
-    F="${SRCDIR}/${NAME}.sources"
-    [ -f "$F" ] || { echo "no such repo: ${NAME}"; exit 2; }
-    if grep -qi '^Enabled:' "$F"; then
-      sed -i "s/^[Ee]nabled:.*/Enabled: $([ "$EN" = 1 ] && echo yes || echo no)/" "$F"
-    else
-      printf 'Enabled: %s\n' "$([ "$EN" = 1 ] && echo yes || echo no)" >> "$F"
-    fi
-    apt-get update || true
-    echo "OK repo-enable ${NAME}=${EN}"
-    ;;
-  key-add)
-    NAME="${1:-}"; B64="${2:-}"; safe_name "$NAME"
-    printf '%s' "$B64" | base64 -d | gpg --dearmor > "${KEYDIR}/${NAME}.gpg"
-    chmod 0644 "${KEYDIR}/${NAME}.gpg"
-    echo "OK key-add ${NAME}"
-    ;;
-  *) echo "usage: skillfish-hub-helper tx-start|tx-run|conta|fw-refresh|fw-list|apt-update|apt-upgrade|apt-install|apt-remove|repo-add|repo-remove|repo-enable|key-add ..."; exit 2 ;;
+  apt-install)  [ $# -ge 1 ] || { echo "nessun pacchetto"; exit 2; }; apt-get update; apt-get "${APTOPT[@]}" install "$@" ;;
+  apt-remove)   [ $# -ge 1 ] || { echo "nessun pacchetto"; exit 2; }; apt-get "${APTOPT[@]}" purge "$@"; apt-get "${APTOPT[@]}" autoremove ;;
+  *) echo "uso: skillfish-hub-helper tx-start aggiorna|installa|rimuovi|elenchi|firmware ... | conta | fw-refresh | fw-list | apt-update | apt-upgrade | apt-install | apt-remove"; exit 2 ;;
 esac

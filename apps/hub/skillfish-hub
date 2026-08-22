@@ -21,7 +21,15 @@ ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 # Senza questa distinzione il lanciatore mostrava la borsa e la finestra aperta
 # il pesce, cioe' due icone diverse per la stessa cosa.
 ICON_APP = "/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png"
+# Le due porte privilegiate. ⚠️ Non è una duplicazione: polkit lega
+# l'autorizzazione al percorso del programma, quindi due regole diverse
+# vogliono due programmi. Dai nostri repository si passa da HELPER (password
+# una volta per sessione), da fuori si passa da LOCALE (password ogni volta).
 HELPER = "/usr/local/bin/skillfish-hub-helper"
+LOCALE = "/usr/local/bin/skillfish-hub-local"
+# Le azioni che cambiano di chi ci si fida: file non firmati da noi e
+# sorgenti nuove.
+DA_FUORI = ("deb", "flatpakref", "flatpakrepo", "flatpakbundle")
 AETHERIUM = "aetherium"
 CFG_DIR = os.path.expanduser("~/.config/skillfishos")
 CFG_FILE = os.path.join(CFG_DIR, "hub.json")
@@ -806,7 +814,8 @@ def tx_avvia(azione, *argomenti):
     Non aspetta la fine — sarebbe il contrario di tutto questo: torna appena la
     transazione e' partita, e a seguirla ci pensa la finestra.
     """
-    rc, out, err = run(["pkexec", HELPER, "tx-start", azione] + list(argomenti), 120)
+    porta = LOCALE if azione in DA_FUORI else HELPER
+    rc, out, err = run(["pkexec", porta, "tx-start", azione] + list(argomenti), 120)
     if rc == 3:   # ne sta gia' girando una: ci si attacca a quella
         return True, ""
     return rc == 0, (err or out).strip()
@@ -2490,15 +2499,15 @@ class Hub(QMainWindow):
         if keyurl.text().strip():
             rc, o, e = run(["bash", "-c", "curl -fsSL %s" % keyurl.text().strip()], 30)
             if rc == 0 and o:
-                run(["pkexec", HELPER, "key-add", nm, base64.b64encode(o.encode()).decode()], 30)
+                run(["pkexec", LOCALE, "key-add", nm, base64.b64encode(o.encode()).decode()], 30)
                 signed = "Signed-By: /usr/share/keyrings/%s.gpg\n" % nm
         content = "Types: deb\nURIs: %s\nSuites: %s\nComponents: %s\n%sEnabled: yes\n" % (uri.text().strip(), suite.text().strip(), comps.text().strip(), signed)
-        self._run_op(["pkexec", HELPER, "repo-add", nm, base64.b64encode(content.encode()).decode()], L("Aggiungo il repository…", "Adding the repository…"))
+        self._run_op(["pkexec", LOCALE, "repo-add", nm, base64.b64encode(content.encode()).decode()], L("Aggiungo il repository…", "Adding the repository…"))
     def repo_remove(self, name):
         if QMessageBox.question(self, "SkillFishOS", L("Rimuovere il repository '%s'?", "Remove the '%s' repository?") % (name,)) == QMessageBox.StandardButton.Yes:
-            self._run_op(["pkexec", HELPER, "repo-remove", name], L("Rimuovo il repository…", "Removing the repository…"))
+            self._run_op(["pkexec", LOCALE, "repo-remove", name], L("Rimuovo il repository…", "Removing the repository…"))
     def repo_enable(self, name, en):
-        run(["pkexec", HELPER, "repo-enable", name, "1" if en else "0"], 90)
+        run(["pkexec", LOCALE, "repo-enable", name, "1" if en else "0"], 90)
         self.statusBar().showMessage(L("Repository aggiornato. Ricarico…", "Repository updated. Reloading…")); self.reload_catalog()
 
 
