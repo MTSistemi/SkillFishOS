@@ -123,12 +123,19 @@ def i18n_voci(lang):
     if not (isinstance(lang, str) and len(lang) == 2
             and lang.isascii() and lang.isalpha() and lang.islower()):
         return {}
-    # Il nome della lingua arriva dalla richiesta web. Due lettere ASCII non
-    # potrebbero uscire dalla cartella, ma la garanzia deve stare nel codice e
-    # non nel ragionamento: si ricompone il percorso e si verifica dove e'
-    # finito.
-    p = os.path.realpath(os.path.join(I18N_DIR, lang + ".json"))
-    if os.path.dirname(p) != os.path.realpath(I18N_DIR):
+    # Il nome arriva dalla richiesta web e non viene usato per COMPORRE il
+    # percorso: si guarda cosa c'e' nella cartella e lo si confronta. Cosi' un
+    # file fuori di li' non e' vietato da un controllo che qualcuno domani puo'
+    # indebolire — e' che non c'e' modo di nominarlo.
+    p = None
+    try:
+        for nome in os.listdir(I18N_DIR):
+            if nome.endswith(".json") and nome[:-5] == lang:
+                p = os.path.join(I18N_DIR, nome)
+                break
+    except OSError:
+        return {}
+    if p is None:
         return {}
     try:
         m = os.path.getmtime(p)
