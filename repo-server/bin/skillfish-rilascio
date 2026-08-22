@@ -19,10 +19,17 @@ ARCHIVIO=/srv/apt
 SUITE=aetherium
 # Dove sta la macchina che costruisce i pacchetti. Si cambia senza
 # toccare lo script:  SKILLFISH_BOARD=1.2.3.4 skillfish-rilascio ...
-SCHEDA="${SKILLFISH_BOARD:-skillfish-board.local}"
+# Il valore predefinito e' l'indirizzo vero e non un nome .local: quello
+# richiede mDNS, che sul container non e' installato, e --dalla-scheda
+# falliva prima ancora di provare a collegarsi.
+SCHEDA="${SKILLFISH_BOARD:-192.168.5.40}"
 PUBBLICA=no
 FILE=()
-SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+# ⚠️ QUI PASSANO I PACCHETTI CHE POI FIRMIAMO NOI.
+# Accettare qualunque chiave significa che chi si mette in mezzo fra questo
+# container e la scheda ci fa firmare cio' che vuole, e da quel momento apt lo
+# installa a tutti senza un lamento: la firma dice che e' roba nostra.
+SSHOPT="-o StrictHostKeyChecking=yes -o ConnectTimeout=15"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -32,12 +39,31 @@ while [ $# -gt 0 ]; do
         echo "== prendo i .deb dalla scheda ($SCHEDA)"
         mkdir -p /srv/incoming
         preso=no
-        for d in /root/dist-debs /home/root/dist-debs /root/deb-out; do
-          if scp -q $SSHOPT "root@$SCHEDA:$d/*.deb" /srv/incoming/ 2>/dev/null; then
+        motivo=$(mktemp)
+        for d in /root/dist-debs/out /root/dist-debs /tmp/sfx-debs/out \
+                 /home/root/dist-debs /root/deb-out; do
+          # niente -q: spegnerebbe anche la spiegazione del rifiuto
+          if scp $SSHOPT "root@$SCHEDA:$d/*.deb" /srv/incoming/ \
+                 >/dev/null 2>"$motivo"; then
             echo "   presi da $d"; preso=si; break
           fi
         done
-        [ "$preso" = no ] && { echo "   non trovo i .deb sulla scheda"; exit 1; }
+        if [ "$preso" = no ]; then
+          if grep -qi "host key\|known_hosts\|Host key verification" "$motivo"; then
+            echo "   FERMO: la chiave di $SCHEDA non e' fra quelle conosciute."
+            echo "          Non la accetto da solo: e' esattamente il momento in cui"
+            echo "          qualcuno potrebbe farsi passare per la scheda."
+            echo "          Guardala, confrontala con quella vera, e registrala:"
+            echo "              ssh-keyscan -t ed25519 $SCHEDA"
+            echo "              ssh-keyscan -t ed25519 $SCHEDA >> ~/.ssh/known_hosts"
+          else
+            echo "   non trovo i .deb sulla scheda"
+            sed 's/^/      /' "$motivo" | head -3
+          fi
+          rm -f "$motivo"
+          exit 1
+        fi
+        rm -f "$motivo"
         for f in /srv/incoming/*.deb; do FILE+=("$f"); done
         ;;
     -h|--aiuto|--help) sed -n '2,16p' "$0" | cut -c3-; exit 0 ;;
