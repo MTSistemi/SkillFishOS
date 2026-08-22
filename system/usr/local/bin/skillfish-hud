@@ -58,9 +58,11 @@ CONF="$HOME/.config/conky/skillfish.conf"
 # gia il HUD in funzione.
 ATTESA=$(sed -n "s/^VERSIONE=\([0-9]*\).*/\1/p" /usr/local/bin/skillfish-hud-config 2>/dev/null | head -1)
 SCRITTA=$(sed -n "s/^-- skillfish-hud-config v\([0-9]*\).*/\1/p" "$CONF" 2>/dev/null | head -1)
-THREAD=$(nproc 2>/dev/null || echo 0)
-BARRE=$(grep -o 'cpubar cpu' "$CONF" 2>/dev/null | wc -l | tr -d ' ')
-if [ ! -f "$CONF" ] || [ "$BARRE" -ne "$THREAD" ] || [ "${SCRITTA:-0}" != "${ATTESA:-0}" ]; then
+# ⚠️ Le barre non si contano piu': da VERSIONE 11 non stanno piu' nel file, le
+# disegna skillfish-hud-cpubars a ogni giro di conky. Contarle darebbe sempre
+# zero e la configurazione verrebbe rigenerata a ogni accesso. Resta la firma
+# del generatore, che e' il controllo che serve davvero.
+if [ ! -f "$CONF" ] || [ "${SCRITTA:-0}" != "${ATTESA:-0}" ]; then
     [ -x /usr/local/bin/skillfish-hud-config ] &&         /usr/local/bin/skillfish-hud-config "$CONF" >/dev/null 2>&1 || true
 fi
 [ -f "$CONF" ] || CONF=/etc/skel/.config/conky/skillfish.conf

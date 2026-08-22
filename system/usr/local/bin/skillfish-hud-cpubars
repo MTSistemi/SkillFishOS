@@ -1,0 +1,55 @@
+#!/bin/sh
+# Disegna le barre dei thread della CPU, per conky.
+#
+# PERCHÉ ESISTE
+# Prima le barre erano scritte nella configurazione di conky, una per thread,
+# decise al momento in cui il file veniva generato. Funziona finché il numero di
+# thread non cambia — ma sulla BC-250 cambia: si sbloccano due core, o se ne
+# spengono per una prova, e l'HUD continuava a disegnarne sedici con le ultime
+# quattro ferme a zero. Ed è la prima cosa su cui cade l'occhio.
+#
+# conky rilegge e interpreta l'uscita di ${execpi} a ogni giro, quindi da qui si
+# può cambiare il NUMERO di barre mentre l'HUD è in funzione, cosa che una
+# configurazione statica non può fare.
+#
+# ⚠️ Si contano i thread ONLINE, non quelli che esistono: un core spento con
+# `chcpu -d` sparisce da qui subito, senza riavviare niente.
+set -u
+
+PER_RIGA=8
+
+# nproc conta gli online e c'è dappertutto; il conteggio a mano serve solo se
+# manca, e vale come ripiego.
+THREAD=$(nproc 2>/dev/null || echo 0)
+if [ "$THREAD" -le 0 ]; then
+    THREAD=1                                   # cpu0 non ha il file «online»
+    for f in /sys/devices/system/cpu/cpu*/online; do
+        [ -r "$f" ] || continue
+        [ "$(cat "$f" 2>/dev/null)" = "1" ] && THREAD=$((THREAD + 1))
+    done
+fi
+
+# ⚠️ conky numera i core da 1: cpu0 è la media di tutti, e nell'HUD la usiamo
+# già per la percentuale accanto alla frequenza. Le barre partono da cpu1.
+i=1
+riga=0
+while [ "$i" -le "$THREAD" ]; do
+    # La prima riga stacca di 3, le successive di 2: è la spaziatura della
+    # configurazione scritta a mano sulla scheda, tenuta identica per non
+    # muovere di un pixel l'HUD di chi ce l'ha già.
+    if [ "$riga" -eq 0 ]; then
+        printf '${voffset 3}${color D8A849}'
+    else
+        printf '${voffset 2}${color D8A849}'
+    fi
+    riga=$((riga + 1))
+    j=0
+    sep=""
+    while [ "$j" -lt "$PER_RIGA" ] && [ "$i" -le "$THREAD" ]; do
+        printf '%s${cpubar cpu%d 6,16}' "$sep" "$i"
+        sep=" "                                # niente spazio in coda alla riga
+        i=$((i + 1))
+        j=$((j + 1))
+    done
+    printf '\n'
+done

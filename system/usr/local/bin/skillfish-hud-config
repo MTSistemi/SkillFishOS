@@ -48,7 +48,7 @@ set -u
 # ⚠️ Da 9 in poi la versione dipende ANCHE dalle preferenze: due macchine con
 # lo stesso hardware possono volere HUD diversi, quindi il confronto da solo
 # non basta piu' e skillfish-hud guarda anche la data del file delle scelte.
-VERSIONE=10
+VERSIONE=11
 VAL=/usr/local/bin/skillfish-hud-val
 OUT="${1:-$HOME/.config/conky/skillfish.conf}"
 PREF="${SKILLFISH_HUD_PREF:-$HOME/.config/skillfish/hud.json}"
@@ -127,22 +127,14 @@ b_cpu(){
   printf '${color2}    ${execi 9999 skillfish-hud-val lbl_use} ${color1}${cpu cpu0}%%\n'
 }
 
-b_barre(){                       # disegna le barre dei thread, 8 per riga
-  # La prima riga stacca di 3, le successive di 2: e' la spaziatura della
-  # configurazione scritta a mano sulla BC-250, tenuta identica per non
-  # cambiare di un pixel il HUD di chi ha gia' la scheda.
-  i=1; riga=0
-  while [ "$i" -le "$THREAD" ]; do
-    if [ "$riga" -eq 0 ]; then printf '${voffset 3}${color D8A849}'
-    else printf '${voffset 2}${color D8A849}'; fi
-    riga=$((riga+1))
-    j=0; sep=""
-    while [ "$j" -lt "$PER_RIGA" ] && [ "$i" -le "$THREAD" ]; do
-      printf '%s${cpubar cpu%d 6,16}' "$sep" "$i"; sep=" "   # niente spazio in coda
-      i=$((i+1)); j=$((j+1))
-    done
-    printf '\n'
-  done
+b_barre(){                       # le barre dei thread, disegnate al volo
+  # ⚠️ NON si scrivono qui le barre una per una. Il numero di thread cambia —
+  # si sbloccano due core, se ne spengono per una prova — e una configurazione
+  # scritta una volta sola continuerebbe a disegnarne sedici con le ultime
+  # ferme a zero. È la prima cosa su cui cade l'occhio.
+  # conky rilegge e interpreta l'uscita di execpi a ogni giro, quindi il numero
+  # di barre segue i thread ONLINE senza riavviare niente.
+  printf '${execpi %s skillfish-hud-cpubars}\n' "$INTERVALLO"
 }
 
 # --- GPU: solo le voci che questa scheda espone ------------------------------
