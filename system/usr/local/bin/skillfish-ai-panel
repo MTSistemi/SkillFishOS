@@ -29,6 +29,17 @@ WEBUI_URL  = "http://localhost:8080"
 # holds its own accounts — so this panel drives the service and opens the UI, and
 # never tries to mint credentials on the user's behalf.
 UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
+
+# Il pallino «?» condiviso: le spiegazioni stanno dietro, non nel pannello.
+# ⚠️ Se skillfish-base e' piu' vecchio e non ce l'ha, si resta senza pallino e
+# il testo torna dov'era: meglio una spiegazione di troppo che una finestra
+# che non si apre.
+
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    from aiuto import Aiuto
+except Exception:
+    Aiuto = None
 UNSLOTH_SVC = "skillfish-unsloth.service"
 UNSLOTH_URL = "http://localhost:8888"
 UNSLOTH_INSTALLER = "/usr/local/share/skillfish/install-unsloth.sh"
@@ -95,8 +106,29 @@ def _detect_lang():
     if v.startswith("pl"): return "pl"
     # "uk" e' il codice ISO 639-1 della lingua ucraina; "ua" e' quello del paese.
     if v.startswith("uk") or v.startswith("ua"): return "uk"
+    # Qualsiasi altra lingua: si restituisce il codice a due lettere e sara' il
+    # dizionario condiviso (/usr/share/skillfish/i18n/<lingua>.json) a servirla.
+    # ⚠️ Prima qui c'era "return en" secco: un elenco chiuso di tre lingue. Con
+    # quello, aggiungere una traduzione nuova non aveva alcun effetto - la
+    # lingua veniva scartata prima di arrivare al dizionario.
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    if len(codice) == 2 and codice.isalpha():
+        return codice
     return "en"
 LANG = _detect_lang()
+
+# --- dizionario condiviso per le lingue nuove -------------------------------
+# ⚠️ Non deve mai impedire alla app di partire: se il modulo o il file della
+# lingua mancano, si resta all'inglese. Una traduzione assente e' un fastidio,
+# una app che non si apre e' un guasto.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
 
 # Le chiavi sono le stringhe INGLESI passate a L(), come nelle altre app.
 # Percio' una stringa formattata prima di arrivare a L() — l'errore che avevamo
@@ -223,9 +255,9 @@ UK = {
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
-    if LANG == "pl": return PL.get(en, en)
-    if LANG == "uk": return UK.get(en, en)
-    return en
+    if LANG == "pl": return PL.get(en) or _TR(en)
+    if LANG == "uk": return UK.get(en) or _TR(en)
+    return _TR(en)
 
 def sh(cmd, t=60):
     try:
@@ -371,6 +403,21 @@ def is_configured():
     return stack_installed()
 
 # ---------- worker threads ----------
+# ⚠️ DOPO def L(), non prima: il corpo di un modulo si esegue dall'alto in
+# basso, e messa in cima questa riga chiamava una funzione che non esisteva
+# ancora — l'applicazione non si apriva affatto (NameError). py_compile non
+# se ne accorge: e' un errore di esecuzione, non di sintassi.
+
+AIUTO_GTT = L(
+    "Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
+    "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
+    "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
+    "possibile su questo hardware, verificato).",
+    "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
+    "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
+    "parameter → a reboot is required (a live change is not possible on this "
+    "hardware, verified).")
+
 class Worker(QThread):
     line = pyqtSignal(str)
     done = pyqtSignal(int)
@@ -405,17 +452,16 @@ class SetupWizard(QWizard):
     def _welcome(self):
         p = QWizardPage(); p.setTitle(L("Benvenuto in SkillFish AI", "Welcome to SkillFish AI"))
         v = QVBoxLayout(p)
-        if True:
-            t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
-                         "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
-                         "ti chiederà di impostare una password: la scegli tu, non viene "
-                         "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
-                         "\n\nTutto gira in locale: nessun dato lascia il PC.",
-                         "This wizard installs and starts Unsloth Studio, the local LLM engine "
-                         "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
-                         "to set a password: you choose it, it is not created from here. Models "
-                         "are then downloaded from its own interface."
-                         "\n\nEverything runs locally: no data leaves your PC."))
+        t = QLabel(L("Questa procedura installa e avvia Unsloth Studio, il motore LLM "
+                     "locale accelerato in Vulkan sulla GPU.\n\nAl primo accesso Unsloth "
+                     "ti chiederà di impostare una password: la scegli tu, non viene "
+                     "creata da qui. I modelli si scaricano poi dalla sua interfaccia."
+                     "\n\nTutto gira in locale: nessun dato lascia il PC.",
+                     "This wizard installs and starts Unsloth Studio, the local LLM engine "
+                     "accelerated in Vulkan on the GPU.\n\nOn first sign-in Unsloth asks you "
+                     "to set a password: you choose it, it is not created from here. Models "
+                     "are then downloaded from its own interface."
+                     "\n\nEverything runs locally: no data leaves your PC."))
         t.setWordWrap(True); v.addWidget(t)
         # hardware summary
         gm = gpu_model(); cm = cpu_model(); rt, ra = ram_info()
@@ -440,12 +486,11 @@ class InstallPage(QWizardPage):
         self.setTitle(L("Installazione del motore", "Installing the engine"))
         self.ok = False
         v = QVBoxLayout(self)
-        if True:
-            self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
-                                 "con il backend Vulkan. Sono circa 2 GB: può richiedere "
-                                 "qualche minuto.",
-                                 "Press “Install” to download and set up Unsloth Studio with the "
-                                 "Vulkan backend. It is about 2 GB: this may take a few minutes."))
+        self.info = QLabel(L("Premi «Installa» per scaricare e configurare Unsloth Studio "
+                             "con il backend Vulkan. Sono circa 2 GB: può richiedere "
+                             "qualche minuto.",
+                             "Press “Install” to download and set up Unsloth Studio with the "
+                             "Vulkan backend. It is about 2 GB: this may take a few minutes."))
         self.info.setWordWrap(True); v.addWidget(self.info)
         self.btn = QPushButton(L("Installa / Avvia", "Install / Start")); self.btn.clicked.connect(self.run)
         v.addWidget(self.btn)
@@ -547,7 +592,19 @@ class Panel(QMainWindow):
         v.addWidget(gh)
 
         # Shared memory for the model (GTT)
-        gg = QGroupBox(L("Memoria condivisa per il modello", "Shared memory for the model")); ggv = QVBoxLayout(gg)
+        # ⚠️ Il titolo del riquadro non e' piu' quello del QGroupBox ma una riga
+        # sua, per poterci mettere accanto il pallino: dentro l'intestazione di
+        # un QGroupBox non si possono aggiungere altri widget.
+        gg = QGroupBox(); ggv = QVBoxLayout(gg)
+        _tt = QHBoxLayout()
+        _lb = QLabel(L("Memoria condivisa per il modello", "Shared memory for the model"))
+        _lb.setStyleSheet("font-weight:700;")
+        _tt.addWidget(_lb)
+        if Aiuto is not None:
+            _tt.addWidget(Aiuto(AIUTO_GTT, L("Memoria condivisa per il modello",
+                                             "Shared memory for the model")))
+        _tt.addStretch(1)
+        ggv.addLayout(_tt)
         self.gtt_lbl = QLabel("—"); self.gtt_lbl.setWordWrap(True); ggv.addWidget(self.gtt_lbl)
         sr = QHBoxLayout()
         self.gtt = QSlider(Qt.Orientation.Horizontal); self.gtt.setMinimum(2); self.gtt.setMaximum(14); self.gtt.setSingleStep(1)
@@ -556,15 +613,12 @@ class Panel(QMainWindow):
         sr.addWidget(self.gtt); sr.addWidget(self.gtt_val); ggv.addLayout(sr)
         self.gtt_apply = QPushButton(L("Applica e riavvia", "Apply and reboot"))
         self.gtt_apply.clicked.connect(self.apply_gtt); ggv.addWidget(self.gtt_apply)
-        hint = QLabel(L("Sul BC-250 la memoria è condivisa GPU/CPU: questo alza la quota di RAM di "
-                        "sistema (GTT) che il modello può usare oltre alla VRAM, così entrano modelli "
-                        "più grandi. È un parametro del kernel → serve un riavvio (a caldo non è "
-                        "possibile su questo hardware, verificato).",
-                        "On the BC-250 memory is shared GPU/CPU: this raises the share of system RAM "
-                        "(GTT) the model may use on top of VRAM, so larger models fit. It is a kernel "
-                        "parameter → a reboot is required (a live change is not possible on this "
-                        "hardware, verified)."))
-        hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
+        # La spiegazione e' finita dietro al «?» del titolo, qui sopra. Se il
+        # pallino non c'e' (skillfish-base vecchio) si rimette com'era: meglio
+        # un paragrafo di troppo che una spiegazione che sparisce.
+        if Aiuto is None:
+            hint = QLabel(AIUTO_GTT)
+            hint.setStyleSheet("color:#b9a07a;"); hint.setWordWrap(True); ggv.addWidget(hint)
         v.addWidget(gg)
 
         # buttons

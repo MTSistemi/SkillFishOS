@@ -9,7 +9,7 @@
 # Questo gira dopo il push, quindi non impedisce la fuga: la segnala forte.
 # Cio' che la impedisce e' l'hook pre-push, che pero' va installato a mano su
 # ogni copia. I due si coprono a vicenda.
-name: Credenziali — ce ne sono nel repository?
+name: Credentials — is anything exposed?
 
 on:
   push:
@@ -21,11 +21,11 @@ permissions:
   contents: read
 
 jobs:
-  cerca:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Cerca la forma di una credenziale
+      - name: Look for the shape of a credential
         run: bash scripts/controlla-segreti.sh

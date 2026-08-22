@@ -56,16 +56,23 @@ jobs:
             system/usr/local/bin/skillfish-freeze-notify.sh scripts/build-debs-ci.sh || true
 
       - name: apps/ vs system/ mirror drift check
+        # La lista non si scrive a mano: quella di prima era ferma a sette nomi
+        # e skillfish-ai-panel non ci era mai entrato, cosi' le sue due copie
+        # sono rimaste diverse per giorni senza che nulla lo dicesse. Ogni file
+        # che esiste in tutti e due i posti va confrontato, punto.
         run: |
           set -e
-          for f in tuner/skillfish-tuner tuner/skillfish-tuner-helper hub/skillfish-hub \
-                   hub/skillfish-hub-helper monitor/skillfish-monitor \
-                   kernel-manager/skillfish-kernel-manager kernel-manager/skillfish-kernel-helper; do
-            b=$(basename "$f")
-            if [ -f "system/usr/local/bin/$b" ]; then
-              diff -q "apps/$f" "system/usr/local/bin/$b" || { echo "DRIFT: apps/$f != system mirror" >&2; exit 1; }
+          rotti=0
+          for sorgente in apps/*/*; do
+            b=$(basename "$sorgente")
+            copia="system/usr/local/bin/$b"
+            [ -f "$sorgente" ] && [ -f "$copia" ] || continue
+            if ! diff -q "$sorgente" "$copia" >/dev/null; then
+              echo "DRIFT: $sorgente differs from $copia" >&2
+              rotti=1
             fi
           done
+          [ "$rotti" = 0 ] || { echo "the system/ mirrors are behind apps/" >&2; exit 1; }
           echo "mirror in sync"
 
       - name: Icon theme — no dangling gradient references

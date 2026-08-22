@@ -3,7 +3,7 @@
 # Categories (incl. Flatpak & Snap), search, app pages with remote screenshots,
 # ODRS ratings & reviews, rich metadata, sort/filter, full system updates,
 # repository/source management and per-backend on/off switches. PyQt6, brass.
-import sys, os, re, json, subprocess, html, hashlib, urllib.request, urllib.parse
+import sys, os, re, json, subprocess, html, hashlib, urllib.request, urllib.parse, urllib.error
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QTimer, QRect, QPoint, QRectF
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
@@ -21,7 +21,15 @@ ICON = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
 # Senza questa distinzione il lanciatore mostrava la borsa e la finestra aperta
 # il pesce, cioe' due icone diverse per la stessa cosa.
 ICON_APP = "/usr/share/icons/hicolor/256x256/apps/skillfish-hub.png"
+# Le due porte privilegiate. ⚠️ Non è una duplicazione: polkit lega
+# l'autorizzazione al percorso del programma, quindi due regole diverse
+# vogliono due programmi. Dai nostri repository si passa da HELPER (password
+# una volta per sessione), da fuori si passa da LOCALE (password ogni volta).
 HELPER = "/usr/local/bin/skillfish-hub-helper"
+LOCALE = "/usr/local/bin/skillfish-hub-local"
+# Le azioni che cambiano di chi ci si fida: file non firmati da noi e
+# sorgenti nuove.
+DA_FUORI = ("deb", "flatpakref", "flatpakrepo", "flatpakbundle")
 AETHERIUM = "aetherium"
 CFG_DIR = os.path.expanduser("~/.config/skillfishos")
 CFG_FILE = os.path.join(CFG_DIR, "hub.json")
@@ -41,9 +49,30 @@ def _detect_lang():
     # "uk" e' il codice ISO 639-1 della lingua ucraina. "ua" e' il codice del
     # PAESE e non dovrebbe comparire qui, ma nei locale scritti a mano capita.
     if v.startswith("uk") or v.startswith("ua"): return "uk"
+    # Qualsiasi altra lingua: si restituisce il codice a due lettere e sara' il
+    # dizionario condiviso (/usr/share/skillfish/i18n/<lingua>.json) a servirla.
+    # ⚠️ Prima qui c'era "return en" secco: un elenco chiuso di tre lingue. Con
+    # quello, aggiungere una traduzione nuova non aveva alcun effetto - la
+    # lingua veniva scartata prima di arrivare al dizionario.
+    codice = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    if len(codice) == 2 and codice.isalpha():
+        return codice
     return "en"
 
 LANG = _detect_lang()
+
+# --- dizionario condiviso per le lingue nuove -------------------------------
+# ⚠️ Non deve mai impedire alla app di partire: se il modulo o il file della
+# lingua mancano, si resta all'inglese. Una traduzione assente e' un fastidio,
+# una app che non si apre e' un guasto.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(en):
+        return en
+
 
 # Traduzione polacca di Cyryl Sochacki (github.com/cyryllo).
 # Le chiavi sono le stringhe INGLESI passate a L(): cosi' L(it, en) mantiene
@@ -279,9 +308,9 @@ UK = {
 def L(it, en):
     """Restituisce la stringa IT, PL o EN secondo il locale rilevato."""
     if LANG == "it": return it
-    if LANG == "pl": return PL.get(en, en)
-    if LANG == "uk": return UK.get(en, en)
-    return en
+    if LANG == "pl": return PL.get(en) or _TR(en)
+    if LANG == "uk": return UK.get(en) or _TR(en)
+    return _TR(en)
 
 def run(cmd, t=120):
     try:
@@ -417,7 +446,13 @@ class Catalog:
         arr = comps.as_array() if hasattr(comps, "as_array") else list(comps)
         for c in arr:
             try:
-                if c.get_kind() != AS.ComponentKind.DESKTOP_APP:
+                # ⚠️ Non solo le applicazioni con finestra: un pacchetto di
+                # servizio (il tema, la base, il portachiavi) puo' avere la sua
+                # scheda, ed e' l'unico modo perche' la sua descrizione esista
+                # in una lingua diversa dall'inglese.
+                if c.get_kind() not in (AS.ComponentKind.DESKTOP_APP,
+                                        AS.ComponentKind.GENERIC,
+                                        AS.ComponentKind.ADDON):
                     continue
                 bundle = None
                 try: bundle = c.get_bundle(AS.BundleKind.FLATPAK)
@@ -628,25 +663,59 @@ class Catalog:
         return uniq
 
     def updates(self):
+        u"""Cosa c'e' da aggiornare, sorgente per sorgente.
+
+        ⚠️ Le voci hanno CINQUE campi e il quinto vale solo per il firmware:
+        e' l'identificativo del dispositivo, l'unica cosa con cui fwupd sa quale
+        aggiornare. Per apt, flatpak e snap resta vuoto.
+        """
         ups = []
         if have("apt-get"):
             rc, out, _ = run(["apt-get", "-s", "full-upgrade"], 60)
             for ln in out.splitlines():
                 m = re.match(r'Inst (\S+) \[([^\]]*)\] \(([^ ]+)', ln)
-                if m: ups.append(("apt", m.group(1), m.group(2), m.group(3)))
+                if m: ups.append(("apt", m.group(1), m.group(2), m.group(3), ""))
         if have("flatpak"):
             rc, out, _ = run(["flatpak", "remote-ls", "--updates", "--columns=application,version"], 40)
             for ln in out.splitlines():
                 f = ln.split("\t")
                 if f and f[0] and f[0] != "Application ID":
-                    ups.append(("flatpak", f[0], "", f[1] if len(f) > 1 else ""))
+                    ups.append(("flatpak", f[0], "", f[1] if len(f) > 1 else "", ""))
         if have("snap"):
             rc, out, _ = run(["snap", "refresh", "--list"], 40)
             for ln in out.splitlines()[1:]:
                 f = ln.split()
-                if f: ups.append(("snap", f[0], "", f[1] if len(f) > 1 else ""))
+                if f: ups.append(("snap", f[0], "", f[1] if len(f) > 1 else "", ""))
+        ups.extend(self.firmware())
         return ups
 
+    @staticmethod
+    def firmware():
+        u"""I dispositivi che hanno un firmware nuovo.
+
+        E' la cosa che Discover faceva e noi no, ed e' anche quella da trattare
+        con piu' rispetto: un pacchetto sbagliato si reinstalla, un firmware
+        sbagliato lo si porta in assistenza. Per questo qui si LEGGE soltanto —
+        l'aggiornamento vero parte da un pulsante suo, uno per dispositivo, e
+        non dal pulsante «Aggiorna tutto».
+
+        ⚠️ `fwupdmgr get-updates` esce con codice diverso da zero quando non c'e'
+        niente da aggiornare: non e' un errore e non va trattato come tale.
+        """
+        if not have("fwupdmgr"):
+            return []
+        rc, out, _ = run(["fwupdmgr", "get-updates", "--json"], 60)
+        try:
+            dati = json.loads(out or "{}")
+        except ValueError:
+            return []
+        fuori = []
+        for d in (dati.get("Devices") or []):
+            versioni = d.get("Releases") or []
+            nuova = (versioni[0] or {}).get("Version", "") if versioni else ""
+            fuori.append(("firmware", d.get("Name") or "?", d.get("Version", ""),
+                          nuova, d.get("DeviceId", "")))
+        return fuori
 
 # ============================ THREADS ============================
 class Loader(QThread):
@@ -706,6 +775,143 @@ class ImgLoad(QThread):
                 self.ready.emit(i, pm)
 
 
+# ============================ LA TRANSAZIONE ============================
+# ⚠️ L'AGGIORNAMENTO NON E' PIU' FIGLIO DELLA FINESTRA.
+# Prima l'apt girava come processo figlio dell'Hub, con l'uscita in una pipe:
+# bastava che la finestra morisse perche' la pipe si chiudesse e l'apt se ne
+# andasse a meta' strada, con dpkg in mezzo al guado. E la finestra muore
+# facile, perche' l'aggiornamento sostituisce sotto di lei le librerie Qt —
+# quando non aggiorna l'Hub stesso.
+# Ora il lavoro sta in una unita' systemd transitoria che non e' figlia di
+# nessuno: qui si LEGGE il suo registro. Chiudere la finestra non ferma niente,
+# e riaprendo l'Hub ci si riattacca a quello che sta girando.
+STATO_DIR = "/var/lib/skillfish/hub"
+TX_LOG = os.path.join(STATO_DIR, "tx.log")
+TX_JSON = os.path.join(STATO_DIR, "tx.json")
+CONTEGGIO = os.path.join(STATO_DIR, "updates.json")
+
+
+def _leggi_json(percorso):
+    try:
+        with open(percorso) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def tx_stato():
+    u"""Che sta facendo la transazione: {} se non ce n'e' mai stata una."""
+    return _leggi_json(TX_JSON)
+
+
+def tx_in_corso():
+    return tx_stato().get("stato") == "in-corso"
+
+
+def tx_avvia(azione, *argomenti):
+    u"""Chiede all'helper di avviarla. Torna (ok, messaggio).
+
+    Non aspetta la fine — sarebbe il contrario di tutto questo: torna appena la
+    transazione e' partita, e a seguirla ci pensa la finestra.
+    """
+    porta = LOCALE if azione in DA_FUORI else HELPER
+    rc, out, err = run(["pkexec", porta, "tx-start", azione] + list(argomenti), 120)
+    if rc == 3:   # ne sta gia' girando una: ci si attacca a quella
+        return True, ""
+    return rc == 0, (err or out).strip()
+
+
+def conteggio():
+    u"""Quanti aggiornamenti aveva contato l'ultimo giro del timer."""
+    return _leggi_json(CONTEGGIO)
+
+
+class SeguiTransazione(QDialog):
+    u"""Guarda una transazione che gira per conto suo.
+
+    Non lancia niente e non uccide niente: apre il registro, legge i byte
+    aggiunti da quando ha guardato l'ultima volta e li mostra. Per questo il
+    pulsante «Chiudi» e' attivo da subito — chiudere la finestra qui non ha
+    nessun effetto sull'aggiornamento, ed e' il motivo per cui l'abbiamo
+    staccato.
+    """
+    def __init__(self, parent, titolo, alla_fine=None):
+        super().__init__(parent)
+        self.setWindowTitle("SkillFishOS Hub")
+        self.resize(720, 470)
+        self._alla_fine = alla_fine
+        self._pos = 0
+        v = QVBoxLayout(self)
+        t = QLabel(titolo)
+        t.setStyleSheet("color:#e8c878;font-size:15px;font-weight:700;")
+        v.addWidget(t)
+        nota = QLabel(L("Puoi chiudere questa finestra: l'aggiornamento va avanti "
+                        "per conto suo e lo ritrovi qui riaprendo l'Hub.",
+                        "You can close this window: the update carries on by "
+                        "itself, and you will find it here when you reopen the Hub."))
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:#b9a07a;font-size:12px;")
+        v.addWidget(nota)
+        self.log = QPlainTextEdit()
+        self.log.setReadOnly(True)
+        self.log.setStyleSheet("QPlainTextEdit{background:#120f0a;color:#d9c8a8;"
+                               "border:1px solid rgba(216,168,73,0.18);border-radius:8px;}")
+        v.addWidget(self.log)
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 0)
+        v.addWidget(self.bar)
+        self.chiudi = QPushButton(L("Chiudi", "Close"))
+        self.chiudi.clicked.connect(self.accept)
+        v.addWidget(self.chiudi)
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._giro)
+        self._timer.start(400)
+        self._giro()
+
+    def _giro(self):
+        try:
+            dimensione = os.path.getsize(TX_LOG)
+        except OSError:
+            dimensione = 0
+        # ⚠️ Il registro viene azzerato all'inizio di ogni transazione: se e'
+        # piu' corto di dove eravamo arrivati, e' una transazione NUOVA e si
+        # riparte da capo. Senza questo controllo non si vedrebbe piu' niente.
+        if dimensione < self._pos:
+            self._pos = 0
+            self.log.clear()
+        if dimensione > self._pos:
+            try:
+                with open(TX_LOG, "rb") as f:
+                    f.seek(self._pos)
+                    dati = f.read()
+                    self._pos = f.tell()
+            except OSError:
+                dati = b""
+            if dati:
+                testo = dati.decode("utf-8", "replace").rstrip("\n")
+                if testo:
+                    self.log.appendPlainText(testo)
+                    m = None
+                    for m in re.finditer(r'(\d{1,3})%', testo):
+                        pass
+                    if m:
+                        v = int(m.group(1))
+                        if 0 <= v <= 100:
+                            self.bar.setRange(0, 100)
+                            self.bar.setValue(v)
+        st = tx_stato()
+        if st.get("stato") == "finita":
+            self._timer.stop()
+            self.bar.setRange(0, 100)
+            self.bar.setValue(100)
+            rc = st.get("rc")
+            self.log.appendPlainText(
+                "\n" + (L("✓ Completato.", "✓ Done.") if rc in (0, "0")
+                        else L("! Non riuscito (rc=%s)", "! Failed (rc=%s)") % rc))
+            if self._alla_fine:
+                self._alla_fine(rc)
+                self._alla_fine = None
+
 # ============================ SMALL WIDGETS ============================
 class ToggleSwitch(QAbstractButton):
     W, H = 46, 24          # widget size
@@ -742,11 +948,66 @@ def badge(text, color="#b9a07a"):
     l = QLabel(text); l.setStyleSheet("background:rgba(216,168,73,0.14);color:%s;border-radius:7px;padding:1px 7px;font-size:11px;" % color)
     l.setMaximumHeight(20); return l
 
+# Applicazioni nostre il cui PACCHETTO si chiama diversamente dall'icona.
+# ⚠️ Solo applicazioni: i pacchetti di servizio tengono l'icona generica,
+# perche' non sono applicazioni e fingere il contrario confonde e basta.
+ICONE_NOSTRE = {
+    "skillfish-ai-panel": "skillfish-ai",
+    "skillfish-kernel-manager": "skillfish-kernel",
+    "skillfish-dashboard": "skillfish-remote",
+    "skillfish-tuner": "skillfish-tuner",
+    "skillfish-fan": "skillfish-fan",
+    "skillfish-monitor": "skillfish-monitor",
+    "skillfish-snapshots": "skillfish-snapshots",
+    "skillfish-hub": "skillfish-hub",
+    "skillfish-emulators": "skillfish-emulators",
+}
+
+
+def _icona_esatta(nome):
+    """Esiste un'icona che si chiama PROPRIO cosi'?
+
+    ⚠️ QIcon.fromTheme() non basta: la specifica dei nomi ricade sul prefisso, e
+    «skillfish-base» — che un'icona sua non ce l'ha — tornerebbe «skillfish»,
+    cioe' il pesce. Cosi' ogni nostro pacchetto di servizio si prendeva il
+    marchio del sistema: sei riquadri col pesce e nessuno che dicesse cosa fa
+    quel pacchetto. I pacchetti che non sono applicazioni tengono l'icona
+    generica, che e' la verita': non sono applicazioni.
+    """
+    if not nome or "/" in nome:
+        return None
+    for base in ("/usr/share/icons", os.path.expanduser("~/.local/share/icons")):
+        for tema in ("SkillFishSteampunk", "hicolor", "breeze-dark", "breeze"):
+            for misura in ("scalable", "256x256", "128x128", "64x64", "48x48"):
+                for est in (".svg", ".png"):
+                    p = os.path.join(base, tema, misura, "apps", nome + est)
+                    if os.path.exists(p):
+                        return p
+    for est in (".png", ".svg", ".xpm"):
+        p = "/usr/share/pixmaps/" + nome + est
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def pixmap_for(app, size=48):
     if app.icon and os.path.exists(app.icon):
         pm = QPixmap(app.icon)
         if not pm.isNull():
             return pm.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    # Un pacchetto senza scheda AppStream non porta un'icona. Se pero' ne
+    # installa una col proprio nome — skillfish-snapshots, skillfish-fan e le
+    # altre applicazioni nostre — quella e' la sua, ed e' meglio di un riquadro
+    # grigio uguale per tutti.
+    pkg = (getattr(app, "pkgid", "") or "").strip()
+    for nome in (ICONE_NOSTRE.get(pkg, ""),
+                 getattr(app, "appid", "") or "", pkg):
+        nome = nome.replace(".desktop", "").strip()
+        percorso = _icona_esatta(nome)
+        if percorso:
+            pm = QPixmap(percorso)
+            if not pm.isNull():
+                return pm.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
     ic = QIcon.fromTheme({"flatpak": "flatpak", "snap": "snap-store"}.get(app.backend, "application-x-executable"))
     if not ic.isNull(): return ic.pixmap(size, size)
     pm = QPixmap(ICON)
@@ -903,6 +1164,173 @@ class Carousel(QWidget):
         self.dots.setText("" if len(self.urls) <= 1 else "  ".join("●" if i == self.idx else "○" for i in range(len(self.urls))))
 
 
+# ======================= QUELLO CHE CI HANNO CHIESTO DI APRIRE =======================
+# ⚠️ Discover era il gestore di .deb, .flatpakref, .flatpakrepo e dei link
+# appstream:// e apt://. Togliendolo senza mettere questo, un doppio clic su un
+# pacchetto scaricato o su un pulsante «installa» di Flathub non aprirebbe piu'
+# niente — e non e' un errore che l'utente riesce a collegare a noi: gli si
+# rompe il doppio clic, e basta.
+#
+# ⚠️ QUI NON SI INSTALLA NIENTE. Si capisce COSA ci hanno passato e lo si
+# racconta all'utente; a installare e' la solita transazione staccata, dopo un
+# si' esplicito. Un file arrivato da fuori che si installa da solo perche' ci
+# hanno cliccato sopra e' esattamente il modo in cui si prende un pacchetto
+# malevolo.
+BERSAGLI = {
+    ".deb": "deb",
+    ".flatpakref": "flatpakref",
+    ".flatpakrepo": "flatpakrepo",
+    ".flatpak": "flatpakbundle",
+}
+
+
+def bersaglio(argomenti):
+    u"""(tipo, valore) di cio' che ci hanno passato, o None.
+
+    Accetta un percorso, un file:// (KDE passa quello) e i due schemi che
+    gestiva Discover. ⚠️ Il file deve esistere ed essere un file normale: un
+    percorso inventato, una cartella o un dispositivo non devono arrivare
+    all'helper, che gira da root.
+    """
+    for a in (argomenti or []):
+        if not a or a.startswith("-"):
+            continue
+        if a.startswith("appstream://"):
+            return ("app", a[len("appstream://"):].strip("/ "))
+        if a.startswith("apt://"):
+            return ("app", a[len("apt://"):].strip("/ "))
+        percorso = a
+        if percorso.startswith("file://"):
+            percorso = urllib.parse.unquote(urllib.parse.urlparse(percorso).path)
+        percorso = os.path.abspath(os.path.expanduser(percorso))
+        tipo = BERSAGLI.get(os.path.splitext(percorso)[1].lower())
+        if tipo and os.path.isfile(percorso):
+            return (tipo, percorso)
+    return None
+
+
+def _ini(percorso):
+    u"""Le chiavi di un .flatpakref o .flatpakrepo, che sono file ini."""
+    fuori = {}
+    try:
+        with open(percorso, encoding="utf-8", errors="replace") as f:
+            for riga in f:
+                if "=" in riga and not riga.lstrip().startswith(("#", "[")):
+                    k, v = riga.split("=", 1)
+                    fuori[k.strip()] = v.strip()
+    except OSError:
+        pass
+    return fuori
+
+
+def descrivi(tipo, percorso):
+    u"""Che cosa sto per installare: nome, versione, provenienza.
+
+    Serve perche' la domanda «vuoi installarlo?» abbia una risposta possibile.
+    Chiedere su un nome di file non e' chiedere: e' far premere Si'.
+    """
+    nome = os.path.basename(percorso)
+    righe = []
+    if tipo == "deb":
+        rc, out, _ = run(["dpkg-deb", "-W", "--showformat",
+                          "${Package}\\n${Version}\\n${Architecture}\\n${Installed-Size}\\n${Maintainer}",
+                          percorso], 20)
+        if rc == 0:
+            campi = (out or "").split("\n")
+            while len(campi) < 5:
+                campi.append("")
+            nome = campi[0] or nome
+            righe = [
+                (L("Versione", "Version"), campi[1]),
+                (L("Architettura", "Architecture"), campi[2]),
+                (L("Spazio occupato", "Installed size"),
+                 ("%s kB" % campi[3]) if campi[3].isdigit() else campi[3]),
+                (L("Chi lo mantiene", "Maintainer"), campi[4]),
+            ]
+    elif tipo in ("flatpakref", "flatpakrepo"):
+        d = _ini(percorso)
+        nome = d.get("Name") or d.get("Title") or nome
+        righe = [(L("Origine", "Origin"), d.get("Url") or d.get("RuntimeRepo") or "—")]
+        if d.get("Title"):
+            righe.insert(0, (L("Repository", "Repository"), d["Title"]))
+    elif tipo == "flatpakbundle":
+        try:
+            righe = [(L("Dimensione", "Size"),
+                      "%.1f MiB" % (os.path.getsize(percorso) / 1048576.0))]
+        except OSError:
+            pass
+    return nome, righe
+
+
+def avviso_bersaglio(tipo):
+    u"""⚠️ Un file preso da fuori non e' un pacchetto dei nostri repository.
+
+    Nessuna delle nostre chiavi lo ha firmato: chi lo installa si fida di chi
+    glielo ha dato. Dirlo non e' burocrazia — e' l'unica differenza che conta
+    fra installare dall'Hub e installare un file trovato in giro, e l'utente
+    non ha modo di saperlo se non glielo diciamo qui.
+    """
+    if tipo == "flatpakrepo":
+        return L("Stai aggiungendo una fonte di software nuova. Da quel momento "
+                 "quello che arriva da lì viene installato come il resto: "
+                 "aggiungila solo se sai di chi è.",
+                 "You are adding a new source of software. From then on what comes "
+                 "from it is installed like everything else: add it only if you "
+                 "know whose it is.")
+    return L("Questo file non viene dai nostri repository e nessuna delle nostre "
+             "chiavi lo ha firmato: installandolo ti fidi di chi te lo ha dato.",
+             "This file does not come from our repositories and none of our keys "
+             "signed it: by installing it you are trusting whoever gave it to you.")
+
+
+POLKIT_DIR = "/usr/share/polkit-1/actions"
+
+
+def permessi_apt(pkgid, appid=""):
+    u"""Le autorizzazioni che questo pacchetto dichiara a polkit.
+
+    ⚠️ Si guarda quali file di politica il PACCHETTO installa, non quali
+    contengono il suo nome: e' l'unico legame vero fra un .deb e le
+    autorizzazioni che chiede, e non si sbaglia con i nomi che si somigliano.
+    """
+    if not pkgid:
+        return ""
+    rc, out, _ = run(["dpkg", "-L", pkgid], 12)
+    if rc != 0:
+        return ""
+    politiche = [r.strip() for r in out.splitlines()
+                 if r.strip().startswith(POLKIT_DIR) and r.strip().endswith(".policy")]
+    if not politiche:
+        return ""
+    fuori = []
+    for p in politiche:
+        try:
+            with open(p, encoding="utf-8", errors="replace") as f:
+                testo = f.read()
+        except OSError:
+            continue
+        for azione in re.findall(r'<action id="[^"]*">(.*?)</action>', testo, re.S):
+            # la descrizione nella lingua dell'utente, se c'e'
+            d = (re.search(r'<description xml:lang="%s">(.*?)</description>' % LANG, azione, re.S)
+                 or re.search(r'<description>(.*?)</description>', azione, re.S))
+            if not d:
+                continue
+            regola = re.search(r'<allow_active>(.*?)</allow_active>', azione)
+            regola = (regola.group(1).strip() if regola else "")
+            come = {
+                "yes": L("senza chiedere niente", "without asking"),
+                "auth_admin": L("chiede la password ogni volta", "asks for the password every time"),
+                "auth_admin_keep": L("chiede la password una volta per sessione",
+                                     "asks for the password once per session"),
+                "auth_self": L("chiede la tua password", "asks for your password"),
+                "auth_self_keep": L("chiede la tua password una volta per sessione",
+                                    "asks for your password once per session"),
+                "no": L("non e' permesso", "not allowed"),
+            }.get(regola, regola)
+            testo_d = re.sub(r'\s+', " ", d.group(1)).strip()
+            fuori.append("• %s — %s" % (testo_d, come) if come else "• " + testo_d)
+    return "\n".join(fuori)
+
 # ============================ MAIN WINDOW ============================
 class Hub(QMainWindow):
     def __init__(self):
@@ -914,11 +1342,21 @@ class Hub(QMainWindow):
         self.cfg = load_cfg()
         self.cfg.setdefault("flatpak", have("flatpak")); self.cfg.setdefault("snap", have("snap"))
         self.cfg.setdefault("sort", "name"); self.cfg.setdefault("filter", "all")
+        # ⚠️ Aperti su un file (.deb, .flatpakref…) o su un link
+        # appstream://: era il mestiere di Discover, e senza questo un
+        # doppio clic su un pacchetto scaricato non aprirebbe piu' niente.
+        self._bersaglio = bersaglio(sys.argv[1:])
+        self._app_da_aprire = None
+        QTimer.singleShot(400, self.apri_bersaglio)
+        # se una transazione sta gia' girando (l'Hub magari e' morto
+        # proprio perche' l'aggiornamento gli ha cambiato le Qt sotto),
+        # ci si riattacca invece di far finta di niente
+        QTimer.singleShot(800, self._riattacca_transazione)
 
         root = QWidget(); self.setCentralWidget(root)
         outer = QHBoxLayout(root); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
         # sidebar
-        side = QFrame(); side.setFixedWidth(214); side.setStyleSheet("QFrame{background:#0f0c07;border-right:1px solid rgba(216,168,73,0.18);}")
+        side = QFrame(); side.setFixedWidth(240); side.setStyleSheet("QFrame{background:#0f0c07;border-right:1px solid rgba(216,168,73,0.18);}")
         sv = QVBoxLayout(side); sv.setContentsMargins(0, 0, 0, 0); sv.setSpacing(0)
         logow = QWidget(); logo = QHBoxLayout(logow); logo.setContentsMargins(16, 16, 16, 8); lpm = QLabel(); pm = QPixmap(ICON)
         if not pm.isNull(): lpm.setPixmap(pm.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
@@ -930,14 +1368,14 @@ class Hub(QMainWindow):
         navhost = QWidget(); navhost.setStyleSheet("background:transparent;")
         nv = QVBoxLayout(navhost); nv.setContentsMargins(10, 4, 8, 14); nv.setSpacing(2)
         self.navgrp = QButtonGroup(self); self.nav = {}
-        self.NAVSTYLE = ("QToolButton{color:#cdbb95;text-align:left;padding:8px 10px;border:none;border-radius:8px;font-size:14px;}"
-                         "QToolButton:hover{background:rgba(216,168,73,0.10);}"
-                         "QToolButton:checked{background:rgba(216,168,73,0.20);color:#f1e3c6;font-weight:700;}")
-        self.SUBSTYLE = ("QToolButton{color:#b6a378;text-align:left;padding:5px 10px 5px 34px;border:none;border-radius:7px;font-size:13px;}"
-                         "QToolButton:hover{background:rgba(216,168,73,0.10);}"
-                         "QToolButton:checked{background:rgba(216,168,73,0.16);color:#f1e3c6;font-weight:700;}")
+        self.NAVSTYLE = ("QPushButton{color:#cdbb95;text-align:left;padding:9px 12px;border:none;border-radius:8px;font-size:16px;}"
+                         "QPushButton:hover{background:rgba(216,168,73,0.10);}"
+                         "QPushButton:checked{background:rgba(216,168,73,0.20);color:#f1e3c6;font-weight:700;}")
+        self.SUBSTYLE = ("QPushButton{color:#b6a378;text-align:left;padding:6px 10px 6px 32px;border:none;border-radius:7px;font-size:14px;}"
+                         "QPushButton:hover{background:rgba(216,168,73,0.10);}"
+                         "QPushButton:checked{background:rgba(216,168,73,0.16);color:#f1e3c6;font-weight:700;}")
         def navbtn(text, cb):
-            b = QToolButton(); b.setText(text); b.setCheckable(True)
+            b = QPushButton(text); b.setCheckable(True)
             b.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             b.setStyleSheet(self.NAVSTYLE); b.clicked.connect(cb); self.navgrp.addButton(b); nv.addWidget(b); return b
         for key, label, emoji in [("home", L("Esplora", "Explore"), "✦"), ("installed", L("Installati", "Installed"), "✓"),
@@ -972,6 +1410,15 @@ class Hub(QMainWindow):
         self.p_loading = self._loading_pane()
         self.p_scroll = QScrollArea(); self.p_scroll.setWidgetResizable(True); self.p_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.p_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # ⚠️ LA BARRA VERTICALE RESTA SEMPRE, ANCHE QUANDO NON SERVE.
+        # Le schede sono in un layout che manda a capo da solo: quando la
+        # barra compare la larghezza cala, le schede si riordinano, l'altezza
+        # scende sotto la finestra, la barra sparisce, la larghezza torna...
+        # e da fuori si vede tutto che lampeggia. Riservandole lo spazio, la
+        # larghezza non cambia piu' e l'oscillazione non puo' innescarsi.
+        self.p_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.p_scroll.setStyleSheet("QScrollArea{background:transparent;}"
+                                    "QScrollBar:vertical{width:10px;background:transparent;}")
         self.p_host = QWidget(); self.p_lay = QVBoxLayout(self.p_host); self.p_lay.setContentsMargins(20, 10, 20, 18); self.p_lay.setSpacing(10); self.p_scroll.setWidget(self.p_host)
         self.p_detail = QScrollArea(); self.p_detail.setWidgetResizable(True); self.p_detail.setFrameShape(QFrame.Shape.NoFrame)
         for w in (self.p_loading, self.p_scroll, self.p_detail): self.stack.addWidget(w)
@@ -980,7 +1427,7 @@ class Hub(QMainWindow):
         self.loader.done.connect(self.on_loaded); self.loader.start()
 
     def _mk_btn(self, text, cb, sub=False):
-        b = QToolButton(); b.setText(text); b.setCheckable(True)
+        b = QPushButton(text); b.setCheckable(True)
         b.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         b.setStyleSheet(self.SUBSTYLE if sub else self.NAVSTYLE)
         b.clicked.connect(cb); self.navgrp.addButton(b); return b
@@ -1010,13 +1457,14 @@ class Hub(QMainWindow):
                     self.subbtns[sc] = sb; self.catlay.addWidget(sb)
         if active and active in self.catbtns:
             # keep the expanded parent visually highlighted even when a subcategory is selected
-            self.catbtns[active].setStyleSheet(self.NAVSTYLE + "QToolButton{background:rgba(216,168,73,0.09);}")
+            self.catbtns[active].setStyleSheet(self.NAVSTYLE + "QPushButton{background:rgba(216,168,73,0.09);}")
         if active:
             if self._subcat and self._subcat in self.subbtns: self.subbtns[self._subcat].setChecked(True)
             elif "__all__" in self.subbtns: self.subbtns["__all__"].setChecked(True)
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
+        self._posiziona_riquadro_app()
         if not getattr(self, "cat", None): return
         if not hasattr(self, "_rstimer"):
             self._rstimer = QTimer(self); self._rstimer.setSingleShot(True)
@@ -1035,7 +1483,21 @@ class Hub(QMainWindow):
         v.addWidget(l); hb = QHBoxLayout(); hb.addStretch(1); hb.addWidget(bar); hb.addStretch(1); v.addLayout(hb); v.addStretch(1); return w
 
     def on_loaded(self, cat):
+        self._snap_fatte = set()
         self.cat = cat; self.statusBar().clearMessage(); self.refresh_updates_badge(); self.go("home")
+        chiesta = getattr(self, "_app_da_aprire", None)
+        if chiesta:
+            self._app_da_aprire = None
+            a = next((x for x in self.cat.apps.values()
+                      if x.pkgid == chiesta or x.appid == chiesta), None)
+            if a:
+                self.open_app(a)
+            else:
+                # non trovata per nome esatto: meglio la ricerca che una
+                # finestra vuota senza spiegazioni
+                self.search.setText(chiesta)
+                self.do_search()
+            return
         view = os.environ.get("SFX_HUB_VIEW")
         if view:
             if view.startswith("cat:"): self.show_category(view[4:])
@@ -1043,6 +1505,78 @@ class Hub(QMainWindow):
                 a = next((x for x in self.cat.apps.values() if x.pkgid == view[4:] or x.appid == view[4:]), None)
                 if a: self.open_app(a)
             else: self.go(view)
+
+    def apri_bersaglio(self):
+        u"""Il file (o il link) con cui ci hanno aperti.
+
+        ⚠️ Si chiede prima, sempre, e si mostra COSA: nome, versione, chi lo
+        mantiene, da dove viene. Un pacchetto che parte da solo perche' l'utente
+        ci ha fatto doppio clic sopra e' il modo classico di installare qualcosa
+        che non si voleva.
+        """
+        b = getattr(self, "_bersaglio", None)
+        if not b:
+            return
+        tipo, valore = b
+        self._bersaglio = None
+        if tipo == "app":
+            # l'app la si apre quando il catalogo c'e': ci pensa on_loaded
+            self._app_da_aprire = valore
+            return
+        nome, righe = descrivi(tipo, valore)
+        titoli = {
+            "deb": L("Installare questo pacchetto?", "Install this package?"),
+            "flatpakref": L("Installare questa applicazione Flatpak?",
+                            "Install this Flatpak application?"),
+            "flatpakrepo": L("Aggiungere questo repository Flatpak?",
+                             "Add this Flatpak repository?"),
+            "flatpakbundle": L("Installare questo pacchetto Flatpak?",
+                               "Install this Flatpak bundle?"),
+        }
+        dlg = QDialog(self)
+        dlg.setWindowTitle("SkillFishOS Hub")
+        dlg.setMinimumWidth(520)
+        v = QVBoxLayout(dlg)
+        t = QLabel(titoli.get(tipo, L("Installare?", "Install?")))
+        t.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;")
+        v.addWidget(t)
+        n = QLabel(nome)
+        n.setStyleSheet("color:#f1e3c6;font-size:15px;font-weight:600;")
+        v.addWidget(n)
+        for etichetta, testo in righe:
+            if not testo:
+                continue
+            r = QLabel("%s: %s" % (etichetta, testo))
+            r.setWordWrap(True)
+            r.setStyleSheet("color:#b9a07a;font-size:12px;")
+            v.addWidget(r)
+        p = QLabel(valore)
+        p.setWordWrap(True)
+        p.setStyleSheet("color:#8a6a2a;font-size:11px;")
+        v.addWidget(p)
+        av = QLabel(avviso_bersaglio(tipo))
+        av.setWordWrap(True)
+        av.setStyleSheet("color:#d8a849;font-size:12px;margin-top:6px;")
+        v.addWidget(av)
+        pulsanti = QHBoxLayout()
+        pulsanti.addStretch(1)
+        annulla = QPushButton(L("Annulla", "Cancel"))
+        annulla.setStyleSheet("QPushButton{background:rgba(216,168,73,0.18);color:#f1e3c6;border-radius:9px;padding:7px 16px;}")
+        annulla.clicked.connect(dlg.reject)
+        pulsanti.addWidget(annulla)
+        ok = QPushButton(L("Installa", "Install") if tipo != "flatpakrepo"
+                         else L("Aggiungi", "Add"))
+        ok.setStyleSheet("QPushButton{background:#9ccf6a;color:#10240a;border-radius:9px;padding:7px 18px;font-weight:800;}")
+        ok.clicked.connect(dlg.accept)
+        pulsanti.addWidget(ok)
+        rp = QWidget()
+        rp.setLayout(pulsanti)
+        v.addWidget(rp)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._avvia_transazione(tipo, [valore], "%s %s…" % (
+            L("Installazione", "Installing") if tipo != "flatpakrepo"
+            else L("Aggiunta", "Adding"), nome))
 
     def backend_on(self, b):
         if b == "apt": return True
@@ -1059,6 +1593,8 @@ class Hub(QMainWindow):
 
     # navigation
     def go(self, key, push=True):
+        fr = getattr(self, "_fr_app", None)
+        if fr is not None and fr.isVisible(): fr.hide()
         if push and (not self._hist or self._hist[-1] != (key,)): self._hist.append((key,))
         for k, b in self.nav.items(): b.setChecked(k == key)
         if key in ("home", "installed", "updates", "sources") and getattr(self, "_active_cat", None) is not None:
@@ -1161,7 +1697,22 @@ class Hub(QMainWindow):
 
     def show_home(self):
         self.title.setText(""); self._clear()
-        ours = sorted([a for a in self.cat.apps.values() if a.backend == "apt" and a.origin == AETHERIUM], key=lambda a: a.name.lower())
+        # ⚠️ Si riconosce dal NOME del pacchetto, non dall'origine: le nostre
+        # applicazioni installate da un .deb locale non hanno origine, e la
+        # vetrina restava senza il Tuner, l'Hub, la Ventola e le altre.
+        def e_nostro(a):
+            if a.backend != "apt":
+                return False
+            return (a.origin == AETHERIUM
+                    or (a.pkgid or "").startswith(("skillfish-", "skillfishos-"))
+                    or (a.appid or "").startswith("os.skillfish."))
+        # prima le applicazioni, poi i pacchetti di servizio: in vetrina si
+        # mette cio' che si apre, non la base del sistema.
+        nostri = [a for a in self.cat.apps.values() if e_nostro(a)]
+        ours = (sorted([a for a in nostri if a.appid.startswith("os.skillfish.")],
+                       key=lambda a: a.name.lower())
+                + sorted([a for a in nostri if not a.appid.startswith("os.skillfish.")],
+                         key=lambda a: a.name.lower()))
         if ours:
             self.p_lay.addWidget(self._section_title(L("In evidenza · SkillFishOS", "Featured · SkillFishOS")))
             self.p_lay.addWidget(self._tile_grid(ours))
@@ -1182,6 +1733,8 @@ class Hub(QMainWindow):
         self.show_category(CATEGORIES[0][0])
 
     def show_category(self, key, push=True):
+        fr = getattr(self, "_fr_app", None)
+        if fr is not None and fr.isVisible(): fr.hide()
         if push: self._hist.append(("cat", key))
         if getattr(self, "_active_cat", None) != key: self._subcat = None
         self._active_cat = key; self._last_cat = key
@@ -1195,7 +1748,12 @@ class Hub(QMainWindow):
         shown = [a for a in apps if self._subcat in (a.cats or [])] if self._subcat else apps
         self._grid(shown)
         self.stack.setCurrentWidget(self.p_scroll)
-        if self.backend_on("snap") and not self._subcat:
+        # ⚠️ UNA VOLTA SOLA PER CATEGORIA, o si torna al ciclo infinito:
+        # questa ricerca finisce in _append_snap, che chiama
+        # _refresh_current(), che richiama show_category, che la
+        # rilancerebbe. La pagina si svuotava e si ridisegnava per sempre.
+        if (self.backend_on("snap") and not self._subcat
+                and key not in getattr(self, "_snap_fatte", set())):
             self._snapw = Worker(lambda k=key: self.cat.snap_category(k))
             self._snapw.done.connect(lambda a2, k=key, t=tok: self._append_snap(a2, k, t)); self._snapw.start()
 
@@ -1216,9 +1774,14 @@ class Hub(QMainWindow):
         if tok != getattr(self, "_vtok", 0): return
         cur = self._hist[-1] if self._hist else None
         if not apps or not cur or cur != ("cat", key): return
+        # segnata PRIMA di ridisegnare: il ridisegno passa da
+        # show_category, e deve trovarla gia' fatta.
+        self._snap_fatte = getattr(self, "_snap_fatte", set()) | {key}
         self._refresh_current()
 
     def show_list(self, apps, title, push=True):
+        fr = getattr(self, "_fr_app", None)
+        if fr is not None and fr.isVisible(): fr.hide()
         if push: self._hist.append(("search" if title and L("Ricerca", "Search") in str(title) else "list", apps, title))
         self.title.setText(title if isinstance(title, str) else ""); self._clear(); self._grid(apps)
         self.stack.setCurrentWidget(self.p_scroll)
@@ -1241,6 +1804,69 @@ class Hub(QMainWindow):
         self._hist.append(("search", res, L("Ricerca: ", "Search: ") + q)); self._clear(); self._grid(res)
 
     # ---------- detail ----------
+    def _riquadro_app(self):
+        u"""Il riquadro che ospita la scheda, creato la prima volta che serve."""
+        if getattr(self, "_fr_app", None) is not None:
+            return self._fr_app
+        fr = QFrame(self.stack)
+        fr.setObjectName("riquadroApp")
+        fr.setStyleSheet("QFrame#riquadroApp{background:#15110a;"
+                         "border:1px solid rgba(216,168,73,0.35);border-radius:14px;}")
+        lay = QVBoxLayout(fr)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        testa = QHBoxLayout()
+        testa.setContentsMargins(14, 8, 8, 8)
+        self._fr_titolo = QLabel("")
+        self._fr_titolo.setStyleSheet("color:#e8c878;font-size:14px;font-weight:700;background:transparent;")
+        testa.addWidget(self._fr_titolo)
+        testa.addStretch(1)
+        chiudi = QPushButton("×")
+        chiudi.setFixedSize(30, 26)
+        chiudi.setStyleSheet("QPushButton{background:rgba(216,168,73,0.16);color:#f1e3c6;"
+                             "border:none;border-radius:8px;font-size:17px;font-weight:700;}"
+                             "QPushButton:hover{background:rgba(216,168,73,0.30);}")
+        chiudi.clicked.connect(self.chiudi_riquadro_app)
+        testa.addWidget(chiudi)
+        tw = QWidget()
+        tw.setStyleSheet("background:transparent;")
+        tw.setLayout(testa)
+        lay.addWidget(tw)
+        self.fr_scroll = QScrollArea()
+        self.fr_scroll.setWidgetResizable(True)
+        self.fr_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.fr_scroll.setStyleSheet("QScrollArea{background:transparent;}"
+                                     "QScrollBar:vertical{width:10px;background:transparent;}")
+        lay.addWidget(self.fr_scroll, 1)
+        self._fr_app = fr
+        fr.hide()
+        return fr
+
+    def _posiziona_riquadro_app(self):
+        u"""Sopra all'area centrale, con un margine che lascia vedere l'elenco.
+
+        ⚠️ Il margine non e' estetica: e' quello che fa capire che sotto c'e'
+        ancora la pagina di prima, e che questo si chiude.
+        """
+        fr = getattr(self, "_fr_app", None)
+        if fr is None or not fr.isVisible():
+            return
+        r = self.stack.rect()
+        m = 18
+        fr.setGeometry(r.x() + m, r.y() + m, max(320, r.width() - 2 * m),
+                       max(240, r.height() - 2 * m))
+        fr.raise_()
+
+    def chiudi_riquadro_app(self):
+        fr = getattr(self, "_fr_app", None)
+        if fr is not None:
+            fr.hide()
+        # ⚠️ Si toglie anche dalla cronologia, o il tasto «indietro» riaprirebbe
+        # la scheda che l'utente ha appena chiuso.
+        if self._hist and self._hist[-1][0] == "detail":
+            self._hist.pop()
+        self.stack.setCurrentWidget(self.p_scroll)
+
     def open_app(self, app, push=True):
         if push: self._hist.append(("detail", app))
         self.title.setText(""); self._snap_channel = None
@@ -1318,7 +1944,22 @@ class Hub(QMainWindow):
         # ---------- reviews ----------
         self._rev_box = QVBoxLayout(); v.addLayout(self._rev_box)
         if app.odrs_id: self._load_reviews(app)
-        v.addStretch(1); self.p_detail.setWidget(w); self.stack.setCurrentWidget(self.p_detail)
+        if app.odrs_id:
+            # ⚠️ Il pulsante sta qui e non dentro a _show_reviews: li' verrebbe
+            # disegnato solo quando le recensioni ci sono gia', e la prima
+            # recensione di un programma non la scriverebbe mai nessuno.
+            scrivi = QPushButton(L("Scrivi una recensione", "Write a review"))
+            scrivi.setStyleSheet("QPushButton{background:rgba(216,168,73,0.18);color:#f1e3c6;"
+                                 "border-radius:9px;padding:7px 16px;}")
+            scrivi.clicked.connect(lambda _c=False, a=app: self.scrivi_recensione(a))
+            v.addWidget(scrivi, 0, Qt.AlignmentFlag.AlignLeft)
+        v.addStretch(1)
+        # la scheda si apre SOPRA all'elenco, non al suo posto
+        fr = self._riquadro_app()
+        self.fr_scroll.setWidget(w)
+        self._fr_titolo.setText(app.name)
+        fr.show()
+        self._posiziona_riquadro_app()
 
     def _desktop_for(self, app):
         for d in ("/usr/share/applications", os.path.expanduser("~/.local/share/applications")):
@@ -1368,9 +2009,144 @@ class Hub(QMainWindow):
             if app.backend == "snap":
                 c = app.confinement or "strict"
                 return L("Confinamento: %s", "Confinement: %s") % c
+            if app.backend == "apt":
+                # Un .deb non dichiara permessi come un Flatpak, ma se ha
+                # bisogno di root lo dichiara a polkit: quelle sono le sue
+                # autorizzazioni, e sono gia' scritte e tradotte.
+                return permessi_apt(app.pkgid, app.appid)
         except Exception:
             return ""
         return ""
+
+    def scrivi_recensione(self, app):
+        u"""Le stelle e due righe di testo, e li manda a ODRS.
+
+        ⚠️ QUELLO CHE SI SCRIVE QUI DIVENTA PUBBLICO. ODRS e' l'archivio comune
+        delle recensioni (lo stesso che legge GNOME Software), non un quaderno
+        locale: una volta spedita, la recensione la leggono tutti. La finestra
+        lo dice prima di far premere il pulsante, perche' dopo e' tardi.
+
+        ⚠️ E NON SI MANDA NIENTE CHE IDENTIFICHI LA MACCHINA. L'identificativo
+        richiesto dal servizio e' una impronta, la stessa che gia' si usa per
+        leggere le recensioni: serve solo perche' ODRS sappia riconoscere due
+        voti della stessa persona.
+        """
+        dlg = QDialog(self)
+        dlg.setWindowTitle("SkillFishOS Hub")
+        dlg.setMinimumWidth(560)
+        v = QVBoxLayout(dlg)
+        t = QLabel(L("La tua recensione di %s", "Your review of %s") % app.name)
+        t.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;")
+        v.addWidget(t)
+
+        # le stelle: si cliccano, e quella scelta resta accesa
+        stelle = {"n": 0}
+        rs = QHBoxLayout()
+        rs.setSpacing(2)
+        bottoni = []
+        def ridisegna():
+            for i, b in enumerate(bottoni):
+                b.setText("★" if i < stelle["n"] else "☆")
+        def scegli(i):
+            stelle["n"] = i + 1
+            ridisegna()
+        for i in range(5):
+            b = QToolButton()
+            b.setText("☆")
+            b.setStyleSheet("QToolButton{color:#e8c878;font-size:26px;border:none;background:transparent;}")
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.clicked.connect(lambda _c=False, k=i: scegli(k))
+            bottoni.append(b)
+            rs.addWidget(b)
+        rs.addStretch(1)
+        rw = QWidget(); rw.setLayout(rs); v.addWidget(rw)
+
+        titolo = QLineEdit()
+        titolo.setPlaceholderText(L("In una riga: com'e'?", "In one line: what is it like?"))
+        v.addWidget(titolo)
+        corpo = QPlainTextEdit()
+        corpo.setPlaceholderText(L("Cosa fa bene, cosa no, su che macchina.",
+                                   "What it does well, what it does not, on which machine."))
+        corpo.setFixedHeight(120)
+        v.addWidget(corpo)
+        nome = QLineEdit()
+        nome.setText(os.environ.get("USER", "") or "anon")
+        nome.setPlaceholderText(L("Come vuoi firmarti", "How you want to sign it"))
+        v.addWidget(nome)
+
+        av = QLabel(L("Va nell'archivio pubblico delle recensioni (ODRS), quello che "
+                      "leggono anche gli altri programmi: la vedranno tutti, e non si "
+                      "cancella da qui.",
+                      "This goes to the public review database (ODRS), the one other "
+                      "software reads too: everyone will see it, and it cannot be "
+                      "deleted from here."))
+        av.setWordWrap(True)
+        av.setStyleSheet("color:#d8a849;font-size:12px;")
+        v.addWidget(av)
+        esito = QLabel("")
+        esito.setWordWrap(True)
+        esito.setStyleSheet("color:#b9a07a;font-size:12px;")
+        v.addWidget(esito)
+
+        riga = QHBoxLayout(); riga.addStretch(1)
+        annulla = QPushButton(L("Annulla", "Cancel"))
+        annulla.setStyleSheet("QPushButton{background:rgba(216,168,73,0.18);color:#f1e3c6;border-radius:9px;padding:7px 16px;}")
+        annulla.clicked.connect(dlg.reject)
+        riga.addWidget(annulla)
+        manda = QPushButton(L("Pubblica", "Publish"))
+        manda.setStyleSheet("QPushButton{background:#9ccf6a;color:#10240a;border-radius:9px;padding:7px 18px;font-weight:800;}")
+        riga.addWidget(manda)
+        rp = QWidget(); rp.setLayout(riga); v.addWidget(rp)
+
+        def invia():
+            if not stelle["n"]:
+                esito.setText(L("Manca il voto: quante stelle?", "No rating yet: how many stars?"))
+                return
+            if not titolo.text().strip():
+                esito.setText(L("Manca il titolo.", "The title is missing."))
+                return
+            manda.setEnabled(False)
+            esito.setText(L("Invio…", "Sending…"))
+            dati = {
+                "app_id": (app.odrs_id if "." in app.odrs_id else app.odrs_id + ".desktop"),
+                "locale": LANG,
+                "distro": "SkillFishOS",
+                "version": app.ver or "",
+                # ⚠️ ODRS vuole il voto da 0 a 100 a passi di 20, non da 1 a 5:
+                # mandando 5 si pubblica una recensione da una stella.
+                "rating": stelle["n"] * 20,
+                "user_hash": hashlib.sha1(("skillfishos" + os.uname().nodename).encode()).hexdigest(),
+                "user_display": nome.text().strip() or "anon",
+                "summary": titolo.text().strip()[:70],
+                "description": corpo.toPlainText().strip()[:3000],
+            }
+            def spedisci():
+                try:
+                    req = urllib.request.Request(
+                        ODRS + "/submit", data=json.dumps(dati).encode(),
+                        headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=20) as r:
+                        return (r.status, r.read().decode("utf-8", "replace")[:200])
+                except urllib.error.HTTPError as e:
+                    return (e.code, e.read().decode("utf-8", "replace")[:200])
+                except Exception as e:
+                    return (0, str(e)[:200])
+            def finito(risposta):
+                codice, testo = risposta or (0, "")
+                if codice in (200, 201):
+                    esito.setText(L("Pubblicata. Grazie.", "Published. Thank you."))
+                    QTimer.singleShot(1200, dlg.accept)
+                    self._load_reviews(app)
+                else:
+                    manda.setEnabled(True)
+                    esito.setText(L("Non e' andata (%s). %s", "It did not go through (%s). %s")
+                                  % (codice or "-", testo))
+            self._rev_send = Worker(spedisci)
+            self._rev_send.done.connect(finito)
+            self._rev_send.start()
+
+        manda.clicked.connect(invia)
+        dlg.exec()
 
     def _load_reviews(self, app):
         def fetch():
@@ -1386,6 +2162,13 @@ class Hub(QMainWindow):
                 return []
         self._rw = Worker(fetch); self._rw.done.connect(self._show_reviews); self._rw.start()
     def _show_reviews(self, reviews):
+        # ⚠️ ODRS restituisce anche voci senza testo: un voto e basta, o un
+        # record vuoto. Disegnate cosi' com'erano davano un riquadro vuoto
+        # firmato «anon» sotto al titolo «Recensioni» — sembrava un guasto
+        # nostro. Una recensione senza parole non e' una recensione.
+        reviews = [r for r in (reviews or [])
+                   if (r.get("summary") or "").strip()
+                   or (r.get("description") or "").strip()]
         if not reviews or self._rev_box is None: return
         hl = QLabel(L("Recensioni", "Reviews")); hl.setStyleSheet("color:#e8c878;font-weight:700;margin-top:8px;"); self._rev_box.addWidget(hl)
         for rv in reviews[:8]:
@@ -1400,6 +2183,16 @@ class Hub(QMainWindow):
 
     # ---------- operations ----------
     def do_op(self, app, action):
+        # ⚠️ Per APT si passa sempre dalla transazione staccata: un'installazione
+        # o una rimozione interrotta a meta' lascia dpkg da riparare a mano, e
+        # a interromperla basta che questa finestra muoia. Flatpak e snap no:
+        # li' un'interruzione al massimo lascia un file da riscaricare.
+        if app.backend == "apt":
+            azione = "installa" if action == "install" else "rimuovi"
+            verbo = (L("Installazione", "Installing") if action == "install"
+                     else L("Rimozione", "Removing"))
+            self._avvia_transazione(azione, [app.pkgid], "%s %s…" % (verbo, app.name))
+            return
         if action == "install":
             argv = self._install_cmd(app); verb = L("Installazione", "Installing")
         else:
@@ -1407,6 +2200,7 @@ class Hub(QMainWindow):
         if not argv:
             self.statusBar().showMessage(L("Backend non supportato: ", "Unsupported backend: ") + app.backend, 5000); return
         self._run_op(argv, "%s %s…" % (verb, app.name))
+
     # L'AMBITO DEI FLATPAK VA DETTO SEMPRE.
     #
     # Qui c'era `flatpak install -y --noninteractive flathub <id>`, senza
@@ -1479,58 +2273,135 @@ class Hub(QMainWindow):
         self._ut = Worker(self.cat.updates); self._ut.done.connect(lambda u, t=tok: self._updates_done(u or [], t)); self._ut.start()
     def _updates_done(self, ups, tok):
         if tok != getattr(self, "_vtok", 0): return  # user navigated away
-        ups = [u for u in ups if self.backend_on(u[0] if u[0] != "apt" else "apt")]
+        ups = [u for u in ups if u[0] == "firmware" or self.backend_on(u[0])]
+        pacchetti = [u for u in ups if u[0] != "firmware"]
+        firmware = [u for u in ups if u[0] == "firmware"]
         self._clear(); top = QHBoxLayout(); n = len(ups)
         t = QLabel(L("%d aggiornamenti disponibili", "%d updates available") % n if n
                    else L("Tutto aggiornato ✓", "Everything is up to date ✓"))
         t.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;"); top.addWidget(t); top.addStretch(1)
-        if n:
+        if pacchetti:
             allb = QPushButton(L("Aggiorna tutto", "Update all")); allb.clicked.connect(self.update_all)
             allb.setStyleSheet("QPushButton{background:#9ccf6a;color:#10240a;border-radius:10px;padding:8px 20px;font-weight:800;}"); top.addWidget(allb)
         hw = QWidget(); hw.setLayout(top); self.p_lay.addWidget(hw)
-        for backend, name, oldv, newv in ups:
+        for backend, name, oldv, newv, _id in pacchetti:
             row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(12, 8, 12, 8); row.setStyleSheet("QFrame{background:rgba(255,255,255,0.03);border:1px solid rgba(216,168,73,0.14);border-radius:10px;}")
             nm = QLabel(name); nm.setStyleSheet("color:#f1e3c6;font-weight:600;"); rl.addWidget(nm); rl.addWidget(badge(SRC_LABEL.get(backend, backend))); rl.addStretch(1)
             if newv: rl.addWidget(QLabel("→ %s" % newv))
             self.p_lay.addWidget(row)
+        # ⚠️ IL FIRMWARE STA PER CONTO SUO, E NON LO PORTA VIA «AGGIORNA TUTTO».
+        # Un pacchetto sbagliato si reinstalla; un firmware sbagliato lascia la
+        # scheda dov'e'. Perche' parta ci vuole un pulsante su QUEL dispositivo e
+        # un si' esplicito: e' l'unica operazione dell'Hub che non si puo'
+        # disfare.
+        if firmware:
+            fl = QLabel(L("Firmware", "Firmware"))
+            fl.setStyleSheet("color:#e8c878;font-size:16px;font-weight:700;margin-top:14px;")
+            self.p_lay.addWidget(fl)
+            av = QLabel(L("Il firmware non si disinstalla: se qualcosa va storto non "
+                          "si torna indietro da soli. Aggiornalo solo se sai perché "
+                          "lo stai facendo, e non mentre la scheda sta lavorando.",
+                          "Firmware cannot be uninstalled: if something goes wrong "
+                          "there is no way back on your own. Update it only if you "
+                          "know why you are doing it, and not while the machine is "
+                          "busy."))
+            av.setWordWrap(True); av.setStyleSheet("color:#d8a849;font-size:12px;")
+            self.p_lay.addWidget(av)
+            for _b, name, oldv, newv, ident in firmware:
+                row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(12, 8, 12, 8)
+                row.setStyleSheet("QFrame{background:rgba(216,168,73,0.06);border:1px solid rgba(216,168,73,0.28);border-radius:10px;}")
+                nm = QLabel(name); nm.setStyleSheet("color:#f1e3c6;font-weight:600;"); rl.addWidget(nm)
+                if oldv: rl.addWidget(QLabel("%s → %s" % (oldv, newv or "?")))
+                rl.addStretch(1)
+                b = QPushButton(L("Aggiorna", "Update"))
+                b.setStyleSheet("QPushButton{background:rgba(216,168,73,0.22);color:#f1e3c6;border-radius:9px;padding:6px 16px;font-weight:700;}")
+                b.clicked.connect(lambda _c=False, nn=name, ii=ident: self.aggiorna_firmware(nn, ii))
+                rl.addWidget(b)
+                self.p_lay.addWidget(row)
         self.p_lay.addStretch(1)
+
+    def aggiorna_firmware(self, nome, ident):
+        u"""Aggiorna il firmware di UN dispositivo, dopo averlo chiesto sul serio."""
+        if not ident:
+            self.statusBar().showMessage(
+                L("Questo dispositivo non dice il suo identificativo: fwupd non "
+                  "saprebbe quale aggiornare.",
+                  "This device does not report an id: fwupd would not know which "
+                  "one to update."), 6000)
+            return
+        r = QMessageBox.warning(
+            self, "SkillFishOS Hub",
+            L("Aggiornare il firmware di «%s»?\n\nNon si disinstalla e non si "
+              "torna indietro. Non spegnere la macchina finché non ha finito.",
+              "Update the firmware of “%s”?\n\nIt cannot be uninstalled and there "
+              "is no way back. Do not switch the machine off until it is done.") % nome,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if r != QMessageBox.StandardButton.Yes:
+            return
+        self._avvia_transazione("firmware", [ident],
+                                L("Aggiornamento del firmware di %s…",
+                                  "Updating the firmware of %s…") % nome)
+
     def update_all(self):
-        cmds = []
-        if have("apt-get"): cmds.append(["pkexec", HELPER, "apt-upgrade"])
-        if self.backend_on("flatpak"): cmds.append(["flatpak", "update", "-y", "--noninteractive"])
-        if self.backend_on("snap"): cmds.append(["pkexec", "snap", "refresh"])
-        self._run_chain(cmds, L("Aggiornamento di tutto il sistema…", "Updating the whole system…"))
-    def _run_chain(self, cmds, title):
-        dlg = QDialog(self); dlg.setWindowTitle("SkillFishOS Hub"); dlg.resize(700, 460)
-        v = QVBoxLayout(dlg); v.addWidget(QLabel(title)); log = QPlainTextEdit(); log.setReadOnly(True); v.addWidget(log)
-        bar = QProgressBar(); bar.setRange(0, 0); v.addWidget(bar)
-        cb = QPushButton(L("Chiudi", "Close")); cb.setEnabled(False); cb.clicked.connect(dlg.accept); v.addWidget(cb)
-        self._chain = list(cmds)
-        def nxt(_rc=0):
-            if not self._chain:
-                bar.setRange(0, 100); bar.setValue(100); cb.setEnabled(True); log.appendPlainText("\n" + L("✓ Aggiornamento completato.", "✓ Update complete.")); self.reload_catalog(); return
-            argv = self._chain.pop(0); log.appendPlainText("\n$ " + " ".join(argv))
-            self._op = Op(argv); self._op.line.connect(log.appendPlainText); self._op.done.connect(nxt); self._op.start()
-        nxt(); dlg.exec()
+        self._avvia_transazione("aggiorna", [],
+                                L("Aggiornamento di tutto il sistema…",
+                                  "Updating the whole system…"))
+
+    def _avvia_transazione(self, azione, argomenti, titolo):
+        u"""Fa partire il lavoro e apre la finestra che lo guarda.
+
+        ⚠️ Qui non si esegue niente: si chiede all'helper di farlo partire per
+        conto suo. Se la finestra muore — e durante un aggiornamento delle Qt
+        muore — il lavoro continua lo stesso, ed e' tutto il punto.
+        """
+        ok, messaggio = tx_avvia(azione, *argomenti)
+        if not ok:
+            QMessageBox.warning(self, "SkillFishOS Hub",
+                                messaggio or L("Non sono riuscito ad avviare l'operazione.",
+                                               "I could not start the operation."))
+            return
+        self._segui(titolo)
+
+    def _segui(self, titolo):
+        dlg = SeguiTransazione(self, titolo, alla_fine=lambda rc: self.reload_catalog())
+        dlg.exec()
+
+    def _riattacca_transazione(self):
+        u"""All'avvio: se qualcosa sta girando, riattaccatici.
+
+        E' la meta' che mancava allo staccare la transazione — se l'Hub riparte
+        e fa finta di niente, l'utente vede un sistema che si muove da solo
+        senza sapere perche'.
+        """
+        if not tx_in_corso():
+            return
+        self._dlg_tx = SeguiTransazione(
+            self, L("C'è un aggiornamento in corso", "An update is running"),
+            alla_fine=lambda rc: self.reload_catalog())
+        self._dlg_tx.show()   # non modale: l'Hub resta usabile mentre guarda
+
     def refresh_updates_badge(self):
         self._ub = Worker(self.cat.updates)
         self._ub.done.connect(lambda u: self.nav["updates"].setText("  ⟳   " + L("Aggiornamenti", "Updates") + ((" (%d)" % len(u)) if u else ""))); self._ub.start()
 
     def manual_refresh(self):
-        # a manual refresh should bypass the 24h ODRS ratings cache too
+        # un aggiornamento chiesto a mano deve saltare anche la cache di 24 ore
+        # delle valutazioni ODRS
         try:
             os.remove(os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
                                    "skillfish-hub", "odrs-ratings.json"))
         except OSError:
             pass  # no cache yet
-        cmds = [["pkexec", HELPER, "apt-update"]]
-        if self.backend_on("flatpak"): cmds.append(["flatpak", "update", "--appstream"])
-        self._run_chain(cmds, L("Aggiorno gli elenchi dei pacchetti…", "Refreshing the package lists…"))
+        self._avvia_transazione("elenchi", [],
+                                L("Aggiorno gli elenchi dei pacchetti…",
+                                  "Refreshing the package lists…"))
 
     def reload_catalog(self):
         self.statusBar().showMessage(L("Ricarico…", "Reloading…"))
         self.loader = Loader(); self.loader.done.connect(self._reloaded); self.loader.start()
     def _reloaded(self, cat):
+        self._snap_fatte = set()
         self.cat = cat; self.statusBar().clearMessage(); self.refresh_updates_badge()
         cur = self._hist[-1] if self._hist else ("home",)
         if cur[0] == "detail":
@@ -1628,15 +2499,15 @@ class Hub(QMainWindow):
         if keyurl.text().strip():
             rc, o, e = run(["bash", "-c", "curl -fsSL %s" % keyurl.text().strip()], 30)
             if rc == 0 and o:
-                run(["pkexec", HELPER, "key-add", nm, base64.b64encode(o.encode()).decode()], 30)
+                run(["pkexec", LOCALE, "key-add", nm, base64.b64encode(o.encode()).decode()], 30)
                 signed = "Signed-By: /usr/share/keyrings/%s.gpg\n" % nm
         content = "Types: deb\nURIs: %s\nSuites: %s\nComponents: %s\n%sEnabled: yes\n" % (uri.text().strip(), suite.text().strip(), comps.text().strip(), signed)
-        self._run_op(["pkexec", HELPER, "repo-add", nm, base64.b64encode(content.encode()).decode()], L("Aggiungo il repository…", "Adding the repository…"))
+        self._run_op(["pkexec", LOCALE, "repo-add", nm, base64.b64encode(content.encode()).decode()], L("Aggiungo il repository…", "Adding the repository…"))
     def repo_remove(self, name):
         if QMessageBox.question(self, "SkillFishOS", L("Rimuovere il repository '%s'?", "Remove the '%s' repository?") % (name,)) == QMessageBox.StandardButton.Yes:
-            self._run_op(["pkexec", HELPER, "repo-remove", name], L("Rimuovo il repository…", "Removing the repository…"))
+            self._run_op(["pkexec", LOCALE, "repo-remove", name], L("Rimuovo il repository…", "Removing the repository…"))
     def repo_enable(self, name, en):
-        run(["pkexec", HELPER, "repo-enable", name, "1" if en else "0"], 90)
+        run(["pkexec", LOCALE, "repo-enable", name, "1" if en else "0"], 90)
         self.statusBar().showMessage(L("Repository aggiornato. Ricarico…", "Repository updated. Reloading…")); self.reload_catalog()
 
 
