@@ -5,7 +5,7 @@ set -e
 # Il tag va tenuto allineato al kernel che pubblichiamo: con quello vecchio
 # la build NON fallisce, sforna in silenzio una ISO col kernel di giugno
 # senza le patch BC-250 della serie 7.1 e senza i P-state ACPI.
-KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.1.7-skillfishos}"
+KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.2.0-skillfishos}"
 # La release ha sei .deb (default, -generic, -slim): senza filtro se ne
 # installerebbero tre kernel insieme. VARIANTE sceglie quale prendere.
 VARIANTE="${SKILLFISH_KERNEL_VARIANT:-generic}"

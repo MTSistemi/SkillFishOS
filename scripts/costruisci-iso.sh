@@ -87,8 +87,8 @@ else
     echo "   ERRORE: manca la lista KDE, l'albero e' ancora quello vecchio"; exit 1
 fi
 [ -f config/package-lists/10-desktop-hyprland.list.chroot ] && { echo "   ERRORE: c'e' ancora la lista Hyprland"; exit 1; }
-grep -q 'kernel-7.1.7' config/hooks/normal/0005-install-tkg-kernel.hook.chroot \
-    && echo "   kernel: 7.1.7" || { echo "   ERRORE: tag del kernel non aggiornato"; exit 1; }
+grep -q 'kernel-7.2.0' config/hooks/normal/0005-install-tkg-kernel.hook.chroot \
+    && echo "   kernel: 7.2.0" || { echo "   ERRORE: tag del kernel non aggiornato"; exit 1; }
 [ -x config/includes.chroot/usr/local/bin/skillfish-fix-boot-extents ] \
     && echo "   script di correzione: eseguibili" \
     || { echo "   ERRORE: skillfish-fix-boot-extents non e' eseguibile"; exit 1; }

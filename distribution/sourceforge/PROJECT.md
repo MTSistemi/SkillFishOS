@@ -17,7 +17,7 @@ Ready-to-paste metadata for creating the SourceForge project (host of the ISO do
 **Zen 2 + RDNA 2** APU ("Oberon" CPU / "Cyan Skillfish" gfx1013 GPU, 16 GB GDDR6) — into a
 ready-to-use console-PC for gaming, emulation, local AI and everyday desktop use.
 
-Everything is pre-tuned: a custom **linux-tkg 7.0.10** kernel with the **40 Compute Unit**
+Everything is pre-tuned: a custom **linux-tkg** kernel — **7.0.11** in the image, **7.2.0** after the first update from our repository — with the **40 Compute Unit**
 unlock, a dedicated **SMU governor**, CPU/GPU overclock + undervolt profiles with an 85 °C
 thermal-guard, a consistent **steampunk** theme from boot to desktop, Btrfs snapshots with
 one-click rollback, Steam + EmuDeck + ES-DE + Heroic, and an on-device Vulkan AI stack.

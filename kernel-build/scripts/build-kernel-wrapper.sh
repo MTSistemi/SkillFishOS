@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the skillfishos-kernel wrapper for a given kernel version.
 # Usage: build_wrapper.sh <kver> <debver> <reltag>
-#   e.g. build_wrapper.sh 7.0.11-skillfishos 7.0.11-1 kernel-7.0.11-skillfishos
+#   e.g. build_wrapper.sh 7.2.0-skillfishos 7.2.0-1 kernel-7.2.0-skillfishos
 set -euo pipefail
 KVER="$1"; DEBVER="$2"; RELTAG="$3"
 OUT=/root/wrap; rm -rf "$OUT"; mkdir -p "$OUT/DEBIAN"

@@ -18,7 +18,7 @@ cd "$(dirname "$0")"
 REPO_DIR="$PWD/public"          # reprepro basedir == published root
 KEY_NAME="SkillFishOS Archive Signing Key"
 KEY_EMAIL="apt@skillfishos.com"
-KERNEL_TAG="kernel-7.0.10-skillfishos"
+KERNEL_TAG="kernel-7.2.0-skillfishos"
 GH="MTSistemi/SkillFishOS"
 
 mkdir -p "$REPO_DIR/conf"

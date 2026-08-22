@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="MTSistemi/SkillFishOS"
-TAG="${1:-kernel-7.0.10-skillfishos}"
+TAG="${1:-kernel-7.2.0-skillfishos}"
 DEBS_DIR="${DEBS_DIR:-/root/linux-tkg/DEBS}"
 API="https://api.github.com"
 UPLOADS="https://uploads.github.com"

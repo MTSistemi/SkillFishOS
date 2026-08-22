@@ -11,10 +11,10 @@ BC-250 setup.
 ## How the kernel is delivered (the 100 MB problem)
 
 GitHub (repos *and* Pages) rejects any file over **100 MB**, and the
-`linux-image-7.0.10-skillfishos` kernel `.deb` is **152 MB**. So:
+`linux-image-7.2.0-skillfishos` kernel `.deb` is **147 MB**. So:
 
 - the kernel `.deb` lives as a **GitHub Release asset** (2 GB limit) at tag
-  [`kernel-7.0.10-skillfishos`](https://github.com/MTSistemi/SkillFishOS/releases/tag/kernel-7.0.10-skillfishos);
+  [`kernel-7.2.0-skillfishos`](https://github.com/MTSistemi/SkillFishOS/releases/tag/kernel-7.2.0-skillfishos);
 - the APT pool ships a tiny **wrapper package** `skillfishos-kernel` (≈1.3 KB) whose
   `postinst` downloads that asset and installs it. So `apt install skillfishos-kernel`
   Just Works, and the whole repo still fits on GitHub Pages.
@@ -53,7 +53,7 @@ The repo is generated with **reprepro** on a Debian box (the BC-250 itself works
 ```sh
 sudo apt install reprepro gnupg curl
 # conf/distributions in this folder defines suite 'aetherium', amd64, component main
-reprepro -b <repo-dir> includedeb aetherium skillfishos-kernel_7.0.10-1_amd64.deb
+reprepro -b <repo-dir> includedeb aetherium skillfishos-kernel_7.2.0-1_amd64.deb
 reprepro -b <repo-dir> includedeb aetherium skillfish-tuner_*.deb   # as components get packaged
 gpg --export apt@skillfishos.com > skillfishos-archive-keyring.gpg
 ```
@@ -69,6 +69,6 @@ A `.gitattributes` of `* -text` on that branch keeps the **GPG-signed** files by
 
 | Package | Version | Notes |
 |---|---|---|
-| `skillfishos-kernel` | 7.0.10-1 | wrapper → fetches the linux-tkg kernel from the Release |
+| `skillfishos-kernel` | 7.2.0-1 | wrapper → fetches the linux-tkg kernel from the Release |
 
 Tuner, themes and configs will be added as native `.deb`s.

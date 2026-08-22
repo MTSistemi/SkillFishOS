@@ -6,7 +6,7 @@ The BC‑250 is a semi‑custom APU from the **AMD Zen 2 + RDNA 2** family: CPU 
 
 ---
 
-## 1. Custom kernel — `linux-tkg` 7.1.7‑skillfishos
+## 1. Custom kernel — `linux-tkg` 7.2.0‑skillfishos
 
 Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/linux-tkg) with:
 
