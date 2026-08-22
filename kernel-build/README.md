@@ -9,7 +9,17 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
 4. Put userpatches/*.mypatch into linux-tkg/linux70-tkg-userpatches/
    - 0001-bc250-freq-unlock.mypatch  (SCLK 350-2230 MHz)
    - 0002-bc250-40cu-unlock.mypatch  (40 CU, opt-in amdgpu.bc250_cc_write_mode=3) - from duggasco/bc250-40cu-unlock
-   - 0003-bc250-rdseed-quiet.mypatch (drops the cosmetic per-CPU `pr_emerg("RDSEED is not reliable...")` boot spam in arch/x86/kernel/cpu/amd.c; RDSEED is still correctly disabled via clear_cpu_cap/msr_clear_bit, just silently)
+   - 0003-bc250-rdseed-quiet.mypatch
+   - 0004-rtw89-fw-O2.mypatch      (fw.c does not build at -O3)
+   - 0005-bc250-vcn.mypatch         (registers VCN 2.0.3 behind amdgpu.bc250_vcn=1;
+     off by default, and there is no firmware for it -- see the VCN notes)
+   - 0006-bc250-8core-telemetry.mypatch (GPU clock readout with 8 cores unlocked:
+     the 8-core SMU metrics layout has no slot for GfxclkFrequency, so the driver
+     was reading a residency counter as a clock. Reads it from the firmware
+     instead. By higorprado, carried from GabriWar/bc250-core-cu-unlock.
+     ⚠️ Once this ships, check whether the Monitor's SMU sampler is still needed:
+     it works around this very bug, and two fixes for one bug is one too many.)
+ (drops the cosmetic per-CPU `pr_emerg("RDSEED is not reliable...")` boot spam in arch/x86/kernel/cpu/amd.c; RDSEED is still correctly disabled via clear_cpu_cap/msr_clear_bit, just silently)
 5. ./install.sh install  -> .deb in DEBS/  (then publish via scripts/publish-kernel.sh)
 
 Key config: BORE, GCC -O3, -march=znver2, 1000Hz, NTsync+fsync, no LTO, localversion=skillfishos.
