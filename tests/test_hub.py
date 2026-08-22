@@ -308,3 +308,32 @@ def test_the_final_state_is_written_even_when_the_action_stops_early():
     assert "trap 'scrivi_stato finita" in testo
     # gli argomenti si salvano prima: il trap gira dopo lo shift della funzione
     assert 'RICHIESTA="$*"' in testo
+
+
+def test_the_count_is_redone_at_the_end_of_the_transaction():
+    """The badge next to Updates must be true the moment the work ends.
+
+    The guard that keeps the daily count away from apt's lock used to catch
+    this call too -- the running transaction being the very one that just
+    finished -- so the number stayed a day old and nothing reported an error.
+    """
+    testo = MOTORE_SRC.read_text(encoding="utf-8")
+    fine = testo.split("esegui_azione()", 1)[1].split("conta_aggiornamenti()", 1)[0]
+    assert "conta_aggiornamenti dentro" in fine
+    corpo = testo.split("conta_aggiornamenti()", 1)[1]
+    assert '[ "${1:-}" != dentro ] && tx_attiva' in corpo
+
+
+def test_apt_waits_for_the_lock_instead_of_dying():
+    """Debian's own apt-daily timer runs whenever it likes.
+
+    If it holds the lock while the Hub works, apt exits 100 and the user reads
+    an error they can neither understand nor avoid. Waiting is the only sane
+    answer: the other one is a package list refresh, it takes seconds.
+    """
+    testo = MOTORE_SRC.read_text(encoding="utf-8")
+    assert "DPkg::Lock::Timeout" in testo
+    # anche gli apt-get update, che non passano da APTOPT
+    for riga in testo.splitlines():
+        if "apt-get" in riga and " update" in riga and not riga.strip().startswith("#"):
+            assert "ATTESA" in riga, riga

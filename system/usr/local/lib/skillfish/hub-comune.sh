@@ -37,8 +37,16 @@ mkdir -p "$STATO"; chmod 0755 /var/lib/skillfish "$STATO" 2>/dev/null || true
 #                                 resta lì per sempre e blocca il lock di dpkg.
 #   Dpkg::Use-Pty=0               senza terminale l'uscita esce a blocchi e il
 #                                 registro si vede a scatti.
+#   DPkg::Lock::Timeout           apt-daily.timer e' acceso di serie in Debian e
+#                                 fa il suo apt-get update quando gli pare. Se
+#                                 capita mentre il Hub sta lavorando, il lock e'
+#                                 suo e la nostra transazione muore con rc 100 e
+#                                 un errore che l'utente non puo' capire ne'
+#                                 evitare. Visto: 22/08/2026. Con questo apt
+#                                 aspetta due minuti che l'altro finisca.
+ATTESA=(-o DPkg::Lock::Timeout=120)
 APTOPT=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
-        -o Dpkg::Use-Pty=0)
+        -o Dpkg::Use-Pty=0 "${ATTESA[@]}")
 
 safe_name() { case "$1" in (''|*/*|*..*) echo "nome non valido" >&2; exit 2;; esac; }
 
@@ -94,11 +102,11 @@ esegui_azione() {
   local RC=0
   case "$AZIONE" in
     elenchi)
-      apt-get update || RC=$?
+      apt-get "${ATTESA[@]}" update || RC=$?
       command -v flatpak >/dev/null 2>&1 && flatpak update --appstream -y || true
       ;;
     aggiorna)
-      apt-get update || RC=$?
+      apt-get "${ATTESA[@]}" update || RC=$?
       apt-get "${APTOPT[@]}" full-upgrade || RC=$?
       if command -v flatpak >/dev/null 2>&1; then
         flatpak update -y --noninteractive || RC=$?
@@ -109,7 +117,7 @@ esegui_azione() {
       ;;
     installa)
       [ $# -ge 1 ] || { echo "nessun pacchetto"; exit 2; }
-      apt-get update || true
+      apt-get "${ATTESA[@]}" update || true
       apt-get "${APTOPT[@]}" install "$@" || RC=$?
       ;;
     rimuovi)
@@ -155,18 +163,28 @@ esegui_azione() {
       ;;
     *) echo "azione sconosciuta: $AZIONE"; exit 2 ;;
   esac
-  # il conteggio si rifà SEMPRE a fine transazione, così il numero accanto ad
-  # «Aggiornamenti» è vero appena finito invece che vecchio di un giorno
-  /usr/local/bin/skillfish-hub-helper conta >/dev/null 2>&1 || true
+  # Il conteggio si rifà SEMPRE a fine transazione, così il numero accanto ad
+  # «Aggiornamenti» è vero appena finito invece che vecchio di un giorno.
+  #
+  # ⚠️ Si chiama la funzione, e con «dentro». Prima qui si lanciava
+  # skillfish-hub-helper conta, che si tira dietro il controllo «c'è una
+  # transazione in corso? allora non conto» — e la transazione in corso è
+  # QUESTA. Il conteggio si tirava indietro ogni volta e il numero restava
+  # quello del giorno prima, senza che niente segnalasse l'errore.
+  conta_aggiornamenti dentro >/dev/null 2>&1 || true
   scrivi_stato finita "$RC" "$AZIONE" "$@"
   exit "$RC"
 }
 
-conta_aggiornamenti() {
+conta_aggiornamenti() {   # conta_aggiornamenti [dentro]
   # ⚠️ Se una transazione sta girando NON si tocca apt: il lock è suo, e
-  # aspettarlo qui vorrebbe dire un timer appeso per mezz'ora.
-  if tx_attiva; then echo "transazione in corso: non conto"; exit 0; fi
-  apt-get update >/dev/null 2>&1 || true
+  # aspettarlo qui vorrebbe dire un timer appeso per mezz'ora. L'eccezione è la
+  # chiamata che arriva dalla fine della transazione stessa, quando apt ha già
+  # finito e il lock è libero: lì il conteggio è proprio quello che serve.
+  if [ "${1:-}" != dentro ] && tx_attiva; then
+    echo "transazione in corso: non conto"; exit 0
+  fi
+  apt-get "${ATTESA[@]}" update >/dev/null 2>&1 || true
   APT=$(apt-get -s full-upgrade 2>/dev/null | grep -c '^Inst ')
   FLAT=0; SNAP=0; FW=0
   if command -v flatpak >/dev/null 2>&1; then
@@ -190,7 +208,7 @@ repo_aggiungi() {   # repo_aggiungi <nome> <base64 del file .sources>
   safe_name "$NAME"
   printf '%s' "$B64" | base64 -d > "${SRCDIR}/${NAME}.sources"
   chmod 0644 "${SRCDIR}/${NAME}.sources"
-  apt-get update
+  apt-get "${ATTESA[@]}" update
   echo "OK repo-add ${NAME}"
 }
 
@@ -198,7 +216,7 @@ repo_togli() {   # repo_togli <nome>
   local NAME="${1:-}"
   safe_name "$NAME"
   rm -f "${SRCDIR}/${NAME}.sources" "${SRCDIR}/${NAME}.list"
-  apt-get update || true
+  apt-get "${ATTESA[@]}" update || true
   echo "OK repo-remove ${NAME}"
 }
 
@@ -212,7 +230,7 @@ repo_accendi() {   # repo_accendi <nome> <0|1>
   else
     printf 'Enabled: %s\n' "$([ "$EN" = 1 ] && echo yes || echo no)" >> "$F"
   fi
-  apt-get update || true
+  apt-get "${ATTESA[@]}" update || true
   echo "OK repo-enable ${NAME}=${EN}"
 }
 
