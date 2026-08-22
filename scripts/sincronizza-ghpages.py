@@ -13,6 +13,7 @@ si copiano uno per uno con SFTP e si committano con git: l'archivio e' di 36
 file per 25 MB, non vale la pena rischiare per risparmiare qualche secondo.
 """
 import io
+import re
 import os
 import shutil
 import stat
@@ -97,8 +98,12 @@ def butta(percorso):
 if len(sys.argv) < 2:
     sys.exit("uso: sincronizza-ghpages.py <versione>   (esempio: 26.08.26)")
 VERSIONE = sys.argv[1]
-if not all(p.isdigit() for p in VERSIONE.split(".")) or VERSIONE.count(".") != 2:
-    sys.exit("versione non riconosciuta: %r (attesa tipo 26.08.26)" % VERSIONE)
+# ⚠️ Due forme, ed e' giusto cosi': le nostre applicazioni si numerano
+# 26.08.51, il meta-pacchetto del kernel usa la forma Debian 7.2.0-1. Prima
+# passava solo la prima, e per pubblicare il kernel bisognava scavalcare questo
+# controllo — cioe' togliere la rete di sicurezza nel rilascio piu' delicato.
+if not re.match(r"^\d+\.\d+\.\d+(-\d+)?$", VERSIONE):
+    sys.exit("versione non riconosciuta: %r (attesa tipo 26.08.26 oppure 7.2.0-1)" % VERSIONE)
 print("   allineo GitHub Pages alla %s" % VERSIONE)
 
 
