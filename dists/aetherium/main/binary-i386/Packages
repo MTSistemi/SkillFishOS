@@ -18,18 +18,18 @@ Description: SkillFish AI - on-device LLM control panel
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.08.48
+Version: 26.08.49
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.48_all.deb
-Size: 264288
-SHA256: 450781d731b5f73b5bfaf037c9e95bb33f55a44febf723ce478366abafddbb19
-SHA1: d15adc02bbd4d0d1f6ec676a0dd91c295451a1a2
-MD5sum: 1a8ce8779132c99d3d26e851b037a468
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.49_all.deb
+Size: 264160
+SHA256: 6bc01d7943c9951643b5daf08a7930810ea9a397a886c426e3ced33f93085d9d
+SHA1: b5e41b4b8e844309cd9a287e053065bfdc001152
+MD5sum: 6ccd26b7b2cf5df1bcf049a725d17967
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -118,18 +118,18 @@ Description: SkillFishOS Fan Control - fan curve with anticipation
  Part of SkillFishOS.
 
 Package: skillfish-hub
-Version: 26.08.48
+Version: 26.08.49
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.48_all.deb
-Size: 325640
-SHA256: 93feefb11731d6b678efa909919fa4081ed1a2d26a0551d9fb4d6f12792e09a4
-SHA1: cfb4ef4504f71b6466cf0c28cc04df4d586058f0
-MD5sum: 2c8bc8cb636469e7dd84ac423f3fa736
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.08.49_all.deb
+Size: 325800
+SHA256: 8bf309e6d6312efa50eea85843138a29fe3d9630e1f245d69e3331e5a339e942
+SHA1: 6b269f6fbbd0ec38ed216b512cbe95442ee9bc66
+MD5sum: 5693597c0625e6b72e091f63a99488ca
 Description: SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware
  One place for apt, Flatpak, Snap and device firmware: search, categories, app
  pages, sources. Updates keep running if the window closes, because the work is
