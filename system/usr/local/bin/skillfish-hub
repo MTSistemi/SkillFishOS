@@ -35,6 +35,8 @@ AETHERIUM = "aetherium"
 CFG_DIR = os.path.expanduser("~/.config/skillfishos")
 CFG_FILE = os.path.join(CFG_DIR, "hub.json")
 CACHE_DIR = os.path.join(os.path.expanduser("~/.cache"), "skillfish-hub")
+# Le copie che i nostri .deb installano: ripiego quando la rete non c'e'.
+SHOT_DIR = "/usr/share/skillfish/screenshots"
 SNAP_SOCK = "/run/snapd.socket"
 ODRS = "https://odrs.gnome.org/1.0/reviews/api"
 
@@ -829,10 +831,22 @@ class ImgLoad(QThread):
                         with urllib.request.urlopen(req, timeout=20) as r, open(cf, "wb") as o:
                             o.write(r.read())
                     pm.load(cf)
-                elif os.path.exists(url):
-                    pm.load(url)
+                else:
+                    # ⚠️ AppStream torna l'URI INTERO: per uno screenshot locale
+                    # e' «file:///usr/share/...», e os.path.exists() su quella
+                    # stringa e' falso sempre. Era per questo che il carosello
+                    # restava vuoto su tutte le nostre app.
+                    p = url[7:] if url.startswith("file://") else url
+                    if os.path.exists(p):
+                        pm.load(p)
             except Exception:
                 pm = QPixmap()
+            if pm.isNull():
+                # Ultima spiaggia: la copia che il pacchetto ha installato. Serve
+                # a chi non ha rete, o quando il sito non risponde.
+                loc = os.path.join(SHOT_DIR, os.path.basename(url.split("?")[0]))
+                if os.path.exists(loc):
+                    pm.load(loc)
             if not pm.isNull():
                 self.ready.emit(i, pm)
 
