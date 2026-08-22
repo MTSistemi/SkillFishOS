@@ -2,7 +2,7 @@ Origin: SkillFishOS
 Label: SkillFishOS
 Suite: proposed
 Codename: aetherium-proposed
-Date: Wed, 10 Jun 2026 00:30:36 UTC
+Date: Sat, 22 Aug 2026 16:14:26 UTC
 Architectures: amd64 i386
 Components: main
 Description: SkillFishOS staging - pre-release packages (48h soak before aetherium)

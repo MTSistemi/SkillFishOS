@@ -18,18 +18,18 @@ Description: SkillFish AI - on-device LLM control panel
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.08.43
+Version: 26.08.44
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.43_all.deb
-Size: 263308
-SHA256: d917d38d5c63e44df09f45973bf8a16243e0437167ef7285f19c37e589d8b34a
-SHA1: c00226baee1f003301e8a9cd9497ffacf47cdb94
-MD5sum: 4e0790c9cc3d4f97414b2538c0f78b12
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.44_all.deb
+Size: 263864
+SHA256: e5a46b49159ec9d0b18a5f1d5f9e7a2f2f6d8a7cfe4c6d0f313337cd560fe64a
+SHA1: 3a0b18fbc9ecf949dfc250beb7e4b8e3c9c5352d
+MD5sum: 81402e889750fa826d04bee0758a0600
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -254,18 +254,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.08.43
+Version: 26.08.44
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.43_all.deb
-Size: 424916
-SHA256: 64eec305031264019c5cacae772d325a1acb41d1c1cfbfb00370c51688c72174
-SHA1: e78e56380e7834871c66e87c7a77bbca93a11d5e
-MD5sum: 498b6604b0a7a34562ffeaf2e6461cb5
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.44_all.deb
+Size: 425368
+SHA256: f2f9ba7c4a8128358a1b81e1cda8003591f40728760defafb661ad9ff7d5c2fa
+SHA1: 157a194a56e15c78e1ac33bc30418008db57800b
+MD5sum: 2e6d0c35350deb0211cabb93ba1e427f
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and

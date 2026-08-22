@@ -5,7 +5,7 @@ Origin: SkillFishOS
 Label: SkillFishOS
 Suite: proposed
 Codename: aetherium-proposed
-Date: Wed, 10 Jun 2026 00:30:36 UTC
+Date: Sat, 22 Aug 2026 16:14:26 UTC
 Architectures: amd64 i386
 Components: main
 Description: SkillFishOS staging - pre-release packages (48h soak before aetherium)
@@ -41,8 +41,8 @@ SHA256:
  0844e3b94795d328055c6e8ee09c9182be147e8f662459ae085c3a6cf90803ef 178 main/source/Release
 -----BEGIN PGP SIGNATURE-----
 
-iHUEARYKAB0WIQStG/WR5N9IFk2Tv4pWdoUJms8MlAUCaiiwLAAKCRBWdoUJms8M
-lJAaAP4j+7vwEmxFzq9IFaoy+DvB2/WeuGf81LEn20W/9he/ywD/X7aWULqo1n5M
-6wBphf5eesuZ/p2Ed0zbQwo8D5wixQ4=
-=sk9t
+iHUEARYKAB0WIQStG/WR5N9IFk2Tv4pWdoUJms8MlAUCaonK4gAKCRBWdoUJms8M
+lLXvAP0YRmyjevsZLUYPL25F4FUARVWSuQ1hQnIDrjwMXN9vJAEAvr7YGFCUqMxc
+u28W2XJ2G2Rv7XZ1wMaSB3HdhXwDZw0=
+=5rVr
 -----END PGP SIGNATURE-----
