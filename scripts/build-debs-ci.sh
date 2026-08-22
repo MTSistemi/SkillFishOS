@@ -833,7 +833,13 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 # un nome diverso da __main__, quindi main() non parte: niente finestre, niente
 # password, nessun demone. Serve solo a rispondere alla domanda "si apre?".
 avvia() { # avvia <sorgente-python>
-  if QT_QPA_PLATFORM=offscreen python3 - "$1" <<'PYAVVIO' >/tmp/avvio.$$ 2>&1
+  # I moduli condivisi (hud_dati, aiuto, i18n) su una macchina vera stanno in
+  # /usr/share/skillfish, messi li' da skillfish-base. Qui quel pacchetto non
+  # e' installato: si indica la stessa cartella dentro al sorgente, altrimenti
+  # la prova boccia l'app per un file che nella CI non c'e' mai stato.
+  if QT_QPA_PLATFORM=offscreen \
+     PYTHONPATH="$PWD/system/usr/share/skillfish:${PYTHONPATH:-}" \
+     python3 - "$1" <<'PYAVVIO' >/tmp/avvio.$$ 2>&1
 import runpy, sys
 runpy.run_path(sys.argv[1], run_name="prova_di_avvio")
 PYAVVIO
