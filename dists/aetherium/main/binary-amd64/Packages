@@ -18,18 +18,18 @@ Description: SkillFish AI - on-device LLM control panel
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.08.52
+Version: 26.08.53
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.52_all.deb
-Size: 265264
-SHA256: 1547f143414d2e43f653f2b928dbac926418af14c7071c436c1b99416c39a1e9
-SHA1: 815d4f86d819fb72267f5204437a1f39861a9baf
-MD5sum: 95dbb50ac58b164c78c1982071c0d8bf
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.53_all.deb
+Size: 265236
+SHA256: 4f0b0d7898c6bc64daa6256238fc35e9b91f32b29383a23e7076727fa044a796
+SHA1: 4c529844366a402a995dc800c001d8990174a14a
+MD5sum: cb92c276727320ccc99222b80a32c5e1
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -254,18 +254,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.08.52
+Version: 26.08.53
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.52_all.deb
-Size: 1696544
-SHA256: c4ea77d0f748bd9a72a4a09844d4ba40dda7204f3d0a033b53e90463bfa896c3
-SHA1: 19fc1f4bdf740697bed8428aa550743878aa0648
-MD5sum: 7aec4bcb74824c928f445b0936d8e517
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.53_all.deb
+Size: 1696560
+SHA256: cf456c8d665f7bb00eda4f7c6167c4b1383a14cf70680fe8966535e946b3e314
+SHA1: 59201fcc5e44a5bb7267f8128b35607cf933ab2a
+MD5sum: f5882129fc8750f1591647b5efed5031
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
