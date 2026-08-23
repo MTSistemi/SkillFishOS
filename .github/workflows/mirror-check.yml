@@ -29,6 +29,10 @@ jobs:
           set -u
           PRIMARIO="https://skillfishos.com/apt"
           SPECCHIO="https://mtsistemi.github.io/SkillFishOS"
+          # Il terzo, in casa. Ultimo nell'elenco che vedono i client, ma
+          # qui conta quanto gli altri: se resta indietro, chi ci finisce
+          # sopra si vede rifiutare l'aggiornamento.
+          TERZO="https://deb.skillfishos.com"
           guasti=""
 
           leggi() {   # <url> <nome> -> stampa "pacchetto versione" per riga
@@ -45,6 +49,7 @@ jobs:
 
           leggi "$PRIMARIO" primario > /tmp/v-primario.txt || guasti="$guasti primario"
           leggi "$SPECCHIO" specchio > /tmp/v-specchio.txt || guasti="$guasti specchio"
+          leggi "$TERZO"    terzo    > /tmp/v-terzo.txt    || guasti="$guasti terzo"
 
           if [ -n "$guasti" ]; then
             echo "differiscono=si" >> "$GITHUB_OUTPUT"
@@ -54,14 +59,16 @@ jobs:
 
           echo "### skillfishos.com/apt"; cat /tmp/v-primario.txt
           echo "### GitHub Pages";        cat /tmp/v-specchio.txt
+          echo "### deb.skillfishos.com"; cat /tmp/v-terzo.txt
 
-          if diff -q /tmp/v-primario.txt /tmp/v-specchio.txt >/dev/null; then
+          if diff -q /tmp/v-primario.txt /tmp/v-specchio.txt >/dev/null \
+             && diff -q /tmp/v-primario.txt /tmp/v-terzo.txt >/dev/null; then
             echo "differiscono=no" >> "$GITHUB_OUTPUT"
-            echo "I due mirror servono le stesse versioni."
+            echo "Tutti e tre i mirror servono le stesse versioni."
           else
             echo "differiscono=si" >> "$GITHUB_OUTPUT"
             {
-              echo "I due mirror apt NON servono le stesse versioni."
+              echo "I mirror apt NON servono tutti le stesse versioni."
               echo
               echo '```diff'
               diff -u /tmp/v-primario.txt /tmp/v-specchio.txt || true
@@ -81,7 +88,7 @@ jobs:
           # e' successo con gh-pages svuotato da un tar sbagliato.
           v=$(awk '$1=="skillfish-base"{print $2}' /tmp/v-primario.txt)
           [ -n "$v" ] || { echo "::error::skillfish-base non e' nell'indice"; exit 1; }
-          for m in "https://skillfishos.com/apt" "https://mtsistemi.github.io/SkillFishOS"; do
+          for m in "https://skillfishos.com/apt" "https://mtsistemi.github.io/SkillFishOS" "https://deb.skillfishos.com"; do
             u="$m/pool/main/s/skillfish-base/skillfish-base_${v}_all.deb"
             code=$(curl -sSL -o /dev/null -w '%{http_code}' --max-time 120 "$u")
             echo "$m -> HTTP $code"
