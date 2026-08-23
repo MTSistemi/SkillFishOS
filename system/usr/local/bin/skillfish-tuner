@@ -1189,15 +1189,48 @@ class TunerWindow(QMainWindow):
                                 validation="Tuner GPU find-my-max wizard (vkpeak per step)")
 
     def _share_silicon(self, cpu=None, gpu=None, validation=""):
-        """Open the GitHub silicon-lottery report prefilled with the validated values.
-        Anonymous in content: only clocks/voltages, no identifiers (the user reviews
-        the form in the browser before submitting)."""
+        """Apre una DISCUSSIONE con i valori validati, gia' scritta.
+
+        ⚠️ Discussioni e non piu' issue: una segnalazione del silicio non si
+        risolve e non si chiude, quindi fra le cose da sistemare non ci sta.
+
+        ⚠️ E il corpo lo scriviamo noi. Il modello a campi chiedeva kernel e
+        versione all'utente, e nella prima segnalazione che ci e' arrivata quel
+        campo era vuoto: se un dato ce l'ha la macchina, non si chiede a chi
+        scrive. Restano fuori identificativi di ogni genere — solo frequenze,
+        tensioni, CU e versioni. Chi preme il pulsante rilegge tutto nel browser
+        prima di pubblicare.
+        """
         import webbrowser, urllib.parse
-        fields = {"template": "silicon-report.yml",
-                  "cpu-max": cpu or ("%d @ %d" % (self.cf.value(), self.cs.value())),
-                  "gpu-max": gpu or ("%d @ %d" % (self.gf.value(), self.gv.value())),
-                  "validation": validation or "SkillFishOS Tuner"}
-        webbrowser.open("https://github.com/MTSistemi/SkillFishOS/issues/new?" + urllib.parse.urlencode(fields))
+
+        def leggi(cmd):
+            try:
+                return subprocess.run(cmd, shell=True, capture_output=True,
+                                      text=True, timeout=5).stdout.strip() or "?"
+            except Exception:
+                return "?"
+
+        cu = self.cfg.get("cu", {}).get("active", "?")
+        corpo = (
+            "### GPU max stable (MHz @ mV)\n%s\n\n"
+            "### CPU max stable (MHz, undervolt offset if any)\n%s\n\n"
+            "### Compute Units stable\n%s / 40\n\n"
+            "### How was it validated?\n%s\n\n"
+            "### Kernel\n%s\n\n"
+            "### SkillFishOS Tuner\n%s\n\n"
+            "### Cooling and notes\n_(fill in: stock blower, extra fan, case, "
+            "temperatures, what failed at higher clocks)_\n"
+        ) % (gpu or ("%d @ %d" % (self.gf.value(), self.gv.value())),
+             cpu or ("%d @ %d" % (self.cf.value(), self.cs.value())),
+             cu,
+             validation or "SkillFishOS Tuner",
+             leggi("uname -r"),
+             leggi("dpkg-query -W -f='${Version}' skillfish-tuner 2>/dev/null"))
+        fields = {"category": "silicon-lottery",
+                  "title": "BC-250 stable clocks report",
+                  "body": corpo}
+        webbrowser.open("https://github.com/MTSistemi/SkillFishOS/discussions/new?"
+                        + urllib.parse.urlencode(fields))
 
     # ---------- find-my-max wizard (CPU) ----------
     # frequency/undervolt ladder: each step is benchmarked and rolled back if it

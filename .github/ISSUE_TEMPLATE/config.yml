@@ -3,6 +3,9 @@ contact_links:
   - name: 🔒 Report a security vulnerability
     url: https://github.com/MTSistemi/SkillFishOS/security/advisories/new
     about: "Please report security issues privately — see SECURITY.md. Do not open a public issue."
+  - name: 🎰 Silicon lottery — share your stable clocks
+    url: https://github.com/MTSistemi/SkillFishOS/discussions/categories/silicon-lottery
+    about: "Every BC-250 is different. Post your validated clocks there — the Tuner's «Share to the silicon DB» button fills it in for you."
   - name: 💬 Questions & help
     url: https://github.com/MTSistemi/SkillFishOS/discussions/categories/q-a
     about: Ask here first — installing, the board, the apps. Answered questions stay searchable.
