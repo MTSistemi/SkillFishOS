@@ -1226,7 +1226,7 @@ class TunerWindow(QMainWindow):
              validation or "SkillFishOS Tuner",
              leggi("uname -r"),
              leggi("dpkg-query -W -f='${Version}' skillfish-tuner 2>/dev/null"))
-        fields = {"category": "silicon-lottery",
+        fields = {"category": "silicon-lottery-users-db",
                   "title": "BC-250 stable clocks report",
                   "body": corpo}
         webbrowser.open("https://github.com/MTSistemi/SkillFishOS/discussions/new?"
