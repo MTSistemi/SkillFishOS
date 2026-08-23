@@ -365,6 +365,8 @@ var SFSTR = {
   t_h_preset: { it: "⚡ Preset", en: "⚡ Presets", pl: "⚡ Profile", uk: "⚡ Профілі",
                 ru: "⚡ Наборы", es: "⚡ Perfiles", pt: "⚡ Perfis", de: "⚡ Vorgaben",
                 fr: "⚡ Profils" },
+  t_fan_moved: { it: "La ventola ha un'applicazione sua, con la curva vera.", en: "The fan has an app of its own, with the real curve.", pl: "Wentylator ma własną aplikację, z prawdziwą krzywą.", uk: "Вентилятор має власний застосунок зі справжньою кривою.", ru: "У вентилятора своё приложение с настоящей кривой.", es: "El ventilador tiene su propia aplicación, con la curva real.", pt: "A ventoinha tem uma aplicação própria, com a curva real.", de: "Der Lüfter hat eine eigene Anwendung, mit der echten Kurve.", fr: "Le ventilateur a sa propre application, avec la vraie courbe." },
+  t_fan_open: { it: "Apri Ventola", en: "Open Fan", pl: "Otwórz Wentylator", uk: "Відкрити вентилятор", ru: "Открыть вентилятор", es: "Abrir ventilador", pt: "Abrir ventoinha", de: "Lüfter öffnen", fr: "Ouvrir le ventilateur" },
   t_h_fan: { it: "🌀 Ventola", en: "🌀 Fan", pl: "🌀 Wentylator", uk: "🌀 Вентилятор",
                 ru: "🌀 Вентилятор", es: "🌀 Ventilador", pt: "🌀 Ventoinha", de: "🌀 Lüfter",
              fr: "🌀 Ventilateur" },
