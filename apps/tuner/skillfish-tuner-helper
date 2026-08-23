@@ -309,13 +309,37 @@ def cu_test():
             "full40":full,"full40_err":full_err}
 
 def cu_apply(rows):
-    """Apply live per-row WGP masks (24..40 CU) via skillfish-cu. No reboot."""
+    """Apply live per-row WGP masks (24..40 CU) via skillfish-cu. No reboot.
+
+    ⚠️ L'ERRORE DI skillfish-cu VA RIPORTATO, NON BUTTATO.
+    Prima qui si teneva solo il codice di uscita e si restituiva {"ok": False}
+    senza "err": il Tuner cadeva sul suo ripiego e mostrava «apply failed», che
+    non dice niente e non permette nemmeno di fare una domanda sensata. Un
+    utente ci ha scritto proprio con quella frase e non avevamo modo di sapere
+    cosa fosse andato storto.
+
+    skillfish-cu l'errore ce l'ha e va bene com'e': «nessuna CU leggibile: umr
+    non sta parlando con la GPU» oppure «chieste N CU, ottenute M». Si prende
+    da stderr e si passa su.
+    """
     try:
+        # ⚠️ umr non lo installa nessun pacchetto: sta nelle immagini perche' la
+        # ISO clona la scheda di sviluppo. Se manca, il pannello non puo'
+        # funzionare e va detto qui, non lasciato scoprire da un errore oscuro.
+        if not os.path.exists("/usr/local/bin/umr"):
+            return {"ok": False, "err": "manca /usr/local/bin/umr, "
+                    "senza il quale le CU non si possono instradare"}
         r=[int(x)&0x1f for x in rows][:4]
         while len(r)<4: r.append(0x07)
-        rc=sh("/usr/local/bin/skillfish-cu set-rows %s"%(" ".join(str(x) for x in r))).returncode
+        p=sh("/usr/local/bin/skillfish-cu set-rows %s"%(" ".join(str(x) for x in r)))
         j=json.loads(sh("/usr/local/bin/skillfish-cu get").stdout)
-        return {"ok":rc==0,"active":j.get("active_cu"),"rows":j.get("rows")}
+        if p.returncode!=0:
+            motivo=(getattr(p,"stderr","") or "").strip() or (p.stdout or "").strip()
+            if not motivo:
+                motivo="skillfish-cu e' uscito con %d senza dire perche'"%p.returncode
+            return {"ok":False,"err":motivo,"uscita":p.returncode,
+                    "active":j.get("active_cu"),"rows":j.get("rows")}
+        return {"ok":True,"active":j.get("active_cu"),"rows":j.get("rows")}
     except Exception as e:
         return {"ok":False,"err":str(e)}
 
