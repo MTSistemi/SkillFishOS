@@ -105,7 +105,6 @@ PL = {
     "GPU governor mode": "Tryb governora GPU",
     "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nBoth modes use the governor's safe SMU path.": "Jak governor dobiera zegar GPU pod obciążeniem:\n\n• Zbalansowany: podnosi zegar tylko na tyle, na ile potrzeba — chłodniej i ciszej (domyślnie).\n• Performance: utrzymuje GPU na maksymalnym zegarze pod każdym obciążeniem w grach (najlepsze FPS w grach ograniczanych przez GPU, więcej ciepła i poboru mocy). W spoczynku i tak wraca do 350 MHz.\n\nOba tryby korzystają z bezpiecznej ścieżki SMU governora.",
     "VRAM (graphics memory)": "VRAM (pamięć graficzna)",
-    "Log": "Dziennik",
     "Tuner log": "Dziennik Tunera",
     "Refresh": "Odśwież",
     "Copy": "Kopiuj",
@@ -242,7 +241,6 @@ UK = {
     "How the governor picks the GPU clock under load:\n\n• Balanced: raises the clock only as much as needed — cooler and quieter (default).\n• Performance: holds the GPU at max clock under any gaming load (best FPS in GPU-bound games, more heat and power). It still returns to 350 MHz at idle.\n\nBoth modes use the governor's safe SMU path.":
         "Як регулятор обирає частоту ГП під навантаженням:\n\n• Збалансований: піднімає частоту лише настільки, наскільки потрібно — прохолодніше і тихіше (типово).\n• Продуктивність: тримає ГП на максимальній частоті за будь-якого ігрового навантаження (найкращий FPS в іграх, обмежених ГП, більше тепла і споживання). У спокої так само повертається до 350 МГц.\n\nОбидва режими використовують безпечний шлях SMU регулятора.",
     "VRAM (graphics memory)": "VRAM (графічна пам’ять)",
-    "Log": "Журнал",
     "Tuner log": "Журнал Tuner",
     "Refresh": "Оновити",
     "Copy": "Копіювати",
@@ -541,7 +539,7 @@ class FinestraGiornale(QDialog):
 
     def __init__(self, padre=None):
         super().__init__(padre)
-        self.setWindowTitle(L("Registro del Tuner", "Tuner log"))
+        self.setWindowTitle(L("Log del Tuner", "Tuner log"))
         self.resize(760, 460)
         v = QVBoxLayout(self)
         self.testo = QPlainTextEdit()
@@ -1066,7 +1064,7 @@ class TunerWindow(QMainWindow):
                           % freezes[-1].split(" ")[0])
             warn.setStyleSheet("color:#e0a050;font-size:11px;"); warn.setWordWrap(True); v.addWidget(warn)
         v.addWidget(self._btns(
-            (L("Registro", "Log"), self._apri_giornale, False),
+            (L("Log", "Log"), self._apri_giornale, False),
             (L("Condividi nel DB del silicio", "Share to the silicon DB"),
              lambda: self._share_silicon(validation="SkillFishOS Tuner - silicon status panel"), False),
         ))

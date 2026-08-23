@@ -33,7 +33,7 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.52" date="2026-08-23">
+    <release version="26.08.53" date="2026-08-23">
       <description>
           <p>Dictionary only: the words for the Tuner's new log window, in the languages served by the shared dictionary. Nothing else changed.</p>
           <p xml:lang="it">Solo dizionario: le parole della nuova finestra del registro del Tuner, nelle lingue servite dal dizionario condiviso. Nient'altro è cambiato.</p>
