@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS Telemetria</title>
+<!--
+  SkillFishOS Telemetria, a schermo intero.
+
+  ⚠️ QUESTA PAGINA NON DISEGNA NIENTE DI SUO. Grafici, barre per core e scala
+  degli assi stanno in telem.js, che carica anche la dashboard: sono lo stesso
+  codice, non due copie. Copiarlo qui sarebbe stata la strada corta e avrebbe
+  fatto divergere le due viste al primo ritocco, che in questo progetto e' gia'
+  successo con gli elenchi dei moduli.
+
+  I dati arrivano da /api/telemetry, lo stesso flusso della scheda nella
+  dashboard: nessun secondo lettore dei sensori.
+
+  La disposizione e' quella della scheda, ma larga: i grafici in griglia e le
+  barre per core sotto, cosi' chi conosce la dashboard sa gia' dov'e' cosa.
+-->
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--gold:#d8a849;--gold-lt:#e8c878;--copper:#b9722f;
+        --cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);
+       height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  header b{color:var(--gold-lt);font-size:1.05rem}
+  .sp{flex:1}
+  .pill{font-size:.72rem;color:#0d0b06;background:var(--gold);border-radius:9px;padding:1px 8px}
+  .pill.off{background:#6b5a34;color:#efe6d3}
+  main{flex:1;overflow:auto;padding:12px 14px 18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}
+  .chart{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .chart canvas{width:100%;height:150px;display:block}
+  .lab{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px;gap:10px}
+  .lab b{color:var(--cream)}
+  .cores{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .cwrap{display:flex;gap:8px;align-items:stretch;height:190px;margin-top:4px}
+  .cax{display:flex;flex-direction:column;justify-content:space-between;font-size:.68rem;color:var(--muted)}
+  .cgrid{display:none}
+  .cbars{display:flex;gap:4px;align-items:flex-end;flex:1}
+  .cbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
+  .cbar .v{font-size:.62rem;color:var(--muted)}
+  .cbar .t{width:100%;flex:1;display:flex;align-items:flex-end;background:rgba(216,168,73,.07);border-radius:3px}
+  .cbar .t .b{display:block;width:100%;border-radius:3px}
+  .cbar .n{font-size:.6rem;color:var(--muted);white-space:nowrap}
+  .vuoto{color:var(--muted);padding:18px;text-align:center}
+</style></head>
+<body>
+<header>
+  <b>📊 SkillFishOS · <span id="tit">Telemetria</span></b>
+  <span class="pill" id="live">live</span>
+  <span class="sp"></span>
+  <span id="host" style="color:var(--muted);font-size:.8rem"></span>
+</header>
+<main>
+  <div class="grid" id="grafici"></div>
+  <div class="cores" id="cores">
+    <div class="lab"><span id="lab-core">Frequenza per core (MHz)</span><span class="cstat"></span></div>
+    <div class="cwrap"><div class="cax"><i></i><div class="cat"></div><i></i></div>
+      <div class="cgrid"></div><div class="cbars"></div></div>
+  </div>
+  <div class="vuoto" id="vuoto" style="display:none"></div>
+</main>
+
+<!-- ⚠️ `$` va definito PRIMA di telem.js, che lo usa dentro renderCores. E in
+     app.js e' un `const`: qui non si carica app.js proprio per non trovarsi due
+     dichiarazioni dello stesso nome. -->
+<script>
+  const $ = (s, r = document) => r.querySelector(s);
+</script>
+<script src="/static/telem.js"></script>
+<script>
+(() => {
+  // Le etichette: si prendono dal dizionario condiviso, lo stesso che usa la
+  // dashboard, cosi' questa pagina parla la lingua dell'utente senza avere un
+  // suo elenco di traduzioni da tenere allineato.
+  // ⚠️ Se il dizionario non risponde si resta in inglese, non in italiano:
+  // e' la regola del progetto per ogni ripiego.
+  let VOCI = {};
+  const T = (k, rip) => (VOCI[k] || rip || k);
+
+  const box = $("#grafici"), grafici = [];
+  function costruisci() {
+    box.innerHTML = "";
+    grafici.length = 0;
+    TELEM.forEach(spec => {
+      const el = document.createElement("div");
+      el.className = "chart";
+      const etichette = spec.s.map(s =>
+        `<span style="color:${s.c}">${s.l} <b data-k="${s.k}">–</b></span>`).join(" ");
+      el.innerHTML = `<div class="lab"><span>${T(spec.t)} (${spec.u})</span>` +
+                     `<span>${etichette}</span></div><canvas></canvas>`;
+      box.appendChild(el);
+      grafici.push({ spec, m: new Mini($("canvas", el), spec.s), el });
+    });
+  }
+
+  function collega() {
+    const es = new EventSource("/api/telemetry");
+    es.onopen = () => { $("#live").classList.remove("off"); $("#live").textContent = T("live", "live"); };
+    es.onerror = () => {
+      // Non si nasconde la caduta: un grafico fermo che sembra vivo e' peggio
+      // di uno che dice «fermo». Il browser riprova da solo.
+      $("#live").classList.add("off");
+      $("#live").textContent = T("x_off", "fermo");
+    };
+    es.onmessage = ev => {
+      let v; try { v = JSON.parse(ev.data); } catch (e) { return; }
+      try { renderCores($("#cores"), v.cpu_threads); } catch (e) {}
+      grafici.forEach(g => {
+        g.m.push(g.spec.s.map(s => v[s.k]));
+        g.spec.s.forEach(s => {
+          const b = g.el.querySelector(`[data-k="${s.k}"]`);
+          if (b && v[s.k] != null) b.textContent = Math.abs(v[s.k]) >= 10
+            ? Math.round(v[s.k]) : v[s.k].toFixed(2);
+        });
+      });
+    };
+  }
+
+  fetch("/api/i18n?lang=" + encodeURIComponent((navigator.language || "en").slice(0, 2)))
+    .then(r => r.json()).then(d => { VOCI = (d && d.voci) || {}; })
+    .catch(() => {})
+    .then(() => {
+      document.title = "SkillFishOS " + T("m_telem", "Telemetry");
+      $("#tit").textContent = T("m_telem", "Telemetry");
+      $("#lab-core").textContent = T("t_percore", "Per-core frequency") + " (MHz)";
+      costruisci();
+      collega();
+    });
+
+  fetch("/api/status").then(r => r.json())
+    .then(s => { $("#host").textContent = (s && s.host) || ""; })
+    .catch(() => {});
+  window.addEventListener("resize", () => grafici.forEach(g => g.m.draw()));
+})();
+</script>
+</body></html>

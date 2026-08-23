@@ -695,6 +695,10 @@ put $P 0755 system/usr/local/bin/skillfish-dashboard-stop usr/local/bin/skillfis
 put $P 0755 apps/dashboard/skillfish-hub-catalog     usr/local/bin/skillfish-hub-catalog
 put $P 0644 apps/dashboard/web/index.html  usr/share/skillfish/dashboard/index.html
 put $P 0644 apps/dashboard/web/app.js      usr/share/skillfish/dashboard/app.js
+# ⚠️ telem.js PRIMA di tutto: contiene i grafici e la tabella TELEM che
+# app.js usa. Se manca, la dashboard resta a schermo bianco.
+put $P 0644 apps/dashboard/web/telem.js    usr/share/skillfish/dashboard/telem.js
+put $P 0644 apps/dashboard/web/telemetria.html usr/share/skillfish/dashboard/telemetria.html
 # i18n.js e' il dizionario condiviso delle pagine che NON caricano app.js
 # (tuner, hub, aichat). Se non viaggia nel pacchetto quelle tre pagine lo
 # chiedono, ricevono un 404 e restano senza traduzioni: il difetto sarebbe
