@@ -192,6 +192,65 @@ if [ $RC -ne 0 ]; then
     exit 1
 fi
 
+# --- firmware: la Generic va sui portatili, e li' serve ----------------------
+# ⚠️ TROVATO IL 23/08/2026 APRENDO L'IMMAGINE PUBBLICATA, non leggendo una
+# lista. Nella 26.06.5 Generic i pacchetti di firmware erano DUE:
+# firmware-amd-graphics e firmware-realtek. Niente iwlwifi, niente atheros,
+# niente brcm80211, niente mediatek. Su un portatile recente il Wi-Fi e' quasi
+# sempre Intel: senza firmware-iwlwifi la scheda non compare proprio, e a
+# schermo non c'e' niente che dica che manca un file. Sembra la rete rotta
+# invece che assente. Jim l'aveva segnalato il 25/06/2026 e gli avevamo
+# risposto "e' uscita una versione nuova".
+#
+# ⚠️ NON CERCARE LA RISPOSTA IN iso/config/package-lists: quello e' l'albero di
+# live-build, che con --firmware-chroot true si tira dentro 34 pacchetti di
+# firmware. Le immagini pubblicate pero' le fa eggs CLONANDO QUESTA SCHEDA,
+# quindi conta solo cosa e' installato qui. I due alberi raccontano cose
+# diverse, e la prima volta ho creduto all'albero sbagliato.
+#
+# Le due edizioni escono dallo stesso clone, quindi la differenza si fa qui:
+# per la Generic si installano, per la BC-250 si tolgono. Idempotente nei due
+# versi, cosi' non conta in che ordine si costruiscono le due immagini.
+#
+# ⚠️ firmware-realtek e firmware-amd-graphics NON si toccano: il primo serve
+# alla rete cablata di questa scheda, il secondo alla sua GPU.
+#
+# Quanto pesano, misurati il 23/08/2026 con la stessa compressione che usa
+# eggs (xz, filtro BCJ x86, blocchi da 1 MB): 526 MB sul disco, 191 MB dentro
+# la ISO. Il grosso e' iwlwifi (63 MB), atheros (42) e mediatek (35).
+# Volutamente FUORI: firmware-nvidia-graphics, da solo 102 MB compressi, cioe'
+# meta' di tutto il resto messo insieme; serve a nouveau sulle schede NVIDIA
+# recenti e si aggiunge qui se un giorno decidiamo che vale il prezzo.
+FW_PORTATILI="firmware-iwlwifi firmware-atheros firmware-brcm80211 firmware-mediatek firmware-ti-connectivity firmware-libertas firmware-misc-nonfree firmware-intel-misc firmware-intel-sound firmware-sof-signed firmware-intel-graphics"
+if [ "$EDIZIONE" = "generic" ]; then
+    echo "firmware: installo quelli dei portatili (Wi-Fi, Bluetooth, audio, grafica Intel)"
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $FW_PORTATILI; then
+        # Non si va avanti: un'immagine Generic senza firmware Wi-Fi e'
+        # esattamente il difetto che stiamo chiudendo, e chi la scarica non
+        # ha modo di capire perche' la rete non c'e'.
+        echo "FAIL-FIRMWARE" > "$ST"
+        echo "==== FALLITA: i firmware non si sono installati ===="
+        echo "     serve rete su questa scheda al momento della build"
+        exit 1
+    fi
+else
+    echo "firmware: edizione BC-250, tolgo quelli dei portatili se ci sono"
+    DA_TOGLIERE=""
+    for f in $FW_PORTATILI; do
+        if dpkg-query -W -f='${Status}' "$f" 2>/dev/null | grep -q "^install ok installed$"; then
+            DA_TOGLIERE="$DA_TOGLIERE $f"
+        fi
+    done
+    if [ -n "$DA_TOGLIERE" ]; then
+        # Se non se ne vanno non e' un disastro: l'immagine BC-250 esce piu'
+        # grossa di 191 MB, non rotta. Quindi si avvisa e si prosegue.
+        DEBIAN_FRONTEND=noninteractive apt-get purge -y $DA_TOGLIERE \
+            || echo "ATTENZIONE: non tolti, l'immagine BC-250 sara' piu' pesante"
+    else
+        echo "   non ce n'erano"
+    fi
+fi
+
 rm -f /home/eggs/mnt/*.iso 2>/dev/null
 
 # --- l'identita' della macchina di build resta fuori dall'immagine -----------
