@@ -57,7 +57,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.08.51
+Version: 26.08.55
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -66,11 +66,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.51_all.deb
-Size: 268988
-SHA256: 14e57b04ae4d5fc2886990c5564ea6ee28606cb202f5ea1324eaad9c39162ad3
-SHA1: 128001c2b77d033ea6659691c5f6903da423770a
-MD5sum: 6c5fad1265d71f4d18f5f672d1511c5b
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.55_all.deb
+Size: 273304
+SHA256: a16717968aa69de9d8f069341b26daf82898b35f0878297d116eadb4808a42f4
+SHA1: 17e15eecd0c86706581a5fbd71d9ba51f5736d87
+MD5sum: dc6cc0dc44e2c5a9fea0cb2325a558b4
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -98,18 +98,18 @@ Description: SkillFishOS Emulators - install emulators after the installation
  Part of SkillFishOS.
 
 Package: skillfish-fan
-Version: 26.08.51
+Version: 26.08.55
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, skillfish-base, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-fan/skillfish-fan_26.08.51_all.deb
-Size: 320168
-SHA256: c4737fcbde306b86fdcf27e636cdcd3a30f84c9058a4c99eda0bc7685e2db9e5
-SHA1: 081c59b82a8d5ba34a35017398f73f6d247288de
-MD5sum: c0bbbd75572f7b16d9a5962dfa7f553b
+Filename: pool/main/s/skillfish-fan/skillfish-fan_26.08.55_all.deb
+Size: 320532
+SHA256: b940b5a789219fcdbdc0cacff68e190513538bbb9da06c4e3de3eda3ab06f426
+SHA1: fd860d339802cf2091b88abfc001e9405202e017
+MD5sum: 4faf7bd3c69c06d7ece8c4e1f76c1e80
 Description: SkillFishOS Fan Control - fan curve with anticipation
  The fan curve, applied every second by a controller that runs with or without
  the window. It watches how fast the temperature climbs, and the watts on the
@@ -274,18 +274,18 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Part of SkillFishOS.
 
 Package: skillfishos-archive-keyring
-Version: 26.08.42
+Version: 26.08.55
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gnupg | gpgv
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.42_all.deb
-Size: 51940
-SHA256: a73a575f92d6d2fdc19164d6785b15f838affbd86a0399014f191e7584af7566
-SHA1: b08561fa25d21d7ee5f4bd7b7d24ad4b3d9b68ff
-MD5sum: 8d16eec76b01941254e626ffd722af87
+Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.55_all.deb
+Size: 56412
+SHA256: a134079730aee1b36e621c29e09473ab7968104abdc002eb23879f11376d8b22
+SHA1: 7daddcb51348ad63870f96e1ffa33b4cd669b943
+MD5sum: 3b9a051c7fd09bbcae22cd7af533932f
 Description: SkillFishOS archive keyring and APT source
  The signing key of our archive and the apt source that uses it. Without it apt
  cannot check where a SkillFishOS package came from.
