@@ -28,9 +28,21 @@ import os
 import re
 import sys
 
-NUOVO = "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png"
+# Il valore che si SCRIVE nella configurazione: un nome di icona, non un
+# percorso. Con Plasma 6.7.4 un percorso nel campo icon non viene onorato.
+NUOVO = "skillfish-menu-button"
+# Il file che deve ESISTERE perche' quel nome si risolva. Sono due cose diverse
+# e per questo hanno due nomi diversi: os.path.exists(NUOVO) sarebbe sempre
+# falso, e lo script uscirebbe senza riparare niente senza dirlo a nessuno.
+FILE_ICONA = "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png"
 VECCHI = {
     "skillfish-tuner",
+    # ⚠️ Il percorso assoluto del pesce giusto e' un valore DA MIGRARE, non
+    # quello di arrivo: con Plasma 6.7.4 un percorso nel campo icon non viene
+    # onorato e il pulsante esce come un quadrato di rumore (visto sul Fujitsu
+    # il 23/08/2026, dopo un riavvio pulito). Il nome invece si risolve, perche'
+    # il tema dichiara 256x256/apps e il file si chiama esattamente cosi'.
+    "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png",
     "/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png",
     "/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png",
     "skillfishos",   # i passaggi intermedi di quella sera: giusti come nome, ma
@@ -102,7 +114,7 @@ def sistema(percorso):
 
 
 def main():
-    if not os.path.exists(NUOVO):
+    if not os.path.exists(FILE_ICONA):
         return 0          # il tema non c'e': non e' compito nostro rimediare
     fatti = []
     for p in (["/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc"]

@@ -1344,7 +1344,7 @@ check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.p
 # ⚠️ Non e' piu' «skillfish-tuner»: quello era un nome di applicazione con
 # dentro il logo, e il giorno in cui il Tuner ha avuto la sua icona il menu si
 # e' ritrovato i cursori.
-check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png'
+check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc '^icon=skillfish-menu-button$'
 # ...e l'icona con quel nome deve stare DENTRO al nostro tema. Se manca, KDE
 # taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
 # stilizzato al posto di quello di ottone, senza dire niente a nessuno.
@@ -1467,7 +1467,7 @@ check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'perc
 # applicazione con dentro il logo — e il giorno in cui il Tuner ha avuto la
 # sua icona il menu si e' ritrovato i cursori.
 deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png" "skillfish-theme: il pesce del pannello"
-check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc 'customButtonImage=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png'
+check skillfish-theme_${VER}_all.deb ./etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc 'customButtonImage=skillfish-menu-button$'
 check skillfish-theme_${VER}_all.deb ./usr/local/bin/skillfish-menu-icon-fix 'org.kde.plasma.kickoff'
 
 

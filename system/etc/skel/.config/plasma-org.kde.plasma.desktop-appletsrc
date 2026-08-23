@@ -60,9 +60,9 @@ favoritesPortedToKAstats=true
 # Misurato sulle nostre due macchine: 6.7.2 lo mostra, 6.7.4 no, stesso file e
 # stessa impronta. Col nome lo risolve il tema di icone, che e' anche il modo
 # giusto: sceglie da solo la dimensione buona per l'altezza del pannello.
-icon=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png
+icon=skillfish-menu-button
 useCustomButtonImage=true
-customButtonImage=/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-menu-button.png
+customButtonImage=skillfish-menu-button
 
 [Containments][2][Applets][4]
 immutability=1
