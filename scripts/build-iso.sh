@@ -216,12 +216,19 @@ fi
 # alla rete cablata di questa scheda, il secondo alla sua GPU.
 #
 # Quanto pesano, misurati il 23/08/2026 con la stessa compressione che usa
-# eggs (xz, filtro BCJ x86, blocchi da 1 MB): 526 MB sul disco, 191 MB dentro
-# la ISO. Il grosso e' iwlwifi (63 MB), atheros (42) e mediatek (35).
-# Volutamente FUORI: firmware-nvidia-graphics, da solo 102 MB compressi, cioe'
-# meta' di tutto il resto messo insieme; serve a nouveau sulle schede NVIDIA
-# recenti e si aggiunge qui se un giorno decidiamo che vale il prezzo.
-FW_PORTATILI="firmware-iwlwifi firmware-atheros firmware-brcm80211 firmware-mediatek firmware-ti-connectivity firmware-libertas firmware-misc-nonfree firmware-intel-misc firmware-intel-sound firmware-sof-signed firmware-intel-graphics"
+# eggs (xz, filtro BCJ x86, blocchi da 1 MB): 679 MB sul disco, 293 MB dentro
+# la ISO. Il grosso e' nvidia-graphics (102 MB), iwlwifi (63), atheros (42) e
+# mediatek (35). Comprimendoli tutti insieme si guadagna mezzo MB rispetto alla
+# somma dei singoli: non c'e' nessuno sconto nascosto da sperare.
+#
+# firmware-nvidia-graphics da solo vale un terzo del totale, ed era rimasto
+# fuori per quello. Ci entra perche' i portatili a grafica ibrida sono
+# esattamente il caso da cui e' partita questa correzione, e su una NVIDIA
+# recente senza quel firmware nouveau non accende lo schermo.
+#
+# ⚠️ Se un giorno la ISO diventa troppo grossa, questo e' il primo posto dove
+# guardare, ma si tolga sapendo cosa si perde, non a caso.
+FW_PORTATILI="firmware-iwlwifi firmware-atheros firmware-brcm80211 firmware-mediatek firmware-ti-connectivity firmware-libertas firmware-misc-nonfree firmware-intel-misc firmware-intel-sound firmware-sof-signed firmware-intel-graphics firmware-nvidia-graphics"
 if [ "$EDIZIONE" = "generic" ]; then
     echo "firmware: installo quelli dei portatili (Wi-Fi, Bluetooth, audio, grafica Intel)"
     if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $FW_PORTATILI; then
