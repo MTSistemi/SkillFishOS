@@ -446,7 +446,20 @@ async function openSettings() {
   m.innerHTML = '<div class="setbox"><div class="fr-bar"><span class="fr-title">' + (T("x_mods")) + '</span><span class="fr-sp"></span><button class="fr-btn" id="set-x">✕</button></div><div class="setgrid">' + rows + "</div></div>";
   m.style.display = "flex";
   $("#set-x", m).onclick = () => m.style.display = "none";
-  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => { await action("/api/config", { module: cb.dataset.m, on: cb.checked }, T("x_updated")); buildDashboard(); });
+  m.querySelectorAll("[data-m]").forEach(cb => cb.onchange = async () => {
+    await action("/api/config", { module: cb.dataset.m, on: cb.checked }, T("x_updated"));
+    // ⚠️ DUE MECCANISMI, NON UNO. Oltre a `modules` sul server, c'e'
+    // `layout.hidden` nel localStorage, dove finisce ogni scheda chiusa con la
+    // ✕. buildDashboard() controlla anche quello e vince lui. Senza questa
+    // riga, chi aveva chiuso una scheda la trovava gia' spuntata qui, la
+    // toglieva, la rimetteva, e non succedeva niente: un interruttore che
+    // mente. Chi accende un modulo lo vuole vedere.
+    if (cb.checked && layout.hidden.includes(cb.dataset.m)) {
+      _toggleArr(layout.hidden, cb.dataset.m, false);
+      localStorage.setItem("sflayout", JSON.stringify(layout));
+    }
+    buildDashboard();
+  });
 }
 function copyable(value) {
   return '<span class="cpw"><b style="user-select:all">' + value + '</b> <button class="cpy" type="button" data-cp="' +
