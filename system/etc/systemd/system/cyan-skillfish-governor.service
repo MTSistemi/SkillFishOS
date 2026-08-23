@@ -2,6 +2,12 @@
 Description=Cyan Skillfish GPU Governor
 
 [Service]
+# ⚠️ La guardia hardware sta QUI e non solo nel postinst di
+# skillfish-base. Prima veniva iniettata con una sed al momento
+# dell'installazione: funziona, ma basta che qualcosa riscriva questo
+# file dopo e la macchina resta scoperta. Su un PC che non e' una
+# BC-250 il servizio parte, non trova le CU e fallisce a ogni avvio.
+ExecCondition=/usr/local/bin/skillfish-is-bc250
 ExecStart=/usr/bin/cyan-skillfish-governor /etc/cyan-skillfish-governor/config.toml
 Restart=on-failure
 RestartSec=5
