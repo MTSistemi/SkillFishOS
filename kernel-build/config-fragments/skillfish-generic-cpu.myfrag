@@ -1,0 +1,21 @@
+# Il kernel deve girare su QUALUNQUE macchina x86-64, non su quella che l'ha
+# costruito.
+#
+# ⚠️ PERCHE' QUESTO FRAMMENTO ESISTE. Il 23/08/2026 il primo kernel x64 costruito
+# fuori dalla BC-250 e' uscito con CONFIG_X86_NATIVE_CPU=y, cioe' -march=native,
+# tarato sul Xeon Kaby Lake della macchina di build. E questo nonostante
+# _processor_opt="x86-64" fosse impostato e linux-tkg iniettasse davvero
+# `-march=x86-64` nel Makefile: il simbolo arriva dal config di partenza, e con
+# tutti e due attivi vince l'ultimo -march sulla riga di comando, che non e'
+# una cosa su cui vale la pena scommettere.
+#
+# Un kernel «generic» tarato native e' esattamente il guasto che manda un utente
+# a vedere GRUB caricare e poi niente, ed e' gia' successo (issue #53).
+#
+# ⚠️ NON SERVE al flavour BC-250: li' la macchina di build e la macchina di
+# destinazione sono la stessa, e -march=znver2 e' voluto. Serve al generic e
+# all'x64, che e' proprio quello che si costruisce altrove.
+#
+# Trovato aprendo il .deb e leggendo il config, non fidandosi del nome del
+# pacchetto: e' l'unico controllo che l'ha visto.
+# CONFIG_X86_NATIVE_CPU is not set
