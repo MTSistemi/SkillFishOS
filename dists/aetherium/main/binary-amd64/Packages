@@ -274,18 +274,18 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Part of SkillFishOS.
 
 Package: skillfishos-archive-keyring
-Version: 26.08.55
+Version: 26.08.56
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gnupg | gpgv
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.55_all.deb
-Size: 56412
-SHA256: a134079730aee1b36e621c29e09473ab7968104abdc002eb23879f11376d8b22
-SHA1: 7daddcb51348ad63870f96e1ffa33b4cd669b943
-MD5sum: 3b9a051c7fd09bbcae22cd7af533932f
+Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.08.56_all.deb
+Size: 56540
+SHA256: 5d11b04504e988612502f3a620a66ec15d9404d34658bfd69b2961904e2ad6c0
+SHA1: 465aebfd26b2b75998500c9779cbbd55a05370a5
+MD5sum: d9fa9e1e34d569b9f970c3f6e19a1357
 Description: SkillFishOS archive keyring and APT source
  The signing key of our archive and the apt source that uses it. Without it apt
  cannot check where a SkillFishOS package came from.
