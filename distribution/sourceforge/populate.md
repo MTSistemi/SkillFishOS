@@ -26,7 +26,7 @@ SkillFishOS turns the cheap, salvaged **AMD BC-250** mining board — a semi-cus
 **Zen 2 + RDNA 2** APU ("Oberon" CPU / "Cyan Skillfish" gfx1013 GPU, 16 GB GDDR6) — into a
 ready-to-use console-PC for gaming, emulation, local AI and everyday desktop use.
 
-Everything is pre-tuned: a custom **linux-tkg** kernel — **7.0.11** in the image, **7.2.0** after the first update from our repository — with the **40 Compute Unit**
+Everything is pre-tuned: a custom **linux-tkg** kernel — **7.1.7** in the image, **7.2.0** after the first update from our repository — with the **40 Compute Unit**
 unlock, a dedicated **SMU governor**, CPU/GPU overclock + undervolt profiles with an 85 °C
 thermal-guard, a consistent **steampunk** theme from boot to desktop, Btrfs snapshots with
 one-click rollback, Steam + EmuDeck + ES-DE + Heroic, and an on-device Vulkan AI stack.
@@ -59,7 +59,7 @@ built and dogfooded directly on the real **AMD BC-250** — the cheap, salvaged 
 a console-class Zen 2 + RDNA 2 APU.
 
 **What's inside**
-- Custom **linux-tkg** kernel — **7.0.11** in the image, **7.2.0** from our repository — with the **40 Compute Unit unlock** (+85% FP32:
+- Custom **linux-tkg** kernel — **7.1.7** in the image, **7.2.0** from our repository — with the **40 Compute Unit unlock** (+85% FP32:
   11,385 vs 6,141 GFLOPS measured) and BC-250 quirk fixes (DisplayPort hot-swap, suspend, IOMMU).
 - **SMU governor** + CPU/GPU **overclock & undervolt** with four Tuner presets
   (Stock → Crazy, up to 4.0 GHz CPU / 2230 MHz GPU) and an 85 °C thermal-guard.
