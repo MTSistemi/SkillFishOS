@@ -17,10 +17,15 @@ I18N_DIR = "/usr/share/skillfish/i18n"   # il dizionario condiviso con le app
 HUD = "/usr/local/bin/skillfish-hud-val"
 SESSION_TTL = 8 * 3600
 
-# Cosa e' acceso appena installato. Tre restano spenti apposta: power
-# schedule spegne la macchina da solo, game streaming e' ancora «in
-# arrivo», e AI-Ops fa agire un modello sul sistema. Le altre no: una
-# dashboard che si presenta quasi vuota non fa capire cosa sa fare.
+# Cosa e' acceso appena installato. Quattro restano spenti apposta, e per lo
+# stesso motivo di fondo: fanno qualcosa che si sceglie, non che si subisce.
+#   power schedule -> spegne e accende la macchina da solo;
+#   game streaming -> e' ancora «in arrivo» nell'applicazione stessa;
+#   AI-Ops         -> fa agire un modello sul sistema;
+#   log            -> mette il giornale di sistema su una pagina web, e li'
+#                     dentro passano nomi di file, indirizzi, pezzi di comandi.
+# Tutto il resto e' acceso: una dashboard che si presenta quasi vuota non fa
+# capire cosa sa fare, ed era il difetto di prima (accesi solo due moduli).
 MODULI_PREDEFINITI = {
     "telemetry": True,
     "status": True,
@@ -28,13 +33,13 @@ MODULI_PREDEFINITI = {
     "ventola": True,
     "hud": True,
     "hub": True,
-    "logs": True,
     "launcher": True,
     "kvm": True,
     "terminal": True,
     "ai": True,
     "rules": True,
     "zerotier": True,
+    "logs": False,
     "gamestream": False,
     "aiops": False,
     "wol": False,
