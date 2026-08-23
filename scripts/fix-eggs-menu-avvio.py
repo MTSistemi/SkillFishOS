@@ -32,6 +32,28 @@ compilato per quella scheda e non parte altrove. Da fuori sembra una ISO rotta.
 Il menu e' l'ULTIMO punto in cui si puo' ancora dirglielo - dopo non c'e' piu'
 niente da leggere - e costa una riga di testo. Vedi la sezione 5.
 
+E una quinta, sempre dalla #53 e provata sul Proxmox il 24/08/2026: SECURE BOOT.
+Su un PC normale, che di fabbrica ce l'ha acceso, l'immagine NON PARTE. Lo shim
+firmato da Debian carica GRUB, GRUB prova a caricare il nostro kernel, e il
+kernel non e' firmato da nessuno che il firmware conosca:
+
+    Verification failed: Security Policy Violation
+    error: bad shim loader signature.
+    error: you need to load the kernel first.
+    Failed to boot both default and fallback entries.
+
+Provato con due macchine identiche a un solo interruttore di distanza, sul
+Proxmox 192.168.5.102: la 953 con Secure Boot acceso si ferma li', la 954 con
+Secure Boot spento arriva al desktop. Vale sia per la 26.06.4 sia per la 26.06.5.
+La BC-250 non ha Secure Boot: per questo il guasto si vede solo sui PC normali,
+ed e' esattamente la macchina di chi ha aperto la segnalazione.
+
+Quel messaggio dura un istante, dentro a un menu a tema, ed e' scritto per chi
+sa gia' cosa sia uno shim. Chi legge vede una ISO rotta. La sezione 6 mette al
+suo posto una spiegazione che dice cosa fare. ⚠️ NON fa partire l'immagine con
+Secure Boot acceso: per quello servirebbe un kernel firmato con una chiave che
+il firmware accetta, che e' un lavoro a parte.
+
 Questi file appartengono al pacchetto penguins-eggs: un suo aggiornamento li
 riscrive. Per questo la correzione sta in uno script che si rilancia, come gia'
 si fa per branding.js e per la configurazione di Calamares.
@@ -222,6 +244,78 @@ if EDIZIONE:
               lambda t: R_TIT.sub('title-text: "%s"' % titolo, t),
               "titolo: «%s»" % titolo)
 
+# --- 6. se il kernel non parte, dire perche' -------------------------------
+# Deve stare DOPO la 2 e la 5: quelle cercano le righe «linux ...» e i titoli
+# nella forma originale, e qui le righe cambiano forma.
+#
+# Oggi, con Secure Boot acceso, GRUB scrive «bad shim loader signature» e subito
+# dopo «you need to load the kernel first», dentro a un menu a tema, per un
+# istante. Chi legge non ha modo di capire ne' cosa sia successo ne' cosa fare.
+#
+# Con questa modifica il caricamento del kernel finisce dentro a un `if`: se
+# fallisce, si stampa una spiegazione e si aspetta che l'utente abbia letto.
+#
+# ⚠️ Non dice «Secure Boot» come se fosse certo: `linux` puo' fallire anche per
+# altro (supporto rovinato, file mancante). Dice qual e' la causa solita e
+# lascia visibile il messaggio di GRUB che sta appena sopra, che e' la prova.
+MARCA = "if linux {{{vmlinuz}}}"
+
+SPIEGA = [
+    'echo ""',
+    'echo "  This medium could not start its kernel."',
+    'echo ""',
+    'echo "  The usual cause is Secure Boot. SkillFishOS builds its own kernel,"',
+    'echo "  and no firmware vendor has signed it, so a machine with Secure Boot"',
+    'echo "  enabled refuses to start it. If the line above reads"',
+    'echo "      Verification failed: Security Policy Violation"',
+    'echo "  then that is what happened."',
+    'echo ""',
+    'echo "  Turn Secure Boot OFF in your BIOS/UEFI setup and start this medium"',
+    'echo "  again. It has to stay off while you use SkillFishOS, because the"',
+    'echo "  installed system runs the same kernel."',
+    'echo ""',
+    'echo "  Press a key to go back to the menu."',
+    "sleep --interruptible 300",
+]
+
+# linux ... / initrd ... / {{{devicetree}}}, con la stessa rientranza
+R_AVVIO = re.compile(
+    r'^(?P<i>[ \t]*)linux (?P<l>.*)\n'
+    r'(?P=i)initrd (?P<r>.*)\n'
+    r'(?P<dt>(?P=i)\{\{\{devicetree\}\}\}\n)?', re.M)
+
+
+def avvolgi(t):
+    def uno(m):
+        i = m.group("i")
+        dentro = i + "    "
+        righe = ["%sif linux %s ; then" % (i, m.group("l")),
+                 "%sinitrd %s" % (dentro, m.group("r"))]
+        if m.group("dt"):
+            righe.append(dentro + "{{{devicetree}}}")
+        righe.append("%selse" % i)
+        righe += [dentro + r for r in SPIEGA]
+        righe.append("%sfi" % i)
+        return "\n".join(righe) + "\n"
+    return R_AVVIO.sub(uno, t)
+
+
+n_file, gia = 0, 0
+for p in glob.glob(BASE + "/*/theme/livecd/*grub.main.cfg"):
+    t = io.open(p, encoding="utf-8", errors="replace").read()
+    if MARCA in t:
+        gia += 1
+        continue
+    n = avvolgi(t)
+    if n != t:
+        salva(p, n)
+        n_file += 1
+if n_file:
+    fatti.append("menu UEFI: se il kernel non parte, dice che e' Secure Boot "
+                 "(%d modelli)" % n_file)
+elif gia:
+    fatti.append("menu UEFI: la spiegazione su Secure Boot c'e' gia'")
+
 if not fatti:
     print("   niente da fare, e' gia' tutto a posto")
 for f in fatti:
@@ -239,9 +333,31 @@ for p in glob.glob(BASE + "/*/theme/livecd/*.cfg"):
             brutte += 1
 for p in glob.glob(BASE + "/*/theme/livecd/grub.main.cfg"):
     t = io.open(p, encoding="utf-8", errors="replace").read()
-    righe = [r for r in t.splitlines() if r.strip().startswith("linux ")]
-    if len(set(righe)) < len(righe):
+    # ⚠️ dalla sezione 6 in poi la riga comincia con «if linux »: cercando solo
+    # «linux » questo controllo troverebbe zero righe e passerebbe sempre, cioe'
+    # smetterebbe di controllare senza dirlo.
+    righe = [r.strip() for r in t.splitlines()
+             if r.strip().startswith("linux ") or r.strip().startswith("if linux ")]
+    if not righe:
+        print("      ANCORA: in %s non trovo nessuna riga di avvio" % os.path.basename(p))
+        brutte += 1
+    elif len(set(righe)) < len(righe):
         print("      ANCORA: in %s ci sono voci di menu identiche" % os.path.basename(p))
+        brutte += 1
+
+# La spiegazione su Secure Boot c'e', e ogni voce che carica un kernel ce l'ha:
+# una sola voce scoperta e' proprio quella che l'utente sceglie per prima.
+for p in glob.glob(BASE + "/*/theme/livecd/*grub.main.cfg"):
+    t = io.open(p, encoding="utf-8", errors="replace").read()
+    n_if = t.count("if linux {{{vmlinuz}}}")
+    n_nudi = len([r for r in t.splitlines() if r.strip().startswith("linux {{{vmlinuz}}}")])
+    if n_nudi:
+        print("      ANCORA: %s ha %d voci senza la spiegazione su Secure Boot"
+              % (os.path.basename(p), n_nudi))
+        brutte += 1
+    if n_if and "Security Policy Violation" not in t:
+        print("      ANCORA: %s avvolge l'avvio ma non spiega niente"
+              % os.path.basename(p))
         brutte += 1
 
 # Che la coda ci sia, che sia UNA sola, e che sia quella di QUESTA edizione:
