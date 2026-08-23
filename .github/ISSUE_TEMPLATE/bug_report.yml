@@ -27,7 +27,7 @@ body:
         line in the whole report: most "it does not boot" cases turn out to be the BC-250
         image on a PC that is not a BC-250. Write "installed from the APT repository, no ISO"
         if you did not use an image.
-      placeholder: "SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso"
+      placeholder: "SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso"
     validations:
       required: true
   - type: input
@@ -75,8 +75,10 @@ body:
       multiple: true
       options:
         - "Kernel / boot"
-        - "Tuner (CPU/GPU/CU/fan)"
-        - "AI panel / Ollama"
+        - "Tuner (CPU/GPU/CU)"
+        - "Fan Control"
+        - "Remote Manager (web dashboard)"
+        - "AI panel / on-device AI"
         - "ISO / Calamares installer"
         - "Snapshots / GRUB / btrfs"
         - "Theme / KDE desktop"
