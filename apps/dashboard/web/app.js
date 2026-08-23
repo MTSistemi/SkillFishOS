@@ -543,12 +543,13 @@ const RENDER = {
       `<div class="brow" style="margin-bottom:10px"><button class="dbtn" id="opentuner" style="border-color:var(--gold)">🎛️ ${T("c_full")}</button></div>` +
       `<div class="grp"><div class="gl">${T("c_preset")}</div><div class="brow">${presets}</div></div>` +
       `<div class="grp"><div class="gl">${T("c_gov")}</div><div class="brow"><button class="dbtn" data-gov="balanced">${T("c_bal")}</button><button class="dbtn" data-gov="performance">${T("c_perf")}</button></div></div>` +
-      `<div class="grp"><div class="gl">${T("c_fan")}</div><div class="brow"><button class="dbtn" data-fan="auto">${T("c_auto")}</button><input id="fanp" type="range" min="20" max="100" value="60" style="flex:1"><button class="dbtn" data-fanmanual="1">${T("c_man")}</button></div></div>`;
+      // La ventola non si comanda da qui: ha il suo modulo, con la curva
+      // vera e la pagina a schermo intero. Due posti sullo stesso PWM si
+      // sovrascrivono a vicenda.
+      "";
     $("#opentuner", card).onclick = () => openFrame("SkillFishOS Tuner", "/static/tuner.html");
     card.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => action("/api/tuner/preset", { name: b.dataset.preset }, T("c_applied", { x: b.dataset.preset })));
     card.querySelectorAll("[data-gov]").forEach(b => b.onclick = () => action("/api/tuner/govmode", { mode: b.dataset.gov }, "Governor: " + b.dataset.gov));
-    card.querySelector("[data-fan]").onclick = () => action("/api/tuner/fan", { mode: "auto" }, T("c_fan") + ": " + T("c_auto"));
-    card.querySelector("[data-fanmanual]").onclick = () => action("/api/tuner/fan", { mode: "manual", pct: +$("#fanp", card).value }, T("c_fan") + ": " + $("#fanp", card).value + "%");
   },
   async ventola(card) {
     // ⚠️ La scheda mostra i due numeri che si guardano e apre il modulo vero.
