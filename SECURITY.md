@@ -13,12 +13,16 @@ report those to their respective projects.
 | SkillFishOS release | **26.06.4 "Aetherium"** | security fixes |
 | SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 / 26.06.3 | superseded — upgrade to 26.06.4 |
 | SkillFishOS release | < 26.06 (pre-release) | no |
-| Kernel | `7.1.7-skillfishos` (+ `-generic`) | yes |
-| Kernel | `7.0.11-skillfishos` | previous series, best effort |
-| Apps | `skillfish-*` `26.08.26` | yes |
+| Kernel | `7.2.0-skillfishos` (+ `-generic`, `-slim`) | yes |
+| Kernel | `7.1.7-skillfishos` | previous series, best effort |
+| Kernel | `7.0.11-skillfishos` and older | no |
+| Apps | `skillfish-*` `26.08.55` or newer | yes |
 
-Fixes are delivered through the signed APT repository
-(<https://mtsistemi.github.io/SkillFishOS>) — `sudo apt update && sudo apt upgrade`.
+Fixes are delivered through the signed APT repository — `sudo apt update && sudo apt upgrade`.
+The installed system does not point at a single address: it carries a mirror list
+(<https://skillfishos.com/apt>, <https://mtsistemi.github.io/SkillFishOS>,
+<https://deb.skillfishos.com>) and apt walks it in order, so one mirror going down
+does not stop a security update from reaching you.
 
 ## Reporting a vulnerability
 
@@ -57,7 +61,9 @@ anonymous. We follow coordinated disclosure (typically 90 days, or sooner once a
 - The website ([`website/`](website/)) and the deploy tooling.
 
 **Out of scope**
-- Upstream Linux, Debian sid packages, Mesa, KDE, Ollama, open-webui, Docker, penguins-eggs.
+- Upstream Linux, Debian sid packages, Mesa, KDE, Unsloth Studio, penguins-eggs.
+  (Ollama, open-webui and Docker were here until 26.08; the AI stack is a single
+  native service now and they are no longer shipped at all.)
 - Issues that require the attacker to already be root, or physical access plus a willing operator.
 - The intentional, documented trade-offs listed below (open a discussion if you disagree).
 

@@ -18,7 +18,7 @@ Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/li
 
 > **Warning:** **Never enable IOMMU on the BC‑250** — it's broken on this hardware. Avoid kernels 6.15.0–6.15.6 and 6.17.8–6.17.10.
 
-Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.1.7-skillfishos). Two variants ship: **generic** (`-march=x86-64`, runs on any x64 box) and **slim** (BC‑250 only). Measured against 7.0.11 the two kernels are **identical within ±2%** — the update is for maintenance and security, not speed.
+Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.2.0-skillfishos). Three flavours ship: **main** (`-march=znver2`, BC‑250), **generic** (`-march=x86-64`, runs on any x64 box) and **slim** (BC‑250 only, lean module set). Measured against 7.0.11 and 7.1.7 the kernels are **identical within ±2%** — the update is for maintenance and security, not speed.
 
 ---
 
