@@ -33,17 +33,17 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.44" date="2026-08-22">
+    <release version="26.08.52" date="2026-08-23">
       <description>
-        <p>The undervolt figures shown by the Tuner are translated into every language the system speaks, and the Cyrillic ones use мВ rather than mV. Internal fixes to the core-unlock and memory-configuration tools, which were leaving file handles behind.</p>
-        <p xml:lang="it">I valori di undervolt mostrati dal Tuner sono tradotti in tutte le lingue del sistema, e in cirillico si scrivono мВ invece di mV. Correzioni interne agli strumenti di sblocco core e configurazione della memoria, che lasciavano indietro dei file aperti.</p>
-        <p xml:lang="fr">Les valeurs d'undervolt affichées par le Tuner sont traduites dans toutes les langues du système, et en cyrillique s'écrivent мВ plutôt que mV. Corrections internes aux outils de déverrouillage des cœurs et de configuration mémoire, qui laissaient des fichiers ouverts derrière eux.</p>
-        <p xml:lang="uk">Значення андервольту, які показує Tuner, перекладено всіма мовами системи, а кирилицею пишуться мВ, а не mV. Внутрішні виправлення в засобах розблокування ядер і налаштування пам'яті, які лишали по собі відкриті файли.</p>
-        <p xml:lang="ru">Значения андервольта, которые показывает Tuner, переведены на все языки системы, а кириллицей пишутся мВ, а не mV. Внутренние исправления в средствах разблокировки ядер и настройки памяти, оставлявших после себя открытые файлы.</p>
-        <p xml:lang="es">Los valores de undervolt que muestra el Tuner están traducidos a todos los idiomas del sistema, y en cirílico se escriben мВ en vez de mV. Correcciones internas en las herramientas de desbloqueo de núcleos y configuración de memoria, que dejaban archivos abiertos.</p>
-        <p xml:lang="pt">Os valores de undervolt que o Tuner mostra estão traduzidos em todas as línguas do sistema, e em cirílico escrevem-se мВ em vez de mV. Correções internas nas ferramentas de destravamento de núcleos e configuração de memória, que deixavam ficheiros abertos.</p>
-        <p xml:lang="de">Die vom Tuner angezeigten Undervolting-Werte sind in alle Sprachen des Systems übersetzt, und kyrillisch schreibt man мВ statt mV. Interne Korrekturen an den Werkzeugen für Kernfreischaltung und Speicherkonfiguration, die Dateien offen ließen.</p>
-        <p xml:lang="pl">Wartości undervoltu pokazywane przez Tuner są przetłumaczone na wszystkie języki systemu, a cyrylicą pisze się мВ zamiast mV. Wewnętrzne poprawki w narzędziach odblokowania rdzeni i konfiguracji pamięci, które zostawiały otwarte pliki.</p>
+          <p>Dictionary only: the words for the Tuner's new log window, in the languages served by the shared dictionary. Nothing else changed.</p>
+          <p xml:lang="it">Solo dizionario: le parole della nuova finestra del registro del Tuner, nelle lingue servite dal dizionario condiviso. Nient'altro è cambiato.</p>
+          <p xml:lang="fr">Dictionnaire seulement : les mots de la nouvelle fenêtre du journal du Tuner, dans les langues servies par le dictionnaire partagé. Rien d'autre n'a changé.</p>
+          <p xml:lang="uk">Лише словник: слова нового вікна журналу Tuner, мовами, які обслуговує спільний словник. Більше нічого не змінилося.</p>
+          <p xml:lang="ru">Только словарь: слова нового окна журнала Tuner, на языках, которые обслуживает общий словарь. Больше ничего не изменилось.</p>
+          <p xml:lang="es">Solo diccionario: las palabras de la nueva ventana de registro del Tuner, en los idiomas que sirve el diccionario compartido. Nada más ha cambiado.</p>
+          <p xml:lang="pt">Apenas dicionário: as palavras da nova janela de registo do Tuner, nas línguas servidas pelo dicionário partilhado. Mais nada mudou.</p>
+          <p xml:lang="de">Nur Wörterbuch: die Wörter für das neue Protokollfenster des Tuners, in den Sprachen, die das gemeinsame Wörterbuch bedient. Sonst hat sich nichts geändert.</p>
+          <p xml:lang="pl">Tylko słownik: słowa nowego okna dziennika Tunera, w językach obsługiwanych przez wspólny słownik. Nic więcej się nie zmieniło.</p>
       </description>
     </release>
   </releases>

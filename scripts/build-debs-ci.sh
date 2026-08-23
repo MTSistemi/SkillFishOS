@@ -158,11 +158,19 @@ put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-tuner.png usr/sh
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png usr/share/icons/hicolor/256x256/apps/skillfish-tuner.png
 put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/skillfish-cu.service
+# umr NON e' nostro: e' di AMD, licenza MIT, e senza di lui skillfish-cu non
+# instrada niente. Prima non lo spediva nessun pacchetto e stava nelle immagini
+# solo perche' la ISO clona la scheda di sviluppo: chi installava i .deb altrove,
+# o costruiva la ISO con live-build, si ritrovava il pannello delle CU che
+# falliva senza spiegazione. Ricostruito senza LLVM e senza GUI per non
+# dipendere da un soname che in sid cambia ogni pochi mesi.
+put $P 0755 vendor/umr/umr     usr/local/bin/umr
+put $P 0644 vendor/umr/LICENSE usr/share/doc/skillfish-tuner/umr-LICENSE
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 # Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
 shot $P apps/hud/os.skillfish.hud.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base" "SkillFishOS Tuner - BC-250 hardware control GUI" \
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g" "SkillFishOS Tuner - BC-250 hardware control GUI" \
   "Sets the CPU and GPU clocks, the voltage offset, how many compute units are
 in use and how much memory the graphics take. Presets from quiet to full, and
 a wizard that finds what this chip holds. Also brings the HUD configurator."
