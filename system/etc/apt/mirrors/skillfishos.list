@@ -1,0 +1,28 @@
+# Da dove SkillFishOS scarica gli aggiornamenti, in ordine di preferenza.
+#
+# ⚠️ NON E' UN ELENCO DECORATIVO: apt li prova davvero uno dopo l'altro. Se il
+# primo non risponde lo scarta e passa al successivo, e l'aggiornamento va
+# avanti lo stesso. Prima c'era un indirizzo solo: se cadeva quello, nessuno
+# aggiornava piu' niente.
+#
+# L'ordine conta due volte. Il primo e' quello che porta il traffico normale, e
+# quando il primo e' morto si perdono un paio di secondi per tentativo prima di
+# passare oltre.
+#
+# ⚠️ TUTTI I MIRROR DEVONO SERVIRE LO STESSO Release. Se uno resta indietro, un
+# client che ha gia' in cache quello nuovo rifiuta il vecchio e l'aggiornamento
+# si pianta. Per questo si pubblica con scripts/pubblica-tutto.py, che alla fine
+# confronta le impronte e non dice «fatto» finche' non combaciano.
+#
+# ⚠️ La firma dei pacchetti non dipende da questo file. Qualunque mirror serve lo
+# stesso Release firmato con la nostra chiave, e Signed-By nel file .sources la
+# pretende: un mirror ostile non puo' infilare pacchetti, al massimo servire roba
+# vecchia. Per questo pero' l'elenco stesso viaggia firmato (vedi
+# skillfish-aggiorna-mirror): chi decide l'elenco decide da dove scarichi.
+#
+# Questo file lo aggiorna da solo skillfish-aggiorna-mirror.timer, una volta a
+# settimana, cosi' i mirror nuovi arrivano senza aspettare un aggiornamento del
+# pacchetto. Modificarlo a mano funziona, ma al prossimo giro viene riscritto.
+
+https://skillfishos.com/apt
+https://mtsistemi.github.io/SkillFishOS

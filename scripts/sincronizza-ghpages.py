@@ -149,7 +149,11 @@ tot = 0
 for cartella in ("dists", "pool"):
     tot += scarica_ricorsivo(sf, "/srv/apt/" + cartella,
                              os.path.join(SCARICO, cartella))
-for chiave in ("skillfishos-archive-keyring.asc", "skillfishos-archive-keyring.gpg"):
+# ⚠️ mirrors.list.gpg compreso: e' l'elenco firmato dei mirror, e un client
+# che ripiega su questo mirror deve trovarlo QUI, se no non scopre mai i
+# mirror nuovi proprio quando gli servirebbe.
+for chiave in ("skillfishos-archive-keyring.asc", "skillfishos-archive-keyring.gpg",
+               "mirrors.list.gpg"):
     try:
         sf.get("/srv/apt/" + chiave, os.path.join(SCARICO, chiave))
         tot += 1
@@ -179,7 +183,11 @@ print("   ramo gh-pages clonato")
 for cartella in ("dists", "pool"):
     butta(os.path.join(CLONE, cartella))
     shutil.copytree(os.path.join(SCARICO, cartella), os.path.join(CLONE, cartella))
-for chiave in ("skillfishos-archive-keyring.asc", "skillfishos-archive-keyring.gpg"):
+# ⚠️ mirrors.list.gpg compreso: e' l'elenco firmato dei mirror, e un client
+# che ripiega su questo mirror deve trovarlo QUI, se no non scopre mai i
+# mirror nuovi proprio quando gli servirebbe.
+for chiave in ("skillfishos-archive-keyring.asc", "skillfishos-archive-keyring.gpg",
+               "mirrors.list.gpg"):
     s = os.path.join(SCARICO, chiave)
     if os.path.exists(s):
         shutil.copy2(s, os.path.join(CLONE, chiave))

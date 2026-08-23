@@ -1,0 +1,20 @@
+[Unit]
+Description=SkillFishOS: aggiorna l'elenco dei mirror apt
+Documentation=https://skillfishos.com
+# Senza rete non c'e' niente da chiedere a nessuno.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-aggiorna-mirror
+# Se fallisce non e' un guasto: si tiene l'elenco di prima e si riprova la
+# settimana dopo. Un servizio che va in stato «failed» per questo riempirebbe
+# il pannello di allarmi rossi per niente.
+SuccessExitStatus=0 1
+# Tocca un file solo, e nient'altro deve poter toccare.
+ProtectSystem=strict
+ReadWritePaths=/etc/apt/mirrors
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes

@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""Tiene aggiornato l'elenco dei mirror, cosi' i nuovi arrivano da soli.
+
+PERCHE'. L'elenco locale (/etc/apt/mirrors/skillfishos.list) risolve il caso
+«un mirror e' caduto». Non risolve «ne abbiamo aggiunto uno»: quello resterebbe
+sconosciuto finche' l'utente non aggiorna il pacchetto del keyring — e se il
+mirror che conosce e' proprio quello caduto, non aggiorna neanche quello.
+Qui l'elenco si rinfresca da solo, provando i mirror che gia' conosce.
+
+⚠️ L'ELENCO ARRIVA FIRMATO, E LA FIRMA SI VERIFICA. Non perche' qualcuno possa
+infilarci pacchetti — quelli restano firmati e Signed-By li protegge — ma
+perche' chi decide l'elenco decide DA DOVE scarichi: potrebbe servire versioni
+vecchie in eterno o guardarsi le richieste di chi aggiorna. Si verifica con la
+stessa chiave dell'archivio, che su ogni macchina c'e' gia'.
+
+⚠️ NON SI SCRIVE MAI UN ELENCO VUOTO O SENZA MIRROR VALIDI. Un file rotto qui
+lascia la macchina senza nessuna sorgente: il guasto peggiore possibile, perche'
+toglie anche lo strumento con cui rimediare. Si scrive solo dopo aver
+verificato firma e contenuto, e si scrive di fianco e si sposta.
+"""
+from __future__ import unicode_literals, print_function
+
+import io
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import urllib.request
+
+ELENCO = "/etc/apt/mirrors/skillfishos.list"
+CHIAVE = "/usr/share/keyrings/skillfishos-archive-keyring.gpg"
+NOME_REMOTO = "/mirrors.list.gpg"          # firmato in chiaro, accanto al Release
+TEMPO = 25
+
+
+def leggi_locale():
+    u"""I mirror che conosciamo adesso: servono per andare a cercare l'elenco."""
+    fuori = []
+    try:
+        with io.open(ELENCO, encoding="utf-8") as f:
+            for riga in f:
+                riga = riga.strip()
+                if riga and not riga.startswith("#"):
+                    fuori.append(riga.rstrip("/"))
+    except (IOError, OSError):
+        pass
+    return fuori
+
+
+def valida(testo):
+    u"""Da un elenco firmato tira fuori le URL, o niente se non e' credibile.
+
+    Si accettano solo https: un mirror in http si potrebbe leggere per strada,
+    e non c'e' nessun motivo per averne uno oggi.
+    """
+    url = []
+    for riga in testo.split("\n"):
+        riga = riga.strip()
+        if not riga or riga.startswith("#"):
+            continue
+        if not re.match(r"^https://[A-Za-z0-9.:@_-]+(/[A-Za-z0-9._~%/-]*)?$", riga):
+            sys.stderr.write("riga scartata, non e' un indirizzo https: %s\n" % riga[:60])
+            continue
+        url.append(riga.rstrip("/"))
+    return url
+
+
+def scarica_e_verifica(base):
+    u"""Prende l'elenco firmato da un mirror e ne verifica la firma."""
+    try:
+        with urllib.request.urlopen(base + NOME_REMOTO, timeout=TEMPO) as f:
+            firmato = f.read()
+    except Exception as e:
+        sys.stderr.write("%s: %s\n" % (base, e))
+        return None
+    if not os.path.exists(CHIAVE):
+        sys.stderr.write("manca la chiave %s: non verifico, non scrivo\n" % CHIAVE)
+        return None
+    with tempfile.NamedTemporaryFile(delete=False) as t:
+        t.write(firmato)
+        percorso = t.name
+    casa = None          # la casa usa e getta di gpg, creata piu' sotto
+    try:
+        # ⚠️ NON si da' per scontato gpgv: con apt 3 il verificatore di sistema
+        # e' sqv e gpgv puo' mancare del tutto (sul Fujitsu manca). `gnupg` c'e'
+        # di sicuro, perche' il pacchetto del keyring lo pretende, e
+        # `gpg --verify` legge le firme in chiaro come gpgv.
+        # ⚠️ gpg vuole una casa dove lavorare, e sotto systemd non ce l'ha:
+        # l'unita' ha ProtectHome=yes, quindi /root/.gnupg e' irraggiungibile e
+        # la verifica falliva con «firma non valida» — cioe' mentendo sul
+        # motivo. A mano funzionava, e questo e' il tipo di guasto che si vede
+        # solo facendo partire il servizio per davvero.
+        casa = tempfile.mkdtemp(prefix="skillfish-gpg-")
+        os.chmod(casa, 0o700)
+        comandi = [["gpgv", "--keyring", CHIAVE, percorso],
+                   ["gpg", "--homedir", casa, "--no-default-keyring",
+                    "--keyring", CHIAVE, "--verify", percorso]]
+        p = None
+        for c in comandi:
+            try:
+                p = subprocess.run(c, capture_output=True, text=True)
+                break
+            except OSError:
+                continue          # quel programma non c'e': si prova il prossimo
+        if p is None:
+            # Fallire CHIUSO: senza poter verificare, un elenco scaricato non
+            # vale piu' di uno inventato, quindi si tiene quello che si ha.
+            sys.stderr.write("nessun verificatore di firme (gpgv o gpg):"
+                             " non aggiorno\n")
+            return None
+        if p.returncode != 0:
+            sys.stderr.write("%s: firma non valida, lo butto\n%s\n" % (base, p.stderr[-300:]))
+            return None
+        # il testo dentro la firma in chiaro
+        dentro = firmato.decode("utf-8", "replace")
+        i = dentro.find("\n\n")
+        j = dentro.find("-----BEGIN PGP SIGNATURE-----")
+        if i < 0 or j < 0:
+            sys.stderr.write("%s: non e' una firma in chiaro\n" % base)
+            return None
+        return valida(dentro[i + 2:j])
+    finally:
+        os.unlink(percorso)
+        # la casa di gpg era usa e getta: si butta, con dentro quel che c'e'
+        if casa:
+            import shutil
+            shutil.rmtree(casa, ignore_errors=True)
+
+
+def testata_attuale():
+    u"""Le righe di commento in cima al file, che spiegano a cosa serve.
+
+    ⚠️ SI TENGONO SOLO LE RIGHE CHE COMINCIANO CON «#». Prima tagliavo il file
+    al primo «\\nhttps://» e tenevo tutto quello che c'era prima: su un file
+    senza commenti quel taglio non trovava niente e si portava dentro la prima
+    URL come se fosse testata, che poi veniva riscritta sotto. Risultato,
+    provato: un elenco di due mirror diventava di tre, con un doppione.
+    """
+    righe = []
+    try:
+        with io.open(ELENCO, encoding="utf-8") as f:
+            for riga in f:
+                if riga.startswith("#") or not riga.strip():
+                    righe.append(riga.rstrip("\n"))
+                else:
+                    break
+    except (IOError, OSError):
+        pass
+    return "\n".join(righe) or "# Da dove SkillFishOS scarica gli aggiornamenti."
+
+
+def scrivi(url):
+    nuovo = testata_attuale().rstrip("\n") + "\n\n" + "\n".join(url) + "\n"
+    cartella = os.path.dirname(ELENCO)
+    if not os.path.isdir(cartella):
+        os.makedirs(cartella)
+    # di fianco e poi si sposta: se manca la corrente a meta' scrittura, la
+    # macchina resta con l'elenco di prima invece che con mezzo file
+    tmp = ELENCO + ".nuovo"
+    with io.open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        f.write(nuovo)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, ELENCO)
+
+
+def main():
+    conosciuti = leggi_locale()
+    if not conosciuti:
+        sys.stderr.write("nessun mirror conosciuto: non so a chi chiedere\n")
+        return 1
+    for base in conosciuti:
+        url = scarica_e_verifica(base)
+        if not url:
+            continue
+        # ⚠️ Non si scrive un elenco che non contiene nessun mirror: meglio
+        # tenersi quello di prima che restare senza sorgenti.
+        if len(url) < 1:
+            sys.stderr.write("%s: elenco vuoto, non lo uso\n" % base)
+            continue
+        if url == conosciuti:
+            print("elenco gia' aggiornato (%d mirror)" % len(url))
+            return 0
+        scrivi(url)
+        print("elenco aggiornato da %s: %d mirror" % (base, len(url)))
+        for u in url:
+            print("   " + u)
+        return 0
+    sys.stderr.write("nessun mirror ha dato un elenco valido: tengo quello che ho\n")
+    return 0          # non e' un errore da far fallire il timer: si riprova
+
+
+if __name__ == "__main__":
+    sys.exit(main())

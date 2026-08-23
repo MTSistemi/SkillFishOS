@@ -1,0 +1,14 @@
+[Unit]
+Description=SkillFishOS: controlla ogni settimana se ci sono mirror nuovi
+
+[Timer]
+OnCalendar=weekly
+# ⚠️ Sparpagliato su sei ore. Senza, tutte le macchine chiederebbero l'elenco
+# nello stesso istante e ci faremmo un piccolo attacco da soli.
+RandomizedDelaySec=6h
+# Se la macchina era spenta quando toccava, si recupera al primo avvio utile:
+# un portatile acceso due volte a settimana non deve restare indietro per sempre.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

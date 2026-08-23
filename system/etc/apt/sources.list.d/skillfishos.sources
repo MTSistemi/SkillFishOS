@@ -1,16 +1,23 @@
-# Repository dei pacchetti SkillFishOS.
+# Da dove arrivano gli aggiornamenti di SkillFishOS.
 #
-# Sta su GitHub Pages e non sul nostro dominio per un motivo pratico: le
-# macchine installate aggiornano da qui, e GitHub regge un picco di traffico
-# senza battere ciglio, mentre l'hosting del sito ha una quota che si e' gia'
-# riempita una volta lasciando il repository monco a meta' pubblicazione.
-# Su https://skillfishos.com/apt c'e' la stessa roba, come riserva.
+# ⚠️ NON C'E' PIU' UN INDIRIZZO SOLO. Qui c'era GitHub Pages e basta: se cadeva
+# quello, nessuna macchina installata aggiornava piu' niente, e il secondo
+# mirror che avevamo gia' non lo usava nessuno. Adesso c'e' un elenco, e apt li
+# prova a turno: se il primo non risponde lo scarta e passa al successivo.
+# Provato: con il primo mirror inesistente apposta, apt lo tenta tre volte, lo
+# ignora e scarica dal secondo.
+#
+# L'elenco sta in /etc/apt/mirrors/skillfishos.list e lo tiene aggiornato
+# skillfish-aggiorna-mirror.timer, cosi' i mirror nuovi arrivano da soli senza
+# aspettare un aggiornamento del pacchetto.
 #
 # La firma e' verificata con la chiave installata da questo stesso pacchetto:
 # senza Signed-By apt accetterebbe qualunque firma conosciuta, e non e' quello
-# che vogliamo per un archivio che installa componenti di sistema.
+# che vogliamo per un archivio che installa componenti di sistema. Vale per
+# tutti i mirror: un mirror ostile non puo' infilare pacchetti, al massimo
+# servire roba vecchia.
 Types: deb
-URIs: https://mtsistemi.github.io/SkillFishOS/
+URIs: mirror+file:/etc/apt/mirrors/skillfishos.list
 Suites: aetherium
 Components: main
 Signed-By: /usr/share/keyrings/skillfishos-archive-keyring.gpg
