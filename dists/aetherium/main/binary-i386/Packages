@@ -235,18 +235,18 @@ Description: SkillFishOS Snapshots - system snapshots and scheduled btrfs mainte
  Part of SkillFishOS.
 
 Package: skillfish-theme
-Version: 26.08.51
+Version: 26.08.54
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: hicolor-icon-theme
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-theme/skillfish-theme_26.08.51_all.deb
-Size: 28601452
-SHA256: c0fece080ac56783fe4cd5d0778c4e7bac1048b4a24d706f8f8d40c10eab4ff2
-SHA1: de1b49f0ac7e65b910f9e1538460dd73c267262c
-MD5sum: aa1e3382f73b5349aaf8c842fae3c515
+Filename: pool/main/s/skillfish-theme/skillfish-theme_26.08.54_all.deb
+Size: 28600524
+SHA256: 72cad11c78daca481dd674828fe89651bebf94a4c84eb0964153a78ff2908dc5
+SHA1: 553f009cb3600185085a7d664d3cd21670048b7b
+MD5sum: 4a21c891ee36d7176ffceac95dbfb780
 Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours
  Icons, cursors, Plasma theme, colours and panel layout. Also puts the menu
  button back if an update changed it.
@@ -254,18 +254,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.08.53
+Version: 26.08.54
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.53_all.deb
-Size: 1696560
-SHA256: cf456c8d665f7bb00eda4f7c6167c4b1383a14cf70680fe8966535e946b3e314
-SHA1: 59201fcc5e44a5bb7267f8128b35607cf933ab2a
-MD5sum: f5882129fc8750f1591647b5efed5031
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.08.54_all.deb
+Size: 1695960
+SHA256: 0ddf89bc22d7c6fc1a2170bc4d28fc84b98990c1943ccc15a67fe99ba00ff5ad
+SHA1: 5ebd3bad1f913475227b29851f901acdd27e9326
+MD5sum: c3e8371540014de83faee0dff3faec29
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
