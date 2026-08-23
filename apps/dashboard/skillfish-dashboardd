@@ -17,13 +17,16 @@ I18N_DIR = "/usr/share/skillfish/i18n"   # il dizionario condiviso con le app
 HUD = "/usr/local/bin/skillfish-hud-val"
 SESSION_TTL = 8 * 3600
 
-# Cosa e' acceso appena installato. Quattro restano spenti apposta, e per lo
+# Cosa e' acceso appena installato. Cinque restano spenti apposta, e per lo
 # stesso motivo di fondo: fanno qualcosa che si sceglie, non che si subisce.
 #   power schedule -> spegne e accende la macchina da solo;
 #   game streaming -> e' ancora «in arrivo» nell'applicazione stessa;
 #   AI-Ops         -> fa agire un modello sul sistema;
 #   log            -> mette il giornale di sistema su una pagina web, e li'
 #                     dentro passano nomi di file, indirizzi, pezzi di comandi.
+#   HUD            -> disegna un pannello sopra al desktop di chi e' seduto
+#                     davanti alla macchina: acceso da remoto senza che
+#                     nessuno l'abbia chiesto e' invadente.
 # Tutto il resto e' acceso: una dashboard che si presenta quasi vuota non fa
 # capire cosa sa fare, ed era il difetto di prima (accesi solo due moduli).
 MODULI_PREDEFINITI = {
@@ -31,7 +34,6 @@ MODULI_PREDEFINITI = {
     "status": True,
     "tuner": True,
     "ventola": True,
-    "hud": True,
     "hub": True,
     "launcher": True,
     "kvm": True,
@@ -39,6 +41,7 @@ MODULI_PREDEFINITI = {
     "ai": True,
     "rules": True,
     "zerotier": True,
+    "hud": False,
     "logs": False,
     "gamestream": False,
     "aiops": False,
@@ -272,6 +275,47 @@ def cpu_load(state):
         return None
 
 
+
+def interfacce_utente():
+    u"""Le schede di rete che interessano a chi guarda, con tipo e indirizzo.
+
+    ⚠️ Il tipo NON si indovina dal nome: «eth0» ed «enp3s0» sono convenzioni e
+    una scheda si puo' rinominare. Si guarda /sys/class/net/<x>/wireless, che
+    esiste solo se la scheda e' radio.
+    """
+    fuori = []
+    try:
+        base = "/sys/class/net"
+        for nome in sorted(os.listdir(base)):
+            if nome == "lo":
+                continue
+            # le virtuali non dicono niente all'utente; la ZeroTier resta,
+            # perche' e' una rete che ha scelto lui e su cui lo raggiungiamo.
+            if nome.startswith(("docker", "veth", "br-", "virbr", "tun", "tap")):
+                continue
+            radio = os.path.isdir(os.path.join(base, nome, "wireless"))
+            tipo = "wifi" if radio else ("zerotier" if nome.startswith("zt") else "cavo")
+            try:
+                with open(os.path.join(base, nome, "operstate")) as f:
+                    su = f.read().strip() == "up"
+            except OSError:
+                su = False
+            ind = []
+            try:
+                p = subprocess.run(["ip", "-o", "-4", "addr", "show", "dev", nome],
+                                   capture_output=True, text=True, timeout=3)
+                for riga in p.stdout.splitlines():
+                    campi = riga.split()
+                    if len(campi) >= 4:
+                        ind.append(campi[3])
+            except Exception:
+                pass
+            fuori.append({"nome": nome, "tipo": tipo, "su": su, "indirizzi": ind})
+    except OSError:
+        pass
+    return fuori
+
+
 def sysinfo():
     def sh(c):
         try:
@@ -284,6 +328,8 @@ def sysinfo():
     # `hostname -I`, which can be a secondary/stale or docker/lxc address).
     info["ip"] = (sh(r"ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'")
                   or (sh("hostname -I").split()[0] if sh("hostname -I") else ""))
+    info["reti"] = interfacce_utente()
+    info["gateway"] = sh(r"ip -4 route show default | head -1 | sed -n 's/.*via \([0-9.]*\).*/\1/p'")
     info["kernel"] = sh("uname -r")
     try:
         with open("/proc/uptime") as f:

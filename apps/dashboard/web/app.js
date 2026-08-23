@@ -605,7 +605,19 @@ const RENDER = {
     card.innerHTML = "<h3>🧊 " + (T("m_sys")) + '</h3><div class="rows" id="srows">…</div>';
     const fill = async () => { try { const s = await (await api("/api/status")).json();
       const row = (a, b) => `<div class="r"><span>${a}</span><span>${b || "–"}</span></div>`;
-      $("#srows", card).innerHTML = row(T("s_you"), s.you) + row(T("s_host"), s.host) + row(T("s_ip"), s.ip) + row(T("s_kernel"), s.kernel) +
+      // Una riga per scheda di rete: cavo, Wi-Fi o ZeroTier, con l'indirizzo
+      // oppure «non connessa». Un indirizzo solo, come c'era prima, non dice
+      // da quale delle due sta passando ne' se l'altra e' attaccata.
+      const reti = (s.reti || []).map(r => {
+        const segno = r.tipo === "wifi" ? "📶" : (r.tipo === "zerotier" ? "🌐" : "🔌");
+        const che = r.tipo === "wifi" ? "Wi-Fi" : (r.tipo === "zerotier" ? "ZeroTier" : (LANG === "it" ? "cavo" : "wired"));
+        const dove = (r.indirizzi && r.indirizzi.length) ? r.indirizzi.join(" ")
+                     : (LANG === "it" ? "non connessa" : "not connected");
+        return row(segno + " " + r.nome + " (" + che + ")", dove);
+      }).join("");
+      $("#srows", card).innerHTML = row(T("s_you"), s.you) + row(T("s_host"), s.host) + reti +
+        (s.gateway ? row("↗ gateway", s.gateway) : "") +
+        row(T("s_ip"), s.ip) + row(T("s_kernel"), s.kernel) +
         row(T("s_up"), s.uptime) + row(T("s_cu"), s.cu) + row(T("s_ram"), s.ram_used_mb ? `${s.ram_used_mb} / ${s.ram_total_mb} MB` : "") +
         row(T("s_disk"), s.disk_used ? `${s.disk_used} / ${s.disk_total} (${s.disk_pct})` : "") + row(T("s_frz"), s.freezes);
     } catch (e) {} };

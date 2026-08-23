@@ -131,7 +131,7 @@ MODULES = [
     ("kvm", "🖥️", L("Desktop (KVM)", "Desktop (KVM)"), True),
     ("terminal", "⌨️", L("Terminale", "Terminal"), True),
     ("ai", "🧠", L("AI locale", "On-device AI"), True),
-    ("gamestream", "🎮", "Game streaming", False),
+    ("gamestream", "🎮", "Game streaming", True),
     ("aiops", "🩺", "AI-Ops", True),
     ("rules", "⚙️", L("Regole auto", "Auto rules"), True),
     ("wol", "🔋", L("Power schedule", "Power schedule"), True),

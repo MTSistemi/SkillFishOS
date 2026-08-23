@@ -219,6 +219,8 @@ class Uscita(object):
     u"""L'uscita PWM, con il dovere di rimettere le cose come stavano."""
 
     def __init__(self, chiave):
+        # vero quando il registro rifiuta quello che ci scriviamo
+        self.rifiutato = False
         self.chiave = chiave
         self.percorso = None
         self.originale = None
@@ -281,8 +283,16 @@ class Uscita(object):
             return
         v = int(round(max(0, min(100, percento)) * PWM_MAX / 100.0))
         self._scrivi(self.percorso, v)
+        # ⚠️ SI RILEGGE. Su alcune macchine il registro lo tiene il firmware e la
+        # scrittura viene scartata senza un errore: sul Fujitsu PRIMERGY si
+        # scrive 255 su pwm1 e si rilegge 51. Senza questo controllo l'utente
+        # muove una curva che non tocca niente, e non c'e' niente che glielo
+        # dica. Una tolleranza serve perche' certi chip arrotondano il valore.
+        riletto = self._leggi(self.percorso)
+        self.rifiutato = riletto is not None and abs(riletto - v) > 8
 
     def rilascia(self):
+        self.rifiutato = False
         if not self.preso or not self.originale:
             return
         o = self.originale
@@ -633,6 +643,11 @@ class Demone(object):
             "aggiornato": adesso,
             "attivo": bool(self.conf.get("attivo")),
             "in_controllo": bool(self.uscita and self.uscita.preso),
+            # ⚠️ Vero quando il registro PWM non accetta cio' che ci scriviamo:
+            # su quelle macchine la ventola la governa il firmware e la curva
+            # non tocca niente. Misurato sul Fujitsu PRIMERGY: scritto 255,
+            # riletto 51. Senza dirlo, la finestra sarebbe una bugia ben fatta.
+            "pwm_rifiutato": bool(getattr(self.uscita, "rifiutato", False)),
             "temperatura": t,
             "watt": w,
             "duty": round(duty, 1),
