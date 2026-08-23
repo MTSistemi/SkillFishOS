@@ -23,6 +23,15 @@ def save(c):
     os.makedirs("/etc/skillfish", exist_ok=True)
     with open(CONF, "w") as f:
         json.dump(c, f, indent=2)
+    # ⚠️ LEGGIBILE A TUTTI, E DEVE ESSERLO. L'applicazione dell'utente legge di
+    # qui quali moduli sono accesi. Quando il file era 0600 root non ci
+    # riusciva, il suo load() ripiegava sui valori predefiniti e disegnava
+    # TUTTE le caselle vuote: da fuori sembravano selettori che non si possono
+    # spuntare. Il segreto (la chiave Unsloth) sta in un file suo a 0600.
+    try:
+        os.chmod(CONF, 0o644)
+    except OSError:
+        pass
 
 
 def sysctl(*args):
@@ -53,10 +62,23 @@ def main():
     elif cmd == "set" and len(a) >= 3:
         c = load(); c.setdefault("modules", {})[a[1]] = a[2] in ("1", "true", "on", "yes")
         save(c); restart_if_active(); print("ok")
+    elif cmd == "reti":
+        # `reti auto 0|1` e `reti extra 10.8.0.0/24,192.168.9.0/24`
+        c = load()
+        if len(a) >= 3 and a[1] == "auto":
+            c["reti_auto"] = a[2] in ("1", "true", "on", "yes")
+        elif len(a) >= 3 and a[1] == "extra":
+            c["reti_extra"] = [x.strip() for x in a[2].split(",") if x.strip()]
+        elif len(a) >= 2 and a[1] == "extra":
+            c["reti_extra"] = []
+        else:
+            print(json.dumps({"reti_auto": c.get("reti_auto", True),
+                              "reti_extra": c.get("reti_extra", [])})); return
+        save(c); restart_if_active(); print("ok")
     elif cmd == "port" and len(a) >= 2:
         c = load(); c["port"] = int(a[1]); save(c); restart_if_active(); print("ok")
     else:
-        sys.stderr.write("usage: status|get|enable|disable|set <module> <0|1>|port <n>\n"); sys.exit(1)
+        sys.stderr.write("usage: status|get|enable|disable|set <module> <0|1>|port <n>|reti [auto 0|1] [extra a.b.c.d/n,...]\n"); sys.exit(1)
 
 
 if __name__ == "__main__":

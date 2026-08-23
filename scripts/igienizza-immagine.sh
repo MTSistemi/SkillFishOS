@@ -302,12 +302,18 @@ p = "/etc/skillfish/dashboard.json"
 d = json.load(open(p))
 # la chiave API e' di Mattia, l'ascolto su 0.0.0.0 come root non e' un
 # predefinito difendibile, e l'utente e' quello della scheda di sviluppo.
-d["unsloth_api_key"] = ""
-d["bind"] = "127.0.0.1"
+d.pop("unsloth_api_key", None)
+# ⚠️ NIENTE bind=127.0.0.1. Chiudeva il Remote Manager a chiunque, compreso chi
+# aveva appena installato, e non c'era modo di riaprirlo se non modificando
+# questo file via SSH. Adesso il servizio ascolta ovunque ma ACCETTA solo dalle
+# reti a cui la macchina e' attaccata (la LAN, e la ZeroTier se configurata),
+# quindi non si espone al mondo e l'utente lo raggiunge da casa.
 d.pop("user", None)
 json.dump(d, open(p, "w"), indent=2)
 PY
-        echo "igiene: dashboard.json spedito senza chiave API e in ascolto su 127.0.0.1"
+        echo "igiene: dashboard.json spedito senza chiave API; ascolta su tutte le
+              interfacce ma accetta solo dalle reti locali"
+        rm -f "$RAD/etc/skillfish/unsloth.key"
     fi
     ;;
 

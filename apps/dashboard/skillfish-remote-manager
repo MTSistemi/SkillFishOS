@@ -119,12 +119,18 @@ MODULES = [
     ("telemetry", "📊", L("Telemetria", "Telemetry"), True),
     ("status", "🧊", L("Stato sistema", "System status"), True),
     ("tuner", "🎛️", L("Controlli", "Controls"), True),
+    # ⚠️ Ventola e HUD c'erano nel server e nella pagina web, non qui: due
+    # schede che dall'applicazione non si potevano accendere perche' non erano
+    # scritte da nessuna parte. Gli elenchi in tre posti diversi divergono,
+    # ed e' esattamente cosi' che divergono.
+    ("ventola", "🌀", L("Ventola", "Fan"), True),
+    ("hud", "🪟", "HUD", True),
     ("hub", "📦", L("App e pacchetti", "Apps & packages"), True),
     ("logs", "📜", "Log", True),
     ("launcher", "🚀", L("Avvio app", "Launcher"), True),
     ("kvm", "🖥️", L("Desktop (KVM)", "Desktop (KVM)"), True),
     ("terminal", "⌨️", L("Terminale", "Terminal"), True),
-    ("ai", "🧠", "AI / OpenWebUI", True),
+    ("ai", "🧠", L("AI locale", "On-device AI"), True),
     ("gamestream", "🎮", "Game streaming", False),
     ("aiops", "🩺", "AI-Ops", True),
     ("rules", "⚙️", L("Regole auto", "Auto rules"), True),

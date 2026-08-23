@@ -4,7 +4,7 @@
 # itself from the modules enabled in /etc/skillfish/dashboard.json. Runs as a
 # systemd service (root) so it can authenticate via PAM and drive system actions.
 # LAN-only by design; never expose to the internet without a real reverse proxy.
-import os, sys, json, ssl, hmac, hashlib, base64, time, subprocess, threading, urllib.parse, re, socket, select
+import os, sys, json, ssl, hmac, hashlib, base64, time, subprocess, threading, urllib.parse, re, socket, select, ipaddress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CONF = "/etc/skillfish/dashboard.json"
@@ -17,8 +17,32 @@ I18N_DIR = "/usr/share/skillfish/i18n"   # il dizionario condiviso con le app
 HUD = "/usr/local/bin/skillfish-hud-val"
 SESSION_TTL = 8 * 3600
 
+# Cosa e' acceso appena installato. Tre restano spenti apposta: power
+# schedule spegne la macchina da solo, game streaming e' ancora «in
+# arrivo», e AI-Ops fa agire un modello sul sistema. Le altre no: una
+# dashboard che si presenta quasi vuota non fa capire cosa sa fare.
+MODULI_PREDEFINITI = {
+    "telemetry": True,
+    "status": True,
+    "tuner": True,
+    "ventola": True,
+    "hud": True,
+    "hub": True,
+    "logs": True,
+    "launcher": True,
+    "kvm": True,
+    "terminal": True,
+    "ai": True,
+    "rules": True,
+    "zerotier": True,
+    "gamestream": False,
+    "aiops": False,
+    "wol": False,
+}
+
 DEFAULT_CONF = {"bind": "0.0.0.0", "port": 8443, "user": "skillfish",
-                "modules": {"telemetry": True, "status": True}}
+                "reti_auto": True, "reti_extra": [],
+                "modules": dict(MODULI_PREDEFINITI)}
 
 # Human-facing module catalogue (id -> label/icon). The frontend renders cards
 # only for modules that are BOTH known here AND enabled in the config.
@@ -1377,7 +1401,7 @@ def _unsloth_key():
     # NameError invece della chiave, quindi la chat non poteva funzionare in
     # nessun caso. CONFIG e' il dizionario gia' in memoria, aggiornato da
     # save_conf(): non serve rileggere il file.
-    return (CONFIG.get("unsloth_api_key") or os.environ.get("UNSLOTH_API_KEY") or "").strip()
+    return (chiave_unsloth() or os.environ.get("UNSLOTH_API_KEY") or "").strip()
 
 
 def ai_chat(model, messages):
@@ -1484,11 +1508,134 @@ def save_conf():
     try:
         with open(CONF, "w") as f:
             json.dump(CONFIG, f, indent=2)
+        # ⚠️ 0644, e non e' una svista. Questo file lo legge anche
+        # skillfish-remote-ctl lanciato dall'utente, che e' come
+        # l'applicazione sa quali moduli sono accesi. Quando era 0600 root non
+        # ci riusciva e disegnava tutte le caselle vuote. Il segreto sta in
+        # unsloth.key, che resta 0600.
+        try:
+            os.chmod(CONF, 0o644)
+        except OSError:
+            pass
         return True
     except OSError as e:
         sys.stderr.write("dashboard: configurazione non salvata in %s (%s)\n"
                          % (CONF, e))
         return False
+
+
+# ---------------- chi puo' entrare ----------------
+# ⚠️ NON ci si lega a un indirizzo: un socket si lega a UNO solo, e le reti da
+# servire sono almeno due (la LAN e la ZeroTier), con la seconda che puo'
+# comparire dopo l'avvio. Quindi si ascolta ovunque e si filtra chi bussa.
+# ⚠️ NON chiamarlo KEY_F: quel nome e' gia' preso dalla chiave TLS del
+# servizio, in cima al file. Chiamandolo cosi' la generazione del certificato
+# ha scritto la chiave privata TLS dentro unsloth.key, senza un errore.
+UNSLOTH_KEY_F = os.path.join(STATE, "unsloth.key")
+_RETI = {"quando": 0.0, "liste": []}
+
+
+def reti_locali():
+    u"""Le reti a cui questa macchina e' attaccata, come stringhe CIDR.
+
+    Sono esattamente quelle che l'utente considera «casa»: la LAN, e la ZeroTier
+    se c'e' (e' un'interfaccia come le altre, quindi entra da sola). Il loopback
+    lo aggiunge chi chiama.
+    """
+    fuori = []
+    try:
+        p = subprocess.run(["ip", "-o", "-f", "inet", "addr", "show"],
+                           capture_output=True, text=True, timeout=5)
+        for riga in p.stdout.splitlines():
+            campi = riga.split()
+            if len(campi) < 4 or campi[1] == "lo":
+                continue
+            try:
+                fuori.append(str(ipaddress.ip_interface(campi[3]).network))
+            except ValueError:
+                continue
+    except Exception:
+        pass
+    return fuori
+
+
+def reti_ammesse():
+    u"""Le reti da cui accettiamo, con la cache: `ip addr` a ogni richiesta
+    sarebbe un processo per clic."""
+    ora = time.time()
+    if ora - _RETI["quando"] < 60 and _RETI["liste"]:
+        return _RETI["liste"]
+    voci = ["127.0.0.0/8", "::1/128"]
+    if CONFIG.get("reti_auto", True):
+        voci += reti_locali()
+    for r in CONFIG.get("reti_extra", []) or []:
+        voci.append(str(r))
+    reti = []
+    for v in voci:
+        try:
+            reti.append(ipaddress.ip_network(v, strict=False))
+        except ValueError:
+            sys.stderr.write("rete non valida, la salto: %s\n" % v)
+    _RETI["quando"], _RETI["liste"] = ora, reti
+    return reti
+
+
+def puo_entrare(indirizzo):
+    try:
+        ip = ipaddress.ip_address(indirizzo)
+    except ValueError:
+        return False
+    return any(ip in r for r in reti_ammesse())
+
+
+def chiave_unsloth():
+    u"""La chiave API sta in un file suo, 0600.
+
+    ⚠️ Stava dentro dashboard.json, e per proteggerla il file era 0600 root. Ma
+    quel file lo deve leggere anche l'applicazione dell'utente, per sapere quali
+    moduli sono accesi: non potendo, disegnava tutte le caselle vuote. Un
+    segreto e una configurazione pubblica non stanno nello stesso file.
+    """
+    try:
+        with open(UNSLOTH_KEY_F) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def salva_chiave_unsloth(valore):
+    try:
+        if not valore:
+            if os.path.exists(UNSLOTH_KEY_F):
+                os.remove(UNSLOTH_KEY_F)
+            return True
+        fd = os.open(UNSLOTH_KEY_F, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(valore.strip() + "\n")
+        return True
+    except OSError as e:
+        sys.stderr.write("non salvo la chiave: %s\n" % e)
+        return False
+
+
+def migra_chiave():
+    u"""Chi aggiorna ha ancora la chiave dentro dashboard.json: si sposta una
+    volta sola, e il file torna leggibile."""
+    # I moduli nati dopo la configurazione dell'utente: mancando, valevano
+    # «spento» per sempre. Si aggiunge solo cio' che MANCA, cosi' chi ha spento
+    # qualcosa apposta se lo ritrova spento. E si buttano le chiavi morte.
+    mod = CONFIG.setdefault("modules", {})
+    for k, v in MODULI_PREDEFINITI.items():
+        mod.setdefault(k, v)
+    for k in [k for k in mod if k not in MODULE_META]:
+        del mod[k]
+    vecchia = (CONFIG.pop("unsloth_api_key", "") or "").strip()
+    if vecchia:
+        salva_chiave_unsloth(vecchia)
+        sys.stderr.write("chiave Unsloth spostata in %s\n" % UNSLOTH_KEY_F)
+    save_conf()
+
+
 
 
 def rules_cfg():
@@ -1838,6 +1985,31 @@ def hud_scrivi(pref_in):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def handle_one_request(self):
+        # ⚠️ Il filtro sta QUI e non nei singoli percorsi: dimenticarlo in uno
+        # solo vorrebbe dire lasciare una porta aperta senza accorgersene.
+        chi = self.client_address[0] if self.client_address else ""
+        if not puo_entrare(chi):
+            sys.stderr.write("rifiutato: %s non e' in nessuna rete ammessa\n" % chi)
+            try:
+                self.rfile.readline(65537)
+                # ⚠️ Niente send_response() qui: si appoggia a requestline,
+                # command e request_version, che non abbiamo fatto analizzare.
+                # E il buffer va SVUOTATO prima di chiudere, se no il client
+                # vede una connessione caduta invece di un rifiuto, e va a
+                # cercare il guasto nella rete invece che nelle regole.
+                corpo = b"Not on an allowed network.\n"
+                self.wfile.write(b"HTTP/1.1 403 Forbidden\r\n"
+                                 b"Content-Type: text/plain; charset=utf-8\r\n"
+                                 b"Content-Length: " + str(len(corpo)).encode() + b"\r\n"
+                                 b"Connection: close\r\n\r\n" + corpo)
+                self.wfile.flush()
+            except Exception:
+                pass
+            self.close_connection = True
+            return
+        return BaseHTTPRequestHandler.handle_one_request(self)
+
     server_version = "SkillFishRemote/1.0"
     protocol_version = "HTTP/1.1"
 
@@ -2388,9 +2560,9 @@ class Handler(BaseHTTPRequestHandler):
             if k and not re.match(r"^sk-[A-Za-z0-9._-]{8,200}$", k):
                 return self._json(400, {"ok": False, "error": "chiave non valida"})
             if k:
-                CONFIG["unsloth_api_key"] = k
+                salva_chiave_unsloth(k)
             else:
-                CONFIG.pop("unsloth_api_key", None)
+                salva_chiave_unsloth("")
             save_conf()
             return self._json(200, {"ok": True, "has_key": bool(k)})
         if path == "/api/ai/chat":
@@ -2487,7 +2659,9 @@ def ensure_cert():
 def main():
     os.makedirs(STATE, exist_ok=True)
     ensure_cert()
+    migra_chiave()
     bind = CONFIG.get("bind", "0.0.0.0"); port = int(CONFIG.get("port", 8443))
+    sys.stderr.write("reti ammesse: %s\n" % ", ".join(str(r) for r in reti_ammesse()))
     httpd = ThreadingHTTPServer((bind, port), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2  # refuse legacy SSL/TLS

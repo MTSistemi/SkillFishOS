@@ -701,8 +701,11 @@ const RENDER = {
       // exposes them through the dashboard, so only that one gets the model list/pull.
       const uns = s.engine === "unsloth";
       const fl = s.first_login || {};
-      const engName = uns ? "Unsloth Studio" : "Ollama";
-      const uiName = uns ? "Unsloth Studio" : "OpenWebUI";
+      // Ollama e OpenWebUI sono usciti dal progetto mesi fa: se il motore non
+      // e' Unsloth non sappiamo cosa sia, e chiamarlo col nome di un pezzo che
+      // non spediamo piu' e' peggio che non nominarlo.
+      const engName = uns ? "Unsloth Studio" : "AI stack";
+      const uiName = uns ? "Unsloth Studio" : "AI stack";
       $("#ai", card).innerHTML = '<div class="rows"><div class="r"><span>' + (T("x_engine")) + " (" + engName + ")</span><span>" + (s.running ? T("ai_on") : T("ai_off")) + '</span></div><div class="r"><span>' + uiName + "</span><span>" + (s.webui ? T("ai_ready") : T("ai_off")) + "</span></div>" +
         (uns ? '<div class="r"><span>' + (T("x_accel")) + "</span><span>Vulkan · GPU</span></div>" : "") + "</div>" +
         // Le credenziali del primo accesso. Unsloth non ha una password fissa:
