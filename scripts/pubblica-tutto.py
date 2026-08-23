@@ -28,7 +28,7 @@ import sys
 import time
 import urllib.request
 
-CONTAINER = "192.168.5.103"
+CONTAINER = "192.168.5.210"
 IMPRONTA = "SHA256:+jpokXzLD6d6Stn/FPyuStdtZWOrcS3gS3XkpEWvqA4"
 PW = "47yk2d8r6c"
 QUI = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +37,7 @@ QUI = os.path.dirname(os.path.abspath(__file__))
 MIRROR = [
     ("OVH", "https://skillfishos.com/apt"),
     ("GitHub Pages", "https://mtsistemi.github.io/SkillFishOS"),
+    ("casa", "https://deb.skillfishos.com"),
 ]
 
 

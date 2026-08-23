@@ -1,0 +1,35 @@
+#!/bin/bash
+# Copia l'archivio gia' firmato sul terzo mirror (Mirror-SkillFishOS).
+#
+# ⚠️ SI SPINGE DA QUI, NON SI TIRA DA LA'. Un mirror che tira avrebbe bisogno di
+# una chiave capace di LEGGERE questa macchina, che e' quella che tiene la
+# chiave privata di firma. Meglio il contrario: una chiave qui che sul mirror sa
+# scrivere solo /srv/apt. Se il mirror finisse in mani sbagliate, di qui non si
+# porta via niente.
+#
+# ⚠️ conf/ e db/ RESTANO FUORI. Sono la configurazione e il database di
+# reprepro, cioe' gli arnesi con cui si indicizza e si firma. Sul mirror non
+# servono e non ci devono essere: il posto dove si firma e' uno solo.
+#
+# ⚠️ Un mirror che non risponde NON deve far fallire la pubblicazione. Gli altri
+# hanno gia' ricevuto tutto, e questo si riallinea al giro dopo. Esce comunque
+# 0, ma lo dice forte.
+set -u
+MIRROR="${1:-192.168.5.211}"
+CHIAVE=/root/.ssh/id_mirror
+
+if [ ! -f "$CHIAVE" ]; then
+    echo "manca $CHIAVE: il mirror non e' configurato, salto" >&2
+    exit 0
+fi
+
+if rsync -a --delete --exclude=conf --exclude=db \
+     -e "ssh -i $CHIAVE -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new" \
+     /srv/apt/ "root@$MIRROR:/"; then
+    echo "mirror $MIRROR allineato"
+else
+    echo "ATTENZIONE: il mirror $MIRROR non ha ricevuto la copia." >&2
+    echo "            Gli altri mirror sono a posto; questo resta indietro" >&2
+    echo "            e si riallinea alla prossima pubblicazione." >&2
+fi
+exit 0

@@ -377,11 +377,28 @@ put $P 0644 system/etc/apt/mirrors/skillfishos.list                    etc/apt/m
 put $P 0755 system/usr/local/bin/skillfish-aggiorna-mirror             usr/local/bin/skillfish-aggiorna-mirror
 put $P 0644 system/usr/lib/systemd/system/skillfish-aggiorna-mirror.service usr/lib/systemd/system/skillfish-aggiorna-mirror.service
 put $P 0644 system/usr/lib/systemd/system/skillfish-aggiorna-mirror.timer   usr/lib/systemd/system/skillfish-aggiorna-mirror.timer
-printf '#!/bin/sh\nset -e\n# Il timer che tiene aggiornato l elenco dei mirror. Con deb-systemd-invoke\n# perche% s rispetta la scelta di chi ha disabilitato i servizi.\nif [ "$1" = configure ] && command -v deb-systemd-invoke >/dev/null 2>&1; then\n  systemctl daemon-reload >/dev/null 2>&1 || true\n  deb-systemd-invoke enable --now skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true\nfi\nexit 0\n' '%s' > "$OUT/$P/DEBIAN/postinst"
-chmod 0755 "$OUT/$P/DEBIAN/postinst"
 ctrl $P "gnupg | gpgv" "SkillFishOS archive keyring and APT source" \
   "The signing key of our archive and the apt source that uses it. Without it apt
 cannot check where a SkillFishOS package came from."
+# ⚠️ DOPO ctrl, non prima: la cartella DEBIAN/ la crea ctrl, e scrivendoci
+# dentro una riga sopra la costruzione moriva con «No such file or directory».
+# Con un heredoc invece che con printf, cosi' non ci sono percentuali da
+# contare ne' barre da proteggere.
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST_KEYRING'
+#!/bin/sh
+set -e
+# Accende il timer che tiene aggiornato l'elenco dei mirror. Con
+# deb-systemd-invoke, che rispetta la scelta di chi i servizi li ha spenti
+# apposta: un pacchetto non riaccende quello che l'amministratore ha disattivato.
+if [ "$1" = configure ]; then
+  systemctl daemon-reload >/dev/null 2>&1 || true
+  if command -v deb-systemd-invoke >/dev/null 2>&1; then
+    deb-systemd-invoke enable --now skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
+  fi
+fi
+exit 0
+POSTINST_KEYRING
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-base
 # La scheda AppStream: senza, la descrizione esiste solo in inglese,
@@ -1062,7 +1079,7 @@ rm -f /tmp/kr.$$ /tmp/krg.$$ /tmp/krf.$$
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Signed-By: /usr/share/keyrings/skillfishos-archive-keyring.gpg'
 # ⚠️ Se questi due non ci sono, la sorgente punta a un elenco che non
 # viene spedito e la macchina resta senza archivio: si controlla.
-check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'URIs: mirror\+file:/etc/apt/mirrors/skillfishos.list'
+check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'URIs: mirror+file:/etc/apt/mirrors/skillfishos.list'
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/mirrors/skillfishos.list 'https://skillfishos.com/apt'
 deve_esserci "$OUT/skillfishos-archive-keyring/usr/local/bin/skillfish-aggiorna-mirror" "keyring: lo script che aggiorna i mirror"
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Suites: aetherium'
