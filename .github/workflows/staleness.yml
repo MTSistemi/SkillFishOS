@@ -1,0 +1,100 @@
+name: Do the texts still tell the truth?
+
+# The wiki sat two and a half months out of date without anyone noticing,
+# because nobody opens the wiki while working. The rule that GitHub is kept
+# current is a good rule, but it lived in somebody's memory. Now it lives here.
+#
+# It compares what README, SECURITY, docs/ and the wiki claim against what the
+# apt archive actually serves, and opens an issue when they drift apart.
+#
+# ⚠️ It is deliberately quiet. The first version reported twelve things of which
+# one was real: measurements name the kernel they were taken on, a support table
+# has to name old versions to say how far back we go, and a "Superseded" section
+# is allowed to talk about Ollama. A check that cries wolf gets switched off
+# within a week, and then it protects nothing.
+
+on:
+  schedule:
+    # Monday morning: whatever shipped over the weekend has had time to land on
+    # the mirrors, and the week starts with a straight answer.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    # Only when something that makes claims has changed. Running on every commit
+    # would mean a red mark on work that has nothing to do with the texts.
+    paths:
+      - "README.md"
+      - "SECURITY.md"
+      - "docs/**"
+      - "scripts/controlla-invecchiamento.py"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  controlla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare the texts with the archive
+        id: controllo
+        run: |
+          set +e
+          python3 scripts/controlla-invecchiamento.py --rapporto | tee /tmp/uscita.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "invecchiato=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "invecchiato=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update the issue
+        if: steps.controllo.outputs.invecchiato == 'si'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const corpo = fs.readFileSync('rapporto-invecchiamento.md', 'utf8');
+            const titolo = 'Some texts no longer match what we publish';
+            // ⚠️ Si RIUSA la issue aperta invece di aprirne una nuova ogni
+            // settimana: un controllo che accumula dieci issue identiche viene
+            // ignorato come lo spam, che è la stessa fine dell'essere spento.
+            const aperte = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'documentation', per_page: 50 });
+            const gia = aperte.data.find(i => i.title === titolo);
+            if (gia) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: gia.number, body: corpo });
+              core.notice(`Updated issue #${gia.number}`);
+            } else {
+              const nuova = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: titolo, body: corpo, labels: ['documentation'] });
+              core.notice(`Opened issue #${nuova.data.number}`);
+            }
+
+      - name: Close the issue when everything lines up again
+        if: steps.controllo.outputs.invecchiato == 'no'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const titolo = 'Some texts no longer match what we publish';
+            const aperte = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'documentation', per_page: 50 });
+            const gia = aperte.data.find(i => i.title === titolo);
+            if (gia) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: gia.number,
+                body: 'The texts match the archive again. Closing.' });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: gia.number, state: 'closed' });
+            }

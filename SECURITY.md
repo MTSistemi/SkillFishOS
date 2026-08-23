@@ -94,11 +94,13 @@ choice and re-harden if your threat model differs.
 - **Live ISO credentials** are well-known (`live` / `evolution`, `root` / `evolution`) and apply
   **only to the live session**. A real, password-protected user is created at install time. Do not
   run the live medium unattended on an untrusted network.
-- **On-device AI stack.** Ollama runs locally in Docker with telemetry off
-  (`ANONYMIZED_TELEMETRY=false`). The compose binds the Ollama API (`:11434`) and open-webui
-  (`:8080`) with `OLLAMA_HOST=0.0.0.0`, so **the LLM API is reachable from your LAN**. If that is
-  not what you want, firewall those ports or set `OLLAMA_HOST=127.0.0.1` in
-  `/opt/stacks/skillfish-ai/compose.yaml`.
+- **On-device AI.** Unsloth Studio listens on **loopback only** (`127.0.0.1:8888`) — the model
+  API is not exposed to your network by itself. Reaching it from another machine goes through the
+  Remote Manager, which asks for a system password (PAM) and accepts connections only from the
+  networks this machine is attached to. Nothing is sent anywhere: the weights and the conversation
+  stay on the board.
+  (Until 26.08 this was Ollama plus open-webui in Docker, bound to `0.0.0.0` — that stack is gone,
+  and so is Docker.)
 - **APT repository integrity.** The `aetherium` repo is **GPG-signed** (ed25519). Because the
   kernel `.deb` exceeds GitHub Pages' 100 MB limit, the tiny `skillfishos-kernel` wrapper's
   `postinst` downloads the kernel image over **HTTPS from a pinned GitHub Releases URL**. Integrity
