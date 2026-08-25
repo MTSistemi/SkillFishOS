@@ -118,20 +118,41 @@ if [ -f "$LOCF" ]; then
     echo "lingua: l'immagine partira' in inglese"
 fi
 
+# Per quale macchina e' questa immagine. Lo dice il nome della ISO, che e'
+# l'unico posto dove l'edizione e' stata davvero decisa da qualcuno.
+#
+# ⚠️ QUESTO BLOCCO STAVA PIU' IN BASSO, e l'ha spostato qui il fatto che la
+# decisione sulla tabella ACPI, qui sotto, ne ha bisogno.
+case "$FINAL" in
+  *Generic*|*generic*) EDIZIONE=generic ;;
+  *BC250*|*bc250*)     EDIZIONE=bc250 ;;
+  *)
+    echo "FAIL-EDIZIONE" > "$ST"
+    echo "==== FALLITA: dal nome $FINAL non capisco l'edizione ===="
+    echo "     il nome deve contenere BC250 oppure Generic"
+    exit 1
+    ;;
+esac
+
 # L'edizione Generic non deve imbarcare la tabella ACPI della BC-250. Quella per
 # la BC-250 invece se la tiene: li' e' proprio il motivo per cui esiste.
-case "$KVER" in
-  *generic*)
+#
+# ⚠️ SI GUARDA L'EDIZIONE, NON IL NOME DEL KERNEL. Prima c'era
+#     case "$KVER" in *generic*)
+# e ha smesso di funzionare il giorno in cui il kernel per i PC normali si e'
+# chiamato -x64 invece di -generic: quella riga cadeva nel ramo «BC-250» e la
+# tabella ACPI della scheda sarebbe finita dentro un'immagine per PC normali,
+# senza un errore e senza un avviso. Dedurre l'edizione da come si chiama il
+# kernel era comodo finche' i due nomi combaciavano.
+if [ "$EDIZIONE" = generic ]; then
     if [ -f /boot/SkillFishOS-acpi.cpio ] || grep -q '^GRUB_EARLY_INITRD_LINUX_CUSTOM=' /etc/default/grub 2>/dev/null; then
         touch "$ACPIMARK"
         /usr/local/bin/skillfish-acpi-pstates disable >/dev/null 2>&1
         echo "ACPI: tabella della BC-250 tolta per la durata della build Generic"
     fi
-    ;;
-  *)
+else
     echo "ACPI: edizione BC-250, la tabella resta"
-    ;;
-esac
+fi
 
 # --- correzione di GRUB prima di ogni produce (issue #12 e #20) --------------
 # eggs rigenera /etc/calamares dai propri modelli a OGNI produce, quindi la
@@ -173,16 +194,6 @@ python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
 # in un PC normale vedeva il menu e poi lo schermo nero, senza mai leggere da
 # nessuna parte che quel kernel e' fatto per quella scheda e non parte
 # altrove (issue #53). Il menu e' l'ultimo posto in cui glielo si puo' dire.
-case "$FINAL" in
-  *Generic*|*generic*) EDIZIONE=generic ;;
-  *BC250*|*bc250*)     EDIZIONE=bc250 ;;
-  *)
-    echo "FAIL-EDIZIONE" > "$ST"
-    echo "==== FALLITA: dal nome $FINAL non capisco l'edizione ===="
-    echo "     il nome deve contenere BC250 oppure Generic"
-    exit 1
-    ;;
-esac
 python3 "$SCRIPT_DIR/fix-eggs-menu-avvio.py" "$EDIZIONE"
 RC=$?
 echo "fix GRUB rc=$RC"

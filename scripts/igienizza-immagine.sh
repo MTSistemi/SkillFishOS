@@ -302,7 +302,10 @@ p = "/etc/skillfish/dashboard.json"
 d = json.load(open(p))
 # la chiave API e' di Mattia, l'ascolto su 0.0.0.0 come root non e' un
 # predefinito difendibile, e l'utente e' quello della scheda di sviluppo.
-d.pop("unsloth_api_key", None)
+# ⚠️ si SVUOTA, non si toglie: build-iso.sh controlla che il campo ci sia
+# e sia vuoto. Con il pop il campo spariva, il controllo non lo trovava e
+# la build falliva sempre dicendo che la chiave c'era ancora.
+d["unsloth_api_key"] = ""
 # ⚠️ NIENTE bind=127.0.0.1. Chiudeva il Remote Manager a chiunque, compreso chi
 # aveva appena installato, e non c'era modo di riaprirlo se non modificando
 # questo file via SSH. Adesso il servizio ascolta ovunque ma ACCETTA solo dalle
@@ -313,7 +316,12 @@ json.dump(d, open(p, "w"), indent=2)
 PY
         echo "igiene: dashboard.json spedito senza chiave API; ascolta su tutte le
               interfacce ma accetta solo dalle reti locali"
-        rm -f "$RAD/etc/skillfish/unsloth.key"
+        # ⚠️ si SPOSTA, non si cancella: e' la chiave vera di questa scheda.
+        # `deposita` la mette nel deposito e la registra, e `ripristina` la
+        # rimette a fine build. Prima qui c'era un `rm` con "$RAD", una
+        # variabile che in questo script non esiste: con set -u l'igiene
+        # usciva a meta' e la build falliva sempre.
+        deposita /etc/skillfish/unsloth.key
     fi
     ;;
 
