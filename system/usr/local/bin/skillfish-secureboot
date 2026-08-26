@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""SkillFishOS — Secure Boot: registra la nostra chiave nel firmware.
+
+A COSA SERVE. Con Secure Boot acceso, il firmware avvia solo codice firmato da
+qualcuno di cui si fida: di serie, Microsoft e poco altro. Il kernel di
+SkillFishOS lo compiliamo noi, quindi viene rifiutato e la macchina non parte —
+si vede GRUB e poi niente. E' la segnalazione #53.
+
+Firmiamo kernel e bootloader con una chiave nostra. Questo attrezzo la fa
+registrare nel firmware della macchina: una volta sola, e da li' in poi
+SkillFishOS parte con Secure Boot acceso come qualunque altro sistema.
+
+⚠️ NON FIRMA NIENTE E NON TOCCA IL FIRMWARE DA SOLO. Mette in coda una richiesta
+con mokutil; a registrarla e' MokManager, la schermata blu che compare al
+riavvio successivo, dove decide l'utente. Non si puo' fare in altro modo, ed e'
+giusto cosi': una macchina che si fida di chiavi nuove senza chiedere non
+sarebbe protetta da niente.
+
+⚠️ PERCHE' NON C'E' UNA PAGINA NEL REMOTE MANAGER, contro la regola solita.
+La parte che conta succede al riavvio, su una schermata del firmware, dove
+bisogna essere davanti alla macchina e premere dei tasti. Una pagina web
+potrebbe avviare la richiesta e poi lasciare l'utente lontano con un computer
+che aspetta una risposta che nessuno dara': meglio non offrirla.
+"""
+from __future__ import unicode_literals, print_function
+import os
+import shutil
+import subprocess
+import sys
+
+CERT = "/usr/share/skillfishos/SkillFishOS-SB.cer"
+
+# ⚠️ NEL SUGGERIMENTO CI VA IL PERCORSO INTERO, non il solo nome.
+# Su SkillFishOS `secure_path` di sudo e' "/usr/sbin:/usr/bin:/sbin:/bin" e NON
+# contiene /usr/local/bin, che e' dove stanno i nostri attrezzi. Quindi
+#     sudo skillfish-secureboot --registra
+# risponde «command not found», e l'utente si ferma li' seguendo un consiglio
+# che gli abbiamo dato noi. Con il percorso intero funziona sempre.
+# ⚠️ Vale per QUALUNQUE nostro attrezzo in /usr/local/bin, non solo per questo.
+def _percorso():
+    p = sys.argv[0]
+    if os.path.sep not in p:
+        p = shutil.which(p) or ("/usr/local/bin/" + p)
+    try:
+        return os.path.realpath(p)
+    except Exception:
+        return p
+
+NOME = _percorso()
+
+
+# --- lingua -----------------------------------------------------------------
+def _lingua():
+    for v in (os.environ.get("LC_ALL"), os.environ.get("LC_MESSAGES"),
+              os.environ.get("LANG")):
+        if v:
+            break
+    else:
+        return "en"
+    if v.startswith("uk") or v.startswith("ua"):
+        return "uk"
+    c = v.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip()
+    return c if (len(c) == 2 and c.isalpha()) else "en"
+
+
+LANG = _lingua()
+
+# ⚠️ Il dizionario condiviso non deve MAI impedire all'attrezzo di partire: se
+# manca o e' rotto si resta all'inglese. Una traduzione assente e' un fastidio,
+# un attrezzo che non si apre e' un guasto.
+try:
+    sys.path.insert(0, "/usr/share/skillfish")
+    from i18n import traduttore as _traduttore
+    _TR = _traduttore(LANG)
+except Exception:
+    def _TR(s):
+        return s
+
+PL = {
+    "SkillFishOS — Secure Boot": "SkillFishOS — Secure Boot",
+    "Secure Boot is ON.": "Secure Boot jest WŁĄCZONY.",
+    "Secure Boot is OFF.": "Secure Boot jest WYŁĄCZONY.",
+    "This machine does not use UEFI Secure Boot.": "Ta maszyna nie używa Secure Boot UEFI.",
+    "The SkillFishOS key is already enrolled.": "Klucz SkillFishOS jest już zarejestrowany.",
+    "The SkillFishOS key is not enrolled yet.": "Klucz SkillFishOS nie jest jeszcze zarejestrowany.",
+    "Nothing to do: SkillFishOS already starts with Secure Boot on.": "Nie ma nic do zrobienia: SkillFishOS już uruchamia się z włączonym Secure Boot.",
+    "To enrol it, run:": "Aby go zarejestrować, uruchom:",
+    "You have to be root. Try:": "Musisz być rootem. Spróbuj:",
+    "mokutil is not installed.": "mokutil nie jest zainstalowany.",
+    "The certificate is missing:": "Brakuje certyfikatu:",
+    "Choose a password. You will be asked for it once, at the next start, and never again.": "Wybierz hasło. Zostaniesz o nie zapytany raz, przy następnym uruchomieniu, i nigdy więcej.",
+    "Request queued. Now restart the computer.": "Żądanie w kolejce. Teraz uruchom komputer ponownie.",
+    "At the next start you will see a blue screen: Shim UEFI key management.": "Przy następnym uruchomieniu zobaczysz niebieski ekran: Shim UEFI key management.",
+    "Press any key within ten seconds, choose Enroll MOK, then Continue, then Yes,": "Naciśnij dowolny klawisz w ciągu dziesięciu sekund, wybierz Enroll MOK, potem Continue, potem Yes,",
+    "and type the password you just chose. Then let it restart.": "i wpisz wybrane przed chwilą hasło. Potem pozwól mu się uruchomić ponownie.",
+    "If you do nothing, the screen goes away on its own and nothing changes.": "Jeśli nic nie zrobisz, ekran zniknie sam i nic się nie zmieni.",
+    "After that you can turn Secure Boot on in your BIOS/UEFI setup.": "Potem możesz włączyć Secure Boot w ustawieniach BIOS/UEFI.",
+    "A request is already queued: restart to complete it.": "Żądanie już czeka w kolejce: uruchom ponownie, aby je dokończyć.",
+    "Could not queue the request.": "Nie udało się dodać żądania do kolejki.",
+    "The key was removed. It will stop being trusted after a restart.": "Klucz został usunięty. Przestanie być zaufany po ponownym uruchomieniu.",
+    "what this does and how the machine is now": "co to robi i jak wygląda teraz maszyna",
+    "enrol the SkillFishOS key": "zarejestruj klucz SkillFishOS",
+    "remove the SkillFishOS key": "usuń klucz SkillFishOS",
+}
+
+UK = {
+    "SkillFishOS — Secure Boot": "SkillFishOS — Secure Boot",
+    "Secure Boot is ON.": "Secure Boot УВІМКНЕНО.",
+    "Secure Boot is OFF.": "Secure Boot ВИМКНЕНО.",
+    "This machine does not use UEFI Secure Boot.": "Ця машина не використовує UEFI Secure Boot.",
+    "The SkillFishOS key is already enrolled.": "Ключ SkillFishOS уже зареєстровано.",
+    "The SkillFishOS key is not enrolled yet.": "Ключ SkillFishOS ще не зареєстровано.",
+    "Nothing to do: SkillFishOS already starts with Secure Boot on.": "Робити нічого: SkillFishOS уже запускається з увімкненим Secure Boot.",
+    "To enrol it, run:": "Щоб зареєструвати його, виконайте:",
+    "You have to be root. Try:": "Потрібні права root. Спробуйте:",
+    "mokutil is not installed.": "mokutil не встановлено.",
+    "The certificate is missing:": "Бракує сертифіката:",
+    "Choose a password. You will be asked for it once, at the next start, and never again.": "Виберіть пароль. Його спитають один раз, під час наступного запуску, і більше ніколи.",
+    "Request queued. Now restart the computer.": "Запит у черзі. Тепер перезавантажте комп'ютер.",
+    "At the next start you will see a blue screen: Shim UEFI key management.": "Під час наступного запуску ви побачите синій екран: Shim UEFI key management.",
+    "Press any key within ten seconds, choose Enroll MOK, then Continue, then Yes,": "Натисніть будь-яку клавішу протягом десяти секунд, виберіть Enroll MOK, потім Continue, потім Yes,",
+    "and type the password you just chose. Then let it restart.": "і введіть щойно вибраний пароль. Потім дайте машині перезавантажитися.",
+    "If you do nothing, the screen goes away on its own and nothing changes.": "Якщо нічого не робити, екран зникне сам і нічого не зміниться.",
+    "After that you can turn Secure Boot on in your BIOS/UEFI setup.": "Після цього можна ввімкнути Secure Boot у налаштуваннях BIOS/UEFI.",
+    "A request is already queued: restart to complete it.": "Запит уже в черзі: перезавантажте, щоб його завершити.",
+    "Could not queue the request.": "Не вдалося поставити запит у чергу.",
+    "The key was removed. It will stop being trusted after a restart.": "Ключ вилучено. Він перестане бути довіреним після перезавантаження.",
+    "what this does and how the machine is now": "що це робить і як зараз виглядає машина",
+    "enrol the SkillFishOS key": "зареєструвати ключ SkillFishOS",
+    "remove the SkillFishOS key": "вилучити ключ SkillFishOS",
+}
+
+
+def L(it, en):
+    u"""it, pl, uk o quello che dice il dizionario condiviso.
+
+    ⚠️ Le due stringhe devono essere COSTANTI. Se il testo viene formattato
+    prima, la chiave cercata contiene gia' il valore e non la si trova mai: il
+    segnaposto si lascia dentro e si riempie dopo.
+    """
+    if LANG == "it":
+        return it
+    if LANG == "pl":
+        return PL.get(en) or _TR(en)
+    if LANG == "uk":
+        return UK.get(en) or _TR(en)
+    return _TR(en)
+
+
+def sh(cmd):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return r.returncode, (r.stdout or "") + (r.stderr or "")
+    except Exception as e:
+        return 1, str(e)
+
+
+# --- come sta la macchina ---------------------------------------------------
+def stato_secureboot():
+    u"""'on', 'off' oppure None quando la macchina non usa Secure Boot."""
+    rc, out = sh(["mokutil", "--sb-state"])
+    t = out.lower()
+    if "enabled" in t:
+        return "on"
+    if "disabled" in t:
+        return "off"
+    return None
+
+
+def chiave_registrata():
+    u"""⚠️ Si cerca il NOSTRO nome, non una riga qualsiasi: nella lista c'e'
+    sempre anche la chiave di Debian, e cercare «Subject» direbbe di si' su
+    qualunque macchina."""
+    rc, out = sh(["mokutil", "--list-enrolled"])
+    return "SkillFishOS Secure Boot" in out
+
+
+def richiesta_in_coda():
+    u"""⚠️ `mokutil --list-new` NON DICE NIENTE se non si e' root: la variabile
+    del firmware che tiene la richiesta si legge solo da amministratore, e da
+    utente normale l'uscita e' vuota. Quindi da utente questa funzione dice
+    sempre «no», e lo stato mostra il comando per registrare invece di dire che
+    una richiesta c'e' gia'.
+
+    Non e' un guaio: rilanciare la registrazione con una richiesta gia' in coda
+    la sostituisce e basta. Da root l'informazione c'e' tutta. Preferisco questo
+    a una riga di avvertenza su ogni singola esecuzione.
+    """
+    rc, out = sh(["mokutil", "--list-new"])
+    return "SkillFishOS Secure Boot" in out
+
+
+def spiega_riavvio():
+    print()
+    print("   " + L("Al prossimo avvio comparira' una schermata blu: Shim UEFI key management.",
+                    "At the next start you will see a blue screen: Shim UEFI key management."))
+    print("   " + L("Premi un tasto entro dieci secondi, scegli Enroll MOK, poi Continue, poi Yes,",
+                    "Press any key within ten seconds, choose Enroll MOK, then Continue, then Yes,"))
+    print("   " + L("e digita la password che hai appena scelto. Poi lascialo riavviare.",
+                    "and type the password you just chose. Then let it restart."))
+    print("   " + L("Se non fai niente la schermata sparisce da sola e non cambia nulla.",
+                    "If you do nothing, the screen goes away on its own and nothing changes."))
+    print()
+    print("   " + L("Dopo, puoi accendere Secure Boot dal BIOS/UEFI.",
+                    "After that you can turn Secure Boot on in your BIOS/UEFI setup."))
+
+
+def mostra_stato():
+    print(L("SkillFishOS — Secure Boot", "SkillFishOS — Secure Boot"))
+    print()
+    sb = stato_secureboot()
+    if sb is None:
+        print("   " + L("Questa macchina non usa Secure Boot UEFI.",
+                        "This machine does not use UEFI Secure Boot."))
+        return 0
+    print("   " + (L("Secure Boot e' ACCESO.", "Secure Boot is ON.") if sb == "on"
+                   else L("Secure Boot e' SPENTO.", "Secure Boot is OFF.")))
+
+    if chiave_registrata():
+        print("   " + L("La chiave di SkillFishOS e' gia' registrata.",
+                        "The SkillFishOS key is already enrolled."))
+        if sb == "on":
+            print()
+            print("   " + L("Non c'e' niente da fare: SkillFishOS parte gia' con Secure Boot acceso.",
+                            "Nothing to do: SkillFishOS already starts with Secure Boot on."))
+        else:
+            print()
+            print("   " + L("Dopo, puoi accendere Secure Boot dal BIOS/UEFI.",
+                            "After that you can turn Secure Boot on in your BIOS/UEFI setup."))
+        return 0
+
+    print("   " + L("La chiave di SkillFishOS non e' ancora registrata.",
+                    "The SkillFishOS key is not enrolled yet."))
+    if richiesta_in_coda():
+        print()
+        print("   " + L("Una richiesta e' gia' in coda: riavvia per completarla.",
+                        "A request is already queued: restart to complete it."))
+        spiega_riavvio()
+        return 0
+    print()
+    print("   " + L("Per registrarla:", "To enrol it, run:"))
+    print("      sudo %s --registra" % NOME)
+    return 0
+
+
+def registra():
+    if os.geteuid() != 0:
+        print("   " + L("Serve essere root. Prova:", "You have to be root. Try:")
+              + "  sudo %s --registra" % NOME, file=sys.stderr)
+        return 1
+    if not os.path.exists(CERT):
+        print("   " + L("Manca il certificato:", "The certificate is missing:")
+              + " " + CERT, file=sys.stderr)
+        return 1
+    if chiave_registrata():
+        print("   " + L("La chiave di SkillFishOS e' gia' registrata.",
+                        "The SkillFishOS key is already enrolled."))
+        return 0
+
+    print(L("SkillFishOS — Secure Boot", "SkillFishOS — Secure Boot"))
+    print()
+    print("   " + L("Scegli una password. Te la chiedera' una volta sola, al prossimo avvio, e mai piu'.",
+                    "Choose a password. You will be asked for it once, at the next start, and never again."))
+    print()
+    # ⚠️ SI SVUOTA IL BUFFER PRIMA. mokutil scrive sul terminale per conto suo,
+    # mentre le nostre print restano nel buffer finche' non si riempie: senza
+    # questo flush l'utente legge «input password:» PRIMA della riga che gli
+    # spiega che password sta scegliendo. Visto succedere davvero.
+    sys.stdout.flush()
+    # ⚠️ La password la chiede mokutil, non noi: cosi' non passa mai da qui e non
+    # finisce in nessun registro nostro.
+    rc = subprocess.call(["mokutil", "--import", CERT])
+    if rc != 0:
+        print("   " + L("Non sono riuscito a mettere in coda la richiesta.",
+                        "Could not queue the request."), file=sys.stderr)
+        return 1
+    print()
+    print("   " + L("Richiesta in coda. Adesso riavvia il computer.",
+                    "Request queued. Now restart the computer."))
+    spiega_riavvio()
+    return 0
+
+
+def togli():
+    if os.geteuid() != 0:
+        print("   " + L("Serve essere root. Prova:", "You have to be root. Try:")
+              + "  sudo %s --togli" % NOME, file=sys.stderr)
+        return 1
+    if not os.path.exists(CERT):
+        print("   " + L("Manca il certificato:", "The certificate is missing:")
+              + " " + CERT, file=sys.stderr)
+        return 1
+    rc = subprocess.call(["mokutil", "--delete", CERT])
+    if rc != 0:
+        return 1
+    print()
+    print("   " + L("La chiave e' stata tolta. Smettera' di essere accettata dopo un riavvio.",
+                    "The key was removed. It will stop being trusted after a restart."))
+    spiega_riavvio()
+    return 0
+
+
+def aiuto():
+    print(L("SkillFishOS — Secure Boot", "SkillFishOS — Secure Boot"))
+    print()
+    print("   %s                %s" % (NOME, L("cosa fa e come sta la macchina adesso",
+                                               "what this does and how the machine is now")))
+    print("   %s --registra     %s" % (NOME, L("registra la chiave di SkillFishOS",
+                                               "enrol the SkillFishOS key")))
+    print("   %s --togli        %s" % (NOME, L("toglie la chiave di SkillFishOS",
+                                               "remove the SkillFishOS key")))
+    return 0
+
+
+def main():
+    if not any(os.access(os.path.join(p, "mokutil"), os.X_OK)
+               for p in os.environ.get("PATH", "/usr/bin").split(os.pathsep)):
+        print("   " + L("mokutil non e' installato.", "mokutil is not installed."),
+              file=sys.stderr)
+        return 1
+    a = sys.argv[1] if len(sys.argv) > 1 else ""
+    if a in ("", "--stato", "--status"):
+        return mostra_stato()
+    if a in ("--registra", "--enroll", "--import"):
+        return registra()
+    if a in ("--togli", "--remove", "--delete"):
+        return togli()
+    return aiuto()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -474,6 +474,12 @@ put $P 0644 system/etc/systemd/system/skillfish-live-no-lock.service etc/systemd
 # sorgente subito dopo il fallimento, cioe' mai in tempo.
 put $P 0755 system/etc/kernel/postinst.d/00-skillfish-nct6687       etc/kernel/postinst.d/00-skillfish-nct6687
 put $P 0755 system/usr/local/bin/skillfish-is-bc250                usr/local/bin/skillfish-is-bc250
+# Secure Boot: l'attrezzo che fa registrare la nostra chiave nel firmware,
+# e il certificato PUBBLICO che gli serve. Il certificato e' pubblico apposta:
+# e' quello che l'utente registra, e permette a chiunque di verificare che un
+# kernel di SkillFishOS sia davvero nostro.
+put $P 0755 system/usr/local/bin/skillfish-secureboot            usr/local/bin/skillfish-secureboot
+put $P 0644 secureboot/SkillFishOS-SB.cer                        usr/share/skillfishos/SkillFishOS-SB.cer
 put $P 0644 system/etc/systemd/system/skillfish-sshd-keygen.service etc/systemd/system/skillfish-sshd-keygen.service
 put $P 0644 system/etc/ssh/sshd_config.d/10-skillfish.conf        etc/ssh/sshd_config.d/10-skillfish.conf
 put $P 0644 system/etc/systemd/coredump.conf.d/10-skillfish.conf  etc/systemd/coredump.conf.d/10-skillfish.conf
@@ -507,7 +513,7 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read."
