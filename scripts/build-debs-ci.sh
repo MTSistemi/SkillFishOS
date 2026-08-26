@@ -517,6 +517,12 @@ applications read."
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 #!/bin/sh
 set -e
+# La regola sudo della sessione live non ha senso su un sistema installato:
+# li' l'utente live non esiste piu'. Se resta, e' una riga che aspetta solo
+# che qualcuno crei un utente con quel nome.
+if [ -f /etc/sudoers.d/99-skillfish-live ] && ! id live >/dev/null 2>&1; then
+    rm -f /etc/sudoers.d/99-skillfish-live
+fi
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
   # senza chiavi host ssh.service fallisce all'infinito su installazione fresca

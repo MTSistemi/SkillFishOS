@@ -47,7 +47,7 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="26.08.59" date="2026-08-25">
+    <release version="26.08.60" date="2026-08-26">
       <description>
           <p>The SkillFishOS wallpaper now waits for Plasma to answer before it is applied, and afterwards checks that it really is there. It used to try for thirty seconds and then give up without a word, so on a slow start you reached the desktop with the default Plasma wallpaper and it stayed. It is the first thing anyone sees of the system.</p>
           <p xml:lang="it">Lo sfondo di SkillFishOS adesso aspetta che Plasma risponda prima di essere applicato, e dopo controlla che ci sia davvero. Prima ci provava per trenta secondi e poi rinunciava senza dire niente: su un avvio lento si arrivava al desktop con lo sfondo predefinito di Plasma, e ci restava. È la prima cosa che si vede del sistema.</p>
