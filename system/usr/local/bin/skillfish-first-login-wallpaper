@@ -1,7 +1,6 @@
 #!/bin/sh
-# Imposta lo sfondo di SkillFishOS al primo accesso di ogni utente.
+# Mette lo sfondo di SkillFishOS al primo accesso.
 #
-# PERCHE' NON BASTA UN FILE DI CONFIGURAZIONE
 # Ci abbiamo provato in tre modi, tutti ragionevoli e tutti inutili:
 #   1. look-and-feel con Image=<percorso del PNG>  -> Plasma vuole un pacchetto
 #   2. pacchetto wallpaper vero + Image=<percorso> -> giusto, ma mai letto
@@ -19,26 +18,92 @@
 # pacchetto e' valido: mancava solo qualcuno che glielo dicesse al momento
 # giusto.
 #
-# Gira una volta sola: il file di controllo evita di sovrascrivere lo sfondo a
-# chi se n'e' scelto un altro.
+# ⚠️ PERCHE' E' STATO RISCRITTO (25/08/2026). La versione precedente provava
+# dieci volte a distanza di tre secondi e poi RINUNCIAVA IN SILENZIO. Su due
+# avvii identici della 26.06.6 da chiavetta, uno e' arrivato al desktop con lo
+# sfondo predefinito di Plasma e ci e' rimasto: trenta secondi non bastano
+# sempre, e nessuno se ne accorgeva perche' lo script usciva 0 comunque.
+# E' la prima cosa che si vede di SkillFishOS.
+#
+# Due cose cambiano:
+#   - PRIMA SI ASPETTA PLASMA, invece di sparare comandi nel vuoto. Si aspetta
+#     che risponda su D-Bus, fino a tre minuti. `X-KDE-autostart-phase=2` dice
+#     "dopo plasmashell", ma "avviato" non vuol dire "pronto a rispondere".
+#   - POI SI CONTROLLA CHE SIA ANDATA, invece di fidarsi dell'uscita del
+#     comando: si rilegge la configurazione e si guarda se lo sfondo e' il
+#     nostro. Il segnaposto si scrive SOLO a conferma avvenuta, quindi al
+#     prossimo accesso si riprova invece di dare per fatto qualcosa che non e'
+#     successo. Chi si sceglie un altro sfondo non viene disturbato: il
+#     segnaposto a quel punto c'e' gia'.
+#
+# Quello che va storto finisce in ~/.cache/skillfish-wallpaper.log: senza, un
+# guasto come quello di prima resta invisibile.
 set -u
 
-STAMP="${XDG_CONFIG_HOME:-$HOME/.config}/skillfish-wallpaper-applied"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+STAMP="$CONF/skillfish-wallpaper-applied"
+CFG="$CONF/plasma-org.kde.plasma.desktop-appletsrc"
 PKG=/usr/share/wallpapers/SkillFishOS
+LOG="${XDG_CACHE_HOME:-$HOME/.cache}/skillfish-wallpaper.log"
+
+mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+nota() { echo "$(date -Is) $*" >> "$LOG" 2>/dev/null || true; }
 
 [ -f "$STAMP" ] && exit 0
-[ -d "$PKG" ] || exit 0
-command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || exit 0
+[ -d "$PKG" ] || { nota "il pacchetto $PKG non c'e'"; exit 0; }
+command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || {
+    nota "plasma-apply-wallpaperimage non c'e'"; exit 0; }
 
-# Plasma potrebbe non aver ancora finito di avviarsi: qualche tentativo.
+# --- 1. aspettare che Plasma risponda davvero -------------------------------
+# ⚠️ Il binario si chiama qdbus6 su trixie/sid: cercarne solo "qdbus" vuol dire
+# non trovarlo e ripiegare sul controllo del processo, che dice "esiste" molto
+# prima che sia pronto.
+QD=""
+for c in qdbus6 qdbus-qt6 qdbus; do
+    command -v "$c" >/dev/null 2>&1 && { QD="$c"; break; }
+done
+
 i=0
-while [ $i -lt 10 ]; do
-    if plasma-apply-wallpaperimage "$PKG" >/dev/null 2>&1; then
-        mkdir -p "$(dirname "$STAMP")"
+pronto=0
+while [ "$i" -lt 90 ]; do
+    if [ -n "$QD" ]; then
+        "$QD" org.kde.plasmashell >/dev/null 2>&1 && { pronto=1; break; }
+    else
+        pgrep -u "$(id -u)" -x plasmashell >/dev/null 2>&1 && { pronto=1; break; }
+    fi
+    i=$((i + 1))
+    sleep 2
+done
+[ "$pronto" = 1 ] || nota "Plasma non ha risposto in 3 minuti: provo lo stesso"
+
+# --- 2. applicare, e verificare ---------------------------------------------
+# Si guarda dentro la sezione giusta: un "SkillFishOS" trovato altrove nel file
+# (il tema, le icone, il nome di un pannello) non c'entra niente con lo sfondo.
+messo() {
+    [ -f "$CFG" ] || return 1
+    awk '
+        /^\[Containments\]\[[0-9]+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$/ { dentro = 1; next }
+        /^\[/                                                                     { dentro = 0 }
+        dentro && /^Image=/ && /SkillFishOS/                                      { ok = 1 }
+        END { exit ok ? 0 : 1 }
+    ' "$CFG"
+}
+
+i=0
+while [ "$i" -lt 30 ]; do
+    plasma-apply-wallpaperimage "$PKG" >/dev/null 2>&1
+    sleep 2
+    if messo; then
+        mkdir -p "$(dirname "$STAMP")" 2>/dev/null || true
         date -Is > "$STAMP"
+        [ "$i" = 0 ] || nota "sfondo messo dopo $((i + 1)) tentativi"
         exit 0
     fi
     i=$((i + 1))
-    sleep 3
+    sleep 2
 done
+
+# Nessun segnaposto: al prossimo accesso si riprova. Meglio riprovare che
+# dichiarare fatto.
+nota "NON sono riuscito a mettere lo sfondo dopo 30 tentativi"
 exit 0
