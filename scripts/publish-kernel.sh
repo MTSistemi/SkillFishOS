@@ -26,6 +26,47 @@ if [ ${#DEBS[@]} -eq 0 ]; then
 fi
 printf '  %s\n' "${DEBS[@]}"
 
+# --- i kernel devono essere firmati, o non si pubblicano --------------------
+# Con Secure Boot acceso un kernel che nessuno ha firmato viene rifiutato dallo
+# shim e la macchina non parte (segnalazione #53). Firmare e' un passaggio in
+# piu' fra la compilazione e il rilascio, e i passaggi in piu' si dimenticano:
+# quindi non e' un promemoria, e' un rifiuto.
+#
+# Si verifica col certificato PUBBLICO del repository, cosi' il controllo gira
+# anche dove la chiave privata non c'e'.
+CRT="$(cd "$(dirname "$0")/.." && pwd)/secureboot/SkillFishOS-SB.crt"
+if [ ! -f "$CRT" ]; then
+    echo "ERRORE: manca il certificato pubblico $CRT" >&2
+    exit 1
+fi
+command -v sbverify >/dev/null 2>&1 || { echo "ERRORE: manca sbverify (apt install sbsigntool)" >&2; exit 1; }
+
+nudi=0
+for deb in "${DEBS[@]}"; do
+    case "$(basename "$deb")" in linux-image-*) ;; *) continue ;; esac
+    t=$(mktemp -d)
+    dpkg-deb -x "$deb" "$t" 2>/dev/null || { rm -rf "$t"; continue; }
+    k=$(find "$t/boot" -maxdepth 1 -name 'vmlinuz-*' 2>/dev/null | head -1)
+    # ⚠️ si guarda il TESTO: sbverify esce 0 anche senza firma.
+    if [ -n "$k" ] && sbverify --cert "$CRT" "$k" 2>&1 | grep -q 'Signature verification OK'; then
+        printf '  firma ok   %s\n' "$(basename "$deb")"
+    else
+        printf '  SENZA FIRMA %s\n' "$(basename "$deb")"
+        nudi=$((nudi + 1))
+    fi
+    rm -rf "$t"
+done
+if [ "$nudi" -gt 0 ]; then
+    echo >&2
+    echo "NON pubblico: $nudi kernel non sono firmati." >&2
+    echo "Con Secure Boot acceso non partirebbero, e l'utente non saprebbe perche'." >&2
+    echo >&2
+    echo "  kernel-build/scripts/firma-kernel.sh $DEBS_DIR/linux-image-*.deb" >&2
+    echo >&2
+    exit 1
+fi
+
+
 # uname -r of the built kernel (from the image package name) for release notes
 KVER=$(basename "$(printf '%s\n' "${DEBS[@]}" | grep -m1 linux-image)" | sed -E 's/linux-image-([^_]+)_.*/\1/')
 
