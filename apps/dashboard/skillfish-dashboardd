@@ -1465,8 +1465,9 @@ def ai_chat(model, messages):
         key = _unsloth_key()
         if not key:
             return {"ok": False, "error": "Unsloth richiede una API key: creala in Unsloth Studio "
-                                          "(pulsante «Apri Unsloth Studio») e incollala in "
-                                          "/etc/skillfish/dashboard.json come \"unsloth_api_key\"."}
+                                          "(pulsante «Apri Unsloth Studio»), poi scrivila in "
+                                          "/etc/skillfish/unsloth.key, che resta leggibile solo da root. "
+                                          "Non metterla in dashboard.json: quel file lo legge chiunque."}
         try:
             body = {"messages": messages, "stream": False}
             if model:
