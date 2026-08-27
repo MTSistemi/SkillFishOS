@@ -54,7 +54,7 @@ jobs:
 
       - name: Open or update the issue
         if: steps.controllo.outputs.invecchiato == 'si'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -81,7 +81,7 @@ jobs:
 
       - name: Close the issue when everything lines up again
         if: steps.controllo.outputs.invecchiato == 'no'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const titolo = 'Some texts no longer match what we publish';
