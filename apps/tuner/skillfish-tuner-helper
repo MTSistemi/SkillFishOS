@@ -48,6 +48,9 @@ def _rd(path, mode="r"):
     with open(path, mode) as f:
         return f.read()
 
+NL = chr(10)  # a capo, senza scriverlo come sequenza
+
+
 def _wr(path, data):
     """Write a whole file with a context manager (no leaked fd)."""
     with open(path, "w") as f:
@@ -552,14 +555,22 @@ def test_gpu(minmhz,minmv,maxmhz,maxmv):
     return {"ok":True,"applied":True,"bench":b}
 
 def thermal_guard(limit):
-    script="/usr/local/bin/skillfish-thermal-guard.sh"
-    # APPLY si risolve a ogni avvio dello script: /opt e' dove stanno gli
-    # strumenti sui sistemi installati, /root solo sulla scheda di sviluppo e
-    # sulle installazioni vecchie.
-    body="#!/bin/sh\nAPPLY=/opt/bc250_smu_oc/bc250_apply.py\n[ -f \"$APPLY\" ] || APPLY=/root/bc250_smu_oc/bc250_apply.py\nLIMIT=%d\nwhile true; do\n t=0\n for h in /sys/class/hwmon/hwmon*; do [ \"$(cat $h/name 2>/dev/null)\" = k10temp ] && t=$(awk '{printf \"%%d\",$1/1000}' \"$h/temp1_input\"); done\n cur=$(awk -F= '/frequency/{print $2}' /etc/bc250-smu-oc.conf|tr -d ' '|head -1)\n if [ \"$t\" -gt \"$LIMIT\" ] && [ -n \"$cur\" ] && [ \"$cur\" -gt 3500 ]; then new=$((cur-100)); sed -i \"s/^frequency = .*/frequency = $new/\" /etc/bc250-smu-oc.conf; systemctl stop cyan-skillfish-governor 2>/dev/null; python3 \"$APPLY\" --apply /etc/bc250-smu-oc.conf 2>/dev/null; systemctl start cyan-skillfish-governor 2>/dev/null; fi\n sleep 10\ndone\n"%int(limit)
-    _wr(script,body); os.chmod(script,0o700)  # owner-only: privileged root helper
-    _wr("/etc/systemd/system/skillfish-thermal-guard.service","[Unit]\nDescription=SkillFishOS thermal guard\n[Service]\nExecStart=%s\nRestart=always\n[Install]\nWantedBy=multi-user.target\n"%script)
-    sh("systemctl daemon-reload; systemctl enable --now skillfish-thermal-guard.service")
+    # ⚠️ Qui dentro, fino al 27/08/2026, c'era l'INTERO script della guardia
+    # termica incorporato in una stringa, e ogni chiamata lo riscriveva sopra
+    # quello del pacchetto. Due copie della stessa logica in due posti: una
+    # correzione fatta nel file vero spariva alla prima modifica del limite
+    # dal Tuner. Peggio: la copia scritta da qui non aveva l'ExecCondition
+    # che limita il servizio alla BC-250, quindi bastava toccare il limite
+    # per togliere quella protezione su una macchina qualunque.
+    # Adesso lo script sta in un posto solo, dentro il pacchetto, e qui si
+    # scrive soltanto il limite che deve leggere.
+    os.makedirs("/etc/skillfish", exist_ok=True)
+    _wr("/etc/skillfish/thermal-guard.conf", "".join([
+        "# Scritto da SkillFishOS Tuner. Temperatura oltre la quale la CPU",
+        NL, "# viene rallentata di 100 MHz per volta.", NL,
+        "LIMITE=%d" % int(limit), NL]))
+    sh("systemctl enable --now skillfish-thermal-guard.service;"
+       " systemctl restart skillfish-thermal-guard.service")
     return True
 
 SEGNAPOSTO_CORE = "/etc/skillfish/core-unlock.abilitato"

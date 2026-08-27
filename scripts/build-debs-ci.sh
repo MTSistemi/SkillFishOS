@@ -675,6 +675,22 @@ if [ -f /etc/locale.gen ]; then
   fi
 fi
 
+# La guardia termica legge da qui la temperatura oltre la quale rallenta la
+# CPU. ⚠️ Prima quel limite stava scritto DENTRO lo script della guardia, e il
+# Tuner riscriveva l'intero script a ogni modifica: due copie della stessa
+# logica, e una correzione fatta nel file del pacchetto spariva alla prima
+# modifica dal Tuner. Ora lo script e' uno solo e il limite sta qui.
+# Chi aggiorna da una versione vecchia riparte dal predefinito: il valore che
+# aveva scelto vive comunque nel profilo del Tuner e torna da solo appena
+# riapplica il profilo.
+if [ ! -f /etc/skillfish/thermal-guard.conf ]; then
+  mkdir -p /etc/skillfish
+  {
+    echo '# Temperatura oltre la quale la CPU viene rallentata di 100 MHz.'
+    echo 'LIMITE=85'
+  } > /etc/skillfish/thermal-guard.conf
+fi
+
 exit 0
 POSTINST
 # On removal the SSDT would vanish while GRUB still referenced it, so undo the
