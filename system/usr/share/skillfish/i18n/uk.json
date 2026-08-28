@@ -3,7 +3,7 @@
   "lingua": "uk",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "ucraino del team, da rivedere",
-  "voci_totali": 393
+  "voci_totali": 646
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЦю дію не можна скасувати. Продовжити?",
@@ -160,6 +160,7 @@
   "Disk": "Диск",
   "Done.": "Готово.",
   "Done. On the next restart the system from that date will boot.": "Готово. Після наступного перезавантаження запуститься система з тієї дати.",
+  "Done. Remove the live media and start from the disk: the system from that date will boot.": "Готово. Вийміть носій live і завантажтеся з диска: запуститься система тієї дати.",
   "Done. Restart to go back to the previous system.": "Готово. Перезавантажте, щоб повернутися до попередньої системи.",
   "EMERGENCY: full speed": "АВАРІЯ: повні оберти",
   "EXPOSED MODULES": "ДОСТУПНІ МОДУЛІ",
@@ -198,6 +199,7 @@
   "Freed space: ~%.0f MB": "Звільнено місця: ~%.0f МБ",
   "Frequency": "Частота",
   "Frequency (MHz)": "Частота (МГц)",
+  "From the live image you can take the system back, not make new snapshots on it.": "З носія live систему можна повернути назад, але не можна робити на ній нові знімки.",
   "Full": "Максимум",
   "GOING:\n%s\n\nSTAYING:\n%s\n\nHow much space is freed cannot be known in advance: snapshots share their data with each other.": "ЗНИКНУТЬ:\n%s\n\nЗАЛИШАТЬСЯ:\n%s\n\nСкільки місця звільниться, наперед сказати не можна: знімки спільно використовують дані.",
   "GPU applied": "ГП застосовано",
@@ -427,6 +429,7 @@
   "Suite": "Випуск (suite)",
   "System": "Система",
   "System status": "Стан системи",
+  "System to repair:": "Система для відновлення:",
   "Take a snapshot": "Зробити знімок",
   "Take a snapshot now": "Зробити знімок зараз",
   "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on.": "Прибирає панель зі стільниці або повертає її. Діє зараз і діє після перезавантаження: це записується в автозапуск, а не просто закриває вікно.\n\nКоли вимкнути, файл автозапуску лишається на місці, тільки неактивним, — тож увімкнути назад — це одна позначка, і нічого не треба перебудовувати.\n\nТе, що ви вибрали показувати, лишається як було, і чекає, коли ввімкнете знову.",
@@ -529,6 +532,7 @@
   "Word processors": "Текстові процесори",
   "Writes to the BIOS CMOS. A reboot is needed to apply.": "Записується у CMOS BIOS. Для застосування потрібне перезавантаження.",
   "Writing to a PWM output does not mean anything moves. On many boards, servers and laptops especially, the chip accepts the value and the firmware keeps the fans to itself: from outside you see a panel that works and a fan that never got an order.\n\nVerified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, and the speed does not budge on either output.\n\nThis test pauses the controller for a moment, takes the fan to full, then to 35%, then back to full, and watches whether the tachometer follows. It takes about thirty seconds, you will hear it, and it puts everything back afterwards.": "Запис у вихід PWM не означає, що щось зрушить. На багатьох платах, особливо в серверах і ноутбуках, мікросхема приймає значення, а мікропрограма лишає вентилятори собі: ззовні видно панель, яка працює, і вентилятор, який так і не дістав наказу.\n\nПеревірено на машині розробки, Fujitsu PRIMERGY: записати 255, записати 60 — оберти не здригнуться на жодному з виходів.\n\nЦя перевірка на мить зупиняє регулятор, виводить вентилятор на максимум, потім на 35%, потім знову на максимум, і дивиться, чи йде за ним тахометр. Вона триває близько тридцяти секунд, її буде чути, і після неї все повертається на місце.",
+  "You are working from the live image on an installed system: you can take it back, not make new snapshots on it.": "Ви працюєте з носія live над встановленою системою: її можна повернути назад, але не можна робити на ній нові знімки.",
   "You can close this window: the update carries on by itself, and you will find it here when you reopen the Hub.": "Це вікно можна закрити: оновлення йде своїм ходом, і ви знайдете його тут, коли знову відкриєте Hub.",
   "You can rename any sensor, and the name survives a reboot.\n\nThis matters: on many boards the driver does not know how the inputs are wired and calls them in0, in2, in6. No program can know — the person with the machine in front of them can.\n\nThe name is tied to the chip and channel, not to the hwmon number, which changes with driver load order.": "Будь-який датчик можна перейменувати, і назва переживе перезавантаження.\n\nЦе важливо: на багатьох платах драйвер не знає, як розведені входи, і зве їх in0, in2, in6. Жодна програма цього знати не може — людина, у якої машина перед очима, може.\n\nНазва прив'язана до мікросхеми й каналу, а не до номера hwmon, який змінюється разом із порядком завантаження драйверів.",
   "You can't uninstall the running kernel. Boot another kernel and try again.": "Не можна вилучити запущене ядро. Завантажте інше ядро і спробуйте ще раз.",

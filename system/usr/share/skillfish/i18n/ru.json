@@ -4,7 +4,7 @@
   "nome": "Русский",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 393
+  "voci_totali": 649
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЭто действие нельзя отменить. Продолжить?",
@@ -163,6 +163,7 @@
   "Disk": "Диск",
   "Done.": "Готово.",
   "Done. On the next restart the system from that date will boot.": "Готово. При следующем запуске загрузится система от той даты.",
+  "Done. Remove the live media and start from the disk: the system from that date will boot.": "Готово. Извлеките носитель live и загрузитесь с диска: запустится система той даты.",
   "Done. Restart to go back to the previous system.": "Готово. Перезапустите, чтобы вернуться к прежней системе.",
   "EMERGENCY: full speed": "АВАРИЯ: полные обороты",
   "EXPOSED MODULES": "ОТКРЫТЫЕ МОДУЛИ",
@@ -201,6 +202,7 @@
   "Freed space: ~%.0f MB": "Освобождено места: ~%.0f МБ",
   "Frequency": "Частота",
   "Frequency (MHz)": "Частота (МГц)",
+  "From the live image you can take the system back, not make new snapshots on it.": "С носителя live систему можно вернуть назад, но нельзя делать на ней новые снимки.",
   "Full": "Максимум",
   "GOING:\n%s\n\nSTAYING:\n%s\n\nHow much space is freed cannot be known in advance: snapshots share their data with each other.": "ИСЧЕЗНУТ:\n%s\n\nОСТАНУТСЯ:\n%s\n\nСколько места освободится, заранее сказать нельзя: снимки делят данные между собой.",
   "GPU applied": "Настройки GPU применены",
@@ -430,6 +432,7 @@
   "Suite": "Пакет программ",
   "System": "Система",
   "System status": "Состояние системы",
+  "System to repair:": "Система для восстановления:",
   "Take a snapshot": "Сделать снимок",
   "Take a snapshot now": "Сделать снимок сейчас",
   "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on.": "Убирает панель с рабочего стола или возвращает её. Действует сейчас и действует после перезагрузки: это записывается в автозапуск, а не просто закрывает окно.\n\nПри выключении файл автозапуска остаётся на месте, только отключённым, — снова включить его можно одной галочкой, и ничего не надо пересобирать.\n\nТо, что вы выбрали показывать, остаётся как было, и ждёт вас, когда включите обратно.",
@@ -533,6 +536,7 @@
   "Word processors": "Текстовые процессоры",
   "Writes to the BIOS CMOS. A reboot is needed to apply.": "Запись в CMOS BIOS. Для применения нужна перезагрузка.",
   "Writing to a PWM output does not mean anything moves. On many boards, servers and laptops especially, the chip accepts the value and the firmware keeps the fans to itself: from outside you see a panel that works and a fan that never got an order.\n\nVerified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, and the speed does not budge on either output.\n\nThis test pauses the controller for a moment, takes the fan to full, then to 35%, then back to full, and watches whether the tachometer follows. It takes about thirty seconds, you will hear it, and it puts everything back afterwards.": "Запись в выход PWM не значит, что что-то шевельнётся. На многих платах, особенно в серверах и ноутбуках, микросхема принимает значение, а прошивка оставляет вентиляторы себе: снаружи видно панель, которая работает, и вентилятор, который так и не получил приказа.\n\nПроверено на машине разработки, Fujitsu PRIMERGY: записать 255, записать 60 — обороты не дрогнут ни на одном из выходов.\n\nЭта проверка на минуту останавливает регулятор, выводит вентилятор на максимум, затем на 35%, затем снова на максимум, и смотрит, идёт ли за ним тахометр. Она занимает около тридцати секунд, её будет слышно, и после неё всё возвращается на место.",
+  "You are working from the live image on an installed system: you can take it back, not make new snapshots on it.": "Вы работаете с носителя live над установленной системой: её можно вернуть назад, но нельзя делать на ней новые снимки.",
   "You can close this window: the update carries on by itself, and you will find it here when you reopen the Hub.": "Это окно можно закрыть: обновление идёт своим ходом, и вы найдёте его здесь, когда снова откроете Hub.",
   "You can rename any sensor, and the name survives a reboot.\n\nThis matters: on many boards the driver does not know how the inputs are wired and calls them in0, in2, in6. No program can know — the person with the machine in front of them can.\n\nThe name is tied to the chip and channel, not to the hwmon number, which changes with driver load order.": "Любой датчик можно переименовать, и имя переживёт перезагрузку.\n\nЭто важно: на многих платах драйвер не знает, как разведены входы, и зовёт их in0, in2, in6. Ни одна программа этого знать не может — человек, у которого машина перед глазами, может.\n\nИмя привязано к микросхеме и каналу, а не к номеру hwmon, который меняется вместе с порядком загрузки драйверов.",
   "You can't uninstall the running kernel. Boot another kernel and try again.": "Запущенное ядро удалить нельзя. Загрузитесь с другого ядра и повторите.",

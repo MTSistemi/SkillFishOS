@@ -3,7 +3,7 @@
   "lingua": "pl",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "polacco di Cyryl Sochacki, unito dalle sei app",
-  "voci_totali": 393
+  "voci_totali": 646
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nTej operacji nie można cofnąć. Kontynuować?",
@@ -160,6 +160,7 @@
   "Disk": "Dysk",
   "Done.": "Gotowe.",
   "Done. On the next restart the system from that date will boot.": "Gotowe. Przy następnym uruchomieniu wystartuje system z tamtej daty.",
+  "Done. Remove the live media and start from the disk: the system from that date will boot.": "Gotowe. Wyjmij nośnik live i uruchom z dysku: wystartuje system z tamtej daty.",
   "Done. Restart to go back to the previous system.": "Gotowe. Uruchom ponownie, aby wrócić do poprzedniego systemu.",
   "EMERGENCY: full speed": "AWARIA: pełne obroty",
   "EXPOSED MODULES": "UDOSTĘPNIONE MODUŁY",
@@ -198,6 +199,7 @@
   "Freed space: ~%.0f MB": "Zwolnione miejsce: ~%.0f MB",
   "Frequency": "Częstotliwość",
   "Frequency (MHz)": "Częstotliwość (MHz)",
+  "From the live image you can take the system back, not make new snapshots on it.": "Z nośnika live możesz cofnąć system, ale nie robić na nim nowych migawek.",
   "Full": "Maksimum",
   "GOING:\n%s\n\nSTAYING:\n%s\n\nHow much space is freed cannot be known in advance: snapshots share their data with each other.": "ZNIKAJĄ:\n%s\n\nZOSTAJĄ:\n%s\n\nIle miejsca się zwolni, nie da się powiedzieć z góry: migawki współdzielą dane między sobą.",
   "GPU applied": "GPU zastosowane",
@@ -427,6 +429,7 @@
   "Suite": "Seria",
   "System": "System",
   "System status": "Stan systemu",
+  "System to repair:": "System do naprawy:",
   "Take a snapshot": "Zrób migawkę",
   "Take a snapshot now": "Zrób migawkę teraz",
   "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on.": "Zdejmuje panel z pulpitu albo go przywraca. Działa teraz i działa też po ponownym uruchomieniu: zapisuje się we wpisie autostartu, to nie jest samo zamknięcie okna.\n\nPo wyłączeniu plik autostartu zostaje na miejscu, tylko nieaktywny — więc ponowne włączenie to jedno kliknięcie i nie ma czego odbudowywać.\n\nTo, co wybrałeś do pokazania, zostaje tak, jak zostawiłeś, i czeka, gdy znów włączysz.",
@@ -529,6 +532,7 @@
   "Word processors": "Procesory tekstu",
   "Writes to the BIOS CMOS. A reboot is needed to apply.": "Zapisuje w CMOS-ie BIOS-u. Aby zastosować, wymagany jest restart.",
   "Writing to a PWM output does not mean anything moves. On many boards, servers and laptops especially, the chip accepts the value and the firmware keeps the fans to itself: from outside you see a panel that works and a fan that never got an order.\n\nVerified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, and the speed does not budge on either output.\n\nThis test pauses the controller for a moment, takes the fan to full, then to 35%, then back to full, and watches whether the tachometer follows. It takes about thirty seconds, you will hear it, and it puts everything back afterwards.": "Zapis do wyjścia PWM nie znaczy, że cokolwiek się rusza. Na wielu płytach, zwłaszcza w serwerach i laptopach, układ przyjmuje wartość, a oprogramowanie układowe zatrzymuje wentylatory dla siebie: z zewnątrz widzisz panel, który działa, i wentylator, który nigdy nie dostał rozkazu.\n\nSprawdzone na maszynie deweloperskiej, Fujitsu PRIMERGY: zapisz 255, zapisz 60 — obroty nie drgną na żadnym z wyjść.\n\nTen test na chwilę wstrzymuje sterownik, podnosi wentylator na maksimum, potem na 35%, potem znów na maksimum, i patrzy, czy obrotomierz nadąża. Trwa około trzydziestu sekund, będzie słychać, a potem wszystko wraca na miejsce.",
+  "You are working from the live image on an installed system: you can take it back, not make new snapshots on it.": "Pracujesz z nośnika live na zainstalowanym systemie: możesz go cofnąć, ale nie robić na nim nowych migawek.",
   "You can close this window: the update carries on by itself, and you will find it here when you reopen the Hub.": "Możesz zamknąć to okno: aktualizacja idzie dalej sama i znajdziesz ją tutaj po ponownym otwarciu Huba.",
   "You can rename any sensor, and the name survives a reboot.\n\nThis matters: on many boards the driver does not know how the inputs are wired and calls them in0, in2, in6. No program can know — the person with the machine in front of them can.\n\nThe name is tied to the chip and channel, not to the hwmon number, which changes with driver load order.": "Możesz zmienić nazwę każdego czujnika, a nazwa przeżyje ponowne uruchomienie.\n\nTo ma znaczenie: na wielu płytach sterownik nie wie, jak wejścia są podłączone, i nazywa je in0, in2, in6. Żaden program nie może tego wiedzieć — człowiek, który ma maszynę przed sobą, może.\n\nNazwa jest przypisana do układu i kanału, nie do numeru hwmon, który zmienia się wraz z kolejnością wczytywania sterowników.",
   "You can't uninstall the running kernel. Boot another kernel and try again.": "Nie można odinstalować uruchomionego kernela. Uruchom inny kernel i spróbuj ponownie.",

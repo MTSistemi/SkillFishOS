@@ -4,7 +4,7 @@
   "nome": "Deutsch",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 393
+  "voci_totali": 649
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nDas lässt sich nicht rückgängig machen. Weiter?",
@@ -163,6 +163,7 @@
   "Disk": "Datenträger",
   "Done.": "Fertig.",
   "Done. On the next restart the system from that date will boot.": "Fertig. Beim nächsten Start fährt das System von jenem Datum hoch.",
+  "Done. Remove the live media and start from the disk: the system from that date will boot.": "Fertig. Entfernen Sie das Live-Medium und starten Sie von der Festplatte: es startet das System von jenem Datum.",
   "Done. Restart to go back to the previous system.": "Fertig. Starten Sie neu, um zum vorherigen System zurückzukehren.",
   "EMERGENCY: full speed": "NOTFALL: volle Drehzahl",
   "EXPOSED MODULES": "OFFENGELEGTE MODULE",
@@ -201,6 +202,7 @@
   "Freed space: ~%.0f MB": "Frei gewordener Platz: ~%.0f MB",
   "Frequency": "Takt",
   "Frequency (MHz)": "Takt (MHz)",
+  "From the live image you can take the system back, not make new snapshots on it.": "Vom Live-Medium aus können Sie das System zurückholen, aber keine neuen Schnappschüsse darauf machen.",
   "Full": "Maximum",
   "GOING:\n%s\n\nSTAYING:\n%s\n\nHow much space is freed cannot be known in advance: snapshots share their data with each other.": "GEHEN WEG:\n%s\n\nBLEIBEN:\n%s\n\nWie viel Platz frei wird, lässt sich vorher nicht sagen: Schnappschüsse teilen sich ihre Daten.",
   "GPU applied": "GPU angewendet",
@@ -430,6 +432,7 @@
   "Suite": "Suite",
   "System": "System",
   "System status": "Zustand des Systems",
+  "System to repair:": "Zu reparierendes System:",
   "Take a snapshot": "Einen Schnappschuss machen",
   "Take a snapshot now": "Jetzt einen Schnappschuss machen",
   "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on.": "Nimmt die Anzeige vom Schreibtisch weg oder stellt sie zurück. Es gilt sofort und es gilt auch nach einem Neustart: es wird in den Autostart-Eintrag geschrieben, nicht bloß ein Fenster geschlossen.\n\nBeim Ausschalten bleibt die Autostart-Datei liegen, nur deaktiviert — das Wiedereinschalten ist ein Häkchen und es muss nichts neu gebaut werden.\n\nWas Sie zum Anzeigen gewählt haben, bleibt so, wie Sie es gelassen haben, und ist beim Wiedereinschalten wieder da.",
@@ -533,6 +536,7 @@
   "Word processors": "Textverarbeitung",
   "Writes to the BIOS CMOS. A reboot is needed to apply.": "Schreibt in das CMOS des BIOS. Zum Wirksamwerden ist ein Neustart nötig.",
   "Writing to a PWM output does not mean anything moves. On many boards, servers and laptops especially, the chip accepts the value and the firmware keeps the fans to itself: from outside you see a panel that works and a fan that never got an order.\n\nVerified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, and the speed does not budge on either output.\n\nThis test pauses the controller for a moment, takes the fan to full, then to 35%, then back to full, and watches whether the tachometer follows. It takes about thirty seconds, you will hear it, and it puts everything back afterwards.": "Auf einen PWM-Ausgang zu schreiben heißt nicht, dass sich etwas bewegt. Auf vielen Boards, besonders bei Servern und Notebooks, nimmt der Chip den Wert an und die Firmware behält die Lüfter für sich: von außen sehen Sie ein Bedienfeld, das funktioniert, und einen Lüfter, der nie einen Befehl bekommen hat.\n\nAuf der Entwicklungsmaschine überprüft, einem Fujitsu PRIMERGY: 255 schreiben, 60 schreiben — und die Drehzahl rührt sich an keinem der beiden Ausgänge.\n\nDieser Test hält die Steuerung kurz an, dreht den Lüfter auf volle Drehzahl, dann auf 35 %, dann wieder voll, und sieht nach, ob der Drehzahlmesser folgt. Er dauert etwa dreißig Sekunden, Sie werden ihn hören, und danach wird alles zurückgestellt.",
+  "You are working from the live image on an installed system: you can take it back, not make new snapshots on it.": "Sie arbeiten vom Live-Medium aus an einem installierten System: Sie können es zurückholen, aber keine neuen Schnappschüsse darauf machen.",
   "You can close this window: the update carries on by itself, and you will find it here when you reopen the Hub.": "Sie können dieses Fenster schließen: die Aktualisierung läuft von allein weiter, und Sie finden sie hier wieder, wenn Sie den Hub erneut öffnen.",
   "You can rename any sensor, and the name survives a reboot.\n\nThis matters: on many boards the driver does not know how the inputs are wired and calls them in0, in2, in6. No program can know — the person with the machine in front of them can.\n\nThe name is tied to the chip and channel, not to the hwmon number, which changes with driver load order.": "Sie können jeden Sensor umbenennen, und der Name übersteht einen Neustart.\n\nDas zählt: auf vielen Boards weiß der Treiber nicht, wie die Eingänge verdrahtet sind, und nennt sie in0, in2, in6. Kein Programm kann das wissen — der Mensch, der die Maschine vor sich hat, schon.\n\nDer Name hängt am Chip und am Kanal, nicht an der hwmon-Nummer, die sich mit der Ladereihenfolge der Treiber ändert.",
   "You can't uninstall the running kernel. Boot another kernel and try again.": "Den laufenden Kernel kannst du nicht entfernen. Starte einen anderen Kernel und versuch es noch einmal.",

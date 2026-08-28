@@ -4,7 +4,7 @@
   "nome": "Português (Brasil)",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 393
+  "voci_totali": 649
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nIsto não pode ser desfeito. Continuar?",
@@ -163,6 +163,7 @@
   "Disk": "Disco",
   "Done.": "Pronto.",
   "Done. On the next restart the system from that date will boot.": "Pronto. Na próxima reinicialização vai iniciar o sistema daquela data.",
+  "Done. Remove the live media and start from the disk: the system from that date will boot.": "Pronto. Remova a mídia live e inicie pelo disco: vai iniciar o sistema daquela data.",
   "Done. Restart to go back to the previous system.": "Pronto. Reinicie para voltar ao sistema anterior.",
   "EMERGENCY: full speed": "EMERGÊNCIA: no máximo",
   "EXPOSED MODULES": "MÓDULOS EXPOSTOS",
@@ -201,6 +202,7 @@
   "Freed space: ~%.0f MB": "Espaço liberado: ~%.0f MB",
   "Frequency": "Frequência",
   "Frequency (MHz)": "Frequência (MHz)",
+  "From the live image you can take the system back, not make new snapshots on it.": "Pela mídia live você pode voltar o sistema atrás, mas não tirar snapshots novos nele.",
   "Full": "Máximo",
   "GOING:\n%s\n\nSTAYING:\n%s\n\nHow much space is freed cannot be known in advance: snapshots share their data with each other.": "VÃO EMBORA:\n%s\n\nFICAM:\n%s\n\nQuanto espaço será liberado não dá para saber de antemão: os snapshots compartilham dados entre si.",
   "GPU applied": "GPU aplicada",
@@ -430,6 +432,7 @@
   "Suite": "Suíte",
   "System": "Sistema",
   "System status": "Estado do sistema",
+  "System to repair:": "Sistema a reparar:",
   "Take a snapshot": "Tirar um snapshot",
   "Take a snapshot now": "Tirar um snapshot agora",
   "Takes the panel off the desktop, or puts it back. It applies now and it applies after a reboot: it is written into the autostart entry, not just a window being closed.\n\nTurning it off leaves the autostart file in place, only disabled, so turning it back on is one tick with nothing to rebuild.\n\nWhat you chose to show stays as you left it, and is there when you switch it back on.": "Tira o painel do ambiente de trabalho, ou volta a pô-lo. Vale agora e vale também depois de reiniciar: é escrito no arranque automático, não é só uma janela que se fecha.\n\nAo desligá-lo o ficheiro do arranque automático fica lá, apenas desativado, por isso voltar a ligá-lo é uma caixa e não há nada para reconstruir.\n\nO que escolheu mostrar fica como o deixou, e está lá quando o voltar a ligar.",
@@ -533,6 +536,7 @@
   "Word processors": "Processadores de texto",
   "Writes to the BIOS CMOS. A reboot is needed to apply.": "Grava na CMOS da BIOS. É preciso reiniciar para valer.",
   "Writing to a PWM output does not mean anything moves. On many boards, servers and laptops especially, the chip accepts the value and the firmware keeps the fans to itself: from outside you see a panel that works and a fan that never got an order.\n\nVerified on the development machine, a Fujitsu PRIMERGY: write 255, write 60, and the speed does not budge on either output.\n\nThis test pauses the controller for a moment, takes the fan to full, then to 35%, then back to full, and watches whether the tachometer follows. It takes about thirty seconds, you will hear it, and it puts everything back afterwards.": "Escrever numa saída PWM não significa que alguma coisa se mexa. Em muitas placas, sobretudo servidores e portáteis, o chip aceita o valor e o firmware guarda as ventoinhas para si: de fora vê-se um painel que funciona e uma ventoinha que nunca recebeu uma ordem.\n\nVerificado na máquina de desenvolvimento, um Fujitsu PRIMERGY: escreve 255, escreve 60, e a velocidade não se mexe em nenhuma das saídas.\n\nEste teste põe o controlador em pausa por um momento, leva a ventoinha ao máximo, depois a 35%, depois outra vez ao máximo, e vê se o tacómetro a acompanha. Demora cerca de trinta segundos, vai ouvir-se, e no fim deixa tudo como estava.",
+  "You are working from the live image on an installed system: you can take it back, not make new snapshots on it.": "Você está trabalhando pela mídia live em um sistema instalado: pode voltá-lo atrás, mas não tirar snapshots novos nele.",
   "You can close this window: the update carries on by itself, and you will find it here when you reopen the Hub.": "Pode fechar esta janela: a atualização segue por sua conta e volta a encontrá-la aqui quando reabrir o Hub.",
   "You can rename any sensor, and the name survives a reboot.\n\nThis matters: on many boards the driver does not know how the inputs are wired and calls them in0, in2, in6. No program can know — the person with the machine in front of them can.\n\nThe name is tied to the chip and channel, not to the hwmon number, which changes with driver load order.": "Pode mudar o nome de qualquer sensor, e o nome sobrevive a um reinício.\n\nIsto importa: em muitas placas o controlador não sabe como as entradas estão ligadas e chama-lhes in0, in2, in6. Nenhum programa pode saber — quem tem a máquina à frente, sabe.\n\nO nome fica ligado ao chip e ao canal, não ao número de hwmon, que muda conforme a ordem de carregamento dos controladores.",
   "You can't uninstall the running kernel. Boot another kernel and try again.": "Você não pode desinstalar o kernel em execução. Inicie com outro e tente de novo.",
