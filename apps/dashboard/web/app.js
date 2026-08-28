@@ -197,6 +197,8 @@ const STR = {
                                                                                                                                                                         fr: "CU actives" }, s_ram: { it: "RAM", en: "RAM", pl: "RAM", uk: "RAM",
                                                                                                                                                                           ru: "ОЗУ", es: "RAM", pt: "RAM", de: "RAM",
                                                                                                                                                                           fr: "Mémoire" },
+  s_frz_none: { it: "nessuno", en: "none", pl: "brak", uk: "немає", ru: "нет", es: "ninguno", pt: "nenhum", de: "keine", fr: "aucun" },
+  s_frz_last: { it: "ultimo il", en: "last on", pl: "ostatnie", uk: "останнє", ru: "последнее", es: "el último", pt: "o último", de: "zuletzt am", fr: "le dernier" },
   s_disk: { it: "Disco /", en: "Disk /", pl: "Dysk /", uk: "Диск /", ru: "Диск /", es: "Disco /", pt: "Disco /", de: "Platte /", fr: "Disque /" }, s_frz: { it: "Freeze rilevati", en: "Freezes detected", pl: "Wykryte zawieszenia", uk: "Виявлені зависання",
                                                                                 ru: "Замечено зависаний", es: "Cuelgues detectados", pt: "Travamentos detectados", de: "Erkannte Einfrierer",
                                                                                                                                             fr: "Blocages détectés" },
@@ -376,6 +378,17 @@ function T(k, vars) {
   return s;
 }
 
+// ⚠️ Il numero da solo non si puo' interpretare. Con la data accanto la riga
+// si archivia da sola: chi legge «4 · ultimo il 30/07/2026» capisce subito che
+// e' storia vecchia, e chi legge «2 · ultimo oggi» capisce che deve guardare.
+function frzTesto(s){
+  const n = s.freezes || 0;
+  if (!n) return T("s_frz_none");
+  const q = s.freeze_last ? new Date(s.freeze_last) : null;
+  if (!q || isNaN(q)) return String(n);
+  return n + " · " + T("s_frz_last") + " " + q.toLocaleDateString();
+}
+
 function toast(msg, ok = true) {
   let t = $("#toast");
   if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
@@ -531,7 +544,7 @@ const RENDER = {
         (s.gateway ? row("↗ gateway", s.gateway) : "") +
         row(T("s_kernel"), s.kernel) +
         row(T("s_up"), s.uptime) + row(T("s_cu"), s.cu) + row(T("s_ram"), s.ram_used_mb ? `${s.ram_used_mb} / ${s.ram_total_mb} MB` : "") +
-        row(T("s_disk"), s.disk_used ? `${s.disk_used} / ${s.disk_total} (${s.disk_pct})` : "") + row(T("s_frz"), s.freezes);
+        row(T("s_disk"), s.disk_used ? `${s.disk_used} / ${s.disk_total} (${s.disk_pct})` : "") + row(T("s_frz"), frzTesto(s));
     } catch (e) {} };
     fill(); card._iv = setInterval(fill, 5000);
   },

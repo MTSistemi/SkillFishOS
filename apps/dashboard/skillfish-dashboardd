@@ -363,11 +363,17 @@ def sysinfo():
     if len(du) >= 5:
         info["disk_used"] = du[2]; info["disk_total"] = du[1]; info["disk_pct"] = du[4]
     info["cu"] = sh("cat /run/skillfish/cu_active 2>/dev/null")
+    # ⚠️ Non solo quante, anche QUANDO l'ultima. Un conteggio da solo non si
+    # puo' interpretare: quattro piantate di luglio, lette a dicembre, sembrano
+    # un guasto di adesso. La riga del registro comincia con la data ISO.
     try:
         with open("/var/log/skillfish-freeze.log") as f:
-            info["freezes"] = sum(1 for _ in f)
+            righe = [r for r in f.read().splitlines() if r.strip()]
+        info["freezes"] = len(righe)
+        info["freeze_last"] = righe[-1].split()[0] if righe else ""
     except Exception:
         info["freezes"] = 0
+        info["freeze_last"] = ""
     return info
 
 
