@@ -323,6 +323,22 @@ PY
         # usciva a meta' e la build falliva sempre.
         deposita /etc/skillfish/unsloth.key
     fi
+
+    # I due segnaposti del rilevatore di piantate sono STATO DI QUESTA SCHEDA,
+    # non contenuto da consegnare.
+    # ⚠️ Senza questo, ogni installazione nuova segnalava una piantata al
+    # PRIMO avvio: il rilevatore evita di accusare chi non e' mai stato armato,
+    # ma trovandosi `detector-armed` clonato dalla scheda credeva di esserlo
+    # stato. La guardia c'era; le mentivamo noi.
+    # ⚠️ deposita, non rm: qui il rilevatore deve continuare a funzionare, e
+    # `ripristina` li rimette a fine build.
+    deposita /var/lib/skillfish/detector-armed
+    deposita /var/lib/skillfish/clean-shutdown
+    # Anche il segno del ritiro: dice "su questa macchina il registro dei
+    # freeze e gia stato ripulito", che di un sistema appena installato non
+    # e vero. Su un'installazione nuova non c'e niente da ritirare, quindi
+    # non fa danni, ma resta stato di questa scheda e non si consegna.
+    deposita /var/lib/skillfish/freeze-log-ritirato
     ;;
 
 ripristina)
