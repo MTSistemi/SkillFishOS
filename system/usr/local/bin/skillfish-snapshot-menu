@@ -36,8 +36,8 @@ command -v grub-mkconfig >/dev/null 2>&1 || exit 0
 # il menu resta fermo a snapshot che non esistono piu'. Meglio dirlo.
 CONF_BTRFS=/etc/default/grub-btrfs/config
 if [ -r "$CONF_BTRFS" ] && grep -qE '^[[:space:]]*GRUB_BTRFS_DISABLE="?true"?' "$CONF_BTRFS"; then
-    echo "SkillFishOS: il menu di ripristino e' SPENTO, le sue voci non vengono aggiornate." >&2
-    echo "SkillFishOS: per riaccenderlo:  skillfish-grub-btrfs riaccendi && update-grub" >&2
+    echo "SkillFishOS: the snapshot boot menu is OFF, its entries are not being updated." >&2
+    echo "SkillFishOS: to switch it back on:  skillfish-grub-btrfs riaccendi && update-grub" >&2
     exit 1
 fi
 [ -w "$(dirname "$GRUBCFG")" ] || exit 0     # sola lettura: siamo dentro uno snapshot
@@ -51,8 +51,8 @@ mkdir -p "$(dirname "$MARCA")"
 if grub-mkconfig -o "$GRUBCFG" >/dev/null 2>&1; then
     printf '%s' "$impronta" > "$MARCA"
     n=$(grep -c 'menuentry' /boot/grub/grub-btrfs.cfg 2>/dev/null || echo 0)
-    echo "SkillFishOS: menu di ripristino aggiornato ($n voci)"
+    echo "SkillFishOS: snapshot boot menu updated ($n entries)"
 else
-    echo "SkillFishOS: non sono riuscito ad aggiornare il menu di ripristino" >&2
+    echo "SkillFishOS: could not update the snapshot boot menu" >&2
 fi
 exit 0

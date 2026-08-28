@@ -274,6 +274,31 @@ VERSIONE_ISO="${FINAL#SkillFishOS-}"
 VERSIONE_ISO="${VERSIONE_ISO%%-*}"
 python3 "$SCRIPT_DIR/fix-eggs-calamares-version.py" "${VERSIONE_ISO:-26.06}"
 
+# La versione dichiarata dal sistema, che finisce in neofetch, nell'HUD e in
+# ogni segnalazione di errore.
+# ⚠️ Prima nessuno la toccava: veniva clonata dalla scheda, quindi la ISO
+# diceva il numero dell'ULTIMA immagine costruita, non il proprio. La 26.06.5
+# di stanotte si presentava come 26.06.6. Ora la decide il nome del file, come
+# per l'installatore, e i due numeri non possono piu' divergere.
+# ⚠️ I file sono DUE per via del dpkg-divert su /usr/lib/os-release: scriverne
+# uno solo lascia due risposte diverse alla stessa domanda.
+for OSREL in /usr/lib/os-release /etc/os-release; do
+    [ -f "$OSREL" ] || continue
+    sed -i \
+        -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${VERSIONE_ISO} (Aetherium)\"|" \
+        -e "s|^VERSION=.*|VERSION=\"${VERSIONE_ISO} (Aetherium)\"|" \
+        -e "s|^VERSION_ID=.*|VERSION_ID=\"${VERSIONE_ISO}\"|" \
+        "$OSREL"
+done
+LETTO=$(sed -n 's/^VERSION_ID="\(.*\)"/\1/p' /etc/os-release | head -1)
+if [ "$LETTO" = "$VERSIONE_ISO" ]; then
+    echo "OK  : os-release dichiara $LETTO"
+else
+    echo "FAIL: os-release dice «$LETTO» invece di «$VERSIONE_ISO»"
+    echo "FAIL-OSRELEASE" > "$ST"
+    exit 1
+fi
+
 python3 "$SCRIPT_DIR/fix-eggs-calamares-boot.py"
 # Il menu di avvio: titolo in inglese, e Safe/Text Mode che fanno davvero
 # qualcosa invece di essere copie della voce normale. Sta qui perche' i file
