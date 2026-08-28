@@ -339,6 +339,19 @@ PY
     # e vero. Su un'installazione nuova non c'e niente da ritirare, quindi
     # non fa danni, ma resta stato di questa scheda e non si consegna.
     deposita /var/lib/skillfish/freeze-log-ritirato
+
+    # Le altre tre cose di questa scheda che viaggiavano nelle immagini.
+    # memcfg: le copie della CMOS DI QUESTO esemplare, salvate prima di ogni
+    #   scrittura. Su un altro computer non descrivono niente, e sono roba di
+    #   Mattia che non ha motivo di stare in un'immagine pubblica.
+    # thermal-guard: a che clock era arrivata la guardia su questa scheda.
+    #   Altrove e un numero senza storia; si ricrea da sola al primo giro.
+    # ventola-appresi.json: i valori misurati su QUESTA ventola. Consegnarli
+    #   vuol dire far partire l'app con le misure di un altro esemplare
+    #   invece che con le proprie.
+    deposita /var/lib/skillfish/memcfg
+    deposita /var/lib/skillfish/thermal-guard
+    deposita /var/lib/skillfish/ventola-appresi.json
     ;;
 
 ripristina)
