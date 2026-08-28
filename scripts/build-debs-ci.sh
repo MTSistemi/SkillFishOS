@@ -449,6 +449,7 @@ put $P 0755 system/usr/local/bin/skillfish-grub-btrfs               usr/local/bi
 put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bin/skillfish-flatpak-rimedi
 put $P 0755 system/usr/local/bin/skillfish-games-subvolume         usr/local/bin/skillfish-games-subvolume
 put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bin/skillfish-live-no-lock
+put $P 0755 system/usr/local/bin/skillfish-live-polkit              usr/local/bin/skillfish-live-polkit
 # Dizionario condiviso delle traduzioni: un file per lingua, comune a tutte le
 # app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
 # restano dentro le app, dove hanno le sfumature per contesto.
@@ -468,6 +469,7 @@ for _l in system/usr/share/skillfish/i18n/*.json; do
   put $P 0644 "$_l" "usr/share/skillfish/i18n/$(basename "$_l")"
 done
 put $P 0644 system/etc/systemd/system/skillfish-live-no-lock.service etc/systemd/system/skillfish-live-no-lock.service
+put $P 0644 system/etc/systemd/system/skillfish-live-polkit.service etc/systemd/system/skillfish-live-polkit.service
 # Gancio del kernel: gira PRIMA di dkms (run-parts va in ordine alfabetico e
 # il gancio di DKMS si chiama "dkms"), cosi' il sorgente e' gia' a posto
 # quando DKMS prova a costruirlo. Con un nome tipo zz- avremmo corretto il
@@ -790,6 +792,7 @@ put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
 put $P 0644 apps/dashboard/web/hud.html    usr/share/skillfish/dashboard/hud.html
+put $P 0644 apps/dashboard/web/snapshots.html usr/share/skillfish/dashboard/snapshots.html
 # Il modulo Ventola del Remote Manager. ⚠️ Non rifa' il controllo: legge
 # quello che skillfish-fand pubblica e scrive dal suo helper. Due controllori
 # sullo stesso PWM li abbiamo gia' avuti una volta, e si vedeva.
@@ -1177,6 +1180,10 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-games-sub
 # La condizione e' quello che tiene la correzione fuori dal sistema installato:
 # senza, si consegnerebbe a tutti un sistema senza blocco schermo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'run/live/medium'
+# Stessa ragione per il permesso degli snapshot: e' la condizione sulla live
+# a tenerlo fuori dal sistema installato. Senza, si consegnerebbe a tutti un
+# sistema in cui riportare indietro il sistema non chiede piu' niente.
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-polkit 'run/live'
 # idleTime=0 per powerdevil vuol dire SUBITO, non mai: con lo zero la live
 # spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
