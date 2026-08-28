@@ -41,6 +41,7 @@ MODULI_PREDEFINITI = {
     "ai": True,
     "rules": True,
     "zerotier": True,
+    "snapshots": True,
     "hud": False,
     "logs": False,
     "gamestream": False,
@@ -59,6 +60,7 @@ MODULE_META = {
     "status":     {"icon": "🧊", "name": "Stato sistema",   "name_en": "System status"},
     "tuner":      {"icon": "🎛️", "name": "Controlli",       "name_en": "Controls"},
     "ventola":    {"icon": "🌀", "name": "Ventola",         "name_en": "Fan"},
+    "snapshots":  {"icon": "🕒", "name": "Snapshot",       "name_en": "Snapshots"},
     "hud":        {"icon": "🪟", "name": "HUD",             "name_en": "HUD"},
     "hub":        {"icon": "📦", "name": "App e pacchetti", "name_en": "Apps & packages"},
     "logs":       {"icon": "📜", "name": "Log",             "name_en": "Logs"},
@@ -476,6 +478,76 @@ def cu_profile_op(action, name, rows):
 # (dashboard installata da sola, o versioni precedenti): li' e' meglio di
 # niente. Si spegne da solo appena il demone compare, senza riavviare nulla.
 FAN_CURVE_F = "/etc/skillfish/fan-curve.json"
+SNAP_LEGGI = "/usr/local/bin/skillfish-snapshots-read"
+SNAP_HELPER = "/usr/local/bin/skillfish-snapshots-helper"
+
+
+def snapshots_leggi():
+    u"""Gli snapshot del sistema che sta girando, letti dallo stesso programma
+    che usa la finestra.
+
+    ⚠️ Si riusa `skillfish-snapshots-read` invece di rileggere /.snapshots qui:
+    il formato di info.xml, la data in UTC e l'ordine numerico sono gia' risolti
+    la', e due letture diverse della stessa cosa finiscono sempre per divergere.
+
+    ⚠️ Le righe BERSAGLIO/SNAPB (i sistemi installati visti da una sessione
+    live) qui si IGNORANO: da remoto non si ripara un altro disco, vedi la nota
+    in cima al modulo.
+    """
+    try:
+        r = subprocess.run([SNAP_LEGGI], capture_output=True, text=True, timeout=60)
+    except Exception as e:
+        return {"ok": False, "errore": str(e), "snapshot": [], "daparte": []}
+    if r.returncode != 0:
+        return {"ok": False, "errore": (r.stderr or "").strip(),
+                "snapshot": [], "daparte": []}
+
+    snap, daparte, spazio = [], [], None
+    for riga in (r.stdout or "").splitlines():
+        p = riga.split("\t")
+        p += [""] * (8 - len(p))
+        if p[0] == "SNAP" and p[1]:
+            snap.append({"num": p[1], "data": p[2], "tipo": p[3],
+                         "pre": p[4], "descrizione": p[5]})
+        elif p[0] == "SPAZIO" and p[1]:
+            spazio = {"libero": p[1], "totale": p[2]}
+        elif p[0] == "DAPARTE" and p[1]:
+            daparte.append(p[1])
+    # i piu' recenti in cima, come nella finestra
+    try:
+        snap.sort(key=lambda s: int(s["num"]), reverse=True)
+    except Exception:
+        pass
+    return {"ok": True, "snapshot": snap, "daparte": daparte, "spazio": spazio}
+
+
+def snapshots_azione(azione, numero=None, nota=None):
+    u"""Crea, cancella, ripristina, annulla o fa pulizia.
+
+    ⚠️ L'azione si controlla QUI contro un elenco chiuso, anche se l'aiutante la
+    ricontrolla: questo e' il punto in cui arriva roba dalla rete, e la regola
+    del progetto e' che un argomento da fuori si guarda prima di metterlo in un
+    comando, non dopo.
+
+    ⚠️ Niente --disco: da remoto si lavora solo sul sistema che sta girando.
+    """
+    if azione not in ("crea", "cancella", "ripristina", "annulla", "pulisci"):
+        return {"ok": False, "errore": "unknown action"}
+    cmd = [SNAP_HELPER, azione]
+    if azione in ("cancella", "ripristina"):
+        if not str(numero or "").isdigit():
+            return {"ok": False, "errore": "that is not a snapshot number"}
+        cmd.append(str(numero))
+    elif azione == "crea":
+        cmd.append((nota or "manual snapshot")[:120])
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    except Exception as e:
+        return {"ok": False, "errore": str(e)}
+    testo = ((r.stdout or "") + (r.stderr or "")).strip()
+    return {"ok": r.returncode == 0, "uscita": testo}
+
+
 VENTOLA_CONF = "/etc/skillfish/ventola.json"
 VENTOLA_STATO = "/run/skillfish/ventola.json"
 VENTOLA_HELPER = "/usr/local/bin/skillfish-fan-helper"
@@ -2247,6 +2319,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "cpu-cores"}]))
+        if path == "/api/snapshots":
+            if not self._guard("snapshots"):
+                return
+            return self._json(200, snapshots_leggi())
         if path == "/api/hud":
             if not self._guard("hud"):
                 return
@@ -2406,6 +2482,11 @@ class Handler(BaseHTTPRequestHandler):
             if not pref.get("voci"):
                 pref["voci"] = list(hud_dati.ORDINE_PREDEFINITO)
             return self._json(200, hud_scrivi(pref))
+        if path == "/api/snapshots":
+            if not self._guard("snapshots"):
+                return
+            return self._json(200, snapshots_azione(
+                data.get("azione"), data.get("num"), data.get("nota")))
         if path == "/api/ventola/conf":
             if not self._guard("ventola"):
                 return

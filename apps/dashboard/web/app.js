@@ -571,6 +571,37 @@ const RENDER = {
     $("#openventola", card).onclick =
       () => openFrame("SkillFishOS Ventola", "/static/ventola.html");
   },
+  async snapshots(card) {
+    // ⚠️ La scheda NON gestisce gli snapshot: mostra quanti sono, quando e'
+    // stato fatto l'ultimo, e apre la pagina. Due posti che cancellano gli
+    // stessi snapshot sono due posti in cui sbagliare.
+    const nome = (typeof sfT === "function" ? sfT("s_mod") : "Snapshot");
+    card.innerHTML = "<h3>🕒 " + nome + '</h3><div id="snk">…</div>';
+    let d = {};
+    try { d = await (await api("/api/snapshots")).json(); } catch (e) {}
+    const s = d.snapshot || [];
+    const daparte = d.daparte || [];
+    const ultimo = s.length ? s[0] : null;
+    // La data arriva in UTC senza fuso scritto: la Z dice a Date() come leggerla.
+    let quando = "—";
+    if (ultimo && ultimo.data) {
+      const t = new Date(ultimo.data.replace(" ", "T") + "Z");
+      if (!isNaN(t)) quando = t.toLocaleString();
+    }
+    $("#snk", card).innerHTML =
+      '<div class="stub" style="margin-bottom:8px">' +
+      (typeof sfT === "function" ? sfT("s_count").replace("%s", s.length)
+                                 : s.length + " snapshot") +
+      (ultimo ? "  ·  " + quando : "") + "</div>" +
+      (daparte.length
+        ? '<div class="stub" style="margin-bottom:8px;color:var(--copper)">' +
+          (typeof sfT === "function" ? sfT("s_aside") : "") + "</div>"
+        : "") +
+      '<div class="brow"><button class="dbtn" id="opensnap" style="border-color:var(--gold)">🕒 ' +
+      nome + "</button></div>";
+    $("#opensnap", card).onclick =
+      () => openFrame("SkillFishOS " + nome, "/static/snapshots.html");
+  },
   async hud(card) {
     // ⚠️ La scheda non configura niente: dice se il pannello e' acceso, di chi
     // e' e quante voci mostra, e apre il modulo. Il HUD appartiene all'utente

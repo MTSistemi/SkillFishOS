@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS Snapshot</title>
+<!--
+  SkillFishOS Snapshot, dal browser.
+
+  ⚠️ DA QUI NON SI RIPARA UN SISTEMA CHE NON SI AVVIA. Quella parte esiste, ma
+  vive nella finestra sulla macchina avviata da chiavetta live: un sistema che
+  non parte non ha nemmeno questo Remote Manager acceso, quindi offrirla qui
+  sarebbe una voce che non puo' funzionare per definizione. La pagina lo dice a
+  chiare lettere invece di lasciarlo intuire.
+
+  ⚠️ I dati arrivano da /api/snapshots, che chiama gli stessi due programmi
+  della finestra (skillfish-snapshots-read e -helper). Nessuna seconda lettura
+  di /.snapshots: due letture della stessa cosa finiscono sempre per divergere.
+
+  Le date arrivano in UTC dentro info.xml e si convertono qui, come fa la
+  finestra: convertirle nel programma che legge toglierebbe a chi guarda il modo
+  di sapere se il fuso e' gia' stato applicato.
+-->
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--gold:#d8a849;--gold-lt:#e8c878;--copper:#b9722f;
+        --cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);
+       height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  header b{color:var(--gold-lt);font-size:1.05rem}
+  .sp{flex:1}
+  main{flex:1;overflow:auto;padding:12px 14px 18px}
+  .nota{color:var(--muted);font-size:.82rem;margin-bottom:12px;line-height:1.5}
+  .avviso{background:rgba(185,114,47,.15);border:1px solid var(--copper);border-radius:9px;
+          padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .avviso .t{flex:1;min-width:220px;font-size:.85rem}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .tit{color:var(--gold-lt);font-size:.9rem;font-weight:600;margin-bottom:8px}
+  .riga{display:flex;gap:10px;align-items:flex-start;padding:7px 4px;border-bottom:1px solid rgba(216,168,73,.08);cursor:pointer}
+  .riga:last-child{border-bottom:0}
+  .riga:hover{background:rgba(216,168,73,.05)}
+  .riga input{margin-top:3px;accent-color:var(--gold)}
+  .riga .d{font-weight:600;font-size:.86rem}
+  .riga .q{color:var(--muted);font-size:.78rem}
+  .brow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{font:inherit;background:#241a0e;color:var(--cream);border:1px solid var(--line);
+         border-radius:7px;padding:6px 12px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--gold)}
+  button:disabled{opacity:.45;cursor:default}
+  button.primo{border-color:var(--gold);color:var(--gold-lt)}
+  .pie{color:var(--muted);font-size:.78rem;margin-top:10px}
+  .vuoto{color:var(--muted);padding:18px;text-align:center}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+         background:#241a0e;border:1px solid var(--gold);border-radius:8px;padding:8px 14px;
+         opacity:0;transition:.25s;pointer-events:none;font-size:.85rem;max-width:80vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style></head>
+<body>
+<header>
+  <b>🕒 SkillFishOS · <span data-i18n="s_mod">Snapshot</span></b>
+  <span class="sp"></span>
+  <span id="host" style="color:var(--muted);font-size:.8rem"></span>
+</header>
+<main>
+  <div class="nota">
+    <span data-i18n="s_what">Uno snapshot è una fotografia del sistema: se un aggiornamento rompe qualcosa, si torna a prima.</span>
+    <br>
+    <span data-i18n="s_onlyhere">Se il sistema non si avvia più, il ripristino si fa dalla finestra Snapshot avviando la macchina dalla chiavetta: da qui si lavora solo sul sistema acceso.</span>
+  </div>
+
+  <div class="avviso" id="avviso" style="display:none">
+    <div class="t"><span data-i18n="s_aside">C'è un sistema messo da parte da un ripristino.</span>
+      <span id="asidenome" style="color:var(--gold-lt)"></span></div>
+    <button id="bundo" data-i18n="s_undo">Torna indietro</button>
+    <button id="bclean" data-i18n="s_discard">Butta il vecchio</button>
+  </div>
+
+  <div class="box">
+    <div class="tit" data-i18n="s_yours">I tuoi snapshot</div>
+    <div id="lista"><div class="vuoto">…</div></div>
+    <div class="brow">
+      <button id="btake" data-i18n="s_take">Fai uno snapshot adesso</button>
+      <button id="bback" class="primo" disabled data-i18n="s_back">Torna a questo</button>
+      <button id="bdel" disabled data-i18n="s_del">Cancella</button>
+    </div>
+    <div class="pie" id="pie"></div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script src="/static/i18n.js"></script>
+<script>
+const $=(s,r)=>(r||document).querySelector(s);
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3200);}
+async function api(path, body){
+  const o = body ? {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)} : {};
+  const r = await fetch(path, o);
+  if (r.status === 401){ location.href = "/"; return {}; }
+  return r.json();
+}
+
+// ⚠️ La data dentro info.xml e' in UTC senza fuso scritto: aggiungendo la Z si
+// dice a Date() come leggerla. Senza, il browser la prende per ora locale e
+// tutte le date sbagliano di quanto vale il fuso — due ore d'estate da noi.
+function quando(s){
+  if(!s) return "—";
+  const d = new Date(s.replace(" ","T") + "Z");
+  if (isNaN(d)) return s;
+  return d.toLocaleString();
+}
+function daQuanto(s){
+  const d = new Date((s||"").replace(" ","T") + "Z");
+  if (isNaN(d)) return "";
+  const m = Math.round((Date.now() - d.getTime())/60000);
+  if (m < 1)  return sfT("s_now");
+  if (m < 60) return sfT("s_min").replace("%s", m);
+  const h = Math.round(m/60);
+  if (h < 48) return sfT("s_hour").replace("%s", h);
+  return sfT("s_day").replace("%s", Math.round(h/24));
+}
+function leggibile(n){
+  n = parseInt(n||0,10);
+  const u = ["B","KiB","MiB","GiB","TiB"]; let i = 0;
+  while (n >= 1024 && i < u.length-1){ n /= 1024; i++; }
+  return (i >= 3 ? n.toFixed(1) : Math.round(n)) + " " + u[i];
+}
+
+let SCELTO = null;
+
+function disegna(d){
+  const lista = $("#lista");
+  const s = d.snapshot || [];
+  if (!s.length){
+    lista.innerHTML = '<div class="vuoto">' + sfT("s_none") + "</div>";
+  } else {
+    lista.innerHTML = s.map(x =>
+      '<label class="riga"><input type="radio" name="s" value="' + x.num + '">' +
+      '<span><span class="d">' + quando(x.data) + "</span>  " +
+      '<span class="q">' + daQuanto(x.data) + "</span><br>" +
+      '<span class="q">' + (x.descrizione || "—") + "</span></span></label>").join("");
+    lista.querySelectorAll("input[name=s]").forEach(r => r.onchange = () => {
+      SCELTO = r.value;
+      $("#bback").disabled = false;
+      $("#bdel").disabled = false;
+    });
+  }
+  const sp = d.spazio;
+  $("#pie").textContent = sfT("s_count").replace("%s", s.length) +
+    (sp ? "  ·  " + sfT("s_space") + ": " + leggibile(sp.libero) + " / " + leggibile(sp.totale) : "");
+  const da = d.daparte || [];
+  $("#avviso").style.display = da.length ? "flex" : "none";
+  $("#asidenome").textContent = da.length ? da[0] : "";
+}
+
+async function giro(){
+  const d = await api("/api/snapshots");
+  if (d && d.ok === false && d.errore) toast(d.errore);
+  SCELTO = null;
+  $("#bback").disabled = true;
+  $("#bdel").disabled = true;
+  disegna(d || {});
+}
+
+async function azione(a, extra){
+  const b = Object.assign({azione: a}, extra || {});
+  toast(sfT("s_working"));
+  const r = await api("/api/snapshots", b);
+  toast(r && r.ok ? (a === "ripristina" ? sfT("s_doneback") : sfT("s_done"))
+                  : ((r && (r.errore || r.uscita)) || sfT("s_failed")));
+  giro();
+}
+
+$("#btake").onclick = () => azione("crea", {nota: "from Remote Manager"});
+$("#bdel").onclick  = () => { if (SCELTO && confirm(sfT("s_askdel"))) azione("cancella", {num: SCELTO}); };
+$("#bback").onclick = () => { if (SCELTO && confirm(sfT("s_askback"))) azione("ripristina", {num: SCELTO}); };
+$("#bundo").onclick = () => azione("annulla");
+$("#bclean").onclick= () => { if (confirm(sfT("s_askclean"))) azione("pulisci"); };
+
+sfApply();
+document.title = "SkillFishOS " + sfT("s_mod");
+fetch("/api/status").then(r => r.json())
+  .then(s => { $("#host").textContent = (s && s.host) || ""; })
+  .catch(() => {});
+giro();
+setInterval(giro, 30000);
+</script>
+</body></html>
