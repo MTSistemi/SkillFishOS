@@ -551,6 +551,27 @@ if [ -d /run/systemd/system ]; then
   # fino al riavvio. Il try-restart e' innocuo: scrive il marcatore e lo
   # riconsuma subito.
   systemctl try-restart skillfish-freeze-check.service || true
+  # Ritira le righe scritte dal rilevatore di prima del 18/08/2026, quello che
+  # chiamava freeze ogni riavvio pulito. Restano in un file accanto, non si
+  # cancellano: erano dati sbagliati, non dati di cui disfarsi.
+  # ⚠️ Si distingue dal FORMATO: il vecchio scriveva «unclean-shutdown cpu=»,
+  # il nuovo scrive «unclean-shutdown profile=». Cosi' chi ha anche piantate
+  # vere, registrate dal nuovo, se le tiene.
+  # ⚠️ Una volta sola: senza il segno, ogni aggiornamento rifarebbe il lavoro e
+  # su una macchina dove qualcuno avesse rimesso il file a mano glielo
+  # toglierebbe di nuovo.
+  FRZLOG=/var/log/skillfish-freeze.log
+  FRZOLD=/var/log/skillfish-freeze.log.vecchio-rilevatore
+  FRZMARK=/var/lib/skillfish/freeze-log-ritirato
+  if [ ! -e "$FRZMARK" ]; then
+    if [ -f "$FRZLOG" ] && grep -q "unclean-shutdown cpu=" "$FRZLOG" 2>/dev/null; then
+      grep "unclean-shutdown cpu=" "$FRZLOG" >> "$FRZOLD" 2>/dev/null || true
+      grep -v "unclean-shutdown cpu=" "$FRZLOG" > "$FRZLOG.nuovo" 2>/dev/null || true
+      mv "$FRZLOG.nuovo" "$FRZLOG" 2>/dev/null || true
+      chmod 0644 "$FRZLOG" "$FRZOLD" 2>/dev/null || true
+    fi
+    mkdir -p /var/lib/skillfish && : > "$FRZMARK"
+  fi
   # Ripulisce cio' che la live si lascia dietro su un sistema installato:
   # l'accesso automatico dell'utente 'live' e il generatore di getty orfano.
   # Non fa niente se non c'e' niente da fare, ed e' l'unico modo di arrivare
