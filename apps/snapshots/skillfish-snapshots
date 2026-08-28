@@ -232,6 +232,21 @@ class Snapshot:
         return d
 
 
+class Bersaglio:
+    """Un sistema installato su disco, visto dalla live."""
+
+    def __init__(self, dev, sottovol, nome):
+        self.dev = dev
+        self.sottovol = sottovol
+        self.nome = nome or "SkillFishOS"
+        self.snap = []
+        self.daparte = []
+        self.spazio = None     # (libero, totale) del disco che si ripara
+
+    def etichetta(self):
+        return "%s  —  %s" % (self.nome, self.dev)
+
+
 def leggi_tutto():
     """Chiede l'elenco al programma di sola lettura. Torna (snapshot, spazio, daparte)."""
     rc, out, err = sh(["pkexec", LEGGI], 60)
@@ -251,12 +266,16 @@ def leggi_tutto():
         # gia' andato storto.
         if rc in (126, 127):
             return (None, None, None,
-                    L("operazione annullata", "operation cancelled"), {}, None, None)
+                    L("operazione annullata", "operation cancelled"), {}, None, None, [])
+        # ⚠️ Stesso numero di valori del ritorno buono, o chi scompatta esplode
+        # con "not enough values to unpack" proprio quando qualcosa e' andato
+        # storto: l'errore vero sparirebbe dietro a un errore di programmazione.
         return (None, None, None,
                 L("Non riesco a leggere gli snapshot.", "cannot read the snapshots"),
-                {}, None, None)
+                {}, None, None, [])
     snap, spazio, daparte = [], None, []
     manutenzione, disco, verifica = {}, None, None
+    bersagli = []          # i sistemi installati, quando si gira dalla live
     for riga in out.splitlines():
         p = riga.split("\t")
         # ⚠️ L'ULTIMA riga perde i campi vuoti in coda: l'output arriva da sh(),
@@ -274,6 +293,31 @@ def leggi_tutto():
             spazio = (p[1], p[2])
         elif p[0] == "DAPARTE" and p[1]:
             daparte.append(p[1])
+        # Le tre righe dei sistemi installati su disco. Le manda il lettore solo
+        # quando si gira dalla live; sul sistema normale non arrivano mai, e
+        # questo ramo non fa niente.
+        elif p[0] == "BERSAGLIO" and p[1]:
+            bersagli.append(Bersaglio(p[1], p[2], p[4]))
+        elif p[0] == "SNAPB" and p[1] and bersagli:
+            # ⚠️ Si attacca all'ULTIMO bersaglio annunciato: il lettore stampa
+            # prima la riga BERSAGLIO e poi i suoi snapshot. Cercare il disco
+            # nell'elenco a ogni riga costerebbe uguale e si romperebbe se un
+            # giorno il lettore cambiasse ordine; qui si romperebbe subito e in
+            # modo visibile, che e' meglio.
+            for b in bersagli:
+                if b.dev == p[1]:
+                    b.snap.append(Snapshot(p[2], p[3], p[4], p[5], p[6]))
+                    break
+        elif p[0] == "SPAZIOB" and p[1]:
+            for b in bersagli:
+                if b.dev == p[1]:
+                    b.spazio = (p[2], p[3])
+                    break
+        elif p[0] == "DAPARTEB" and p[1]:
+            for b in bersagli:
+                if b.dev == p[1]:
+                    b.daparte.append(p[2])
+                    break
         # ⚠️ I campi si contano PRIMA di leggerli: una riga piu' corta del
         # previsto — un lavoro spento, un systemctl che non risponde — manderebbe
         # in errore la finestra invece di mostrare quello che c'e'.
@@ -285,7 +329,9 @@ def leggi_tutto():
         elif p[0] == "VERIFICA":
             verifica = (p[1], p[2], p[3], p[4])
     snap.sort(key=lambda s: int(s.num), reverse=True)   # i piu' recenti in cima
-    return snap, spazio, daparte, None, manutenzione, disco, verifica
+    for b in bersagli:
+        b.snap.sort(key=lambda s: int(s.num), reverse=True)
+    return snap, spazio, daparte, None, manutenzione, disco, verifica, bersagli
 
 
 # ---------- finestra ----------
@@ -301,6 +347,9 @@ class Snapshots(QMainWindow):
         self.manutenzione = {}
         self.disco = None
         self.verifica = None
+        # i sistemi installati visti dalla live, e quello scelto
+        self.bersagli = []
+        self.bersaglio = None
 
         w = QWidget()
         self.setCentralWidget(w)
@@ -328,6 +377,25 @@ class Snapshots(QMainWindow):
         h.addLayout(tcol)
         h.addStretch(1)
         v.addLayout(h)
+
+        # --- il sistema da riparare, quando si gira dalla chiavetta live ---
+        # Resta nascosto sul sistema normale: chi non e' partito dalla chiavetta
+        # non deve nemmeno sapere che esiste.
+        self.riga_bersaglio = QFrame()
+        self.riga_bersaglio.setStyleSheet(
+            "QFrame{border:1px solid #7a6034;border-radius:6px;"
+            "background:rgba(120,90,40,0.18);}")
+        rb = QHBoxLayout(self.riga_bersaglio)
+        rb.setContentsMargins(12, 8, 12, 8)
+        et = QLabel(L("Sistema da riparare:", "System to repair:"))
+        et.setStyleSheet("border:0;color:#e8c878;font-weight:600;")
+        rb.addWidget(et)
+        self.scelta_bersaglio = QComboBox()
+        self.scelta_bersaglio.setStyleSheet("border:1px solid #7a6034;")
+        self.scelta_bersaglio.currentIndexChanged.connect(self.cambia_bersaglio)
+        rb.addWidget(self.scelta_bersaglio, 1)
+        v.addWidget(self.riga_bersaglio)
+        self.riga_bersaglio.hide()
 
         # avviso del sistema messo da parte (compare solo dopo un ripristino)
         self.avviso = QFrame()
@@ -649,7 +717,40 @@ class Snapshots(QMainWindow):
                 it.widget().deleteLater()
 
         (self.snap, spazio, self.daparte, errore,
-         self.manutenzione, self.disco, self.verifica) = leggi_tutto()
+         self.manutenzione, self.disco, self.verifica,
+         self.bersagli) = leggi_tutto()
+
+        # Dalla chiavetta: si mostra il selettore e si lavora sul sistema
+        # scelto. Il primo si sceglie da solo, che nel caso normale — un disco,
+        # un sistema — vuol dire che non c'e' niente da scegliere.
+        if self.bersagli:
+            vecchio = self.bersaglio.dev if self.bersaglio else None
+            self.scelta_bersaglio.blockSignals(True)
+            self.scelta_bersaglio.clear()
+            for b in self.bersagli:
+                self.scelta_bersaglio.addItem(b.etichetta(), b.dev)
+            i = 0
+            for n, b in enumerate(self.bersagli):
+                if b.dev == vecchio:
+                    i = n
+                    break
+            self.scelta_bersaglio.setCurrentIndex(i)
+            self.scelta_bersaglio.blockSignals(False)
+            self.bersaglio = self.bersagli[i]
+            self.riga_bersaglio.show()
+            self.snap = self.bersaglio.snap
+            self.daparte = self.bersaglio.daparte
+            # lo spazio che conta e' quello del disco che si ripara
+            if self.bersaglio.spazio:
+                spazio = self.bersaglio.spazio
+            self.sub.setText(
+                L("Stai lavorando dalla chiavetta su un sistema installato: "
+                  "puoi riportarlo indietro, non farci snapshot nuovi.",
+                  "You are working from the live image on an installed system: "
+                  "you can take it back, not make new snapshots on it."))
+        else:
+            self.bersaglio = None
+            self.riga_bersaglio.hide()
         if errore:
             # ⚠️ Se l'utente annulla la richiesta di autorizzazione finiamo qui:
             # non e' un guasto, e non va detto come se lo fosse.
@@ -756,11 +857,33 @@ class Snapshots(QMainWindow):
 
     def aggiorna_bottoni(self):
         c = self.scelto() is not None
-        self.bcancella.setEnabled(c)
+        # Su un altro disco si RIPARA e basta: creare o cancellare uno snapshot
+        # passa da snapper, che lavora sulla configurazione del sistema in
+        # funzione. Spenti invece che nascosti, cosi' si vede che ci sono.
+        altrove = self.bersaglio is not None
+        self.bcancella.setEnabled(c and not altrove)
         self.bripristina.setEnabled(c)
+        self.bcrea.setEnabled(not altrove)
+        if altrove:
+            fuori = L("Dalla chiavetta puoi riportare indietro il sistema, "
+                      "non fargli snapshot nuovi.",
+                      "From the live image you can take the system back, "
+                      "not make new snapshots on it.")
+            self.bcrea.setToolTip(fuori)
+            self.bcancella.setToolTip(fuori)
 
     # ---- azioni ----
+    def cambia_bersaglio(self, i):
+        if 0 <= i < len(self.bersagli):
+            self.bersaglio = self.bersagli[i]
+            self.ricarica()
+
     def esegui(self, argomenti, attesa=600):
+        # ⚠️ Il disco si mette PRIMA dell'azione: l'aiutante lo legge come primo
+        # argomento e poi scorre. Metterlo in coda lo farebbe scambiare per il
+        # numero di uno snapshot.
+        if self.bersaglio:
+            argomenti = ["--disco", self.bersaglio.dev] + list(argomenti)
         rc, out, err = sh(["pkexec", HELPER] + argomenti, attesa)
         return rc, out, err
 
@@ -952,6 +1075,18 @@ class Snapshots(QMainWindow):
         if rc != 0:
             self.male(self.spiega(err or out))
             return
+        # ⚠️ Riparando un ALTRO disco dalla chiavetta, «riavvia adesso» sarebbe
+        # un consiglio sbagliato: riavviando si torna nella chiavetta, non nel
+        # sistema riparato. Chi lo seguisse non troverebbe niente di cambiato e
+        # concluderebbe che il ripristino non ha funzionato. Qui si dice invece
+        # l'unica cosa che serve fare: togliere la chiavetta e avviare da disco.
+        if self.bersaglio:
+            self.bene(L("Fatto. Togli la chiavetta e avvia da disco: "
+                        "partirà il sistema di quella data.",
+                        "Done. Remove the live media and start from the disk: "
+                        "the system from that date will boot."))
+            return
+
         self.bene(L("Fatto. Al prossimo riavvio parte il sistema di quella data.",
                     "Done. On the next restart the system from that date will boot."))
         # ⚠️ Titolo e corpo non possono essere la stessa chiave inglese con due

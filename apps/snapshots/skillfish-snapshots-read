@@ -51,13 +51,17 @@ fi
 rmdir "$CIMA" 2>/dev/null
 
 # --- gli snapshot -----------------------------------------------------------
-[ -d "$CARTELLA" ] || exit 0
+# ⚠️ Qui prima si usciva con  [ -d "$CARTELLA" ] || exit 0.
+# Nella sessione live /.snapshots non esiste, quindi il programma finiva
+# proprio dove comincia il caso che interessa: cercare i sistemi installati
+# su disco. Ora si salta il ciclo e si prosegue.
 
 campo() {   # campo <file> <nome>: il contenuto di <nome> dentro info.xml
     sed -n "s:.*<$2>\(.*\)</$2>.*:\1:p" "$1" 2>/dev/null | head -1
 }
 
 # ordine NUMERICO: col glob semplice l'elenco esce 1, 10, 11, 2, 3...
+if [ -d "$CARTELLA" ]; then
 for n in $(ls -1 "$CARTELLA" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
     d="$CARTELLA/$n"
     [ -d "$d/snapshot" ] || continue
@@ -74,6 +78,69 @@ for n in $(ls -1 "$CARTELLA" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
         "$(campo "$i" pre_num)" \
         "$(campo "$i" description)"
 done
+fi
+
+# --- i sistemi installati, quando si gira dalla chiavetta live ---------------
+# Il ripristino serve soprattutto quando il sistema non parte piu'. In quel caso
+# l'unica strada e' avviare dalla chiavetta, e da li' /.snapshots non esiste:
+# quello che c'e' sopra ha gia' stampato zero snapshot ed e' giusto cosi'.
+#
+# ⚠️ NIENTE ARGOMENTI, vedi la nota in cima: e' questo programma a cercarsi i
+# dischi, non chi lo chiama a indicarglieli.
+#
+# Si riconosce la live da due segni indipendenti: la radice e' un overlay e
+# esiste /run/live. Basta uno dei due.
+in_live() {
+    [ -d /run/live ] && return 0
+    [ "$(findmnt -no FSTYPE / 2>/dev/null)" = "overlay" ] && return 0
+    return 1
+}
+
+if in_live; then
+    VIVO=$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//')
+    for dev in $(blkid -t TYPE=btrfs -o device 2>/dev/null | sort); do
+        [ "$dev" = "$VIVO" ] && continue
+        T=$(mktemp -d /tmp/skillfish-snapshots-live.XXXXXX)
+        # in sola lettura: qui si guarda e basta, non si ripara niente
+        if mount -o ro,subvolid=5 "$dev" "$T" 2>/dev/null; then
+            for c in $(ls -1 "$T" 2>/dev/null); do
+                case "$c" in *-rotto-*|*-annullato-*) continue ;; esac
+                [ -f "$T/$c/etc/fstab" ] && [ -d "$T/$c/usr" ] || continue
+                SNAPDIR="$T/$c/.snapshots"
+                quanti=$(ls -1 "$SNAPDIR" 2>/dev/null | grep -cxE '[0-9]+')
+                nome=$(sed -n 's/^PRETTY_NAME="\(.*\)"/\1/p' "$T/$c/etc/os-release" 2>/dev/null | head -1)
+                printf 'BERSAGLIO\t%s\t%s\t%s\t%s\n' \
+                       "$dev" "$c" "${quanti:-0}" "${nome:-SkillFishOS}"
+                # Lo spazio del DISCO CHE SI RIPARA, non quello della
+                # chiavetta: mostrare i quattro giga della live mentre si guarda
+                # un disco da mezzo terabyte e' un numero giusto nel posto
+                # sbagliato, e nessuno lo mette in dubbio.
+                read -r bl bt < <(df -B1 --output=avail,size "$T" 2>/dev/null | tail -1)
+                printf 'SPAZIOB\t%s\t%s\t%s\n' "$dev" "${bl:-0}" "${bt:-0}"
+                for n in $(ls -1 "$SNAPDIR" 2>/dev/null | grep -xE '[0-9]+' | sort -n); do
+                    d="$SNAPDIR/$n"
+                    [ -d "$d/snapshot" ] || continue
+                    i="$d/info.xml"
+                    [ -r "$i" ] || continue
+                    printf 'SNAPB\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+                        "$dev" "$n" \
+                        "$(campo "$i" date)" \
+                        "$(campo "$i" type)" \
+                        "$(campo "$i" pre_num)" \
+                        "$(campo "$i" description)"
+                done
+                # i sistemi messi da parte da ripristini precedenti, per poter
+                # offrire «torna indietro» anche da qui
+                for v in "$T/${c}-rotto-"* "$T/${c}-annullato-"*; do
+                    [ -d "$v" ] || continue
+                    printf 'DAPARTEB\t%s\t%s\n' "$dev" "$(basename "$v")"
+                done
+            done
+            umount "$T" 2>/dev/null
+        fi
+        rmdir "$T" 2>/dev/null
+    done
+fi
 
 # --- la manutenzione programmata ---------------------------------------------
 # Sta qui e non in un programma a parte perche' anche questa e' SOLA LETTURA, e

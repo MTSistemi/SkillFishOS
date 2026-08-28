@@ -46,6 +46,11 @@ uso:
   $PROG --annulla             torna al sistema com'era prima dell'ultimo ripristino
   $PROG --pulisci             cancella i vecchi sistemi messi da parte
 
+Dalla chiavetta live, per riparare un sistema che non si avvia piu:
+  $PROG --dischi              elenca i sistemi installati che trova
+  $PROG --disco /dev/sdX2 --elenco
+  $PROG --disco /dev/sdX2 <numero>
+
 Il ripristino ha effetto al riavvio successivo. La cartella personale (/home)
 non viene toccata: torna indietro il sistema, i tuoi file restano quelli di
 adesso.
@@ -60,9 +65,59 @@ esac
 
 [ "$(id -u)" = 0 ] || errore "serve essere root (usa sudo)"
 
-DISPOSITIVO=$(findmnt -no SOURCE / | sed 's/\[.*//')
-[ -n "$DISPOSITIVO" ] || errore "non riesco a capire su quale disco sta la radice"
-[ "$(findmnt -no FSTYPE /)" = "btrfs" ] || errore "la radice non e' su btrfs: qui non c'e' niente da ripristinare"
+# --- su quale sistema si lavora ------------------------------------------
+# Di norma su quello che sta girando. Dalla live invece il sistema da riparare
+# sta su un altro disco, ed e' proprio il caso in cui questo programma serve di
+# piu': quello rotto non si avvia, quindi non puo' ripararsi da solo.
+BERSAGLIO=""
+if [ "${1:-}" = "--disco" ] || [ "${1:-}" = "--disk" ]; then
+    BERSAGLIO="${2:-}"
+    [ -n "$BERSAGLIO" ] || errore "--disco vuole una partizione, per esempio /dev/sda2"
+    shift 2
+fi
+
+# Elenca i sistemi installati che si vedono da qui. Non monta niente in
+# scrittura e non tocca niente: e' solo per sapere cosa scrivere dopo --disco.
+if [ "${1:-}" = "--dischi" ] || [ "${1:-}" = "--disks" ]; then
+    VIVO=$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//')
+    trovati=0
+    for dev in $(blkid -t TYPE=btrfs -o device 2>/dev/null | sort); do
+        [ "$dev" = "$VIVO" ] && continue
+        t=$(mktemp -d /tmp/skillfish-rollback-cerca.XXXXXX)
+        if mount -o ro,subvolid=5 "$dev" "$t" 2>/dev/null; then
+            for c in $(ls -1 "$t" 2>/dev/null); do
+                case "$c" in *-rotto-*|*-annullato-*) continue ;; esac
+                [ -f "$t/$c/etc/fstab" ] && [ -d "$t/$c/usr" ] || continue
+                n=$(ls -1 "$t/$c/.snapshots" 2>/dev/null | grep -cxE '[0-9]+')
+                nome=$(sed -n 's/^PRETTY_NAME="\(.*\)"/\1/p' "$t/$c/etc/os-release" 2>/dev/null | head -1)
+                printf '%s  sottovolume %s  snapshot %s  %s\n' \
+                       "$dev" "$c" "${n:-0}" "${nome:-sistema sconosciuto}"
+                trovati=$((trovati+1))
+            done
+            umount "$t" 2>/dev/null
+        fi
+        rmdir "$t" 2>/dev/null
+    done
+    [ "$trovati" = 0 ] && echo "nessun sistema installato trovato su questi dischi"
+    exit 0
+fi
+
+if [ -n "$BERSAGLIO" ]; then
+    [ -b "$BERSAGLIO" ] || errore "«$BERSAGLIO» non e' una partizione"
+    [ "$(blkid -o value -s TYPE "$BERSAGLIO" 2>/dev/null)" = "btrfs" ] \
+        || errore "«$BERSAGLIO» non e' formattata btrfs"
+    VIVO=$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//')
+    # ⚠️ Lavorare sul disco da cui si e' avviati vorrebbe dire spostare da parte
+    # il sottovolume che si sta usando in quel momento.
+    [ "$BERSAGLIO" != "$VIVO" ] \
+        || errore "«$BERSAGLIO» e' il disco da cui sta girando questo sistema: usa il comando senza --disco"
+    DISPOSITIVO="$BERSAGLIO"
+else
+    DISPOSITIVO=$(findmnt -no SOURCE / | sed 's/\[.*//')
+    [ -n "$DISPOSITIVO" ] || errore "non riesco a capire su quale disco sta la radice"
+    [ "$(findmnt -no FSTYPE /)" = "btrfs" ] \
+        || errore "la radice non e' su btrfs: qui non c'e' niente da ripristinare. Dalla chiavetta live usa --dischi"
+fi
 
 # Il nome del sottovolume di sistema NON e' sempre "@": Calamares crea @, ma la
 # scheda di sviluppo ha @rootfs, e altre installazioni possono avere altro
@@ -90,10 +145,17 @@ sottovol_da_cmdline() {
 sottovol_da_mount() {
     findmnt -no SOURCE / | sed -n 's/.*\[\/\([^]]*\)\].*/\1/p' | cut -d/ -f1
 }
-SOTTOVOL=$(sottovol_da_fstab)
-[ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_cmdline)
-[ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_mount)
-[ -n "$SOTTOVOL" ] || errore "la radice non sta su un sottovolume: non so cosa ripristinare"
+# ⚠️ Col bersaglio esplicito questi tre non valgono: fstab e /proc/cmdline
+# descrivono il sistema che sta GIRANDO, cioe' la live. Il nome si cerca dentro
+# al filesystem del bersaglio, subito dopo averlo montato.
+if [ -z "$BERSAGLIO" ]; then
+    SOTTOVOL=$(sottovol_da_fstab)
+    [ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_cmdline)
+    [ -n "$SOTTOVOL" ] || SOTTOVOL=$(sottovol_da_mount)
+    [ -n "$SOTTOVOL" ] || errore "la radice non sta su un sottovolume: non so cosa ripristinare"
+else
+    SOTTOVOL=""
+fi
 
 # Rete di sicurezza: se comunque uscisse il nome di un sistema messo da parte,
 # meglio fermarsi che lavorare sul sottovolume sbagliato.
@@ -104,6 +166,21 @@ esac
 
 mount -o subvolid=5 "$DISPOSITIVO" "$CIMA" 2>/dev/null || errore "non riesco a montare il livello superiore di $DISPOSITIVO"
 FATTO_MOUNT=1
+
+# Col bersaglio esplicito il nome si ricava solo adesso, guardando dentro: si
+# cerca un sottovolume che sia davvero una radice di sistema (ha etc/fstab e
+# usr). @ e @rootfs si provano per primi perche' sono quelli che usiamo noi.
+if [ -z "$SOTTOVOL" ]; then
+    for c in @ @rootfs $(ls -1 "$CIMA" 2>/dev/null); do
+        case "$c" in *-rotto-*|*-annullato-*) continue ;; esac
+        [ -f "$CIMA/$c/etc/fstab" ] && [ -d "$CIMA/$c/usr" ] || continue
+        SOTTOVOL="$c"
+        break
+    done
+    [ -n "$SOTTOVOL" ] \
+        || errore "su $DISPOSITIVO non trovo un sistema installato (nessun sottovolume con etc/fstab)"
+    echo "sistema trovato su $DISPOSITIVO, sottovolume «$SOTTOVOL»"
+fi
 
 RADICE="$CIMA/$SOTTOVOL"
 [ -d "$RADICE" ] || errore "non trovo il sottovolume «$SOTTOVOL» su $DISPOSITIVO"

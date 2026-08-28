@@ -18,8 +18,37 @@
 # e' un'applicazione che gira da utente normale.
 set -u
 
+# --- il bersaglio, quando si ripara un altro disco dalla live ---------------
+# Vale solo per ripristina/annulla/pulisci: vedi la nota in cima al file.
+DISCO=""
+if [ "${1:-}" = "--disco" ]; then
+    DISCO="${2:-}"
+    shift 2 2>/dev/null || { echo "ERR:disco --disco wants a partition" >&2; exit 2; }
+    # ⚠️ Controllato QUI, non solo in skillfish-rollback: questo e' il punto in
+    # cui arriva roba da un processo non privilegiato.
+    case "$DISCO" in
+        /dev/*) ;;
+        *) echo "ERR:disco «$DISCO» is not a device path" >&2; exit 2 ;;
+    esac
+    case "$DISCO" in
+        *..*|*" "*) echo "ERR:disco bad device name" >&2; exit 2 ;;
+    esac
+    [ -b "$DISCO" ] || { echo "ERR:disco «$DISCO» is not a block device" >&2; exit 2; }
+    [ "$(blkid -o value -s TYPE "$DISCO" 2>/dev/null)" = "btrfs" ] \
+        || { echo "ERR:disco «$DISCO» is not btrfs" >&2; exit 2; }
+fi
+
 AZIONE="${1:-}"
 CONF=root
+
+# Con un bersaglio esplicito passano solo le azioni di riparazione.
+if [ -n "$DISCO" ]; then
+    case "$AZIONE" in
+        ripristina|annulla|pulisci) ;;
+        *) echo "ERR:disco-azione «$AZIONE» cannot work on another disk; from the live image you can only restore, undo or clean" >&2
+           exit 2 ;;
+    esac
+fi
 
 numero() {  # accetta solo cifre, e rifiuta lo snapshot 0 (e' il sistema vivo)
     case "$1" in
@@ -29,7 +58,12 @@ numero() {  # accetta solo cifre, e rifiuta lo snapshot 0 (e' il sistema vivo)
         echo "ERR:zero snapshot 0 is the running system, not a real snapshot" >&2
         exit 2
     fi
-    [ -d "/.snapshots/$1/snapshot" ] || { echo "ERR:inesistente snapshot $1 does not exist" >&2; exit 2; }
+    # ⚠️ Con un bersaglio, /.snapshots e' quella della LIVE e non esiste: il
+    # controllo di esistenza lo fa skillfish-rollback, che il disco giusto ce
+    # l'ha montato. Qui resta il controllo che sia un numero, che vale sempre.
+    if [ -z "$DISCO" ]; then
+        [ -d "/.snapshots/$1/snapshot" ] || { echo "ERR:inesistente snapshot $1 does not exist" >&2; exit 2; }
+    fi
 }
 
 # Il menu di avvio non si aggiorna da solo: grub-btrfsd dovrebbe farlo e non lo
@@ -147,17 +181,17 @@ case "$AZIONE" in
     numero "${2:-}"
     # --si perche' qui la conferma l'ha gia' data la finestra, con scritto per
     # esteso che cosa succede. Chiederla due volte non aggiunge sicurezza.
-    /usr/local/bin/skillfish-rollback "$2" --si || exit 1
+    /usr/local/bin/skillfish-rollback ${DISCO:+--disco "$DISCO"} "$2" --si || exit 1
     echo "OK ripristinato $2"
     ;;
 
   annulla)
-    /usr/local/bin/skillfish-rollback --annulla || exit 1
+    /usr/local/bin/skillfish-rollback ${DISCO:+--disco "$DISCO"} --annulla || exit 1
     echo "OK annullato"
     ;;
 
   pulisci)
-    /usr/local/bin/skillfish-rollback --pulisci || exit 1
+    /usr/local/bin/skillfish-rollback ${DISCO:+--disco "$DISCO"} --pulisci || exit 1
     echo "OK pulito"
     ;;
 

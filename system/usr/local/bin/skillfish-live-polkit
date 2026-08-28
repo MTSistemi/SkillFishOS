@@ -1,0 +1,59 @@
+#!/bin/sh
+# Dalla chiavetta live, le operazioni sugli snapshot non chiedono la password.
+#
+# PERCHE'
+# La politica di norma chiede la password di un amministratore, ed e' giusto:
+# su un sistema installato, riportare indietro il sistema e' una cosa seria.
+# Nella sessione live pero' l'utente si chiama «live» e la sua password e'
+# VUOTA, e polkit una password vuota la rifiuta. Risultato misurato il
+# 28/08/2026: la finestra di autenticazione si ripropone all'infinito e il
+# ripristino non parte. Cioe' la funzione che serve proprio quando il sistema
+# non si avvia piu' era l'unica che non si poteva usare.
+#
+# E non c'e' niente da proteggere: chi ha in mano la chiavetta ha gia' accesso
+# senza limiti a tutti i dischi della macchina — puo' montarli, leggerli e
+# riscriverli da un terminale. La richiesta di password li' non aggiunge
+# sicurezza, toglie solo la strada a chi sta cercando di riparare il proprio
+# computer.
+#
+# ⚠️ SUL SISTEMA INSTALLATO LA REGOLA NON DEVE ESISTERE. Siccome l'immagine
+# clona la scheda, un file lasciato in giro si porterebbe dietro il permesso
+# anche dopo l'installazione: per questo qui non ci si limita a crearlo quando
+# serve, lo si CANCELLA quando non serve. Il servizio gira a ogni avvio e
+# rimette le cose a posto da solo, qualunque sia lo stato di partenza.
+set -u
+
+REGOLA=/etc/polkit-1/rules.d/49-skillfish-live-snapshots.rules
+
+in_live() {
+    [ -d /run/live ] && return 0
+    [ "$(findmnt -no FSTYPE / 2>/dev/null)" = "overlay" ] && return 0
+    return 1
+}
+
+if in_live; then
+    mkdir -p /etc/polkit-1/rules.d
+    cat > "$REGOLA" <<'FINE'
+// Scritto da skillfish-live-polkit, e SOLO in una sessione live.
+// Su un sistema installato questo file non deve esistere: se lo trovi li',
+// qualcosa non ha girato ed e' un difetto da segnalare.
+//
+// Chi ha in mano la chiavetta ha gia' accesso completo ai dischi: qui la
+// password non protegge niente e impedisce solo di riparare il proprio
+// sistema, perche' l'utente della live non ne ha una.
+polkit.addRule(function (action, subject) {
+    if (action.id.indexOf("os.skillfish.snapshots.") === 0 &&
+        subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+});
+FINE
+    chmod 644 "$REGOLA"
+    echo "SkillFishOS: live session, snapshot actions do not ask for a password"
+else
+    if [ -f "$REGOLA" ]; then
+        rm -f "$REGOLA"
+        echo "SkillFishOS: installed system, the live snapshot rule has been removed"
+    fi
+fi
+exit 0

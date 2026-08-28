@@ -537,6 +537,13 @@ if [ -d /run/systemd/system ]; then
   # il servizio si accende sempre e non fa niente sul sistema installato,
   # dove /run/live/medium non esiste.
   systemctl enable skillfish-live-no-lock.service || true
+  # Stessa logica, altro problema della live: la password vuota fa
+  # rifiutare da polkit ogni autorizzazione, quindi il ripristino di uno
+  # snapshot su un disco installato non partiva mai. Il servizio mette la
+  # regola solo in live e la TOGLIE sul sistema installato, dove non deve
+  # esserci: l immagine clona la scheda, e un file dimenticato regalerebbe
+  # il permesso anche dopo l installazione.
+  systemctl enable skillfish-live-polkit.service || true
   [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
   # enable --now avvia solo se e' ferma: se era gia' attiva con la vecchia

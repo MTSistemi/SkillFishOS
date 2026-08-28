@@ -1,0 +1,17 @@
+[Unit]
+Description=SkillFishOS: snapshot permissions for the live session
+Documentation=man:polkit(8)
+# Prima che parta il gestore della sessione grafica: la regola dev'essere gia'
+# al suo posto quando l'utente apre la prima finestra, se no la prima volta si
+# vede comunque la richiesta di password.
+Before=display-manager.service
+After=local-fs.target
+ConditionPathExists=/usr/local/bin/skillfish-live-polkit
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-live-polkit
+
+[Install]
+WantedBy=multi-user.target
