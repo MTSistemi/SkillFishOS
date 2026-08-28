@@ -291,9 +291,22 @@ def interfacce_utente():
         for nome in sorted(os.listdir(base)):
             if nome == "lo":
                 continue
-            # le virtuali non dicono niente all'utente; la ZeroTier resta,
-            # perche' e' una rete che ha scelto lui e su cui lo raggiungiamo.
-            if nome.startswith(("docker", "veth", "br-", "virbr", "tun", "tap")):
+            # ⚠️ Si tengono solo le interfacce appoggiate a un dispositivo
+            # vero: /sys/class/net/<x>/device esiste per PCI e USB e NON esiste
+            # per ponti, veth, tun e tap. Prima si scartavano per prefisso del
+            # nome — docker, veth, br-, virbr, tun, tap — e bastava un ponte
+            # chiamato altrimenti per passare: `lxcbr0`, che arriva con Waydroid,
+            # stava in fila con la scheda di rete come se fosse una di quelle.
+            # Allungare l'elenco avrebbe solo rimandato il problema al prossimo
+            # nome nuovo. E la funzione qui sopra dichiara gia' di non voler
+            # indovinare dal nome: questo lo rispetta anche qui.
+            #
+            # ⚠️ ZeroTier e' l'eccezione, ed e' voluta: e' una tun e il metro la
+            # scarterebbe, ma e' una rete che l'utente ha scelto e su cui lo
+            # raggiungiamo. Il Wi-Fi USB invece passa da solo, perche' un
+            # dispositivo ce l'ha.
+            fisica = os.path.exists(os.path.join(base, nome, "device"))
+            if not fisica and not nome.startswith("zt"):
                 continue
             radio = os.path.isdir(os.path.join(base, nome, "wireless"))
             tipo = "wifi" if radio else ("zerotier" if nome.startswith("zt") else "cavo")
