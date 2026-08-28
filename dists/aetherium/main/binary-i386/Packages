@@ -18,18 +18,18 @@ Description: SkillFish AI - on-device LLM control panel
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.08.65
+Version: 26.08.66
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.08.65_all.deb
-Size: 274784
-SHA256: 1e9fe27ac4e8caad4bcd5564774c8137c0e0ed601ac34d1bdbe4fba94d0cd756
-SHA1: ff4f5b2d433e27f6f2a2f97374ba9586dc66db3d
-MD5sum: c19c44b80465511a006fddfd7a3f8a09
+Filename: pool/main/s/skillfish-base/skillfish-base_26.08.66_all.deb
+Size: 277856
+SHA256: ef2d916adf34d32cee51d413ece508eee290d01a8facd6448706a2c8e3e13886
+SHA1: 26e08b98558ed486e873bc00100e706440faef69
+MD5sum: 3ad99cdf05c4d5196d7a2431a29c80be
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -57,7 +57,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.08.65
+Version: 26.08.66
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -66,11 +66,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.65_all.deb
-Size: 273288
-SHA256: aa1f14344f97b709752c357480d67cd6c47292b3ecc92ea18c55199398a327d9
-SHA1: b8a1717e825973887af0868b6ee671e8349785d4
-MD5sum: c71ed1fd7e91a44cbb76f42058c15776
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.08.66_all.deb
+Size: 280256
+SHA256: b9f6be9ebf79587a4129b92d9982d2970a955bbffa23ce1e43b510999ec7865c
+SHA1: 31287413aea387c225732eddbd4b0fb0e801ab1b
+MD5sum: ce92ba015911404857b2628e634c6ef2
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -216,18 +216,18 @@ Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyze
  Part of SkillFishOS.
 
 Package: skillfish-snapshots
-Version: 26.08.64
+Version: 26.08.66
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-snapshots/skillfish-snapshots_26.08.64_all.deb
-Size: 208888
-SHA256: a4b151f59c4080430eb50868d8c19b7800d681f834ef6cbc72f5ca90fdb45880
-SHA1: 488c378d9762d1353538b219ba963ff492f4db67
-MD5sum: 09b6182a0dde358f451c6c780c31b06b
+Filename: pool/main/s/skillfish-snapshots/skillfish-snapshots_26.08.66_all.deb
+Size: 211572
+SHA256: 1b8b31d9b3270e6857cd485903d1fca2670628ea13ae5742050fe994db795fcf
+SHA1: f230ddc8caa3101e99c6ce7fa5140a01697a86d3
+MD5sum: e7c17b4a04ef7ef4bc2cfdaea72349b8
 Description: SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance
  Snapshots before and after every apt operation, restored in seconds because
  btrfs swaps the subvolume. The second tab keeps btrfs in shape on a schedule.
