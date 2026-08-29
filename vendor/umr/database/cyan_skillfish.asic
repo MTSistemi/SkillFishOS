@@ -1,0 +1,14 @@
+cyan_skillfish cyan_skillfish.soc15 4 13 2 1
+athub200 ATHUB 0 ip/athub_2_0_0.reg
+clk1101 CLK 0 ip/clk_11_0_1.reg
+dcn203 DMU 0 ip/dcn_2_0_3.reg
+dpcs203 DMU 0 ip/dpcs_2_0_3.reg
+gfx1010 GC 0 ip/gc_10_1_0.reg
+hdp500 HDP 0 ip/hdp_5_0_0.reg
+mmhub200 MMHUB 0 ip/mmhub_2_0_0.reg
+mp1108 MP0 0 ip/mp_11_0_8.reg
+nbio230 NBIO 0 ip/nbio_2_3_0.reg
+oss500 OSSSYS 0 ip/osssys_5_0_0.reg
+smuio1100 SMUIO 0 ip/smuio_11_0_0.reg
+thm1102 THM 0 ip/thm_11_0_2.reg
+vcn200 UVD0 0 ip/vcn_2_0_0.reg

@@ -166,6 +166,16 @@ put $P 0644 system/etc/systemd/system/skillfish-cu.service etc/systemd/system/sk
 # dipendere da un soname che in sid cambia ogni pochi mesi.
 put $P 0755 vendor/umr/umr     usr/local/bin/umr
 put $P 0644 vendor/umr/LICENSE usr/share/doc/skillfish-tuner/umr-LICENSE
+# Il programma da solo non legge niente: gli serve il database dei registri.
+# ⚠️ Mettemmo nel pacchetto umr e ci fermammo li'. Sulla seconda BC-250,
+# installata dalla ISO fatta con live-build, il servizio delle CU falliva e
+# «Stato sistema» diceva 0/40: «Cannot open pci.did». Le ISO di eggs non lo
+# mostravano perche' clonano /opt della scheda di sviluppo.
+# Il percorso non e' una scelta nostra: e' quello cotto dentro al binario dal
+# CMake di umr (UMR_DB_DIR, prefisso /usr/local). Se si ricompila umr con un
+# prefisso diverso, questo va cambiato di conseguenza.
+# Solo il pezzo che serve a questa GPU: intero il database pesa 94 MB.
+putdir $P vendor/umr/database usr/local/share/umr/database
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 # Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
@@ -1184,6 +1194,11 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-l
 # a tenerlo fuori dal sistema installato. Senza, si consegnerebbe a tutti un
 # sistema in cui riportare indietro il sistema non chiede piu' niente.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-polkit 'run/live'
+# Senza questo file umr non legge un registro e le CU restano 0/40. Si
+# controlla proprio il registro che skillfish-cu scrive per instradarle:
+# cosi' se un domani il sottoinsieme del database viene sfoltito troppo, la
+# build si ferma qui invece di far scoprire il buco a chi installa.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/share/umr/database/ip/gc_10_1_0.reg 'SPI_PG_ENABLE_STATIC_WGP_MASK'
 # idleTime=0 per powerdevil vuol dire SUBITO, non mai: con lo zero la live
 # spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'

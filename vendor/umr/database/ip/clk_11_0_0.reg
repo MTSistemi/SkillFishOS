@@ -1,0 +1,7 @@
+2
+mmCLK3_0_CLK3_CLK2_DFS_CNTL 0 0x54 1 0 3
+	CLK2_DIVIDER 0 6
+mmCLK3_0_CLK3_CLK_PLL_REQ 0 0xe 3 0 3
+	FbMult_int 0 8
+	PllSpineDiv 12 15
+	FbMult_frac 16 31

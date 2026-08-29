@@ -326,12 +326,16 @@ def cu_apply(rows):
     da stderr e si passa su.
     """
     try:
-        # ⚠️ umr non lo installa nessun pacchetto: sta nelle immagini perche' la
-        # ISO clona la scheda di sviluppo. Se manca, il pannello non puo'
-        # funzionare e va detto qui, non lasciato scoprire da un errore oscuro.
+        # ⚠️ Due pezzi, e per un po' ne spedivamo uno solo: il programma umr e il
+        # database dei registri che il programma legge. Senza il secondo umr
+        # parte e fallisce con «Cannot open pci.did», che a un utente non dice
+        # niente. Successo davvero, sulla seconda BC-250 installata da ISO.
         if not os.path.exists("/usr/local/bin/umr"):
             return {"ok": False, "err": "manca /usr/local/bin/umr, "
                     "senza il quale le CU non si possono instradare"}
+        if not os.path.exists("/usr/local/share/umr/database/pci.did"):
+            return {"ok": False, "err": "manca il database dei registri di umr "
+                    "(/usr/local/share/umr/database): reinstalla skillfish-tuner"}
         r=[int(x)&0x1f for x in rows][:4]
         while len(r)<4: r.append(0x07)
         p=sh("/usr/local/bin/skillfish-cu set-rows %s"%(" ".join(str(x) for x in r)))
