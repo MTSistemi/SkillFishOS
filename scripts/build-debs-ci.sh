@@ -859,7 +859,7 @@ EOF
 # Disabilitarla non basta: ha Restart=, e un aggiornamento di ttyd la
 # rimetterebbe in piedi. Con `-O login` per giunta il terminale richiedeva di
 # nuovo utente e password, buttando via il single sign-on della dashboard.
-printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboard.json ] || cp /usr/share/skillfish/dashboard-default.json /etc/skillfish/dashboard.json\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl disable --now ttyd.service 2>/dev/null || true\n  systemctl mask ttyd.service 2>/dev/null || true\nfi\nupdate-desktop-database -q 2>/dev/null || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboard.json ] || cp /usr/share/skillfish/dashboard-default.json /etc/skillfish/dashboard.json\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl disable --now ttyd.service 2>/dev/null || true\n  systemctl mask ttyd.service 2>/dev/null || true\n  systemctl try-restart skillfish-dashboard.service 2>/dev/null || true\nfi\nupdate-desktop-database -q 2>/dev/null || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then systemctl disable --now skillfish-dashboard.service 2>/dev/null || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
