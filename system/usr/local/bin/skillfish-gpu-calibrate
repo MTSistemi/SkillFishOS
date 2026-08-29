@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+u"""SkillFishOS — taratura automatica della curva tensione/frequenza della GPU.
+
+PERCHE' ESISTE. Due BC-250 con la stessa identica curva si comportano in modo
+diverso. Sulla scheda di sviluppo, al punto di lavoro di serie (2200 MHz con il
+punto di curva a 1000 mV, 987 misurati sotto carico), la GPU dava migliaia di
+risultati SBAGLIATI e ogni tanto piantava l'anello grafico; sull'altra, stessa
+curva, mai un errore. Alzando il punto alto a 1040 mV la stessa scheda diventa
+pulita. Non e' silicio da buttare: e' silicio che vuole i suoi valori.
+
+⚠️ IL GUASTO NON SI VEDE. La GPU non si spegne e non da' errori: continua a
+lavorare e restituisce numeri diversi da quelli giusti. In un gioco e' un pixel
+storto, una fisica che sobbalza, ogni tanto un blocco dato per colpa del gioco.
+Chi ha la scheda non ha modo di accorgersene, e infatti ce ne siamo accorti noi
+solo perche' abbiamo confrontato i risultati con quelli calcolati dalla CPU.
+
+COME SI TARA. Si alza la tensione di tutta la curva finche' i conti tornano, e
+si tiene il valore piu' basso che regge — non il piu' alto: con piu' tensione
+la GPU arriva prima al tetto di corrente e va PIU' PIANO (misurato: +70 mV
+costano il 15% dei giri). La tensione in piu' non e' gratis.
+
+⚠️ SI PROVA ANCHE LA SALITA, NON SOLO IL REGIME. Il primo giro di prove ci ha
+fregati: a regime la scheda era pulita, e gli errori erano tutti nei primi 30
+secondi, mentre il clock saliva passando per i punti intermedi della curva.
+Per questo il carico qui e' a ondate — fermo, carico, fermo, carico — e non una
+lunga tirata continua: una prova che parte gia' calda non vede il guasto.
+
+⚠️ E SI PROVA A LUNGO. Una prova da 90 secondi ha dichiarato "pulita" una curva
+che alla tenuta lunga sbagliava. Con un guasto che va e viene, le prove corte
+dicono quello che vuoi sentire.
+
+LA RETE DI SICUREZZA. Tarare vuol dire, per mestiere, provare valori che possono
+piantare la macchina. Prima di toccare qualcosa si scrive un segnaposto con
+dentro la curva buona di partenza: se la scheda si pianta e riparte, il servizio
+skillfish-gpu-calibrate-recovery trova il segnaposto e rimette quella curva
+prima ancora che si accenda il desktop. Senza questo, una taratura interrotta
+lascerebbe la macchina con la curva che l'ha appena piantata.
+"""
+from __future__ import unicode_literals, print_function
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+GOV = "/etc/cyan-skillfish-governor/config.toml"
+STATO = "/var/lib/skillfish"
+SEGNAPOSTO = os.path.join(STATO, "gpu-calibrazione-in-corso")
+PARTENZA = os.path.join(STATO, "gpu-curva-prima-della-taratura.toml")
+ESITO = os.path.join(STATO, "gpu-calibrazione.json")
+VERIFICA = "/usr/local/bin/skillfish-gpu-verify"
+
+# Il SMU non accetta oltre questo: sta scritto in OD_RANGE del driver.
+MV_MAX = 1129
+MV_MIN = 700
+F_TOP = 2200
+
+# Pendenza della curva in mV per MHz. Ricavata dalla curva che regge sulla
+# scheda di sviluppo (da 2200/1040 a 1200/910). Piu' ripida di cosi' e la salita
+# passa per punti troppo bassi: e' li' che comparivano gli errori.
+PENDENZA = 0.13
+
+
+def sh(cmd, timeout=None):
+    return subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, timeout=timeout)
+
+
+def curva(mv_top):
+    u"""Punti della curva per una data tensione di punta.
+
+    Il punto di riposo resta a 350 MHz / 700 mV e non si alza: a riposo la
+    frequenza e' bassissima e alzare li' la tensione vuol dire solo scaldare e
+    consumare per niente.
+    """
+    punti = [(350, 700)]
+    for f in range(600, F_TOP + 1, 200):
+        v = int(round(mv_top - PENDENZA * (F_TOP - f)))
+        punti.append((f, max(MV_MIN, min(MV_MAX, v))))
+    if punti[-1][0] != F_TOP:
+        punti.append((F_TOP, min(MV_MAX, mv_top)))
+    # niente doppioni di frequenza, e tensione mai in discesa salendo di clock
+    fuori, vprec = [], 0
+    for f, v in punti:
+        v = max(v, vprec) if f > 350 else v
+        if fuori and fuori[-1][0] == f:
+            continue
+        fuori.append((f, v))
+        vprec = v
+    return fuori
+
+
+def scrivi_curva(punti):
+    t = io.open(GOV, encoding="utf-8").read()
+    t = re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+', '', t).rstrip() + "\n"
+    for f, v in punti:
+        t += "[[safe-points]]\nfrequency = %d\nvoltage = %d\n" % (f, v)
+    io.open(GOV, "w", encoding="utf-8", newline="\n").write(t)
+    # fermo, respiro, riparto: il SMU della BC-250 si pianta sui salti bruschi
+    sh("systemctl stop cyan-skillfish-governor")
+    time.sleep(2)
+    sh("systemctl start cyan-skillfish-governor")
+    time.sleep(5)
+
+
+def leggi_curva():
+    t = io.open(GOV, encoding="utf-8").read()
+    return [(int(f), int(v)) for f, v in
+            re.findall(r'frequency\s*=\s*(\d+)[^\n]*\n\s*voltage\s*=\s*(\d+)', t)]
+
+
+def anelli():
+    u"""Quante volte il kernel ha dovuto resettare l'anello grafico.
+
+    ⚠️ Non si vede dai risultati: la GPU si pianta, il driver la recupera, e il
+    programma muore senza spiegazioni. Se non si contano queste righe, una curva
+    che pianta la scheda puo' passare per buona solo perche' la prova e' morta
+    prima di trovare errori.
+    """
+    r = sh("dmesg | grep -c 'ring reset'")
+    try:
+        return int(r.stdout.decode().strip() or 0)
+    except ValueError:
+        return 0
+
+
+def una_prova(secondi):
+    u"""Una passata verificata. Torna (errori, morto)."""
+    amb = dict(os.environ, RUSTICL_ENABLE="radeonsi")
+    try:
+        p = subprocess.run([VERIFICA, "calcolo", str(secondi), "1048576", "5000"],
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           env=amb, timeout=secondi + 180)
+    except subprocess.TimeoutExpired:
+        return (0, True)
+    testo = p.stdout.decode("utf-8", "replace")
+    m = re.search(r'errori a numeri interi (\d+)', testo)
+    n = re.search(r'errori in virgola +(\d+)', testo)
+    if not m:
+        return (0, True)          # non e' arrivato in fondo: piantata
+    return (int(m.group(1)) + int(n.group(1) if n else 0), False)
+
+
+def prova_a_ondate(ondate, carico, pausa=15):
+    u"""Fermo e carico a turno: e' nella salita che si vedono gli errori."""
+    prima = anelli()
+    totale = 0
+    for i in range(ondate):
+        time.sleep(pausa)
+        err, morto = una_prova(carico)
+        totale += err
+        if morto:
+            return (totale, True, anelli() - prima)
+        print("    ondata %d/%d: %d errori" % (i + 1, ondate, err))
+    return (totale, False, anelli() - prima)
+
+
+def segna(curva_sicura):
+    if not os.path.isdir(STATO):
+        os.makedirs(STATO)
+    io.open(SEGNAPOSTO, "w", encoding="utf-8").write(
+        json.dumps({"curva": curva_sicura, "quando": int(time.time())}))
+    if not os.path.exists(PARTENZA):
+        io.open(PARTENZA, "w", encoding="utf-8").write(
+            io.open(GOV, encoding="utf-8").read())
+
+
+def togli_segno():
+    if os.path.exists(SEGNAPOSTO):
+        os.unlink(SEGNAPOSTO)
+
+
+def taratura(rapida=False):
+    if not os.path.exists(VERIFICA):
+        print("manca %s: senza il programma di verifica non si tara niente" % VERIFICA,
+              file=sys.stderr)
+        return 2
+
+    partenza = leggi_curva()
+    mv_partenza = max(v for _, v in partenza) if partenza else 1000
+    segna(partenza)
+
+    ondate, carico = (2, 40) if rapida else (3, 60)
+    print("taratura della GPU — parto da %d mV di punta" % mv_partenza)
+    print("(a ondate: fermo e carico a turno, perche' gli errori nascono nella salita)")
+    print()
+
+    # La conferma lunga sta DENTRO il ciclo, non dopo.
+    # ⚠️ Prima era fuori: si trovava una candidata, la si confermava, e se alla
+    # conferma cedeva il programma provava un solo gradino piu' su e poi si
+    # arrendeva rimettendo la curva di partenza — cioe' lasciava la scheda
+    # esattamente com'era, rotta, dopo mezz'ora di prove. Non ha senso: se una
+    # candidata cede alla lunga, la risposta e' salire ancora, come si farebbe a
+    # mano. Cosi' il primo valore che passa TUTTE E DUE le prove e' anche il piu'
+    # basso che le passa, che e' quello che vogliamo.
+    conf_ondate, conf_carico = (3, 60) if rapida else (6, 90)
+    vincente = None
+    for mv in range(mv_partenza, MV_MAX + 1, 20):
+        punti = curva(mv)
+        print("  provo %d mV di punta  (%s)" % (mv, " ".join("%d/%d" % p for p in punti[-3:])))
+        scrivi_curva(punti)
+
+        err, morto, reset = prova_a_ondate(ondate, carico)
+        if morto:
+            print("    -> la GPU si e' piantata (%d reset dell'anello)" % reset)
+            continue
+        if reset:
+            print("    -> %d reset dell'anello: non va bene" % reset)
+            continue
+        if err:
+            print("    -> %d risultati sbagliati" % err)
+            continue
+
+        print("    -> pulita alla prova corta; conferma lunga (circa %d minuti)"
+              % ((conf_ondate * (conf_carico + 20)) // 60))
+        err, morto, reset = prova_a_ondate(conf_ondate, conf_carico)
+        if err or morto or reset:
+            print("    -> alla lunga cede: %d errori, %d reset%s. Salgo ancora."
+                  % (err, reset, ", piantata" if morto else ""))
+            continue
+
+        print("    -> confermata")
+        vincente = mv
+        break
+
+    if vincente is None:
+        print()
+        print("Nessuna tensione fino a %d mV rende questa GPU affidabile." % MV_MAX)
+        print("Rimetto la curva di partenza. Da qui si prova ad abbassare il clock,")
+        print("non ad alzare ancora la tensione.")
+        scrivi_curva(partenza)
+        togli_segno()
+        return 1
+
+    scrivi_curva(curva(vincente))
+    io.open(ESITO, "w", encoding="utf-8").write(json.dumps({
+        "mv_punta": vincente,
+        "mv_partenza": mv_partenza,
+        "curva": curva(vincente),
+        "quando": int(time.time()),
+    }, indent=1))
+    togli_segno()
+    print()
+    print("Fatto. Questa scheda vuole %d mV di punta (di partenza erano %d)."
+          % (vincente, mv_partenza))
+    print("Curva scritta in %s, esito in %s." % (GOV, ESITO))
+    return 0
+
+
+def verifica(secondi=180):
+    print("verifica della curva in uso (%d secondi, a ondate)" % secondi)
+    err, morto, reset = prova_a_ondate(3, secondi // 3)
+    print()
+    if morto:
+        print("ESITO: la GPU si e' piantata. Questa curva non e' utilizzabile.")
+        return 1
+    if err or reset:
+        print("ESITO: %d risultati sbagliati, %d reset dell'anello." % (err, reset))
+        print("Serve una taratura: skillfish-gpu-calibrate taratura")
+        return 1
+    print("ESITO: nessun errore. La curva in uso regge.")
+    return 0
+
+
+def stato():
+    print("curva in uso:")
+    for f, v in leggi_curva():
+        print("  %5d MHz  %4d mV" % (f, v))
+    if os.path.exists(ESITO):
+        d = json.loads(io.open(ESITO, encoding="utf-8").read())
+        print("\nultima taratura: %s — punta %d mV (prima %d)"
+              % (time.strftime("%d/%m/%Y %H:%M", time.localtime(d["quando"])),
+                 d["mv_punta"], d["mv_partenza"]))
+    else:
+        print("\nmai tarata su questa scheda")
+    if os.path.exists(SEGNAPOSTO):
+        print("⚠️ risulta una taratura interrotta: %s" % SEGNAPOSTO)
+    return 0
+
+
+def ripristina():
+    if not os.path.exists(PARTENZA):
+        print("non c'e' nessuna curva messa da parte da rimettere", file=sys.stderr)
+        return 1
+    io.open(GOV, "w", encoding="utf-8").write(io.open(PARTENZA, encoding="utf-8").read())
+    sh("systemctl stop cyan-skillfish-governor")
+    time.sleep(2)
+    sh("systemctl start cyan-skillfish-governor")
+    togli_segno()
+    print("rimessa la curva che c'era prima della taratura")
+    return 0
+
+
+def recupero():
+    u"""Chiamata all'avvio: se una taratura e' rimasta a meta', rimette la curva buona."""
+    if not os.path.exists(SEGNAPOSTO):
+        return 0
+    try:
+        d = json.loads(io.open(SEGNAPOSTO, encoding="utf-8").read())
+        punti = [(int(f), int(v)) for f, v in d["curva"]]
+    except Exception:
+        punti = None
+    if punti:
+        t = io.open(GOV, encoding="utf-8").read()
+        t = re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+', '', t).rstrip() + "\n"
+        for f, v in punti:
+            t += "[[safe-points]]\nfrequency = %d\nvoltage = %d\n" % (f, v)
+        io.open(GOV, "w", encoding="utf-8", newline="\n").write(t)
+        print("taratura interrotta: rimessa la curva di partenza")
+    togli_segno()
+    return 0
+
+
+def main():
+    # ⚠️ Riga per riga, anche quando l'uscita finisce in un file o in una pipe.
+    # Senza, Python accumula e non stampa niente: una taratura dura mezz'ora e
+    # chi guarda vede un registro vuoto e crede che sia bloccata. Peggio ancora
+    # quando l'avanzamento lo legge un'interfaccia: mostrerebbe una barra ferma
+    # dall'inizio alla fine.
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except AttributeError:
+        pass
+
+    if os.geteuid() != 0:
+        print("va lanciato da root", file=sys.stderr)
+        return 2
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "stato"
+    if cmd == "stato":       return stato()
+    if cmd == "verifica":    return verifica()
+    if cmd == "taratura":    return taratura("--rapida" in sys.argv)
+    if cmd == "ripristina":  return ripristina()
+    if cmd == "recupero":    return recupero()
+    print("uso: %s [stato|verifica|taratura [--rapida]|ripristina|recupero]"
+          % os.path.basename(sys.argv[0]), file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

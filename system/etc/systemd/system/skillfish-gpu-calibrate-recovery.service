@@ -1,0 +1,25 @@
+[Unit]
+# Rete di sicurezza della taratura della GPU.
+#
+# Tarare vuol dire, per mestiere, provare valori che possono piantare la
+# macchina. Prima di toccare la curva, skillfish-gpu-calibrate lascia un
+# segnaposto con dentro la curva buona di partenza. Se la scheda si pianta a
+# meta' taratura e riparte, questo servizio trova il segnaposto e rimette quella
+# curva PRIMA che parta il governor — cioe' prima che qualcuno possa ritrovarsi
+# di nuovo al valore che ha appena piantato la macchina.
+#
+# ⚠️ Deve girare prima del governor, se no il governor legge la curva cattiva e
+# la applica per tutto il tempo che ci mettiamo a correggerla.
+Description=SkillFishOS - rimette la curva GPU se una taratura e' rimasta a meta'
+DefaultDependencies=no
+After=local-fs.target
+Before=cyan-skillfish-governor.service
+ConditionPathExists=/var/lib/skillfish/gpu-calibrazione-in-corso
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/skillfish-gpu-calibrate recupero
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

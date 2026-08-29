@@ -77,7 +77,7 @@
     <button class="btn sec" id="govperf" data-m="performance" data-i18n="t_perf">Performance</button>
   </div>
   <div class="brow"><button class="btn" id="gpuapply" data-i18n="apply">Apply</button>
-    <button class="btn sec" id="gputest" data-i18n="test">Test</button><button class="btn sec" id="gpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button></div>
+    <button class="btn sec" id="gputest" data-i18n="test">Test</button><button class="btn sec" id="gpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button><button class="btn sec" id="gpucal" data-i18n="t_calibra">🎯 Auto-calibration</button></div>
   <div class="stub" data-i18n="t_hintgpu">Above 2200 MHz with ≤1000 mV it is capped at 2200 (anti-freeze).</div>
   <pre class="log" id="gpulog"></pre>
 </div>
@@ -273,6 +273,32 @@ $("#gpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizgpu")))return;
   if(best){ $("#gmhz").value=best; $("#gmv").value=1000; ["gmhz","gmv"].forEach(i=>$("#"+i).dispatchEvent(new Event("input")));
     await api("/api/tuner/gpu",{maxmhz:best,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); lg("gpulog",sfT("p_maxstable")+best+(" MHz"+sfT("p_applied"))); toast("Max GPU: "+best+" MHz"); }
   else lg("gpulog","Nessun passo stabile."); busy(false); };
+// --- taratura automatica della curva GPU ---
+// ⚠️ Non e' un pulsante che fa una cosa e torna: la taratura dura una mezz'ora.
+// Quindi si avvia soltanto, e poi si CHIEDE lo stato ogni cinque secondi.
+// Chiudere la pagina non la ferma, ed e' voluto: va avanti per conto suo, e
+// riaprendo la pagina si ritrova a che punto e' arrivata.
+let calTimer=null;
+function calRendi(s){
+  if(!s) return;
+  const g=$("#gpulog"); g.style.display="block";
+  g.textContent=(s.righe||[]).join("\n"); g.scrollTop=g.scrollHeight;
+  $("#gpucal").textContent = s.in_corso ? sfT("t_calstop") : sfT("t_calibra");
+  if(s.in_corso && !calTimer) calTimer=setInterval(calGiro,5000);
+  if(!s.in_corso && calTimer){ clearInterval(calTimer); calTimer=null;
+    if(s.esito) toast(sfT("t_calfine")+" "+s.esito.mv_punta+" mV"); }
+}
+async function calGiro(){ try{ calRendi(await api("/api/tuner/gpu-calibrate")); }catch(e){} }
+$("#gpucal").onclick=async()=>{
+  const s=await api("/api/tuner/gpu-calibrate");
+  if(s && s.in_corso){ if(!confirm(sfT("p_calstop")))return;
+    calRendi(await api("/api/tuner/gpu-calibrate",{azione:"ferma"})); return; }
+  if(!confirm(sfT("p_calibra")))return;
+  const r=await api("/api/tuner/gpu-calibrate",{azione:"avvia"});
+  if(r && r.ok===false){ toast(r.error||"errore"); return; }
+  calGiro();
+};
+calGiro();   // se una taratura era gia' in corso, la pagina la ritrova
 $("#govbal").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"balanced"}); STATE.gpu.gov_mode="balanced"; renderGov(); toast(sfT("p_govbal")); };
 $("#govperf").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"performance"}); STATE.gpu.gov_mode="performance"; renderGov(); toast(sfT("p_govperf")); };
 document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{

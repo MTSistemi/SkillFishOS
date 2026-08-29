@@ -176,6 +176,13 @@ put $P 0644 vendor/umr/LICENSE usr/share/doc/skillfish-tuner/umr-LICENSE
 # prefisso diverso, questo va cambiato di conseguenza.
 # Solo il pezzo che serve a questa GPU: intero il database pesa 94 MB.
 putdir $P vendor/umr/database usr/local/share/umr/database
+# La taratura della curva tensione/frequenza della GPU.
+# Il verificatore e' compilato, come umr: vuole gli header OpenCL, che non e'
+# detto ci siano dove si costruiscono i pacchetti. Il sorgente sta accanto.
+put $P 0755 system/usr/local/bin/skillfish-gpu-calibrate usr/local/bin/skillfish-gpu-calibrate
+put $P 0755 vendor/gpu-verify/skillfish-gpu-verify       usr/local/bin/skillfish-gpu-verify
+put $P 0644 vendor/gpu-verify/skillfish-gpu-verify.c     usr/share/doc/skillfish-tuner/skillfish-gpu-verify.c
+put $P 0644 system/etc/systemd/system/skillfish-gpu-calibrate-recovery.service etc/systemd/system/skillfish-gpu-calibrate-recovery.service
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
 shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 # Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
@@ -187,7 +194,7 @@ a wizard that finds what this chip holds. Also brings the HUD configurator."
 # ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
-printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-sensori.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-sensori.service 2>/dev/null || true\n  systemctl enable skillfish-gpu-calibrate-recovery.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-hub
@@ -1199,6 +1206,10 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-polk
 # cosi' se un domani il sottoinsieme del database viene sfoltito troppo, la
 # build si ferma qui invece di far scoprire il buco a chi installa.
 check skillfish-tuner_${VER}_all.deb         ./usr/local/share/umr/database/ip/gc_10_1_0.reg 'SPI_PG_ENABLE_STATIC_WGP_MASK'
+# La rete di sicurezza della taratura e' il segnaposto: senza, una taratura
+# interrotta da una piantata lascerebbe applicata proprio la curva che ha appena
+# steso la macchina. Se sparisce dal programma, la build si ferma qui.
+check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-gpu-calibrate 'gpu-calibrazione-in-corso'
 # idleTime=0 per powerdevil vuol dire SUBITO, non mai: con lo zero la live
 # spegne lo schermo appena resta ferma. Il controllo pretende il valore lungo.
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-live-no-lock 'idleTime=86400'
