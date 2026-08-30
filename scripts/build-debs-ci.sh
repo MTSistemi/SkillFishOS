@@ -435,6 +435,13 @@ put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillf
 put $P 0755 system/usr/local/bin/skillfish-freeze-notify.sh usr/local/bin/skillfish-freeze-notify.sh
 put $P 0644 system/etc/systemd/system/skillfish-freeze-check.service etc/systemd/system/skillfish-freeze-check.service
 put $P 0644 system/etc/xdg/autostart/skillfish-freeze-notify.desktop  etc/xdg/autostart/skillfish-freeze-notify.desktop
+
+# zram: swap compresso in RAM. Il kernel ce l'ha gia' (CONFIG_ZRAM=m, zstd), qui
+# arriva il pezzo che crea davvero il dispositivo all'avvio.
+# ⚠️ I due sysctl non sono decorativi: senza page-cluster=0 ogni pagina letta ne
+# tira dietro altre sette da decomprimere e buttare via.
+put $P 0644 system/etc/systemd/zram-generator.conf    etc/systemd/zram-generator.conf
+put $P 0644 system/etc/sysctl.d/99-skillfish-zram.conf etc/sysctl.d/99-skillfish-zram.conf
 put $P 0644 system/etc/modules-load.d/skillfish-watchdog.conf         etc/modules-load.d/skillfish-watchdog.conf
 put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/systemd/system.conf.d/10-skillfish-watchdog.conf
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
@@ -538,7 +545,7 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read."

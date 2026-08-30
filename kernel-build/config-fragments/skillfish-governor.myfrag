@@ -1,0 +1,10 @@
+# SkillFishOS: the default CPU governor stays performance.
+#
+# ⚠️ The 7.2.2 build came out with CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND, where
+# 7.2.0 had PERFORMANCE. It is not cosmetic: nothing in SkillFishOS sets the
+# governor at boot - skillfish-acpi-pstates is a tool you run by hand, not a
+# service - so whatever the kernel defaults to is what the user actually runs.
+# On the BC-250 ondemand costs frames in games.
+CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=y
+# CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND is not set
+# CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL is not set
