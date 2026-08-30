@@ -426,9 +426,10 @@ P=skillfish-scx
 put $P 0755 vendor/scx/scx_lavd usr/local/bin/scx_lavd
 put $P 0644 system/etc/systemd/system/skillfish-scx.service etc/systemd/system/skillfish-scx.service
 ctrl $P "systemd" "SkillFishOS scheduler - scx_lavd, the sched_ext scheduler" \
-  "A CPU scheduler loaded into the kernel through sched_ext. It does not make
-more frames, it makes them arrive more evenly: measured on the BC-250, the 1%
-lows go up 20% and the 0.1% lows 49% while the average stays put."
+  "A CPU scheduler loaded into the kernel through sched_ext, the one CachyOS
+uses. Off by default: measured on the BC-250 over three runs a side it changes
+nothing in Wukong and costs about 9 per cent in Cyberpunk. Turn it on from the
+Tuner if your games disagree."
 # ⚠️ Si accende da solo, ma solo dove ha senso: il servizio ha
 # ConditionPathExists su /sys/kernel/sched_ext, quindi su un kernel senza
 # sched_ext resta fermo in silenzio invece di fallire a ogni avvio.
@@ -436,9 +437,12 @@ cat > "$OUT/$P/DEBIAN/postinst" <<'POSTSCX'
 #!/bin/sh
 set -e
 if [ "$1" = configure ]; then
+    # ⚠️ NON si abilita da solo. Ripetendo le misure (tre giri per parte) lavd
+    # non cambia niente su Wukong e costa il 9 per cento su Cyberpunk. Il
+    # pacchetto c'e' e funziona; lo accende chi vuole, dal Tuner o dal Remote
+    # Manager. Il primo confronto, un giro per parte, diceva il contrario: era
+    # dentro al rumore.
     systemctl daemon-reload 2>/dev/null || true
-    systemctl enable skillfish-scx.service 2>/dev/null || true
-    [ -d /sys/kernel/sched_ext ] && systemctl start skillfish-scx.service 2>/dev/null || true
 fi
 exit 0
 POSTSCX
