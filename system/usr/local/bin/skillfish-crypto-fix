@@ -1,0 +1,160 @@
+#!/bin/bash
+# Prepara un'installazione cifrata perche' parta davvero (issue #61).
+#
+#   skillfish-crypto-fix pre    il crypttab
+#   skillfish-crypto-fix post   la riga di avvio e la tastiera di GRUB
+#   skillfish-crypto-fix        tutto (per riparare a mano da una live)
+#
+# ⚠️ DUE MOMENTI, NON UNO SOLO, e questo e' il cuore della faccenda. Calamares
+# fa le sue cose in un ordine, e le nostre correzioni vanno infilate in due
+# punti diversi:
+#
+#   ... initramfscfg
+#       cryptofix PRE            <- il crypttab, prima che l'immagine sia fatta
+#       shellprocess@mkinitramfs
+#       grubcfg                  <- QUI Calamares RISCRIVE /etc/default/grub
+#       bootloader
+#       cryptofix POST           <- lo splash, dopo che grubcfg ha scritto
+#       shellprocess@boot_reconfigure
+#
+# Se si fa tutto PRIMA, grubcfg riscrive /etc/default/grub e lo splash torna.
+# Se si fa tutto DOPO, il crypttab arriva quando l'immagine di avvio e' gia'
+# costruita. Ci siamo cascati in tutti e due i modi, uno per volta.
+#
+# ─── PRIMO: il sistema non parte e finisce al prompt di busybox ───
+#
+# Calamares scrive in /etc/crypttab:
+#     luks-XXXX  UUID=YYYY  none  luks,keyscript=/bin/cat
+# cioe' «per aprire il disco esegui /bin/cat sul file di chiave». Ma il file di
+# chiave e' la parola `none`: non esiste. L'initramfs esegue `cat none`,
+# fallisce, e siccome e' configurato per leggere la chiave da un file NON
+# ripiega chiedendo la passphrase: si arrende in silenzio e lascia busybox.
+#
+# ⚠️ E NON SI RIMEDIA RIGENERANDO DOPO. Dentro l'installatore update-initramfs
+# si rifiuta di lavorare: «update-initramfs is disabled (live system is running
+# without media mounted on /run/live/medium)». Cioe' la prima versione di questo
+# script, che correggeva e poi rigenerava, non poteva funzionare in nessun caso —
+# la rigenerazione era un no-op silenzioso. L'unica strada e' correggere PRIMA e
+# lasciare che l'immagine la costruisca Calamares.
+#
+# ─── SECONDO: la passphrase viene chiesta e non si vede ───
+#
+# ⚠️ Ho sbagliato due volte prima di capirlo, dando la colpa al nostro tema di
+# plymouth e modificandolo per disegnare la richiesta. Non funzionava: il tema
+# corretto era installato, l'immagine rigenerata, e lo schermo restava muto.
+# Non e' il tema — plymouth non chiede affatto sullo schermo grafico: la domanda
+# finisce sulla console di testo, che lo splash copre.
+# Si toglie `splash`, e SOLO sui dischi cifrati: chi non cifra tiene l'avvio
+# grafico di sempre.
+#
+# ─── TERZO: la tastiera al prompt di GRUB ───
+#
+# ⚠️ La PRIMA richiesta di passphrase e' di GRUB, non dell'initramfs, perche'
+# /boot sta dentro al volume cifrato (`Enter passphrase for hd0,gpt2`). GRUB ha
+# una tastiera sua, americana, e KEYMAP=y nell'initramfs non la tocca.
+#
+# ⚠️ GRUB_TERMINAL_INPUT tiene DUE terminali, "console at_keyboard":
+# at_keyboard parla col controller PS/2 e su certe macchine UEFI con tastiera
+# USB non riceve niente. Da solo, un errore li' vorrebbe dire tastiera morta al
+# prompt della passphrase — un computer che non parte piu', molto peggio del
+# layout sbagliato che stiamo correggendo.
+set -u
+
+FASE="${1:-tutto}"
+REG=/var/log/skillfish-crypto-fix.log
+CRYPTTAB=/etc/crypttab
+GRUBDEF=/etc/default/grub
+
+# ⚠️ Un registro, sempre. La prima versione non lo aveva: girava dentro
+# all'installatore, sbagliava, e non lasciava una riga da nessuna parte. Per
+# capire cosa fosse successo ho dovuto ricostruirlo dagli indizi sul disco.
+mkdir -p "$(dirname "$REG")" 2>/dev/null
+exec > >(tee -a "$REG") 2>&1
+echo "=== skillfish-crypto-fix [$FASE] — $(date '+%Y-%m-%d %H:%M:%S') ==="
+
+# Cifrato o no? Se non c'e' una riga vera in crypttab non si tocca niente.
+if [ ! -s "$CRYPTTAB" ] || ! grep -qvE '^\s*(#|$)' "$CRYPTTAB"; then
+    echo "disco non cifrato: non c'e' niente da fare"
+    exit 0
+fi
+
+# ================================================================== PRE
+if [ "$FASE" = pre ] || [ "$FASE" = tutto ]; then
+    echo "crypttab di partenza:"
+    grep -vE '^\s*(#|$)' "$CRYPTTAB" | sed 's/^/   /'
+    if grep -q 'keyscript=' "$CRYPTTAB"; then
+        cp "$CRYPTTAB" "$CRYPTTAB.prima-della-correzione"
+        sed -i 's/,keyscript=[^,[:space:]]*//g' "$CRYPTTAB"
+        echo "crypttab: keyscript tolto, ora la passphrase viene chiesta"
+        grep -vE '^\s*(#|$)' "$CRYPTTAB" | sed 's/^/   /'
+    else
+        echo "crypttab: nessun keyscript da togliere"
+    fi
+fi
+
+# ================================================================= POST
+if [ "$FASE" = post ] || [ "$FASE" = tutto ]; then
+
+    # --- lo splash che copre la richiesta -------------------------------
+    if [ -f "$GRUBDEF" ] && grep -q 'splash' "$GRUBDEF"; then
+        cp "$GRUBDEF" "$GRUBDEF.prima-della-correzione" 2>/dev/null
+        sed -i 's/\bsplash\b//g; s/  */ /g; s/ "/"/g' "$GRUBDEF"
+        echo "riga di avvio: tolto 'splash' (la richiesta deve vedersi)"
+        grep '^GRUB_CMDLINE_LINUX_DEFAULT' "$GRUBDEF" | sed 's/^/   /'
+    else
+        echo "riga di avvio: nessuno splash da togliere"
+    fi
+
+    # --- la tastiera al prompt di GRUB ----------------------------------
+    LAYOUT=$(sed -n 's/^XKBLAYOUT="\([^"]*\)".*/\1/p' /etc/default/keyboard 2>/dev/null | cut -d, -f1)
+    VARIANTE=$(sed -n 's/^XKBVARIANT="\([^"]*\)".*/\1/p' /etc/default/keyboard 2>/dev/null | cut -d, -f1)
+    if [ -n "${LAYOUT:-}" ] && command -v ckbcomp >/dev/null && command -v grub-mklayout >/dev/null; then
+        mkdir -p /boot/grub/layouts
+        if ckbcomp ${VARIANTE:+-variant "$VARIANTE"} "$LAYOUT" 2>/dev/null \
+             | grub-mklayout -o "/boot/grub/layouts/$LAYOUT.gkb" 2>/dev/null; then
+            echo "tastiera GRUB: mappa '$LAYOUT' generata"
+            sed -i '/^GRUB_TERMINAL_INPUT=/d; /^GRUB_PRELOAD_MODULES=/d' "$GRUBDEF"
+            printf 'GRUB_TERMINAL_INPUT="console at_keyboard"\nGRUB_PRELOAD_MODULES="keylayouts"\n' >> "$GRUBDEF"
+            C=/etc/grub.d/00_header
+            if ! grep -q 'skillfish-keymap' "$C" 2>/dev/null; then
+                cat >> "$C" <<FINE
+
+# --- SkillFishOS: layout della tastiera al prompt della passphrase (issue #61)
+cat <<'EOF'
+insmod keylayouts
+terminal_input console at_keyboard
+keymap LAYOUT_SEGNAPOSTO
+EOF
+# --- fine SkillFishOS (skillfish-keymap)
+FINE
+                sed -i "s/LAYOUT_SEGNAPOSTO/$LAYOUT/" "$C"
+                echo "tastiera GRUB: caricamento della mappa aggiunto a 00_header"
+            fi
+        else
+            echo "tastiera GRUB: non sono riuscito a generare la mappa per '$LAYOUT'"
+        fi
+    else
+        echo "tastiera GRUB: salto (layout '${LAYOUT:-?}', servono ckbcomp e grub-mklayout)"
+    fi
+
+    # --- si riscrive grub.cfg, se no niente di sopra ha effetto ---------
+    if command -v update-grub >/dev/null; then
+        echo "riscrivo la configurazione di GRUB:"
+        update-grub 2>&1 | sed 's/^/   /'
+        echo -n "   verifica: splash nella configurazione finale -> "
+        grep -c 'splash' /boot/grub/grub.cfg 2>/dev/null || echo 0
+    fi
+fi
+
+# =========================================================== avvisi utili
+# ⚠️ Se il crypttab e' stato corretto DOPO che l'immagine di avvio era gia'
+# fatta, la correzione non arriva dove serve. Vale la pena dirlo: e' esattamente
+# l'errore in cui siamo cascati, e non lasciava traccia da nessuna parte.
+if [ "$FASE" != pre ]; then
+    for img in /boot/initrd.img-*; do
+        [ -e "$img" ] || continue
+        [ "$img" -nt "$CRYPTTAB" ] && \
+            echo "⚠️ $img e' piu' recente del crypttab: potrebbe contenere la riga vecchia"
+    done
+fi
+echo "=== fine [$FASE] ==="

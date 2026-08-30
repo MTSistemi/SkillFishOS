@@ -467,6 +467,12 @@ put $P 0755 system/usr/local/bin/skillfish-flatpak-rimedi           usr/local/bi
 put $P 0755 system/usr/local/bin/skillfish-games-subvolume         usr/local/bin/skillfish-games-subvolume
 put $P 0755 system/usr/local/bin/skillfish-live-no-lock             usr/local/bin/skillfish-live-no-lock
 put $P 0755 system/usr/local/bin/skillfish-live-polkit              usr/local/bin/skillfish-live-polkit
+put $P 0644 system/etc/initramfs-tools/conf.d/skillfish-keymap.conf etc/initramfs-tools/conf.d/skillfish-keymap.conf
+# La correzione delle installazioni cifrate. La lancia Calamares a fine
+# installazione (shellprocess@cryptofix), ma deve stare anche sul sistema
+# installato: serve a chi ha gia una macchina rotta dalla issue #61 e la
+# ripara partendo da una live.
+put $P 0755 system/usr/local/bin/skillfish-crypto-fix usr/local/bin/skillfish-crypto-fix
 # Dizionario condiviso delle traduzioni: un file per lingua, comune a tutte le
 # app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
 # restano dentro le app, dove hanno le sfumature per contesto.

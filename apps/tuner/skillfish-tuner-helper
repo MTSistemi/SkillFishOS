@@ -173,7 +173,45 @@ def _gpu_curve(minmhz,minmv,maxmhz,maxmv):
         seen.add(f); out.append((f,v))
     return out
 
+def _log(msg):
+    """Una riga nel registro di sistema. Si legge con
+       journalctl -t skillfish-tuner-helper
+    Non esisteva: il helper faceva cose che cambiano l'hardware senza lasciare
+    traccia da nessuna parte."""
+    try:
+        import syslog
+        syslog.openlog("skillfish-tuner-helper")
+        syslog.syslog(msg)
+        syslog.closelog()
+    except Exception:
+        pass
+
+
+def _chi_mi_ha_chiamato():
+    """La riga di comando del processo padre, per il registro.
+
+    Il helper viene lanciato e muore subito: da fuori si vede solo che
+    «qualcosa» ha riscritto la curva. Il padre invece resta, ed e' lui il
+    responsabile."""
+    try:
+        with open("/proc/%d/stat" % os.getppid()) as f:
+            ppid = int(f.read().split(") ", 1)[1].split()[1])
+        with open("/proc/%d/cmdline" % ppid, "rb") as f:
+            return f.read().replace(b"\0", b" ").decode("utf-8", "replace").strip()[:160]
+    except Exception:
+        return "?"
+
+
 def apply_gpu(minmhz,minmv,maxmhz,maxmv):
+    # ⚠️ Ogni riscrittura della curva lascia traccia. Riscriverla e' una delle
+    # poche cose che possono inchiodare la GPU a meta' frequenza, o farle
+    # calcolare sbagliato, senza che nessuno se ne accorga: se succede, si deve
+    # poter risalire a chi l'ha chiesto e con quali valori.
+    try:
+        _log("curva GPU riscritta: %s/%s -> %s/%s mV, chiesto da: %s"
+             % (minmhz, minmv, maxmhz, maxmv, _chi_mi_ha_chiamato()))
+    except Exception:
+        pass
     txt=_rd(GOV_CONF)
     txt=re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+','',txt)
     txt=txt.rstrip()+"\n"

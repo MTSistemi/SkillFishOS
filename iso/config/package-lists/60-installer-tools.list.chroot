@@ -7,3 +7,9 @@ parted
 e2fsprogs
 dracut-core
 # btrfs-progs already in base; calamares + calamares-data installed via hook 0130
+
+# Senza questi due, chi installa cifrando il disco si ritrova un sistema che non
+# parte: il sistema installato e' una copia del live, e se qui manca lo
+# strumento per aprire un volume cifrato manca anche li' (issue #61).
+cryptsetup
+cryptsetup-initramfs
