@@ -3,7 +3,7 @@
   "lingua": "uk",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "ucraino del team, da rivedere",
-  "voci_totali": 681
+  "voci_totali": 685
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЦю дію не можна скасувати. Продовжити?",
@@ -275,6 +275,7 @@
   "Loading screenshots…": "Завантаження знімків екрана…",
   "Loading the catalogue (APT + Flatpak)…": "Завантаження каталогу (APT + Flatpak)…",
   "Loading the software catalogue…": "Завантаження каталогу програм…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Завантажує scx_lavd — планувальник усередині ядра, який вирішує,\nякому завданню дістанеться процесор.\n\nВін не дає більше кадрів: він робить їхнє надходження рівнішим. Виміряно тут на\nWukong: середнє не зрушило, а мінімуми одного відсотка зросли на п'яту частину,\nмінімуми десятої частки відсотка — майже наполовину.\n\nПотрібне ядро, зібране з sched_ext. Без нього перемикач лишається вимкненим.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Локальний рушій LLM · Unsloth Studio · Vulkan GPU",
   "Local LLM engine · model: %s": "Локальний рушій LLM · модель: %s",
   "Log": "Журнал",
@@ -602,6 +603,9 @@
   "just now": "щойно",
   "key .asc URL (optional)": "URL ключа .asc (необов’язково)",
   "last: %s": "востаннє: %s",
+  "lavd scheduler": "Планувальник lavd",
+  "lavd scheduler %s.": "Планувальник lavd %s.",
+  "lavd scheduler: %s": "Планувальник lavd: %s",
   "left": "ліворуч",
   "locked (always on)": "заблоковано (завжди увімкнено)",
   "made by you": "зроблено вами",

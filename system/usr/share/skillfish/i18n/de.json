@@ -4,7 +4,7 @@
   "nome": "Deutsch",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 684
+  "voci_totali": 688
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nDas lässt sich nicht rückgängig machen. Weiter?",
@@ -278,6 +278,7 @@
   "Loading screenshots…": "Bildschirmfotos werden geladen…",
   "Loading the catalogue (APT + Flatpak)…": "Der Katalog wird geladen (APT + Flatpak)…",
   "Loading the software catalogue…": "Der Programmkatalog wird geladen…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Lädt scx_lavd, einen Scheduler, der im Kernel lebt und entscheidet,\nwelche Aufgabe als Nächstes die CPU bekommt.\n\nEr erzeugt nicht mehr Bilder: er lässt sie gleichmäßiger ankommen. Hier mit\nWukong gemessen, blieb der Durchschnitt stehen, während die Tiefstwerte bei einem\nProzent um ein Fünftel stiegen und die bei einem Zehntelprozent um fast die Hälfte.\n\nEr braucht einen Kernel, der mit sched_ext gebaut wurde. Ohne bleibt der Schalter aus.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Örtlicher LLM-Motor · Unsloth Studio · Vulkan-GPU",
   "Local LLM engine · model: %s": "Örtlicher LLM-Motor · Modell: %s",
   "Log": "Protokoll",
@@ -606,6 +607,9 @@
   "just now": "gerade eben",
   "key .asc URL (optional)": "URL des .asc-Schlüssels (wahlweise)",
   "last: %s": "zuletzt: %s",
+  "lavd scheduler": "lavd-Scheduler",
+  "lavd scheduler %s.": "lavd-Scheduler %s.",
+  "lavd scheduler: %s": "lavd-Scheduler: %s",
   "left": "links",
   "locked (always on)": "festgelegt (immer an)",
   "made by you": "von Ihnen gemacht",

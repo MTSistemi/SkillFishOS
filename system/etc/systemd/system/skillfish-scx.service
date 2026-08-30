@@ -17,6 +17,13 @@ ExecStart=/usr/local/bin/scx_lavd
 # back without anybody noticing.
 Restart=on-failure
 RestartSec=5
+# ⚠️ scx_lavd scrive «scx_task_data:83 no task data» circa quattro volte al
+# secondo - trecentomila righe al giorno - dal flusso BPF, non dal log di Rust,
+# quindi --log-level non lo tocca. Zittirlo del tutto con StandardError=null
+# toglierebbe anche gli errori veri: si limita il ritmo e journald annota da se'
+# quanti messaggi ha soppresso.
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=20
 
 [Install]
 WantedBy=multi-user.target

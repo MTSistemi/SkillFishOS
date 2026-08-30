@@ -203,6 +203,10 @@ PL = {
     "8-core unlock: %s": "Odblokowanie 8 rdzeni: %s",
     "Log": "Dziennik",
     "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Odblokowuje 2 rdzenie, które BC-250 trzyma wyłączone (6r/12w staje się 8r/16w).\n\nKosztuje jedno dodatkowe uruchomienie przy każdym zimnym starcie: tylko tak płyta\nodczytuje na nowo, ile ma rdzeni. Działa od następnego uruchomienia.",
+    "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Ładuje scx_lavd, planistę, który siedzi w jądrze i decyduje,\nktóremu zadaniu przypadnie procesor.\n\nNie robi więcej klatek: sprawia, że przychodzą równiej. Zmierzone tutaj na\nWukongu: średnia się nie ruszyła, a minima jednego procenta wzrosły o jedną piątą,\nminima dziesiątej części procenta o prawie połowę.\n\nPotrzebuje jądra zbudowanego z sched_ext. Bez niego przełącznik zostaje wyłączony.",
+    "lavd scheduler": "Planista lavd",
+    "lavd scheduler %s.": "Planista lavd %s.",
+    "lavd scheduler: %s": "Planista lavd: %s",
 }
 
 # Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
@@ -362,6 +366,10 @@ UK = {
     "8-core unlock: %s": "Розблокування 8 ядер: %s",
     "Log": "Журнал",
     "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Розблоковує 2 ядра, які BC-250 тримає вимкненими (6я/12п стає 8я/16п).\n\nКоштує одного зайвого запуску при кожному холодному старті: лише так плата\nперечитує, скільки в неї ядер. Діє від наступного запуску.",
+    "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Завантажує scx_lavd — планувальник усередині ядра, який вирішує,\nякому завданню дістанеться процесор.\n\nВін не дає більше кадрів: він робить їхнє надходження рівнішим. Виміряно тут на\nWukong: середнє не зрушило, а мінімуми одного відсотка зросли на п'яту частину,\nмінімуми десятої частки відсотка — майже наполовину.\n\nПотрібне ядро, зібране з sched_ext. Без нього перемикач лишається вимкненим.",
+    "lavd scheduler": "Планувальник lavd",
+    "lavd scheduler %s.": "Планувальник lavd %s.",
+    "lavd scheduler: %s": "Планувальник lavd: %s",
 }
 
 def L(it, en):
@@ -1393,6 +1401,34 @@ class TunerWindow(QMainWindow):
         if not cu.get("supportato"): self.core8_cb.setEnabled(False)
         pr.addWidget(self.core8_cb)
         pr.addWidget(Aiuto(aiuto_core8, L("8 core", "8 cores")))
+
+        # Lo schedulatore di CachyOS. Sta qui accanto allo sblocco dei core
+        # perche' e' la stessa famiglia di scelte: cambia come la macchina usa
+        # i core, e ha un costo da sapere prima.
+        sx = self.d.cmd(cmd="scx") or {}
+        self.scx_cb = QCheckBox(L("Schedulatore lavd", "lavd scheduler"))
+        self.scx_cb.setChecked(bool(sx.get("abilitato")))
+        aiuto_scx = L(
+            "Carica scx_lavd, uno schedulatore che sta dentro al kernel e decide a\n"
+            "quale programma tocca la CPU.\n\n"
+            "Non fa piu' fotogrammi: li fa arrivare piu' regolari. Misurato qui con\n"
+            "Wukong, la media non si e' mossa mentre i minimi all'un per cento sono saliti di\n"
+            "un quinto e quelli allo zero virgola uno di quasi la meta'.\n\n"
+            "Vuole un kernel costruito con sched_ext. Senza, l'interruttore resta spento.",
+            "Loads scx_lavd, a scheduler that lives inside the kernel and decides\n"
+            "which task gets the CPU next.\n\n"
+            "It does not make more frames: it makes them arrive more evenly. Measured\n"
+            "here with Wukong, the average did not move while the one per cent lows went up\n"
+            "by a fifth and the tenth of a per cent lows by nearly half.\n\n"
+            "It needs a kernel built with sched_ext. Without one the switch stays off.")
+        self.scx_cb.setToolTip(aiuto_scx)
+        # ⚠️ setChecked sopra, toggled qui sotto: al contrario, riempire la
+        # casella all'apertura farebbe partire il comando da solo.
+        self.scx_cb.toggled.connect(self._scx)
+        if not sx.get("supportato"):
+            self.scx_cb.setEnabled(False)
+        pr.addWidget(self.scx_cb)
+        pr.addWidget(Aiuto(aiuto_scx, L("Schedulatore lavd", "lavd scheduler")))
         pr.addStretch(1)
         ba = QPushButton(L("Applica", "Apply")); ba.clicked.connect(self._apply_cpu_cores); pr.addWidget(ba)
         pw = QWidget(); pw.setLayout(pr); v.addWidget(pw)
@@ -1434,6 +1470,15 @@ class TunerWindow(QMainWindow):
                        % (L("acceso", "on") if on else L("spento", "off")), 6)
         else:
             self.toast(L("Sblocco 8 core: %s", "8-core unlock: %s")
+                       % res.get("err", "errore"), 6)
+
+    def _scx(self, on):
+        res = self.d.cmd(cmd="scx-set", on=bool(on)) or {}
+        if res.get("ok"):
+            self.toast(L("Schedulatore lavd %s.", "lavd scheduler %s.")
+                       % (L("acceso", "on") if on else L("spento", "off")), 5)
+        else:
+            self.toast(L("Schedulatore lavd: %s", "lavd scheduler: %s")
                        % res.get("err", "errore"), 6)
 
     def _apply_cpu_cores(self):

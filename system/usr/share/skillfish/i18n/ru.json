@@ -4,7 +4,7 @@
   "nome": "Русский",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 684
+  "voci_totali": 688
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nЭто действие нельзя отменить. Продолжить?",
@@ -278,6 +278,7 @@
   "Loading screenshots…": "Загружаем снимки экрана…",
   "Loading the catalogue (APT + Flatpak)…": "Загружаем каталог (APT + Flatpak)…",
   "Loading the software catalogue…": "Загружаем каталог программ…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Загружает scx_lavd — планировщик внутри ядра, который решает,\nкакой задаче достанется процессор.\n\nОн не даёт больше кадров: он делает их приход ровнее. Измерено здесь на\nWukong: среднее не сдвинулось, а минимумы одного процента выросли на пятую часть,\nминимумы десятой доли процента — почти наполовину.\n\nНужно ядро, собранное с sched_ext. Без него переключатель остаётся выключенным.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Локальный движок LLM · Unsloth Studio · GPU через Vulkan",
   "Local LLM engine · model: %s": "Локальный движок LLM · модель: %s",
   "Log": "Журнал",
@@ -606,6 +607,9 @@
   "just now": "только что",
   "key .asc URL (optional)": "URL ключа .asc (необязательно)",
   "last: %s": "последний раз: %s",
+  "lavd scheduler": "Планировщик lavd",
+  "lavd scheduler %s.": "Планировщик lavd %s.",
+  "lavd scheduler: %s": "Планировщик lavd: %s",
   "left": "слева",
   "locked (always on)": "заблокировано (всегда включено)",
   "made by you": "сделан вами",

@@ -109,10 +109,12 @@
     <button class="btn sec" data-cores="6" data-i18n="t_6core">6 cores</button>
     <button class="btn sec" data-cores="4" data-i18n="t_4core">4 cores</button>
     <label class="pill" style="cursor:pointer"><input type="checkbox" id="smtcb" checked style="vertical-align:-2px"> SMT</label>
+    <label class="pill" style="cursor:pointer"><input type="checkbox" id="scxcb" style="vertical-align:-2px"> <span data-i18n="t_scx">lavd scheduler</span></label>
   </div>
   <div class="cugrid" id="cpugrid" style="grid-template-columns:repeat(8,1fr)"></div>
   <div class="brow"><button class="btn" id="cpucoresapply" data-i18n="t_applyco">Apply cores</button></div>
   <div class="stub" data-i18n="t_coreshint">Each box = 1 physical core with its 2 threads. Core 0 always stays on: it hosts the boot CPU and the kernel cannot switch it off. Turning cores off frees thermal budget so the remaining ones clock higher. A reboot brings them all back.</div>
+  <div class="stub" data-i18n="t_scxhint">Loads scx_lavd, a scheduler that lives inside the kernel and decides which task gets the CPU next. It does not make more frames: it makes them arrive more evenly. Measured with Wukong, the average did not move while the one per cent lows went up by a fifth. It needs a kernel built with sched_ext: without one the box stays off.</div>
   <div class="stub" style="margin-top:10px" data-i18n="t_hintgrid">Physical core layout (for game affinity/pinning). Live MHz per core.</div>
   <div id="coremap" style="margin-top:8px"></div>
 </div>
@@ -355,6 +357,24 @@ function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;","
 // della sua pagina, /static/ventola.html. Un solo posto che la scrive.
 $("#openventola").onclick = () => { location.href = "/static/ventola.html"; };
 
-load(); loadProfiles(); loadCoremap(); loadCPUCores();
+// Lo schedulatore lavd (sched_ext). ⚠️ La casella segue il SERVIZIO, cioe' cosa
+// succedera' al prossimo avvio; «caricato» invece e' quello che sta lavorando
+// adesso, e sono due cose diverse. Su un kernel senza sched_ext si disattiva:
+// meglio spenta che bugiarda.
+async function loadSCX(){
+  const cb = $("#scxcb"); if(!cb) return;
+  const r = await api("/api/tuner/scx");
+  if(!r) return;
+  cb.checked  = !!r.abilitato;
+  cb.disabled = !r.supportato;
+}
+$("#scxcb") && ($("#scxcb").onchange = async (e)=>{
+  const on = e.target.checked;
+  const x = await api("/api/tuner/scx", {on:on});
+  toast(x && x.ok ? sfT("t_scx")+" "+(on?"on":"off") : ("Errore: "+((x&&x.err)||"")));
+  setTimeout(loadSCX, 800);
+});
+
+load(); loadProfiles(); loadCoremap(); loadCPUCores(); loadSCX();
 </script>
 </body></html>

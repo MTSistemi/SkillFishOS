@@ -3,7 +3,7 @@
   "lingua": "pl",
   "nota": "Ripiego condiviso: vale solo per le stringhe che l'app non traduce da se'. / Shared fallback: only used for strings the app does not translate itself.",
   "stato": "polacco di Cyryl Sochacki, unito dalle sei app",
-  "voci_totali": 681
+  "voci_totali": 685
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nTej operacji nie można cofnąć. Kontynuować?",
@@ -275,6 +275,7 @@
   "Loading screenshots…": "Wczytywanie zrzutów ekranu…",
   "Loading the catalogue (APT + Flatpak)…": "Wczytywanie katalogu (APT + Flatpak)…",
   "Loading the software catalogue…": "Wczytywanie katalogu oprogramowania…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Ładuje scx_lavd, planistę, który siedzi w jądrze i decyduje,\nktóremu zadaniu przypadnie procesor.\n\nNie robi więcej klatek: sprawia, że przychodzą równiej. Zmierzone tutaj na\nWukongu: średnia się nie ruszyła, a minima jednego procenta wzrosły o jedną piątą,\nminima dziesiątej części procenta o prawie połowę.\n\nPotrzebuje jądra zbudowanego z sched_ext. Bez niego przełącznik zostaje wyłączony.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Lokalny silnik LLM · Unsloth Studio · Vulkan GPU",
   "Local LLM engine · model: %s": "Lokalny silnik LLM · model: %s",
   "Log": "Dziennik",
@@ -602,6 +603,9 @@
   "just now": "przed chwilą",
   "key .asc URL (optional)": "URL klucza .asc (opcjonalnie)",
   "last: %s": "ostatnio: %s",
+  "lavd scheduler": "Planista lavd",
+  "lavd scheduler %s.": "Planista lavd %s.",
+  "lavd scheduler: %s": "Planista lavd: %s",
   "left": "lewo",
   "locked (always on)": "zablokowana (zawsze aktywna)",
   "made by you": "zrobiona przez Ciebie",

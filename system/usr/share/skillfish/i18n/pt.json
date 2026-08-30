@@ -4,7 +4,7 @@
   "nome": "Português (Brasil)",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 684
+  "voci_totali": 688
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nIsto não pode ser desfeito. Continuar?",
@@ -278,6 +278,7 @@
   "Loading screenshots…": "Carregando as capturas…",
   "Loading the catalogue (APT + Flatpak)…": "Carregando o catálogo (APT + Flatpak)…",
   "Loading the software catalogue…": "Carregando o catálogo de programas…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Carrega o scx_lavd, um escalonador que vive dentro do kernel e decide\nqual tarefa recebe a CPU.\n\nEle não faz mais quadros: faz com que cheguem mais parelhos. Medido aqui com\nWukong, a média não se mexeu enquanto os mínimos de um por cento subiram um quinto\ne os do décimo de por cento quase metade.\n\nPrecisa de um kernel compilado com sched_ext. Sem ele, o botão fica desligado.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Motor LLM local · Unsloth Studio · GPU Vulkan",
   "Local LLM engine · model: %s": "Motor LLM local · modelo: %s",
   "Log": "Registro",
@@ -606,6 +607,9 @@
   "just now": "agora mesmo",
   "key .asc URL (optional)": "URL da chave .asc (opcional)",
   "last: %s": "última vez: %s",
+  "lavd scheduler": "Escalonador lavd",
+  "lavd scheduler %s.": "Escalonador lavd %s.",
+  "lavd scheduler: %s": "Escalonador lavd: %s",
   "left": "esquerda",
   "locked (always on)": "travado (sempre ligado)",
   "made by you": "feito por você",

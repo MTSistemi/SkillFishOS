@@ -2404,6 +2404,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, calibra_stato())
+        if path == "/api/tuner/scx":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "scx"}]))
         if path == "/api/snapshots":
             if not self._guard("snapshots"):
                 return
@@ -2555,6 +2559,10 @@ class Handler(BaseHTTPRequestHandler):
             if data.get("azione") == "ferma":
                 return self._json(200, calibra_ferma())
             return self._json(200, calibra_avvia())
+        if path == "/api/tuner/scx":
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "scx-set", "on": bool(data.get("on"))}]))
         if path == "/api/hud/conf":
             if not self._guard("hud"):
                 return

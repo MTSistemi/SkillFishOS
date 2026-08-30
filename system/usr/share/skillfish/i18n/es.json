@@ -4,7 +4,7 @@
   "nome": "Español",
   "nota": "Tradotto dal team SkillFishOS, non da un madrelingua. Correzioni benvenute: e' un file solo, si manda una PR con questo. / Translated by the SkillFishOS team, not by a native speaker. Corrections welcome: it is a single file, send a PR with it.",
   "stato": "da rivedere da un madrelingua",
-  "voci_totali": 684
+  "voci_totali": 688
  },
  "voci": {
   "\nThis cannot be undone. Continue?": "\nEsto no se puede deshacer. ¿Continuar?",
@@ -278,6 +278,7 @@
   "Loading screenshots…": "Cargando las capturas…",
   "Loading the catalogue (APT + Flatpak)…": "Cargando el catálogo (APT + Flatpak)…",
   "Loading the software catalogue…": "Cargando el catálogo de programas…",
+  "Loads scx_lavd, a scheduler that lives inside the kernel and decides\nwhich task gets the CPU next.\n\nIt does not make more frames: it makes them arrive more evenly. Measured\nhere with Wukong, the average did not move while the one per cent lows went up\nby a fifth and the tenth of a per cent lows by nearly half.\n\nIt needs a kernel built with sched_ext. Without one the switch stays off.": "Carga scx_lavd, un planificador que vive dentro del kernel y decide\na qué tarea le toca la CPU.\n\nNo hace más fotogramas: hace que lleguen más parejos. Medido aquí con\nWukong, la media no se movió mientras los mínimos del uno por ciento subieron\nuna quinta parte y los de la décima de por ciento casi la mitad.\n\nNecesita un kernel compilado con sched_ext. Sin él, el interruptor queda apagado.",
   "Local LLM engine · Unsloth Studio · Vulkan GPU": "Motor LLM local · Unsloth Studio · GPU Vulkan",
   "Local LLM engine · model: %s": "Motor LLM local · modelo: %s",
   "Log": "Registro",
@@ -606,6 +607,9 @@
   "just now": "ahora mismo",
   "key .asc URL (optional)": "URL de la clave .asc (opcional)",
   "last: %s": "última vez: %s",
+  "lavd scheduler": "Planificador lavd",
+  "lavd scheduler %s.": "Planificador lavd %s.",
+  "lavd scheduler: %s": "Planificador lavd: %s",
   "left": "izquierda",
   "locked (always on)": "fijado (siempre encendido)",
   "made by you": "hecha por ti",
