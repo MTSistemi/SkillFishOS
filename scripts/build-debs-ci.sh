@@ -417,6 +417,42 @@ exit 0
 POSTINST_KEYRING
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
+
+# ============================================================ skillfish-scx
+# Lo schedulatore di CachyOS, compilato da noi perche' in Debian non c'e'.
+# Misurato sulla scheda: la media non cambia, i minimi all'1% salgono del 20%
+# e quelli allo 0,1% del 49%. Cioe' toglie gli scatti. Vedi vendor/scx/README.md.
+P=skillfish-scx
+put $P 0755 vendor/scx/scx_lavd usr/local/bin/scx_lavd
+put $P 0644 system/etc/systemd/system/skillfish-scx.service etc/systemd/system/skillfish-scx.service
+ctrl $P "systemd" "SkillFishOS scheduler - scx_lavd, the sched_ext scheduler" \
+  "A CPU scheduler loaded into the kernel through sched_ext. It does not make
+more frames, it makes them arrive more evenly: measured on the BC-250, the 1%
+lows go up 20% and the 0.1% lows 49% while the average stays put."
+# ⚠️ Si accende da solo, ma solo dove ha senso: il servizio ha
+# ConditionPathExists su /sys/kernel/sched_ext, quindi su un kernel senza
+# sched_ext resta fermo in silenzio invece di fallire a ogni avvio.
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTSCX'
+#!/bin/sh
+set -e
+if [ "$1" = configure ]; then
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl enable skillfish-scx.service 2>/dev/null || true
+    [ -d /sys/kernel/sched_ext ] && systemctl start skillfish-scx.service 2>/dev/null || true
+fi
+exit 0
+POSTSCX
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+cat > "$OUT/$P/DEBIAN/prerm" <<'PRESCX'
+#!/bin/sh
+set -e
+if [ "$1" = remove ]; then
+    systemctl disable --now skillfish-scx.service 2>/dev/null || true
+fi
+exit 0
+PRESCX
+chmod 0755 "$OUT/$P/DEBIAN/prerm"
+
 P=skillfish-base
 # La scheda AppStream: senza, la descrizione esiste solo in inglese,
 # perche' apt la tiene nel control e li' la lingua e' una sola.
@@ -1094,7 +1130,7 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfishos-archive-keyring; do
+for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.

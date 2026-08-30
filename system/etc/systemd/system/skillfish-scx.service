@@ -1,0 +1,22 @@
+[Unit]
+Description=SkillFishOS: scx_lavd CPU scheduler (sched_ext)
+Documentation=https://github.com/sched-ext/scx
+# The scheduler only exists on a kernel built with CONFIG_SCHED_CLASS_EXT. On
+# one without it - our own 7.2.0, or the stock Debian kernel if somebody falls
+# back to it - this service would fail at every boot and fill the journal with
+# errors about something that is not a fault. With the condition it simply does
+# not start.
+ConditionPathExists=/sys/kernel/sched_ext
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/scx_lavd
+# If the scheduler dies the kernel falls back to the default one by itself, so
+# the machine keeps running either way. Restarting gets the better scheduling
+# back without anybody noticing.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
