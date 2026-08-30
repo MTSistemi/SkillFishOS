@@ -190,6 +190,7 @@ PL = {
         "Modele pobiera się wewnątrz Unsloth Studio: otwórz „Otwórz czat” i wybierz model tam.",
     "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
         "\n✓ Unsloth Studio zainstalowany i uruchomiony. Przy pierwszym logowaniu poprosi o ustawienie hasła: wybierasz je sam.",
+    "requested %d MB (%s)": "zażądano %d MB (%s)",
 }
 
 # Polacco e ucraino di questo pannello: li ho scritti io, NON un madrelingua.
@@ -250,6 +251,7 @@ UK = {
         "Моделі завантажуються всередині Unsloth Studio: відкрийте «Відкрити чат» і виберіть модель там.",
     "\n✓ Unsloth Studio installed and started. On first sign-in it will ask you to set a password: you choose it.":
         "\n✓ Unsloth Studio встановлено і запущено. При першому вході він попросить встановити пароль: ви обираєте його самі.",
+    "requested %d MB (%s)": "запитано %d МБ (%s)",
 }
 
 def L(it, en):

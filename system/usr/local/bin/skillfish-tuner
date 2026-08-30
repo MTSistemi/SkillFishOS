@@ -198,6 +198,11 @@ PL = {
     "SMT: %s": "SMT: %s",
     "Cores applied — %d active threads": "Zastosowano rdzenie — %d aktywnych wątków",
     "Core error: %s": "Błąd rdzenia: %s",
+    "8 cores": "8 rdzeni",
+    "8-core unlock %s. Takes effect on next reboot.": "Odblokowanie 8 rdzeni %s. Zadziała po następnym uruchomieniu.",
+    "8-core unlock: %s": "Odblokowanie 8 rdzeni: %s",
+    "Log": "Dziennik",
+    "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Odblokowuje 2 rdzenie, które BC-250 trzyma wyłączone (6r/12w staje się 8r/16w).\n\nKosztuje jedno dodatkowe uruchomienie przy każdym zimnym starcie: tylko tak płyta\nodczytuje na nowo, ile ma rdzeni. Działa od następnego uruchomienia.",
 }
 
 # Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
@@ -352,6 +357,11 @@ UK = {
     "SMT: %s": "SMT: %s",
     "Cores applied — %d active threads": "Ядра застосовано — %d активних потоків",
     "Core error: %s": "Помилка ядра: %s",
+    "8 cores": "8 ядер",
+    "8-core unlock %s. Takes effect on next reboot.": "Розблокування 8 ядер %s. Подіє після наступного запуску.",
+    "8-core unlock: %s": "Розблокування 8 ядер: %s",
+    "Log": "Журнал",
+    "Unlocks the 2 cores the BC-250 keeps disabled (6c/12t becomes 8c/16t).\n\nCosts one extra reboot on every cold start: that is how the board\nre-reads how many cores it has. Takes effect from the next boot.": "Розблоковує 2 ядра, які BC-250 тримає вимкненими (6я/12п стає 8я/16п).\n\nКоштує одного зайвого запуску при кожному холодному старті: лише так плата\nперечитує, скільки в неї ядер. Діє від наступного запуску.",
 }
 
 def L(it, en):

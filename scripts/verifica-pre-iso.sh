@@ -100,8 +100,8 @@ PY
 
 sec "4. HUD"
 [ -x /usr/local/bin/skillfish-hud ] && ok "skillfish-hud installato ed eseguibile" || ko "skillfish-hud manca"
-grep -q 'skillfish-is-bc250' /usr/local/bin/skillfish-hud 2>/dev/null \
-    && ok "protetto: non parte fuori dalla BC-250" || ko "manca il controllo sull'hardware"
+grep -q 'skillfish-hud-config' /usr/local/bin/skillfish-hud 2>/dev/null \
+    && ok "si appoggia al generatore: va anche fuori dalla BC-250" || ko "non chiama skillfish-hud-config: fuori dalla BC-250 esce un puntino"
 E=$(grep -m1 '^Exec=' /etc/skel/.config/autostart/skillfish-conky.desktop 2>/dev/null)
 case "$E" in
     "Exec=/usr/local/bin/skillfish-hud") ok "autostart: percorso assoluto, niente quoting" ;;
@@ -234,14 +234,14 @@ printf '\n\033[1m== 10. Roba della scheda che non deve finire nell'"'"'immagine 
 # L'immagine si costruisce dal sistema vivo: tutto quello che sta sulla scheda ci
 # finisce dentro. Qui elenchiamo cio' che va tolto PRIMA della produce.
 n=$(find /usr/local/bin /usr/share/skillfish /etc/calamares /etc/skillfish \
-      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' \) \
+      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' -o -name '*.pre-respin' -o -name '*.dpkg-old' -o -name '*.dpkg-new' \) \
       2>/dev/null | wc -l)
 if [ "$n" = 0 ]; then
     ok "nessun file di scarto sulla scheda"
 else
     ko "$n file di scarto: finirebbero nell'immagine di tutti"
     find /usr/local/bin /usr/share/skillfish /etc/calamares /etc/skillfish \
-      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' \) \
+      \( -name '*.bak' -o -name '*.bak.*' -o -name '*.bak-*' -o -name '*.skfbak' -o -name '*~' -o -name '*.pre-respin' -o -name '*.dpkg-old' -o -name '*.dpkg-new' \) \
       2>/dev/null | head -12 | sed 's/^/       /'
 fi
 

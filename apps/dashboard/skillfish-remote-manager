@@ -75,6 +75,8 @@ PL = {
     "○ Off": "○ Wyłączona",
     "  · at boot: ": "  · przy starcie: ",
     "Log in with user “%s” password.": "Zaloguj się hasłem użytkownika „%s”.",
+    "Fan": "Wentylator",
+    "On-device AI": "AI na urządzeniu",
 }
 
 # Traduzione ucraina. NON e' opera di un madrelingua: l'ho scritta io e va
@@ -104,6 +106,8 @@ UK = {
     "○ Off": "○ Вимк.",
     "  · at boot: ": "  · при завантаженні: ",
     "Log in with user “%s” password.": "Увійдіть за допомогою пароля користувача «%s».",
+    "Fan": "Вентилятор",
+    "On-device AI": "ШІ на пристрої",
 }
 
 
