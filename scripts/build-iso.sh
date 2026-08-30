@@ -62,6 +62,8 @@ fi
 # interrotta: senza, la scheda resterebbe a 3500 e ce ne accorgeremmo tardi.
 OCF=/etc/bc250-smu-oc.conf
 OCBAK=/root/oc.conf.user
+GOVF=/etc/cyan-skillfish-governor/config.toml
+GOVBAK=/root/governor.conf.user
 
 # --- e la lingua di partenza dell'immagine --------------------------------
 # Stessa storia: /etc/default/locale finisce nell'immagine com'e', e sulla
@@ -130,6 +132,10 @@ restore_build_env() {
         rm -f "$SUDOF" "$SUDOMARK"
         echo "regola sudo della live tolta dalla scheda"
     fi
+    if [ -f "$GOVBAK" ]; then
+        mv -f "$GOVBAK" "$GOVF"
+        echo "curva GPU della scheda ripristinata: punta $(grep -h voltage "$GOVF" 2>/dev/null | tail -1 | tr -dc 0-9) mV"
+    fi
     if [ -f "$OCBAK" ]; then
         mv -f "$OCBAK" "$OCF"
         echo "profilo overclock dell'utente ripristinato: $(grep -h frequency "$OCF" 2>/dev/null | tr -d ' ')"
@@ -155,6 +161,26 @@ if [ -f "$OCF" ]; then
     [ -f "$OCBAK" ] || cp -f "$OCF" "$OCBAK"
     printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 85\n' > "$OCF"
     echo "profilo overclock: messo quello di sicurezza (3500) per la durata della build"
+fi
+
+# La curva tensione/frequenza della GPU. Stessa storia dell'overclock: l'immagine
+# clona la scheda, quindi senza questo passaggio spediremmo a tutti la curva
+# PERSONALE di questa scheda invece di quella di serie.
+# ⚠️ E la curva di serie ora e' quella a 1080 mV di punta: quella a 1000 fa
+# calcolare SBAGLIATO le schede meno tolleranti, in silenzio (issue GPU 29/08).
+if [ -f "$GOVF" ]; then
+    [ -f "$GOVBAK" ] || cp -f "$GOVF" "$GOVBAK"
+    python3 - "$GOVF" <<'FINEGOV'
+import io, re, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8").read()
+t = re.sub(r'(\[\[safe-points\]\]\s*\nfrequency[^\n]*\nvoltage[^\n]*\n?)+', '', t).rstrip() + "\n"
+for f, v in ((350,700),(600,872),(800,898),(1000,924),(1200,950),
+             (1400,976),(1600,1002),(1800,1028),(2000,1054),(2200,1080)):
+    t += "[[safe-points]]\nfrequency = %d\nvoltage = %d\n" % (f, v)
+io.open(p, "w", encoding="utf-8", newline="\n").write(t)
+FINEGOV
+    echo "curva GPU: messa quella di serie (punta 1080 mV) per la durata della build"
 fi
 if [ -f "$LOCF" ]; then
     cp -f "$LOCF" "$LOCBAK"

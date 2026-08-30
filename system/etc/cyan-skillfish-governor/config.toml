@@ -32,11 +32,29 @@ lower = 0.7
 frequency = 350
 voltage = 700
 [[safe-points]]
-frequency = 1500
-voltage = 900
+frequency = 600
+voltage = 872
+[[safe-points]]
+frequency = 800
+voltage = 898
+[[safe-points]]
+frequency = 1000
+voltage = 924
+[[safe-points]]
+frequency = 1200
+voltage = 950
+[[safe-points]]
+frequency = 1400
+voltage = 976
+[[safe-points]]
+frequency = 1600
+voltage = 1002
+[[safe-points]]
+frequency = 1800
+voltage = 1028
 [[safe-points]]
 frequency = 2000
-voltage = 1000
+voltage = 1054
 [[safe-points]]
 frequency = 2200
-voltage = 1000
+voltage = 1080
