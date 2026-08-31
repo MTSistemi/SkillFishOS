@@ -1,0 +1,8 @@
+# SkillFishOS: KDE's own welcome window does not open on our desktop.
+#
+# Plasma shows it by itself on a fresh profile - there is no autostart entry to
+# remove - unless this file says the welcome has already been seen. The [$i]
+# marker is KDE's kiosk mechanism: it makes the key immutable, so the window
+# does not come back after a Plasma upgrade raises the version either.
+[General]
+LastSeenVersion[$i]=99.0

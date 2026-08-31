@@ -960,6 +960,10 @@ put $P 0644 system/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.pn
 # cui il pacchetto wallpaper da solo non bastava: puntava ancora al PNG grezzo
 # e Plasma, davanti a un file singolo, ricade sul proprio sfondo predefinito.
 put $P 0644 system/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc     etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc
+# La finestra di benvenuto di KDE: la spegniamo per la live e per l'utente
+# creato dall'installatore. Plasma la apre da solo su un profilo nuovo, non
+# c'e' un autostart da togliere.
+put $P 0644 system/etc/skel/.config/plasma-welcomerc                      etc/skel/.config/plasma-welcomerc
 # Lo sfondo va IMPOSTATO, non solo dichiarato: Plasma riscrive appletsrc al
 # primo accesso e butta via la nostra riga. Questo lo applica dopo.
 put $P 0755 system/usr/local/bin/skillfish-first-login-wallpaper usr/local/bin/skillfish-first-login-wallpaper

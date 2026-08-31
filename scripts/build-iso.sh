@@ -103,6 +103,25 @@ KBDBAK=/root/keyboard.user
 HOSTF=/etc/hostname
 HOSTBAK=/root/hostname.user
 
+# ⚠️ UN BACKUP RIMASTO DA UNA BUILD INTERROTTA RIMETTE VALORI VECCHI SOPRA A
+# QUELLI VIVI. Le righe `[ -f "$X" ] || cp ...` piu' sotto salvano solo se il
+# file non c'e' gia': serve a non sovrascrivere il backup buono se la stessa
+# build ripassa di li'. Ma se una build PRECEDENTE e' morta prima del
+# ripristino, quel file resta - e alla fine di QUESTA build viene rimesso al
+# posto della configurazione attuale.
+# Il 31/08/2026 e' successo davvero: finita la ISO, la scheda si e' ritrovata
+# l'overclock a 3900, valore di una sessione vecchia, al posto dei 3700
+# dell'utente. E la build aveva scritto «profilo overclock dell'utente
+# ripristinato», quindi sembrava tutto a posto.
+# Qui i residui si mettono da parte con la data: la configurazione VIVA e'
+# l'unica verita', e quella si salva adesso.
+for _vecchio in "$OCBAK" "$GOVBAK" "$LOCBAK" "$KBDBAK" "$HOSTBAK"; do
+    if [ -f "$_vecchio" ]; then
+        mv -f "$_vecchio" "$_vecchio.interrotta-$(date +%Y%m%d-%H%M%S)"
+        echo "ATTENZIONE: backup di una build interrotta messo da parte: $_vecchio"
+    fi
+done
+
 # --- sudo nella live --------------------------------------------------------
 # ⚠️ NELLA LIVE NON SI DIVENTAVA ROOT. L'utente `live` sta nel gruppo sudo, ma la
 # sua password e' VUOTA e sudo le password vuote non le accetta: usciva
