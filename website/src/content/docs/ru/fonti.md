@@ -19,6 +19,8 @@ SkillFishOS — работа по сведению воедино: он соби
 - **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — разблокировка 8 ядер процессора.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — разблокировка 40 вычислительных блоков.
 - **[bc250_memcfg (fanoush)](https://github.com/fanoush/bc250_memcfg)** — настройка памяти.
+- **[bc250 (akandr)](https://github.com/akandr/bc250)** — руководство по настройке платы: вывод с Ollama и Vulkan, генерация изображений.
+- **[bc250-rocm (akandr)](https://github.com/akandr/bc250-rocm)** — ROCm/HIP на gfx1013, в сравнении с Vulkan.
 
 ## Охлаждение и корпуса для печати на 3D-принтере (бесплатные STL)
 
