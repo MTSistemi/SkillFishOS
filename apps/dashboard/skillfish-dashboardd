@@ -537,10 +537,13 @@ def calibra_avvia():
         d = os.path.dirname(CALIBRA_LOG)
         if not os.path.isdir(d):
             os.makedirs(d)
-        f = open(CALIBRA_LOG, "w")
-        # start_new_session: la taratura non deve morire se muore il cruscotto
-        subprocess.Popen([CALIBRA, "taratura"], stdout=f, stderr=subprocess.STDOUT,
-                         stdin=subprocess.DEVNULL, start_new_session=True)
+        # ⚠️ Il file si apre in un with: Popen duplica il descrittore per il
+        # figlio, e la copia del padre va chiusa. Senza, il cruscotto si
+        # tiene un descrittore aperto a ogni taratura, per sempre.
+        with open(CALIBRA_LOG, "w") as f:
+            # start_new_session: la taratura non deve morire se muore il cruscotto
+            subprocess.Popen([CALIBRA, "taratura"], stdout=f, stderr=subprocess.STDOUT,
+                             stdin=subprocess.DEVNULL, start_new_session=True)
     except Exception as e:
         return {"ok": False, "error": str(e)}
     return {"ok": True, "in_corso": True}
@@ -2213,7 +2216,9 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self.close_connection = True
             return
-        return BaseHTTPRequestHandler.handle_one_request(self)
+        # senza «return»: il metodo di base restituisce sempre None e il
+        # valore non lo guarda nessuno
+        BaseHTTPRequestHandler.handle_one_request(self)
 
     server_version = "SkillFishRemote/1.0"
     protocol_version = "HTTP/1.1"

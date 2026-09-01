@@ -19,6 +19,8 @@ SkillFishOS è un lavoro di integrazione: mette insieme il lavoro di tante comun
 - **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — sblocco degli 8 core della CPU.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — sblocco delle 40 Compute Unit.
 - **[bc250_memcfg (fanoush)](https://github.com/fanoush/bc250_memcfg)** — configurazione della memoria.
+- **[bc250 (akandr)](https://github.com/akandr/bc250)** — guida alla messa in opera della scheda: inferenza con Ollama e Vulkan, generazione di immagini.
+- **[bc250-rocm (akandr)](https://github.com/akandr/bc250-rocm)** — ROCm/HIP su gfx1013, misurato contro Vulkan.
 
 ## Raffreddamento e case 3D (STL gratuiti)
 

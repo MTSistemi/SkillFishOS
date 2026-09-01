@@ -21,7 +21,6 @@ ritrovati con due mirror disallineati.
 """
 from __future__ import unicode_literals, print_function
 import hashlib
-import io
 import os
 import subprocess
 import sys

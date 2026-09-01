@@ -209,7 +209,7 @@ function renderCU(){
 }
 
 function fill(){
-  const s=STATE; const c=s.cpu||{}, g=s.gpu||{}, fan=s.fan||{}, cu=s.cu||{}, vr=s.vram||{};
+  const s=STATE; const c=s.cpu||{}, g=s.gpu||{}, cu=s.cu||{}, vr=s.vram||{};
   $("#cmhz").value=c.frequency||3700; $("#cscale").value=c.scale||0; $("#ctemp").value=c.max_temperature||85;
   $("#gmhz").value=g.max_mhz||2200; $("#gmv").value=g.max_mv||1000;
   ["cmhz","cscale","ctemp","gmhz","gmv"].forEach(id=>$("#"+id).dispatchEvent(new Event("input")));
