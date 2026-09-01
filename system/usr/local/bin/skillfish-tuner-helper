@@ -655,6 +655,57 @@ def core_unlock_set(on):
     return d
 
 
+SERVIZIO_SCX = "skillfish-scx.service"
+SCX_STATO = "/sys/kernel/sched_ext/state"
+SCX_OPS = "/sys/kernel/sched_ext/root/ops"
+
+
+def _testo(percorso):
+    try:
+        with open(percorso) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def scx_get():
+    """Stato dello schedulatore sched_ext (scx_lavd).
+
+    ⚠️ Tre stati diversi, non uno: il servizio ABILITATO (torna al prossimo
+    avvio), il servizio ATTIVO adesso, e lo schedulatore davvero CARICATO nel
+    kernel. Se il kernel non ha sched_ext l'ultimo resta spento comunque, e
+    l'interruttore va disattivato invece di far credere di aver acceso qualcosa.
+    """
+    supportato = (os.path.isdir("/sys/kernel/sched_ext")
+                  and os.path.exists("/usr/local/bin/scx_lavd"))
+    return {"ok": True,
+            "supportato": supportato,
+            "abilitato": sh("systemctl is-enabled " + SERVIZIO_SCX).returncode == 0,
+            "attivo": sh("systemctl is-active " + SERVIZIO_SCX).returncode == 0,
+            "caricato": _testo(SCX_STATO) == "enabled",
+            "nome": _testo(SCX_OPS)}
+
+
+def scx_set(on):
+    """Accende o spegne lo schedulatore, adesso e ai prossimi avvii."""
+    if not os.path.isdir("/sys/kernel/sched_ext"):
+        return {"ok": False, "err": "questo kernel non ha sched_ext"}
+    r = sh("systemctl %s %s" % ("enable --now" if on else "disable --now", SERVIZIO_SCX))
+    if r.returncode != 0:
+        return {"ok": False, "err": "systemctl ha rifiutato (%d)" % r.returncode}
+    # ⚠️ systemctl torna appena il processo e' partito, ma lavd ci mette qualche
+    # secondo a caricare il programma BPF e agganciarsi al kernel: misurato,
+    # circa cinque. Leggendo subito si rispondeva «acceso ma non caricato», che
+    # sembra un guasto e non lo e'. Si aspetta il kernel, con un tetto per non
+    # restare appesi se qualcosa e' andato storto davvero.
+    if on:
+        for _ in range(20):
+            if _testo(SCX_STATO) == "enabled":
+                break
+            time.sleep(0.5)
+    return scx_get()
+
+
 def handle(req):
     c=req.get("cmd")
     if c=="ping": return {"ok":True}
@@ -673,6 +724,8 @@ def handle(req):
     if c=="cpu-smt": return cpu_smt_set(bool(req.get("on",True)))
     if c=="core-unlock": return core_unlock_get()
     if c=="core-unlock-set": return core_unlock_set(bool(req.get("on",False)))
+    if c=="scx": return scx_get()
+    if c=="scx-set": return scx_set(bool(req.get("on",False)))
     if c=="cu-test": return cu_test()
     if c=="thermal-guard": return {"ok":thermal_guard(req["limit"])}
     if c=="test-cpu": return test_cpu(req["mhz"],req["scale"],req["temp"])
