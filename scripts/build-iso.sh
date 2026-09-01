@@ -115,12 +115,27 @@ HOSTBAK=/root/hostname.user
 # ripristinato», quindi sembrava tutto a posto.
 # Qui i residui si mettono da parte con la data: la configurazione VIVA e'
 # l'unica verita', e quella si salva adesso.
-for _vecchio in "$OCBAK" "$GOVBAK" "$LOCBAK" "$KBDBAK" "$HOSTBAK"; do
+for _vecchio in "$OCBAK" "$GOVBAK" "$LOCBAK" "$KBDBAK" "$HOSTBAK" "$GRUBBAK"; do
     if [ -f "$_vecchio" ]; then
         mv -f "$_vecchio" "$_vecchio.interrotta-$(date +%Y%m%d-%H%M%S)"
         echo "ATTENZIONE: backup di una build interrotta messo da parte: $_vecchio"
     fi
 done
+
+# --- e la riga di comando del kernel ----------------------------------------
+# ⚠️ TROVATO IL 01/09/2026. /etc/default/grub finisce nell'immagine com'e', e
+# Calamares ci genera sopra il grub.cfg del sistema installato: qualunque
+# parametro che teniamo sulla scheda per prova arriverebbe sul PC di chiunque.
+# Il caso concreto e' amdgpu.gpu_recovery=0, che stiamo provando qui perche' su
+# questo hardware un reset della GPU si porta via la macchina - ma il kernel si
+# marchia da solo («Setting dangerous option») e la prova non e' finita.
+#
+# Si toglie SOLO quello che sta in questa lista. tsc=directsync resta: e' una
+# scelta fatta, non un esperimento. E i parametri bc250_* servono all'edizione
+# BC-250.
+GRUBF=/etc/default/grub
+GRUBBAK=/root/grub.default.user
+PARAMETRI_FUORI_DALLA_ISO="amdgpu.gpu_recovery=0"
 
 # --- sudo nella live --------------------------------------------------------
 # ⚠️ NELLA LIVE NON SI DIVENTAVA ROOT. L'utente `live` sta nel gruppo sudo, ma la
@@ -163,6 +178,10 @@ restore_build_env() {
         mv -f "$LOCBAK" "$LOCF"
         echo "lingua della scheda ripristinata: $(grep -h '^LANG=' "$LOCF" 2>/dev/null)"
     fi
+    if [ -f "$GRUBBAK" ]; then
+        mv -f "$GRUBBAK" "$GRUBF"
+        echo "riga di comando del kernel ripristinata sulla scheda"
+    fi
     if [ -f "$ACPIMARK" ]; then
         rm -f "$ACPIMARK"
         /usr/local/bin/skillfish-acpi-pstates enable >/dev/null 2>&1 \
@@ -180,6 +199,28 @@ if [ -f "$OCF" ]; then
     [ -f "$OCBAK" ] || cp -f "$OCF" "$OCBAK"
     printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 85\n' > "$OCF"
     echo "profilo overclock: messo quello di sicurezza (3500) per la durata della build"
+fi
+
+# La riga di comando del kernel. Si salva com'e' e si tolgono i parametri che
+# non devono uscire dalla scheda. Il trap la rimette anche se la build muore.
+if [ -f "$GRUBF" ]; then
+    [ -f "$GRUBBAK" ] || cp -f "$GRUBF" "$GRUBBAK"
+    for _p in $PARAMETRI_FUORI_DALLA_ISO; do
+        grep -q -- "$_p" "$GRUBF" || continue
+        # ⚠️ NIENTE ESCAPE COSTRUITO CON sed. Provato il 01/09/2026: passando
+        # dalla shell il backslash si perdeva, la sostituzione non toglieva
+        # niente, e il parametro restava nell'immagine SENZA UN ERRORE. I
+        # parametri qui sono parole semplici (lettere, cifre, punto,
+        # underscore, uguale) e si tolgono cosi' come sono.
+        sed -i "s| *$_p||g" "$GRUBF"
+        # ⚠️ E SI CONTROLLA. Una pulizia che fallisce in silenzio spedisce a
+        # tutti quello che volevamo tenerci: meglio fermare la build.
+        if grep -q -- "$_p" "$GRUBF"; then
+            echo "FAIL: «$_p» è ancora nella riga di comando del kernel"
+            exit 1
+        fi
+        echo "riga di comando: tolto «$_p», non esce dalla scheda"
+    done
 fi
 
 # La curva tensione/frequenza della GPU. Stessa storia dell'overclock: l'immagine
