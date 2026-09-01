@@ -116,7 +116,22 @@ HOSTBAK=/root/hostname.user
 # BC-250.
 GRUBF=/etc/default/grub
 GRUBBAK=/root/grub.default.user
-PARAMETRI_FUORI_DALLA_ISO="amdgpu.gpu_recovery=0"
+# Questi non escono MAI dalla scheda.
+PARAMETRI_FUORI_DALLA_ISO="amdgpu.gpu_recovery="
+
+# ⚠️ E QUESTI ESCONO SOLO NELL'EDIZIONE BC-250. Trovato il 01/09/2026
+# guardando la riga di comando di una Generic INSTALLATA in macchina
+# virtuale: si portava dietro i parametri della scheda.
+# amdgpu.bc250_cc_write_mode su un PC normale viene ignorato, ma
+# ttm.pages_limit FISSA il limite a 6 GB qualunque sia la RAM della
+# macchina: su un PC da 4 GB e' troppo, su uno da 64 e' troppo poco.
+# E' la stessa famiglia della tabella ACPI della BC-250 che per mesi
+# abbiamo spedito a tutti.
+PARAMETRI_SOLO_BC250="amdgpu.bc250_cc_write_mode= ttm.pages_limit= ttm.page_pool_size="
+case "$FINAL" in
+    *BC250*) ;;
+    *) PARAMETRI_FUORI_DALLA_ISO="$PARAMETRI_FUORI_DALLA_ISO $PARAMETRI_SOLO_BC250" ;;
+esac
 
 # ⚠️ UN BACKUP RIMASTO DA UNA BUILD INTERROTTA RIMETTE VALORI VECCHI SOPRA A
 # QUELLI VIVI. Le righe `[ -f "$X" ] || cp ...` piu' sotto salvano solo se il
@@ -212,7 +227,9 @@ if [ -f "$GRUBF" ]; then
         # niente, e il parametro restava nell'immagine SENZA UN ERRORE. I
         # parametri qui sono parole semplici (lettere, cifre, punto,
         # underscore, uguale) e si tolgono cosi' come sono.
-        sed -i "s| *$_p||g" "$GRUBF"
+        # Le voci finiscono con «=» e si tolgono CON IL VALORE: cosi' la
+        # pulizia regge anche se un domani quel valore cambia.
+        sed -i "s| *$_p[^ \"]*||g" "$GRUBF"
         # ⚠️ E SI CONTROLLA. Una pulizia che fallisce in silenzio spedisce a
         # tutti quello che volevamo tenerci: meglio fermare la build.
         if grep -q -- "$_p" "$GRUBF"; then
