@@ -597,23 +597,77 @@ officina_pulita() {
 
 
 kernel_estranei() {
-    mkdir -p "$ALTRI_KERNEL"
+    mkdir -p "$ALTRI_KERNEL/boot" "$ALTRI_KERNEL/modules" "$ALTRI_KERNEL/src"
     local f base
-    for f in /boot/vmlinuz-* /boot/initrd.img-*; do
+    for f in /boot/vmlinuz-* /boot/initrd.img-* /boot/System.map-* /boot/config-*; do
         [ -e "$f" ] || continue
         case "$f" in *"$KVER") continue ;; esac
         base=$(basename "$f")
-        mv -f "$f" "$ALTRI_KERNEL/$base" && echo "   messo da parte $base (non e' di questa edizione)"
+        mv -f "$f" "$ALTRI_KERNEL/boot/$base" && echo "   messo da parte $base (non e' di questa edizione)"
     done
+    # ⚠️ E I MODULI, che fino al 01/09/2026 restavano. In /boot il kernel era
+    # uno solo e i controlli passavano, ma usr/lib/modules li conteneva tutti:
+    # ogni immagine si portava dietro 194 MB di moduli dell'altra edizione.
+    for f in /usr/lib/modules/*; do
+        [ -d "$f" ] || continue
+        base=$(basename "$f")
+        [ "$base" = "$KVER" ] && continue
+        mv -f "$f" "$ALTRI_KERNEL/modules/$base" && echo "   messi da parte i moduli di $base"
+    done
+    for f in /usr/src/linux-headers-*; do
+        [ -e "$f" ] || continue
+        base=$(basename "$f")
+        case "$base" in *"$KVER") continue ;; esac
+        mv -f "$f" "$ALTRI_KERNEL/src/$base" && echo "   messe da parte le intestazioni di $base"
+    done
+}
+
+# --- il compilatore non si spedisce -----------------------------------------
+# Serve alla scheda per compilare i kernel della BC-250, e a nessun altro:
+# dentro all'immagine sono 800 MB che non apre nessuno. Si sposta per la durata
+# del produce. Niente di quello che gira nel frattempo compila.
+OFFICINA_DAPARTE=/root/.officina-da-parte
+OFFICINA_CARTELLE="/usr/libexec/gcc /usr/lib/gcc"
+
+officina_fuori() {
+    mkdir -p "$OFFICINA_DAPARTE"
+    local d base
+    for d in $OFFICINA_CARTELLE; do
+        [ -d "$d" ] || continue
+        base=$(printf '%s' "$d" | tr / _)
+        mv -f "$d" "$OFFICINA_DAPARTE/$base" \
+            && echo "   messo da parte $d ($(du -sh "$OFFICINA_DAPARTE/$base" 2>/dev/null | cut -f1))"
+    done
+    apt-get clean >/dev/null 2>&1 && echo "   svuotata la cache dei pacchetti"
+}
+
+rimetti_officina() {
+    [ -d "$OFFICINA_DAPARTE" ] || return 0
+    local f d
+    for f in "$OFFICINA_DAPARTE"/*; do
+        [ -e "$f" ] || continue
+        d=$(basename "$f" | tr _ /)
+        mkdir -p "$(dirname "$d")"
+        mv -f "$f" "$d" && echo "   rimesso $d"
+    done
+    rmdir "$OFFICINA_DAPARTE" 2>/dev/null
 }
 rimetti_kernel_estranei() {
     [ -d "$ALTRI_KERNEL" ] || return 0
     local f
-    for f in "$ALTRI_KERNEL"/*; do
+    for f in "$ALTRI_KERNEL"/boot/*; do
         [ -e "$f" ] || continue
         mv -f "$f" /boot/ && echo "   rimesso $(basename "$f")"
     done
-    rmdir "$ALTRI_KERNEL" 2>/dev/null
+    for f in "$ALTRI_KERNEL"/modules/*; do
+        [ -e "$f" ] || continue
+        mv -f "$f" /usr/lib/modules/ && echo "   rimessi i moduli di $(basename "$f")"
+    done
+    for f in "$ALTRI_KERNEL"/src/*; do
+        [ -e "$f" ] || continue
+        mv -f "$f" /usr/src/ && echo "   rimesse le intestazioni $(basename "$f")"
+    done
+    rmdir "$ALTRI_KERNEL"/boot "$ALTRI_KERNEL"/modules "$ALTRI_KERNEL"/src "$ALTRI_KERNEL" 2>/dev/null
 }
 
 rimetti_identita() {
@@ -645,6 +699,7 @@ rimetti_identita() {
     # il 19/08/2026 la scheda e' rimasta a 3500/0 invece di 3700/-16 e me ne
     # sono accorto solo controllando a mano.
     rimetti_kernel_estranei
+    rimetti_officina
     restore_build_env  # esplicito, dopo l'igiene
     # Il rilevatore di snapshot era stato sospeso PRIMA di produrre, perche'
     # l'immagine lo eredita spento. Sulla scheda va riacceso, se no il menu
@@ -713,6 +768,7 @@ echo "igiene: controprova superata, nessun segreto della scheda nell'immagine"
 
 officina_pulita
 kernel_estranei
+officina_fuori
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
 echo "produce rc=$RC"
