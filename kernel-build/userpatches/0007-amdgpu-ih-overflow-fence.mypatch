@@ -1,0 +1,65 @@
+From: CachyOS handheld series (via SkillFishOS)
+Subject: [PATCH] drm/amdgpu: recover lost fence signals on IH ring overflow
+
+When the interrupt handler ring buffer overflows, fence-completion
+interrupts are dropped and the waiter only wakes up when the job timeout
+fires. Walk the rings on overflow and process the fences that were missed.
+
+navi10_ih is the IH block used by gfx1013 (Cyan Skillfish), so this covers
+the BC-250.
+
+Taken from the CachyOS 7.2 handheld patch set.
+---
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ih.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ih.c
+index a6419246e9c2..09d4a76fbda8 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ih.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ih.c
+@@ -210,6 +210,7 @@ int amdgpu_ih_process(struct amdgpu_device *adev, struct amdgpu_ih_ring *ih)
+ {
+ 	unsigned int count;
+ 	u32 wptr;
++	int i;
+ 
+ 	if (!ih->enabled || adev->shutdown)
+ 		return IRQ_NONE;
+@@ -239,13 +240,27 @@ int amdgpu_ih_process(struct amdgpu_device *adev, struct amdgpu_ih_ring *ih)
+ 		if (!ih->overflow)
+ 			goto restart_ih;
+ 
+-	if (ih->overflow)
++	if (ih->overflow) {
+ 		if (amdgpu_sriov_runtime(adev))
+ 			WARN_ONCE(!amdgpu_reset_domain_schedule(adev->reset_domain,
+ 				   &adev->virt.flr_work),
+ 				  "Failed to queue work! at %s",
+ 				  __func__);
+ 
++		/* If the ring buffer overflowed, we might have lost some fence
++		 * signal interrupts. Check if there was any activity so the signal
++		 * doesn't get lost.
++		 */
++		for (i = 0; i < AMDGPU_MAX_RINGS; ++i) {
++			struct amdgpu_ring *ring = adev->rings[i];
++
++			if (!ring || !ring->fence_drv.initialized)
++				continue;
++			amdgpu_fence_process(ring);
++		}
++		ih->overflow = false;
++	}
++
+ 	return IRQ_HANDLED;
+ }
+ 
+diff --git a/drivers/gpu/drm/amd/amdgpu/navi10_ih.c b/drivers/gpu/drm/amd/amdgpu/navi10_ih.c
+index 4cd325149b63..167359da71b6 100644
+--- a/drivers/gpu/drm/amd/amdgpu/navi10_ih.c
++++ b/drivers/gpu/drm/amd/amdgpu/navi10_ih.c
+@@ -447,6 +447,7 @@ static u32 navi10_ih_get_wptr(struct amdgpu_device *adev,
+ 	 */
+ 	tmp = REG_SET_FIELD(tmp, IH_RB_CNTL, WPTR_OVERFLOW_CLEAR, 0);
+ 	WREG32_NO_KIQ(ih_regs->ih_rb_cntl, tmp);
++	ih->overflow = true;
+ out:
+ 	return (wptr & ih->ptr_mask);
+ }
