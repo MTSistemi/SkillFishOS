@@ -836,6 +836,15 @@ cat > "$OUT/$P/DEBIAN/postinst" <<'POSTCONS'
 set -e
 if command -v flatpak >/dev/null 2>&1; then
   flatpak override --system com.valvesoftware.Steam       --filesystem=/opt/skillfish/steam-bin:ro       --talk-name=org.freedesktop.Flatpak       --env=PATH=/opt/skillfish/steam-bin:/app/bin:/app/utils/bin:/usr/bin 2>/dev/null || true
+  # I lanciatori devono vedere /games appena installati. L'installatore crea
+  # il sottovolume @games (compress=zstd:1, copy-on-write disattivato) ma i
+  # flatpak vedono solo cio' che gli concediamo: senza questo, Steam non puo'
+  # scrivere nella cartella dei giochi e l'utente deve scoprirselo da solo.
+  for _app in com.valvesoftware.Steam com.heroicgameslauncher.hgl               io.github.ryubing.Ryujinx org.vinegarhq.Sober; do
+    flatpak override --system --filesystem=/games "$_app" 2>/dev/null || true
+  done
+  # ⚠️ MANGOHUD=1 NON si spedisce: accenderebbe la sovrimpressione su ogni
+  # gioco, sempre. La accende skillfish-banco quando c'e' da misurare.
 fi
 exit 0
 POSTCONS
