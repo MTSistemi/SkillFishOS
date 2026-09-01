@@ -103,6 +103,21 @@ KBDBAK=/root/keyboard.user
 HOSTF=/etc/hostname
 HOSTBAK=/root/hostname.user
 
+# --- e la riga di comando del kernel ----------------------------------------
+# ⚠️ TROVATO IL 01/09/2026. /etc/default/grub finisce nell'immagine com'e', e
+# Calamares ci genera sopra il grub.cfg del sistema installato: qualunque
+# parametro che teniamo sulla scheda per prova arriverebbe sul PC di chiunque.
+# Il caso concreto e' amdgpu.gpu_recovery=0, che stiamo provando qui perche' su
+# questo hardware un reset della GPU si porta via la macchina - ma il kernel si
+# marchia da solo («Setting dangerous option») e la prova non e' finita.
+#
+# Si toglie SOLO quello che sta in questa lista. tsc=directsync resta: e' una
+# scelta fatta, non un esperimento. E i parametri bc250_* servono all'edizione
+# BC-250.
+GRUBF=/etc/default/grub
+GRUBBAK=/root/grub.default.user
+PARAMETRI_FUORI_DALLA_ISO="amdgpu.gpu_recovery=0"
+
 # ⚠️ UN BACKUP RIMASTO DA UNA BUILD INTERROTTA RIMETTE VALORI VECCHI SOPRA A
 # QUELLI VIVI. Le righe `[ -f "$X" ] || cp ...` piu' sotto salvano solo se il
 # file non c'e' gia': serve a non sovrascrivere il backup buono se la stessa
@@ -121,21 +136,6 @@ for _vecchio in "$OCBAK" "$GOVBAK" "$LOCBAK" "$KBDBAK" "$HOSTBAK" "$GRUBBAK"; do
         echo "ATTENZIONE: backup di una build interrotta messo da parte: $_vecchio"
     fi
 done
-
-# --- e la riga di comando del kernel ----------------------------------------
-# ⚠️ TROVATO IL 01/09/2026. /etc/default/grub finisce nell'immagine com'e', e
-# Calamares ci genera sopra il grub.cfg del sistema installato: qualunque
-# parametro che teniamo sulla scheda per prova arriverebbe sul PC di chiunque.
-# Il caso concreto e' amdgpu.gpu_recovery=0, che stiamo provando qui perche' su
-# questo hardware un reset della GPU si porta via la macchina - ma il kernel si
-# marchia da solo («Setting dangerous option») e la prova non e' finita.
-#
-# Si toglie SOLO quello che sta in questa lista. tsc=directsync resta: e' una
-# scelta fatta, non un esperimento. E i parametri bc250_* servono all'edizione
-# BC-250.
-GRUBF=/etc/default/grub
-GRUBBAK=/root/grub.default.user
-PARAMETRI_FUORI_DALLA_ISO="amdgpu.gpu_recovery=0"
 
 # --- sudo nella live --------------------------------------------------------
 # ⚠️ NELLA LIVE NON SI DIVENTAVA ROOT. L'utente `live` sta nel gruppo sudo, ma la
@@ -545,6 +545,57 @@ IDENTITA="
 # installato non ha nulla da elencare, che e' la parte pericolosa. I moduli
 # rimasti sono spazio sprecato, non un rischio, e si vedono nel controllo finale.
 ALTRI_KERNEL=/root/.kernel-da-parte
+
+# --- l'officina non si spedisce ---------------------------------------------
+# ⚠️ TROVATO IL 01/09/2026 CONFRONTANDO DUE IMMAGINI. La 26.06.4 pesava 4,8 GB e
+# la 26.06.5 ne pesava 6,0. Aperte tutte e due e confrontate file per file, i
+# 7,65 GB di differenza da scompattati non erano funzionalita' nuove: era la
+# NOSTRA officina, clonata dentro l'immagine pubblica.
+#
+#   mingw-w64 e libwine     dall'esperimento FSR4, chiuso il 22/08      1,3 GB
+#   llvm/clang di sviluppo  dalla Mesa nostra, che avevamo scartato     0,7 GB
+#   rustc, cargo, rustlib   da quando abbiamo compilato scx_lavd        0,2 GB
+#   valgrind, intestazioni di quattro kernel, /opt/bc250-fsr4           0,4 GB
+#   qBittorrent             21 MB di app che si tirava dietro 1,06 GB
+#                           di runtime KDE, usato solo da lei
+#
+# Ce ne siamo accorti DOPO, a immagine fatta, e non era la prima volta. Adesso
+# la build si ferma PRIMA di produrre e dice cosa c'e' di troppo: la pulizia e'
+# una decisione da prendere qui, non un giro di rifiniture dopo.
+#
+# ⚠️ Gli elenchi si allungano, non si aggirano. Se una cosa va spedita davvero,
+# la si mette in FLATPAK_SPEDITI; se serve solo a noi, si toglie dalla scheda.
+# Il compilatore di sistema NON e' in questa lista: da quando il kernel della
+# BC-250 si compila sulla scheda, gcc-16 e le intestazioni del kernel in corso
+# devono restare.
+PACCHETTI_VIETATI="mingw-w64 mingw-w64-common mingw-w64-tools gcc-mingw-w64-base binutils-mingw-w64-x86-64 binutils-mingw-w64-i686 libwine wine wine64 wine64-tools libwine-dev llvm-21-dev libclang-21-dev libclang-dev clang clang-21 rustc cargo libstd-rust-dev valgrind bindgen"
+FLATPAK_SPEDITI="com.valvesoftware.Steam com.heroicgameslauncher.hgl io.github.ryubing.Ryujinx net.davidotek.pupgui2 org.onlyoffice.desktopeditors org.vinegarhq.Sober"
+
+officina_pulita() {
+    _guai=0
+    for _p in $PACCHETTI_VIETATI; do
+        if dpkg -l "$_p" 2>/dev/null | grep -q "^ii  $_p "; then
+            _kb=$(dpkg-query -Wf '${Installed-Size}' "$_p" 2>/dev/null)
+            echo "OFFICINA: «$_p» e' installato e finirebbe nell'immagine (${_kb:-?} KB)"
+            _guai=1
+        fi
+    done
+    for _a in $(flatpak list --app --columns=application 2>/dev/null); do
+        case " $FLATPAK_SPEDITI " in
+            *" $_a "*) ;;
+            *) echo "OFFICINA: il flatpak «$_a» non e' fra quelli che spediamo"; _guai=1 ;;
+        esac
+    done
+    if [ "$_guai" = 1 ]; then
+        echo "FAIL-OFFICINA" > "$ST"
+        echo "==== FALLITA: c'e' roba nostra che finirebbe nell'immagine ===="
+        echo "     Toglila dalla scheda, oppure aggiungila all'elenco se va spedita."
+        exit 1
+    fi
+    echo "officina: niente di nostro finirebbe nell'immagine"
+}
+
+
 kernel_estranei() {
     mkdir -p "$ALTRI_KERNEL"
     local f base
@@ -660,6 +711,7 @@ if [ "$resti" = 1 ]; then
 fi
 echo "igiene: controprova superata, nessun segreto della scheda nell'immagine"
 
+officina_pulita
 kernel_estranei
 eggs produce -n -N -m -K "$KVER" --basename="$BASE"
 RC=$?
