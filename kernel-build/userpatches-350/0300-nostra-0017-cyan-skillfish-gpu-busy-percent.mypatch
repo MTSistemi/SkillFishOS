@@ -1,0 +1,288 @@
+From: SkillFishOS
+Subject: [PATCH] drm/amd/pm: BC-250 - report a real gpu_busy_percent on gfx1013
+
+Cyan Skillfish has no GFX activity metric. gpu_metrics reports
+average_gfx_activity = 0xFFFF, the conventional "this metric is not present",
+and there is no PMFW message that returns it either: the message table of PMFW
+88.6.0 ends at 0x3D and every id was probed. So AMDGPU_PP_SENSOR_GPU_LOAD falls
+through to -EOPNOTSUPP and gpu_busy_percent answers "Operation not supported".
+
+Userspace does not cope with that. MangoHud takes the 0xFFFF, divides it by 100
+and draws "655%" over every game on this board. It is the most visible wrong
+number on a BC-250.
+
+The information itself is not missing, only the SMU path to it is: GRBM_STATUS
+GUI_ACTIVE says whether the graphics pipe is busy right now, which is exactly
+what radeontop samples from userspace. Sample it in the driver instead and
+publish it through the sensor everything already reads.
+
+A soft hrtimer samples GUI_ACTIVE at 1 kHz and publishes the average every 256
+samples, so about four times a second. read_sensor only returns the published
+value: it runs under adev->pm.mutex, which the fan control and the clock
+governor also take, so it must not sleep or spin there. The timer starts on the
+first read and stops itself after two seconds without readers, so a board that
+nobody is watching pays nothing.
+
+The sampling rate was measured, not guessed. On bc250-dev under a steady vkcube
+load, sampling GUI_ACTIVE from userspace gives 75.0% at 100 Hz, 79.6% at 500 Hz
+and 84.8% at 2 kHz: the slower the sampling, the more the sample instants line
+up with the CPU wake-ups that bracket GPU submissions, and the more busy time
+is missed. 1 kHz sits next to radeontop, which reports 80% on the same load,
+for one register read per millisecond.
+
+The same value is written into gpu_metrics average_gfx_activity, which is where
+the 655% actually comes from: that table is what MangoHud reads, not
+gpu_busy_percent. Fixing only the sensor leaves the wrong number on screen -
+measured, with the sensor already reporting 99% while the overlay still drew
+655%.
+
+GFXOFF is already disabled on this ASIC by the gfx1013 case in
+gfx_v10_0_check_gfxoff_flag(), so the register is always reachable and no
+wake-up handshake is needed here.
+---
+--- a/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c	2026-09-05 18:05:10.486390899 +0200
++++ b/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c	2026-09-05 18:05:10.486532897 +0200
+@@ -32,6 +32,12 @@
+ #include "smu_v11_8_pmfw.h"
+ #include "smu_cmn.h"
+ #include "soc15_common.h"
++#include "gc/gc_10_1_0_offset.h"
++#include "gc/gc_10_1_0_sh_mask.h"
++#include <linux/hrtimer.h>
++#include <linux/jiffies.h>
++#include <linux/ktime.h>
++#include <linux/spinlock.h>
+ #include <linux/topology.h>
+ #include <linux/cpumask.h>
+ 
+@@ -68,6 +74,162 @@
+ static uint32_t cyan_skillfish_sclk_default;
+ 
+ /*
++ * GPU load sampler.
++ *
++ * The PMFW does not report GFX activity on this ASIC, so the driver samples
++ * GRBM_STATUS.GUI_ACTIVE itself - the same counter radeontop reads from
++ * userspace - and publishes the duty cycle through AMDGPU_PP_SENSOR_GPU_LOAD.
++ *
++ * A soft hrtimer takes one sample per millisecond and publishes an average
++ * every CYAN_SKILLFISH_BUSY_PUBLISH samples. read_sensor() must not sleep or
++ * spin: it runs under adev->pm.mutex, which the fan control and the clock
++ * governor also take. So it only reads the value the timer has already
++ * computed.
++ *
++ * The timer is started by the first reader and stops itself once nobody has
++ * read for CYAN_SKILLFISH_BUSY_IDLE_MS. On stop the published value is
++ * dropped as well: a stale load number is worse than no number at all.
++ *
++ * Single instance on purpose: Cyan Skillfish is an APU and there is exactly
++ * one per system. The same file already keeps cyan_skillfish_user_settings
++ * this way.
++ */
++#define CYAN_SKILLFISH_BUSY_PERIOD_NS	1000000ULL	/* 1 kHz */
++#define CYAN_SKILLFISH_BUSY_PUBLISH	256		/* ~256 ms per update */
++#define CYAN_SKILLFISH_BUSY_IDLE_MS	2000
++
++static struct cyan_skillfish_busy_sampler {
++	struct hrtimer		timer;
++	struct amdgpu_device	*adev;
++	spinlock_t		lock;
++	unsigned int		busy;
++	unsigned int		total;
++	unsigned int		percent;
++	unsigned long		last_read;
++	bool			published;
++	bool			ready;
++	bool			running;
++} cyan_skillfish_busy;
++
++static enum hrtimer_restart cyan_skillfish_busy_tick(struct hrtimer *timer)
++{
++	struct cyan_skillfish_busy_sampler *b =
++		container_of(timer, struct cyan_skillfish_busy_sampler, timer);
++	struct amdgpu_device *adev = b->adev;
++	unsigned long flags;
++	bool active = false;
++
++	/*
++	 * Do not touch the register while the device is being reset or is on
++	 * its way out: the read would hang on the internal PCIe fabric, which
++	 * has no completion timeout on this board.
++	 */
++	if (adev && !amdgpu_in_reset(adev) && !adev->in_suspend &&
++	    !adev->shutdown)
++		active = !!(RREG32_SOC15(GC, 0, mmGRBM_STATUS) &
++			    GRBM_STATUS__GUI_ACTIVE_MASK);
++
++	spin_lock_irqsave(&b->lock, flags);
++
++	b->total++;
++	if (active)
++		b->busy++;
++
++	if (b->total >= CYAN_SKILLFISH_BUSY_PUBLISH) {
++		b->percent = b->busy * 100 / b->total;
++		b->published = true;
++		b->busy = 0;
++		b->total = 0;
++	}
++
++	if (time_after(jiffies, b->last_read +
++			msecs_to_jiffies(CYAN_SKILLFISH_BUSY_IDLE_MS))) {
++		/* nobody is reading any more: go quiet and forget the value */
++		b->running = false;
++		b->published = false;
++		b->busy = 0;
++		b->total = 0;
++		spin_unlock_irqrestore(&b->lock, flags);
++		return HRTIMER_NORESTART;
++	}
++
++	spin_unlock_irqrestore(&b->lock, flags);
++
++	hrtimer_forward_now(timer, ns_to_ktime(CYAN_SKILLFISH_BUSY_PERIOD_NS));
++
++	return HRTIMER_RESTART;
++}
++
++static int cyan_skillfish_get_gpu_load(struct smu_context *smu, uint32_t *value)
++{
++	struct cyan_skillfish_busy_sampler *b = &cyan_skillfish_busy;
++	unsigned long flags;
++	bool start = false;
++
++	spin_lock_irqsave(&b->lock, flags);
++	if (!b->ready) {
++		spin_unlock_irqrestore(&b->lock, flags);
++		return -EOPNOTSUPP;
++	}
++	b->last_read = jiffies;
++	if (!b->running) {
++		b->running = true;
++		start = true;
++	}
++	/* nothing published yet means the first window is still filling */
++	*value = b->published ? b->percent : 0;
++	spin_unlock_irqrestore(&b->lock, flags);
++
++	if (start)
++		hrtimer_start(&b->timer,
++			      ns_to_ktime(CYAN_SKILLFISH_BUSY_PERIOD_NS),
++			      HRTIMER_MODE_REL_SOFT);
++
++	return 0;
++}
++
++static void cyan_skillfish_busy_init(struct smu_context *smu)
++{
++	struct cyan_skillfish_busy_sampler *b = &cyan_skillfish_busy;
++
++	spin_lock_init(&b->lock);
++	hrtimer_setup(&b->timer, cyan_skillfish_busy_tick, CLOCK_MONOTONIC,
++		      HRTIMER_MODE_REL_SOFT);
++	b->adev = smu->adev;
++	b->busy = 0;
++	b->total = 0;
++	b->percent = 0;
++	b->published = false;
++	b->running = false;
++	b->ready = true;
++}
++
++static void cyan_skillfish_busy_fini(void)
++{
++	struct cyan_skillfish_busy_sampler *b = &cyan_skillfish_busy;
++	unsigned long flags;
++
++	spin_lock_irqsave(&b->lock, flags);
++	if (!b->ready) {
++		spin_unlock_irqrestore(&b->lock, flags);
++		return;
++	}
++	b->ready = false;
++	spin_unlock_irqrestore(&b->lock, flags);
++
++	/* the sampler must not outlive the device it reads from */
++	hrtimer_cancel(&b->timer);
++
++	spin_lock_irqsave(&b->lock, flags);
++	b->running = false;
++	b->published = false;
++	b->busy = 0;
++	b->total = 0;
++	b->adev = NULL;
++	spin_unlock_irqrestore(&b->lock, flags);
++}
++
++/*
+  * cs_eight_core_map (default off): force the 8-core hybrid layout. By default
+  * the driver auto-detects the physical core count (cyan_skillfish_core_count)
+  * and picks the hybrid layout when 8 cores are present, so this parameter is
+@@ -246,6 +408,9 @@
+ 	if (ret)
+ 		return ret;
+ 
++	/* Arm the GUI_ACTIVE sampler that backs gpu_busy_percent. */
++	cyan_skillfish_busy_init(smu);
++
+ 	/*
+ 	 * Kick PMFW telemetry on so SmuMetrics_t {Current, Average, Accnt}
+ 	 * are populated for downstream metrics-table readers. Best-effort —
+@@ -390,6 +555,10 @@
+ 						   (uint32_t *)data);
+ 		*size = 4;
+ 		break;
++	case AMDGPU_PP_SENSOR_GPU_LOAD:
++		ret = cyan_skillfish_get_gpu_load(smu, (uint32_t *)data);
++		*size = 4;
++		break;
+ 	default:
+ 		ret = -EOPNOTSUPP;
+ 		break;
+@@ -557,6 +726,7 @@
+ 			smu, SMU_DRIVER_TABLE_GPU_METRICS);
+ 	SmuMetrics_t metrics;
+ 	uint32_t gfxclk;
++	uint32_t gfx_activity;
+ 	int i, ret = 0;
+ 
+ 	ret = smu_cmn_get_metrics_table(smu, &metrics, true);
+@@ -574,6 +744,15 @@
+ 	gpu_metrics->temperature_gfx = metrics.Current.GfxTemperature;
+ 	gpu_metrics->temperature_soc = metrics.Current.SocTemperature;
+ 
++	/*
++	 * The PMFW leaves activity at the 0xFFFF "not present" sentinel, and
++	 * this table - not gpu_busy_percent - is what overlays actually read:
++	 * they divide 65535 by 100 and draw 655%. Publish the sampled
++	 * GUI_ACTIVE duty cycle here as well.
++	 */
++	if (!cyan_skillfish_get_gpu_load(smu, &gfx_activity))
++		gpu_metrics->average_gfx_activity = gfx_activity;
++
+ 	gpu_metrics->average_socket_power = metrics.Current.CurrentSocketPower;
+ 	gpu_metrics->average_soc_power = metrics.Current.Power[0];
+ 	gpu_metrics->average_gfx_power = metrics.Current.Power[1];
+@@ -837,6 +1016,13 @@
+ 	return ret;
+ }
+ 
++static int cyan_skillfish_fini_smc_tables(struct smu_context *smu)
++{
++	cyan_skillfish_busy_fini();
++
++	return smu_v11_0_fini_smc_tables(smu);
++}
++
+ static const struct pptable_funcs cyan_skillfish_ppt_funcs = {
+ 
+ 	.check_fw_status = smu_v11_0_check_fw_status,
+@@ -844,7 +1030,7 @@
+ 	.init_power = smu_v11_0_init_power,
+ 	.fini_power = smu_v11_0_fini_power,
+ 	.init_smc_tables = cyan_skillfish_init_smc_tables,
+-	.fini_smc_tables = smu_v11_0_fini_smc_tables,
++	.fini_smc_tables = cyan_skillfish_fini_smc_tables,
+ 	.read_sensor = cyan_skillfish_read_sensor,
+ 	.emit_clk_levels = cyan_skillfish_emit_clk_levels,
+ 	.get_enabled_mask = cyan_skillfish_get_enabled_mask,

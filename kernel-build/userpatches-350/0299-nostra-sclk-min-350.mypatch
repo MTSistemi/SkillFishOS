@@ -1,0 +1,29 @@
+From: SkillFishOS
+Subject: [PATCH] drm/amd/pm: BC-250 - lower the declared minimum GFX clock to 350 MHz
+
+Ariel's patch 03 routes the GFX clock through PMFW ForceGfxFreq and refuses
+anything below CYAN_SKILLFISH_SCLK_MIN, which AMD declares as 1000 MHz:
+
+    if (min < CYAN_SKILLFISH_SCLK_MIN || min > CYAN_SKILLFISH_SCLK_MAX)
+            return -EINVAL;
+
+Our cyan-skillfish-governor asks for 350 MHz at idle, the driver rejects it,
+and the board sits at 1000 MHz doing nothing. Measured on the bc250-dev:
+49 W idle with the Ariel series against 31 W on the stock kernel, for no gain
+at all - 510 rounds of verified compute against 518, same zero errors, same
+zero ring resets.
+
+1000 is a declared floor, not a hardware one. The stock kernel runs this same
+silicon at 350 MHz, and at 100, through the governor's direct SMU path.
+---
+--- a/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c
+@@ -52,7 +52,7 @@
+ #undef pr_debug
+ 
+ /* unit: MHz */
+-#define CYAN_SKILLFISH_SCLK_MIN			1000
++#define CYAN_SKILLFISH_SCLK_MIN			350
+ #define CYAN_SKILLFISH_SCLK_MAX			2500
+ 
+ /* unit: mV */

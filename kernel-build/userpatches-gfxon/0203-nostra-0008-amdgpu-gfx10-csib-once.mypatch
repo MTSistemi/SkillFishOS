@@ -1,0 +1,113 @@
+From: CachyOS handheld series (via SkillFishOS)
+Subject: [PATCH] drm/amdgpu/gfx10: submit the clear state buffer only once
+
+gfx_v10_0_cp_gfx_start() re-submits the whole CSIB every time the command
+processor is started, including after every reset and resume. Split the
+submission out and remember that it was done, so restarts only re-init the
+CP registers.
+
+gfx_v10_0 drives gfx1013 (Cyan Skillfish), so this is our chip.
+
+Only the csib_initialized field is picked from amdgpu.h: the reset-event
+members in that hunk belong to an unrelated series and are left out.
+---
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu.h b/drivers/gpu/drm/amd/amdgpu/amdgpu.h
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu.h
+@@ -1126,6 +1126,8 @@ struct amdgpu_device {
+ 	/* Mask of active clusters */
+ 	uint32_t			aid_mask;
+ 
++	bool				csib_initialized;
++
+ 	/* Debug */
+ 	bool                            debug_vm;
+ 	bool                            debug_largebar;
+diff --git a/drivers/gpu/drm/amd/amdgpu/gfx_v10_0.c b/drivers/gpu/drm/amd/amdgpu/gfx_v10_0.c
+index a9961d504833..cbac8449e5bf 100644
+--- a/drivers/gpu/drm/amd/amdgpu/gfx_v10_0.c
++++ b/drivers/gpu/drm/amd/amdgpu/gfx_v10_0.c
+@@ -3685,6 +3685,7 @@ static uint64_t gfx_v10_0_get_gpu_clock_counter(struct amdgpu_device *adev);
+ static void gfx_v10_0_select_se_sh(struct amdgpu_device *adev, u32 se_num,
+ 				   u32 sh_num, u32 instance, int xcc_id);
+ static u32 gfx_v10_0_get_wgp_active_bitmap_per_sh(struct amdgpu_device *adev);
++static int gfx_v10_0_adev_wait_for_idle(struct amdgpu_device *adev);
+ 
+ static int gfx_v10_0_rlc_backdoor_autoload_buffer_init(struct amdgpu_device *adev);
+ static void gfx_v10_0_rlc_backdoor_autoload_buffer_fini(struct amdgpu_device *adev);
+@@ -6370,7 +6371,7 @@ static int gfx_v10_0_cp_gfx_load_microcode(struct amdgpu_device *adev)
+ 	return 0;
+ }
+ 
+-static int gfx_v10_0_cp_gfx_start(struct amdgpu_device *adev)
++static int gfx_v10_csib_submit(struct amdgpu_device *adev)
+ {
+ 	struct amdgpu_ring *ring;
+ 	const struct cs_section_def *sect = NULL;
+@@ -6378,13 +6379,6 @@ static int gfx_v10_0_cp_gfx_start(struct amdgpu_device *adev)
+ 	int r, i;
+ 	int ctx_reg_offset;
+ 
+-	/* init the CP */
+-	WREG32_SOC15(GC, 0, mmCP_MAX_CONTEXT,
+-		     adev->gfx.config.max_hw_contexts - 1);
+-	WREG32_SOC15(GC, 0, mmCP_DEVICE_ID, 1);
+-
+-	gfx_v10_0_cp_gfx_enable(adev, true);
+-
+ 	ring = &adev->gfx.gfx_ring[0];
+ 	r = amdgpu_ring_alloc(ring, gfx_v10_0_get_csb_size(adev) + 4);
+ 	if (r) {
+@@ -6447,6 +6441,25 @@ static int gfx_v10_0_cp_gfx_start(struct amdgpu_device *adev)
+ 
+ 		amdgpu_ring_commit(ring);
+ 	}
++
++	gfx_v10_0_adev_wait_for_idle(adev);
++	adev->csib_initialized = true;
++
++	return 0;
++};
++
++static int gfx_v10_0_cp_gfx_start(struct amdgpu_device *adev)
++{
++	/* init the CP */
++	WREG32_SOC15(GC, 0, mmCP_MAX_CONTEXT,
++		     adev->gfx.config.max_hw_contexts - 1);
++	WREG32_SOC15(GC, 0, mmCP_DEVICE_ID, 1);
++
++	gfx_v10_0_cp_gfx_enable(adev, true);
++
++	if (!adev->csib_initialized)
++		gfx_v10_csib_submit(adev);
++
+ 	return 0;
+ }
+ 
+@@ -7621,11 +7634,10 @@ static bool gfx_v10_0_is_idle(struct amdgpu_ip_block *ip_block)
+ 		return true;
+ }
+ 
+-static int gfx_v10_0_wait_for_idle(struct amdgpu_ip_block *ip_block)
++static int gfx_v10_0_adev_wait_for_idle(struct amdgpu_device *adev)
+ {
+ 	unsigned int i;
+ 	u32 tmp;
+-	struct amdgpu_device *adev = ip_block->adev;
+ 
+ 	for (i = 0; i < adev->usec_timeout; i++) {
+ 		/* read MC_STATUS */
+@@ -7639,6 +7651,13 @@ static int gfx_v10_0_wait_for_idle(struct amdgpu_ip_block *ip_block)
+ 	return -ETIMEDOUT;
+ }
+ 
++static int gfx_v10_0_wait_for_idle(struct amdgpu_ip_block *ip_block)
++{
++	struct amdgpu_device *adev = ip_block->adev;
++
++	return gfx_v10_0_adev_wait_for_idle(adev);
++}
++
+ static int gfx_v10_0_soft_reset(struct amdgpu_ip_block *ip_block)
+ {
+ 	u32 grbm_soft_reset = 0;

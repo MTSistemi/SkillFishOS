@@ -27,6 +27,78 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
      extensible scheduler class, plus the BTF it needs.
      Install `dwarves` on the build host first (`pahole`), or the build fails
      late with a missing tool.
+### Which patch set to use
+
+`userpatches/` is not the only set in here, and picking the wrong one gives a
+kernel that boots and is not the one we ship. What each directory is:
+
+- **`userpatches-350/` — the current recipe.** 43 patches; this is what builds
+  `7.2.3-skillfishos`, the kernel installed on both boards. Four series, and
+  the numbering says where each one comes from:
+  - `0100-0118` — Project Ariel (cachenetics): SMU/PMFW message enums, forced
+    GFX clock and DPM levels, PMFW telemetry, the race-free GFXCLK query, the
+    CU unlock that does *not* touch RLC_PG, and the gfx1013 GFXOFF disable.
+  - `0130-0131` — DryhoppedIPA, the compute-queue pair. Measured on a BC-250:
+    the Mesa half is worth +4.2% on Cyberpunk, the kernel half about +0.6% on
+    Wukong. The +20.8% claimed upstream did not reproduce.
+  - `0200-0211` and `0299` — our own series, renumbered from `0001-0016` so it
+    applies after Ariel's.
+  - `0300` — gpu_busy_percent for gfx1013, see below.
+- **`userpatches/`** — the legacy 16-patch set that built the published 7.2.0
+  and 7.2.2 kernels. Kept because it documents what users currently get from
+  the APT archive.
+- **`userpatches-ariel/` and `userpatches-gfxon/`** — an A/B pair, not a
+  recipe. `gfxon` is `ariel` minus the gfx1013 GFXOFF disable, built to find
+  out whether GFXOFF was behind the compute errors on bc250-dev. Keep them
+  together or the experiment cannot be repeated.
+- **`userpatches-sospese/`** — the VCN patch. It registers the block, the PSP
+  refuses to load firmware for it, and both donor firmwares wedge the board.
+  Not built into anything.
+
+### 0300: a real gpu_busy_percent on gfx1013
+
+Cyan Skillfish has no GFX activity metric: `gpu_metrics` reports
+`average_gfx_activity = 0xFFFF` ("not present") and no PMFW message returns it
+either. Overlays divide 65535 by 100 and draw **655%** over every game.
+
+The patch samples `GRBM_STATUS.GUI_ACTIVE` — the counter radeontop reads from
+userspace — with a soft hrtimer at 1 kHz, publishes the average about four
+times a second, and exposes it two ways: through
+`AMDGPU_PP_SENSOR_GPU_LOAD` (that is sysfs `gpu_busy_percent`) **and** in the
+`gpu_metrics` table.
+
+Both are needed. Fixing only the sensor leaves the wrong number on screen:
+measured with the sensor already reporting 99% while MangoHud still drew 655%,
+because overlays read the table, not the sysfs file.
+
+The sampling rate was measured, not guessed. Under a steady vkcube load,
+sampling GUI_ACTIVE from userspace gives 75.0% at 100 Hz, 79.6% at 500 Hz and
+84.8% at 2 kHz: the slower the sampling, the more the sample instants line up
+with the CPU wake-ups that bracket GPU submissions, and the more busy time is
+missed. At 1 kHz the driver reports 82-92% where radeontop reports 76-89%.
+Cost is not measurable: 1.00% CPU with and without a reader, and the timer
+stops itself two seconds after the last read.
+
+### The x64 twin
+
+The same 43 patches build `-skillfishos-x64` for machines that are not a
+BC-250: the BC-250 patches are inert elsewhere because they hook that device.
+What changes is `_processor_opt="x86-64"`, the localversion, and
+`config-fragments/skillfish-generic-cpu.myfrag`, which **must** be in place or
+the kernel comes out `-march=native` for the build host — the failure behind
+issue #53, where a generic image loads GRUB and then does nothing.
+
+### Two traps when building modules by hand
+
+- **localversion.** Running `make` inside the tree by hand produces modules
+  whose vermagic is `7.2.3` instead of `7.2.3-skillfishos`, and they will not
+  load. Write the suffix into the tree first:
+  `printf -- '-skillfishos\n' > localversion`.
+- **debug symbols.** A hand-built module is not stripped: amdgpu came out at
+  117 MB compressed against the 7 MB of the packaged one, which also blows up
+  the initramfs. Run `strip --strip-debug` before compressing it.
+
+
 5. ./install.sh install  -> .deb in DEBS/  (then publish via scripts/publish-kernel.sh)
 
 Key config: BORE, GCC -O3, -march=znver2, 1000Hz, NTsync+fsync, no LTO,
