@@ -1,0 +1,166 @@
+#!/bin/sh
+# Take the clock away from cyan-skillfish-governor, and give it back.
+#
+#     stock-governor claim | release | status
+#
+# WHY. Two programs forcing the same clock is the failure this exists to
+# prevent. Our governor and the stock one both drive the GPU through the SMU,
+# and on a board where both are enabled they fight at every boot: whoever writes
+# last wins the frequency, and neither knows the other moved the rail.
+#
+# ⚠️ NOTHING IS DELETED HERE. The stock unit is MOVED to /var/lib, and release
+# puts it back exactly where it was. A machine that loses our package must end up
+# with a working governor, not with no governor at all.
+#
+# ⚠️ AND THE STOCK UNIT IS NOT A PACKAGED FILE on this distribution: it is
+# hand-written into /etc/systemd/system. That is why masking alone is not enough
+# -- systemctl mask fails with "File already exists" when a real file is sitting
+# on the name it wants to symlink. So: move first, then mask. Where the unit does
+# come from a package (/lib or /usr/lib), masking on its own IS the right answer,
+# because the mask symlink in /etc overrides it and dpkg still owns the file.
+set -e
+
+UNITA=cyan-skillfish-governor.service
+RIPOSTIGLIO=/var/lib/skillfish-vf-governor/stock
+SCRITTA=/etc/systemd/system/$UNITA
+SCRITTA_D=/etc/systemd/system/$UNITA.d
+SMU=/sys/kernel/debug/dri/0000:01:00.0/amdgpu_smu_send_raw
+
+percorso_unita() {
+    systemctl show "$UNITA" -p FragmentPath --value 2>/dev/null
+}
+
+# ⚠️ After=bc250-smu-oc.service DOES NOT DO WHAT IT LOOKS LIKE. That unit has no
+# Type=, so it is Type=simple, and systemd calls it "Started" the instant it
+# forks -- not when it has finished. Measured on the boot of 04/09/2026:
+#
+#   08:51:11.089  Started  bc250-smu-oc.service
+#   08:51:11.118  Starting skillfish-vf-governor.service
+#   08:51:11.213  python3: Applying 3500 MHz @ Scale 0     <- still going
+#   08:51:11.414  bc250-smu-oc.service: Deactivated successfully
+#
+# So the ordering we added on 04/09 bought roughly 30 ms and then let both
+# programs talk to the SMU at once. We got away with it because our Python takes
+# longer to start than theirs takes to finish, which is not a guarantee, it is a
+# coincidence.
+#
+# The proper fix is Type=oneshot on THEIR unit, and it is not ours to make: that
+# file is hand-written into /etc/systemd/system and belongs to no package. So we
+# wait for it here instead, which is correct either way -- if the unit is fixed
+# later this loop simply finds it inactive and returns at once.
+aspetta_smu_libero() {
+    altro=bc250-smu-oc.service
+    i=0
+    while [ $i -lt 150 ]; do          # 15 seconds, then we go anyway
+        case "$(systemctl is-active "$altro" 2>/dev/null)" in
+            active|activating|reloading) ;;
+            *) [ $i -gt 0 ] && echo "  atteso $altro per $((i / 10)),$((i % 10)) s"
+               return 0 ;;
+        esac
+        sleep 0.1
+        i=$((i + 1))
+    done
+    echo "  $altro non ha mollato l'SMU in 15 s: vado lo stesso" >&2
+}
+
+claim() {
+    # Idempotent on purpose: this runs from ExecStartPre, so it runs on every
+    # start and every restart, and it must be silent and cheap when there is
+    # nothing left to do.
+    #
+    # "Claim" means the clock is OURS, and there are two ways it can still belong
+    # to somebody else at this point: the stock governor, and the boot-time CPU
+    # overclock, which drives the SAME SMU.
+    aspetta_smu_libero
+    systemctl stop "$UNITA" >/dev/null 2>&1 || true
+
+    if [ -f "$SCRITTA" ]; then
+        mkdir -p "$RIPOSTIGLIO"
+
+        # ⚠️ REMEMBER WHETHER IT WAS ENABLED, and remember it BEFORE moving the
+        # file. Measured 04/09/2026: moving the unit out and masking the name
+        # loses the symlink in multi-user.target.wants, and putting the file back
+        # does not bring it back. The first run of this test ended with the stock
+        # governor running but reported "disabled" -- which looks fine until the
+        # next reboot, when nothing starts and the board sits at 1500 MHz on
+        # 918 mV with no governor at all. Restoring a file is not restoring a
+        # service.
+        case "$(systemctl is-enabled "$UNITA" 2>/dev/null)" in
+            enabled|enabled-runtime) : > "$RIPOSTIGLIO/era-acceso" ;;
+        esac
+
+        mv "$SCRITTA" "$RIPOSTIGLIO/"
+        [ -d "$SCRITTA_D" ] && mv "$SCRITTA_D" "$RIPOSTIGLIO/" || true
+        systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
+
+    systemctl mask "$UNITA" >/dev/null 2>&1 || true
+    systemctl daemon-reload >/dev/null 2>&1 || true
+}
+
+release() {
+    systemctl unmask "$UNITA" >/dev/null 2>&1 || true
+
+    if [ -f "$RIPOSTIGLIO/$UNITA" ]; then
+        mv "$RIPOSTIGLIO/$UNITA" "$SCRITTA"
+        [ -d "$RIPOSTIGLIO/$UNITA.d" ] && mv "$RIPOSTIGLIO/$UNITA.d" "$SCRITTA_D" || true
+    fi
+
+    systemctl daemon-reload >/dev/null 2>&1 || true
+
+    if [ -f "$RIPOSTIGLIO/era-acceso" ]; then
+        systemctl enable "$UNITA" >/dev/null 2>&1 || true
+        rm -f "$RIPOSTIGLIO/era-acceso"
+    fi
+
+    # ⚠️ AND THE FORCE HAS TO COME OFF BEFORE THE STOCK GOVERNOR IS STARTED.
+    #
+    # By the time our governor's own libera() runs, this unit is still masked, so
+    # it correctly decides there is nobody to hand back to and PARKS the board
+    # instead: 350 MHz pinned on 700 mV. Then we get here, put the stock unit
+    # back and start it -- on top of a rail that is still forced to the bottom of
+    # OD_RANGE. The stock governor drives frequency, and the first thing it does
+    # on this board is ramp towards 2200. 2200 MHz on 700 mV is roughly 400 mV
+    # under what that clock needs, which is the exact shape of the hang this
+    # whole package spent 03/09/2026 learning to avoid.
+    #
+    # Volts first, then frequency: unforcing the rail lets the firmware pick a
+    # voltage for the clock we are still holding, which is by construction a
+    # voltage that clock can live at. Same order as everywhere else.
+    if [ -w "$SMU" ]; then
+        printf '0x3c 0x0 0x0\n' > "$SMU" 2>/dev/null || true   # UnforceGfxVid
+        printf '0x3a 0x0 0x0\n' > "$SMU" 2>/dev/null || true   # UnForceGfxFreq
+    fi
+
+    # ⚠️ Started, not just enabled. This runs when our governor is going away for
+    # good, and the board has a forced clock on it until something takes over --
+    # waiting for the next boot is not an option.
+    systemctl start "$UNITA" >/dev/null 2>&1 || true
+}
+
+# Release only if the user has actually turned our governor off, not on the
+# restarts. ExecStopPost fires on every stop, including the ones systemd itself
+# does between a failure and a restart, and putting the stock governor back on
+# each of those would hand it the clock while ours is coming up again.
+release_se_disabilitato() {
+    stato=$(systemctl is-enabled skillfish-vf-governor.service 2>/dev/null || true)
+    case "$stato" in
+        enabled|enabled-runtime|linked|linked-runtime|static)
+            exit 0 ;;
+    esac
+    release
+}
+
+case "${1:-}" in
+    claim)                    claim ;;
+    release)                  release ;;
+    release-if-disabled)      release_se_disabilitato ;;
+    status)
+        echo "unita':      $(systemctl is-enabled $UNITA 2>/dev/null || echo assente)"
+        echo "file:        $(percorso_unita)"
+        echo "riposta in:  $(ls -1 $RIPOSTIGLIO 2>/dev/null | tr '\n' ' ')"
+        ;;
+    *)
+        echo "uso: $0 claim|release|release-if-disabled|status" >&2
+        exit 2 ;;
+esac

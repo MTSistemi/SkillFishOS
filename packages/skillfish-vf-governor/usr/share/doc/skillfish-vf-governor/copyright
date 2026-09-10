@@ -1,0 +1,6 @@
+Upstream-Name: skillfish-vf-governor
+Source: https://github.com/MTSistemi/SkillFishOS
+
+Files: *
+Copyright: 2026 Mattia Tadini <info@mtsistemi.it>
+License: GPL-3+

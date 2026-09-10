@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Hand the GPU back to the firmware, so something else can drive it.
+
+    skillfish-vf-rilascia [--stato]
+
+⚠️ A COSA SERVE. Il nostro governor, quando si ferma, NON rilascia l'SMU: se
+non c'e' il governor di serie a cui ridare il volante (da noi e' mascherato)
+parcheggia il clock a riposo e lo tiene forzato. E' lo stato sicuro, ma
+finche' la coppia resta forzata il firmware RIFIUTA RequestGfxclk: qualunque
+altra cosa piloti la GPU da pp_od_clk_voltage — Oberon, il nostro
+governor-od, il Tuner in modalita' OverDrive — riceve "Set sclk failed!" e
+muore. Per giorni abbiamo dato la colpa alle patch del kernel: la prova sul
+ferro del 09/09/2026 dice che il kernel non c'entra, bastava rilasciare.
+
+⚠️ DOPO IL RILASCIO LA GPU E' DEL FIRMWARE. L'ordine e' obbligato: prima la
+tensione, poi la frequenza (al contrario si lascia il rail inchiodato a 700 mV
+con il firmware libero di salire, che e' il modo migliore per piantarla). E si
+rimette il livello di prestazione su "auto", o pp_od_clk_voltage resta a meta'
+strada.
+
+⚠️ NON e' un comando da usare per "spegnere il governor": per quello basta
+fermare il servizio. Questo serve solo PRIMA di dare la GPU a un altro.
+"""
+import os
+import sys
+
+NODO = "/sys/kernel/debug/dri/0000:01:00.0/amdgpu_smu_send_raw"
+MSG_UNFORCE_FREQ = 0x3A
+MSG_UNFORCE_VID = 0x3C
+LIVELLO = "/sys/class/drm/card0/device/power_dpm_force_performance_level"
+
+
+def smu(msg, param=0):
+    """One raw SMU message; None if the firmware did not answer with resp=1."""
+    try:
+        fd = os.open(NODO, os.O_RDWR)
+    except OSError as e:
+        return "il canale SMU non c'e' (%s)" % e
+    try:
+        os.write(fd, ("%#x %#x 0x0\n" % (msg, param)).encode())
+        os.lseek(fd, 0, os.SEEK_SET)
+        r = os.read(fd, 64).decode()
+    finally:
+        os.close(fd)
+    return None if "resp=0x00000001" in r else "risposta inattesa: %s" % r.strip()
+
+
+def main():
+    if "--stato" in sys.argv:
+        try:
+            print("livello:", open(LIVELLO).read().strip())
+        except OSError as e:
+            print("livello: non leggibile (%s)" % e)
+        print("canale SMU:", "c'e'" if os.path.exists(NODO) else "assente")
+        return
+
+    if os.geteuid() != 0:
+        print("serve root"); sys.exit(1)
+    if os.path.exists("/run/skillfish-vf-governor.battito"):
+        print("⚠️ il governor sembra ancora acceso: fermalo prima "
+              "(systemctl stop skillfish-vf-governor)")
+        sys.exit(1)
+
+    # ⚠️ tensione prima, frequenza dopo: e' lo specchio dell'ordine di salita
+    for nome, msg in (("tensione", MSG_UNFORCE_VID), ("frequenza", MSG_UNFORCE_FREQ)):
+        errore = smu(msg)
+        print("  %s: %s" % (nome, "rilasciata" if errore is None else errore))
+        if errore is not None:
+            sys.exit(1)
+    try:
+        with open(LIVELLO, "w") as f:
+            f.write("auto\n")
+        print("  livello di prestazione: auto")
+    except OSError as e:
+        print("  livello di prestazione: non impostato (%s)" % e)
+    print("GPU rilasciata: ora pp_od_clk_voltage accetta il commit")
+
+
+if __name__ == "__main__":
+    main()

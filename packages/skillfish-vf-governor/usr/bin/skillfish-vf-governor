@@ -1,0 +1,1415 @@
+#!/usr/bin/env python3
+"""A governor that forces the clock instead of asking for it, and takes on the
+protection that forcing gives up.
+
+    skillfish-vf-governor [--config FILE] [--dry-run] [--verbose]
+
+WHY IT EXISTS. The stock governor sets frequency through pp_od_clk_voltage,
+which sends RequestGfxclk. That message is refused above 2200 MHz, and below it
+the firmware still scales the clock down to stay inside its own power budget:
+asking for 2200 gets 1957-2055 MHz under load. ForceGfxFreq holds the clock
+instead -- 2200 stays 2200, and on a good sample 2400 does real work.
+
+WHAT FORCING COSTS. The firmware's power management is what was keeping the
+board at 158 W and 90 degrees. Force bypasses it, so nothing throttles any more:
+measured 178 W at 2200, 202 W at 2400, 99 degrees. Whatever protection the
+board has now, this program is it. That is why the guards below are not
+optional extras -- they are the reason this can be run at all.
+
+CEILING AND FREQUENCY ARE TWO DIFFERENT THINGS. This is the whole design.
+
+  the ceiling  is how high we are allowed to go. Heat and power move it, and
+               they move it slowly: -50 MHz at a time, twice a second. All
+               thermal management lives here and nowhere else.
+  the frequency is where we are now. When load appears it goes straight to the
+               ceiling in a single tick -- no ladder, no ramp.
+
+The first version climbed 150 MHz per tick and cut 300 MHz whenever it got hot.
+That takes six seconds to reach full clock from idle, which a game shows as a
+stutter every time a scene opens, and the 300 MHz cut is a visible step down
+mid-frame. Splitting the two gives fast attack and slow release from the same
+loop: under sustained load the frequency simply tracks a ceiling that drifts
+down gently, and rises again the moment there is thermal room.
+
+THE LOAD SIGNAL. gpu_busy_percent returns "Operation not supported" on this
+chip, and so does the sensor ioctl behind it (AMDGPU_INFO_SENSOR_GPU_LOAD,
+-EINVAL). What is left is GRBM_STATUS bit 31, measured here at 70% under
+glmark2 against radeontop's 76%, and at 48% under a bursty OpenCL job -- so it
+does see compute, contrary to what we assumed when this was written.
+
+The fence counters are kept as a backstop but have yet to earn their place: on
+this chip rusticl submits through the graphics ring at roughly the rate an idle
+KDE desktop does, so they cannot tell a compute job from a screensaver. They
+are thresholded far above idle for that reason.
+
+We sample GRBM_STATUS at 100 Hz ourselves rather than reading radeontop's
+once-a-second output: a one-second-old number makes "instant" climb a second
+late, which defeats the point. radeontop is still started alongside as a
+cross-check and as the fallback if the register read fails.
+
+⚠️ The measured curve belongs to the board it was measured on. Ours differ by
+150 mV at 2200. Do not copy one board's config to another.
+"""
+import argparse
+import collections
+import ctypes
+import json
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+
+CONF_PREDEFINITA = "/etc/skillfish-vf-governor.json"
+BATTITO = "/run/skillfish-vf-governor.battito"
+
+# ⚠️ AND A SECOND COPY OF THE SAME STATE, ON DISK. The heartbeat above lives in
+# /run, which is tmpfs: it is gone the moment the board reboots, and a board that
+# hangs is a board that gets rebooted before anyone reads anything. On 04/09/2026
+# that cost us the answer -- the board stopped at the end of a bench run with the
+# clock at the parking point, and whether we had parked it or died and let the
+# watchdog park it was written in a file that no longer existed.
+TRACCIA = "/var/lib/skillfish-vf-governor/traccia"
+# ⚠️ Sized for the CHANGES, not for the heartbeat. At one line a second 3600 was
+# an hour; with a line per change a ramping game writes up to five a second, and
+# an hour of play would rotate the file eight times over -- so a freeze after a
+# long session would leave .1 holding a chunk from the middle of it. 100k lines
+# is around 10 MB, which is nothing, and covers a whole evening of ramping.
+TRACCIA_RIGHE = 100000
+
+DBG = "/sys/kernel/debug/dri/0000:01:00.0"
+NODO_SMU = f"{DBG}/amdgpu_smu_send_raw"
+FENCE = f"{DBG}/amdgpu_fence_info"
+NODO_DRM = "/dev/dri/renderD128"
+
+# GRBM_STATUS absolute dword offset. The READ_MMR allow-list on this chip takes
+# the gfx9-era 0x2004 and refuses the gfx10.1 one, which is not what the headers
+# suggest -- so try both at startup rather than trusting either.
+GRBM_CANDIDATI = (0x2004, 0x1264)
+GUI_ACTIVE = 1 << 31
+
+MSG_GET_FREQ = 0x37
+MSG_FORCE_FREQ = 0x39
+MSG_UNFORCE_FREQ = 0x3A
+MSG_FORCE_VID = 0x3B
+MSG_UNFORCE_VID = 0x3C
+
+# ⚠️ THE HARD VOLTAGE CEILING. amdgpu declares OD_RANGE VDDC 700-1129 mV for this
+# ASIC, and 1129 is where we stop -- full stop, whatever a config file says.
+#
+# This is not belt and braces. We drive the rail with a raw ForceGfxVid through
+# debugfs, which does NOT go through the driver's range check: a curve asking for
+# 1170 mV would simply be obeyed, and a VID of 0 means 1550 mV. The only thing
+# between a typo in a JSON file and a rail well over what the chip is rated for is
+# this constant, enforced in mv_per (the curve) and again in vid_da_mv (the one
+# funnel every volt passes through on its way to the firmware).
+#
+# It is also why a frequency ladder above 2200 MHz is not a matter of adding
+# volts: at 2200 the measured floor is already 1075 and the rail droops 29-44 mV
+# under load, so what is left under 1129 is thin -- and above 2200 the measured
+# curve found no voltage that held at all.
+MV_MASSIMI = 1129
+
+# ⚠️ AND THE HARD FLOOR, same OD_RANGE, same reason. This became load-bearing on
+# 04/09/2026, when the idle point moved to 700: the curve now sits exactly ON the
+# bottom of the declared range, so a typo of 600 in the JSON would be a step
+# BELOW anything the chip is rated for, and vid_da_mv would obey it -- it clamps
+# the VID to 255, which is -43 mV, not to anything sane in millivolts. There is
+# nothing under here to catch it: too little voltage at any clock is a hang, and
+# a hang at the parking point is a board nobody can get back without the plug.
+MV_MINIMI = 700
+
+PREDEFINITA = {
+    # Measured on the board this runs on: MHz -> mV floor, plus a margin.
+    #
+    # ⚠️ THE FLAT SECTION IS 700 AND NOT 725 SINCE 04/09/2026, and every rung of
+    # it was measured on bc250-dev before it shipped -- which is the board that
+    # lost the silicon lottery, so a pass there is the direction that generalises:
+    #
+    #    350 MHz, 700 mV    71 rings,  2606 billion ops, 0 bad bits, 46 C
+    #    600 MHz, 700 mV    60 rings,  2202 billion ops, 0 bad bits, 50 C
+    #    850 MHz, 700 mV    84 rings,  3083 billion ops, 0 bad bits, 52 C
+    #   1100 MHz, 700 mV   215 rings,  7891 billion ops, 0 bad bits, 53 C
+    #   1225 MHz, 725 mV   238 rings,  8735 billion ops, 0 bad bits, 56 C
+    #
+    # That last rung is not a point on this curve: it is the point the curve
+    # INVENTS. Lowering 1100 changes everything up to the next real point by
+    # interpolation, and 1225 used to get 737 mV and now gets 725. Moving a point
+    # moves the line either side of it, so the line is what has to be checked.
+    #
+    # 700 is the bottom of OD_RANGE VDDC: the lowest we may ask for at all.
+    # Worth 0.33 W at 350 MHz idle (34.08 -> 33.67, against 0.16 W of drift) and
+    # 1.23 W at 1100 MHz under load (54.94 -> 53.71, against 0.55 W of drift).
+    # Small at the bottom, where the rail moves almost no charge; worth having
+    # where the GPU is actually switching.
+    "curva": [[350, 700], [600, 700], [850, 700], [1100, 700], [1350, 750],
+              [1600, 750], [1850, 825], [1975, 875], [2100, 925], [2200, 950]],
+    "freq_min": 350,
+    "freq_max": 2200,            # above this RequestGfxclk refuses; Force can go
+                                 # higher, but only raise it with real cooling
+
+    # --- the ceiling: heat and power, and nothing else, move this ---
+    "gradi_ok": 90,              # below: the ceiling creeps back up
+    "gradi_max": 95,             # above: the ceiling walks down gently
+    "gradi_rottura": 97,         # above: the only place a big step is allowed
+    "watt_max": 180,             # our own power limit: the firmware's is bypassed
+    "watt_ok": 150,              # below this the ceiling may climb back. Power has
+                                 # no equivalent of gradi_ok until now: the recovery
+                                 # tested watt_max * 0.9 = 162, and on a signal that
+                                 # swings 100 W between samples that is inside the
+                                 # noise, so every descent was undone within a tick.
+    "watt_rottura": 200,
+    "passo_tetto_giu": 50,       # MHz per slow tick when hot -- deliberately small
+    "passo_tetto_su": 25,        # MHz per slow tick when cool: slower than the
+                                 # descent, so it cannot ping-pong across 95
+    "passo_tetto_urgente": 200,
+    "cadenza_lenta": 0.5,        # seconds between ceiling moves
+    "attesa_rientro": 3.0,       # seconds of calm after ANY descent before the
+                                 # ceiling is allowed back up, and the window the
+                                 # recovery averages power over
+
+    # --- the frequency: it only ever jumps up ---
+    "carico_su": 50,             # per cent busy: go to the ceiling, this tick.
+                                 # Low on purpose -- climbing is cheap because
+                                 # the ceiling, not this threshold, is what keeps
+                                 # the board safe, and a bursty compute load only
+                                 # reads 48% while working flat out.
+    "carico_giu": 25,            # per cent busy: the GPU is keeping up, let it breathe
+    "passo_giu": 100,            # MHz per slow tick when idle
+    # --- inseguimento del rail (droop) ---
+    "droop_attivo": True,
+    "droop_max": 120,        # mV di compensazione massima
+    "droop_su": 15,          # mV per giro quando il rail e' sotto il pavimento
+    "droop_giu": 5,          # mV per giro quando e' abbondantemente sopra
+    "droop_da": 1600,        # sotto questa frequenza non si insegue niente
+    "droop_tolleranza": 10,  # quanto si accetta sotto il pavimento
+    "finestra_veloce": 0.1,      # seconds of GRBM history behind the climb
+    "finestra_lenta": 0.5,       # ...and behind the back-off
+    "finestra_fence": 2.0,       # seconds the compute signal is averaged over
+    "fattore_fence": 4.0,        # multiples of idle before compute counts as load
+    "intervallo": 0.2,           # seconds per control tick
+
+    # --- the ascent margin ---
+    # Millivolts added to the curve, and ONLY when the operating point is going
+    # up. See mv_bersaglio for what it is for. 0 disables it and gives exactly
+    # the behaviour of 26.09.6 and earlier.
+    #
+    # 40 because that is the number we measured: on the board that lost the
+    # silicon lottery, 40 mV over the stock curve made its calculation errors
+    # disappear, and every one of those errors was in a RAMP, not at a settled
+    # point. If the hang goes away at 40 the next job is to walk it back down and
+    # find the smallest margin that still holds -- it is not free, 20 mV is worth
+    # about 98 MHz of sustained clock on a board that is limited by watts.
+    "margine_salita": 40,
+}
+
+
+# --- talking to the firmware -------------------------------------------------
+# The debugfs node keeps its answer in per-fd state: writing with one open file
+# and reading with another always reads back nothing. Same descriptor, always.
+
+def smu(msg, param=0):
+    fd = os.open(NODO_SMU, os.O_RDWR)
+    try:
+        os.write(fd, f"{msg:#x} {param:#x} 0x0\n".encode())
+        os.lseek(fd, 0, os.SEEK_SET)
+        r = os.read(fd, 64).decode()
+    finally:
+        os.close(fd)
+    if "resp=0x00000001" not in r:
+        return None
+    for pezzo in r.split():
+        if pezzo.startswith("arg="):
+            return int(pezzo[4:], 16)
+    return None
+
+
+def vid_da_mv(mv):
+    """AMD SVI2 encoding, checked against the voltage sensor: mV = 1550 - VID*6.25
+
+    ⚠️ Clamped to BOTH ends here as well as in mv_per. This function is the one
+    place every volt we ever ask for passes through on its way to the firmware,
+    so it is the right place for the guards that must not be got round: a VID of
+    0 means 1550 mV and the hardware will take it, and the max(0, min(255, ...))
+    below is a guard on the VID, not on the voltage -- 255 is -43 mV, which is
+    not a floor, it is an absence of one.
+    """
+    mv = min(max(mv, MV_MINIMI), MV_MASSIMI)
+    return max(0, min(255, round((1550 - mv) / 6.25)))
+
+
+# --- reading the board -------------------------------------------------------
+
+def hwmon(nome):
+    for h in sorted(os.listdir("/sys/class/hwmon")):
+        p = f"/sys/class/hwmon/{h}"
+        try:
+            if open(f"{p}/name").read().strip() == "amdgpu":
+                return int(open(f"{p}/{nome}").read().strip())
+        except OSError:
+            continue
+    return None
+
+
+def gradi():
+    v = hwmon("temp1_input")
+    return v // 1000 if v else 0
+
+
+def watt():
+    v = hwmon("power1_average")
+    return v // 1000000 if v else 0
+
+
+_SENSORE_MV = None
+
+
+_SENSORE_HZ = None
+
+
+def frequenza_vera():
+    """Il clock come lo vede il sensore, non come ce lo siamo immaginato.
+
+    ⚠️ MSG_GET_FREQ non serve a questo: ripete la richiesta, non misura. Qui
+    serve una fonte indipendente, ed e' l'unico modo per accorgersi del crollo.
+    """
+    global _SENSORE_HZ
+    if _SENSORE_HZ is None:
+        for h in sorted(os.listdir("/sys/class/hwmon")):
+            p = f"/sys/class/hwmon/{h}"
+            try:
+                if open(f"{p}/name").read().strip() == "amdgpu":
+                    _SENSORE_HZ = f"{p}/freq1_input"
+                    break
+            except OSError:
+                continue
+        if _SENSORE_HZ is None:
+            _SENSORE_HZ = ""
+    if not _SENSORE_HZ:
+        return None
+    try:
+        return int(open(_SENSORE_HZ).read().strip()) // 1000000
+    except (OSError, ValueError):
+        return None
+
+
+def millivolt():
+    """The rail as the sensor sees it, with the hwmon path looked up once.
+
+    hwmon() rescans /sys/class/hwmon on every call, which is nothing once per
+    tick and a waste inside a loop that polls every few microseconds.
+    """
+    global _SENSORE_MV
+    if _SENSORE_MV is None:
+        for h in sorted(os.listdir("/sys/class/hwmon")):
+            p = f"/sys/class/hwmon/{h}"
+            try:
+                if open(f"{p}/name").read().strip() == "amdgpu":
+                    _SENSORE_MV = f"{p}/in0_input"
+                    break
+            except OSError:
+                continue
+        if _SENSORE_MV is None:
+            return None
+    try:
+        with open(_SENSORE_MV) as f:
+            return int(f.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+# ⚠️ AN SMU ACK IS NOT AN ARRIVAL, and this is the half that getting the order
+# right does not fix. Measured on the .32 on 03/09/2026 with misura-aggancio.py
+# and misura-rail.py, sixty steps per direction:
+#
+#   ForceGfxFreq  acknowledged in  66 us, clock actually there ~715 us later
+#   ForceGfxVid   acknowledged in 127 us, rail  actually there ~1800 us later
+#
+# Not once, in either direction, was the value already there on the first read
+# after the ack. So the second SMU message always went out into a window where
+# the first had not landed: stepping down, ~650 us at the OLD clock on the NEW,
+# lower rail; climbing, ~1100 us at the NEW clock on the OLD, lower rail.
+#
+# On a ceiling step of 50 MHz that is a 30 mV shortfall and nothing happens. On
+# the 2100 -> 350 the governor makes every time the load collapses in a game
+# menu, it is 2100 MHz at the idle point -- 725 mV when this was measured, 350 mV
+# under what that clock needs -- several times a second. The idle point is 700
+# since 04/09/2026, so the shortfall these waits close is 25 mV wider than the
+# figure above, not smaller. These two waits close both windows.
+#
+# The cap is deliberately loose (10 ms against a worst case of 2 ms) and the
+# waits never block: a sensor that stops answering costs one bounded pause, not
+# a stuck governor. The counters say whether the waiting is actually working.
+
+ATTESA_AGGANCIO = 0.01
+# ⚠️ Small on purpose, and it must stay smaller than the grid we command. Every
+# point this governor asks for is a multiple of 25 MHz, so a slack of 5 cannot
+# be satisfied by the neighbouring point -- which is exactly how the old slack of
+# 30 turned the descent wait into a no-op. Measured the same afternoon: the
+# firmware reports the forced clock exactly, never a rounded figure, so 5 is
+# already generous.
+TOLLERANZA_AGGANCIO = 5
+
+# How many consecutive 0 W readings mean the GPU has stopped answering rather
+# than the sensor having a bad moment. Three ticks is 0.6 s at the standard
+# interval -- long enough not to fire on a single dropped read, short enough to
+# stop moving before the next ceiling step. See giro().
+LETTURE_MUTE_MAX = 3
+ATTESE = {"freq_ok": 0, "freq_scaduta": 0, "volt_ok": 0, "volt_scaduta": 0}
+
+# How long we are willing to wait for the clock to come down when parking. Two
+# orders of magnitude more than ATTESA_AGGANCIO, and deliberately so: parking
+# happens once, on the way out, and getting it right matters more than the
+# microseconds. The measured relock is ~715 us.
+ATTESA_PARCHEGGIO = 0.5
+
+
+def c_e_il_governor_di_serie():
+    """Is cyan-skillfish-governor still there to hand the clock back to?
+
+    ⚠️ Duplicated, near enough, in skillfish-vf-watchdog. That is on purpose: the
+    watchdog has to be able to answer this question with the governor already
+    dead, so it cannot import anything from here.
+    """
+    try:
+        r = subprocess.run(
+            ["systemctl", "is-enabled", "cyan-skillfish-governor.service"],
+            capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() not in ("masked", "masked-runtime", "not-found", "")
+    except Exception:
+        # If we cannot tell, assume it is NOT there. Assuming it is would mean
+        # unforcing into nothing, and that is the failure we are fixing.
+        return False
+
+
+def aspetta_frequenza(mhz, scendendo=True):
+    """Poll until the clock has really reached mhz. Bounded, never blocks.
+
+    ⚠️ THE TEST IS DIRECTIONAL, and until 04/09/2026 it was not. It asked for
+    abs(f - mhz) <= 30, and the ceiling moves in steps of 25: coming down from
+    2100 to 2075 the very first reading -- still the old 2100 -- satisfied
+    |2100 - 2075| = 25 <= 30, so the wait returned after about thirty
+    microseconds having waited for nothing at all, and the rail went down under a
+    clock that had not moved yet.
+
+    Measured on bc250-dev that afternoon, rail held high, one step at a time:
+
+        2100->2075   0.98 ms     2100->1900   0.74 ms
+        2100->2050   0.79 ms     2100->1500   0.74 ms
+        2100->2000   0.71 ms
+
+    So a descent really does take about three quarters of a millisecond, whether
+    it is 25 MHz or 600, and the wait was doing its job on every step bigger than
+    30 MHz and skipping it on exactly the steps the thermal ceiling makes. The
+    window was small -- 15 mV for 0.7 ms -- but it is the same shape as the hang
+    of 03/09/2026, and on a board whose faults live in the ramp rather than at
+    the steady point (see the silicon lottery) small and rare is how those look.
+
+    Coming down, the only reading that means "arrived" is one at or below the
+    target; going up, at or above. Never a distance, in either direction.
+    """
+    fine = time.perf_counter() + ATTESA_AGGANCIO
+    while time.perf_counter() < fine:
+        f = smu(MSG_GET_FREQ)
+        if f is None:
+            break
+        if (f <= mhz + TOLLERANZA_AGGANCIO if scendendo
+                else f >= mhz - TOLLERANZA_AGGANCIO):
+            ATTESE["freq_ok"] += 1
+            return True
+    ATTESE["freq_scaduta"] += 1
+    return False
+
+
+def aspetta_tensione(mv):
+    """Poll the rail until it has come UP to mv. Bounded, never blocks.
+
+    ⚠️ Only ever waited on the way up. Waiting for the rail to come down would
+    be waiting for nothing we need: a clock that is already low is perfectly
+    safe on a rail that is still high, and the descent is what we hurry.
+    """
+    partenza = millivolt()
+    if partenza is None:
+        ATTESE["volt_scaduta"] += 1
+        return False
+    if partenza >= mv - 15:
+        ATTESE["volt_ok"] += 1
+        return True
+
+    # ⚠️ DO NOT WAIT FOR THE FIGURE WE ASKED FOR. Under load the rail never gets
+    # there: measured droop on this board is 29 mV at 2100 and 31-42 at 2200, so
+    # asking for 1075 and waiting to read 1075 is waiting for something that will
+    # not happen while the GPU is busy. On 03/09/2026 that turned 9% of the
+    # climbs into a flat 10 ms pause taken at the busiest moments -- the wait
+    # never succeeded, it only ever expired.
+    #
+    # Wait for most of the CLIMB instead. Droop shifts where the rail lands; it
+    # does not stop it from rising, and 70% of the step is enough to know the
+    # regulator has moved before we put the clock on top of it.
+    traguardo = partenza + int((mv - partenza) * 0.7)
+    fine = time.perf_counter() + ATTESA_AGGANCIO
+    while time.perf_counter() < fine:
+        v = millivolt()
+        if v is None:
+            break
+        if v >= traguardo:
+            ATTESE["volt_ok"] += 1
+            return True
+    ATTESE["volt_scaduta"] += 1
+    return False
+
+
+def fence_fatte():
+    """Completed submissions on the graphics ring: moves for compute too."""
+    try:
+        with open(FENCE, "rb") as f:
+            testo = f.read(200).replace(b"\x00", b"").decode("utf-8", "replace")
+    except OSError:
+        return None
+    for riga in testo.splitlines():
+        if "Last signaled fence" in riga:
+            for p in riga.split():
+                if p.startswith("0x"):
+                    return int(p, 16)
+    return None
+
+
+class Grbm:
+    """Samples the graphics-busy bit at 100 Hz so the climb can be immediate.
+
+    Keeps a second of history and answers "how busy over the last N seconds",
+    which lets the same source feed a fast signal for climbing and a slower one
+    for backing off.
+
+    ⚠️ NOT through debugfs. amdgpu_regs returns 0x00000000 for every register on
+    this kernel -- checked against GB_ADDR_CONFIG, which cannot legitimately be
+    zero -- so a sampler built on it reports an idle board and a loaded board
+    identically. The register has to come through libdrm's READ_MMR ioctl, the
+    same path radeontop uses. Cross-checked under glmark2: 70% here against
+    radeontop's 76%, at 10 ms granularity instead of one second.
+    """
+
+    PASSO = 0.01
+    STORIA = 1.0
+
+    def __init__(self):
+        self.campioni = collections.deque()
+        self.vivo = False
+        self.fermare = False
+        self.fd = None
+        self.dev = None
+        self.offset = None
+        try:
+            self.lib = ctypes.CDLL("libdrm_amdgpu.so.1")
+        except OSError:
+            return
+        self.lib.amdgpu_device_initialize.argtypes = [
+            ctypes.c_int, ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_void_p)]
+        self.lib.amdgpu_read_mm_registers.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint32,
+            ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32)]
+        try:
+            self.fd = os.open(NODO_DRM, os.O_RDWR)
+        except OSError:
+            return
+        dev = ctypes.c_void_p()
+        ma, mi = ctypes.c_uint32(), ctypes.c_uint32()
+        if self.lib.amdgpu_device_initialize(self.fd, ctypes.byref(ma), ctypes.byref(mi),
+                                             ctypes.byref(dev)) != 0:
+            return
+        self.dev = dev
+        self.val = ctypes.c_uint32()
+        for dw in GRBM_CANDIDATI:
+            if self._leggi(dw) is not None:
+                self.offset = dw
+                break
+        if self.offset is None:
+            return
+        self.vivo = True
+        threading.Thread(target=self._campiona, daemon=True).start()
+
+    def _leggi(self, dw):
+        if self.lib.amdgpu_read_mm_registers(self.dev, dw, 1, 0xffffffff, 0,
+                                             ctypes.byref(self.val)) != 0:
+            return None
+        return self.val.value
+
+    def _campiona(self):
+        while not self.fermare:
+            v = self._leggi(self.offset)
+            if v is None:
+                self.vivo = False       # fall back to radeontop from here on
+                return
+            ora = time.time()
+            self.campioni.append((ora, 1 if v & GUI_ACTIVE else 0))
+            limite = ora - self.STORIA
+            while self.campioni and self.campioni[0][0] < limite:
+                self.campioni.popleft()
+            time.sleep(self.PASSO)
+
+    def quota(self, secondi):
+        if not self.vivo:
+            return None
+        limite = time.time() - secondi
+        recenti = [b for (t, b) in tuple(self.campioni) if t >= limite]
+        if len(recenti) < 3:
+            return None
+        return sum(recenti) * 100.0 / len(recenti)
+
+    def chiudi(self):
+        self.fermare = True
+        if self.fd is not None:
+            try:
+                os.close(self.fd)
+            except OSError:
+                pass
+
+
+class Grafica:
+    """radeontop's GRBM busy percentage, once a second.
+
+    Kept as the fallback for Grbm and as a cross-check while we confirm the two
+    agree on hardware. Too slow to steer by on its own.
+    """
+
+    def __init__(self):
+        self.valore = 0.0
+        self.proc = None
+        try:
+            self.proc = subprocess.Popen(
+                ["radeontop", "-d", "-", "-i", "1"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            threading.Thread(target=self._leggi, daemon=True).start()
+        except FileNotFoundError:
+            pass
+
+    def _leggi(self):
+        for riga in self.proc.stdout:
+            if "gpu " in riga:
+                try:
+                    self.valore = float(riga.split("gpu ")[1].split("%")[0])
+                except (IndexError, ValueError):
+                    pass
+
+    def chiudi(self):
+        if self.proc:
+            self.proc.terminate()
+
+
+# --- the curve ---------------------------------------------------------------
+
+def mv_per(curva, mhz):
+    """Interpolate the measured floor, clamped to the declared range at both ends."""
+    if mhz <= curva[0][0]:
+        mv = curva[0][1]
+    elif mhz >= curva[-1][0]:
+        mv = curva[-1][1]
+    else:
+        mv = curva[-1][1]
+        for (f1, v1), (f2, v2) in zip(curva, curva[1:]):
+            if f1 <= mhz <= f2:
+                mv = round(v1 + (v2 - v1) * (mhz - f1) / (f2 - f1))
+                break
+    return min(max(mv, MV_MINIMI), MV_MASSIMI)
+
+
+def mv_bersaglio(curva, mhz, sale, margine):
+    """The rail we actually ask for: the curve, plus a margin when CLIMBING.
+
+    Returns (mv, margine_reale), the second being how much of the margin survived
+    the clamp -- see below, it is not always all of it.
+
+    ⚠️ WHY ONLY CLIMBING. On 04/09/2026 bc250-dev hung at 15:02:51 inside an
+    upward transition, at 100 per cent load, on the fifth 25 MHz rung of a ceiling
+    recovery ramp: 1900 -> 1925 -> 1950 -> 1975 -> 2000 -> 2025, one rung every
+    0.6 s, each of them raising the rail. The trail's last line was the CAMBIO to
+    2025 MHz / 1030 mV with no confirmation after it, so neither SMU message ever
+    came back. Nothing had collapsed: the load was full and the board was drawing
+    123-203 W.
+
+    The reading that fits: the curve is measured at its KNOTS, and only there.
+    1925, 1950, 1975 and 2025 are not knots -- they are points the curve INVENTS
+    by interpolation, and nobody ever ran a ring on them. A straight line between
+    two validated points is an assumption about the silicon in between, and this
+    is the board that lost the silicon lottery, where 40 mV over the stock curve
+    made calculation errors disappear -- errors that were, every one of them, in
+    the ramp and not at the settled point.
+
+    ⚠️ AND ONLY WHILE IT LASTS. The margin is not taken off again by a write of
+    its own: dropping the rail underneath a clock that is staying put is the one
+    move that hangs this board, and it is the move the whole ordering logic exists
+    to avoid. So the margin lives until the next change, and the next DESCENT
+    lands on the plain curve value -- which is safe, because a descent lowers the
+    frequency first and the rail follows it down.
+
+    ⚠️ AND IT SHRINKS AT THE TOP, silently, because MV_MASSIMI is a limit of the
+    hardware and not a preference: at 2100 the shipped curve asks 1075 and the
+    margin fits, at 2200 it asks 1125 and only 4 mV of the 40 are left. That is
+    why the real margin comes back out of here and goes in the trail: a run where
+    the margin was truncated has not tested the margin.
+    """
+    base = mv_per(curva, mhz)
+    if not sale or margine <= 0:
+        return base, 0
+    dato = min(max(base + margine, MV_MINIMI), MV_MASSIMI)
+    return dato, dato - base
+
+
+# --- the governor ------------------------------------------------------------
+
+class Traccia:
+    """A trail on disk, one line a second, plus a line for anything unusual.
+
+    ⚠️ EVERY LINE IS FSYNCED, and that is the entire point of this class. A hang
+    is not a shutdown: whatever is still sitting in the page cache when the board
+    stops answering is never written down. On 04/09/2026 that is precisely what
+    happened to the journal -- its last flushed line was 09:16:17 on a board that
+    went on drawing frames until 09:16:55, so the thirty-eight seconds that
+    mattered were the thirty-eight seconds we could not read. A trail that needs
+    the machine to survive in order to be readable is not a trail.
+
+    One fsync a second on a file of this size is nothing next to what journald
+    already does, and it buys the only thing we care about: the last line is on
+    the platter before the next one is written.
+
+    ⚠️ ONE LINE A SECOND IS NOT ENOUGH TO READ A RAMP, and the freeze of
+    11:39:08 on 04/09/2026 is why. The control loop runs at 5 Hz, so between two
+    heartbeats there are five decisions: the trail showed 1800 MHz and then
+    2000 MHz a second later, which is not one step of 200 but at least two steps
+    in opposite directions, and the pair actually on the chip when the board died
+    was not in the file at all. So every change of operating point now writes its
+    own line, BEFORE the SMU is touched -- see cambio().
+
+    The previous run is kept as <file>.1 and never touched again. The run worth
+    reading is always the one that ended badly, and the next boot must not be the
+    thing that erases it.
+    """
+
+    def __init__(self, percorso=TRACCIA, righe_max=TRACCIA_RIGHE):
+        self.percorso = percorso
+        self.righe_max = righe_max
+        self.righe = 0
+        self.ultimo_battito = 0.0
+        self.f = None
+        # State of the transition in flight, carried onto the NEXT line so that
+        # confirming a change costs no extra fsync. See cambio()/passo()/fine().
+        self.aperto = None      # monotonic time the change started, or None
+        self.passi = ""         # steps of it that have completed so far
+        self.durata = None      # ms the last completed change took
+        # ⚠️ percorso=None is the dry run, and it has to be a no-op and not a
+        # write to /dev/null: the first thing _apri does is rename the target out
+        # of the way, and as root that would rename /dev/null itself.
+        if percorso is None:
+            return
+        try:
+            os.makedirs(os.path.dirname(percorso), exist_ok=True)
+            self._apri()
+        except OSError as e:
+            # Not fatal. A governor that refuses to run because it cannot keep a
+            # diary is worse than a governor with no diary.
+            print(f"  traccia su disco non disponibile: {e}", flush=True)
+
+    def _apri(self, nuovo_giro=True):
+        """Open a fresh trail, putting the old one somewhere it will survive.
+
+        ⚠️ A NEW RUN GOES TO .1, A ROTATION MID-RUN GOES TO .2, and mixing the
+        two costs exactly the evidence we built this for. Measured 04/09/2026:
+        the board hung at 15:02:51, came back, and the watchdog's trail of the
+        hang was gone within the hour -- not because of a reboot, but because the
+        NEW run reached its line limit and rotated its own chunk onto .1, on top
+        of the hang. The governor's survived only because its limit is larger.
+        A file that says "the previous run" has to keep saying that no matter how
+        long the current one goes on.
+        """
+        try:
+            os.replace(self.percorso,
+                       self.percorso + (".1" if nuovo_giro else ".2"))
+        except OSError:
+            pass
+        self.f = open(self.percorso, "w")
+        self.righe = 0
+
+    def _coda(self):
+        """How the previous change ended, appended to whatever line comes next.
+
+        Free by construction: no line of its own and no fsync of its own. The
+        alternative -- a second line to close every change -- would double the
+        fsync rate during a ramp, which is exactly the moment we must not slow
+        the control loop down, because the ramp is what we are trying to observe.
+        """
+        if self.aperto is not None:
+            # Still inside a change: applica() gave up half way, which it does
+            # when an SMU write fails. That is worth saying out loud.
+            passi = self.passi or "nessun passo"
+            self.aperto = None
+            self.passi = ""
+            return f"   [prec. INTERROTTO dopo {passi}]"
+        if self.durata is not None:
+            testo = f"   [prec: {self.passi or '?'} in {self.durata:.1f}ms]"
+            self.durata = None
+            self.passi = ""
+            return testo
+        return ""
+
+    def cambio(self, da, a, mv_da, mv_a, verso, margine=0):
+        """One line for every change of operating point, BEFORE touching the SMU.
+
+        ⚠️ BEFORE, not after, and that is the whole design. A line written after
+        a change has succeeded only ever tells us about changes that did not kill
+        the board. The one we need is the last one, the one that never finished:
+        written first, it is already on the platter when the machine stops, and
+        it names the exact pair the chip was being moved to and from, and in
+        which direction.
+
+        Cost: one fsync per change, so five a second at the very worst, and only
+        while the clock is actually moving. Idling on a steady point writes
+        nothing beyond the usual heartbeat.
+        """
+        if self.f is None:
+            return
+        # riga() flushes the outcome of the PREVIOUS change onto this line, so it
+        # has to run before we declare the new one open.
+        # The margin is the REAL one, after the clamp at MV_MASSIMI: a truncated
+        # margin has to be visible here or a run gets credited with volts it
+        # never had. See mv_bersaglio.
+        extra = f" (+{margine} mV)" if margine else ""
+        self.riga(f"CAMBIO {da}->{a} MHz  {mv_da}->{mv_a} mV{extra}  {verso}")
+        self.aperto = time.monotonic()
+        self.passi = ""
+
+    def passo(self, nome):
+        """A step of the change in flight is done: 'V', 'F', or a wait."""
+        self.passi += nome
+
+    def fine(self):
+        """The change in flight completed. Recorded, not written: see _coda."""
+        if self.aperto is not None:
+            self.durata = (time.monotonic() - self.aperto) * 1000.0
+            self.aperto = None
+
+    def riga(self, testo):
+        if self.f is None:
+            return
+        testo += self._coda()
+        ora = time.time()
+        try:
+            self.f.write("%s.%03d %s\n"
+                         % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ora)),
+                            int(ora * 1000) % 1000, testo))
+            self.f.flush()
+            os.fsync(self.f.fileno())
+        except OSError:
+            return
+        self.righe += 1
+        if self.righe >= self.righe_max:
+            try:
+                self.f.close()
+                self._apri(nuovo_giro=False)   # .2, so .1 stays the last run
+            except OSError:
+                self.f = None
+
+    def battito(self, ora, mhz, mv, tetto, gradi_, watt_, carico):
+        """The ordinary line. Rate-limited to one a second, on purpose.
+
+        The control loop runs five times a second; a trail at that rate would be
+        five fsyncs a second forever to record a number that hardly ever changes.
+        One a second is enough to place a freeze to the second, which is all we
+        got out of MangoHud and all we need.
+        """
+        if ora - self.ultimo_battito < 1.0:
+            return
+        self.ultimo_battito = ora
+        self.riga(f"{mhz} MHz {mv} mV  tetto {tetto}  {gradi_}C {watt_}W  "
+                  f"carico {carico:.0f}%")
+
+
+class Governor:
+    def __init__(self, c, prova, parlante):
+        self.c = c
+        self.prova = prova
+        self.parlante = parlante
+        self.tetto = c["freq_max"]
+        self.freq = c["freq_min"]
+        self.droop = 0          # mV di compensazione, misurati sul rail vivo
+        self.riagganci = 0      # quante volte abbiamo dovuto rimandare il comando
+        self.crollato_da = 0    # giri consecutivi con il clock a terra
+        self.applicata = None
+        # letture lente di fila con il carico sotto soglia: si scende solo
+        # quando ne sono passate abbastanza (vedi conferme_giu)
+        self.giu_di_fila = 0
+        # The mV actually on the rail, which is NOT mv_per(curva, applicata) once
+        # an ascent margin is in play. Everything that reports the rail reads
+        # this, so that the trail and the console say what we set.
+        self.mv_applicata = None
+        self.grbm = Grbm()
+        self.grafica = Grafica()
+        self.fence_storia = collections.deque()
+        self.fence_quota = 0.0
+        self.fence_ritmo = 0.0
+        self.fermare = False
+        self.prossimo_lento = 0.0
+        self.ultima_discesa = 0.0    # when the ceiling last had to give ground
+        self.storia_watt = collections.deque()   # (time, W) behind the recovery
+        self.muti = 0            # consecutive package-power readings of 0 W
+        self.watt_visti = False  # ...and whether we ever saw a real one at all,
+                                 # so a board with no amdgpu hwmon at all does
+                                 # not spend its life convinced the GPU is gone
+        # ⚠️ Opened BEFORE calibra(), which takes a couple of seconds sampling the
+        # board. If something goes wrong in there we want it in the trail too.
+        self.traccia = Traccia(None if prova else TRACCIA)
+        # The margin goes in the startup line because it is the one setting that
+        # changes what the trail MEANS: two runs with different margins are two
+        # different experiments, and after the fact the file has to say which.
+        self.traccia.riga(f"avvio: curva {c['curva'][0][0]}-{c['curva'][-1][0]} MHz, "
+                          f"tetto {c['freq_max']}, limiti {c['gradi_max']}C "
+                          f"{c['watt_max']}W, margine salita "
+                          f"{c['margine_salita']} mV")
+        self.riposo = self.calibra()
+        if parlante and not self.grbm.vivo:
+            print("  GRBM diretto non disponibile: uso radeontop (1 s di ritardo)")
+
+    def calibra(self):
+        """Measure this board's idle fence rate instead of assuming one.
+
+        A desktop at rest still submits work -- the compositor alone was 26/s on
+        one board -- and the figure is not the same on another machine or with a
+        different desktop. Hardcoding it made an idle board read 100% busy.
+
+        We keep the PEAK of the windowed rate, not the mean. An idle KDE desktop
+        does not submit steadily: it does nothing for a while and then a burst,
+        so a mean-based threshold is exceeded by ordinary idle several times a
+        minute. Measured on the dev board, that alone drove the clock from 350 to
+        2200 and back roughly every two seconds with nothing running.
+        """
+        picco = 0.0
+        fine = time.time() + 3.0
+        while time.time() < fine:
+            time.sleep(self.c["finestra_fence"] / 2)
+            r = self.ritmo_fence()
+            if r is not None:
+                picco = max(picco, r)
+        if self.parlante:
+            print(f"  riposo misurato: picco {picco:.0f} operazioni al secondo")
+        return max(picco, 10.0)
+
+    def ritmo_fence(self):
+        """Submissions per second over the last finestra_fence seconds.
+
+        A window rather than a tick-to-tick delta: over 0.2 s the counter moves
+        by single digits and the derived rate is mostly quantisation noise.
+        """
+        f = fence_fatte()
+        ora = time.time()
+        if f is None:
+            return None
+        self.fence_storia.append((ora, f))
+        limite = ora - self.c["finestra_fence"]
+        while len(self.fence_storia) > 2 and self.fence_storia[0][0] < limite:
+            self.fence_storia.popleft()
+        t0, f0 = self.fence_storia[0]
+        dt = ora - t0
+        return None if dt < 0.3 else (f - f0) / dt
+
+    def aggiorna_fence(self):
+        """Compute load, refreshed on the slow cadence.
+
+        Compute jobs run for seconds at a time; there is nothing to gain from
+        sampling this as fast as the graphics signal.
+
+        The threshold is deliberately far above idle. This signal exists for one
+        case only -- a compute job, which GRBM cannot see -- and a real one sits
+        orders of magnitude above a desktop's background chatter, so demanding
+        several times idle costs nothing in detection and buys immunity to the
+        bursts that made the first version unusable.
+        """
+        r = self.ritmo_fence()
+        if r is None:
+            return
+        self.fence_ritmo = r
+        soglia = self.riposo * self.c["fattore_fence"]
+        self.fence_quota = min(100.0, max(0.0, (r - soglia) / max(soglia, 10) * 100))
+
+    def carico(self):
+        """Two figures from one source: fast to climb on, slow to back off on.
+
+        Asymmetric on purpose. A single busy sample is enough to justify going
+        up -- the cost of being wrong is a few watts. Going down on a single
+        idle sample would drop the clock between two frames.
+        """
+        veloce = self.grbm.quota(self.c["finestra_veloce"])
+        lento = self.grbm.quota(self.c["finestra_lenta"])
+        if veloce is None or lento is None:
+            veloce = lento = self.grafica.valore
+        return max(veloce, self.fence_quota), max(lento, self.fence_quota)
+
+    def applica(self, mhz):
+        mhz = max(self.c["freq_min"], min(self.c["freq_max"], int(mhz)))
+        if mhz == self.applicata:
+            return
+        # ⚠️ THE FIRST CHANGE HAS NO "FROM", and it used to be called an ascent by
+        # default. Two things wrong with that, both found on 04/09/2026 the moment
+        # the margin made them visible:
+        #
+        #  - the first point this governor sets is the parking point, 350 MHz, and
+        #    calling it a climb gave the idle board 740 mV instead of the 700 that
+        #    was measured safe there. Nothing ever descends from idle, so the extra
+        #    volts would have stayed on the rail for the whole session.
+        #  - worse, the ordering. We start by stopping the stock governor, so the
+        #    clock can be anywhere -- 2000 MHz is perfectly possible -- and an
+        #    "ascent" sets the rail FIRST. Dropping to 700 mV under a clock still
+        #    at 2000 is precisely the pair that hangs this board.
+        #
+        # So we ask the firmware where the clock actually is. If it will not say,
+        # assume the top: from there every real move is a descent, and a descent
+        # moves the frequency first and leaves the rail high until it has arrived.
+        # A rail too high costs watts, a rail too low costs the board.
+        if self.applicata is None:
+            corrente = smu(MSG_GET_FREQ)
+            partenza = corrente if corrente else self.c["freq_max"]
+        else:
+            partenza = self.applicata
+        sale = mhz > partenza
+        mv, margine = mv_bersaglio(self.c["curva"], mhz, sale,
+                                   self.c["margine_salita"])
+        # ⚠️ La curva dice il pavimento; al silicio arriva MENO, e quanto meno
+        # dipende dal carico. La compensazione la misura il ciclo principale
+        # leggendo il rail, qui si limita a sommarla.
+        if self.c.get("droop_attivo") and mhz >= self.c.get("droop_da", 1600):
+            mv = min(mv + self.droop, MV_MASSIMI)
+        # ⚠️ The mV we are coming FROM is the one we actually set, not the curve
+        # value for that frequency: with a margin in play the two differ, and the
+        # trail has to say what was on the rail, not what the curve would have
+        # asked for.
+        # "~2000" means the firmware told us, rather than us remembering.
+        self.traccia.cambio(self.applicata if self.applicata else f"~{partenza}",
+                            mhz,
+                            self.mv_applicata if self.mv_applicata else "?",
+                            mv, "su" if sale else "giu", margine)
+        if self.prova:
+            print(f"  [prova] applicherei {mhz} MHz a {mv} mV")
+        elif sale:
+            # ⚠️ THE ORDER DEPENDS ON THE DIRECTION, and getting it wrong hangs
+            # the board. Voltage and frequency are two separate SMU messages, so
+            # between them the chip runs at one of the two new values with the
+            # other still old. Climbing, the safe half is the new voltage: raise
+            # it first and the frequency arrives to a rail that is already high
+            # enough.
+            if not smu(MSG_FORCE_VID, vid_da_mv(mv)):
+                # No point raising the clock onto a rail we failed to raise.
+                # The trail will say "INTERROTTO dopo nessun passo".
+                return
+            self.traccia.passo("V")
+            # ...and "raised" has to mean arrived, not acknowledged. Without this
+            # the clock went up about a millisecond before the volts did.
+            # ⚠️ L'ESITO DELL'ATTESA E' VINCOLANTE. Era ignorato: si alzava il
+            # clock anche col rail non arrivato, e i contatori dicono che non
+            # arriva UNA VOLTA SU DUE.
+            if not aspetta_tensione(mv):
+                self.traccia.passo("!attesa")
+                self.traccia.fine()
+                return
+            self.traccia.passo("+attesa")
+            # ⚠️ E si legge cosa risponde il firmware: sopra una certa frequenza
+            # rifiuta (2200 passa, 2250 no) e nessuno lo guardava.
+            if not smu(MSG_FORCE_FREQ, mhz):
+                self.traccia.passo("!F")
+                self.traccia.fine()
+                return
+            self.traccia.passo("+F")
+        else:
+            # Coming down the safe half is the new frequency. This is what was
+            # wrong until 03/09/2026: the voltage went first in both directions,
+            # so every step down left the GPU at the OLD clock on the NEW, lower
+            # rail -- dropping 2200 to 2100 meant 2200 MHz at 1075 mV, fifty
+            # millivolts under what that clock needs. One step is a moment; a
+            # game menu makes the governor step down over and over, and the board
+            # hard-hung with nothing in the kernel log.
+            if not smu(MSG_FORCE_FREQ, mhz):
+                self.traccia.passo("!F")
+                self.traccia.fine()
+                return
+            self.traccia.passo("F")
+            # And the clock has to have ARRIVED before the rail follows it down.
+            # The ack comes ~650 us early: same defect as above, one level under
+            # the ordering that was supposed to have fixed it.
+            # ⚠️ Vincolante anche scendendo: la tensione segue il clock solo
+            # quando il clock e' ARRIVATO. Un clock alto su un rail basso pianta.
+            if not aspetta_frequenza(mhz):
+                self.traccia.passo("!attesa")
+                self.traccia.fine()
+                return
+            self.traccia.passo("+attesa")
+            smu(MSG_FORCE_VID, vid_da_mv(mv))
+            self.traccia.passo("+V")
+        self.traccia.fine()
+        self.applicata = mhz
+        self.mv_applicata = mv
+
+    def parcheggia(self):
+        """Bring the clock to the bottom of the curve and HOLD it there.
+
+        ⚠️ NOT a release. Measured 04/09/2026 on bc250-dev, with the stock
+        governor gone: the bare firmware parks this board at 1500 MHz on 918 mV
+        drawing 59 W at idle and never comes down, and after a SIGKILL it simply
+        stays wherever we left it -- 2100 MHz, 88 W with no load at all, and no
+        thermal ceiling, because the thermal ceiling lives in this program. So
+        when there is nothing to hand back to we do not hand back. We park.
+
+        350 MHz on 700 mV is a measured-safe place to be left, and both halves of
+        that were measured: an ungoverned board pinned at 350 did 40 seconds of
+        full OpenCL load at 48 degrees with zero bad bits, and pinned at 350 on
+        700 mV specifically it did 71 rings, 2606 billion operations, still zero
+        bad bits, 46 degrees. That second run is the one that matters here: the
+        parked board is left alone, and a game that keeps submitting after the
+        governor has died is a load on a parked clock.
+
+        Descending, so the frequency goes first and the rail follows only once
+        the clock has ARRIVED. If it never arrives we leave the rail HIGH: a low
+        clock on a high rail wastes watts, a high clock on a low rail hangs the
+        board, and this code runs when nobody is left to pick up the pieces.
+        """
+        riposo = self.c["freq_min"]
+        mv = mv_per(self.c["curva"], riposo)
+        # ⚠️ Written BEFORE the SMU is touched, and fsynced. If the park itself is
+        # what hangs the board, a line written afterwards is a line nobody reads.
+        # This is the line that answers "who put the clock at the bottom", which
+        # on 04/09/2026 we could not answer at all.
+        self.traccia.riga(f"PARCHEGGIO (governor): vado a {riposo} MHz {mv} mV")
+        smu(MSG_FORCE_FREQ, riposo)
+
+        arrivato = False
+        fine = time.perf_counter() + ATTESA_PARCHEGGIO
+        while time.perf_counter() < fine:
+            f = smu(MSG_GET_FREQ)
+            if f is None:
+                break
+            # Descending, so at or below. Harmless here in practice -- parking
+            # comes down to 350 from far above and no old reading is within 30 of
+            # it -- but the distance test is the one that made the descent wait a
+            # no-op elsewhere, and it has no business surviving in the one piece
+            # of code that runs when nobody is left to pick up the pieces.
+            if f <= riposo + TOLLERANZA_AGGANCIO:
+                arrivato = True
+                break
+
+        if arrivato:
+            smu(MSG_FORCE_VID, vid_da_mv(mv))
+            print(f"  parcheggiato a {riposo} MHz, {mv} mV", flush=True)
+            self.traccia.riga(f"parcheggiato a {riposo} MHz {mv} mV")
+        else:
+            print(f"  parcheggio: il clock non e' sceso a {riposo}, "
+                  f"lascio la linea alta (e' lo stato sicuro)", flush=True)
+            self.traccia.riga("parcheggio: il clock non e' sceso, linea lasciata alta")
+        self.applicata = riposo
+        self.mv_applicata = mv
+
+    def libera(self):
+        if not self.prova:
+            self.traccia.riga("uscita: rilascio in corso")
+            if c_e_il_governor_di_serie():
+                # ⚠️ THE RELEASE ORDER IS THE MIRROR OF THE APPLY ORDER, and it
+                # was wrong here too. Unforcing the frequency first hands the
+                # clock back to the firmware while our rail is still pinned --
+                # and at idle we pin it at 700 mV, on which the firmware is free
+                # to ramp straight to 2200. Unforce the volts first and the
+                # firmware picks a voltage for the clock we are still holding,
+                # which is a voltage that clock can live at; then the frequency
+                # goes back too.
+                smu(MSG_UNFORCE_VID, 0)
+                smu(MSG_UNFORCE_FREQ, 0)
+                self.traccia.riga("rilasciato al governor di serie")
+            else:
+                # Nobody to hand back to. See parcheggia().
+                self.parcheggia()
+            print("  attese: frequenza %d ok / %d scadute, tensione %d ok / %d scadute"
+                  % (ATTESE["freq_ok"], ATTESE["freq_scaduta"],
+                     ATTESE["volt_ok"], ATTESE["volt_scaduta"]), flush=True)
+        self.grbm.chiudi()
+        self.grafica.chiudi()
+        try:
+            os.unlink(BATTITO)
+        except OSError:
+            pass
+
+    def muovi_tetto(self, ora, t, w):
+        """Heat and power decide how high we may go. Small steps, one exception.
+
+        Recovery is deliberately half the descent: an equal step would let the
+        board oscillate across gradi_max forever.
+
+        ⚠️ COMING BACK UP IS THE HALF THAT WAS WRONG. Until 03/09/2026 the
+        recovery only asked that the sample in front of it be below 90% of the
+        limit, and it asked once every slow tick. Power on this board swings a
+        hundred watts between two samples, so any descent was handed straight
+        back: 50 MHz down, then 25 and 25 up within a second. Measured over five
+        minutes in a game menu, the ceiling fired 22 times on watts and 4 times
+        on the breaking limit, and still sat at freq_max for 79% of the run --
+        the board spent a quarter of the time above watt_max and touched 228 W.
+
+        So the recovery now asks for three things instead of one: that some time
+        has passed since the last descent (attesa_rientro), that the AVERAGE over
+        that window is calm rather than the instant in front of us, and that calm
+        means below watt_ok, which is a real distance from watt_max and not 10%.
+        The descent is untouched and still reacts to a single sample: giving
+        ground must stay fast, taking it back is what has to be slow.
+        """
+        c = self.c
+        self.storia_watt.append((ora, w))
+        while ora - self.storia_watt[0][0] > c["attesa_rientro"]:
+            self.storia_watt.popleft()
+
+        motivo = ""
+        if t >= c["gradi_rottura"] or w >= c["watt_rottura"]:
+            self.tetto -= c["passo_tetto_urgente"]
+            self.ultima_discesa = ora
+            motivo = f"ROTTURA {t}C {w}W"
+        elif t >= c["gradi_max"]:
+            self.tetto -= c["passo_tetto_giu"]
+            self.ultima_discesa = ora
+            motivo = f"caldo {t}C"
+        elif w >= c["watt_max"]:
+            self.tetto -= c["passo_tetto_giu"]
+            self.ultima_discesa = ora
+            motivo = f"watt {w}"
+        elif (self.tetto < c["freq_max"]
+              and ora - self.ultima_discesa >= c["attesa_rientro"]):
+            medi = sum(x for _, x in self.storia_watt) / len(self.storia_watt)
+            if t <= c["gradi_ok"] and medi <= c["watt_ok"]:
+                self.tetto += c["passo_tetto_su"]
+                motivo = f"rientro {medi:.0f}W"
+        self.tetto = max(c["freq_min"], min(c["freq_max"], self.tetto))
+        return motivo
+
+    def giro(self):
+        c = self.c
+        ora = time.time()
+        t, w = gradi(), watt()
+
+        # ⚠️ A package power of exactly zero on a board that idles at 29 W is not
+        # a reading: it is the GPU not answering. Measured in the seconds before
+        # the freeze of 11:39:08 on 04/09/2026, with a game running and the clock
+        # at 2100: carico 100 -> 2 -> 6 -> 0 per cent and watt 99 -> 88 -> 0 ->
+        # 90. Whatever that was, the one thing this program must not do while it
+        # is happening is start a V/F transition. A transition is the only moment
+        # we leave the chip on a pair it was not designed to sit on, and the
+        # BC-250 documentation is explicit that a governor still driving the SMU
+        # through a GPU crash is what stops the driver recovering from it.
+        #
+        # So we HOLD the point. Not park: parking is itself a descent, and a
+        # descent is a transition. Holding changes nothing on the chip, and the
+        # rail under the current clock is by construction already right for it.
+        #
+        # The heartbeat keeps being written throughout, on purpose -- if it
+        # stopped, the watchdog would step in and park, which is the descent we
+        # are refusing to do.
+        if w == 0 and self.watt_visti:
+            self.muti += 1
+        else:
+            if w:
+                self.watt_visti = True
+            if self.muti >= LETTURE_MUTE_MAX:
+                self.traccia.riga(f"la GPU risponde di nuovo dopo {self.muti} "
+                                  f"letture a 0 W: riprendo a muovere")
+            self.muti = 0
+        inchiodato = self.muti >= LETTURE_MUTE_MAX
+        if self.muti == LETTURE_MUTE_MAX:
+            self.traccia.riga(f"{self.muti} letture a 0 W di fila: la GPU non "
+                              f"risponde, INCHIODO il punto a {self.applicata} "
+                              f"MHz e non tocco piu' l'SMU")
+
+        lento_ora = ora >= self.prossimo_lento
+        if lento_ora:
+            self.prossimo_lento = ora + c["cadenza_lenta"]
+            self.aggiorna_fence()
+
+        veloce, lento = self.carico()
+        motivo_tetto = self.muovi_tetto(ora, t, w) if lento_ora else ""
+
+        if c.get("isteresi_fine"):
+            # ⚠️ Due soglie per lato, prese da Oberon: la soglia alta salta agli
+            # estremi, quella bassa si muove di un gradino. Sotto un carico che
+            # ondeggia — un gioco vero — la frequenza si assesta invece di
+            # rimbalzare fra tetto e fondo, e ogni rimbalzo risparmiato e' una
+            # transizione in meno, cioe' un'occasione in meno di piantarsi.
+            # ⚠️ Il carico VELOCE per salire, il LENTO per scendere: salire tardi
+            # si paga in fotogrammi, scendere presto si paga in stabilita'.
+            if veloce >= c["carico_salto"]:
+                self.freq = self.tetto
+                self.giu_di_fila = 0
+                motivo = f"salto {veloce:.0f}%"
+            elif veloce >= c["carico_passo_su"]:
+                self.freq = min(self.tetto, self.freq + c["gradino"])
+                self.giu_di_fila = 0
+                motivo = f"+1 ({veloce:.0f}%)"
+            elif lento <= c["carico_fondo"] and lento_ora:
+                # ⚠️ anche il tuffo al fondo vuole le sue conferme: una
+                # schermata di caricamento e' "ferma" per la GPU e senza
+                # conferme il governor parcheggia a 350 in mezzo al gioco
+                self.giu_di_fila += 1
+                if self.giu_di_fila >= c.get("conferme_giu", 3):
+                    self.freq = c["freq_min"]
+                    self.giu_di_fila = 0
+                    motivo = f"fondo ({lento:.0f}%)"
+                else:
+                    motivo = f"aspetto il fondo ({lento:.0f}%, {self.giu_di_fila})"
+            elif lento <= c["carico_passo_giu"] and lento_ora:
+                self.giu_di_fila += 1
+                if self.giu_di_fila >= c.get("conferme_giu", 3):
+                    self.freq = max(c["freq_min"], self.freq - c["gradino"])
+                    self.giu_di_fila = 0
+                    motivo = f"-1 ({lento:.0f}%)"
+                else:
+                    motivo = f"aspetto ({lento:.0f}%, {self.giu_di_fila})"
+            else:
+                # ⚠️ si azzera SOLO su una lettura lenta: nei giri veloci il
+                # carico non e' stato guardato, e azzerare li' significa non
+                # scendere mai piu'
+                if lento_ora:
+                    self.giu_di_fila = 0
+                motivo = f"fermo ({lento:.0f}%)"
+        elif veloce >= c["carico_su"]:
+            # ⚠️ NON PIU' DRITTO AL TETTO: l'08/09/2026 due blocchi su un salto
+            # da 350 a 2230 MHz in un giro solo, col carico all'1%.
+            self.freq = min(self.tetto, self.freq + c.get("passo_su", 400))
+            motivo = f"su {veloce:.0f}%"
+        elif lento <= c["carico_giu"] and lento_ora:
+            self.freq -= c["passo_giu"]
+            motivo = f"respira ({lento:.0f}%)"
+        else:
+            motivo = f"stabile ({lento:.0f}%)"
+
+        # The ceiling always wins: this is how a thermal event reaches the clock,
+        # one 50 MHz step at a time instead of one 300 MHz drop.
+        self.freq = max(c["freq_min"], min(self.freq, self.tetto))
+
+        # --- il clock e' davvero dove lo abbiamo messo? ---------------------
+        # ⚠️ Il governor puo' credere di aver applicato 2100 mentre il chip sta
+        # a 350: successo l'08/09 con il governor inchiodato, e per 109 secondi
+        # su 150 di banco. Senza questo controllo non se ne accorge nessuno,
+        # perche' MSG_GET_FREQ ripete la richiesta invece di misurare.
+        if self.applicata and self.applicata > c["freq_min"]:
+            vera = frequenza_vera()
+            if vera is not None and vera < self.applicata * 0.8:
+                self.crollato_da += 1
+                # si riprova, ma non a raffica: sparare richieste ogni 200 ms su
+                # una scheda che non risponde e' rumore, non una correzione
+                if self.crollato_da <= 3 or self.crollato_da % 25 == 0:
+                    self.riagganci += 1
+                    print(f"  clock crollato: chiesti {self.applicata} MHz, "
+                          f"il sensore ne legge {vera} — rimando il comando "
+                          f"({self.riagganci})", flush=True)
+                    self.applicata = None      # forza la riapplicazione completa
+                    self.mv_applicata = None
+            else:
+                self.crollato_da = 0
+
+        # --- inseguimento del rail ------------------------------------------
+        # ⚠️ Si guarda quello che ARRIVA, non quello che si e' chiesto. Con
+        # Superposition il rail cade di 100 mV sotto il valore di curva e il
+        # chip finisce sotto il suo pavimento: e' li' che nascono gli errori di
+        # parita' e i bit sbagliati negli indirizzi.
+        if c.get("droop_attivo") and self.applicata and \
+                self.applicata >= c.get("droop_da", 1600):
+            vero = millivolt()
+            pavimento = mv_per(c["curva"], self.applicata)
+            if vero is not None:
+                if vero < pavimento - c.get("droop_tolleranza", 10):
+                    # sotto il pavimento: si sale SUBITO, un errore di calcolo
+                    # costa la scheda, qualche grado no
+                    self.droop = min(c.get("droop_max", 120),
+                                     self.droop + c.get("droop_su", 15))
+                elif vero > pavimento + c.get("droop_tolleranza", 10) * 3:
+                    # abbondantemente sopra: si molla piano, per non oscillare
+                    self.droop = max(0, self.droop - c.get("droop_giu", 5))
+
+        if not inchiodato:
+            self.applica(self.freq)
+        self.freq = self.applicata
+
+        with open(BATTITO, "w") as f:
+            f.write(f"{ora} {self.applicata} {self.tetto} {t} {w} {lento:.0f}\n")
+
+        self.traccia.battito(ora, self.applicata, self.mv_applicata,
+                             self.tetto, t, w, lento)
+        if motivo_tetto:
+            # The ceiling moving is rare and is exactly the kind of thing we want
+            # named in the trail, not averaged into a heartbeat line.
+            self.traccia.riga(f"tetto -> {self.tetto} ({motivo_tetto})")
+
+        if self.parlante and (lento_ora or motivo.startswith("su")):
+            print(f"  {self.applicata:>4} MHz  {self.mv_applicata:>4} mV"
+                  f"  tetto {self.tetto:>4}  {t:>3}C  {w:>3}W"
+                  f"  grbm {veloce:>3.0f}/{lento:>3.0f}%"
+                  f"  fence {self.fence_ritmo:>5.0f}/s={self.fence_quota:>3.0f}%"
+                  f"  rtop {self.grafica.valore:>3.0f}%   {motivo} {motivo_tetto}",
+                  flush=True)
+
+    def corri(self):
+        while not self.fermare:
+            self.giro()
+            time.sleep(self.c["intervallo"])
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--config", default=CONF_PREDEFINITA)
+    ap.add_argument("--dry-run", action="store_true",
+                    help="decide senza toccare il firmware")
+    ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--secondi", type=float, default=0,
+                    help="fermati da solo dopo N secondi (per le prove)")
+    a = ap.parse_args()
+
+    c = dict(PREDEFINITA)
+    if os.path.exists(a.config):
+        c.update(json.load(open(a.config)))
+
+    if not a.dry_run and os.geteuid() != 0:
+        sys.exit("serve root per parlare col firmware")
+
+    if not a.dry_run:
+        subprocess.run(["systemctl", "stop", "cyan-skillfish-governor"],
+                       check=False, capture_output=True)
+        time.sleep(1)
+
+    g = Governor(c, a.dry_run, a.verbose)
+
+    def basta(numero=0, *_):
+        # The single most useful line the trail can hold: it separates "somebody
+        # told us to stop" from "we stopped". On 04/09/2026 the clock went to the
+        # parking point in the same second a bench run ended, and there was no way
+        # left to tell which of the two had happened.
+        g.traccia.riga(f"segnale {numero} ricevuto, mi fermo")
+        g.fermare = True
+    signal.signal(signal.SIGTERM, basta)
+    signal.signal(signal.SIGINT, basta)
+
+    # ⚠️ daemon, and cancelled on the way out. A plain threading.Timer is not a
+    # daemon thread, so the process stays alive until it fires even after the
+    # loop has stopped and the clock has been released: on SIGTERM the board was
+    # correctly freed but the program hung around for the rest of the countdown.
+    orologio = None
+    if a.secondi:
+        orologio = threading.Timer(a.secondi, basta)
+        orologio.daemon = True
+        orologio.start()
+
+    try:
+        g.corri()
+    except BaseException as e:
+        g.traccia.riga(f"ECCEZIONE {type(e).__name__}: {e}")
+        raise
+    finally:
+        if orologio:
+            orologio.cancel()
+        g.libera()
+        if not a.dry_run:
+            subprocess.run(["systemctl", "start", "cyan-skillfish-governor"],
+                           check=False, capture_output=True)
+        print("  rilasciato, governor di serie riacceso")
+
+
+if __name__ == "__main__":
+    main()

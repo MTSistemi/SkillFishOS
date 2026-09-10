@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+    # ⚠️ LAST CHANCE NET, and it has to be written out longhand: by the time
+    # postrm runs, /usr/lib/skillfish-vf-governor/stock-governor has already been
+    # deleted, so it cannot be called from here. If the prerm did not manage to
+    # put the stock unit back -- it failed, or it was never run because the
+    # package was in a broken state -- the machine is left masked with the unit
+    # sitting in /var/lib and NO governor at all. That is the one outcome a
+    # removal must never produce.
+    RIPOSTIGLIO=/var/lib/skillfish-vf-governor/stock
+    UNITA=cyan-skillfish-governor.service
+    systemctl unmask "$UNITA" >/dev/null 2>&1 || true
+    if [ -f "$RIPOSTIGLIO/$UNITA" ] && [ ! -f "/etc/systemd/system/$UNITA" ]; then
+        mv "$RIPOSTIGLIO/$UNITA" "/etc/systemd/system/$UNITA" || true
+        if [ -d "$RIPOSTIGLIO/$UNITA.d" ] && [ ! -d "/etc/systemd/system/$UNITA.d" ]; then
+            mv "$RIPOSTIGLIO/$UNITA.d" "/etc/systemd/system/$UNITA.d" || true
+        fi
+    fi
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    if [ -f "$RIPOSTIGLIO/era-acceso" ]; then
+        systemctl enable "$UNITA" >/dev/null 2>&1 || true
+        rm -f "$RIPOSTIGLIO/era-acceso"
+    fi
+    systemctl start "$UNITA" >/dev/null 2>&1 || true
+
+    # /var/lib/skillfish-vf-governor is deliberately left in place even on purge:
+    # anything still in there is a file that belonged to someone else and that we
+    # failed to give back, and deleting it would be deleting the only copy.
+fi
+exit 0

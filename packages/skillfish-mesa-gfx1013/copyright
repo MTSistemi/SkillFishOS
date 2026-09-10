@@ -1,0 +1,12 @@
+Upstream: Mesa (https://gitlab.freedesktop.org/mesa/mesa), tag mesa-26.2.2
+License: MIT
+
+The GFX1013 compute-queue change carried on top of it comes from
+  DryhoppedIPA, bc250-gfx1013-fix — Copyright (c) 2026 DryhoppedIPA
+  https://github.com/DryhoppedIPA/bc250-gfx1013-fix
+  License: MIT
+
+NOT included here: the FSR 4 INT8 work by dmorazasanchez (bc250-fsr4). That
+repository carries no licence of any kind, so we have no permission to
+redistribute it or a binary built from it. Anyone who wants it can build it
+themselves from the original repository.

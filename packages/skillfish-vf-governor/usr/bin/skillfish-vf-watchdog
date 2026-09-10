@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+"""Release the forced clock if the governor stops looking after it.
+
+    skillfish-vf-watchdog [--soglia SECONDI]
+
+WHY. skillfish-vf-governor turns off the firmware's power management and takes
+its place. If it exits cleanly it puts everything back. If it is killed with
+SIGKILL, panics, or simply stops making progress, the board is left with a
+forced clock, a forced voltage, and nothing watching the temperature. This
+process is the answer to that: it watches the heartbeat file and, if it goes
+stale, it acts.
+
+WHAT "ACTS" MEANS DEPENDS ON WHAT IS LEFT. If cyan-skillfish-governor is still
+installed, we unforce and start it: it is better at idling this board than we
+are. If it has been taken away, unforcing would hand the clock to a firmware
+that has no sane idle state on this hardware -- measured 04/09/2026: 1500 MHz,
+918 mV, 59 W, forever -- so instead we PARK the board at 350 MHz and hold it.
+
+It also enforces an absolute temperature ceiling of its own. If the board is
+past it, the reason does not matter -- act first, ask later.
+
+Runs as a separate process on purpose: a guard sharing the address space of the
+thing it guards is not a guard. ⚠️ And it must OUTLIVE that thing: until
+04/09/2026 the unit carried StopWhenUnneeded=yes, which stopped this process the
+moment the governor left the active state -- crashes included. It was shut down
+at precisely the moment it existed for.
+"""
+import argparse
+import os
+import subprocess
+import time
+
+DBG = "/sys/kernel/debug/dri/0000:01:00.0"
+NODO_SMU = f"{DBG}/amdgpu_smu_send_raw"
+BATTITO = "/run/skillfish-vf-governor.battito"
+
+# ⚠️ A SEPARATE FILE FROM THE GOVERNOR'S, not the same one. Two processes
+# appending through two file objects interleave into something nobody can read,
+# and this one has to keep writing precisely when the other has stopped. Two
+# files, two timelines, and comparing them is the whole diagnosis: the last line
+# of each says how long each process lived.
+TRACCIA = "/var/lib/skillfish-vf-governor/traccia-guardiano"
+TRACCIA_RIGHE = 100000   # ~28 hours at a line a second; see _apri for why
+                         # the size limit and the per-run rotation must not
+                         # share a file name
+
+MSG_GET_FREQ = 0x37
+MSG_FORCE_FREQ = 0x39
+MSG_UNFORCE_FREQ = 0x3A
+MSG_FORCE_VID = 0x3B
+MSG_UNFORCE_VID = 0x3C
+GRADI_ROTTURA = 98      # past this, release no matter what the heartbeat says
+
+# Where we park the board when there is no stock governor to hand it back to.
+# Bottom of the shipped curve, and measured safe on both counts: 04/09/2026, a
+# board pinned at 350 MHz with no governor at all took 40 s of full OpenCL load
+# at 48 degrees with zero bad bits, and pinned at 350 on 700 mV specifically it
+# did 71 rings, 2606 billion operations, still zero bad bits, 46 degrees.
+#
+# ⚠️ 700 mV is the BOTTOM of OD_RANGE VDDC for this ASIC. It is not a number to
+# nudge downwards for another fraction of a watt: below it nothing is rated, and
+# the failure mode at the parking point is a board nobody can recover without
+# pulling the plug. It must also stay equal to the first point of the governor's
+# curve -- the two are the same idle point reached by two different paths.
+FREQ_RIPOSO = 350
+MV_RIPOSO = 700
+VID_RIPOSO = round((1550 - MV_RIPOSO) / 6.25)   # AMD SVI2: mV = 1550 - VID*6.25
+ATTESA_PARCHEGGIO = 0.5
+
+
+class Traccia:
+    """A trail on disk, fsynced line by line.
+
+    ⚠️ Near-duplicate of the governor's class, for the same reason every other
+    piece of shared logic is duplicated in this file: this process has to work
+    with the governor dead, so it imports nothing from it.
+
+    Why fsync: a hang is not a shutdown. Whatever is still in the page cache when
+    the board stops answering is never written. On 04/09/2026 the journal's last
+    flushed line was 09:16:17 for a board that kept drawing frames until 09:16:55,
+    and the answer was in the gap.
+
+    The previous run stays as <file>.1, because the run worth reading is the one
+    that ended badly and the next boot must not erase it.
+    """
+
+    def __init__(self, percorso=TRACCIA, righe_max=TRACCIA_RIGHE):
+        self.percorso = percorso
+        self.righe_max = righe_max
+        self.righe = 0
+        self.ultimo_battito = 0.0
+        self.f = None
+        try:
+            os.makedirs(os.path.dirname(percorso), exist_ok=True)
+            self._apri()
+        except OSError as e:
+            print(f"  traccia su disco non disponibile: {e}", flush=True)
+
+    def _apri(self, nuovo_giro=True):
+        """⚠️ A NEW RUN GOES TO .1, A ROTATION MID-RUN GOES TO .2.
+
+        This file is the one that dates a freeze, and on 04/09/2026 it is the
+        one we lost. The board hung at 15:02:51 and came back; within the hour
+        this trail had reached 3600 lines -- one an hour at a line a second --
+        and rotated its own fresh chunk onto .1, straight over the hang. The
+        governor's survived only because its limit is bigger. So the two kinds of
+        rotation now go to different names, and .1 means "the previous run"
+        however long the current one lasts.
+        """
+        try:
+            os.replace(self.percorso,
+                       self.percorso + (".1" if nuovo_giro else ".2"))
+        except OSError:
+            pass
+        self.f = open(self.percorso, "w")
+        self.righe = 0
+
+    def riga(self, testo):
+        if self.f is None:
+            return
+        ora = time.time()
+        try:
+            self.f.write("%s.%03d %s\n"
+                         % (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ora)),
+                            int(ora * 1000) % 1000, testo))
+            self.f.flush()
+            os.fsync(self.f.fileno())
+        except OSError:
+            return
+        self.righe += 1
+        if self.righe >= self.righe_max:
+            try:
+                self.f.close()
+                self._apri(nuovo_giro=False)   # .2, so .1 stays the last run
+            except OSError:
+                self.f = None
+
+    def battito(self, testo):
+        """One line a second and no more, whatever the loop is doing."""
+        ora = time.time()
+        if ora - self.ultimo_battito < 1.0:
+            return
+        self.ultimo_battito = ora
+        self.riga(testo)
+
+
+traccia = None
+
+
+def nota(testo):
+    """Write to the trail, if there is one yet.
+
+    parcheggia() and libera() are the two functions that most need to leave a
+    line behind, and they are also reachable before main() has finished setting
+    anything up. Neither may fail because the diary is not open.
+    """
+    if traccia is not None:
+        traccia.riga(testo)
+
+
+def smu(msg, param=0):
+    try:
+        fd = os.open(NODO_SMU, os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        os.write(fd, f"{msg:#x} {param:#x} 0x0\n".encode())
+        os.lseek(fd, 0, os.SEEK_SET)
+        return "resp=0x00000001" in os.read(fd, 64).decode()
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
+def smu_leggi(msg, param=0):
+    """Same message, but give back the argument the firmware answered with.
+
+    ⚠️ The debugfs node keeps its answer in PER-FD state: the write and the read
+    have to happen on the same descriptor or the read comes back empty.
+
+    ⚠️ AND THE ARGUMENT IS HEX. The node writes arg=0x0000015e. A decimal parse
+    matches the leading zero and hands back 0, which looks exactly like a clock
+    that has refused to come down -- so the parking code would leave the rail
+    high every single time and never say why. Same parse as the governor's.
+    """
+    try:
+        fd = os.open(NODO_SMU, os.O_RDWR)
+    except OSError:
+        return None
+    try:
+        os.write(fd, f"{msg:#x} {param:#x} 0x0\n".encode())
+        os.lseek(fd, 0, os.SEEK_SET)
+        r = os.read(fd, 64).decode()
+    except OSError:
+        return None
+    finally:
+        os.close(fd)
+    if "resp=0x00000001" not in r:
+        return None
+    for pezzo in r.split():
+        if pezzo.startswith("arg="):
+            return int(pezzo[4:], 16)
+    return None
+
+
+def c_e_il_governor_di_serie():
+    """Is cyan-skillfish-governor still there to hand the clock back to?
+
+    ⚠️ Near-duplicate of the same function in skillfish-vf-governor, on purpose:
+    this process has to be able to answer with the governor already dead, so it
+    cannot import anything from it.
+    """
+    try:
+        r = subprocess.run(
+            ["systemctl", "is-enabled", "cyan-skillfish-governor.service"],
+            capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() not in ("masked", "masked-runtime", "not-found", "")
+    except Exception:
+        # If we cannot tell, assume it is NOT there. Assuming it is would mean
+        # unforcing into nothing, which is the failure this exists to prevent.
+        return False
+
+
+def gradi():
+    for h in sorted(os.listdir("/sys/class/hwmon")):
+        p = f"/sys/class/hwmon/{h}"
+        try:
+            if open(f"{p}/name").read().strip() == "amdgpu":
+                return int(open(f"{p}/temp1_input").read().strip()) // 1000
+        except OSError:
+            continue
+    return 0
+
+
+def parcheggia():
+    """Bring the clock to 350 MHz and HOLD it there. Not a release.
+
+    ⚠️ Used when there is no stock governor left to hand back to. Measured
+    04/09/2026 on bc250-dev: with nobody governing, the bare firmware parks this
+    board at 1500 MHz on 918 mV and 59 W at idle and never comes down, and after
+    a SIGKILL the clock simply stays where the governor left it -- 2100 MHz,
+    88 W with the load gone, and no thermal ceiling anywhere, because the thermal
+    ceiling lived inside the process that just died.
+
+    Descending, so the frequency goes first and the rail follows only once the
+    clock has ARRIVED. If it never arrives the rail is left HIGH: a low clock on
+    a high rail wastes watts, a high clock on a low rail hangs the board, and by
+    the time this runs there is nobody after us.
+    """
+    # ⚠️ Written BEFORE the SMU is touched, and fsynced. If the park is itself
+    # what hangs the board, a line written afterwards is a line nobody reads.
+    # This is the line that answers "who put the clock at the bottom" -- the
+    # question we could not answer at all about 04/09/2026.
+    nota(f"PARCHEGGIO (guardiano): vado a {FREQ_RIPOSO} MHz {MV_RIPOSO} mV")
+    smu(MSG_FORCE_FREQ, FREQ_RIPOSO)
+    fine = time.perf_counter() + ATTESA_PARCHEGGIO
+    while time.perf_counter() < fine:
+        f = smu_leggi(MSG_GET_FREQ)
+        if f is None:
+            break
+        # ⚠️ At or below, not "within 30 of". A distance test is satisfied by the
+        # OLD reading whenever the step is smaller than the slack, and that is
+        # how the same line in the governor turned its descent wait into a no-op
+        # until 04/09/2026. Parking never takes a small step, so this one was
+        # never actually wrong -- but this is the code that drops the rail with
+        # nobody watching, and it is not the place to keep a shape we know is
+        # broken elsewhere.
+        if f <= FREQ_RIPOSO + 5:
+            smu(MSG_FORCE_VID, VID_RIPOSO)
+            print(f"  parcheggiato a {FREQ_RIPOSO} MHz, {MV_RIPOSO} mV", flush=True)
+            nota(f"parcheggiato a {FREQ_RIPOSO} MHz {MV_RIPOSO} mV")
+            return
+    print(f"  parcheggio: il clock non e' sceso a {FREQ_RIPOSO}, "
+          f"lascio la linea alta (e' lo stato sicuro)", flush=True)
+    nota("parcheggio: il clock non e' sceso, linea lasciata alta")
+
+
+def libera(motivo):
+    """Hand clock and rail back to the firmware, volts first.
+
+    ⚠️ THE ORDER IS NOT COSMETIC, and it was wrong here until 03/09/2026 -- in
+    the one place that runs at the end of every cycle and every bench run.
+
+    Unforcing the frequency first gives the clock back to the firmware while our
+    rail is still pinned where we left it. On this board the stock table tops out
+    at 2200 MHz, and at the end of a run we are pinned at the idle point: 700 mV.
+    Measured the same day, an SMU ack is not an arrival -- ForceGfxVid answers in
+    127 us and the rail moves ~1800 us later -- so the window between these two
+    messages is real, wide, and the firmware is free to ramp inside it. 2200 MHz
+    on the 725 mV the idle point was then is roughly 350 mV under what that clock
+    needs -- and the idle point is 700 since 04/09/2026, so the gap is wider now,
+    not narrower.
+
+    Unforce the volts first and the firmware picks a voltage for the clock we are
+    still holding, which is by construction a voltage that clock can live at.
+    Then the frequency goes back too and there is no moment in between that the
+    curve does not cover.
+    """
+    print(f"  LIBERO IL CLOCK: {motivo}", flush=True)
+    nota(f"INTERVENGO: {motivo}")
+    if c_e_il_governor_di_serie():
+        smu(MSG_UNFORCE_VID, 0)
+        smu(MSG_UNFORCE_FREQ, 0)
+        os.system("systemctl start cyan-skillfish-governor >/dev/null 2>&1")
+        nota("rilasciato al governor di serie")
+    else:
+        # ⚠️ Do NOT unforce here. There is nothing on the other side to catch it,
+        # and unforcing into nothing leaves this board at 1500 MHz forever.
+        parcheggia()
+
+
+def main():
+    global traccia
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--soglia", type=float, default=5.0,
+                    help="secondi senza battito prima di liberare")
+    a = ap.parse_args()
+
+    traccia = Traccia()
+    di_serie = "presente" if c_e_il_governor_di_serie() else "assente"
+    print(f"  guardiano attivo: soglia {a.soglia}s, rottura a {GRADI_ROTTURA} gradi, "
+          f"di serie {di_serie}", flush=True)
+    nota(f"avvio: soglia {a.soglia}s, rottura a {GRADI_ROTTURA} gradi, "
+         f"di serie {di_serie}")
+    visto = False
+    # ⚠️ A STALE HEARTBEAT STAYS STALE. Without this the loop finds the same dead
+    # heartbeat one second later and acts again, and again, hammering the SMU for
+    # as long as the machine is up. Act once, then wait for a LIVE heartbeat
+    # before arming again.
+    gia_fatto = False
+    while True:
+        t = gradi()
+        if t >= GRADI_ROTTURA:
+            if not gia_fatto:
+                libera(f"{t} gradi")
+                gia_fatto = True
+                visto = False
+            time.sleep(5)
+            continue
+
+        try:
+            eta = time.time() - float(open(BATTITO).read().split()[0])
+        except (OSError, ValueError, IndexError):
+            # No heartbeat at all: either it never started, or it is gone. Only
+            # act if we had seen one, so this can be left running harmlessly
+            # alongside a machine that is using the stock governor.
+            traccia.battito(f"{t}C, nessun battito del governor")
+            if visto and not gia_fatto:
+                libera("il battito e' sparito")
+                gia_fatto = True
+                visto = False
+            time.sleep(1)
+            continue
+
+        # ⚠️ THIS IS THE LINE THAT DATES A FREEZE. The governor's own trail stops
+        # when the governor stops; this one stops when the machine stops. The
+        # distance between the two last lines is the whole question we could not
+        # answer on 04/09/2026.
+        traccia.battito(f"{t}C, battito di {eta:.1f}s fa")
+
+        if eta > a.soglia:
+            if not gia_fatto:
+                libera(f"battito fermo da {eta:.1f}s")
+                gia_fatto = True
+                visto = False
+        else:
+            # A live heartbeat: the governor is back on its feet. Arm again.
+            visto = True
+            if gia_fatto:
+                print("  il governor e' tornato, mi rimetto in ascolto", flush=True)
+                nota("il governor e' tornato, mi rimetto in ascolto")
+                gia_fatto = False
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()

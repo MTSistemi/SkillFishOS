@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+if [ "$1" = configure ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+
+    # ⚠️ Do NOT set the stock governor aside here on a first install. This
+    # package ships DISABLED, so a postinst that took the clock away would leave
+    # a machine that installs it and never enables it with no governor at all --
+    # 1500 MHz on 918 mV and 59 W at idle, for ever. The unit does it from
+    # ExecStartPre instead, which fires when the governor is actually used.
+    #
+    # On an upgrade of a machine that is already using ours, do it now: the
+    # daemon-reload above can bring the stock unit back to life mid-upgrade, and
+    # our governor is stopped at that moment by the prerm.
+    if systemctl is-enabled skillfish-vf-governor.service >/dev/null 2>&1; then
+        /usr/lib/skillfish-vf-governor/stock-governor claim || true
+
+        # ⚠️ And put it back on its feet. The prerm stops both services on an
+        # upgrade, and nothing else starts them again: 26.09.2 -> 26.09.3 left an
+        # enabled governor inactive, so the board came out of the upgrade with
+        # the stock unit masked and nothing driving the clock at all. That is the
+        # exact state the whole package exists to avoid.
+        systemctl start skillfish-vf-watchdog.service >/dev/null 2>&1 || true
+        systemctl start skillfish-vf-governor.service >/dev/null 2>&1 || true
+    fi
+fi
+exit 0

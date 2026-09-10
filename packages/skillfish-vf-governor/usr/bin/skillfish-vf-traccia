@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Read back the trails the governor and its watchdog leave on disk.
+
+    skillfish-vf-traccia [-n RIGHE] [--prima] [--tutto]
+
+WHY THIS EXISTS. On 04/09/2026 bc250-dev stopped at the end of a bench run with
+the GPU clock sitting at the parking point, and we could not say who had put it
+there. The heartbeat lived in /run, which is tmpfs, so the reboot that recovered
+the board also erased the evidence; the journal's last flushed line was
+thirty-eight seconds before the last frame the game drew, because a hang never
+flushes what is still in the page cache.
+
+So both processes now write a line a second to /var/lib, fsynced, and keep the
+previous run as .1. This program puts the two files back on one timeline.
+
+WHAT TO LOOK FOR after a freeze, with --prima:
+  - the last line of each file. The governor's says how long the governor lived,
+    the watchdog's how long the MACHINE lived. If the governor's stops well
+    before the watchdog's, the governor died first and the watchdog will have
+    said so on the next line.
+  - a PARCHEGGIO line names who parked the clock and when.
+  - a "segnale N ricevuto" line means somebody asked the governor to stop, which
+    is a very different story from the governor dying on its own.
+  - the last CAMBIO line. It is written BEFORE the SMU is touched, so if it is
+    the last thing in the file the board died in the middle of that transition,
+    and the line names the pair, the direction and where it came from. If a line
+    follows it carrying "[prec: V+attesa+F in N ms]" the transition finished;
+    "[prec. INTERROTTO dopo ...]" means an SMU write failed half way.
+"""
+import argparse
+import sys
+
+CARTELLA = "/var/lib/skillfish-vf-governor"
+FONTI = (("governor", f"{CARTELLA}/traccia"),
+         ("guardiano", f"{CARTELLA}/traccia-guardiano"))
+
+# Lines worth colouring even on a dumb terminal: they are the ones that answer
+# the question. Matched as plain substrings, deliberately.
+# ⚠️ CAMBIO is deliberately NOT in here. There are up to five a second while the
+# clock is moving, and marking all of them marks nothing.
+NOTEVOLI = ("PARCHEGGIO", "ECCEZIONE", "INTERVENGO", "segnale ", "avvio:",
+            "uscita:", "tetto ->", "parcheggiato", "rilasciato", "INTERROTTO")
+
+
+def leggi(percorso):
+    try:
+        with open(percorso, encoding="utf-8", errors="replace") as f:
+            return [r.rstrip("\n") for r in f if r.strip()]
+    except OSError:
+        return []
+
+
+def spezza(riga):
+    """Split '2026-09-04 09:16:34.123 testo' into (timestamp, text).
+
+    A line we cannot parse is kept and sorted with an empty key, so a truncated
+    last line -- exactly what a hang leaves behind -- is shown rather than
+    dropped.
+    """
+    pezzi = riga.split(" ", 2)
+    if len(pezzi) == 3 and pezzi[0][:2] == "20":
+        return f"{pezzi[0]} {pezzi[1]}", pezzi[2]
+    return "", riga
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="rilegge la traccia su disco del governor V/F")
+    ap.add_argument("-n", "--righe", type=int, default=40,
+                    help="quante righe in coda mostrare (predefinito 40)")
+    ap.add_argument("--prima", action="store_true",
+                    help="il giro PRECEDENTE (i file .1): quello finito male")
+    ap.add_argument("--tutto", action="store_true", help="tutte le righe")
+    a = ap.parse_args()
+
+    suffisso = ".1" if a.prima else ""
+    unite = []
+    ultime = {}
+    for nome, percorso in FONTI:
+        righe = leggi(percorso + suffisso)
+        if righe:
+            ultime[nome] = spezza(righe[-1])[0]
+        for r in righe:
+            quando, testo = spezza(r)
+            unite.append((quando, nome, testo))
+
+    if not unite:
+        quali = "precedente" if a.prima else "corrente"
+        print(f"nessuna traccia {quali} in {CARTELLA}", file=sys.stderr)
+        print("(il governor la scrive solo quando gira davvero, non in prova)",
+              file=sys.stderr)
+        return 1
+
+    unite.sort(key=lambda x: x[0])
+    da_mostrare = unite if a.tutto else unite[-a.righe:]
+
+    for quando, nome, testo in da_mostrare:
+        marchio = ">>" if any(k in testo for k in NOTEVOLI) else "  "
+        print(f"{marchio} {quando}  [{nome:9}] {testo}")
+
+    print()
+    for nome, _ in FONTI:
+        if nome in ultime:
+            print(f"   ultima riga {nome:9}: {ultime[nome]}")
+        else:
+            print(f"   ultima riga {nome:9}: (niente)")
+
+    # The gap between the two is the diagnosis. Say it out loud instead of
+    # leaving it to be eyeballed off two timestamps.
+    if len(ultime) == 2:
+        import datetime
+        try:
+            t = [datetime.datetime.strptime(ultime[n], "%Y-%m-%d %H:%M:%S.%f")
+                 for n, _ in FONTI]
+            scarto = (t[1] - t[0]).total_seconds()
+        except ValueError:
+            scarto = None
+        # ⚠️ A trail that is still being written has no verdict to give. Without
+        # this, reading the live trail announces that the machine has stopped --
+        # on a machine that is plainly running, because the two processes write a
+        # third of a second apart and that reads as "they stopped together".
+        eta = (datetime.datetime.now() - max(t)).total_seconds() if scarto is not None else 0
+        if scarto is not None and eta < 10:
+            print(f"\n   traccia viva: l'ultima riga e' di {eta:.0f}s fa, "
+                  f"girano entrambi")
+        elif scarto is not None:
+            if scarto > 3:
+                print(f"\n   il guardiano e' vissuto {scarto:.1f}s piu' del governor: "
+                      f"il governor si e' fermato per primo")
+            elif scarto < -3:
+                print(f"\n   il governor e' vissuto {-scarto:.1f}s piu' del guardiano: "
+                      f"si e' fermato prima il guardiano")
+            else:
+                print(f"\n   si sono fermati insieme ({abs(scarto):.1f}s di scarto): "
+                      f"si e' fermata la macchina, non uno dei due")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

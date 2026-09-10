@@ -1,0 +1,87 @@
+{
+ "curva": [
+  [
+   350,
+   700
+  ],
+  [
+   600,
+   700
+  ],
+  [
+   850,
+   700
+  ],
+  [
+   1100,
+   700
+  ],
+  [
+   1225,
+   715
+  ],
+  [
+   1350,
+   725
+  ],
+  [
+   1475,
+   765
+  ],
+  [
+   1600,
+   825
+  ],
+  [
+   1725,
+   875
+  ],
+  [
+   1850,
+   925
+  ],
+  [
+   1900,
+   945
+  ],
+  [
+   1950,
+   970
+  ],
+  [
+   2000,
+   995
+  ],
+  [
+   2050,
+   1020
+  ],
+  [
+   2100,
+   1050
+  ]
+ ],
+ "freq_max": 2100,
+ "gradi_ok": 82,
+ "gradi_max": 88,
+ "gradi_rottura": 93,
+ "watt_max": 180,
+ "watt_ok": 150,
+ "margine_salita": 10,
+ "target_uso": false,
+ "passo_su": 400,
+ "droop_attivo": false,
+ "droop_max": 120,
+ "droop_su": 15,
+ "droop_giu": 5,
+ "droop_da": 1600,
+ "droop_tolleranza": 10,
+ "freq_min": 350,
+ "isteresi_fine": true,
+ "carico_salto": 85,
+ "carico_passo_su": 70,
+ "carico_passo_giu": 45,
+ "carico_fondo": 5,
+ "gradino": 70,
+ "conferme_giu": 3
+}

@@ -1,0 +1,170 @@
+SkillFishOS V/F Governor
+========================
+
+What it does
+------------
+Takes the GPU clock and rail away from the stock governor and drives them
+through the SMU directly, holding a frequency ceiling that heat and package
+power may lower and, once things are calm again, give back.
+
+Measured on Black Myth Wukong, three alternating pairs per campaign, same
+session, same 84 degrees in both arms:
+
+    cold board    +4.5 %
+    warm board   +11 %
+
+The advantage grows with temperature because the stock governor sheds clock as
+the board warms and this one does not. Comparing runs from different hours is
+meaningless: the stock arm drifted 1933 -> 1725 MHz over one afternoon, twenty
+times the 0.5 % run-to-run noise.
+
+Ordering, and why it is the whole story
+---------------------------------------
+Voltage and frequency are two separate SMU messages, so between them the chip
+runs at one of the two new values with the other still old. Which half is safe
+depends on the direction: climbing, raise the volts first; coming down, lower
+the frequency first.
+
+Getting that order right is necessary and NOT sufficient, because an SMU
+acknowledgement is not an arrival. Measured on a BC-250, sixty steps per
+direction:
+
+    ForceGfxFreq   acknowledged in  66 us, clock there ~715 us later
+    ForceGfxVid    acknowledged in 127 us, rail  there ~1800 us later
+
+Not once was the value already there on the first read after the ack. So the
+governor waits for each half to land before sending the other, in both
+directions, and so does the watchdog when it hands everything back.
+
+The voltage ceiling
+-------------------
+amdgpu declares OD_RANGE VDDC 700-1129 mV for this ASIC. We reach the rail with
+a raw ForceGfxVid through debugfs, which does not go through the driver's range
+check, so 1129 is enforced in the code instead -- in the curve and again in the
+one function every volt passes through. No configuration file can get past it.
+
+Configuration
+-------------
+/etc/skillfish-vf-governor.json
+
+    curva        MHz -> mV, the measured floor plus margin. Clamped to 1129.
+    freq_max     the ceiling the governor starts from and returns to
+    gradi_max    degrees above which the ceiling steps down
+    watt_max     our own package-power limit; the firmware's is bypassed
+    watt_ok      average watts below which the ceiling may climb back
+    margine_salita  millivolts added over the curve when climbing; see below
+
+The curve shipped here is the floor measured on one board plus a margin. Silicon
+varies: a board that misbehaves wants more volts at the same frequency, not
+fewer megahertz.
+
+Running it
+----------
+Shipped disabled, on purpose.
+
+    systemctl start skillfish-vf-governor
+
+The stock governor is stopped while this runs and started again when it stops,
+including when it crashes. The watchdog is a separate process for the same
+reason: if the governor dies with the clock forced, something has to put it
+back.
+
+The ascent margin
+-----------------
+    "margine_salita": 40        millivolts, added ONLY when the point goes up
+
+The curve is measured at its knots and nowhere else. Everything between two
+knots is a straight line the program invents, and no ring was ever run on those
+points. On 04/09/2026 bc250-dev hung at 15:02:51 inside an upward transition, at
+100 per cent load and 123-203 W, on the fifth 25 MHz rung of a ceiling recovery
+ramp -- 1900, 1925, 1950, 1975, 2000, 2025, one rung every 0.6 s, every one of
+them an invented point and every one of them raising the rail. The last line of
+the trail was the CAMBIO to 2025 MHz on 1030 mV with no confirmation after it.
+
+40 mV is not a guess either: on that same board, the one that lost the silicon
+lottery, 40 mV over the stock curve made its calculation errors disappear, and
+every one of those errors was in a ramp rather than at a settled point.
+
+The margin is not free. Roughly 20 mV is worth about 98 MHz of sustained clock
+on a board that is limited by watts, and it makes the power ceiling arrive
+sooner, so a run with a margin may show MORE ceiling movement, not less. If the
+hang goes away at 40, the next job is to walk the number back down and find the
+smallest margin that still holds. 0 gives exactly the old behaviour.
+
+⚠️ It is taken off by the next DESCENT, never by a write of its own. Lowering
+the rail underneath a clock that is staying put is the one move that hangs this
+board, and it is the move the whole ordering rule exists to avoid. So the margin
+lives until the point changes again.
+
+⚠️ It shrinks at the top, because MV_MASSIMI is the hardware's limit and not a
+preference: at 2100 the shipped curve asks 1075 and all 40 mV fit; at 2200 it
+asks 1125 and only 4 mV are left. The trail prints the REAL margin after the
+clamp -- "(+4 mV)" -- because a run whose margin was truncated has not tested
+the margin.
+
+The trail on disk
+-----------------
+    skillfish-vf-traccia            the run happening now
+    skillfish-vf-traccia --prima    the run before it -- the one that ended badly
+
+Both processes write one fsynced line a second to /var/lib/skillfish-vf-governor,
+plus a line for every ceiling move, park, signal and exit. The previous run is
+kept as .1 and is not touched again.
+
+⚠️ A run rotates onto .1, a file that has grown past its line limit rotates onto
+.2. They used to share .1, and that cost us the watchdog's account of the freeze
+of 04/09/2026: its limit was an hour's worth of lines, so the boot that recovered
+the board filled a fresh file, rotated it onto .1 and buried the hang underneath
+its own first hour of heartbeat. The limit is now a day's worth in both programs,
+and a size rotation can no longer land on the file that holds the last run.
+
+This is not logging for its own sake. On 04/09/2026 bc250-dev stopped at the end
+of a bench run with the clock at the parking point, and we could not say who had
+put it there: the heartbeat lived in /run, which is tmpfs, so the reboot that
+recovered the board erased it, and the journal's last flushed line was
+thirty-eight seconds before the last frame the game drew -- a hang never writes
+out what is still in the page cache. Hence fsync per line, and hence .1.
+
+After a freeze the two last lines are the diagnosis. The governor's says how long
+the governor lived; the watchdog's says how long the MACHINE lived. If they stop
+together the machine went; if the governor's stops first, it died and the
+watchdog will say what it did about it on the next line.
+
+Every change of operating point gets its own line as well:
+
+    CAMBIO 1800->2100 MHz  905->1075 mV  su   [prec: F+attesa+V in 3.1ms]
+
+⚠️ That line is written BEFORE the SMU is touched, which is the point of it. The
+transition we most need to read is the one that never finished, and a line
+written afterwards would only ever record the ones that did no harm. So if a
+CAMBIO is the last thing in the file, the board stopped inside that transition
+and the line names the pair it was moving to, from where, and in which direction.
+
+The bracket at the end reports the PREVIOUS change: which steps completed (V for
+the rail, F for the frequency, the wait for each to actually arrive) and how long
+it took. It rides on the next line rather than getting one of its own, so
+confirming a change costs no extra fsync -- during a ramp the control loop must
+not be slowed down by the thing observing it. "[prec. INTERROTTO dopo ...]" means
+an SMU write failed half way through.
+
+When the GPU stops answering
+----------------------------
+Package power reading exactly 0 W, on a board that idles at 29, is not a reading:
+it is the GPU not answering. After three of those in a row the governor HOLDS its
+operating point and stops touching the SMU until real readings come back, and
+says so in the trail.
+
+Holding, not parking. Parking is a descent, a descent is a transition, and a
+transition is the only moment this program leaves the chip on a pair it was not
+designed to sit on. The rail under the clock we are already at is by construction
+the right one for it, so standing still is the safe move. The heartbeat keeps
+being written throughout -- if it stopped, the watchdog would park, which is
+exactly the descent being refused.
+
+The reason for the per-change line: the freeze of 11:39:08 on 04/09/2026. The
+trail had 1800 MHz on one line and 2000 MHz on the next, a second apart, but the
+loop runs at 5 Hz, so those two readings hid at least two steps in opposite
+directions and the pair actually on the chip when it died was not written down
+anywhere.
+
+Part of SkillFishOS.

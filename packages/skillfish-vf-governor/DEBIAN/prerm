@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+    systemctl stop skillfish-vf-governor.service >/dev/null 2>&1 || true
+    systemctl stop skillfish-vf-watchdog.service >/dev/null 2>&1 || true
+fi
+
+# ⚠️ Only on the way OUT for good. On an upgrade the stock governor must stay
+# where it is: handing it the clock between the old version and the new one is
+# two owners for the length of the upgrade, which is exactly what we set it
+# aside to avoid.
+if [ "$1" = remove ]; then
+    /usr/lib/skillfish-vf-governor/stock-governor release || true
+fi
+exit 0

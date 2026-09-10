@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Switch the flatpak games between the stock RADV and our patched one.
+
+    mesa-v33.py on      the games take /opt/skillfish-gfx1013
+    mesa-v33.py off     back to the driver inside the flatpak runtime
+    mesa-v33.py stato   what is set right now, per application
+
+⚠️ PRIMA IL KERNEL. Il driver con la coda compute aperta su un kernel senza le
+due patch v33 pianta la GPU, e sulla BC-250 un aggancio non si recupera da
+remoto: serve staccare la corrente.
+
+⚠️ PERCHE' NON `flatpak override --unset-env`. Quel comando NON toglie la
+variabile: la aggiunge a `unset-environment` e le lascia il valore VUOTO dentro
+`[Environment]`. Con VK_DRIVER_FILES="" il caricatore Vulkan non trova nessun
+ICD e il gioco non parte affatto, che sembra un guasto della patch e invece e'
+il comando di ripristino. Quindi il file di override lo scriviamo noi.
+
+⚠️ E NON BASTA SCRIVERE `[Environment]`. Se il nome resta anche in
+`unset-environment` la variabile viene tolta lo stesso: ogni volta che si
+accende bisogna ripulire l'altra riga.
+
+⚠️ PERCHE' SERVE LD_LIBRARY_PATH. La nostra libvulkan_radeon.so e' compilata
+contro sid e chiede libdisplay-info.so.3, che nel runtime
+org.freedesktop.Platform 25.08 non c'e'. Sta accanto alla .so e si fa trovare
+da li'. Senza, il caricatore scarta l'ICD IN SILENZIO e il gioco parte col
+driver di serie: sembra che la patch non serva a niente.
+"""
+import configparser
+import os
+import pwd
+import sys
+
+PREFISSO = "/opt/skillfish-gfx1013"
+ICD = PREFISSO + "/share/vulkan/icd.d/radeon_icd.x86_64.json"
+LIBS = PREFISSO + "/lib/x86_64-linux-gnu"
+NOSTRE = ("VK_DRIVER_FILES", "LD_LIBRARY_PATH")
+APP = ("com.valvesoftware.Steam", "com.heroicgameslauncher.hgl")
+
+
+def percorso(app):
+    casa = pwd.getpwuid(os.getuid()).pw_dir
+    return os.path.join(casa, ".local/share/flatpak/overrides", app)
+
+
+def leggi(f):
+    """configparser with the key case preserved: env var names are case sensitive."""
+    c = configparser.RawConfigParser()
+    c.optionxform = str
+    c.read(f)
+    for s in ("Context", "Environment"):
+        if not c.has_section(s):
+            c.add_section(s)
+    return c
+
+
+def scrivi(c, f):
+    os.makedirs(os.path.dirname(f), exist_ok=True)
+    with open(f, "w", encoding="utf-8", newline="\n") as fh:
+        c.write(fh, space_around_delimiters=False)
+
+
+def pulisci_unset(c):
+    """Drop our two names from unset-environment, keeping anyone else's."""
+    v = c.get("Context", "unset-environment", fallback="")
+    resto = [x for x in v.split(";") if x and x not in NOSTRE]
+    if resto:
+        c.set("Context", "unset-environment", ";".join(resto) + ";")
+    elif c.has_option("Context", "unset-environment"):
+        c.remove_option("Context", "unset-environment")
+
+
+def aggiungi_fs(c):
+    v = c.get("Context", "filesystems", fallback="")
+    voci = [x for x in v.split(";") if x]
+    nuova = PREFISSO + ":ro"
+    if nuova not in voci:
+        voci.append(nuova)
+    c.set("Context", "filesystems", ";".join(voci) + ";")
+
+
+def accendi(app):
+    f = percorso(app)
+    c = leggi(f)
+    aggiungi_fs(c)
+    pulisci_unset(c)
+    c.set("Environment", "VK_DRIVER_FILES", ICD)
+    c.set("Environment", "LD_LIBRARY_PATH", LIBS)
+    scrivi(c, f)
+    print("%s: driver NOSTRO" % app)
+
+
+def spegni(app):
+    f = percorso(app)
+    if not os.path.exists(f):
+        print("%s: gia' di serie (nessun override)" % app)
+        return
+    c = leggi(f)
+    pulisci_unset(c)
+    for n in NOSTRE:
+        if c.has_option("Environment", n):
+            c.remove_option("Environment", n)
+    scrivi(c, f)
+    print("%s: driver di serie" % app)
+
+
+def stato(app):
+    f = percorso(app)
+    c = leggi(f)
+    icd = c.get("Environment", "VK_DRIVER_FILES", fallback=None)
+    unset = c.get("Context", "unset-environment", fallback="")
+    if icd == ICD and "VK_DRIVER_FILES" not in unset:
+        q = "NOSTRO"
+    elif icd:
+        q = "?? valore inatteso: %r" % icd
+    elif "VK_DRIVER_FILES" in unset:
+        q = "?? nome in unset-environment senza valore"
+    else:
+        q = "di serie"
+    print("%-32s %s" % (app, q))
+
+
+def main():
+    azione = sys.argv[1] if len(sys.argv) > 1 else "stato"
+    fai = {"on": accendi, "off": spegni, "stato": stato}.get(azione)
+    if not fai:
+        sys.exit("uso: mesa-v33.py {on|off|stato}")
+    for a in APP:
+        fai(a)
+
+
+if __name__ == "__main__":
+    main()

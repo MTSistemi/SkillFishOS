@@ -1,0 +1,25 @@
+[Unit]
+Description=SkillFishOS V/F Governor watchdog
+Documentation=file:/usr/share/doc/skillfish-vf-governor/README
+# ⚠️ StopWhenUnneeded=yes USED TO BE HERE, and it was the whole bug. systemd
+# stopped this process the moment the governor left the active state, and a
+# crash is leaving the active state -- so the guard was shut down at exactly the
+# moment it existed for. Measured 04/09/2026: kill -9 on a governor holding
+# 2100 MHz left the board there for good, with this process reported inactive
+# one second later.
+#
+# It stays up on its own now. That is safe: with no heartbeat ever seen it does
+# nothing at all, so it can sit alongside a machine running the stock governor
+# without touching anything.
+After=bc250-smu-oc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/skillfish-vf-watchdog
+# This one DOES come back: its whole job is to be alive at the moment the
+# governor is not.
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,53 @@
+[Unit]
+Description=SkillFishOS V/F Governor
+Documentation=file:/usr/share/doc/skillfish-vf-governor/README
+# Only one thing may own the clock.
+Conflicts=cyan-skillfish-governor.service
+# The watchdog is deliberately a SEPARATE process, not a thread: if the governor
+# dies with the clock forced, nothing else puts it back.
+Wants=skillfish-vf-watchdog.service
+After=skillfish-vf-watchdog.service
+# ⚠️ bc250-smu-oc applies the CPU overclock THROUGH THE SMU at boot. The stock
+# governor has had this ordering since forever and we did not, so at boot two
+# programs were talking to the SMU at the same time. Added 04/09/2026.
+#
+# ⚠️ AND THIS LINE IS NOT ENOUGH ON ITS OWN. bc250-smu-oc has no Type=, so it is
+# Type=simple and systemd calls it started the moment it forks: measured the same
+# day, it was still writing to the SMU 95 ms after we had been let go. The real
+# wait is in stock-governor's claim, which polls until that unit is actually
+# done. This stays because it is still correct and it costs nothing.
+After=bc250-smu-oc.service
+# Three failures in five minutes and it stays down for good. At that point
+# something is properly wrong and the watchdog has already parked the board.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+# ⚠️ Takes the clock away from cyan-skillfish-governor before we touch it, and
+# does it HERE rather than in the postinst. dpkg has no hook for "the user
+# enabled the service", so a postinst that set the stock governor aside would
+# leave every machine that installs this package and never enables it with no
+# governor at all -- and with nobody governing, this board sits at 1500 MHz on
+# 918 mV drawing 59 W for ever. Measured 04/09/2026. Doing it from ExecStartPre
+# covers every path in: a manual enable, the Tuner, and boot.
+#
+# Idempotent, so the restarts cost a couple of systemctl calls and nothing else.
+ExecStartPre=/usr/lib/skillfish-vf-governor/stock-governor claim
+ExecStart=/usr/bin/skillfish-vf-governor
+# ...and gives it back, but ONLY if our governor has actually been turned off.
+# On a plain stop, and on the stops systemd does between a failure and a restart,
+# our unit is still enabled and the stock governor stays out of the way.
+ExecStopPost=-/usr/lib/skillfish-vf-governor/stock-governor release-if-disabled
+# ⚠️ THIS USED TO BE Restart=no, and the comment justifying it said "if it fails
+# it stays down and the stock governor takes over". On a machine where the stock
+# governor has been removed that sentence is false, and what actually happened,
+# measured 04/09/2026, was a board left at 2100 MHz drawing 88 W with no load and
+# no thermal ceiling. It restarts now -- and it may, because the watchdog no
+# longer dies with it and parks the board at 350 MHz in the meantime.
+Restart=on-failure
+RestartSec=5
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
