@@ -273,6 +273,48 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  .
  Part of SkillFishOS.
 
+Package: skillfish-vf-governor
+Version: 26.09.12
+Architecture: all
+Depends: systemd, python3
+Maintainer: SkillFishOS <info@skillfishos.com>
+Priority: optional
+Section: utils
+Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.09.12_all.deb
+Size: 36472
+SHA256: 9ce9d45826a359cdb8d64d603ef20ea8ddcd33f59d5934da2c2592f7b3df50e7
+SHA1: 409e01d54c915200d96f93ea8dd603254c6c76ed
+MD5sum: 5d767a3aea628c425a5d68ef85b6cfad
+Description: SkillFishOS V/F Governor - voltage and frequency control for the BC-250
+ Drives the GPU clock and rail directly through the SMU instead of leaving them
+ to the stock governor, holding a frequency ceiling that heat and package power
+ are allowed to lower and to give back.
+ .
+ On a warm board the stock governor sheds clock while this one holds it: measured
+ on Black Myth Wukong, +4.5 per cent on a cold board and +11 per cent on a warm
+ one, at the same 84 degrees.
+ .
+ Shipped disabled. Enabling it takes the clock away from cyan-skillfish-governor:
+ that unit is moved to /var/lib/skillfish-vf-governor/stock and masked, so the
+ two cannot fight over the SMU. Nothing is deleted, and disabling this governor
+ or removing this package puts the stock one back and starts it.
+ .
+ Climbing, it adds a configurable margin of millivolts over the measured curve
+ (margine_salita, 40 by default). The curve is measured at its knots only, and a
+ ceiling recovery ramp stops on the interpolated points in between, which is
+ where this board was observed to hang at full load. The margin is taken off
+ again by the next descent, never by a write of its own.
+ .
+ Both the governor and its watchdog keep a trail on disk under
+ /var/lib/skillfish-vf-governor, one fsynced line a second plus a line for every
+ change of operating point, ceiling move, park, signal and exit. The line for a
+ change is written before the SMU is touched, so a board that stops in the middle
+ of a transition still records which pair it was moving to. Read it with
+ skillfish-vf-traccia. The previous run is kept alongside it as .1, so a board
+ that hangs can still be read after the reboot that recovers it.
+ .
+ Part of SkillFishOS.
+
 Package: skillfishos-archive-keyring
 Version: 26.08.64
 Architecture: all
@@ -293,21 +335,21 @@ Description: SkillFishOS archive keyring and APT source
  Part of SkillFishOS.
 
 Package: skillfishos-kernel
-Version: 7.2.0-4
+Version: 7.2.4-1
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
 Depends: curl | wget, initramfs-tools, skillfish-base (>= 26.08.27)
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.0-4_amd64.deb
-Size: 61248
-SHA256: 0180085cd5f6048a059e115b96d59f41ba3505fd5870540c1f9f522b314dc02a
-SHA1: 0535aa61caa55a94d5be60b8a05f2b6550f761f9
-MD5sum: 66ee746375a7088aefe0dff0caff4aba
-Description: SkillFishOS kernel (linux-tkg 7.2.0-skillfishos / 7.2.0-skillfishos-x64)
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.4-1_amd64.deb
+Size: 61272
+SHA256: e57ee7019be5ee68d373579d69ecb5ae8a7e018ef2b79f30bad3317b68fd9cbd
+SHA1: 65b0ddd49db729d5bf58ca326e2f7c8ada4771fa
+MD5sum: 16eadf20566296725e075aaf8bdbfbed
+Description: SkillFishOS kernel (linux-tkg 7.2.4-skillfishos / 7.2.4-skillfishos-x64)
  Meta-package that downloads and installs the prebuilt linux-tkg kernel (image
  + headers) from the SkillFishOS GitHub release. It picks the right build for the
- machine it is installed on: 7.2.0-skillfishos on an AMD BC-250, 7.2.0-skillfishos-x64 on
+ machine it is installed on: 7.2.4-skillfishos on an AMD BC-250, 7.2.4-skillfishos-x64 on
  any other x86-64 PC. The ~150 MB kernel image is hosted as a release asset
  because GitHub's 100 MB/file limit prevents shipping it in the APT pool.
 
