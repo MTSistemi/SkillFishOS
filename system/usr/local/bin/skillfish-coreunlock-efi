@@ -29,6 +29,25 @@ disco() {
 
 voce() { efibootmgr 2>/dev/null | grep -F "$ETICHETTA" | grep -o 'Boot[0-9A-F]\{4\}' | head -1; }
 
+secure_boot_acceso() {
+    # The program is not signed: a firmware with Secure Boot enforcing would
+    # refuse it before GRUB and, depending on the firmware, stop with a dialog.
+    # With Secure Boot on we leave the in-OS service to do the unlock.
+    # The BC-250 P3.00/P5.00 firmware has no Secure Boot at all (no variable).
+    f=$(ls /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | head -1)
+    [ -n "$f" ] || return 1
+    [ "$(od -An -tu1 -j4 -N1 "$f" | tr -d ' ')" = "1" ] || return 1
+    s=$(ls /sys/firmware/efi/efivars/SetupMode-* 2>/dev/null | head -1)
+    [ -n "$s" ] && [ "$(od -An -tu1 -j4 -N1 "$s" | tr -d ' ')" = "1" ] && return 1
+    return 0
+}
+rifiuta_con_secure_boot() {
+    if secure_boot_acceso; then
+        echo "Secure Boot e' acceso: il programma di sblocco non e' firmato e il firmware lo rifiuterebbe. Resta il servizio dentro al sistema (due avvii)."
+        exit 0
+    fi
+}
+
 case "${1:-stato}" in
   stato)
     n=$(voce)
@@ -38,6 +57,7 @@ case "${1:-stato}" in
     echo "core in uso: $(nproc) thread"
     ;;
   installa)
+    rifiuta_con_secure_boot
     [ -d "$ESP/EFI" ] || { echo "ESP non montata in $ESP" >&2; exit 1; }
     install -D -m 0644 "$SORG" "$DEST"
     n=$(voce)
@@ -58,6 +78,7 @@ case "${1:-stato}" in
     echo "voce tolta${n:+ ($n)}; il file resta in $DEST"
     ;;
   prova)
+    rifiuta_con_secure_boot
     # one boot only, through BootNext: BootOrder is untouched, so if the
     # program hangs the following power cycle boots the normal way
     [ -d "$ESP/EFI" ] || { echo "ESP non montata in $ESP" >&2; exit 1; }
