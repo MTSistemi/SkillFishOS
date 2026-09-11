@@ -1,0 +1,79 @@
+#!/bin/sh
+# SkillFishOS: the 8-core unlock done BEFORE the bootloader.
+#
+#     skillfish-coreunlock-efi stato      what is installed and what the board runs
+#     skillfish-coreunlock-efi installa   copy the EFI program, add the boot entry first
+#     skillfish-coreunlock-efi togli      remove the entry (the file stays)
+#
+# bc250-unlock.efi (Hexxeh/bc250-efi-core-unlock, MIT) reads the SMU core mask
+# at SMN 0x0115A870; when the two cores are still masked it asks the SMU to
+# enable them and does ONE warm reset, otherwise it exits and the firmware goes
+# on with the next entry in BootOrder, i.e. our GRUB. Boards whose BIOS already
+# unlocks the cores (the MeiMei DXE mods) just pass through it.
+# The old in-OS service reboots the machine from inside the installed system,
+# which is what broke the installer (issue #31): here nothing runs after the
+# kernel has started.
+set -e
+ESP=/boot/efi
+DEST="$ESP/EFI/SKILLFISHOS/coreunlock.efi"
+SORG=/usr/share/skillfish/coreunlock/bc250-unlock.efi
+ETICHETTA="SkillFishOS core unlock"
+
+disco() {
+    # the block device and partition number behind the ESP
+    src=$(findmnt -no SOURCE "$ESP")
+    part=$(echo "$src" | grep -o '[0-9]*$')
+    disk=$(echo "$src" | sed 's/p\?[0-9]*$//')
+    echo "$disk $part"
+}
+
+voce() { efibootmgr 2>/dev/null | grep -F "$ETICHETTA" | grep -o 'Boot[0-9A-F]\{4\}' | head -1; }
+
+case "${1:-stato}" in
+  stato)
+    n=$(voce)
+    echo "programma: $([ -f "$DEST" ] && echo presente || echo assente) ($DEST)"
+    echo "voce di avvio: ${n:-nessuna}"
+    echo "ordine: $(efibootmgr 2>/dev/null | grep BootOrder | cut -d' ' -f2)"
+    echo "core in uso: $(nproc) thread"
+    ;;
+  installa)
+    [ -d "$ESP/EFI" ] || { echo "ESP non montata in $ESP" >&2; exit 1; }
+    install -D -m 0644 "$SORG" "$DEST"
+    n=$(voce)
+    set -- $(disco)
+    if [ -z "$n" ]; then
+        efibootmgr -q --create --disk "$1" --part "$2" --label "$ETICHETTA" \
+            --loader '\EFI\SKILLFISHOS\coreunlock.efi'
+        n=$(voce)
+    fi
+    num=${n#Boot}
+    resto=$(efibootmgr | grep BootOrder | cut -d' ' -f2 | tr ',' '\n' | grep -v "^$num$" | paste -sd, -)
+    efibootmgr -q --bootorder "$num${resto:+,$resto}"
+    echo "installato: $n per primo, poi $resto"
+    ;;
+  togli)
+    n=$(voce)
+    [ -n "$n" ] && efibootmgr -q --bootnum "${n#Boot}" --delete-bootnum
+    echo "voce tolta${n:+ ($n)}; il file resta in $DEST"
+    ;;
+  prova)
+    # one boot only, through BootNext: BootOrder is untouched, so if the
+    # program hangs the following power cycle boots the normal way
+    [ -d "$ESP/EFI" ] || { echo "ESP non montata in $ESP" >&2; exit 1; }
+    install -D -m 0644 "$SORG" "$DEST"
+    n=$(voce)
+    if [ -z "$n" ]; then
+        set -- $(disco)
+        efibootmgr -q --create --disk "$1" --part "$2" --label "$ETICHETTA" \
+            --loader '\EFI\SKILLFISHOS\coreunlock.efi'
+        n=$(voce)
+        # --create puts the new entry first: put the order back as it was
+        resto=$(efibootmgr | grep BootOrder | cut -d' ' -f2 | tr ',' '\n' | grep -v "^${n#Boot}$" | paste -sd, -)
+        efibootmgr -q --bootorder "$resto"
+    fi
+    efibootmgr -q --bootnext "${n#Boot}"
+    echo "al prossimo avvio parte $n una volta sola; poi l'ordine resta $(efibootmgr | grep BootOrder | cut -d' ' -f2)"
+    ;;
+  *) echo "uso: $0 stato|installa|prova|togli" >&2; exit 2 ;;
+esac

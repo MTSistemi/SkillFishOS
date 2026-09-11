@@ -818,9 +818,13 @@ class Pagina(PaginaBase):
         r.addWidget(e)
         r.addWidget(Aiuto(L(
             "Quanta memoria il firmware riserva alla GPU. Si scrive nel CMOS e vale dal "
-            "prossimo avvio. Il resto e' condiviso lo stesso attraverso il GTT.",
+            "prossimo avvio. Il resto e' condiviso lo stesso attraverso il GTT. Con 512 MB "
+            "dinamici alcuni giochi misurano la VRAM all'avvio e scelgono texture di "
+            "qualita' bassa: se le texture sono sfocate, prova 4 o 6 GB fissi.",
             "How much memory the firmware sets aside for the GPU. Written to the CMOS, in "
-            "force from the next boot. The rest is shared anyway through the GTT."), "VRAM"))
+            "force from the next boot. The rest is shared anyway through the GTT. With the "
+            "512 MB dynamic split some games measure the VRAM at start and pick low texture "
+            "quality: if textures look blurry, try 4 or 6 GB fixed."), "VRAM"))
         r.addStretch(1)
         v.addLayout(r)
         self.vram_valori = [2048, 3072, 4096, 6144, 8192, 10240, 12288]

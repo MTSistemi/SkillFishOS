@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QL
 from . import VERSIONE, stile
 from .comune import ICONA, ICONE, L, e_bc250
 from .demone import Demone
+from .pad import Pad, invia_tasto
 
 # key, Italian, English, icon file, module under pagine/
 SEZIONI = [
@@ -170,6 +171,33 @@ class Finestra(QMainWindow):
         self._adatta_allo_schermo()
         self.mostra(pagina_iniziale if pagina_iniziale in self.bottoni else "stato")
 
+        # --- a controller drives the window too (D-pad/stick, A, B, LB/RB, Start)
+        self.pad = Pad(self)
+        self.pad.tasto.connect(self._dal_pad)
+        self.pad.collegato.connect(self._pad_collegato)
+
+    def _pad_collegato(self, si):
+        if si:
+            self.toast(L("Controller: %s. Croce o levetta per muoversi, A conferma, B indietro, LB/RB cambiano sezione.",
+                         "Controller: %s. D-pad or stick to move, A confirms, B goes back, LB/RB switch section.")
+                       % self.pad.nome, 6)
+
+    def _dal_pad(self, nome):
+        chiavi = [k for k, _i, _e, _c, _m in SEZIONI]
+        if nome in ("sezione-prec", "sezione-succ"):
+            i = chiavi.index(self.attuale) if self.attuale in chiavi else 0
+            i = (i + (1 if nome == "sezione-succ" else -1)) % len(chiavi)
+            self.mostra(chiavi[i])
+            self.bottoni[chiavi[i]].setFocus()
+        elif nome == "stato":
+            self.mostra("stato")
+        elif nome == "ok" and QApplication.focusWidget() is None:
+            self.bottoni[self.attuale].setFocus()
+        else:
+            if QApplication.focusWidget() is None:
+                self.bottoni[self.attuale].setFocus()
+            invia_tasto(nome)
+
     def _adatta_allo_schermo(self):
         sc = QApplication.primaryScreen()
         d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
@@ -206,6 +234,7 @@ class Finestra(QMainWindow):
         self._toast_timer.start(int(secondi * 1000))
 
     def closeEvent(self, ev):
+        self.pad.ferma()
         for p in self.pagine.values():
             try:
                 p.disattiva()

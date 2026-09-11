@@ -260,6 +260,11 @@ class Pagina(PaginaBase):
         self.b_apri = QPushButton(L("Apri", "Open"))
         self.b_apri.clicked.connect(self._apri)
         testa.addWidget(self.b_apri)
+        self.b_csv = QPushButton("CSV")
+        self.b_csv.setToolTip(L("Esporta la registrazione aperta o l'ultima fatta come CSV",
+                                "Export the open recording, or the last one made, as CSV"))
+        self.b_csv.clicked.connect(self._esporta_csv)
+        testa.addWidget(self.b_csv)
         self.b_rec = QPushButton("● REC")
         self.b_rec.setCheckable(True)
         self.b_rec.setStyleSheet("QPushButton:checked{background:#7a2a1f;border-color:#e05540;color:#fff;}")
@@ -425,6 +430,32 @@ class Pagina(PaginaBase):
             righe += ["", self._rec_path]
             QMessageBox.information(self, L("Riepilogo", "Summary"), "\n".join(righe))
 
+    def _esporta_csv(self):
+        """A .sfmon is already CSV with two comment lines on top: the export
+        drops the comments, names the columns in the user's language and lets
+        the file be opened by any spreadsheet."""
+        sorg = getattr(self, "_vista_path", None) or getattr(self, "_rec_path", None)
+        if not sorg or not os.path.exists(sorg):
+            self.toast(L("Prima registra o apri una registrazione.", "Record or open a recording first."))
+            return
+        dest, _ = QFileDialog.getSaveFileName(self, L("Esporta CSV", "Export CSV"),
+                                              os.path.splitext(sorg)[0] + ".csv", "CSV (*.csv)")
+        if not dest:
+            return
+        nomi = dict((k, L(*lab)) for k, lab, _u, _c in SERIE)
+        nomi["vram"] = "VRAM MB"
+        try:
+            with open(sorg, newline="") as f, open(dest, "w", newline="") as g:
+                wtr = csv.writer(g)
+                for i, row in enumerate(csv.reader(l for l in f if not l.startswith("#"))):
+                    if i == 0:
+                        row = [L("secondi", "seconds")] + [nomi.get(k, k) for k in row[1:]]
+                    wtr.writerow(row)
+        except OSError as e:
+            self.toast(str(e))
+            return
+        self.toast(L("Esportato in %s", "Exported to %s") % dest, 5)
+
     # ---- viewer ---------------------------------------------------------------------
     def _apri(self):
         path, _ = QFileDialog.getOpenFileName(self, L("Apri registrazione", "Open recording"), REC_DIR, "SkillFishOS Monitor (*.sfmon *.csv)")
@@ -432,6 +463,7 @@ class Pagina(PaginaBase):
             self._carica(path)
 
     def _carica(self, path):
+        self._vista_path = path
         times, cols = [], {}
         header, rows = None, []
         try:

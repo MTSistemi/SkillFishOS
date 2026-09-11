@@ -232,6 +232,8 @@ sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-
 # the .sfmon mime type moved here from skillfish-monitor: without this dpkg
 # refuses to unpack over the old monitor package ("trying to overwrite")
 sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
+# gamepad navigation: optional, the window works without the module
+sed -i 's/^Recommends: .*/&, python3-evdev/' "$OUT/$P/DEBIAN/control"
 printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
@@ -614,6 +616,22 @@ put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.aml              usr/share/
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-PST.dsl              usr/share/skillfish/acpi/SSDT-PST.dsl
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.aml              usr/share/skillfish/acpi/SSDT-CST.aml
 put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl
+put $P 0644 system/usr/share/skillfish/acpi/SSDT-STUBS.aml            usr/share/skillfish/acpi/SSDT-STUBS.aml
+put $P 0644 system/usr/share/skillfish/acpi/SSDT-STUBS.dsl            usr/share/skillfish/acpi/SSDT-STUBS.dsl
+put $P 0644 system/usr/share/skillfish/acpi/LICENSE.SSDT-STUBS        usr/share/skillfish/acpi/LICENSE.SSDT-STUBS
+# Mesa defaults for the APU (unified heap), the shader cache cap, the PipeWire
+# quantum for games: three small files the community converged on (2026-09).
+put $P 0644 system/usr/share/drirc.d/50-skillfish.conf                usr/share/drirc.d/50-skillfish.conf
+put $P 0644 system/etc/environment.d/50-skillfish-mesa.conf           etc/environment.d/50-skillfish-mesa.conf
+put $P 0644 system/etc/pipewire/pipewire.conf.d/50-skillfish-latency.conf etc/pipewire/pipewire.conf.d/50-skillfish-latency.conf
+# The 8-core unlock done before GRUB: an EFI program (Hexxeh, MIT) plus the
+# script that puts it first in the boot order. Nothing runs at boot unless
+# `skillfish-coreunlock-efi installa` was called.
+put $P 0644 system/usr/share/skillfish/coreunlock/bc250-unlock.efi    usr/share/skillfish/coreunlock/bc250-unlock.efi
+put $P 0644 system/usr/share/skillfish/coreunlock/LICENSE             usr/share/skillfish/coreunlock/LICENSE
+put $P 0644 system/usr/share/skillfish/coreunlock/main.c              usr/share/skillfish/coreunlock/main.c
+put $P 0644 system/usr/share/skillfish/coreunlock/Makefile            usr/share/skillfish/coreunlock/Makefile
+put $P 0755 system/usr/local/bin/skillfish-coreunlock-efi             usr/local/bin/skillfish-coreunlock-efi
 ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the

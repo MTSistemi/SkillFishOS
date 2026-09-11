@@ -146,6 +146,7 @@ docs/              full documentation
   OPTIMIZATIONS.md   kernel patches, governor, OC/UV, 40-CU, VRAM/GTT, audio/display, controllers
   DESKTOP.md         KDE Plasma, steampunk theme, HUD, Tuner, AI panel
   CONTROL-CENTER.md  the one window: Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots...
+  COMMUNITY.md       what we took from the BC-250 community, what we did not, and why
   GAMING.md          Steam, EmuDeck, ES-DE, emulators (bring your own games)
   AI.md              the local Unsloth Studio Vulkan engine
   BUILD.md           building the kernel and the ISO

@@ -21,6 +21,12 @@ the menu (SkillFishOS → Control Center) or with `skillfish-control-center`.
 The Remote Manager mirrors the same sections on the web: Tuner (with the
 curve), Games and Profiles are there too.
 
+A controller drives the window as well: D-pad or left stick move the focus, A
+confirms, B goes back, LB and RB switch section, Start opens Status. It needs
+`python3-evdev`; without it the window simply ignores the pad. The Monitor's
+CSV button exports the open recording (or the last one made) for a
+spreadsheet.
+
 ## Our Mesa as the system driver
 
 The Games section can make our RADV build the Vulkan driver of the whole

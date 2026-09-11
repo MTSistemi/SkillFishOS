@@ -270,6 +270,14 @@ class Pagina(PaginaBase):
             cb.clicked.connect(self._fsr4)
         self.c_fsr.aggiungi(self.f_steam)
         self.c_fsr.aggiungi(self.f_heroic)
+        nota = QLabel(L(
+            "XeSS, dove un gioco ce l'ha di suo (Cyberpunk si'), qui costa quanto FSR 3: 97,7 "
+            "contro 97,8 fps a 1080p Bilanciato. La community lo vede avanti solo col ray tracing.",
+            "XeSS, where a game has it built in (Cyberpunk does), costs the same as FSR 3 here: "
+            "97.7 against 97.8 fps at 1080p Balanced. The community sees it ahead only with ray tracing."))
+        nota.setWordWrap(True)
+        nota.setStyleSheet("color:%s;font-size:11px;" % stile.TESTO_2)
+        self.c_fsr.aggiungi(nota)
         self.c_fsr.bottoni((L("Guida", "Guide"), lambda: sh("xdg-open https://github.com/MTSistemi/SkillFishOS/wiki &", 5), False))
         v.addWidget(griglia_schede(self.c_mesa, self.c_scx, self.c_fsr, colonne=3))
 
