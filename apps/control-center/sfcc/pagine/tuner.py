@@ -1,41 +1,51 @@
 # -*- coding: utf-8 -*-
 """Tuner: the GPU voltage/frequency curve, the CPU, the cores, the compute units.
 
-THE CURVE IS THE THING. The governor holds one point at a time (MHz, mV) and
-reads which mV from a curve of knots; the ceiling says how high it may go.
-Here the curve is drawn inside the chart, its knots drag, and the live dot
-shows where the GPU is right now. What you drag is what the governor runs.
+THE CURVE IS THE CHART. MHz across, millivolts up, the fifteen knots drag, the
+same knots sit in a table beside it where every value can be typed. The live
+dot is the GPU right now. What you see is what the governor runs.
 
 APPLY IS A TRIAL. A curve that asks too little voltage hangs the board, and
 on the BC-250 a hang means pulling the plug. So Apply starts the candidate
-with the last known good curve still on disk, and counts down: if you do not
-press Keep within the time, or the board dies and comes back, the good curve
-is what boots. The tuner-helper did the same for the CPU; now the GPU has it.
+with the last known good curve still on disk and counts down: unless you
+press Keep, the good curve is what boots.
+
+EVERY TEST COUNTS DOWN AND CAN BE STOPPED. The CPU load runs here, as the
+user, in its own thread; the helper only applies the values (without leaving
+them on disk) so the window never freezes and a hang boots the old values.
 """
 import os
 import re
+import subprocess
 import time
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFrame, QGridLayout,
-                             QHBoxLayout, QLabel, QMessageBox, QPushButton, QRadioButton,
-                             QScrollArea, QSizePolicy, QSlider, QSpinBox, QVBoxLayout, QWidget)
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QDialog, QGridLayout,
+                             QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton,
+                             QRadioButton, QSlider, QSpinBox, QTableWidget, QTableWidgetItem,
+                             QVBoxLayout, QWidget)
 
 from .. import stile
 from ..comune import GOV_CONF, L, Aiuto, battito, hwmon_valore, leggi_json, leggi_testo, sh
 from ..demone import in_sfondo
 from ..finestra import PaginaBase
-from ..grafico import CurvaVF, Grafico, GraficoSingolo
-from ..stile import Scheda, Stato, Tessera, intestazione
+from ..grafico import CurvaVF
+from ..stile import Stato, Tessera, intestazione, link_doc
 
 CURVA_PREDEFINITA = "/usr/share/skillfish/vf-curva-predefinita.json"
 MV_PER_SCALINO = 6.25          # the SMU voltage step of the CPU undervolt
 SECONDI_PROVA = 25
+CPU_TOLLERANZA = 200           # MHz under the target that still count as "holds"
 
 
 def cpu_media_mhz():
     fs = [float(x) for x in re.findall(r'cpu MHz\s*:\s*([\d.]+)', leggi_testo("/proc/cpuinfo"))]
     return sum(fs) / len(fs) if fs else None
+
+
+def cpu_min_mhz():
+    fs = [float(x) for x in re.findall(r'cpu MHz\s*:\s*([\d.]+)', leggi_testo("/proc/cpuinfo"))]
+    return min(fs) if fs else None
 
 
 class Pannello(QDialog):
@@ -61,35 +71,125 @@ class Pannello(QDialog):
         self.activateWindow()
 
 
-class Cursore(QWidget):
-    """A slider with its value written next to it."""
+class Manopola(QWidget):
+    """A slider and a number box that agree: drag for the rough value, type
+    the exact one. Step 1, always."""
+    cambiata = pyqtSignal(int)
 
-    def __init__(self, lo, hi, val, unita="", passo=1, mostra=None, parent=None):
+    def __init__(self, lo, hi, val, unita="", mostra=None, parent=None):
         super().__init__(parent)
         h = QHBoxLayout(self)
         h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(8)
         self.s = QSlider(Qt.Orientation.Horizontal)
         self.s.setRange(lo, hi)
-        self.s.setSingleStep(passo)
-        self.s.setPageStep(passo * 5)
-        self.s.setValue(int(val))
+        self.s.setSingleStep(1)
+        self.s.setPageStep(10)
+        self.n = QSpinBox()
+        self.n.setRange(lo, hi)
+        self.n.setSingleStep(1)
+        self.n.setSuffix((" " + unita) if unita else "")
+        self.n.setMinimumWidth(100)
         self.et = QLabel("")
-        self.et.setMinimumWidth(96)
-        self.et.setStyleSheet("font-weight:700;color:%s;" % stile.OTTONE)
-        self.unita, self.mostra = unita, mostra
-        self.s.valueChanged.connect(self._agg)
+        self.et.setMinimumWidth(84)
+        self.et.setStyleSheet("color:%s;" % stile.TESTO_2)
+        self.mostra = mostra
+        self.s.valueChanged.connect(self._dal_cursore)
+        self.n.valueChanged.connect(self._dalla_casella)
         h.addWidget(self.s, 1)
+        h.addWidget(self.n)
         h.addWidget(self.et)
-        self._agg(self.s.value())
+        self.setValue(val)
+
+    def _dal_cursore(self, v):
+        self.n.blockSignals(True)
+        self.n.setValue(v)
+        self.n.blockSignals(False)
+        self._agg(v)
+
+    def _dalla_casella(self, v):
+        self.s.blockSignals(True)
+        self.s.setValue(v)
+        self.s.blockSignals(False)
+        self._agg(v)
 
     def _agg(self, v):
-        self.et.setText(self.mostra(v) if self.mostra else "%d %s" % (v, self.unita))
+        self.et.setText(self.mostra(v) if self.mostra else "")
+        self.cambiata.emit(v)
 
     def value(self):
-        return self.s.value()
+        return self.n.value()
 
     def setValue(self, v):
-        self.s.setValue(int(v))
+        self.n.setValue(int(v))
+
+
+class ProvaCpu(QThread):
+    """Steps of (MHz, undervolt step, seconds): each is applied through the
+    helper WITHOUT touching the boot values, then sysbench loads every thread
+    for the given seconds while the lowest clock is watched. Stop kills the
+    load and the thread reports what it had."""
+    tick = pyqtSignal(str, int)                 # label, seconds left
+    passo = pyqtSignal(int, int, bool, int)     # mhz, scale, held, min mhz
+    finito = pyqtSignal(object)                 # (mhz, scale) of the best, or None
+
+    def __init__(self, demone, passi, temp, parent=None):
+        super().__init__(parent)
+        self.demone, self.passi, self.temp = demone, list(passi), int(temp)
+        self._stop = False
+        self._proc = None
+        self.migliore = None
+
+    def ferma(self):
+        self._stop = True
+        p = self._proc
+        if p is not None:
+            try:
+                p.terminate()
+            except OSError:
+                pass
+
+    def run(self):
+        nth = os.cpu_count() or 8
+        for mhz, scale, secs in self.passi:
+            if self._stop:
+                break
+            etichetta = "%d MHz  ·  UV %d" % (mhz, scale)
+            self.tick.emit(etichetta, secs)
+            r = self.demone.cmd(cmd="cpu-volatile", mhz=mhz, scale=scale, temp=self.temp)
+            if not r.get("ok"):
+                self.passo.emit(mhz, scale, False, 0)
+                break
+            try:
+                self._proc = subprocess.Popen(
+                    ["sysbench", "cpu", "--threads=%d" % nth, "--time=%d" % secs, "--cpu-max-prime=20000", "run"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except OSError:
+                self.passo.emit(mhz, scale, False, 0)
+                break
+            minimo = None
+            t0 = time.monotonic()
+            while self._proc.poll() is None:
+                if self._stop:
+                    break
+                passati = time.monotonic() - t0
+                if passati > 5:
+                    m = cpu_min_mhz()
+                    if m is not None and (minimo is None or m < minimo):
+                        minimo = m
+                self.tick.emit(etichetta, max(0, int(secs - passati)))
+                time.sleep(0.5)
+            rc = self._proc.wait() if self._proc.poll() is not None else -1
+            self._proc = None
+            if self._stop:
+                break
+            tenuto = rc == 0 and minimo is not None and minimo >= mhz - CPU_TOLLERANZA
+            self.passo.emit(mhz, scale, tenuto, int(minimo or 0))
+            if tenuto:
+                self.migliore = (mhz, scale)
+            else:
+                break
+        self.finito.emit(self.migliore)
 
 
 class ProvaCurva(QDialog):
@@ -147,147 +247,142 @@ class ProvaCurva(QDialog):
         self.accept()
 
 
+# the readouts beside the curve: key, label, unit, colour
+LETTURE = [
+    ("gpu_mhz", "GPU MHz", "MHz", stile.OTTONE),
+    ("tetto", ("Tetto", "Ceiling"), "MHz", "#9a7a3a"),
+    ("gpu_mv", "GPU mV", "mV", stile.COL_VOLT),
+    ("gpu_c", "GPU °C", "C", stile.ARANCIO),
+    ("gpu_w", "GPU W", "W", stile.VIOLA),
+    ("carico", ("Carico GPU", "GPU load"), "%", stile.VERDE),
+    ("cpu_mhz", "CPU MHz", "MHz", "#9bd24f"),
+    ("cpu_c", "CPU °C", "C", "#e8c878"),
+]
+
+
 class Pagina(PaginaBase):
     def __init__(self, finestra):
         super().__init__(finestra)
         self.intervallo_ms = 1000
         self.conf = {}
         self.tessere = {}
-        self.pannelli_serie = {}
         self.cfg = {}
         self._occupato = False
+        self._prova = None
+        self._tabella_muta = False
 
     # ============================================================ build
     def costruisci(self):
         v = self.corpo_pieno()
         testa = QHBoxLayout()
         testa.addWidget(intestazione("Tuner", "", L(
-            "Il grafico mostra gli ultimi cinque minuti: frequenza e tensione della GPU, "
-            "il tetto, gradi, watt, carico, e la CPU. Le tessere a sinistra sono la legenda: "
-            "clic per accendere o spegnere una linea, clic sulla linea per aprirla da sola "
-            "con i numeri veri sugli assi.\n\n"
-            "Nel riquadro c'e' la curva del governor: MHz in orizzontale, millivolt in "
-            "verticale. Trascina un punto, doppio clic per aggiungerne uno, tasto destro "
-            "per toglierlo. La riga tratteggiata e' il tetto: oltre non si va. Il pallino "
-            "azzurro e' la GPU adesso.\n\n"
-            "Applica mette la curva in prova con un conto alla rovescia: la curva vecchia "
-            "resta su disco finche' non premi Tieni.",
-            "The chart shows the last five minutes: GPU clock and voltage, the ceiling, "
-            "degrees, watts, load, and the CPU. The tiles on the left are the legend: click "
-            "to show or hide a line, click a line to open it alone with real axes.\n\n"
-            "The box holds the governor's curve: MHz across, millivolts up. Drag a point, "
-            "double-click to add one, right-click to remove it. The dashed line is the "
-            "ceiling: it never goes beyond. The blue dot is the GPU right now.\n\n"
-            "Apply runs the curve on trial with a countdown: the old curve stays on disk "
-            "until you press Keep.")))
+            "La curva tensione/frequenza del governor: trascina un punto o scrivi il numero "
+            "nella tabella. Applica la prova per %d secondi e tiene la vecchia su disco.",
+            "The governor's voltage/frequency curve: drag a knot or type the number in the "
+            "table. Apply runs it on trial for %d seconds with the old one kept on disk.") % SECONDI_PROVA,
+            doc="tuner"))
         testa.addStretch(1)
         self.b_stato = Stato("", "quieto")
         testa.addWidget(self.b_stato)
-        self.interruttore = QCheckBox(L("Governor", "Governor"))
+        self.interruttore = QCheckBox("Governor")
         self.interruttore.setToolTip(L("Spento: il clock torna al governor di serie.",
                                        "Off: the clock goes back to the stock governor."))
         self.interruttore.clicked.connect(self._governor_on_off)
         testa.addWidget(self.interruttore)
-        testa.addWidget(Aiuto(L(
-            "Il nostro governor forza il clock attraverso il firmware e si prende la protezione "
-            "che forzare toglie: il tetto scende quando la scheda scalda o tira troppo. Spento, "
-            "comanda il governor di serie di Cyan Skillfish, che chiede il clock invece di "
-            "forzarlo e sopra i 2200 MHz viene rifiutato.",
-            "Our governor forces the clock through the firmware and takes on the protection "
-            "that forcing gives up: the ceiling drops when the board gets hot or draws too much. "
-            "Off, the stock Cyan Skillfish governor is in charge: it asks for the clock instead "
-            "of forcing it, and is refused above 2200 MHz."), "Governor"))
+        testa.addWidget(Aiuto(L("Il nostro governor forza il clock e si prende la protezione: il tetto scende quando la scheda scalda o tira troppo.",
+                                "Our governor forces the clock and takes on the protection: the ceiling drops when the board gets hot or draws too much."), "Governor"))
         v.addLayout(testa)
+
+        # --- the readouts: a column on the left when the window is wide, a
+        # strip above the curve when it is narrow (both exist, one is shown)
+        self.striscia = QWidget()
+        sr = QHBoxLayout(self.striscia)
+        sr.setContentsMargins(0, 0, 0, 0)
+        sr.setSpacing(5)
+        colonna = QVBoxLayout()
+        colonna.setSpacing(5)
+        for chiave, etichetta, unita, colore in LETTURE:
+            nome = L(*etichetta) if isinstance(etichetta, tuple) else etichetta
+            t1, t2 = Tessera(chiave), Tessera(chiave)
+            for t in (t1, t2):
+                t.setCursor(Qt.CursorShape.ArrowCursor)
+            self.tessere[chiave] = ((t1, t2), nome, unita, colore)
+            colonna.addWidget(t1)
+            sr.addWidget(t2)
+        colonna.addStretch(1)
+        self.striscia.hide()
+        v.addWidget(self.striscia)
 
         corpo = QHBoxLayout()
         corpo.setSpacing(10)
         v.addLayout(corpo, 1)
-        lato = QScrollArea()
-        lato.setWidgetResizable(True)
-        lato.setFrameShape(QFrame.Shape.NoFrame)
-        lato.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        lato.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        lato.setFixedWidth(168)
-        gabbia = QWidget()
-        self.colonna = QVBoxLayout(gabbia)
-        self.colonna.setContentsMargins(0, 0, 4, 0)
-        self.colonna.setSpacing(5)
-        self.colonna.addStretch(1)
-        lato.setWidget(gabbia)
-        corpo.addWidget(lato, 0)
+        self.gab = QWidget()
+        self.gab.setLayout(colonna)
+        self.gab.setFixedWidth(150)
+        corpo.addWidget(self.gab, 0)
 
-        self.curva = CurvaVF()
+        # --- centre: the curve, full size
+        self.curva = CurvaVF(autonomo=True)
         self.curva.cambiata.connect(self._curva_toccata)
-        self.grafico = Grafico(self.curva)
-        self.grafico.nuova_serie = self._rifai_tessere
-        self.grafico.apri_serie = self._apri_serie
-        corpo.addWidget(self.grafico, 1)
+        corpo.addWidget(self.curva, 1)
 
-        # --- the strip at the bottom: ceiling, presets, panels, apply
-        basso = QHBoxLayout()
-        basso.setSpacing(12)
-        v.addLayout(basso, 0)
-
-        gc = QVBoxLayout()
-        gc.setSpacing(4)
+        # --- right: the knots as numbers, the ceiling, the presets
+        destra = QVBoxLayout()
+        destra.setSpacing(6)
+        r = QHBoxLayout()
+        r.addWidget(QLabel("<b>%s</b>" % L("Punti della curva", "Curve knots")))
+        r.addWidget(Aiuto(L("Ogni riga e' un punto: MHz e mV si scrivono. + aggiunge un punto dopo quello scelto, − lo toglie.",
+                            "Every row is a knot: type MHz and mV. + adds a knot after the selected one, − removes it."), L("Punti", "Knots")))
+        r.addStretch(1)
+        b = QPushButton("+")
+        b.setFixedWidth(30)
+        b.clicked.connect(self._aggiungi_punto)
+        r.addWidget(b)
+        b = QPushButton("−")
+        b.setFixedWidth(30)
+        b.clicked.connect(self._togli_punto)
+        r.addWidget(b)
+        destra.addLayout(r)
+        self.tabella = QTableWidget(0, 2)
+        self.tabella.setHorizontalHeaderLabels(["MHz", "mV"])
+        self.tabella.verticalHeader().setVisible(False)
+        self.tabella.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabella.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabella.setFixedWidth(226)
+        self.tabella.itemChanged.connect(self._tabella_cambiata)
+        destra.addWidget(self.tabella, 1)
         r = QHBoxLayout()
         r.addWidget(QLabel("<b>%s</b>" % L("Tetto", "Ceiling")))
         self.tetto = QSpinBox()
         self.tetto.setRange(350, 2300)
-        self.tetto.setSingleStep(50)
+        self.tetto.setSingleStep(1)
         self.tetto.setSuffix(" MHz")
         self.tetto.valueChanged.connect(self._tetto_cambiato)
         r.addWidget(self.tetto)
-        r.addWidget(Aiuto(L(
-            "Fin dove il governor puo' spingere il clock. Misurato sulla scheda di sviluppo: "
-            "2100 tiene, 2150 regge una sera e poi cade, 2230 pianta Cyberpunk in tre minuti. "
-            "Ogni scheda e' diversa: sali di 50 alla volta e gioca a Cyberpunk, che e' l'unico "
-            "a caricare CPU e GPU insieme.",
-            "How far the governor may push the clock. Measured on the development board: 2100 "
-            "holds, 2150 lasts an evening and then falls, 2230 hangs Cyberpunk in three minutes. "
-            "Every board differs: go up 50 at a time and play Cyberpunk, the only game that "
-            "loads CPU and GPU together."), L("Tetto", "Ceiling")))
-        r.addStretch(1)
-        gc.addLayout(r)
-        pr = QHBoxLayout()
-        pr.setSpacing(6)
+        r.addWidget(Aiuto(L("Fin dove il governor puo' spingere il clock. 2100 tiene sulla scheda di sviluppo; sali di 50 alla volta e prova Cyberpunk.",
+                            "How far the governor may push the clock. 2100 holds on the development board; go up 50 at a time and try Cyberpunk."), L("Tetto", "Ceiling")))
+        destra.addLayout(r)
+        pr = QVBoxLayout()
+        pr.setSpacing(2)
         self.gruppo_preset = QButtonGroup(self)
         for chiave, testo, aiuto in (
-                ("prudente", L("Prudente", "Cautious"), L("Tetto a 1850 MHz: il punto dolce di una scheda con il dissipatore di serie. Quasi gli stessi fotogrammi, dieci gradi in meno.", "Ceiling at 1850 MHz: the sweet spot of a board with the stock heatsink. Nearly the same frames, ten degrees less.")),
-                ("equilibrato", L("Equilibrato", "Balanced"), L("Tetto a 2000 MHz.", "Ceiling at 2000 MHz.")),
-                ("misurato", L("Misurato", "Measured"), L("Tetto a 2100 MHz con la curva a quindici punti misurata sulla scheda di sviluppo: e' quella che spediamo.", "Ceiling at 2100 MHz with the fifteen-point curve measured on the development board: the one we ship."))):
+                ("prudente", L("Prudente 1850", "Cautious 1850"), L("Il punto dolce col dissipatore di serie: quasi gli stessi fotogrammi, dieci gradi in meno.", "The sweet spot with the stock heatsink: nearly the same frames, ten degrees less.")),
+                ("equilibrato", L("Equilibrato 2000", "Balanced 2000"), L("Tetto a 2000 MHz.", "Ceiling at 2000 MHz.")),
+                ("misurato", L("Misurato 2100", "Measured 2100"), L("La curva a quindici punti misurata sulla scheda di sviluppo: quella che spediamo.", "The fifteen-point curve measured on the development board: the one we ship."))):
+            rr = QHBoxLayout()
             b = QRadioButton(testo)
             b.chiave = chiave
             self.gruppo_preset.addButton(b)
-            pr.addWidget(b)
-            pr.addWidget(Aiuto(aiuto, testo))
+            rr.addWidget(b)
+            rr.addWidget(Aiuto(aiuto, testo))
+            rr.addStretch(1)
+            pr.addLayout(rr)
         self.gruppo_preset.buttonClicked.connect(self._preset)
-        pr.addStretch(1)
-        gc.addLayout(pr)
-        basso.addLayout(gc)
-
-        pann = QGridLayout()
-        pann.setSpacing(6)
-        self.pannelli = {}
-        for i, (nome, titolo, costruisci) in enumerate((
-                ("cpu", "CPU", self._pan_cpu),
-                ("core", L("Core", "Cores"), self._pan_core),
-                ("cu", "CU", self._pan_cu),
-                ("vram", "VRAM", self._pan_vram),
-                ("avanzate", L("Avanzate", "Advanced"), self._pan_avanzate),
-                ("test", "Test", self._pan_test))):
-            b = QPushButton(titolo)
-            b.clicked.connect(lambda _c=False, k=nome, t=titolo, f=costruisci: self._apri_pannello(k, t, f))
-            pann.addWidget(b, i // 3, i % 3)
-        basso.addLayout(pann)
-        basso.addStretch(1)
-
-        fine = QVBoxLayout()
-        fine.setSpacing(4)
+        destra.addLayout(pr)
         self.et_salva = QLabel("")
         self.et_salva.setObjectName("quieto")
         self.et_salva.setWordWrap(True)
-        fine.addWidget(self.et_salva)
+        destra.addWidget(self.et_salva)
         rr = QHBoxLayout()
         b = QPushButton(L("Annulla", "Discard"))
         b.setToolTip(L("Torna alla curva che sta girando.", "Back to the curve that is running."))
@@ -298,9 +393,29 @@ class Pagina(PaginaBase):
         self.b_applica.setMinimumHeight(34)
         self.b_applica.clicked.connect(self._applica)
         rr.addWidget(self.b_applica)
-        fine.addLayout(rr)
-        basso.addLayout(fine)
+        destra.addLayout(rr)
+        gd = QWidget()
+        gd.setLayout(destra)
+        gd.setFixedWidth(246)
+        corpo.addWidget(gd, 0)
 
+        # --- bottom: the panels
+        basso = QHBoxLayout()
+        basso.setSpacing(6)
+        basso.addWidget(QLabel(L("Pannelli:", "Panels:")))
+        self.pannelli = {}
+        for nome, titolo, costruisci in (
+                ("cpu", "CPU", self._pan_cpu),
+                ("core", L("Core", "Cores"), self._pan_core),
+                ("cu", "CU", self._pan_cu),
+                ("vram", "VRAM", self._pan_vram),
+                ("avanzate", L("Avanzate", "Advanced"), self._pan_avanzate),
+                ("test", "Test", self._pan_test)):
+            b = QPushButton(titolo)
+            b.clicked.connect(lambda _c=False, k=nome, t=titolo, f=costruisci: self._apri_pannello(k, t, f))
+            basso.addWidget(b)
+        basso.addStretch(1)
+        v.addLayout(basso, 0)
         self._ricarica_curva()
 
     # ============================================================ curve
@@ -313,8 +428,55 @@ class Pagina(PaginaBase):
         self.tetto.setValue(self.curva.tetto)
         self.tetto.blockSignals(False)
         self.curva.update()
+        self._riempi_tabella()
         self.et_salva.setText(L("curva in uso", "curve in use"))
         self._segna_preset()
+
+    def _riempi_tabella(self):
+        self._tabella_muta = True
+        self.tabella.setRowCount(len(self.curva.punti))
+        for i, (x, y) in enumerate(self.curva.punti):
+            for col, val in ((0, x), (1, y)):
+                it = QTableWidgetItem("%d" % val)
+                it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tabella.setItem(i, col, it)
+        self._tabella_muta = False
+
+    def _tabella_cambiata(self, item):
+        if self._tabella_muta:
+            return
+        try:
+            val = int(item.text())
+        except ValueError:
+            self._riempi_tabella()
+            return
+        i, col = item.row(), item.column()
+        if not (0 <= i < len(self.curva.punti)):
+            return
+        x, y = self.curva.punti[i]
+        if col == 0:
+            x = max(self.curva.MHZ_MIN, min(self.curva.MHZ_MAX, val))
+        else:
+            y = max(self.curva.MV_MIN, min(self.curva.MV_MAX, val))
+        self.curva.punti[i] = [int(x), int(y)]
+        self.curva._fatto()          # sorts, keeps it monotonic, emits cambiata
+
+    def _aggiungi_punto(self):
+        pts = self.curva.punti
+        i = self.tabella.currentRow()
+        if i < 0 or i >= len(pts) - 1:
+            i = len(pts) - 1
+            nuovo = [min(self.curva.MHZ_MAX, pts[i][0] + 50), pts[i][1]] if pts else [1000, 800]
+        else:
+            nuovo = [(pts[i][0] + pts[i + 1][0]) // 2, (pts[i][1] + pts[i + 1][1]) // 2]
+        pts.append(nuovo)
+        self.curva._fatto()
+
+    def _togli_punto(self):
+        i = self.tabella.currentRow()
+        if 0 <= i < len(self.curva.punti) and len(self.curva.punti) > 2:
+            del self.curva.punti[i]
+            self.curva._fatto()
 
     def _segna_preset(self):
         for b in self.gruppo_preset.buttons():
@@ -330,6 +492,7 @@ class Pagina(PaginaBase):
             self.tetto.setValue(max(pts[0][0], min(pts[-1][0], self.tetto.value())))
             self.tetto.blockSignals(False)
             self.curva.tetto = self.tetto.value()
+        self._riempi_tabella()
         self.et_salva.setText(L("modificata, non applicata", "changed, not applied"))
         self._segna_preset()
 
@@ -352,6 +515,7 @@ class Pagina(PaginaBase):
             pred = leggi_json(CURVA_PREDEFINITA, {})
             if pred.get("curva"):
                 self.curva.imposta(pred["curva"])
+                self._riempi_tabella()
         pts = self.curva.punti
         if pts and tetto > pts[-1][0]:
             tetto = pts[-1][0]
@@ -378,8 +542,6 @@ class Pagina(PaginaBase):
         self.b_applica.setEnabled(True)
         if not r.get("ok"):
             self.et_salva.setText(r.get("err", L("non applicata", "not applied")))
-            self.et_salva.setObjectName("male")
-            self.et_salva.style().polish(self.et_salva)
             if r.get("err") and "prova in corso" in r.get("err", ""):
                 self.demone.cmd(cmd="gov-annulla")
             return
@@ -391,8 +553,6 @@ class Pagina(PaginaBase):
         else:
             self.demone.cmd(cmd="gov-annulla")
             self.et_salva.setText(L("annullata: torna la curva di prima", "cancelled: the previous curve is back"))
-        self.et_salva.setObjectName("quieto")
-        self.et_salva.style().polish(self.et_salva)
         self._ricarica_curva()
 
     def _governor_on_off(self, on):
@@ -404,34 +564,28 @@ class Pagina(PaginaBase):
     # ============================================================ readings
     def aggiorna(self):
         adesso = time.time()
-        letture = []
         b = battito()
         vivo = bool(b) and adesso - b["quando"] < 5
+        val = {}
         if b:
-            letture += [("gpu_mhz", "GPU MHz", "MHz", b["mhz"], stile.OTTONE),
-                        ("tetto", L("Tetto", "Ceiling"), "MHz", b["tetto"], "#9a7a3a"),
-                        ("gpu_c", "GPU °C", "C", b["gradi"], stile.ARANCIO),
-                        ("gpu_w", "GPU W", "W", b["watt"], stile.VIOLA),
-                        ("carico", L("Carico GPU", "GPU load"), "%", b["carico"], stile.VERDE)]
+            val.update(gpu_mhz=b["mhz"], tetto=b["tetto"], gpu_c=b["gradi"], gpu_w=b["watt"], carico=b["carico"])
         else:
             mhz = hwmon_valore("amdgpu", "freq1_input")
             t = hwmon_valore("amdgpu", "temp1_input")
             w = hwmon_valore("amdgpu", "power1_average") or hwmon_valore("amdgpu", "power1_input")
-            letture += [("gpu_mhz", "GPU MHz", "MHz", mhz // 1000000 if mhz else None, stile.OTTONE),
-                        ("gpu_c", "GPU °C", "C", t // 1000 if t else None, stile.ARANCIO),
-                        ("gpu_w", "GPU W", "W", w / 1e6 if w else None, stile.VIOLA)]
+            val.update(gpu_mhz=mhz // 1000000 if mhz else None, gpu_c=t / 1000.0 if t else None,
+                       gpu_w=w / 1e6 if w else None)
         mv = hwmon_valore("amdgpu", "in0_input")
-        letture.append(("gpu_mv", "GPU mV", "mV", mv, stile.COL_VOLT))
-        letture.append(("cpu_mhz", "CPU MHz", "MHz", cpu_media_mhz(), "#9bd24f"))
+        val["gpu_mv"] = mv
+        val["cpu_mhz"] = cpu_media_mhz()
         tc = hwmon_valore("k10temp", "temp1_input")
-        letture.append(("cpu_c", "CPU °C", "C", tc / 1000.0 if tc else None, "#e8c878"))
-        self.grafico.campiona(adesso, letture)
-        for chiave, serie in self.grafico.elenco():
-            w = self.tessere.get(chiave)
-            if w is not None:
-                w.aggiorna(serie)
-        self.curva.aggiorna_vivo(b["mhz"] if b else None, mv)
-        # the badge and the switch
+        val["cpu_c"] = tc / 1000.0 if tc else None
+        for chiave, (coppia, etichetta, unita, colore) in self.tessere.items():
+            v = val.get(chiave)
+            for t in coppia:
+                t.aggiorna({"etichetta": etichetta, "unita": unita, "colore": colore, "visibile": True,
+                            "punti": [(adesso, v)] if v is not None else []})
+        self.curva.aggiorna_vivo(val.get("gpu_mhz"), mv)
         self.b_stato.setText(L("governor attivo", "governor running") if vivo else L("governor fermo", "governor stopped"))
         self.b_stato.tono("bene" if vivo else "male")
         self.interruttore.blockSignals(True)
@@ -441,37 +595,13 @@ class Pagina(PaginaBase):
             self.b_stato.setText(L("prova in corso", "trial running"))
             self.b_stato.tono("ottone")
 
-    def _rifai_tessere(self):
-        while self.colonna.count():
-            it = self.colonna.takeAt(0)
-            if it.widget():
-                it.widget().setParent(None)
-        for k, s in self.grafico.elenco():
-            t = self.tessere.get(k)
-            if t is None:
-                t = Tessera(k)
-                t.premuta.connect(self._accendi_serie)
-                self.tessere[k] = t
-            self.colonna.addWidget(t)
-        self.colonna.addStretch(1)
-
-    def _accendi_serie(self, chiave):
-        s = self.grafico.serie.get(chiave)
-        if s:
-            s["visibile"] = not s["visibile"]
-            self.grafico.update()
-            self.tessere[chiave].aggiorna(s)
-
-    def _apri_serie(self, chiave):
-        s = self.grafico.serie.get(chiave)
-        if not s:
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        if not self.costruita:
             return
-        p = self.pannelli_serie.get(chiave)
-        if p is None:
-            p = Pannello(s["etichetta"], GraficoSingolo(self.grafico, chiave), self)
-            p.resize(700, 400)
-            self.pannelli_serie[chiave] = p
-        p.mostra()
+        stretto = self.width() < 1250
+        self.gab.setVisible(not stretto)
+        self.striscia.setVisible(stretto)
 
     # ============================================================ panels
     def _apri_pannello(self, nome, titolo, costruisci):
@@ -482,7 +612,6 @@ class Pagina(PaginaBase):
         p.mostra()
 
     def _cfg(self):
-        """The old-style snapshot of everything (through the helper, once)."""
         r = self.demone.cmd(cmd="get")
         self.cfg = r.get("data", {}) if r.get("ok") else {}
         return self.cfg
@@ -494,38 +623,46 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        self.cf = Cursore(3000, 4500, cfg.get("frequency", 3500), "MHz", 50)
-        self.cs = Cursore(-50, 0, cfg.get("scale", 0), "", 1,
-                          mostra=lambda s: ("%d (−%.0f mV)" % (s, -s * MV_PER_SCALINO)) if s else "0")
-        self.ct = Cursore(60, 95, cfg.get("max_temperature", 85), "°C")
+        self.cf = Manopola(2000, 4500, cfg.get("frequency", 3500), "MHz")
+        self.cs = Manopola(-60, 0, cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
+        self.ct = Manopola(60, 95, cfg.get("max_temperature", 85), "°C")
         for testo, cur, aiuto in (
-                (L("Frequenza", "Clock"), self.cf, L("La frequenza a cui la CPU sale sotto carico. Misurato: oltre 3500 con otto core il guadagno e' zero, perche' comanda il calore.", "The clock the CPU climbs to under load. Measured: above 3500 with eight cores the gain is nil, because heat is in charge.")),
-                (L("Undervolt", "Undervolt"), self.cs, L("Scalini di 6,25 mV tolti alla tensione della CPU. Meno tensione, meno calore, stessa frequenza: fino a dove regge.", "Steps of 6.25 mV taken off the CPU voltage. Less voltage, less heat, same clock: as far as it holds.")),
-                (L("Limite gradi", "Degree limit"), self.ct, L("Sopra questa temperatura la guardia termica rallenta la CPU di 100 MHz alla volta, e la rialza quando si raffredda.", "Above this temperature the thermal guard slows the CPU by 100 MHz at a time, and raises it again when it cools."))):
+                (L("Frequenza", "Clock"), self.cf, L("Il clock sotto carico. Sopra 3500 con otto core comanda il calore.", "The clock under load. Above 3500 with eight cores heat is in charge.")),
+                (L("Undervolt", "Undervolt"), self.cs, L("Scalini di 6,25 mV tolti alla CPU: meno calore, stessa frequenza, fin dove regge.", "Steps of 6.25 mV taken off the CPU: less heat, same clock, as far as it holds.")),
+                (L("Limite gradi", "Degree limit"), self.ct, L("Sopra, la guardia termica rallenta di 100 MHz alla volta e poi rialza.", "Above it the thermal guard slows by 100 MHz at a time, then raises again."))):
             r = QHBoxLayout()
             e = QLabel(testo)
-            e.setMinimumWidth(110)
+            e.setMinimumWidth(100)
             r.addWidget(e)
             r.addWidget(Aiuto(aiuto, testo))
             r.addWidget(cur, 1)
             v.addLayout(r)
         r = QHBoxLayout()
-        for testo, slot, primario in (
-                (L("Trova il massimo", "Find my max"), self._cpu_wizard, False),
-                (L("Suggerisci UV", "Suggest UV"), self._suggerisci_uv, False),
-                ("Test", self._test_cpu, False),
-                (L("Applica", "Apply"), self._applica_cpu, True),
-                (L("Salva al boot", "Save at boot"), self._salva_cpu, False)):
+        self.b_cpu = {}
+        for chiave, testo, slot, primario in (
+                ("uv", L("Suggerisci UV", "Suggest UV"), self._suggerisci_uv, False),
+                ("max", L("Trova il massimo", "Find my max"), self._cpu_wizard, False),
+                ("test", "Test 60 s", self._test_cpu, False),
+                ("stop", "Stop", self._ferma_prova, False),
+                ("applica", L("Applica", "Apply"), self._applica_cpu, True),
+                ("salva", L("Salva al boot", "Save at boot"), self._salva_cpu, False)):
             b = QPushButton(testo)
             if primario:
                 b.setObjectName("primario")
             b.clicked.connect(slot)
+            self.b_cpu[chiave] = b
             r.addWidget(b)
+        self.b_cpu["stop"].setEnabled(False)
         v.addLayout(r)
         self.et_cpu = QLabel("")
         self.et_cpu.setObjectName("quieto")
         self.et_cpu.setWordWrap(True)
         v.addWidget(self.et_cpu)
+        self.et_conto = QLabel("")
+        self.et_conto.setObjectName("numerone")
+        self.et_conto.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.et_conto.hide()
+        v.addWidget(self.et_conto)
         return w
 
     def _valori_cpu(self):
@@ -542,73 +679,86 @@ class Pagina(PaginaBase):
         r = self.demone.cmd(cmd="persist-cpu", mhz=m, scale=s, temp=t)
         self.et_cpu.setText(L("CPU salvata: vale anche al prossimo avvio", "CPU saved: applies at next boot too") if r.get("ok") else r.get("err", "?"))
 
-    def _lavoro_cpu(self, fn, testo, poi):
+    # every CPU test goes through one machinery: steps, countdown, Stop
+    def _avvia_prova(self, passi, testo, fine):
+        if self._prova is not None:
+            return
+        self._prova = ProvaCpu(self.demone, passi, self.ct.value(), self)
+        self._prova_fine = fine
+        self._prova_esiti = []
+        self._prova.tick.connect(self._prova_tick)
+        self._prova.passo.connect(self._prova_passo)
+        self._prova.finito.connect(self._prova_finita)
+        for k, b in self.b_cpu.items():
+            b.setEnabled(k == "stop")
         self.et_cpu.setText(testo)
-        in_sfondo(fn, poi, self)
+        self.et_conto.show()
+        self._prova.start()
+
+    def _prova_tick(self, etichetta, resto):
+        self.et_conto.setText("%s   %d s" % (etichetta, resto))
+
+    def _prova_passo(self, mhz, scale, tenuto, minimo):
+        self._prova_esiti.append((mhz, scale, tenuto, minimo))
+        self.et_cpu.setText(L("%d MHz @ %d: %s (min %d MHz)", "%d MHz @ %d: %s (min %d MHz)") % (
+            mhz, scale, L("regge", "holds") if tenuto else L("NON regge", "does NOT hold"), minimo))
+
+    def _prova_finita(self, migliore):
+        fermata = self._prova is not None and self._prova._stop
+        self._prova = None
+        self.et_conto.hide()
+        for k, b in self.b_cpu.items():
+            b.setEnabled(k != "stop")
+        # whatever happened, the CPU goes back to the applied values
+        cfg = self._cfg().get("cpu", {})
+        self.demone.cmd(cmd="apply-cpu", mhz=cfg.get("frequency", 3500), scale=cfg.get("scale", 0), temp=cfg.get("max_temperature", 85))
+        if fermata:
+            self.et_cpu.setText(L("Fermato. Valori di prima rimessi.", "Stopped. Previous values are back."))
+            return
+        self._prova_fine(migliore)
+
+    def _ferma_prova(self):
+        if self._prova is not None:
+            self._prova.ferma()
 
     def _test_cpu(self):
-        m, s, t = self._valori_cpu()
-        self._lavoro_cpu(lambda: self.demone.cmd(cmd="test-cpu", mhz=m, scale=s, temp=t),
-                         L("Test: applico e faccio un minuto di carico…", "Test: applying and loading for a minute…"), self._cpu_fatto)
-
-    def _cpu_fatto(self, r):
-        if r.get("ok"):
-            b = r.get("bench", {})
-            self.et_cpu.setText(L("Regge: %s %s, %s °C. Applicata.", "Holds: %s %s, %s °C. Applied.") % (b.get("score"), b.get("unit"), b.get("temp")))
-        else:
-            self.et_cpu.setText(r.get("err", L("test fallito", "test failed")))
+        m, s, _t = self._valori_cpu()
+        self._avvia_prova([(m, s, 60)], L("Test: un minuto di carico su tutti i thread…", "Test: a minute of load on every thread…"),
+                          lambda best: (self.et_cpu.setText(L("Regge. Premi Applica per tenerlo.", "Holds. Press Apply to keep it.") if best else L("Non regge: valori di prima rimessi.", "Does not hold: previous values are back."))))
 
     def _suggerisci_uv(self):
         m = self.cf.value()
-        self._lavoro_cpu(lambda: self.demone.cmd(cmd="suggest-uv", mhz=m),
-                         L("Cerco l'undervolt per %d MHz (circa un minuto)…", "Looking for the undervolt at %d MHz (about a minute)…") % m,
-                         lambda r: (self.cs.setValue(r.get("suggested_scale", 0)),
-                                    self.et_cpu.setText(L("Suggerito: scalino %s. Premi Applica.", "Suggested: step %s. Press Apply.") % r.get("suggested_scale", 0))))
+        passi = [(m, s, 12) for s in range(0, -41, -2)]
+        self._avvia_prova(passi, L("Cerco l'undervolt per %d MHz: dodici secondi a scalino, mi fermo al primo che non regge.",
+                                   "Looking for the undervolt at %d MHz: twelve seconds a step, stopping at the first that does not hold.") % m,
+                          self._uv_trovato)
+
+    def _uv_trovato(self, best):
+        if not best:
+            self.et_cpu.setText(L("Nemmeno lo scalino 0 regge a questa frequenza.", "Not even step 0 holds at this clock."))
+            return
+        self.cs.setValue(best[1])
+        self.et_cpu.setText(L("Suggerito: scalino %d (−%.0f mV). Premi Applica.", "Suggested: step %d (−%.0f mV). Press Apply.") % (best[1], -best[1] * MV_PER_SCALINO))
 
     CPU_WIZ = [(3600, -8), (3700, -16), (3800, -20), (3900, -24), (4000, -36)]
 
     def _cpu_wizard(self):
         if QMessageBox.question(self, L("Trova il massimo", "Find my max"), L(
-                "Prova la CPU a scalini crescenti, 3600 → 4000 MHz con undervolt progressivo, "
-                "un minuto di carico per scalino, e si ferma al primo che non regge.\n\n"
-                "L'ultimo scalino puo' piantare alcune schede: in quel caso il watchdog riavvia "
-                "e al boot torna l'ultimo valore buono. Procedere?",
-                "Steps the CPU up, 3600 → 4000 MHz with progressive undervolt, a minute of load "
-                "per step, and stops at the first that does not hold.\n\n"
-                "The last step can hang some boards: the watchdog then reboots and the last good "
-                "value is back at boot. Proceed?")) != QMessageBox.StandardButton.Yes:
+                "Da 3600 a 4000 MHz con undervolt crescente, trenta secondi a scalino, si ferma al primo che non regge. "
+                "L'ultimo scalino puo' piantare alcune schede: il watchdog riavvia e tornano i valori buoni. Procedere?",
+                "From 3600 to 4000 MHz with growing undervolt, thirty seconds a step, stops at the first that does not hold. "
+                "The last step can hang some boards: the watchdog reboots and the good values are back. Proceed?")) != QMessageBox.StandardButton.Yes:
             return
-        self._wiz = list(self.CPU_WIZ)
-        self._wiz_buono = None
-        self._wiz_avanti()
+        self._avvia_prova([(f, s, 30) for f, s in self.CPU_WIZ], L("Cerco il massimo…", "Looking for the maximum…"), self._wiz_fine)
 
-    def _wiz_avanti(self):
-        if not self._wiz:
-            self._wiz_fine()
-            return
-        f, s = self._wiz.pop(0)
-        self._lavoro_cpu(lambda: self.demone.cmd(cmd="test-cpu", mhz=f, scale=s, temp=85),
-                         L("Provo %d MHz @ %d…", "Trying %d MHz @ %d…") % (f, s),
-                         lambda r, f=f, s=s: self._wiz_passo(f, s, r))
-
-    def _wiz_passo(self, f, s, r):
-        if r.get("ok"):
-            self._wiz_buono = (f, s)
-            self._wiz_avanti()
-        else:
-            self._wiz_fine((f, s))
-
-    def _wiz_fine(self, caduto=None):
-        if not self._wiz_buono:
+    def _wiz_fine(self, best):
+        if not best:
             self.et_cpu.setText(L("Nemmeno 3600 regge: resta com'era.", "Not even 3600 holds: left as it was."))
             return
-        f, s = self._wiz_buono
+        f, s = best
         self.cf.setValue(f)
         self.cs.setValue(s)
-        t = L("Massimo che regge: %d MHz @ %d (gia' applicato).", "Highest that holds: %d MHz @ %d (already applied).") % (f, s)
-        if caduto:
-            t += " " + L("(%d @ %d non ha retto.)", "(%d @ %d did not hold.)") % caduto
-        self.et_cpu.setText(t)
+        self.et_cpu.setText(L("Massimo che regge: %d MHz @ %d. Premi Applica.", "Highest that holds: %d MHz @ %d. Press Apply.") % (f, s))
 
     # ---- cores
     def _pan_core(self):
@@ -646,24 +796,36 @@ class Pagina(PaginaBase):
         self.smt.toggled.connect(self._smt)
         r.addWidget(self.smt)
         r.addWidget(Aiuto(L("Due thread per core. Spento, uno.", "Two threads per core. Off, one."), "SMT"))
-        cu = self.demone.cmd(cmd="core-unlock") or {}
-        self.core8 = QCheckBox(L("8 core", "8 cores"))
-        self.core8.setChecked(bool(cu.get("abilitato")))
-        self.core8.setEnabled(bool(cu.get("supportato")))
-        self.core8.toggled.connect(self._core8)
-        r.addWidget(self.core8)
-        r.addWidget(Aiuto(L(
-            "Sblocca i due core che la BC-250 tiene spenti: 6c/12t diventa 8c/16t, +20% misurato. "
-            "Costa un riavvio in piu' a ogni accensione da spenta, perche' la scheda rilegge "
-            "quanti core ha. Vale dal prossimo avvio.",
-            "Unlocks the two cores the BC-250 keeps off: 6c/12t becomes 8c/16t, +20% measured. "
-            "Costs one extra reboot on every cold start, because the board re-reads how many "
-            "cores it has. Takes effect from the next boot."), L("8 core", "8 cores")))
         r.addStretch(1)
         b = QPushButton(L("Applica", "Apply"))
         b.setObjectName("primario")
         b.clicked.connect(self._applica_core)
         r.addWidget(b)
+        v.addLayout(r)
+        # the two hidden cores
+        cu = self.demone.cmd(cmd="core-unlock") or {}
+        efi = self.demone.cmd(cmd="coreunlock-efi") or {}
+        r = QHBoxLayout()
+        self.core8 = QCheckBox(L("Sblocca gli 8 core", "Unlock the 8 cores"))
+        self.core8.setChecked(bool(cu.get("abilitato")))
+        self.core8.setEnabled(bool(cu.get("supportato")))
+        self.core8.toggled.connect(self._core8)
+        r.addWidget(self.core8)
+        r.addWidget(Aiuto(L(
+            "I due core che la BC-250 tiene spenti: 6c/12t diventa 8c/16t, +20% misurato. "
+            "Con lo sblocco EFI avviene prima di GRUB in un avvio solo; senza, il servizio "
+            "lo fa con un riavvio in piu' a ogni accensione da spenta.",
+            "The two cores the BC-250 keeps off: 6c/12t becomes 8c/16t, +20% measured. "
+            "With the EFI unlock it happens before GRUB in a single boot; without it the "
+            "service does it with one extra reboot on every cold start."), L("8 core", "8 cores")))
+        self.efi8 = QCheckBox(L("Prima dell'avvio (EFI)", "Before boot (EFI)"))
+        self.efi8.setChecked(bool(efi.get("installato")) and bool(efi.get("primo")))
+        self.efi8.setEnabled(bool(efi.get("supportato")) and bool(cu.get("supportato")))
+        self.efi8.toggled.connect(self._efi8)
+        r.addWidget(self.efi8)
+        r.addWidget(Aiuto(L("Il programma EFI di Hexxeh, primo nell'ordine di avvio: sblocca e fa un reset caldo prima del sistema. Provato: un avvio solo.",
+                            "Hexxeh's EFI program, first in the boot order: unlocks and warm-resets before the system. Verified: one boot only."), "EFI"))
+        r.addStretch(1)
         v.addLayout(r)
         self._core_conta()
         return w
@@ -695,11 +857,25 @@ class Pagina(PaginaBase):
         r = self.demone.cmd(cmd="core-unlock-set", on=bool(on))
         self.toast(L("Sblocco 8 core %s: vale dal prossimo avvio.", "8-core unlock %s: from the next boot.") % (L("acceso", "on") if on else L("spento", "off")) if r.get("ok") else r.get("err", "?"), 6)
 
+    def _efi8(self, on):
+        r = self.demone.cmd(cmd="coreunlock-efi-set", on=bool(on))
+        if r.get("ok"):
+            self.toast(L("Sblocco EFI %s.", "EFI unlock %s.") % (L("installato, primo all'avvio", "installed, first at boot") if on else L("tolto", "removed")), 6)
+        else:
+            self.toast(r.get("out") or r.get("err", "?"), 8)
+            self.efi8.blockSignals(True)
+            self.efi8.setChecked(not on)
+            self.efi8.blockSignals(False)
+
     def _applica_core(self):
         r = self.demone.cmd(cmd="cpu-cores-set", cores=[{"core": k, "online": bool(v)} for k, v in self.core_voluti.items()])
         self.toast(L("Core applicati: %d thread", "Cores applied: %d threads") % r.get("nproc", 0) if r.get("ok") else r.get("err", "?"))
 
     # ---- compute units
+    CU_VERDE = "QPushButton{background:#2e5a2a;border:1px solid #8fbf6a;color:#d4f0a0;font-weight:700;}"
+    CU_ROSSO = "QPushButton{background:#5a2a2a;border:1px solid #d85a5a;color:#f0b0b0;}"
+    CU_GRIGIO = "QPushButton{background:#2a2622;border:1px solid #4a4036;color:#8a7c68;}"
+
     def _pan_cu(self):
         cu = (self.demone.cmd(cmd="cu-get") or {})
         w = QWidget()
@@ -710,44 +886,57 @@ class Pagina(PaginaBase):
         self.cu_ordine = ["0.0", "0.1", "1.0", "1.1"]
         righe = cu.get("rows") or {k: 7 for k in self.cu_ordine}
         self.cu_righe = {k: int(righe.get(k, 7)) | self.cu_floor for k in self.cu_ordine}
+        e = QLabel(L("Verde acceso, rosso spento, grigio sempre acceso (lo tiene il driver). Ogni casella e' una coppia di CU.",
+                     "Green on, red off, grey always on (the driver keeps it). Every cell is a pair of CUs."))
+        e.setWordWrap(True)
+        e.setObjectName("quieto")
+        v.addWidget(e)
         g = QGridLayout()
         g.setSpacing(6)
         for c in range(5):
-            e = QLabel("WGP%d" % c)
-            e.setObjectName("didascalia")
-            g.addWidget(e, 0, c + 1)
+            et = QLabel("WGP %d" % c)
+            et.setObjectName("didascalia")
+            et.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            g.addWidget(et, 0, c + 1)
         self.cu_celle = {}
         for r, rk in enumerate(self.cu_ordine):
-            e = QLabel("SE%s.SH%s" % (rk[0], rk[2]))
-            e.setObjectName("quieto")
-            g.addWidget(e, r + 1, 0)
+            et = QLabel("SE%s SH%s" % (rk[0], rk[2]))
+            et.setObjectName("quieto")
+            g.addWidget(et, r + 1, 0)
             for wgp in range(5):
-                b = QPushButton("")
+                b = QPushButton("CU %d-%d" % (r * 10 + wgp * 2, r * 10 + wgp * 2 + 1))
                 b.setCheckable(True)
-                b.setFixedSize(40, 26)
+                b.setFixedSize(80, 30)
                 b.setChecked(bool(self.cu_righe[rk] & (1 << wgp)))
                 b.setEnabled(not bool(self.cu_floor & (1 << wgp)))
                 b.toggled.connect(lambda on, rk=rk, wgp=wgp: self._cu_toggle(rk, wgp, on))
                 self.cu_celle[(rk, wgp)] = b
                 g.addWidget(b, r + 1, wgp + 1)
         v.addLayout(g)
-        self.et_cu = QLabel("")
-        self.et_cu.setStyleSheet("color:%s;" % stile.OTTONE)
-        v.addWidget(self.et_cu)
         r = QHBoxLayout()
-        for testo, m in (("24", 0x07), ("32", 0x0f), ("40", 0x1f)):
-            b = QPushButton(testo + " CU")
-            b.clicked.connect(lambda _c=False, k=m: self._cu_preset(k))
+        r.addWidget(QLabel("<b>%s</b>" % L("CU attive", "Active CUs")))
+        self.cu_n = QSpinBox()
+        self.cu_n.setRange(24, 40)
+        self.cu_n.setSingleStep(2)
+        self.cu_n.valueChanged.connect(self._cu_da_numero)
+        r.addWidget(self.cu_n)
+        r.addWidget(Aiuto(L("Scrivi quante CU vuoi, a coppie: le caselle si accendono da sole, prima una colonna poi l'altra. Oppure clicca le caselle.",
+                            "Type how many CUs you want, in pairs: the cells light up by themselves, one column then the other. Or click the cells."), "CU"))
+        for n in (24, 32, 36, 40):
+            b = QPushButton("%d" % n)
+            b.setFixedWidth(44)
+            b.clicked.connect(lambda _c=False, k=n: self.cu_n.setValue(k))
             r.addWidget(b)
-        r.addWidget(Aiuto(L(
-            "Ogni casella e' un WGP, cioe' due unita' di calcolo. Le prime tre di ogni riga le "
-            "tiene accese il driver. Le altre due per riga sono le sedici che il firmware "
-            "lascia spente e che noi accendiamo: misurato, valgono +26% nei giochi.",
-            "Each cell is a WGP, that is two compute units. The first three of every row are "
-            "kept on by the driver. The other two per row are the sixteen the firmware leaves "
-            "off and we turn on: measured, they are worth +26% in games."), "CU"))
+        r.addStretch(1)
+        self.et_cu = QLabel("")
+        self.et_cu.setStyleSheet("color:%s;font-weight:700;" % stile.OTTONE)
+        r.addWidget(self.et_cu)
+        v.addLayout(r)
+        r = QHBoxLayout()
         r.addStretch(1)
         b = QPushButton("Test CU")
+        b.setToolTip(L("Accende una coppia alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti.",
+                       "Turns on one pair at a time under vkpeak and watches for GPU errors. Two or three minutes."))
         b.clicked.connect(self._test_cu)
         r.addWidget(b)
         b = QPushButton(L("Applica", "Apply"))
@@ -755,26 +944,47 @@ class Pagina(PaginaBase):
         b.clicked.connect(self._applica_cu)
         r.addWidget(b)
         v.addLayout(r)
-        self._cu_conta()
+        self._cu_colora()
         return w
 
     def _cu_toggle(self, rk, wgp, on):
         m = self.cu_righe.get(rk, 7)
         m = (m | (1 << wgp)) if on else (m & ~(1 << wgp))
         self.cu_righe[rk] = m | self.cu_floor
-        self._cu_conta()
+        self._cu_colora()
 
     def _cu_conta(self):
-        n = sum(bin(self.cu_righe.get(rk, 7) | self.cu_floor).count("1") * 2 for rk in self.cu_ordine)
-        self.et_cu.setText(L("CU attive: %d / 40", "Active CUs: %d / 40") % n)
+        return sum(bin(self.cu_righe.get(rk, 7) | self.cu_floor).count("1") * 2 for rk in self.cu_ordine)
 
-    def _cu_preset(self, m):
-        m |= self.cu_floor
+    def _cu_colora(self):
+        for (rk, wgp), b in self.cu_celle.items():
+            fisso = bool(self.cu_floor & (1 << wgp))
+            acceso = bool(self.cu_righe.get(rk, 7) & (1 << wgp))
+            b.setStyleSheet(self.CU_GRIGIO if fisso else (self.CU_VERDE if acceso else self.CU_ROSSO))
+        n = self._cu_conta()
+        self.et_cu.setText("%d / 40" % n)
+        self.cu_n.blockSignals(True)
+        self.cu_n.setValue(n)
+        self.cu_n.blockSignals(False)
+
+    def _cu_da_numero(self, n):
+        """n CUs = 24 fixed + pairs: fill WGP3 down the rows, then WGP4."""
+        coppie = max(0, (n - 24) // 2)
         for rk in self.cu_ordine:
-            for wgp in range(5):
-                b = self.cu_celle.get((rk, wgp))
-                if b and b.isEnabled():
-                    b.setChecked(bool(m & (1 << wgp)))
+            self.cu_righe[rk] = self.cu_floor
+        for wgp in range(5):
+            if self.cu_floor & (1 << wgp):
+                continue
+            for rk in self.cu_ordine:
+                if coppie <= 0:
+                    break
+                self.cu_righe[rk] |= (1 << wgp)
+                coppie -= 1
+        for (rk, wgp), b in self.cu_celle.items():
+            b.blockSignals(True)
+            b.setChecked(bool(self.cu_righe[rk] & (1 << wgp)))
+            b.blockSignals(False)
+        self._cu_colora()
 
     def _applica_cu(self):
         r = self.demone.cmd(cmd="cu-apply", rows=[self.cu_righe.get(rk, 7) | self.cu_floor for rk in self.cu_ordine])
@@ -782,23 +992,21 @@ class Pagina(PaginaBase):
 
     def _test_cu(self):
         if QMessageBox.question(self, "Test CU", L(
-                "Accende una coppia di CU extra alla volta, la mette sotto sforzo con vkpeak e guarda "
-                "se la GPU fa errori. Dura due o tre minuti. Procedere?",
-                "Turns on one extra CU pair at a time, loads it with vkpeak and watches for GPU "
-                "errors. Takes two or three minutes. Proceed?")) != QMessageBox.StandardButton.Yes:
+                "Accende una coppia di CU extra alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti. Procedere?",
+                "Turns on one extra CU pair at a time under vkpeak and watches for GPU errors. Two or three minutes. Proceed?")) != QMessageBox.StandardButton.Yes:
             return
-        self.et_cu.setText(L("Test in corso…", "Testing…"))
+        self.et_cu.setText(L("test…", "testing…"))
         in_sfondo(lambda: self.demone.cmd(cmd="cu-test"), self._cu_testate, self)
 
     def _cu_testate(self, r):
-        self._cu_conta()
+        self._cu_colora()
         if not r.get("ok"):
             QMessageBox.warning(self, "Test CU", r.get("err", "?"))
             return
         righe = [L("40 CU sotto sforzo: %s GFLOPS", "40 CU under load: %s GFLOPS") % r.get("full40", "?"),
                  L("24 CU: %s GFLOPS", "24 CU: %s GFLOPS") % r.get("baseline", "?"), ""]
         for x in r.get("results", []):
-            righe.append("SE%s.SH%s WGP%d: %s%s" % (x["row"][0], x["row"][2], x["wgp"], x["verdict"],
+            righe.append("SE%s SH%s WGP%d: %s%s" % (x["row"][0], x["row"][2], x["wgp"], x["verdict"],
                                                     (" · %d err" % x["errors"]) if x["errors"] else ""))
         righe.append("")
         righe.append(L("Difetti trovati: possibile CU rotta, tienine meno.", "Problems found: a CU may be bad, keep fewer.")
@@ -817,35 +1025,39 @@ class Pagina(PaginaBase):
         e.setStyleSheet("color:%s;font-weight:700;" % stile.OTTONE)
         r.addWidget(e)
         r.addWidget(Aiuto(L(
-            "Quanta memoria il firmware riserva alla GPU. Si scrive nel CMOS e vale dal "
-            "prossimo avvio. Il resto e' condiviso lo stesso attraverso il GTT. Con 512 MB "
-            "dinamici alcuni giochi misurano la VRAM all'avvio e scelgono texture di "
-            "qualita' bassa: se le texture sono sfocate, prova 4 o 6 GB fissi.",
-            "How much memory the firmware sets aside for the GPU. Written to the CMOS, in "
-            "force from the next boot. The rest is shared anyway through the GTT. With the "
-            "512 MB dynamic split some games measure the VRAM at start and pick low texture "
-            "quality: if textures look blurry, try 4 or 6 GB fixed."), "VRAM"))
+            "Memoria riservata alla GPU nel CMOS, vale dal prossimo avvio. Con 512 MB dinamici "
+            "alcuni giochi scelgono texture basse: se sono sfocate, prova 4 o 6 GB fissi.",
+            "Memory set aside for the GPU in the CMOS, in force from the next boot. With the "
+            "512 MB dynamic split some games pick low textures: if blurry, try 4 or 6 GB fixed."), "VRAM"))
         r.addStretch(1)
         v.addLayout(r)
-        self.vram_valori = [2048, 3072, 4096, 6144, 8192, 10240, 12288]
-        self.vram = QComboBox()
-        for mb in self.vram_valori:
-            self.vram.addItem("%d MB (%.0f GB)" % (mb, mb / 1024.0))
-        self.vram.setCurrentIndex(self.vram_valori.index(cur) if cur in self.vram_valori else 4)
-        v.addWidget(self.vram)
+        r = QHBoxLayout()
+        self.vram = QSpinBox()
+        self.vram.setRange(512, 12288)
+        self.vram.setSingleStep(256)
+        self.vram.setSuffix(" MB")
+        self.vram.setValue(cur if cur else 8192)
+        r.addWidget(self.vram)
+        for mb in (2048, 4096, 6144, 8192):
+            b = QPushButton("%d GB" % (mb // 1024))
+            b.clicked.connect(lambda _c=False, k=mb: self.vram.setValue(k))
+            r.addWidget(b)
+        r.addStretch(1)
+        v.addLayout(r)
         b = QPushButton(L("Imposta (riavvio)", "Set (reboot)"))
+        b.setObjectName("primario")
         b.clicked.connect(self._set_vram)
         v.addWidget(b)
         return w
 
     def _set_vram(self):
-        mb = self.vram_valori[self.vram.currentIndex()]
+        mb = self.vram.value()
         if QMessageBox.question(self, "VRAM", L("VRAM a %d MB? Serve un riavvio.", "VRAM to %d MB? A reboot is needed.") % mb) != QMessageBox.StandardButton.Yes:
             return
         r = self.demone.cmd(cmd="set-vram", mb=mb)
-        self.toast(L("VRAM %d MB: riavvia per applicare", "VRAM %d MB: reboot to apply") % mb if r.get("ok") else L("non scritta", "not written"), 6)
+        self.toast(L("VRAM %d MB: riavvia per applicare", "VRAM %d MB: reboot to apply") % mb if r.get("ok") else r.get("err", L("non scritta", "not written")), 6)
 
-    # ---- advanced governor knobs
+    # ---- advanced
     def _pan_avanzate(self):
         c = leggi_json(GOV_CONF, {})
         w = QWidget()
@@ -854,18 +1066,17 @@ class Pagina(PaginaBase):
         g.setHorizontalSpacing(10)
         self.av = {}
         voci = (
-            ("margine_salita", L("Margine in salita", "Ascent margin"), "mV", 0, 80, L("Millivolt aggiunti alla curva solo mentre si sale. Misurato: 40 toglievano gli errori di calcolo di una scheda sfortunata; 10 e' il valore spedito con la curva a quindici punti.", "Millivolts added to the curve only while climbing. Measured: 40 removed the arithmetic errors of an unlucky board; 10 is the value shipped with the fifteen-point curve.")),
+            ("margine_salita", L("Margine in salita", "Ascent margin"), "mV", 0, 80, L("Millivolt aggiunti solo mentre si sale. Spedito: 10.", "Millivolts added only while climbing. Shipped: 10.")),
             ("gradino", L("Gradino", "Step"), "MHz", 10, 300, L("Di quanto scende la frequenza a ogni passo quando il carico cala.", "How much the clock drops per step when the load falls.")),
-            ("conferme_giu", L("Conferme in discesa", "Descent confirmations"), "", 1, 20, L("Quanti giri di carico basso servono prima di scendere di un gradino. Evita di scendere durante un fotogramma leggero in mezzo a una scena pesante.", "How many low-load ticks before stepping down. Keeps the clock from dropping on a light frame inside a heavy scene.")),
-            ("gradi_ok", L("Gradi ok", "Degrees ok"), "°C", 60, 95, L("Sotto questa temperatura il tetto puo' risalire.", "Below this temperature the ceiling may climb back.")),
+            ("conferme_giu", L("Conferme in discesa", "Descent confirmations"), "", 1, 20, L("Giri di carico basso prima di scendere di un gradino.", "Low-load ticks before stepping down.")),
+            ("gradi_ok", L("Gradi ok", "Degrees ok"), "°C", 60, 95, L("Sotto, il tetto puo' risalire.", "Below, the ceiling may climb back.")),
             ("gradi_max", L("Gradi max", "Degrees max"), "°C", 65, 97, L("Sopra, il tetto scende di 50 MHz per volta.", "Above, the ceiling walks down 50 MHz at a time.")),
             ("gradi_rottura", L("Gradi di rottura", "Degrees of breaking"), "°C", 70, 99, L("Sopra, il tetto crolla di 200 MHz in un colpo.", "Above, the ceiling drops 200 MHz in one go.")),
-            ("watt_max", L("Watt max", "Watts max"), "W", 60, 220, L("Il nostro limite di potenza: quello del firmware e' aggirato dal forzare.", "Our own power limit: the firmware's is bypassed by forcing.")),
+            ("watt_max", L("Watt max", "Watts max"), "W", 60, 220, L("Il nostro limite di potenza.", "Our own power limit.")),
             ("watt_ok", L("Watt ok", "Watts ok"), "W", 40, 200, L("Sotto, il tetto puo' risalire.", "Below, the ceiling may climb back.")),
         )
         for i, (k, testo, unita, lo, hi, aiuto) in enumerate(voci):
-            e = QLabel(testo)
-            g.addWidget(e, i, 0)
+            g.addWidget(QLabel(testo), i, 0)
             g.addWidget(Aiuto(aiuto, testo), i, 1)
             s = QSpinBox()
             s.setRange(lo, hi)
@@ -876,7 +1087,7 @@ class Pagina(PaginaBase):
         self.av_droop = QCheckBox(L("Insegui il rail (droop)", "Chase the rail (droop)"))
         self.av_droop.setChecked(bool(c.get("droop_attivo")))
         g.addWidget(self.av_droop, len(voci), 0, 1, 2)
-        g.addWidget(Aiuto(L("Alza la tensione quando il sensore la vede cadere sotto il pavimento della curva. Spento di serie: con i quindici punti non serve.", "Raises the voltage when the sensor sees it sag below the curve's floor. Off by default: with the fifteen points it is not needed."), "droop"), len(voci), 2)
+        g.addWidget(Aiuto(L("Alza la tensione quando il sensore la vede cadere sotto la curva. Spento di serie.", "Raises the voltage when the sensor sees it sag below the curve. Off by default."), "droop"), len(voci), 2)
         b = QPushButton(L("Applica", "Apply"))
         b.setObjectName("primario")
         b.clicked.connect(self._applica_avanzate)
@@ -898,23 +1109,19 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        e = QLabel(L(
-            "Un giro di vkpeak sulla GPU con la curva che sta girando. Non prova la stabilita' "
-            "di un gioco: quella la prova Cyberpunk. Serve per vedere i GFLOPS delle CU.",
-            "One vkpeak run on the GPU with the curve that is running. It does not prove a game "
-            "stable: Cyberpunk does that. It is for seeing the GFLOPS of the CUs."))
+        e = QLabel(L("vkpeak misura i GFLOPS della GPU con la curva in uso. Non prova la stabilita' di un gioco.",
+                     "vkpeak measures the GPU GFLOPS with the curve in use. It does not prove a game stable."))
         e.setWordWrap(True)
         v.addWidget(e)
         r = QHBoxLayout()
         b = QPushButton("vkpeak")
         b.clicked.connect(self._bench_gpu)
         r.addWidget(b)
-        b = QPushButton(L("Carico CPU 60 s", "CPU load 60 s"))
-        b.clicked.connect(self._bench_cpu)
-        r.addWidget(b)
         b = QPushButton(L("Registro", "Log"))
         b.clicked.connect(self._giornale)
         r.addWidget(b)
+        r.addWidget(link_doc("tuner"))
+        r.addStretch(1)
         v.addLayout(r)
         self.et_test = QLabel("")
         self.et_test.setObjectName("quieto")
@@ -927,14 +1134,11 @@ class Pagina(PaginaBase):
         in_sfondo(lambda: self.demone.cmd(cmd="bench-gpu"),
                   lambda r: self.et_test.setText(("%s %s · %s °C" % (r.get("score"), r.get("unit"), r.get("temp"))) if r.get("ok") else r.get("err", "?")), self)
 
-    def _bench_cpu(self):
-        self.et_test.setText(L("carico CPU in corso…", "CPU load running…"))
-        in_sfondo(lambda: self.demone.cmd(cmd="bench-cpu", secs=60),
-                  lambda r: self.et_test.setText(("%s %s · min %s MHz · %s °C" % (r.get("score"), r.get("unit"), r.get("min_mhz"), r.get("temp"))) if r.get("ok") else r.get("err", "?")), self)
-
     def _giornale(self):
         rc, out, _ = sh("journalctl -t skillfish-cc-helper -t skillfish-tuner-helper -t skillfish-vf-governor --no-pager -n 60 2>/dev/null", 10)
-        QMessageBox.information(self, L("Registro", "Log"), out or L("niente nel registro", "nothing in the log"))
+        QMessageBox.information(self, L("Registro", "Log"), out or L("(vuoto)", "(empty)"))
 
     def disattiva(self):
         super().disattiva()
+        if self._prova is not None:
+            self._prova.ferma()

@@ -801,6 +801,40 @@ def test_cpu(mhz, scale, tmp):
     return {"ok": True, "applied": True, "bench": b}
 
 
+def cpu_volatile(mhz, scale, tmp):
+    """Apply a CPU setting WITHOUT leaving it on disk: the Control Center runs
+    its own load loop (with a countdown and a Stop button) and calls this per
+    step; the last good values keep booting if the board dies mid-test."""
+    prev = _cpu_conf()
+    ok = apply_cpu(mhz, scale, tmp)
+    _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
+    return {"ok": ok}
+
+
+COREUNLOCK_EFI = "/usr/local/bin/skillfish-coreunlock-efi"
+
+
+def coreunlock_efi_get():
+    if not os.path.exists(COREUNLOCK_EFI):
+        return {"ok": True, "supportato": False}
+    r = sh("%s stato" % COREUNLOCK_EFI, 20)
+    out = r.stdout or ""
+    voce = re.search(r'voce di avvio: (Boot[0-9A-F]{4})', out)
+    ordine = re.search(r'ordine: ([0-9A-F,]+)', out)
+    primo = bool(voce and ordine and ordine.group(1).split(",")[0] == voce.group(1)[4:])
+    return {"ok": True, "supportato": True, "installato": bool(voce), "primo": primo,
+            "programma": "presente" in out, "secure_boot": os.path.exists("/sys/firmware/efi/efivars") and any(
+                n.startswith("SecureBoot-") for n in os.listdir("/sys/firmware/efi/efivars"))}
+
+
+def coreunlock_efi_set(on):
+    if not os.path.exists(COREUNLOCK_EFI):
+        return {"ok": False, "err": "manca skillfish-coreunlock-efi"}
+    r = sh("%s %s" % (COREUNLOCK_EFI, "installa" if on else "togli"), 30)
+    _log("sblocco EFI: %s -> %s" % ("installa" if on else "togli", (r.stdout or "").strip()[:120]))
+    return {"ok": r.returncode == 0, "out": (r.stdout or "").strip(), **coreunlock_efi_get()}
+
+
 def suggest_uv(mhz):
     prev = _cpu_conf()
     best, s = 0, 0
@@ -901,6 +935,12 @@ def handle(req):
         return core_unlock_get()
     if c == "core-unlock-set":
         return core_unlock_set(bool(req.get("on", False)))
+    if c == "coreunlock-efi":
+        return coreunlock_efi_get()
+    if c == "coreunlock-efi-set":
+        return coreunlock_efi_set(bool(req.get("on", True)))
+    if c == "cpu-volatile":
+        return cpu_volatile(req["mhz"], req["scale"], req["temp"])
     if c == "thermal-guard":
         return {"ok": thermal_guard(req["limit"])}
     if c == "thermal-guard-get":

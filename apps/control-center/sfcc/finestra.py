@@ -203,6 +203,9 @@ class Finestra(QMainWindow):
         d = sc.availableGeometry() if sc else QRect(0, 0, 1280, 800)
         larg = min(1760, max(1000, int(d.width() * 0.86)))
         alt = min(1080, max(640, int(d.height() * 0.88)))
+        # below this the pages reflow (cards stack, the Monitor goes to one
+        # column, the Tuner moves its readouts above the curve); never smaller
+        self.setMinimumSize(900, 600)
         self.resize(larg, alt)
         self.move(d.left() + max(0, (d.width() - larg) // 2), d.top() + max(0, (d.height() - alt) // 2))
 

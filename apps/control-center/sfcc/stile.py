@@ -11,7 +11,7 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                              QVBoxLayout, QWidget)
 
-from .comune import Aiuto
+from .comune import Aiuto, L
 
 # --- the palette -----------------------------------------------------------
 FONDO = "#15110d"          # the window
@@ -272,8 +272,22 @@ class Stato(QLabel):
                            "font-size:11px;font-weight:600;}" % (col, col))
 
 
-def intestazione(titolo, sotto="", aiuto=""):
-    """The title block at the top of every page."""
+DOC_URL = "https://github.com/MTSistemi/SkillFishOS/blob/main/docs/CONTROL-CENTER.md"
+
+
+def link_doc(ancora=""):
+    """The one place the long explanations live: a link to the documentation.
+    Short help stays behind the "?" buttons; anything longer goes to the docs."""
+    e = QLabel('<a href="%s%s" style="color:%s;">%s ↗</a>' % (
+        DOC_URL, ("#" + ancora) if ancora else "", OTTONE, L("Documentazione", "Documentation")))
+    e.setOpenExternalLinks(True)
+    e.setToolTip(DOC_URL)
+    e.setStyleSheet("font-size:11px;")
+    return e
+
+
+def intestazione(titolo, sotto="", aiuto="", doc=None):
+    """The title block at the top of every page. doc: anchor in the docs page."""
     w = QWidget()
     v = QVBoxLayout(w)
     v.setContentsMargins(0, 0, 0, 0)
@@ -285,6 +299,8 @@ def intestazione(titolo, sotto="", aiuto=""):
     r.addWidget(t)
     if aiuto:
         r.addWidget(Aiuto(aiuto, titolo))
+    if doc is not None:
+        r.addWidget(link_doc(doc))
     r.addStretch(1)
     v.addLayout(r)
     if sotto:
@@ -295,16 +311,44 @@ def intestazione(titolo, sotto="", aiuto=""):
     return w
 
 
+class GrigliaSchede(QWidget):
+    """Cards in equal columns that REFLOW with the width: as many columns as
+    fit at LARGHEZZA_SCHEDA each, up to the maximum asked, never less than
+    one. A window made narrow stacks the cards instead of squeezing them."""
+    LARGHEZZA_SCHEDA = 330
+
+    def __init__(self, schede, colonne=3, parent=None):
+        super().__init__(parent)
+        from PyQt6.QtWidgets import QGridLayout
+        self.schede = list(schede)
+        self.massimo = max(1, colonne)
+        self.colonne = 0
+        self.g = QGridLayout(self)
+        self.g.setContentsMargins(0, 0, 0, 0)
+        self.g.setHorizontalSpacing(12)
+        self.g.setVerticalSpacing(12)
+        self._disponi(self.massimo)
+
+    def _disponi(self, n):
+        if n == self.colonne:
+            return
+        for s in self.schede:
+            self.g.removeWidget(s)
+        for c in range(max(self.colonne, n)):
+            self.g.setColumnStretch(c, 0)
+        for i, s in enumerate(self.schede):
+            self.g.addWidget(s, i // n, i % n)
+        for c in range(n):
+            self.g.setColumnStretch(c, 1)
+        self.colonne = n
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        n = max(1, min(self.massimo, (self.width() + 12) // (self.LARGHEZZA_SCHEDA + 12)))
+        self._disponi(n)
+
+
 def griglia_schede(*schede, colonne=3):
-    """Cards laid out in equal columns, wrapping to the next row."""
-    from PyQt6.QtWidgets import QGridLayout
-    w = QWidget()
-    g = QGridLayout(w)
-    g.setContentsMargins(0, 0, 0, 0)
-    g.setHorizontalSpacing(12)
-    g.setVerticalSpacing(12)
-    for i, s in enumerate(schede):
-        g.addWidget(s, i // colonne, i % colonne)
-    for c in range(colonne):
-        g.setColumnStretch(c, 1)
-    return w
+    """Cards laid out in equal columns, wrapping to the next row, reflowing
+    to fewer columns when the window gets narrow."""
+    return GrigliaSchede(schede, colonne)

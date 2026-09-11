@@ -452,8 +452,11 @@ class Inserto(QWidget):
     X_FISSA = False             # points may only move vertically
     cambiata = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, autonomo=False):
         super().__init__(parent)
+        # autonomo: the editor IS the chart, full size, no handle bar and no
+        # resize corner (the Tuner draws the V/F curve this way since 26.09.2)
+        self.autonomo = autonomo
         self.punti = []
         self.vivo = None
         self.spostata = None
@@ -466,6 +469,8 @@ class Inserto(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def _area(self):
+        if self.autonomo:
+            return QRect(46, 12, max(1, self.width() - 60), max(30, self.height() - 36))
         return QRect(40, self.MANIGLIA + 6, max(1, self.width() - 52),
                      max(30, self.height() - self.MANIGLIA - 28))
 
@@ -493,18 +498,19 @@ class Inserto(QWidget):
         p.fillRect(self.rect(), FONDO_INSERTO)
         p.setPen(QPen(OTTONE_SCURO, 1))
         p.drawRect(0, 0, self.width() - 1, self.height() - 1)
-        p.fillRect(QRect(1, 1, self.width() - 2, self.MANIGLIA), QColor("#241f19"))
-        p.setPen(QPen(OTTONE, 1))
-        p.setFont(QFont(self.font().family(), 8, QFont.Weight.Bold))
-        p.drawText(7, self.MANIGLIA - 4, self.TITOLO)
-        p.setPen(QPen(OTTONE_SCURO, 1))
-        cx = self.width() // 2
-        for i in range(-3, 4):
-            p.drawLine(cx + i * 4, 5, cx + i * 4, self.MANIGLIA - 5)
-        for i in range(3):
-            d = 4 + i * 4
-            p.drawLine(self.width() - 3, self.height() - 3 - d, self.width() - 3 - d, self.height() - 3)
-        p.setFont(QFont(self.font().family(), 7))
+        if not self.autonomo:
+            p.fillRect(QRect(1, 1, self.width() - 2, self.MANIGLIA), QColor("#241f19"))
+            p.setPen(QPen(OTTONE, 1))
+            p.setFont(QFont(self.font().family(), 8, QFont.Weight.Bold))
+            p.drawText(7, self.MANIGLIA - 4, self.TITOLO)
+            p.setPen(QPen(OTTONE_SCURO, 1))
+            cx = self.width() // 2
+            for i in range(-3, 4):
+                p.drawLine(cx + i * 4, 5, cx + i * 4, self.MANIGLIA - 5)
+            for i in range(3):
+                d = 4 + i * 4
+                p.drawLine(self.width() - 3, self.height() - 3 - d, self.width() - 3 - d, self.height() - 3)
+        p.setFont(QFont(self.font().family(), 8 if self.autonomo else 7))
         self._griglia(p, a)
         if not self.punti:
             return
@@ -573,13 +579,18 @@ class Inserto(QWidget):
         return -1
 
     def _nell_angolo(self, pos):
+        if self.autonomo:
+            return False
         return pos.x() >= self.width() - self.ANGOLO and pos.y() >= self.height() - self.ANGOLO
+
+    def _sulla_maniglia(self, pos):
+        return (not self.autonomo) and pos.y() <= self.MANIGLIA
 
     def mousePressEvent(self, ev):
         if self._nell_angolo(ev.position()):
             self._tira = (ev.globalPosition().toPoint(), self.width(), self.height())
             return
-        if ev.position().y() <= self.MANIGLIA:
+        if self._sulla_maniglia(ev.position()):
             self._presa = ev.globalPosition().toPoint() - self.pos()
             return
         if self.bloccata:
@@ -593,7 +604,7 @@ class Inserto(QWidget):
         self._trascinato = i
 
     def mouseDoubleClickEvent(self, ev):
-        if (self.bloccata or self.X_FISSA or ev.position().y() <= self.MANIGLIA
+        if (self.bloccata or self.X_FISSA or self._sulla_maniglia(ev.position())
                 or self._nell_angolo(ev.position()) or self._vicino(ev.position()) >= 0):
             return
         x, y = self._val(ev.position())
@@ -615,7 +626,7 @@ class Inserto(QWidget):
         if self._trascinato < 0:
             if self._nell_angolo(ev.position()):
                 self.setCursor(Qt.CursorShape.SizeFDiagCursor)
-            elif ev.position().y() <= self.MANIGLIA:
+            elif self._sulla_maniglia(ev.position()):
                 self.setCursor(Qt.CursorShape.SizeAllCursor)
             elif self._vicino(ev.position()) >= 0 and not self.bloccata:
                 self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -695,8 +706,8 @@ class CurvaVF(Inserto):
     MV_MIN, MV_MAX = 700, 1129
     MHZ_MIN, MHZ_MAX = 350, 2300
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent=None, autonomo=False):
+        super().__init__(parent, autonomo=autonomo)
         self.TITOLO = L("Curva V/F", "V/F curve")
         self.tetto = 2100
 

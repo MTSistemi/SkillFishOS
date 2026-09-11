@@ -27,6 +27,47 @@ confirms, B goes back, LB and RB switch section, Start opens Status. It needs
 CSV button exports the open recording (or the last one made) for a
 spreadsheet.
 
+## Tuner
+
+The voltage/frequency curve of the governor is the chart: MHz across,
+millivolts up, the knots drag, and the same knots sit in a table beside the
+chart where every value can be typed. The dashed vertical line is the ceiling;
+the blue dot is the GPU right now. Apply runs the candidate on trial for 25
+seconds with the old curve kept on disk: unless you press Keep, the old one is
+what boots.
+
+The panels open on demand:
+
+- **CPU**: clock, undervolt step (6.25 mV each) and thermal limit, each with a
+  slider and a number box (step 1 MHz). "Suggest UV" walks the undervolt down
+  two steps at a time with twelve seconds of load per step; "Find my max"
+  climbs from 3600 to 4000 MHz; "Test 60 s" loads the current values. Every
+  run shows a countdown and a Stop button; the values under test are never
+  written to disk, so a hang boots the previous ones.
+- **Cores**: which cores are online, SMT, the 8-core unlock and, when the EFI
+  program is available, "Before boot (EFI)": the unlock done before GRUB in a
+  single boot instead of the extra reboot of the in-system service.
+- **CU**: the 40 compute units as 20 cells (pairs), green on, red off, grey
+  kept on by the driver. Type the number of CUs you want (24 to 40, in pairs)
+  or click the cells; "Test CU" turns the extra pairs on one at a time under
+  vkpeak and reports errors.
+- **VRAM**: the UMA split in the CMOS, any value from 512 MB, applied at the
+  next boot.
+- **Advanced**: the governor's own knobs (ascent margin, step, thermal and
+  power thresholds, droop).
+- **Test**: vkpeak and the helper log.
+
+## Monitor
+
+One chart per quantity, each with its own true scale: temperatures (CPU, GPU,
+VRM, system, NVMe), clocks (CPU average, min, max, GPU and its ceiling), load,
+power, voltages, fan and memory (RAM, VRAM, GTT), plus one bar per thread.
+Click a legend entry to hide a line; hover to read every chart at the same
+instant. REC writes a `.sfmon` (CSV) that Open reloads with a scrubber; CSV
+exports it for a spreadsheet. The window can be shrunk: below 1150 px the
+charts stack in one column, below 1250 px the Tuner moves its readouts above
+the curve, and cards everywhere reflow to fewer columns.
+
 ## Our Mesa as the system driver
 
 The Games section can make our RADV build the Vulkan driver of the whole
