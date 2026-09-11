@@ -707,11 +707,75 @@ def servizio(azione, unit):
                 "skillfish-thermal-guard.service", "skillfish-vf-governor.service",
                 "skillfish-scx.path", "skillfish-cu.service", "bc250-smu-oc.service",
                 "skillfish-gaming-mode.service")
-    if unit not in permessi or azione not in ("enable --now", "disable --now", "start", "stop", "restart"):
+    if unit not in permessi or azione not in ("enable --now", "disable --now", "enable", "disable", "start", "stop", "restart"):
         return {"ok": False, "err": "non permesso"}
     r = sh("systemctl %s %s" % (azione, unit), 120)
     return {"ok": r.returncode == 0, "err": (r.stderr or "").strip(),
             "attivo": _unit("is-active", unit), "abilitato": _unit("is-enabled", unit)}
+
+
+UNSLOTH_DEFAULT = "/etc/default/skillfish-unsloth"
+UNSLOTH_KEY_DASH = "/etc/skillfish/unsloth.key"
+
+
+def unsloth_conf():
+    """Bind address and parallel slots of the engine, from its environment file."""
+    out = {"ok": True, "bind": "127.0.0.1", "parallel": 4}
+    try:
+        for line in _rd(UNSLOTH_DEFAULT).splitlines():
+            line = line.strip()
+            if line.startswith("UNSLOTH_BIND="):
+                out["bind"] = line.split("=", 1)[1].strip().strip('"')
+            elif line.startswith("UNSLOTH_PARALLEL="):
+                try:
+                    out["parallel"] = int(line.split("=", 1)[1].strip().strip('"'))
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+    out["attivo"] = _unit("is-active", "skillfish-unsloth.service")
+    out["abilitato"] = _unit("is-enabled", "skillfish-unsloth.service")
+    return out
+
+
+def unsloth_conf_set(lan, parallel):
+    """Write the environment file the unit reads, restart the engine if it runs."""
+    try:
+        parallel = max(1, min(64, int(parallel)))
+    except (TypeError, ValueError):
+        parallel = 4
+    bind = "0.0.0.0" if lan else "127.0.0.1"
+    testo = ("# SkillFishOS: read by skillfish-unsloth.service. Written by the Control Center\n"
+             "# and the Remote Manager; edit by hand if you like, then restart the unit.\n"
+             "UNSLOTH_BIND=%s\nUNSLOTH_PARALLEL=%d\n" % (bind, parallel))
+    try:
+        with open(UNSLOTH_DEFAULT, "w") as f:
+            f.write(testo)
+    except OSError as e:
+        return {"ok": False, "err": str(e)}
+    _log("unsloth: bind %s, parallel %d" % (bind, parallel))
+    if _unit("is-active", "skillfish-unsloth.service") == "active":
+        sh("systemctl restart skillfish-unsloth.service", 120)
+    return unsloth_conf()
+
+
+def unsloth_key_set(key):
+    """The copy of the API key the Remote Manager reads (root, 0600)."""
+    key = (key or "").strip()
+    try:
+        if not key:
+            if os.path.exists(UNSLOTH_KEY_DASH):
+                os.remove(UNSLOTH_KEY_DASH)
+            return {"ok": True}
+        if not re.match(r"^sk-[A-Za-z0-9._-]{8,200}$", key):
+            return {"ok": False, "err": "chiave non valida"}
+        os.makedirs(os.path.dirname(UNSLOTH_KEY_DASH), exist_ok=True)
+        fd = os.open(UNSLOTH_KEY_DASH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(key + "\n")
+        return {"ok": True}
+    except OSError as e:
+        return {"ok": False, "err": str(e)}
 
 
 def gtt(mb):
@@ -978,6 +1042,12 @@ def handle(req):
         return servizio(req.get("azione"), req.get("unit"))
     if c == "gtt":
         return gtt(req.get("mb", 0))
+    if c == "unsloth-conf":
+        return unsloth_conf()
+    if c == "unsloth-conf-set":
+        return unsloth_conf_set(bool(req.get("lan")), req.get("parallel", 4))
+    if c == "unsloth-key-set":
+        return unsloth_key_set(req.get("key", ""))
     if c == "riavvia":
         _log("riavvio chiesto dal Control Center")
         sh("systemctl reboot")

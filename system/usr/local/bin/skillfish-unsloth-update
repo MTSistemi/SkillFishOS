@@ -32,6 +32,8 @@ AZIONE="${1:-aggiorna}"
 # --- chi e' l'utente vero -----------------------------------------------------
 utente_vero() {
     if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then echo "$SUDO_USER"; return; fi
+    # launched through pkexec from the Control Center: the caller is the user
+    if [ -n "${PKEXEC_UID:-}" ] && [ "$PKEXEC_UID" != 0 ]; then id -un "$PKEXEC_UID"; return; fi
     if [ "$(id -u)" -ne 0 ]; then id -un; return; fi
     if [ -r /etc/skillfish/dashboard.json ]; then
         u=$(python3 -c 'import json;print(json.load(open("/etc/skillfish/dashboard.json")).get("user",""))' 2>/dev/null)
@@ -66,8 +68,12 @@ echo ">>> Unsloth per l'utente $U — versione attuale: $PRIMA"
 # perche' decide quale pacchetto di llama.cpp viene scaricato e non si puo'
 # cambiare al lancio: senza, si finisce sulla CPU (41 tok/s invece di 210).
 echo ">>> scarico ed eseguo l'installatore ufficiale come $U"
+# ⚠️ Two things learned on 2026-09-12: install.unsloth.ai answers 404 now, the
+# installer lives at unsloth.ai/install.sh; and uv reads a uv.toml from the
+# working directory upwards, so started from /root it dies on a file it may
+# not read. The command runs from the user's home.
 sudo -u "$U" HOME="$CASA" UNSLOTH_FORCE_VULKAN=1 \
-    sh -c 'curl -fsSL https://install.unsloth.ai | sh' || {
+    sh -c 'cd "$HOME" && curl -fsSL https://unsloth.ai/install.sh | sh' || {
         echo "l'installatore e' fallito: la versione di prima resta al suo posto" >&2
         exit 1
     }

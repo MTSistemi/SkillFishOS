@@ -23,6 +23,8 @@
 set -u
 export LC_ALL=C
 
+# UNSLOTH_BIND, UNSLOTH_PORT and UNSLOTH_PARALLEL come from /etc/default/skillfish-unsloth
+# (EnvironmentFile of the unit); the Control Center writes that file.
 PORTA="${UNSLOTH_PORT:-8888}"
 ASCOLTO="${UNSLOTH_BIND:-127.0.0.1}"
 
@@ -62,4 +64,4 @@ fi
 # usato, ed e' l'unica strada accelerata sulla BC-250 (gfx1013 non ha ROCm).
 exec setpriv --reuid="$U" --regid="$(id -g "$U")" --init-groups --inh-caps=-all \
     env HOME="$CASA" UNSLOTH_FORCE_VULKAN=1 XDG_RUNTIME_DIR="/run/user/$(id -u "$U")" \
-    "$BIN" studio -p "$PORTA" -H "$ASCOLTO" --no-cloudflare
+    "$BIN" studio -p "$PORTA" -H "$ASCOLTO" --parallel "${UNSLOTH_PARALLEL:-4}" --no-cloudflare

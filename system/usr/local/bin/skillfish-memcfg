@@ -16,7 +16,7 @@ DA DOVE VENGONO LE INFORMAZIONI (nessuna riga presa da codice altrui)
   di I/O 0x72 (indice) e 0x73 (dato), blocco 0x90-0xAB piu' un checksum — sono
   descritti nella documentazione pubblica della community BC-250
   (elektricM/amd-bc250-docs, docs/bios/vram.md, licenza CC BY-SA 4.0), che
-  elenca anche i valori ammessi e avverte che 2048 MB impedisce l'avvio.
+  elenca anche i valori ammessi.
 - I nomi e l'ordine dei parametri di temporizzazione vengono dalla stessa
   famiglia di documentazione pubblica: sono dati di fatto, non espressione.
 - I VALORI di questa scheda e la posizione di UMA_SIZE vengono da un dump letto
@@ -72,8 +72,9 @@ OFF_CLOCK = 6
 OFF_UMA = 0x1A
 
 # Dalla documentazione pubblica: valori confermati funzionanti.
-UMA_CONFERMATI = (256, 512, 1024, 3072, 4096, 6144, 8192, 10240, 12288)
-UMA_VIETATI = {2048: "con 2048 MB il sistema non si avvia (guasto noto e documentato)"}
+UMA_CONFERMATI = (256, 512, 1024, 2048, 3072, 4096, 6144, 8192, 10240, 12288)
+# 2048 MB was listed here as a known fault; it boots fine (checked on our boards).
+UMA_VIETATI = {}
 UMA_MIN, UMA_MAX, UMA_PASSO = 256, 12288, 16
 
 BACKUP = "/var/lib/skillfish/memcfg"

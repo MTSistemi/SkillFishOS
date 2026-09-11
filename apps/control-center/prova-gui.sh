@@ -9,7 +9,7 @@
 # line matches the ssh shell itself and kills it. Here the pattern is built
 # from pieces and never appears literally on any command line.
 set -u
-UTENTE=$(who | awk '/:0/{print $1; exit}'); UTENTE=${UTENTE:-skillfishdev}
+UTENTE=$(who | awk '/\(:0\)/{print $1; exit}'); UTENTE=${UTENTE:-skillfishdev}  # (:0) literally: a clock like 22:04 also contains :0
 NOME="skillfish-control-cente"; NOME="${NOME}r"
 # the launcher drops privileges before it opens its log: a log left by the
 # user cannot be truncated by root through it, so it is removed first

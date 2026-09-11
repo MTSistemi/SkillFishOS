@@ -1040,8 +1040,8 @@ class Pagina(PaginaBase):
         self.vram.setSuffix(" MB")
         self.vram.setValue(cur if cur else 8192)
         r.addWidget(self.vram)
-        for mb in (2048, 4096, 6144, 8192):
-            b = QPushButton("%d GB" % (mb // 1024))
+        for mb, testo in ((512, "512 MB"), (1024, "1 GB"), (2048, "2 GB"), (4096, "4 GB"), (6144, "6 GB"), (8192, "8 GB")):
+            b = QPushButton(testo)
             b.clicked.connect(lambda _c=False, k=mb: self.vram.setValue(k))
             r.addWidget(b)
         r.addStretch(1)

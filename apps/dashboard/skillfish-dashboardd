@@ -1900,7 +1900,7 @@ def _unsloth_first_login():
     if not st.get("requires_password_change"):
         return {"user": st.get("default_username", "")}
     try:
-        with open(UNSLOTH_BOOTSTRAP) as f:
+        with open(_unsloth_bootstrap()) as f:
             pw = f.read().strip()
     except Exception:
         pw = ""
@@ -1932,6 +1932,258 @@ def _unsloth_models():
         return []
 
 
+# ---- Unsloth Studio through its own API -----------------------------------------
+UNSLOTH_DEFAULT_F = "/etc/default/skillfish-unsloth"
+UNSLOTH_UPDATE_BIN = "/usr/local/bin/skillfish-unsloth-update"
+
+
+def _unsloth_home():
+    """The home of the user Unsloth is installed for: the dashboard user, else
+    the owner of the graphical session, else the first real user with ~/.unsloth."""
+    import pwd
+    candidati = [CONFIG.get("user") or ""]
+    try:
+        out = subprocess.run(["loginctl", "list-sessions", "--no-legend"], capture_output=True,
+                             text=True, timeout=5).stdout
+        candidati += [ln.split()[2] for ln in out.splitlines() if len(ln.split()) > 2]
+    except Exception:
+        pass
+    candidati += [p.pw_name for p in pwd.getpwall() if 1000 <= p.pw_uid < 65534]
+    for u in candidati:
+        if not u or u == "root":
+            continue
+        try:
+            h = pwd.getpwnam(u).pw_dir
+        except KeyError:
+            continue
+        if os.path.isdir(os.path.join(h, ".unsloth")):
+            return h
+    return ""
+
+
+def _unsloth_bootstrap():
+    h = _unsloth_home()
+    return os.path.join(h, ".unsloth", "studio", "auth", ".bootstrap_password") if h else UNSLOTH_BOOTSTRAP
+
+
+def _studio(path, data=None, key=None, t=8, method=None):
+    """One call to Studio's API; JSON in, JSON out, None when unreachable."""
+    hdr = {"Accept": "application/json"}
+    if key:
+        hdr["Authorization"] = "Bearer " + key
+    body = None
+    if data is not None:
+        body = json.dumps(data).encode()
+        hdr["Content-Type"] = "application/json"
+    req = urllib.request.Request("http://127.0.0.1:%d%s" % (UNSLOTH_PORT, path), data=body, headers=hdr,
+                                 method=method or ("POST" if data is not None else "GET"))
+    try:
+        with urllib.request.urlopen(req, timeout=t) as r:
+            return json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        try:
+            return {"_error": e.code, **json.loads(e.read().decode())}
+        except Exception:
+            return {"_error": e.code}
+    except Exception:
+        return None
+
+
+_AI_VER = {"t": 0.0, "v": {}}
+
+
+def _unsloth_version():
+    """Version, latest and backend, from Studio when the key allows it; cached
+    ten minutes because the update check goes to the network."""
+    key = _unsloth_key()
+    if not key or not _port_open(UNSLOTH_PORT):
+        return {}
+    if time.time() - _AI_VER["t"] < 600 and _AI_VER["v"]:
+        return _AI_VER["v"]
+    agg = _studio("/api/studio/update-status", key=key, t=10) or {}
+    be = _studio("/api/llama/backend", key=key, t=6) or {}
+    v = {}
+    if agg.get("current_version"):
+        v = {"version": agg.get("current_version"), "latest": agg.get("latest_version"),
+             "update_available": bool(agg.get("update_available")),
+             "backend": (be.get("backend") or "") + ((" " + be["installed_tag"]) if be.get("installed_tag") else "")}
+        _AI_VER.update(t=time.time(), v=v)
+    return v
+
+
+def _unsloth_conf_read():
+    out = {"bind": "127.0.0.1", "parallel": 4}
+    try:
+        with open(UNSLOTH_DEFAULT_F) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("UNSLOTH_BIND="):
+                    out["bind"] = line.split("=", 1)[1].strip().strip('"')
+                elif line.startswith("UNSLOTH_PARALLEL="):
+                    try:
+                        out["parallel"] = int(line.split("=", 1)[1].strip().strip('"'))
+                    except ValueError:
+                        pass
+    except OSError:
+        pass
+    out["lan"] = out["bind"] not in ("127.0.0.1", "localhost", "::1")
+    r = subprocess.run(["systemctl", "is-enabled", UNSLOTH_SVC], capture_output=True, text=True)
+    out["autostart"] = r.stdout.strip() == "enabled"
+    return out
+
+
+def ai_conf():
+    return {"ok": True, **_unsloth_conf_read()}
+
+
+def ai_conf_set(d):
+    cur = _unsloth_conf_read()
+    lan = bool(d.get("lan", cur["lan"]))
+    try:
+        parallel = max(1, min(64, int(d.get("parallel", cur["parallel"]))))
+    except (TypeError, ValueError):
+        parallel = cur["parallel"]
+    try:
+        with open(UNSLOTH_DEFAULT_F, "w") as f:
+            f.write("# SkillFishOS: read by skillfish-unsloth.service. Written by the Control Center\n"
+                    "# and the Remote Manager; edit by hand if you like, then restart the unit.\n"
+                    "UNSLOTH_BIND=%s\nUNSLOTH_PARALLEL=%d\n" % ("0.0.0.0" if lan else "127.0.0.1", parallel))
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+    if "autostart" in d:
+        subprocess.run(["systemctl", "enable" if d["autostart"] else "disable", UNSLOTH_SVC],
+                       capture_output=True, text=True, timeout=60)
+    if (lan, parallel) != (cur["lan"], cur["parallel"]) and _port_open(UNSLOTH_PORT):
+        subprocess.Popen(["systemctl", "restart", UNSLOTH_SVC], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return ai_conf()
+
+
+_AI_UPD = {"running": False, "log": [], "rc": None, "t": 0.0}
+
+
+def ai_update_start():
+    """skillfish-unsloth-update in a thread; the log is read back by /api/ai/update."""
+    if _AI_UPD["running"]:
+        return {"ok": True, "running": True}
+    if not os.path.exists(UNSLOTH_UPDATE_BIN):
+        return {"ok": False, "error": "skillfish-unsloth-update missing"}
+
+    def worker():
+        _AI_UPD.update(running=True, log=[], rc=None, t=time.time())
+        try:
+            p = subprocess.Popen([UNSLOTH_UPDATE_BIN], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 text=True, bufsize=1)
+            for ln in iter(p.stdout.readline, ""):
+                _AI_UPD["log"].append(ln.rstrip()[:300])
+                del _AI_UPD["log"][:-400]
+            p.wait()
+            _AI_UPD["rc"] = p.returncode
+        except Exception as e:
+            _AI_UPD["log"].append(str(e))
+            _AI_UPD["rc"] = 1
+        _AI_VER["t"] = 0.0
+        _AI_UPD["running"] = False
+    threading.Thread(target=worker, daemon=True).start()
+    return {"ok": True, "running": True}
+
+
+def ai_update_state():
+    return {"ok": True, "running": _AI_UPD["running"], "rc": _AI_UPD["rc"],
+            "log": "\n".join(_AI_UPD["log"][-80:])}
+
+
+def _unsloth_mint_key(password):
+    r = _studio("/api/auth/login", {"username": "unsloth", "password": password})
+    if not r or not r.get("access_token"):
+        return None, "Studio password not accepted"
+    tok = r["access_token"]
+    r = _studio("/api/auth/api-keys", {"name": "SkillFishOS Remote Manager"}, key=tok)
+    if not r or not r.get("key"):
+        return None, "Studio did not issue the key"
+    # a request for a model that is not loaded must load it, not fail
+    _studio("/api/settings/openai-auto-switch", {"enabled": True}, key=tok, method="PUT")
+    return r["key"], ""
+
+
+def ai_key_create(password):
+    if not password:
+        return {"ok": False, "error": "password missing"}
+    k, err = _unsloth_mint_key(password)
+    if not k:
+        return {"ok": False, "error": err}
+    salva_chiave_unsloth(k)
+    _AI_VER["t"] = 0.0
+    return {"ok": True, "has_key": True}
+
+
+def ai_setup(new_password):
+    """The first sign-in done for the user: bootstrap password in, their
+    password set, a key minted and saved."""
+    if not new_password or len(new_password) < 8:
+        return {"ok": False, "error": "password too short (8+)"}
+    try:
+        with open(_unsloth_bootstrap()) as f:
+            old = f.read().strip()
+    except OSError:
+        return {"ok": False, "error": "initial password not found"}
+    r = _studio("/api/auth/login", {"username": "unsloth", "password": old})
+    if not r or not r.get("access_token"):
+        return {"ok": False, "error": "the initial password is no longer valid: sign in to Studio"}
+    r2 = _studio("/api/auth/change-password", {"current_password": old, "new_password": new_password},
+                 key=r["access_token"])
+    if not r2 or r2.get("_error"):
+        return {"ok": False, "error": (r2 or {}).get("detail") or "password change refused"}
+    return ai_key_create(new_password)
+
+
+def ai_variants(repo):
+    key = _unsloth_key()
+    if not key or not repo or "/" not in repo:
+        return {"ok": False, "error": "key or repository missing"}
+    r = _studio("/api/hub/gguf-variants?repo_id=" + urllib.parse.quote(repo, safe=""), key=key, t=40)
+    if not r or r.get("_error"):
+        return {"ok": False, "error": (r or {}).get("detail") or "no answer"}
+    return {"ok": True, "variants": [{"quant": v.get("quant"), "filename": v.get("filename"),
+                                      "size_bytes": v.get("size_bytes"), "downloaded": bool(v.get("downloaded"))}
+                                     for v in r.get("variants") or []]}
+
+
+def ai_download(repo, variant):
+    key = _unsloth_key()
+    if not key or not repo:
+        return {"ok": False, "error": "key or repository missing"}
+    r = _studio("/api/hub/download", {"repo_id": repo, "gguf_variant": variant}, key=key, t=40)
+    if not r or r.get("_error") or not (r.get("accepted") or r.get("state") == "running"):
+        return {"ok": False, "error": (r or {}).get("detail") or "Studio did not accept the download"}
+    return {"ok": True, "job": r.get("job_key")}
+
+
+def ai_downloads():
+    key = _unsloth_key()
+    if not key or not _port_open(UNSLOTH_PORT):
+        return {"ok": True, "downloads": []}
+    att = (_studio("/api/hub/active-downloads", key=key, t=6) or {}).get("downloads") or []
+    out = []
+    for d in att:
+        repo = d.get("repo_id") or ""
+        prog = _studio("/api/hub/download-progress?repo_id=" + urllib.parse.quote(repo, safe=""), key=key, t=6) or {}
+        tot = prog.get("expected_bytes") or prog.get("total_bytes") or 0
+        done = prog.get("downloaded_bytes") or 0
+        pct = int(100.0 * done / tot) if tot else None
+        out.append({"repo_id": repo, "variant": d.get("variant"), "state": d.get("state"),
+                    "percent": pct, "downloaded_bytes": done, "total_bytes": tot})
+    return {"ok": True, "downloads": out}
+
+
+def _unsloth_cached():
+    key = _unsloth_key()
+    if not key or not _port_open(UNSLOTH_PORT):
+        return []
+    r = _studio("/v1/models", key=key, t=6) or {}
+    return [{"id": m.get("id"), "quant": m.get("quant"), "loaded": bool(m.get("loaded"))}
+            for m in r.get("data") or [] if m.get("id")]
+
+
 def ai_status():
     running = _port_open(UNSLOTH_PORT)
     return {"ok": True, "engine": "unsloth", "running": running,
@@ -1939,7 +2191,12 @@ def ai_status():
             "first_login": _unsloth_first_login() if running else {},
             # solo se c'e' o non c'e': la chiave non esce MAI da qui
             "has_key": bool(_unsloth_key()),
-            "models": _unsloth_models()}
+            "models": _unsloth_models(),
+            "catalog": _unsloth_cached() if running else [],
+            "installed": _unsloth_installed() and bool(_unsloth_home()),
+            "conf": _unsloth_conf_read(),
+            "update_running": _AI_UPD["running"],
+            **(_unsloth_version() if running else {})}
 
 
 def ai_start():
@@ -2937,6 +3194,23 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_status())
+        if path == "/api/ai/update":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_update_state())
+        if path == "/api/ai/conf":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_conf())
+        if path == "/api/ai/downloads":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_downloads())
+        if path == "/api/ai/variants":
+            if not self._guard("ai"):
+                return
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self._json(200, ai_variants((q.get("repo_id") or [""])[0].strip()))
         if path == "/api/ai/tune":
             if not self._guard("ai"):
                 return
@@ -3333,6 +3607,26 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_chat(data.get("model"), data.get("messages")))
+        if path == "/api/ai/update":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_update_start())
+        if path == "/api/ai/conf":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_conf_set(data))
+        if path == "/api/ai/setup":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_setup(data.get("password") or ""))
+        if path == "/api/ai/keycreate":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_key_create(data.get("password") or ""))
+        if path == "/api/ai/download":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_download((data.get("repo_id") or "").strip(), data.get("variant")))
         return self._json(404, {"error": "not found"})
 
     def _login(self):
