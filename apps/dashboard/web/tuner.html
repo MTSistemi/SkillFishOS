@@ -8,53 +8,67 @@
         --cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);min-height:100vh}
-  .wrap{max-width:920px;margin:0 auto;padding:16px}
-  header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
   header b{color:var(--gold-lt);font-size:1.15rem}
+  header a{color:var(--gold);font-size:.85rem}
   .sp{flex:1}
   .panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);
          border-radius:14px;padding:16px;margin-bottom:14px}
-  .panel h3{color:var(--gold-lt);font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .panel h3{color:var(--gold-lt);font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .row{display:flex;align-items:center;gap:10px;margin:9px 0;flex-wrap:wrap}
-  .row label{min-width:130px;color:var(--muted);font-size:.9rem}
-  input[type=range]{flex:1;min-width:160px;accent-color:var(--gold)}
-  .val{min-width:84px;text-align:right;color:var(--gold-lt);font-family:'DejaVu Sans Mono',monospace;font-weight:700}
+  .row label{min-width:120px;color:var(--muted);font-size:.9rem}
+  input[type=range]{flex:1;min-width:140px;accent-color:var(--gold)}
+  input[type=number]{width:96px;background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;
+        padding:6px 8px;font-family:'DejaVu Sans Mono',monospace;font-weight:700;font-size:.9rem}
+  input[type=number].k{width:76px;padding:3px 6px;font-size:.85rem}
+  .val{min-width:70px;text-align:right;color:var(--muted);font-family:'DejaVu Sans Mono',monospace;font-size:.85rem}
   .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;
        padding:9px 16px;font-weight:700;cursor:pointer;font-size:.9rem}
   .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.5;cursor:default}
   .btn.sec{background:linear-gradient(160deg,#241b10,#1a140b);color:var(--gold-lt);border:1px solid var(--line)}
   .btn.sec.on{background:rgba(216,168,73,.22);border-color:var(--gold)}
   .btn.danger{background:linear-gradient(160deg,#2a160e,#1a140b);color:#f0b8a0;border:1px solid rgba(224,123,90,.5)}
+  .btn.mini{padding:4px 10px;font-size:.85rem}
   .brow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
   .stub{color:var(--muted);font-size:.84rem;margin-top:6px}
   .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;
         padding:2px 10px;font-size:.78rem;color:var(--gold-lt)}
+  .num{font-size:2.2rem;font-weight:800;color:var(--gold-lt);text-align:center;margin:8px 0}
+  /* the compute units: green on, red off, grey kept on by the driver */
   .cugrid{display:grid;grid-template-columns:auto repeat(5,1fr);gap:6px;align-items:center;margin-top:8px}
   .cuh{color:var(--muted);font-size:.72rem;text-align:center}
   .curow-l{color:var(--muted);font-size:.78rem;font-family:monospace;padding-right:6px}
-  .wgp{height:38px;border-radius:8px;border:1px solid var(--line);display:flex;gap:3px;align-items:center;
-       justify-content:center;cursor:pointer;background:#120e08;transition:.12s}
-  .wgp .cu{width:10px;height:18px;border-radius:3px;background:#3a2d18}
-  .wgp.on{background:rgba(110,170,80,.14);border-color:#6eaa50}
-  .wgp.on .cu{background:#9ccf6a}
-  .wgp.locked{cursor:not-allowed;background:rgba(110,170,80,.08);border-color:rgba(110,170,80,.35)}
-  .wgp.locked .cu{background:#5f7e44}
-  .wgp:not(.locked):hover{border-color:var(--gold)}
+  .wgp{height:34px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+       cursor:pointer;transition:.12s;font-size:.78rem;font-weight:700;font-family:monospace}
+  .wgp.on{background:#2e5a2a;border-color:#8fbf6a;color:#d4f0a0}
+  .wgp.off{background:#5a2a2a;border-color:#d85a5a;color:#f0b0b0}
+  .wgp.locked{cursor:not-allowed;background:#2a2622;border-color:#4a4036;color:#8a7c68}
+  .wgp:not(.locked):hover{filter:brightness(1.15)}
   #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#241b10;border:1px solid var(--gold);
          color:var(--cream);padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw}
   #toast.show{opacity:1}
   pre.log{background:#08060350;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:monospace;
           font-size:.74rem;color:#bda874;max-height:200px;overflow:auto;white-space:pre-wrap;margin-top:8px;display:none}
-  /* the V/F curve: same box as the native Tuner, MHz across and mV up */
-  #vf{width:100%;height:300px;background:#120e0a;border:1px solid #8a6a2a;border-radius:8px;display:block;cursor:crosshair;touch-action:none}
+  /* the V/F curve with the knots beside it; the table drops under the chart on a narrow screen */
+  .gpuwrap{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+  #vf{flex:1 1 380px;min-width:300px;height:340px;background:#120e0a;border:1px solid #8a6a2a;border-radius:8px;display:block;cursor:crosshair;touch-action:none}
+  .knots{flex:0 0 250px;display:flex;flex-direction:column;gap:6px}
+  .knots table{border-collapse:collapse;width:100%;font-size:.85rem}
+  .knots th{color:var(--muted);font-weight:600;padding:3px 4px;text-align:center}
+  .knots td{padding:2px 3px;text-align:center}
+  .knots tr.sel td{background:rgba(216,168,73,.12)}
+  .knots .tb{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:8px}
   .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:.75rem;font-weight:600;border:1px solid}
   .b-ok{color:#8fbf6a;border-color:#8fbf6a} .b-no{color:#e8703a;border-color:#e8703a} .b-q{color:var(--muted);border-color:var(--muted)}
   #prova{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9}
   #prova .box{background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:22px;max-width:420px;text-align:center}
-  #prova .num{font-size:2.6rem;font-weight:800;color:var(--gold-lt);margin:10px 0}
+  #prova .num{font-size:2.6rem}
 </style></head>
 <body><div class="wrap">
-<header><b>🎛️ SkillFishOS Tuner</b><span class="sp"></span>
+<header><b>🎛️ SkillFishOS Tuner</b>
+  <a href="https://github.com/MTSistemi/SkillFishOS/blob/main/docs/CONTROL-CENTER.md#tuner" target="_blank" rel="noopener"><span data-i18n-c="Documentation">Documentation</span> ↗</a>
+  <span class="sp"></span>
   <span class="pill" id="live">CU: – / –</span>
   <button class="btn sec" id="reload">⟳</button>
 </header>
@@ -64,46 +78,61 @@
   <div class="stub" id="presetdesc"></div>
 </div>
 
-<div class="panel"><h3 data-i18n="t_h_cpu">🧠 CPU</h3>
-  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="cmhz" min="3000" max="4500" step="50"><span class="val" id="cmhzv"></span></div>
-  <div class="row"><label data-i18n="t_uv">Undervolt (scale)</label><input type="range" id="cscale" min="-50" max="0" step="1"><span class="val" id="cscalev"></span></div>
-  <div class="row"><label data-i18n="t_templim">Temperature limit</label><input type="range" id="ctemp" min="60" max="95" step="1"><span class="val" id="ctempv"></span></div>
-  <div class="brow"><button class="btn" id="cpuapply" data-i18n="apply">Apply</button><button class="btn sec" id="cpupersist" data-i18n="t_persist">Save at boot</button>
-    <button class="btn sec" id="cputest" data-i18n="t_test60">Test (60s)</button><button class="btn sec" id="cpuuv" data-i18n="t_uvsugg">Suggest UV</button>
-    <button class="btn sec" id="cpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button></div>
-  <div class="stub" data-i18n="t_hintcpu">≥4000 MHz is benchmark-only: on some boards it can cause freezes.</div>
-  <pre class="log" id="cpulog"></pre>
-</div>
-
-<!-- The GPU: the real curve of the V/F governor, not two sliders. Same
-     scheme as the native Tuner: drag a knot, double-click to add one,
-     right-click to remove; Apply runs it on trial with a countdown. -->
+<!-- The GPU: the V/F curve IS the chart, with the knots in a table where every
+     value is typed. Apply runs it on trial with a countdown. -->
 <div class="panel"><h3>🎮 GPU <span class="badge b-q" id="govstato">…</span><span class="sp"></span>
   <label class="pill" style="cursor:pointer"><input type="checkbox" id="govcb" style="vertical-align:-2px"> Governor</label></h3>
-  <canvas id="vf"></canvas>
-  <div class="row" style="margin-top:10px"><label data-i18n-c="Ceiling">Ceiling</label>
-    <input type="range" id="tetto" min="350" max="2300" step="50"><span class="val" id="tettov"></span></div>
-  <div class="brow">
-    <button class="btn sec" data-tetto="1850" data-i18n-c="Cautious">Cautious</button>
-    <button class="btn sec" data-tetto="2000" data-i18n-c="Balanced">Balanced</button>
-    <button class="btn sec" id="misurato" data-i18n-c="Measured">Measured</button>
-    <span class="sp"></span>
-    <button class="btn sec" id="gpuannulla" data-i18n-c="Discard">Discard</button>
-    <button class="btn" id="gpuapply" data-i18n="apply">Apply</button>
+  <div class="gpuwrap">
+    <canvas id="vf"></canvas>
+    <div class="knots">
+      <div class="brow" style="margin-top:0"><b style="color:var(--gold-lt)" data-i18n-c="Curve knots">Curve knots</b><span class="sp"></span>
+        <button class="btn sec mini" id="kadd">+</button><button class="btn sec mini" id="kdel">−</button></div>
+      <div class="tb"><table><thead><tr><th>MHz</th><th>mV</th></tr></thead><tbody id="ktab"></tbody></table></div>
+      <div class="row" style="margin:4px 0"><label style="min-width:0" data-i18n-c="Ceiling">Ceiling</label>
+        <input type="number" id="tetto" min="350" max="2300" step="1"><span class="val">MHz</span></div>
+      <div class="brow" style="margin-top:0">
+        <button class="btn sec mini" data-tetto="1850" data-i18n-c="Cautious 1850">Cautious 1850</button>
+        <button class="btn sec mini" data-tetto="2000" data-i18n-c="Balanced 2000">Balanced 2000</button>
+        <button class="btn sec mini" id="misurato" data-i18n-c="Measured 2100">Measured 2100</button></div>
+      <div class="stub" id="gpunota"></div>
+      <div class="brow"><button class="btn sec" id="gpuannulla" data-i18n-c="Discard">Discard</button>
+        <button class="btn" id="gpuapply" data-i18n="apply">Apply</button></div>
+    </div>
   </div>
-  <div class="stub" id="gpunota" data-i18n-c="The chart shows the governor's curve: MHz across, millivolts up. Drag a point, double-click to add one, right-click to remove it. The dashed line is the ceiling: it never goes beyond. Apply runs the curve on trial with a countdown: the old curve stays on disk until you press Keep.">…</div>
+  <div class="stub" data-i18n-c="Every row is a knot: type MHz and mV. + adds a knot after the selected one, − removes it.">…</div>
   <pre class="log" id="gpulog"></pre>
 </div>
 
-<div class="panel"><h3 data-i18n="t_h_cu">🔢 Compute Units (CUs) — live, no reboot</h3>
+<div class="panel"><h3 data-i18n="t_h_cpu">🧠 CPU</h3>
+  <div class="row"><label data-i18n-c="Clock">Clock</label><input type="range" id="cmhz" min="2000" max="4500" step="1"><input type="number" id="cmhzn" min="2000" max="4500" step="1"><span class="val">MHz</span></div>
+  <div class="row"><label data-i18n-c="Undervolt">Undervolt</label><input type="range" id="cscale" min="-60" max="0" step="1"><input type="number" id="cscalen" min="-60" max="0" step="1"><span class="val" id="cscalev"></span></div>
+  <div class="row"><label data-i18n-c="Degree limit">Degree limit</label><input type="range" id="ctemp" min="60" max="95" step="1"><input type="number" id="ctempn" min="60" max="95" step="1"><span class="val">°C</span></div>
   <div class="brow">
-    <span class="pill" id="cucount" data-i18n="t_activecu">– active CUs</span>
-    <button class="btn sec" data-cu="7">24 CU</button>
-    <button class="btn sec" data-cu="15">32 CU</button>
-    <button class="btn sec" data-cu="31">40 CU</button>
-  </div>
+    <button class="btn sec" id="cpuuv" data-i18n-c="Suggest UV">Suggest UV</button>
+    <button class="btn sec" id="cpuwiz" data-i18n-c="Find my max">Find my max</button>
+    <button class="btn sec" id="cputest">Test 60 s</button>
+    <button class="btn danger" id="cpustop" disabled>Stop</button>
+    <span class="sp"></span>
+    <button class="btn" id="cpuapply" data-i18n="apply">Apply</button><button class="btn sec" id="cpupersist" data-i18n-c="Save at boot">Save at boot</button></div>
+  <div class="num" id="cpuconto" style="display:none"></div>
+  <div class="stub" id="cpuesito"></div>
+  <div class="stub" data-i18n-c="The clock under load. Above 3500 with eight cores heat is in charge.">…</div>
+  <pre class="log" id="cpulog"></pre>
+</div>
+
+<div class="panel"><h3 data-i18n="t_h_cu">🔢 Compute Units (CUs) — live, no reboot</h3>
+  <div class="stub" style="margin-top:0" data-i18n-c="Green on, red off, grey always on (the driver keeps it). Every cell is a pair of CUs.">…</div>
   <div class="cugrid" id="cugrid"></div>
-  <div class="brow"><button class="btn" id="cuapply" data-i18n="t_applycu">Apply CUs</button><button class="btn danger" id="cutest" data-i18n="t_testcu">Test CUs</button></div>
+  <div class="brow" style="margin-top:10px">
+    <b style="color:var(--gold-lt)" data-i18n-c="Active CUs">Active CUs</b>
+    <input type="number" id="cun" min="24" max="40" step="2">
+    <button class="btn sec mini" data-cun="24">24</button><button class="btn sec mini" data-cun="32">32</button>
+    <button class="btn sec mini" data-cun="36">36</button><button class="btn sec mini" data-cun="40">40</button>
+    <span class="pill" id="cucount">– / 40</span>
+    <span class="sp"></span>
+    <button class="btn danger" id="cutest" data-i18n="t_testcu">Test CUs</button>
+    <button class="btn" id="cuapply" data-i18n="t_applycu">Apply CUs</button></div>
+  <div class="stub" data-i18n-c="Type how many CUs you want, in pairs: the cells light up by themselves, one column then the other. Or click the cells.">…</div>
   <div class="brow" style="margin-top:8px">
     <span style="color:var(--muted);font-size:.85rem" data-i18n="t_profiles">Profiles:</span>
     <select id="cuprof" style="background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:6px 9px"></select>
@@ -111,7 +140,6 @@
     <button class="btn sec" id="cuprofsave" data-i18n="t_saveas">Save as…</button>
     <button class="btn danger" id="cuprofdel" data-i18n="del">Delete</button>
   </div>
-  <div class="stub" data-i18n="p_cuhint">The first 3 columns (24 CUs) are the driver minimum and stay locked. 1 WGP = 2 CUs. Save the grid as a profile to recall it in one click.</div>
   <pre class="log" id="cutestlog"></pre>
 </div>
 
@@ -126,8 +154,11 @@
   </div>
   <div class="cugrid" id="cpugrid" style="grid-template-columns:repeat(8,1fr)"></div>
   <div class="brow"><button class="btn" id="cpucoresapply" data-i18n="t_applyco">Apply cores</button></div>
-  <div class="stub" data-i18n="t_coreshint">Each box = 1 physical core with its 2 threads. Core 0 always stays on: it hosts the boot CPU and the kernel cannot switch it off. Turning cores off frees thermal budget so the remaining ones clock higher. A reboot brings them all back.</div>
-  <div class="stub" data-i18n-c="scx_bpfland, the CachyOS scheduler, loaded ONLY while a game runs: GameMode raises it at launch and drops it at exit. Measured: +1.5-2% in Cyberpunk and steadier frames. If the kernel ejects it twice (lavd's disease on this board) the service refuses to start until you reset the counter.">…</div>
+  <div class="brow" style="margin-top:10px">
+    <label class="pill" style="cursor:pointer"><input type="checkbox" id="core8cb" style="vertical-align:-2px"> <span data-i18n-c="Unlock the 8 cores">Unlock the 8 cores</span></label>
+    <label class="pill" style="cursor:pointer"><input type="checkbox" id="efi8cb" style="vertical-align:-2px"> <span data-i18n-c="Before boot (EFI)">Before boot (EFI)</span></label>
+  </div>
+  <div class="stub" data-i18n-c="The two cores the BC-250 keeps off: 6c/12t becomes 8c/16t, +20% measured. With the EFI unlock it happens before GRUB in a single boot; without it the service does it with one extra reboot on every cold start.">…</div>
   <div class="stub" style="margin-top:10px" data-i18n="t_hintgrid">Physical core layout (for game affinity/pinning). Live MHz per core.</div>
   <div id="coremap" style="margin-top:8px"></div>
 </div>
@@ -138,11 +169,12 @@
 
 <div class="panel"><h3 data-i18n="t_h_vram">💾 VRAM (UMA)</h3>
   <div class="row"><label data-i18n="t_gpumem">GPU memory</label>
-    <select id="vram" style="background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:7px 10px"></select>
+    <input type="number" id="vram" min="512" max="12288" step="256"><span class="val">MB</span>
+    <button class="btn sec mini" data-vram="2048">2 GB</button><button class="btn sec mini" data-vram="4096">4 GB</button>
+    <button class="btn sec mini" data-vram="6144">6 GB</button><button class="btn sec mini" data-vram="8192">8 GB</button>
     <button class="btn" id="vramapply" data-i18n="apply">Apply</button>
   </div>
-  <div class="stub" data-i18n="t_cmos">⚠ Needs a reboot (writes to the BIOS CMOS).</div>
-  <div class="stub" data-i18n-c="How much memory the firmware sets aside for the GPU. Written to the CMOS, in force from the next boot. The rest is shared anyway through the GTT. With the 512 MB dynamic split some games measure the VRAM at start and pick low texture quality: if textures look blurry, try 4 or 6 GB fixed.">How much memory the firmware sets aside for the GPU. Written to the CMOS, in force from the next boot. The rest is shared anyway through the GTT. With the 512 MB dynamic split some games measure the VRAM at start and pick low texture quality: if textures look blurry, try 4 or 6 GB fixed.</div>
+  <div class="stub" data-i18n-c="Memory set aside for the GPU in the CMOS, in force from the next boot. With the 512 MB dynamic split some games pick low textures: if blurry, try 4 or 6 GB fixed.">…</div>
 </div>
 
 </div>
@@ -160,7 +192,7 @@
 <script>
 const $ = s => document.querySelector(s);
 let STATE = null;
-const CU_ROWS = [["0.0","SE0.SH0"],["0.1","SE0.SH1"],["1.0","SE1.SH0"],["1.1","SE1.SH1"]];
+const CU_ROWS = [["0.0","SE0 SH0"],["0.1","SE0 SH1"],["1.0","SE1 SH0"],["1.1","SE1 SH1"]];
 let cuMask = {};
 let cuFloor = 7;
 
@@ -172,16 +204,21 @@ async function api(path, body){
 }
 // the shared dictionary (English keys), same words as the native window
 function C(en){ return (typeof sfC==="function") ? sfC(en) : en; }
+function T(k){ return (typeof sfT==="function") ? sfT(k) : k; }
 function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); }); }
 function popcount(n){ let c=0; while(n){ c+=n&1; n>>=1; } return c; }
-function cuActive(){ let t=0; CU_ROWS.forEach(([k])=> t += popcount(cuMask[k]||0)*2); return t; }
-function bindSlider(id, fmt){ const el=$("#"+id), v=$("#"+id+"v"); const upd=()=>v.textContent=fmt(el.value); el.oninput=upd; upd(); }
+function cuActive(){ let t=0; CU_ROWS.forEach(([k])=> t += popcount((cuMask[k]||0)|cuFloor)*2); return t; }
+// a range and a number box that agree: drag for the rough value, type the exact one
+function bindPair(id, dopo){ const r=$("#"+id), n=$("#"+id+"n");
+  r.oninput=()=>{ n.value=r.value; if(dopo) dopo(+r.value); };
+  n.oninput=()=>{ let v=+n.value; if(isNaN(v)) return; v=Math.max(+n.min,Math.min(+n.max,v)); r.value=v; if(dopo) dopo(v); };
+  return v=>{ r.value=v; n.value=v; if(dopo) dopo(+v); }; }
 
 // ================= the V/F curve =================
 let GOV = null;            // last gov-get
 let PUNTI = [];            // [[mhz, mv], ...]
 let TETTO = 2100;
-let trascina = -1;
+let trascina = -1, ksel = -1;
 const X0=300, X1=2300, Y0=650, Y1=1150, MV_MIN=700, MV_MAX=1129;
 function areaVF(c){ return {l:44,t:10,r:c.width-14,b:c.height-24}; }
 function pxVF(a,x,y){ return [a.l+(x-X0)/(X1-X0)*(a.r-a.l), a.b-(y-Y0)/(Y1-Y0)*(a.b-a.t)]; }
@@ -204,17 +241,29 @@ function disegnaVF(){
   x.lineTo(a.r,pxVF(a,X1,PUNTI[PUNTI.length-1][1])[1]);
   x.strokeStyle="#d8a849"; x.lineWidth=2; x.stroke(); x.lineWidth=1;
   x.lineTo(a.r,a.b); x.lineTo(a.l,a.b); x.closePath(); x.fillStyle="rgba(216,168,73,.16)"; x.fill();
-  PUNTI.forEach(([m,v],i)=>{ const q=pxVF(a,m,v); x.fillStyle="#d8a849"; x.beginPath(); x.arc(q[0],q[1],5,0,7); x.fill();
-    if(i===trascina||i===PUNTI.length-1){ x.fillStyle="#c9b184"; x.fillText(i===trascina?(m+" MHz  "+v+" mV"):String(v),q[0]+7,q[1]-6); } });
+  PUNTI.forEach(([m,v],i)=>{ const q=pxVF(a,m,v); x.fillStyle=(i===ksel)?"#7fd4ff":"#d8a849"; x.beginPath(); x.arc(q[0],q[1],5,0,7); x.fill();
+    if(i===trascina||i===PUNTI.length-1||i===ksel){ x.fillStyle="#c9b184"; x.fillText((i===trascina||i===ksel)?(m+" MHz  "+v+" mV"):String(v),q[0]+7,q[1]-6); } });
   const b=GOV&&GOV.battito; if(b&&b.mhz){ const q=pxVF(a,b.mhz,Math.max(Y0,Math.min(Y1,(GOV.mv||0)))); x.fillStyle="#7fd4ff"; x.beginPath(); x.arc(q[0],q[1],4.5,0,7); x.fill(); }
 }
 function vicinoVF(mx,my){ const c=$("#vf"), a=areaVF(c); for(let i=0;i<PUNTI.length;i++){ const q=pxVF(a,PUNTI[i][0],PUNTI[i][1]); if((q[0]-mx)**2+(q[1]-my)**2<=144) return i; } return -1; }
 function clampaVF(m,v){ return [Math.max(350,Math.min(2300,Math.round(m/5)*5)), Math.max(MV_MIN,Math.min(MV_MAX,Math.round(v/5)*5))]; }
+// the knots as numbers: every value typed by hand
+function tabellaVF(){ const tb=$("#ktab"); tb.innerHTML="";
+  PUNTI.forEach(([m,v],i)=>{ const tr=document.createElement("tr"); if(i===ksel) tr.className="sel";
+    tr.innerHTML='<td><input type="number" class="k" min="350" max="2300" step="1" value="'+m+'"></td><td><input type="number" class="k" min="700" max="1129" step="1" value="'+v+'"></td>';
+    const [im,iv]=tr.querySelectorAll("input");
+    tr.onclick=()=>{ ksel=i; tabellaVF(); disegnaVF(); };
+    im.onchange=()=>{ const x=+im.value; if(!isNaN(x)){ PUNTI[i][0]=Math.max(350,Math.min(2300,Math.round(x))); sistemaVF(); } };
+    iv.onchange=()=>{ const x=+iv.value; if(!isNaN(x)){ PUNTI[i][1]=Math.max(MV_MIN,Math.min(MV_MAX,Math.round(x))); sistemaVF(); } };
+    tb.appendChild(tr); }); }
 function sistemaVF(){ PUNTI.sort((p,q)=>p[0]-q[0]); for(let i=1;i<PUNTI.length;i++) if(PUNTI[i][1]<PUNTI[i-1][1]) PUNTI[i][1]=PUNTI[i-1][1];
-  TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz";
-  $("#gpunota").textContent=C("changed, not applied"); disegnaVF(); }
+  TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO;
+  $("#gpunota").textContent=C("changed, not applied"); tabellaVF(); disegnaVF(); }
+$("#kadd").onclick=()=>{ if(!PUNTI.length){ PUNTI.push([1000,800]); } else { const i=(ksel>=0&&ksel<PUNTI.length-1)?ksel:PUNTI.length-1;
+  const n=(i<PUNTI.length-1)?[Math.round((PUNTI[i][0]+PUNTI[i+1][0])/2),Math.round((PUNTI[i][1]+PUNTI[i+1][1])/2)]:[Math.min(2300,PUNTI[i][0]+50),PUNTI[i][1]]; PUNTI.push(n); } sistemaVF(); };
+$("#kdel").onclick=()=>{ if(ksel>=0&&ksel<PUNTI.length&&PUNTI.length>2){ PUNTI.splice(ksel,1); ksel=-1; sistemaVF(); } };
 $("#vf").addEventListener("mousedown",e=>{ const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top; const i=vicinoVF(mx,my);
-  if(e.button===2){ if(i>=0&&PUNTI.length>2){ PUNTI.splice(i,1); sistemaVF(); } return; } trascina=i; });
+  if(e.button===2){ if(i>=0&&PUNTI.length>2){ PUNTI.splice(i,1); ksel=-1; sistemaVF(); } return; } trascina=i; if(i>=0){ ksel=i; tabellaVF(); } });
 $("#vf").addEventListener("contextmenu",e=>e.preventDefault());
 $("#vf").addEventListener("dblclick",e=>{ const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top; if(vicinoVF(mx,my)>=0) return;
   const a=areaVF($("#vf")); PUNTI.push(clampaVF(...valVF(a,mx,my))); sistemaVF(); });
@@ -222,24 +271,23 @@ window.addEventListener("mousemove",e=>{ if(trascina<0) return; const c=$("#vf")
   if(trascina>0) m=Math.max(m,PUNTI[trascina-1][0]+5); if(trascina<PUNTI.length-1) m=Math.min(m,PUNTI[trascina+1][0]-5);
   PUNTI[trascina]=clampaVF(m,v); disegnaVF(); });
 window.addEventListener("mouseup",()=>{ if(trascina>=0){ trascina=-1; sistemaVF(); } });
-$("#tetto").oninput=()=>{ TETTO=+$("#tetto").value; if(PUNTI.length) TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz"; $("#gpunota").textContent=C("changed, not applied"); disegnaVF(); };
-document.querySelectorAll("[data-tetto]").forEach(b=> b.onclick=()=>{ $("#tetto").value=+b.dataset.tetto; $("#tetto").oninput(); });
+$("#tetto").onchange=()=>{ TETTO=+$("#tetto").value||TETTO; if(PUNTI.length) TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO; $("#gpunota").textContent=C("changed, not applied"); disegnaVF(); };
+document.querySelectorAll("[data-tetto]").forEach(b=> b.onclick=()=>{ $("#tetto").value=+b.dataset.tetto; $("#tetto").onchange(); });
 $("#misurato").onclick=async()=>{ const r=await api("/api/tuner/gov"); const p=(r.predefinita||{}).curva; if(p){ PUNTI=p.map(q=>[q[0],q[1]]); TETTO=2100; sistemaVF(); } };
 $("#gpuannulla").onclick=()=>caricaGov();
 async function caricaGov(){
   const r=await api("/api/tuner/gov"); if(!r||!r.ok) return; GOV=r;
-  const c=r.conf||{}; PUNTI=(c.curva||[[350,700],[2100,1050]]).map(q=>[q[0],q[1]]); TETTO=c.freq_max||PUNTI[PUNTI.length-1][0];
-  $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz";
+  if(trascina<0){ const c=r.conf||{}; PUNTI=(c.curva||[[350,700],[2100,1050]]).map(q=>[q[0],q[1]]); TETTO=c.freq_max||PUNTI[PUNTI.length-1][0]; $("#tetto").value=TETTO; tabellaVF(); }
   const vivo=r.battito && (Date.now()/1000-r.battito.quando<5);
   const b=$("#govstato"); b.className="badge "+(r.prova?"b-q":(vivo?"b-ok":"b-no")); b.textContent=r.prova?C("trial running"):(vivo?C("governor running"):C("governor stopped"));
-  $("#govcb").checked=!!r.abilitato; $("#gpunota").textContent=C("curve in use"); disegnaVF();
+  $("#govcb").checked=!!r.abilitato; if(!$("#gpunota").textContent) $("#gpunota").textContent=C("curve in use"); disegnaVF();
 }
 $("#govcb").onchange=async e=>{ const x=await api("/api/tuner/gov",{azione:"attiva",on:e.target.checked}); if(!x.ok) toast(x.err||"?"); setTimeout(caricaGov,1500); };
 // Apply = trial with countdown. The board may hang: the old curve stays on disk.
 let provaTimer=null, provaResto=0;
 async function provaFine(tieni){ clearInterval(provaTimer); provaTimer=null; $("#prova").style.display="none";
   const x=await api("/api/tuner/gov",{azione:tieni?"conferma":"annulla"});
-  toast(tieni?(x.ok?C("applied")||"applied":(x.err||"?")):C("cancelled: the previous curve is back")); setTimeout(caricaGov,2000); }
+  toast(tieni?(x.ok?C("applied"):(x.err||"?")):C("cancelled: the previous curve is back")); $("#gpunota").textContent=""; setTimeout(caricaGov,2000); }
 $("#provasi").onclick=()=>provaFine(true); $("#provano").onclick=()=>provaFine(false);
 $("#gpuapply").onclick=async()=>{ const conf=Object.assign({},GOV&&GOV.conf||{},{curva:PUNTI.map(q=>[q[0],q[1]]),freq_max:TETTO});
   toast(C("starting the trial…")); const x=await api("/api/tuner/gov",{azione:"prova",conf});
@@ -250,53 +298,75 @@ $("#gpuapply").onclick=async()=>{ const conf=Object.assign({},GOV&&GOV.conf||{},
     if(provaResto<=0) provaFine(false); },1000); };
 window.addEventListener("resize",disegnaVF);
 
-// ================= CPU cores =================
+// ================= CPU: values by hand, tests with countdown and Stop =================
+const setMhz=bindPair("cmhz"), setScale=bindPair("cscale",v=>{ $("#cscalev").textContent=v?("−"+(-v*6.25).toFixed(0)+" mV"):"0 mV"; }), setTemp=bindPair("ctemp");
+function cpuVals(){ return {mhz:+$("#cmhzn").value, scale:+$("#cscalen").value, temp:+$("#ctempn").value}; }
+$("#cpuapply").onclick=async()=>{ const x=await api("/api/tuner/cpu",cpuVals()); toast(x.ok?T("p_cpuapp"):"Errore CPU"); };
+$("#cpupersist").onclick=async()=>{ const x=await api("/api/tuner/cpu",Object.assign(cpuVals(),{persist:true})); toast(x.ok?T("p_savedboot"):"Errore"); };
+function lg(id,msg,clear){ const e=$("#"+id); e.style.display="block"; if(clear)e.textContent=""; e.textContent+=(e.textContent?"\n":"")+msg; e.scrollTop=e.scrollHeight; }
+let provaCpuTimer=null, provaCpuFine=null, esitiVisti=0;
+function bottoniCpu(inCorso){ ["cpuuv","cpuwiz","cputest","cpuapply","cpupersist"].forEach(i=>$("#"+i).disabled=inCorso); $("#cpustop").disabled=!inCorso; }
+async function avviaProvaCpu(corpo, testo, fine){ const x=await api("/api/tuner/cpu-prova",corpo); if(!x.ok){ toast(x.err||"?"); return; }
+  bottoniCpu(true); esitiVisti=0; lg("cpulog",testo,true); $("#cpuconto").style.display="block"; provaCpuFine=fine;
+  provaCpuTimer=setInterval(async()=>{ const s=await api("/api/tuner/cpu-prova"); if(!s.ok) return;
+    $("#cpuconto").textContent=s.attiva?(s.etichetta+"   "+s.resto+" s"):"";
+    for(;esitiVisti<s.esiti.length;esitiVisti++){ const e=s.esiti[esitiVisti]; lg("cpulog", e.mhz+" MHz @ "+e.scale+": "+(e.tenuto?C("holds"):C("does NOT hold"))+" (min "+e.min+" MHz)"+(e.err?" "+e.err:"")); }
+    if(s.finita&&!s.attiva){ clearInterval(provaCpuTimer); provaCpuTimer=null; $("#cpuconto").style.display="none"; bottoniCpu(false);
+      if(s.fermata){ $("#cpuesito").textContent=C("Stopped. Previous values are back."); } else if(provaCpuFine) provaCpuFine(s.migliore); } },1000); }
+$("#cpustop").onclick=()=>api("/api/tuner/cpu-prova",{azione:"stop"});
+$("#cputest").onclick=()=>{ const v=cpuVals(); avviaProvaCpu(Object.assign({azione:"test"},v), C("Test: a minute of load on every thread…"),
+  best=>{ $("#cpuesito").textContent=best?C("Holds. Press Apply to keep it."):C("Does not hold: previous values are back."); }); };
+$("#cpuuv").onclick=()=>{ const v=cpuVals(); avviaProvaCpu({azione:"uv",mhz:v.mhz,temp:v.temp}, C("Looking for the undervolt at %d MHz: twelve seconds a step, stopping at the first that does not hold.").replace("%d",v.mhz),
+  best=>{ if(!best){ $("#cpuesito").textContent=C("Not even step 0 holds at this clock."); return; } setScale(best[1]); $("#cpuesito").textContent=C("Suggested: step %d (−%.0f mV). Press Apply.").replace("%d",best[1]).replace("%.0f",(-best[1]*6.25).toFixed(0)); }); };
+$("#cpuwiz").onclick=()=>{ if(!confirm(C("From 3600 to 4000 MHz with growing undervolt, thirty seconds a step, stops at the first that does not hold. The last step can hang some boards: the watchdog reboots and the good values are back. Proceed?"))) return;
+  const v=cpuVals(); avviaProvaCpu({azione:"max",temp:v.temp}, C("Looking for the maximum…"),
+  best=>{ if(!best){ $("#cpuesito").textContent=C("Not even 3600 holds: left as it was."); return; } setMhz(best[0]); setScale(best[1]); $("#cpuesito").textContent=C("Highest that holds: %d MHz @ %d. Press Apply.").replace("%d",best[0]).replace("%d",best[1]); }); };
+
+// ================= cores =================
 let CPU_CORES=[], cpuWant={};
 function renderCPUCores(){ const g=$("#cpugrid"); if(!g) return; g.innerHTML="";
-  CPU_CORES.forEach(c=>{ const on=cpuWant[c.core], locked=!c.removable; const d=document.createElement('div'); d.className='wgp'+(on?' on':'')+(locked?' locked':''); d.innerHTML='<div class="cu"></div><div class="cu"></div>';
+  CPU_CORES.forEach(c=>{ const on=cpuWant[c.core], locked=!c.removable; const d=document.createElement('div'); d.className='wgp '+(locked?'locked':(on?'on':'off')); d.textContent="C"+c.core;
     if(!locked) d.onclick=()=>{ cpuWant[c.core]=!cpuWant[c.core]; renderCPUCores(); }; g.appendChild(d); });
   const n=CPU_CORES.filter(c=>cpuWant[c.core]).length, thr=n*($("#smtcb").checked?2:1); $("#cpucount").textContent=n+" / "+CPU_CORES.length+" core · "+thr+" thread"; }
 async function loadCPUCores(){ const r=await api("/api/tuner/cpu-cores"); if(!r||!r.cores) return; CPU_CORES=r.cores; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online); $("#smtcb").checked=(r.smt||"on")==="on"; renderCPUCores(); }
-function renderCU(){ const g=$("#cugrid"); g.innerHTML='<div class="cuh"></div>'+[0,1,2,3,4].map(i=>'<div class="cuh">WGP'+i+'</div>').join('');
-  CU_ROWS.forEach(([k,lbl])=>{ g.insertAdjacentHTML('beforeend','<div class="curow-l">'+lbl+'</div>');
-    for(let w=0;w<5;w++){ const on=(cuMask[k]>>w)&1, locked=(cuFloor>>w)&1; const d=document.createElement('div'); d.className='wgp'+(on?' on':'')+(locked?' locked':''); d.innerHTML='<div class="cu"></div><div class="cu"></div>'; if(!locked) d.onclick=()=>{ cuMask[k]^=(1<<w); renderCU(); }; g.appendChild(d); } });
-  $("#cucount").textContent=cuActive()+" CU"; }
+async function loadCore8(){ const r=await api("/api/tuner/coreunlock"); if(!r||!r.ok) return; $("#core8cb").checked=!!r.abilitato; $("#core8cb").disabled=!r.supportato;
+  const e=r.efi||{}; $("#efi8cb").checked=!!(e.installato&&e.primo); $("#efi8cb").disabled=!(e.supportato&&r.supportato); }
+$("#core8cb").onchange=async e=>{ const x=await api("/api/tuner/coreunlock",{on:e.target.checked}); toast(x.ok?C("8-core unlock %s: from the next boot.").replace("%s",e.target.checked?C("on"):C("off")):(x.err||"?")); loadCore8(); };
+$("#efi8cb").onchange=async e=>{ const x=await api("/api/tuner/coreunlock",{efi:e.target.checked}); toast(x.ok?C("EFI unlock %s.").replace("%s",e.target.checked?C("installed, first at boot"):C("removed")):(x.out||x.err||"?")); loadCore8(); };
+
+// ================= compute units =================
+function renderCU(){ const g=$("#cugrid"); g.innerHTML='<div class="cuh"></div>'+[0,1,2,3,4].map(i=>'<div class="cuh">WGP '+i+'</div>').join('');
+  CU_ROWS.forEach(([k,lbl],r)=>{ g.insertAdjacentHTML('beforeend','<div class="curow-l">'+lbl+'</div>');
+    for(let w=0;w<5;w++){ const on=((cuMask[k]|cuFloor)>>w)&1, locked=(cuFloor>>w)&1; const d=document.createElement('div'); d.className='wgp '+(locked?'locked':(on?'on':'off')); d.textContent="CU "+(r*10+w*2)+"-"+(r*10+w*2+1);
+      if(!locked) d.onclick=()=>{ cuMask[k]^=(1<<w); renderCU(); }; g.appendChild(d); } });
+  const n=cuActive(); $("#cucount").textContent=n+" / 40"; $("#cun").value=n; }
+function cuDaNumero(n){ let coppie=Math.max(0,Math.floor((n-24)/2)); CU_ROWS.forEach(([k])=>cuMask[k]=cuFloor);
+  for(let w=0;w<5;w++){ if((cuFloor>>w)&1) continue; for(const [k] of CU_ROWS){ if(coppie<=0) break; cuMask[k]|=(1<<w); coppie--; } } renderCU(); }
+$("#cun").onchange=()=>cuDaNumero(Math.max(24,Math.min(40,+$("#cun").value||24)));
+document.querySelectorAll("[data-cun]").forEach(b=> b.onclick=()=>cuDaNumero(+b.dataset.cun));
 function fill(){ const s=STATE; const c=s.cpu||{}, cu=s.cu||{}, vr=s.vram||{};
-  $("#cmhz").value=c.frequency||3500; $("#cscale").value=c.scale||0; $("#ctemp").value=c.max_temperature||85;
-  ["cmhz","cscale","ctemp"].forEach(id=>$("#"+id).dispatchEvent(new Event("input")));
+  setMhz(c.frequency||3500); setScale(c.scale||0); setTemp(c.max_temperature||85);
   cuFloor=cu.floor!=null?cu.floor:7; cuMask=Object.assign({"0.0":31,"0.1":31,"1.0":31,"1.1":31},cu.rows||{}); renderCU();
   $("#live").textContent="CU: "+(cu.active!=null?cu.active:"–")+" / "+(cu.max!=null?cu.max:"–");
-  const sel=$("#vram"); sel.innerHTML=""; [2048,3072,4096,6144,8192,10240,12288].forEach(mb=>{ const o=document.createElement("option"); o.value=mb; o.textContent=(mb/1024)+" GB"; if(mb===(vr.uma_mb||8192)) o.selected=true; sel.appendChild(o); }); }
+  $("#vram").value=vr.uma_mb||8192; }
 async function load(){ const r=await api("/api/tuner"); STATE=(r.state&&r.state.data)||{};
   const pc=$("#presets"); pc.innerHTML=""; (r.presets||[]).forEach(p=>{ const b=document.createElement("button"); b.className="btn sec"; b.textContent=p.name;
-    b.onclick=async()=>{ $("#presetdesc").textContent=p.desc||""; const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?(sfT("p_presetapp").replace("{x}",p.name)):("Errore: "+(x.error||""))); setTimeout(load,600); setTimeout(caricaGov,3000); }; pc.appendChild(b); });
+    b.onclick=async()=>{ $("#presetdesc").textContent=p.desc||""; const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?(T("p_presetapp").replace("{x}",p.name)):("Errore: "+(x.error||""))); setTimeout(load,600); setTimeout(caricaGov,3000); }; pc.appendChild(b); });
   fill(); }
-bindSlider("cmhz",v=>v+" MHz"); bindSlider("cscale",v=>v); bindSlider("ctemp",v=>v+" °C");
-$("#reload").onclick=()=>{ load(); caricaGov(); };
-$("#cpuapply").onclick=async()=>{ const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); toast(x.ok?sfT("p_cpuapp"):"Errore CPU"); };
-$("#cpupersist").onclick=async()=>{ const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value,persist:true}); toast(x.ok?sfT("p_savedboot"):"Errore"); };
-function lg(id,msg,clear){ const e=$("#"+id); e.style.display="block"; if(clear)e.textContent=""; e.textContent+=(e.textContent?"\n":"")+msg; e.scrollTop=e.scrollHeight; }
-function busy(b){ document.querySelectorAll(".btn").forEach(x=>x.disabled=b); }
-$("#cputest").onclick=async()=>{ busy(true); lg("cpulog","▶ Test CPU "+$("#cmhz").value+" MHz scale "+$("#cscale").value+" (60s)…",true);
-  const x=await api("/api/tuner/test-cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); lg("cpulog", x.ok?("✓ "+(x.bench?JSON.stringify(x.bench):"")):("✗ "+(x.err||""))); busy(false); };
-$("#cpuuv").onclick=async()=>{ busy(true); lg("cpulog",sfT("p_uvsearch")+$("#cmhz").value+" MHz…",true); const x=await api("/api/tuner/suggest-uv",{mhz:+$("#cmhz").value});
-  if(x.ok){ $("#cscale").value=x.suggested_scale; $("#cscale").dispatchEvent(new Event("input")); lg("cpulog",sfT("p_uvfound")+x.suggested_scale); } else lg("cpulog","✗ "+(x.err||"errore")); busy(false); };
-$("#cpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizcpu")))return; busy(true); const steps=[[3600,-8],[3700,-16],[3800,-20],[3900,-24],[4000,-36]]; let best=null; lg("cpulog","🎰 Wizard CPU…",true);
-  for(const [m,s] of steps){ lg("cpulog","▶ "+m+" MHz scale "+s+" …"); const x=await api("/api/tuner/test-cpu",{mhz:m,scale:s,temp:+$("#ctemp").value}); if(x.ok){ best=[m,s]; lg("cpulog","  ✓"); } else { lg("cpulog","  ✗ stop"); break; } }
-  if(best){ $("#cmhz").value=best[0]; $("#cscale").value=best[1]; ["cmhz","cscale"].forEach(i=>$("#"+i).dispatchEvent(new Event("input"))); await api("/api/tuner/cpu",{mhz:best[0],scale:best[1],temp:+$("#ctemp").value,persist:true}); lg("cpulog",sfT("p_maxstable")+best[0]+" MHz scale "+best[1]); } busy(false); };
+$("#reload").onclick=()=>{ load(); caricaGov(); loadCore8(); };
 document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{ const k=+b.dataset.cores; CPU_CORES.forEach(c=> cpuWant[c.core]=(k>=CPU_CORES.length)?true:(c.core<k||!c.removable)); renderCPUCores(); });
 $("#cpucoresapply").onclick=async()=>{ const cores=CPU_CORES.map(c=>({core:c.core,online:!!cpuWant[c.core]})); const x=await api("/api/tuner/cpu-cores",{cores});
-  if(x&&x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online); renderCPUCores(); toast(sfT("p_coresapp")+(x.nproc||"?")+" thread"); } else toast("Errore core: "+((x&&x.err)||"")); };
+  if(x&&x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online); renderCPUCores(); toast(T("p_coresapp")+(x.nproc||"?")+" thread"); } else toast("Errore core: "+((x&&x.err)||"")); };
 $("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; const x=await api("/api/tuner/cpu-cores",{smt:on}); if(x&&x.ok){ await loadCPUCores(); } else toast("SMT: "+((x&&x.err)||"errore")); };
-document.querySelectorAll("[data-cu]").forEach(b=> b.onclick=()=>{ const m=+b.dataset.cu; CU_ROWS.forEach(([k])=>cuMask[k]=m|cuFloor); renderCU(); });
-$("#cuapply").onclick=async()=>{ const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu",{rows}); toast(x.ok?(sfT("p_cuapp")+(x.active||cuActive())):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cutest").onclick=async()=>{ const l=$("#cutestlog"); l.style.display="block"; l.textContent=sfT("p_cutest"); $("#cutest").disabled=true; const x=await api("/api/tuner/cu-test",{}); $("#cutest").disabled=false; l.textContent=JSON.stringify(x,null,2); };
-$("#vramapply").onclick=async()=>{ const x=await api("/api/tuner/vram",{mb:+$("#vram").value}); toast(x.ok?sfT("p_vramset"):"Errore VRAM"); };
-async function loadProfiles(){ const r=await api("/api/tuner/cu-profiles"); const sel=$("#cuprof"); const cur=sel.value; const names=Object.keys(r.profiles||{}); sel.innerHTML=names.length?names.map(n=>'<option>'+n+'</option>').join(""):'<option value="">–</option>'; if(cur&&names.includes(cur)) sel.value=cur; }
-$("#cuprofsave").onclick=async()=>{ const n=prompt(sfT("p_cuprofname")); if(!n)return; const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu-profile",{action:"save",name:n,rows}); if(x.ok){ await loadProfiles(); $("#cuprof").value=n; } else toast("Errore: "+(x.error||"")); };
-$("#cuprofapply").onclick=async()=>{ const n=$("#cuprof").value; if(!n)return; const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?(sfT("p_profapp")+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm(sfT("p_profdelq2").replace("{x}",n)))return; const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); } };
-async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=$("#coremap"); if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">'+sfT("p_navail")+'</span>'; return; }
+$("#cuapply").onclick=async()=>{ const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu",{rows}); toast(x.ok?(T("p_cuapp")+(x.active||cuActive())):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cutest").onclick=async()=>{ if(!confirm(C("Turns on one extra CU pair at a time under vkpeak and watches for GPU errors. Two or three minutes. Proceed?"))) return; const l=$("#cutestlog"); l.style.display="block"; l.textContent=T("p_cutest"); $("#cutest").disabled=true; const x=await api("/api/tuner/cu-test",{}); $("#cutest").disabled=false; l.textContent=JSON.stringify(x,null,2); };
+document.querySelectorAll("[data-vram]").forEach(b=> b.onclick=()=>{ $("#vram").value=+b.dataset.vram; });
+$("#vramapply").onclick=async()=>{ const mb=Math.max(512,Math.min(12288,+$("#vram").value||8192)); if(!confirm(C("VRAM to %d MB? A reboot is needed.").replace("%d",mb))) return; const x=await api("/api/tuner/vram",{mb}); toast(x.ok?T("p_vramset"):"Errore VRAM"); };
+async function loadProfiles(){ const r=await api("/api/tuner/cu-profiles"); const sel=$("#cuprof"); const cur=sel.value; const names=Object.keys(r.profiles||{}); sel.innerHTML=names.length?names.map(n=>'<option>'+esc(n)+'</option>').join(""):'<option value="">–</option>'; if(cur&&names.includes(cur)) sel.value=cur; }
+$("#cuprofsave").onclick=async()=>{ const n=prompt(T("p_cuprofname")); if(!n)return; const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu-profile",{action:"save",name:n,rows}); if(x.ok){ await loadProfiles(); $("#cuprof").value=n; } else toast("Errore: "+(x.error||"")); };
+$("#cuprofapply").onclick=async()=>{ const n=$("#cuprof").value; if(!n)return; const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?(T("p_profapp")+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm(T("p_profdelq2").replace("{x}",n)))return; const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); } };
+async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=$("#coremap"); if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">'+T("p_navail")+'</span>'; return; }
   const byCore={}; r.cpus.forEach(c=>{ (byCore[c.core]=byCore[c.core]||[]).push(c); });
   let h='<table style="width:100%;border-collapse:collapse;font-size:.85rem">'; Object.keys(byCore).sort((a,b)=>a-b).forEach(core=>{ const cs=byCore[core]; h+='<tr style="border-top:1px solid rgba(216,168,73,.1)"><td style="padding:5px 4px">core '+core+'</td><td class="val" style="text-align:left">CPU '+esc(cs.map(c=>c.cpu).join(", "))+'</td><td style="text-align:right;color:var(--gold-lt);font-family:monospace">'+esc(cs.map(c=>c.mhz).filter(Boolean).join("/"))+'</td></tr>'; });
   el.innerHTML=h+'</table>'; }
@@ -305,6 +375,6 @@ $("#openventola").onclick=()=>{ location.href="/static/ventola.html"; };
 async function loadSCX(){ const cb=$("#scxcb"); const r=await api("/api/tuner/scx"); if(!r) return; cb.checked=!!r.abilitato; cb.disabled=!r.supportato; }
 $("#scxcb").onchange=async e=>{ const x=await api("/api/tuner/scx",{on:e.target.checked}); if(!(x&&x.ok)) toast("Errore: "+((x&&x.err)||"")); setTimeout(loadSCX,800); };
 
-(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); load(); caricaGov(); loadProfiles(); loadCoremap(); loadCPUCores(); loadSCX(); setInterval(caricaGov,4000); });
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); load(); caricaGov(); loadProfiles(); loadCoremap(); loadCPUCores(); loadCore8(); loadSCX(); setInterval(caricaGov,4000); });
 </script>
 </body></html>
