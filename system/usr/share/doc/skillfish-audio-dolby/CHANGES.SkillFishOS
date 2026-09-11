@@ -1,0 +1,17 @@
+Two changes on top of MastaG/bc250-dual-audio, made on 2026-09-11 after the
+package took over the only audio device on the dev board:
+
+1. 90-bc250-audio-mode.lua: an encoded output (AC-3) is never entered on an
+   automatic fallback. With the display in standby the native HDMI sink is
+   missing, WirePlumber falls back to the always-present AC-3 frontend, and a
+   monitor with speakers then plays the raw bitstream as PCM: a loud noise.
+   Only an explicit choice (default.configured.audio.sink, i.e. the user
+   picking "Dolby Digital 5.1 (AC3)" in the settings) may take the hardware.
+2. 60-bc250-ac3-output.conf: priority.session of the encoded frontends
+   lowered from 100/90 to 10/9, so a real sink always wins the automatic
+   default when it exists.
+
+Proven on the dev board with the AC-3 path pointed at null: native wins on a
+fresh state, removing the native sink logs "automatic fallback landed on
+bc250_ac3; ignored" and creates no backend, the native sink is taken back as
+soon as it returns.

@@ -21,6 +21,7 @@ distribution, and why not when it is not. Dates are when we checked.
 | DualSense behind a DS5 bridge | [rpf16rj/bc250-steamos-real-toolkit](https://github.com/rpf16rj/bc250-steamos-real-toolkit) | GPL-2.0 (kernel) | kernel patch 0017 | untested: no bridge here |
 | YCbCr 4:4:4 + deep color + HDMI 2.1 FRL on PCON dongles | same | GPL-2.0 (kernel) | kernel patch 0018, off by default (`amdgpu.force_ycbcr444=1 force_min_bpc=10 dcfeaturemask=0x402`) | ported to 7.2, untested: no CH7218 dongle here |
 | GE-Proton | GloriousEggroll | | Control Center, Games | |
+| Dolby Digital 5.1 over HDMI/DP (live AC-3 encode) | [MastaG/bc250-dual-audio](https://github.com/MastaG/bc250-dual-audio) | none in the repository, asked in [bc250-dual-audio#1](https://github.com/MastaG/bc250-dual-audio/issues/1); shipped at the maintainer's decision with credit | `skillfish-audio-dolby`, pinned to WirePlumber 0.5.17 | the first install took over the only audio device: the monitor was in standby, no native sink, WirePlumber fell back to the AC-3 frontend and the monitor, once awake, played the bitstream as PCM (loud noise). Fixed with two changes of ours (see CHANGES.SkillFishOS in the package): AC-3 only on an explicit choice, encoded sinks below any real one. Proven with the native sink removed and restored |
 | Gamepad navigation, CSV export | ideas from [movacx/bc250-control-center](https://github.com/movacx/bc250-control-center) | | Control Center | |
 
 | FSR 4 INT8 lowering for gfx1013 (V3) | [dmorazasanchez/bc250-fsr4](https://github.com/dmorazasanchez/bc250-fsr4) | MIT (added 2026-09-11) | `skillfish-mesa-gfx1013` 26.09.2 | +12% with FSR 4 on, nothing changes with it off |
@@ -29,7 +30,6 @@ distribution, and why not when it is not. Dates are when we checked.
 
 | Item | Source | Why not | Result |
 |---|---|---|---|
-| Dolby Digital 5.1 over HDMI/DP (live AC-3 encode) | [MastaG/bc250-dual-audio](https://github.com/MastaG/bc250-dual-audio) | no license; and it takes over the only audio device: on the dev board the monitor (Samsung C27F591, speakers over DisplayPort) was in standby when the package went in, WirePlumber saw no native sink and made the AC-3 encoder the default output, so when the monitor woke up it played the raw AC-3 bitstream as PCM, a loud continuous noise. Removed the same day | sink appears and the encoder runs, but the automatic output selection is not safe on a machine whose display sometimes has audio and sometimes not; it would need a manual opt-in and a hard rule never to become the default |
 | Native mesh shaders on gfx1013 | [lonewolf0622/BC250-Native-Mesh-Shaders-](https://github.com/lonewolf0622/BC250-Native-Mesh-Shaders-) | written for Mesa main, does not apply to 26.2.2; and it hangs | ported to Mesa main (27 hunks by hand) on top of our compute-queue fix: `meshShader = true`, vkcube fine, but the first `vkCmdDrawMeshTasksEXT` hangs the gfx ring beyond recovery (MODE1 reset fails, board rebooted). Whether the culprit is the patch or its combination with the open compute queues is not yet separated |
 
 ## Measured, no change needed
