@@ -1,16 +1,16 @@
 Package: skillfish-ai-panel
-Version: 26.09.1
+Version: 26.09.3
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.09.1_all.deb
-Size: 59040
-SHA256: 114f4770580b85e3fbce8e2ccc5e63275cf1441b31c5a91bb484570da62fcf61
-SHA1: a022176d2a6d0764d89ec9581a0387fa3a5f1925
-MD5sum: a3a9b8cd92ce8aa698b1d40388401f40
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.09.3_all.deb
+Size: 58036
+SHA256: c7fda99157d7fbed0c6985614ef6d0c449471b24ce63a8aa09bc3da6f1f230ec
+SHA1: 5f8c87ea6f10a1739c1553d2794382cb57fc01a7
+MD5sum: fcd1ef0dc4a16b640659afadeb457109
 Description: SkillFish AI - on-device LLM control panel
  Downloads a language model and runs it on the integrated GPU, about five times
  faster than on the processor. Questions and answers stay on this machine.
@@ -41,18 +41,18 @@ Description: SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/Displa
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.09.1
+Version: 26.09.3
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.09.1_all.deb
-Size: 355860
-SHA256: e2a4fe00424387dce8fe4e0f047e58aa53f784cfb97c0ccc3ffbc33651a3d69c
-SHA1: 8bbae1a4f88d321ab8eb0cd2a03f3b63bf144160
-MD5sum: 6a7178f48b9352da6ee6bbef2b23f891
+Filename: pool/main/s/skillfish-base/skillfish-base_26.09.3_all.deb
+Size: 363252
+SHA256: f772adf95cce0c62e8e332bae02c47fa73a3285b6a4c08c5ab727976a0f07008
+SHA1: 882a1948183e9dacd23666cf458361830e794ed5
+MD5sum: d435efa35e1def26c6f85030181a33c4
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -80,7 +80,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.2
+Version: 26.09.3
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -90,11 +90,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.2_all.deb
-Size: 547992
-SHA256: 80356845e402fa2dfecfd88639aac5f317dd0972892b956a1345233c23fe6f63
-SHA1: cab6f001d9102e9dbc3f5cceecf3a22dd963f965
-MD5sum: 968aebfb92e499b2d78aae7849182b4a
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.3_all.deb
+Size: 931700
+SHA256: ea364c7499991ee3a3942e8e268e6f95c2fc22aa1ce808c9e2f96aac83cfd0ee
+SHA1: 86878cec24a7b46318ca9022d3f0cf198464dffe
+MD5sum: eea82186108d395d4f1501a5306f54b4
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -103,7 +103,7 @@ Description: SkillFishOS Control Center - every tool in one window
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.09.2
+Version: 26.09.3
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -112,11 +112,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.2_all.deb
-Size: 295116
-SHA256: 19dcee9721aec867789adc42806e0883ae030ae2a5c15ba400e43cf3ee93ff9f
-SHA1: c445183d834e05142e7fad5197f5563e71b83d0b
-MD5sum: 5e913ed470b365d9745aef2ee0f6d341
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.3_all.deb
+Size: 300512
+SHA256: d4ce1731c9089f9462493a54079caabaeb62a5346027b8865abf14748ad5110e
+SHA1: 3ed6abe0192a48e34a6fe7361cbfb5ad52f3e4b1
+MD5sum: d813e302934d40503d55417b41dcceb4
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -360,18 +360,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.09.1
+Version: 26.09.3
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.1_all.deb
-Size: 1697704
-SHA256: ce8f1c6d615f2bec04ee7d1ccdfd135ed19bb2c189a7e9bbee6e32d49aef1c92
-SHA1: f18908fa0d4f041cb0237459c660c5c12c762c6a
-MD5sum: ebbee7e50097bb9c94f746c3026dac5f
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.3_all.deb
+Size: 1698256
+SHA256: 4ba36416eb824e7ff01666cbcc6b2c14cc812bf717a9e0af24b1c65fc3fd2293
+SHA1: 865430b03eb61c7a05b7a91c428a4e8e650a7047
+MD5sum: 9aa5f1f9441c0ff6c9c4ab21fccd39a2
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
