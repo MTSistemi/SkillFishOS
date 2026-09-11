@@ -280,7 +280,9 @@ def url_doc(ancora=""):
     language of the system (English when the site does not have it)."""
     from .comune import LANG
     lingua = LANG if LANG in LINGUE_SITO else "en"
-    return "https://skillfishos.com/%s/docs/control-center/%s" % (lingua, ("#" + ancora) if ancora else "")
+    # Italian is the default language of the site: no prefix in the path
+    prefisso = "" if lingua == "it" else lingua + "/"
+    return "https://skillfishos.com/%sdocs/control-center/%s" % (prefisso, ("#" + ancora) if ancora else "")
 
 
 def link_doc(ancora=""):

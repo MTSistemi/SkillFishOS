@@ -209,7 +209,8 @@ function T(k){ return (typeof sfT==="function") ? sfT(k) : k; }
 function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); });
   // the documentation in the language of the browser, English when the site has no such page
   const l=(navigator.language||"en").slice(0,2).toLowerCase(), ok=["it","en","pl","uk","ru","es","pt","de","fr"];
-  $("#doclink").href="https://skillfishos.com/"+(ok.includes(l)?l:"en")+"/docs/control-center/#tuner"; }
+  const lg=ok.includes(l)?l:"en";  // Italian is the site default: no prefix
+  $("#doclink").href="https://skillfishos.com/"+(lg==="it"?"":lg+"/")+"docs/control-center/#tuner"; }
 function popcount(n){ let c=0; while(n){ c+=n&1; n>>=1; } return c; }
 function cuActive(){ let t=0; CU_ROWS.forEach(([k])=> t += popcount((cuMask[k]||0)|cuFloor)*2); return t; }
 // a range and a number box that agree: drag for the rough value, type the exact one

@@ -20,3 +20,7 @@ RewriteRule ^dl/skillfishos-latest\.iso$ https://sourceforge.net/projects/skillf
 
 # legacy preview (kept for old links)
 RewriteRule ^dl/skillfishos-preview\.iso$ https://www.dropbox.com/scl/fi/ppnob3ia0x5gnbbuw3o29/SkillFishOs-Preview.iso?rlkey=29nckgkils1pp0p703mthx6z5&dl=1 [R=302,L,QSD]
+
+# Italian is the default language and lives at the root: /it/... never
+# existed. Old Control Center builds (26.09.1) link the docs there.
+RewriteRule ^it/(.*)$ /$1 [R=301,L]
