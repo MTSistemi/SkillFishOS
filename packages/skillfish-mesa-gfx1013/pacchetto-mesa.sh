@@ -3,14 +3,14 @@
 #
 #     pacchetto-mesa.sh        esce ~/skillfish-mesa-gfx1013_<ver>_amd64.deb
 set -u
-VER=$(date +%y.%m).1
+VER=$(date +%y.%m).2
 P=~/pkg-mesa
 rm -rf "$P"
 install -d "$P/DEBIAN" "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu" \
            "$P/opt/skillfish-gfx1013/share/vulkan/icd.d" "$P/usr/bin" \
            "$P/usr/share/doc/skillfish-mesa-gfx1013"
 
-cp ~/mesa-pub/libvulkan_radeon.so "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/"
+cp ~/mesa-2622/libvulkan_radeon.so "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/"
 cat > "$P/opt/skillfish-gfx1013/share/vulkan/icd.d/radeon_icd.x86_64.json" <<'JSON'
 {
     "ICD": {
@@ -21,9 +21,9 @@ cat > "$P/opt/skillfish-gfx1013/share/vulkan/icd.d/radeon_icd.x86_64.json" <<'JS
 }
 JSON
 
-# il commutatore sta accanto a questo script, dentro il repository
-QUI=$(cd "$(dirname "$0")" && pwd)
-cp "$QUI/skillfish-mesa" "$P/usr/bin/skillfish-mesa" || exit 1
+# il commutatore: e' quello gia' provato sulla scheda
+sshpass -p 47yk2d8r6c scp -q -o StrictHostKeyChecking=no \
+    root@192.168.5.32:/opt/attrezzi-banco/mesa-v33.py "$P/usr/bin/skillfish-mesa" || exit 1
 chmod 755 "$P/usr/bin/skillfish-mesa"
 
 cat > "$P/DEBIAN/control" <<CTRL
@@ -51,6 +51,10 @@ Description: SkillFishOS - RADV for the BC-250 with the compute queues open
  repair, which ours does. On a stock kernel those queues wedge the GPU, which is
  exactly why the stock driver keeps them closed. Do not point a stock-kernel
  machine at it.
+ .
+ Since 26.09.2 it also carries the FSR 4 INT8 lowering for GFX1013 (V3) by
+ dmorazasanchez (bc250-fsr4, MIT): with FSR 4 on through OptiScaler it is worth
+ about +12% in Cyberpunk 2077, and it changes nothing when FSR 4 is off.
  .
  The compute-queue fix is the work of DryhoppedIPA (bc250-gfx1013-fix), MIT
  licensed; Mesa is MIT. See /usr/share/doc/skillfish-mesa-gfx1013/copyright.
@@ -83,10 +87,10 @@ The GFX1013 compute-queue change carried on top of it comes from
   https://github.com/DryhoppedIPA/bc250-gfx1013-fix
   License: MIT
 
-NOT included here: the FSR 4 INT8 work by dmorazasanchez (bc250-fsr4). That
-repository carries no licence of any kind, so we have no permission to
-redistribute it or a binary built from it. Anyone who wants it can build it
-themselves from the original repository.
+The FSR 4 INT8 lowering for GFX1013 (V3) comes from
+  David Moraza Sanchez, bc250-fsr4 — Copyright (c) 2026 dmorazasanchez
+  https://github.com/dmorazasanchez/bc250-fsr4 (branch v3)
+  License: MIT (added upstream on 2026-09-11)
 COPY
 
 dpkg-deb --root-owner-group --build "$P" ~/skillfish-mesa-gfx1013_${VER}_amd64.deb

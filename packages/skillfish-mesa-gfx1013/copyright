@@ -6,7 +6,7 @@ The GFX1013 compute-queue change carried on top of it comes from
   https://github.com/DryhoppedIPA/bc250-gfx1013-fix
   License: MIT
 
-NOT included here: the FSR 4 INT8 work by dmorazasanchez (bc250-fsr4). That
-repository carries no licence of any kind, so we have no permission to
-redistribute it or a binary built from it. Anyone who wants it can build it
-themselves from the original repository.
+The FSR 4 INT8 lowering for GFX1013 (V3) comes from
+  David Moraza Sanchez, bc250-fsr4 — Copyright (c) 2026 dmorazasanchez
+  https://github.com/dmorazasanchez/bc250-fsr4 (branch v3)
+  License: MIT (added upstream on 2026-09-11)

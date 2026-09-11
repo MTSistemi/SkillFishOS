@@ -16,19 +16,31 @@ distribution, and why not when it is not. Dates are when we checked.
 | Unified memory heap in RADV | [Necrosiak/bc250-tweaks](https://github.com/Necrosiak/bc250-tweaks) | | `/usr/share/drirc.d/50-skillfish.conf` | no fps change, fewer OOM |
 | Shader cache cap 10 GB | same | | `/etc/environment.d/50-skillfish-mesa.conf` | |
 | PipeWire quantum 512 @ 48 kHz | same | | `/etc/pipewire/pipewire.conf.d/50-skillfish-latency.conf` | |
-| 8-core unlock before the bootloader | [Hexxeh/bc250-efi-core-unlock](https://github.com/Hexxeh/bc250-efi-core-unlock) | MIT | `/usr/share/skillfish/coreunlock`, `skillfish-coreunlock-efi` | pass-through boot verified 11/09; the unlock path needs a board whose BIOS does not unlock |
+| 8-core unlock before the bootloader | [Hexxeh/bc250-efi-core-unlock](https://github.com/Hexxeh/bc250-efi-core-unlock) | MIT | `/usr/share/skillfish/coreunlock`, `skillfish-coreunlock-efi` | cold boot on the dev board (BIOS P3.00 with chipset menu, smart-plug power cycle, 11/09): **one** OS boot, 16 threads, mask 0xFF already there when the in-OS service looked; ssh usable 52 s after power-on against 154 s + a second boot before |
 | DualSense behind a DS5 bridge | [rpf16rj/bc250-steamos-real-toolkit](https://github.com/rpf16rj/bc250-steamos-real-toolkit) | GPL-2.0 (kernel) | kernel patch 0017 | untested: no bridge here |
 | YCbCr 4:4:4 + deep color + HDMI 2.1 FRL on PCON dongles | same | GPL-2.0 (kernel) | kernel patch 0018, off by default (`amdgpu.force_ycbcr444=1 force_min_bpc=10 dcfeaturemask=0x402`) | ported to 7.2, untested: no CH7218 dongle here |
 | GE-Proton | GloriousEggroll | | Control Center, Games | |
 | Gamepad navigation, CSV export | ideas from [movacx/bc250-control-center](https://github.com/movacx/bc250-control-center) | | Control Center | |
 
+| FSR 4 INT8 lowering for gfx1013 (V3) | [dmorazasanchez/bc250-fsr4](https://github.com/dmorazasanchez/bc250-fsr4) | MIT (added 2026-09-11) | `skillfish-mesa-gfx1013` 26.09.2 | +12% with FSR 4 on, nothing changes with it off |
+
+## Shipped while the license question is open
+
+Two repositories carry no license file. We asked each author for one on
+2026-09-11 ([BC250-Native-Mesh-Shaders-#1](https://github.com/lonewolf0622/BC250-Native-Mesh-Shaders-/issues/1),
+[bc250-dual-audio#1](https://github.com/MastaG/bc250-dual-audio/issues/1)) and,
+by the maintainer's decision, ship the one that works with full credit, ready
+to pull it the day the author objects.
+
+| Item | Source | Where it lives | Result |
+|---|---|---|---|
+| Dolby Digital 5.1 over HDMI/DP (live AC-3 encode) | [MastaG/bc250-dual-audio](https://github.com/MastaG/bc250-dual-audio) | `skillfish-audio-dolby`, pinned to WirePlumber 0.5.17 | sink appears, encoder enters AC-3 mode, six-channel test plays; no display with audio on our boards to hear it |
+
 ## Tested here, not shipped
 
 | Item | Source | Why not | Result |
 |---|---|---|---|
-| FSR 4 INT8 lowering for gfx1013 | [dmorazasanchez/bc250-fsr4](https://github.com/dmorazasanchez/bc250-fsr4) | no license in the repository | +12% with FSR 4 on; build it yourself with `compila-mesa-2622.sh` |
-| Native mesh shaders on gfx1013 | [lonewolf0622/BC250-Native-Mesh-Shaders-](https://github.com/lonewolf0622/BC250-Native-Mesh-Shaders-) | no license; written for Mesa main, does not apply to 26.2.2 | ported to Mesa main (27 hunks by hand) on top of our compute-queue fix: `meshShader = true`, vkcube fine, but the first `vkCmdDrawMeshTasksEXT` hangs the gfx ring beyond recovery (MODE1 reset fails, board rebooted). Whether the culprit is the patch or its combination with the open compute queues is not yet separated |
-| Dolby Digital 5.1 over HDMI/DP (live AC-3 encode) | [MastaG/bc250-dual-audio](https://github.com/MastaG/bc250-dual-audio) | no license in the repository; needs WirePlumber 0.5.17 exactly | sink appears, encoder runs; no display with audio on our boards to hear it |
+| Native mesh shaders on gfx1013 | [lonewolf0622/BC250-Native-Mesh-Shaders-](https://github.com/lonewolf0622/BC250-Native-Mesh-Shaders-) | written for Mesa main, does not apply to 26.2.2; and it hangs | ported to Mesa main (27 hunks by hand) on top of our compute-queue fix: `meshShader = true`, vkcube fine, but the first `vkCmdDrawMeshTasksEXT` hangs the gfx ring beyond recovery (MODE1 reset fails, board rebooted). Whether the culprit is the patch or its combination with the open compute queues is not yet separated |
 
 ## Measured, no change needed
 
