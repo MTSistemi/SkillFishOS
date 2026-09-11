@@ -80,7 +80,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.1
+Version: 26.09.2
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -90,11 +90,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.1_all.deb
-Size: 547764
-SHA256: 31d4241335b7b0a462d3562f625400d444a565f08de4b711362f4293a47e3f77
-SHA1: 57e16b71de713bdadd865b83caa0ec49d04967e6
-MD5sum: 622221def1722fa35550b786150c38be
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.2_all.deb
+Size: 547992
+SHA256: 80356845e402fa2dfecfd88639aac5f317dd0972892b956a1345233c23fe6f63
+SHA1: cab6f001d9102e9dbc3f5cceecf3a22dd963f965
+MD5sum: 968aebfb92e499b2d78aae7849182b4a
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -103,7 +103,7 @@ Description: SkillFishOS Control Center - every tool in one window
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.09.1
+Version: 26.09.2
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -112,11 +112,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.1_all.deb
-Size: 295056
-SHA256: 786e783b4f6c63f93a8f9a7ed060a192c0feec6d944a078218230a93e8d14d3a
-SHA1: 326ba3a005e486a53b3e5628696a1989a9ca3d0e
-MD5sum: 8074f2174250a37b20dd10e7daf3a5a1
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.2_all.deb
+Size: 295116
+SHA256: 19dcee9721aec867789adc42806e0883ae030ae2a5c15ba400e43cf3ee93ff9f
+SHA1: c445183d834e05142e7fad5197f5563e71b83d0b
+MD5sum: 5e913ed470b365d9745aef2ee0f6d341
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
