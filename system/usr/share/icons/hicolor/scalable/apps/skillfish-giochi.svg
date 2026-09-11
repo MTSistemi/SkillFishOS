@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Games section: a brass gamepad on the dark plate. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="plate" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#3a2d1f"/><stop offset="1" stop-color="#15110d"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0cf7a"/><stop offset="0.5" stop-color="#d8a849"/><stop offset="1" stop-color="#8a6a2a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#plate)" stroke="#8a6a2a" stroke-width="6"/>
+  <path d="M72 96 h112 a36 36 0 0 1 34 46 l-10 38 a20 20 0 0 1 -36 6 l-14 -22 h-60 l-14 22 a20 20 0 0 1 -36 -6 l-10 -38 a36 36 0 0 1 34 -46 z"
+        fill="url(#brass)" stroke="#5a4426" stroke-width="4"/>
+  <g fill="#1b1713">
+    <rect x="86" y="112" width="10" height="34" rx="2"/><rect x="74" y="124" width="34" height="10" rx="2"/>
+    <circle cx="164" cy="118" r="7"/><circle cx="182" cy="130" r="7"/><circle cx="164" cy="142" r="7"/><circle cx="146" cy="130" r="7"/>
+  </g>
+  <circle cx="164" cy="118" r="4" fill="#e8703a"/>
+</svg>

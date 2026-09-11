@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>os.skillfish.control-center</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>SkillFishOS Control Center</name>
+  <summary>Tuner, fan, monitor, games, profiles, kernel and snapshots in one window</summary>
+  <summary xml:lang="it">Tuner, ventola, monitor, giochi, profili, kernel e snapshot in una finestra sola</summary>
+  <summary xml:lang="fr">Tuner, ventilateur, moniteur, jeux, profils, noyau et instantanés dans une seule fenêtre</summary>
+  <summary xml:lang="es">Tuner, ventilador, monitor, juegos, perfiles, kernel e instantáneas en una sola ventana</summary>
+  <summary xml:lang="pt">Tuner, ventoinha, monitor, jogos, perfis, kernel e snapshots numa única janela</summary>
+  <summary xml:lang="de">Tuner, Lüfter, Monitor, Spiele, Profile, Kernel und Snapshots in einem Fenster</summary>
+  <summary xml:lang="pl">Tuner, wentylator, monitor, gry, profile, jądro i migawki w jednym oknie</summary>
+  <summary xml:lang="ru">Тюнер, вентилятор, монитор, игры, профили, ядро и снимки в одном окне</summary>
+  <summary xml:lang="uk">Тюнер, вентилятор, монітор, ігри, профілі, ядро та знімки в одному вікні</summary>
+  <description>
+    <p>Every SkillFishOS tool in one window, one section each: Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators, Console, ISO. The old separate windows are gone; their commands still open the right section.</p>
+    <p xml:lang="it">Tutti gli strumenti di SkillFishOS in una finestra, una sezione ciascuno: Stato, Tuner, Ventola, Monitor, Giochi, Profili, Kernel, Snapshot, AI, Emulatori, Console, ISO. Le vecchie finestre separate non ci sono più; i loro comandi aprono ancora la sezione giusta.</p>
+    <p xml:lang="fr">Tous les outils de SkillFishOS dans une fenêtre, une section chacun : État, Tuner, Ventilateur, Moniteur, Jeux, Profils, Noyau, Instantanés, IA, Émulateurs, Console, ISO. Les anciennes fenêtres séparées ont disparu ; leurs commandes ouvrent toujours la bonne section.</p>
+    <p xml:lang="es">Todas las herramientas de SkillFishOS en una ventana, una sección cada una: Estado, Tuner, Ventilador, Monitor, Juegos, Perfiles, Kernel, Instantáneas, IA, Emuladores, Consola, ISO. Las antiguas ventanas separadas ya no están; sus comandos siguen abriendo la sección correcta.</p>
+    <p xml:lang="pt">Todas as ferramentas do SkillFishOS numa janela, uma secção cada: Estado, Tuner, Ventoinha, Monitor, Jogos, Perfis, Kernel, Snapshots, IA, Emuladores, Consola, ISO. As antigas janelas separadas desapareceram; os seus comandos ainda abrem a secção certa.</p>
+    <p xml:lang="de">Jedes SkillFishOS-Werkzeug in einem Fenster, je ein Bereich: Status, Tuner, Lüfter, Monitor, Spiele, Profile, Kernel, Snapshots, KI, Emulatoren, Konsole, ISO. Die alten getrennten Fenster gibt es nicht mehr; ihre Befehle öffnen weiterhin den richtigen Bereich.</p>
+    <p xml:lang="pl">Wszystkie narzędzia SkillFishOS w jednym oknie, po jednej sekcji: Stan, Tuner, Wentylator, Monitor, Gry, Profile, Jądro, Migawki, AI, Emulatory, Konsola, ISO. Dawnych osobnych okien już nie ma; ich polecenia nadal otwierają właściwą sekcję.</p>
+    <p xml:lang="ru">Все инструменты SkillFishOS в одном окне, по разделу на каждый: Состояние, Тюнер, Вентилятор, Монитор, Игры, Профили, Ядро, Снимки, ИИ, Эмуляторы, Консоль, ISO. Старых отдельных окон больше нет; их команды по-прежнему открывают нужный раздел.</p>
+    <p xml:lang="uk">Усі інструменти SkillFishOS в одному вікні, по розділу на кожен: Стан, Тюнер, Вентилятор, Монітор, Ігри, Профілі, Ядро, Знімки, ШІ, Емулятори, Консоль, ISO. Старих окремих вікон більше немає; їхні команди досі відкривають потрібний розділ.</p>
+    <p>The Tuner is built around the real curve of the V/F governor: fifteen draggable knots, the ceiling, and an Apply that runs the new curve on trial with a countdown while the last good one stays on disk. The Games section switches our Mesa per launcher or system-wide, arms the scheduler, and installs GE-Proton 11 into Steam and Heroic.</p>
+    <p xml:lang="it">Il Tuner è costruito attorno alla curva vera del governor V/F: quindici nodi trascinabili, il tetto, e un Applica che mette la curva nuova in prova con un conto alla rovescia mentre l'ultima buona resta su disco. La sezione Giochi accende la nostra Mesa per lanciatore o per tutto il sistema, arma lo schedulatore e installa GE-Proton 11 in Steam e Heroic.</p>
+    <p xml:lang="fr">Le Tuner est construit autour de la vraie courbe du governor V/F : quinze points déplaçables, le plafond, et un Appliquer qui met la nouvelle courbe à l'essai avec un compte à rebours pendant que la dernière bonne reste sur le disque. La section Jeux active notre Mesa par lanceur ou pour tout le système, arme l'ordonnanceur et installe GE-Proton 11 dans Steam et Heroic.</p>
+    <p xml:lang="es">El Tuner está construido en torno a la curva real del governor V/F: quince nodos arrastrables, el techo, y un Aplicar que pone la curva nueva a prueba con una cuenta atrás mientras la última buena se queda en el disco. La sección Juegos activa nuestra Mesa por lanzador o para todo el sistema, arma el planificador e instala GE-Proton 11 en Steam y Heroic.</p>
+    <p xml:lang="pt">O Tuner é construído à volta da curva real do governor V/F: quinze nós arrastáveis, o teto, e um Aplicar que põe a curva nova à prova com uma contagem decrescente enquanto a última boa fica no disco. A secção Jogos liga a nossa Mesa por lançador ou para todo o sistema, arma o escalonador e instala o GE-Proton 11 no Steam e no Heroic.</p>
+    <p xml:lang="de">Der Tuner ist um die echte Kurve des V/F-Governors gebaut: fünfzehn ziehbare Knoten, die Obergrenze, und ein Anwenden, das die neue Kurve mit Countdown auf Probe laufen lässt, während die letzte gute auf der Platte bleibt. Der Bereich Spiele schaltet unsere Mesa pro Launcher oder systemweit, schärft den Scheduler und installiert GE-Proton 11 in Steam und Heroic.</p>
+    <p xml:lang="pl">Tuner zbudowano wokół prawdziwej krzywej governora V/F: piętnaście przeciąganych węzłów, sufit i Zastosuj, które uruchamia nową krzywą na próbę z odliczaniem, podczas gdy ostatnia dobra zostaje na dysku. Sekcja Gry przełącza naszą Mesę per launcher lub dla całego systemu, uzbraja planistę i instaluje GE-Proton 11 w Steam i Heroic.</p>
+    <p xml:lang="ru">Тюнер построен вокруг настоящей кривой V/F governor: пятнадцать перетаскиваемых узлов, потолок и «Применить», которое запускает новую кривую на пробу с обратным отсчётом, пока последняя хорошая остаётся на диске. Раздел Игры переключает нашу Mesa для лаунчера или всей системы, взводит планировщик и устанавливает GE-Proton 11 в Steam и Heroic.</p>
+    <p xml:lang="uk">Тюнер побудовано навколо справжньої кривої V/F governor: п'ятнадцять перетягуваних вузлів, стеля і «Застосувати», яке запускає нову криву на пробу зі зворотним відліком, поки остання добра лишається на диску. Розділ Ігри перемикає нашу Mesa для лаунчера або всієї системи, зводить планувальник і встановлює GE-Proton 11 у Steam і Heroic.</p>
+  </description>
+  <launchable type="desktop-id">os.skillfish.control-center.desktop</launchable>
+  <icon type="stock">skillfish-control-center</icon>
+  <categories>
+    <category>System</category>
+    <category>Settings</category>
+  </categories>
+  <keywords>
+    <keyword>control</keyword>
+    <keyword>tuner</keyword>
+    <keyword>fan</keyword>
+    <keyword>monitor</keyword>
+    <keyword>proton</keyword>
+    <keyword>mesa</keyword>
+    <keyword>kernel</keyword>
+    <keyword>snapshot</keyword>
+  </keywords>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>The Tuner: the V/F curve inside the chart, the ceiling, the trial countdown</caption>
+      <caption xml:lang="it">Il Tuner: la curva V/F dentro al grafico, il tetto, il conto alla rovescia della prova</caption>
+      <image>https://skillfishos.com/screenshots/control-center-tuner.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Status: one number per card</caption>
+      <caption xml:lang="it">Stato: un numero per scheda</caption>
+      <image>https://skillfishos.com/screenshots/control-center-stato.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Games: our Mesa, the scheduler, Proton</caption>
+      <caption xml:lang="it">Giochi: la nostra Mesa, lo schedulatore, Proton</caption>
+      <image>https://skillfishos.com/screenshots/control-center-giochi.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="26.09.1" date="2026-09-11">
+      <description>
+        <p>First release: twelve sections in one window. Tuner rewritten around the V/F governor curve with a trial countdown; Games with our Mesa (per launcher or system-wide), the scheduler and a GE-Proton 11 installer; Profiles; the fan, monitor, kernel, snapshots, AI, emulators, console and ISO tools brought in unchanged in what they do.</p>
+        <p xml:lang="it">Prima uscita: dodici sezioni in una finestra. Tuner riscritto attorno alla curva del governor V/F con la prova a conto alla rovescia; Giochi con la nostra Mesa (per lanciatore o di sistema), lo schedulatore e l'installatore di GE-Proton 11; Profili; ventola, monitor, kernel, snapshot, AI, emulatori, console e ISO portati dentro senza cambiare quello che fanno.</p>
+        <p xml:lang="fr">Première version : douze sections dans une fenêtre. Tuner réécrit autour de la courbe du governor V/F avec un essai à compte à rebours ; Jeux avec notre Mesa (par lanceur ou système), l'ordonnanceur et un installateur GE-Proton 11 ; Profils ; ventilateur, moniteur, noyau, instantanés, IA, émulateurs, console et ISO repris sans changer ce qu'ils font.</p>
+        <p xml:lang="es">Primera versión: doce secciones en una ventana. Tuner reescrito en torno a la curva del governor V/F con prueba a cuenta atrás; Juegos con nuestra Mesa (por lanzador o de sistema), el planificador y un instalador de GE-Proton 11; Perfiles; ventilador, monitor, kernel, instantáneas, IA, emuladores, consola e ISO traídos sin cambiar lo que hacen.</p>
+        <p xml:lang="pt">Primeira versão: doze secções numa janela. Tuner reescrito à volta da curva do governor V/F com prova em contagem decrescente; Jogos com a nossa Mesa (por lançador ou de sistema), o escalonador e um instalador do GE-Proton 11; Perfis; ventoinha, monitor, kernel, snapshots, IA, emuladores, consola e ISO trazidos sem mudar o que fazem.</p>
+        <p xml:lang="de">Erste Ausgabe: zwölf Bereiche in einem Fenster. Tuner um die V/F-Governor-Kurve neu geschrieben, mit Probe-Countdown; Spiele mit unserer Mesa (pro Launcher oder systemweit), dem Scheduler und einem GE-Proton-11-Installer; Profile; Lüfter, Monitor, Kernel, Snapshots, KI, Emulatoren, Konsole und ISO unverändert in dem, was sie tun, übernommen.</p>
+        <p xml:lang="pl">Pierwsze wydanie: dwanaście sekcji w jednym oknie. Tuner napisany na nowo wokół krzywej governora V/F z odliczaną próbą; Gry z naszą Mesą (per launcher lub systemowo), planistą i instalatorem GE-Proton 11; Profile; wentylator, monitor, jądro, migawki, AI, emulatory, konsola i ISO przeniesione bez zmiany tego, co robią.</p>
+        <p xml:lang="ru">Первый выпуск: двенадцать разделов в одном окне. Тюнер переписан вокруг кривой V/F governor с пробным обратным отсчётом; Игры с нашей Mesa (для лаунчера или всей системы), планировщиком и установщиком GE-Proton 11; Профили; вентилятор, монитор, ядро, снимки, ИИ, эмуляторы, консоль и ISO перенесены без изменения того, что они делают.</p>
+        <p xml:lang="uk">Перший випуск: дванадцять розділів в одному вікні. Тюнер переписано навколо кривої V/F governor з пробним зворотним відліком; Ігри з нашою Mesa (для лаунчера або всієї системи), планувальником і встановлювачем GE-Proton 11; Профілі; вентилятор, монітор, ядро, знімки, ШІ, емулятори, консоль та ISO перенесено без зміни того, що вони роблять.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

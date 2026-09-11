@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SkillFishOS Control Center: a brass gear with a gauge needle, on the dark
+     round plate every SkillFishOS app icon uses. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="plate" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#3a2d1f"/>
+      <stop offset="1" stop-color="#15110d"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0cf7a"/>
+      <stop offset="0.5" stop-color="#d8a849"/>
+      <stop offset="1" stop-color="#8a6a2a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#plate)" stroke="#8a6a2a" stroke-width="6"/>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#5a4426" stroke-width="2"/>
+  <g fill="url(#brass)" stroke="#5a4426" stroke-width="3">
+    <path d="M128 40 l10 0 l3 16 l12 4 l12 -11 l9 5 l-5 15 l9 9 l15 -5 l5 9 l-11 12 l4 12 l16 3 l0 10 l-16 3 l-4 12 l11 12 l-5 9 l-15 -5 l-9 9 l5 15 l-9 5 l-12 -11 l-12 4 l-3 16 l-10 0 l-3 -16 l-12 -4 l-12 11 l-9 -5 l5 -15 l-9 -9 l-15 5 l-5 -9 l11 -12 l-4 -12 l-16 -3 l0 -10 l16 -3 l4 -12 l-11 -12 l5 -9 l15 5 l9 -9 l-5 -15 l9 -5 l12 11 l12 -4 z"/>
+  </g>
+  <circle cx="128" cy="128" r="46" fill="#1b1713" stroke="#8a6a2a" stroke-width="4"/>
+  <path d="M96 150 A36 36 0 1 1 160 150" fill="none" stroke="#d8a849" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#d8a849" stroke-width="3" stroke-linecap="round">
+    <line x1="99" y1="146" x2="105" y2="142"/><line x1="105" y1="118" x2="110" y2="122"/>
+    <line x1="128" y1="98" x2="128" y2="104"/><line x1="151" y1="118" x2="146" y2="122"/>
+    <line x1="157" y1="146" x2="151" y2="142"/>
+  </g>
+  <line x1="128" y1="146" x2="146" y2="116" stroke="#e8703a" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="128" cy="146" r="6" fill="#e8703a"/>
+</svg>

@@ -113,7 +113,8 @@ shot() { # shot <pkg> <metainfo-path>: install metainfo + its referenced screens
 }
 
 P=skillfish-tuner
-put $P 0755 apps/tuner/skillfish-tuner            usr/local/bin/skillfish-tuner
+# The window is a section of the Control Center since 26.09: this is the launcher.
+put $P 0755 apps/control-center/lanciatori/skillfish-tuner usr/local/bin/skillfish-tuner
 put $P 0755 apps/tuner/skillfish-tuner-helper     usr/local/bin/skillfish-tuner-helper
 put $P 0755 system/usr/local/bin/skillfish-cu     usr/local/bin/skillfish-cu
 # Configurazione della memoria: nostra, GPL-3.0. Prima il Tuner cercava uno
@@ -152,7 +153,6 @@ put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-hud.png usr/sh
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-hud.png usr/share/icons/hicolor/256x256/apps/skillfish-hud.png
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg
 put $P 0644 system/usr/share/skillfish/tuner-presets.json usr/share/skillfish/tuner-presets.json
-put $P 0644 system/usr/share/applications/os.skillfish.Tuner.desktop usr/share/applications/os.skillfish.Tuner.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-tuner.png usr/share/icons/hicolor/48x48/apps/skillfish-tuner.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png usr/share/icons/hicolor/128x128/apps/skillfish-tuner.png
@@ -184,10 +184,9 @@ put $P 0755 vendor/gpu-verify/skillfish-gpu-verify       usr/local/bin/skillfish
 put $P 0644 vendor/gpu-verify/skillfish-gpu-verify.c     usr/share/doc/skillfish-tuner/skillfish-gpu-verify.c
 put $P 0644 system/etc/systemd/system/skillfish-gpu-calibrate-recovery.service etc/systemd/system/skillfish-gpu-calibrate-recovery.service
 opt $P 0644 system/usr/share/polkit-1/actions/os.skillfish.tuner.policy usr/share/polkit-1/actions/os.skillfish.tuner.policy
-shot $P apps/tuner/os.skillfish.Tuner.metainfo.xml
 # Il HUD viaggia dentro a skillfish-tuner, e la sua scheda pure.
 shot $P apps/hud/os.skillfish.hud.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g" "SkillFishOS Tuner - BC-250 hardware control GUI" \
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g, skillfish-control-center" "SkillFishOS Tuner - BC-250 hardware control GUI" \
   "Sets the CPU and GPU clocks, the voltage offset, how many compute units are
 in use and how much memory the graphics take. Presets from quiet to full, and
 a wizard that finds what this chip holds. Also brings the HUD configurator."
@@ -195,6 +194,45 @@ a wizard that finds what this chip holds. Also brings the HUD configurator."
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
 printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-sensori.service 2>/dev/null || true\n  systemctl enable skillfish-gpu-calibrate-recovery.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
+P=skillfish-control-center
+# One window for every tool. The old ones (tuner, fan, monitor, kernel-manager,
+# ai-panel, snapshots) keep their daemons and helpers and depend on this.
+put $P 0755 apps/control-center/skillfish-control-center usr/local/bin/skillfish-control-center
+# ⚠️ ONE privileged helper for the whole window, superset of the old tuner
+# helper (same JSON-per-line protocol, so the Remote Manager keeps working).
+put $P 0755 apps/control-center/skillfish-cc-helper usr/local/bin/skillfish-cc-helper
+put $P 0644 apps/control-center/os.skillfish.control-center.policy usr/share/polkit-1/actions/os.skillfish.control-center.policy
+# the program itself: a Python package under /usr/share/skillfish/control-center
+while IFS= read -r f; do
+  put $P 0644 "apps/control-center/sfcc/$f" "usr/share/skillfish/control-center/sfcc/$f"
+done < <(cd apps/control-center/sfcc && find . -name '*.py' -printf '%P\n')
+put $P 0644 apps/control-center/os.skillfish.control-center.desktop usr/share/applications/os.skillfish.control-center.desktop
+# the .sfmon recordings of the Monitor open here now
+put $P 0644 system/usr/share/mime/packages/os.skillfish.monitor.xml usr/share/mime/packages/os.skillfish.monitor.xml
+put $P 0644 apps/control-center/profili.json usr/share/skillfish/profili.json
+# the shipped governor curve, for the «Measured» preset: a copy of the
+# governor's conffile as it is packaged
+put $P 0644 packages/skillfish-vf-governor/etc/skillfish-vf-governor.json usr/share/skillfish/vf-curva-predefinita.json
+for n in skillfish-control-center skillfish-giochi skillfish-profili; do
+  put $P 0644 system/usr/share/icons/hicolor/scalable/apps/$n.svg usr/share/icons/hicolor/scalable/apps/$n.svg
+  for s in 48 128 256; do
+    put $P 0644 system/usr/share/icons/hicolor/${s}x${s}/apps/$n.png usr/share/icons/hicolor/${s}x${s}/apps/$n.png
+  done
+done
+shot $P apps/control-center/os.skillfish.control-center.metainfo.xml
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor" "SkillFishOS Control Center - every tool in one window" \
+  "Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
+Console and ISO in one window. The Tuner is built around the V/F governor
+curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
+# the daemons and helpers the sections talk to: recommended, not required, so
+# a machine that is not a BC-250 can leave the hardware ones out
+sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013/' "$OUT/$P/DEBIAN/control"
+# the .sfmon mime type moved here from skillfish-monitor: without this dpkg
+# refuses to unpack over the old monitor package ("trying to overwrite")
+sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-hub
@@ -276,12 +314,11 @@ P=skillfish-fan
 #   skillfish-fan         la finestra, che gira da utente e non muove niente.
 #   skillfish-fan-helper  l'unico che scrive, e che non si fida di cio' che
 #                         gli arriva: rifa' la configurazione campo per campo.
-put $P 0755 apps/fan/skillfish-fan               usr/local/bin/skillfish-fan
+put $P 0755 apps/control-center/lanciatori/skillfish-fan usr/local/bin/skillfish-fan
 put $P 0755 apps/fan/skillfish-fand              usr/local/bin/skillfish-fand
 put $P 0755 apps/fan/skillfish-fan-helper        usr/local/bin/skillfish-fan-helper
 put $P 0644 system/etc/systemd/system/skillfish-fand.service etc/systemd/system/skillfish-fand.service
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.fan.policy usr/share/polkit-1/actions/os.skillfish.fan.policy
-put $P 0644 system/usr/share/applications/os.skillfish.fan.desktop usr/share/applications/os.skillfish.fan.desktop
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-fan.png usr/share/icons/hicolor/48x48/apps/skillfish-fan.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-fan.png usr/share/icons/hicolor/128x128/apps/skillfish-fan.png
 put $P 0644 system/usr/share/skillfish/ventola-giochi.json usr/share/skillfish/ventola-giochi.json
@@ -291,8 +328,7 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg usr/s
 # senza il quale il demone esce al primo giro. Meglio che lo sappia apt.
 # ⚠️ La scheda AppStream: senza, nell'Hub questa applicazione mostra solo la
 # riga del control, nessuno screenshot e nessuna novita'.
-shot $P apps/fan/os.skillfish.fan.metainfo.xml
-ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1" "SkillFishOS Fan Control - fan curve with anticipation" \
+ctrl $P "python3, python3-pyqt6, skillfish-base, polkitd | policykit-1, skillfish-control-center" "SkillFishOS Fan Control - fan curve with anticipation" \
   "The fan curve, applied every second by a controller that runs with or without
 the window. It watches how fast the temperature climbs, and the watts on the
 BC-250, to start early. The emergency threshold cannot be switched off."
@@ -310,15 +346,12 @@ printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then\n  systemctl disa
 chmod 0755 "$OUT/$P/DEBIAN/prerm"
 
 P=skillfish-monitor
-put $P 0755 apps/monitor/skillfish-monitor usr/local/bin/skillfish-monitor
-put $P 0644 system/usr/share/applications/os.skillfish.monitor.desktop usr/share/applications/os.skillfish.monitor.desktop
+put $P 0755 apps/control-center/lanciatori/skillfish-monitor usr/local/bin/skillfish-monitor
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-monitor.png usr/share/icons/hicolor/48x48/apps/skillfish-monitor.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png
-put $P 0644 system/usr/share/mime/packages/os.skillfish.monitor.xml usr/share/mime/packages/os.skillfish.monitor.xml
-shot $P apps/monitor/os.skillfish.monitor.metainfo.xml
-ctrl $P "python3, python3-pyqt6" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer" \
+ctrl $P "python3, python3-pyqt6, skillfish-control-center" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer" \
   "Live charts of temperatures, clocks, voltage, watts, load and fan speed. Press
 record and the session goes to a .sfmon file you can reopen and walk through
 second by second."
@@ -327,20 +360,18 @@ printf '#!/bin/sh\nset -e\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-kernel-manager
-put $P 0755 apps/kernel-manager/skillfish-kernel-manager usr/local/bin/skillfish-kernel-manager
+put $P 0755 apps/control-center/lanciatori/skillfish-kernel-manager usr/local/bin/skillfish-kernel-manager
 put $P 0755 apps/kernel-manager/skillfish-kernel-helper  usr/local/bin/skillfish-kernel-helper
-put $P 0644 system/usr/share/applications/os.skillfish.kernel.desktop usr/share/applications/os.skillfish.kernel.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-kernel.png usr/share/icons/hicolor/48x48/apps/skillfish-kernel.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png usr/share/icons/hicolor/128x128/apps/skillfish-kernel.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png usr/share/icons/hicolor/256x256/apps/skillfish-kernel.png
-shot $P apps/kernel-manager/os.skillfish.kernel.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFishOS Kernel Manager" \
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-control-center" "SkillFishOS Kernel Manager" \
   "Shows the kernels installed, which one is running and which one GRUB will pick
 next. Choose the next boot, remove the ones you no longer want."
 
 P=skillfish-ai-panel
-put $P 0755 apps/ai-panel/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
+put $P 0755 apps/control-center/lanciatori/skillfish-ai-panel usr/local/bin/skillfish-ai-panel
 put $P 0755 apps/ai-panel/skillfish-gtt      usr/local/bin/skillfish-gtt
 # the setup wizard shells out to this to install the Unsloth engine
 put $P 0755 scripts/install-unsloth.sh       usr/local/share/skillfish/install-unsloth.sh
@@ -351,13 +382,11 @@ put $P 0755 scripts/install-unsloth.sh       usr/local/share/skillfish/install-u
 put $P 0755 system/usr/local/bin/skillfish-unsloth        usr/local/bin/skillfish-unsloth
 put $P 0755 system/usr/local/bin/skillfish-unsloth-update usr/local/bin/skillfish-unsloth-update
 put $P 0644 system/etc/systemd/system/skillfish-unsloth.service etc/systemd/system/skillfish-unsloth.service
-put $P 0644 system/usr/share/applications/os.skillfish.ai.desktop usr/share/applications/os.skillfish.ai.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-ai.png usr/share/icons/hicolor/48x48/apps/skillfish-ai.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-ai.png usr/share/icons/hicolor/128x128/apps/skillfish-ai.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-ai.png usr/share/icons/hicolor/256x256/apps/skillfish-ai.png
-shot $P apps/ai-panel/os.skillfish.ai.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1" "SkillFish AI - on-device LLM control panel" \
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-control-center" "SkillFish AI - on-device LLM control panel" \
   "Downloads a language model and runs it on the integrated GPU, about five times
 faster than on the processor. Questions and answers stay on this machine."
 # ⚠️ L'unita' del motore AI veniva spedita e non la accendeva nessuno: sulla
@@ -869,6 +898,9 @@ put $P 0644 apps/dashboard/web/telemetria.html usr/share/skillfish/dashboard/tel
 put $P 0644 apps/dashboard/web/i18n.js     usr/share/skillfish/dashboard/i18n.js
 put $P 0644 apps/dashboard/web/aichat.html usr/share/skillfish/dashboard/aichat.html
 put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html
+# the Control Center sections, mirrored on the web
+put $P 0644 apps/dashboard/web/giochi.html usr/share/skillfish/dashboard/giochi.html
+put $P 0644 apps/dashboard/web/profili.html usr/share/skillfish/dashboard/profili.html
 put $P 0644 apps/dashboard/web/hub.html    usr/share/skillfish/dashboard/hub.html
 put $P 0644 apps/dashboard/web/hud.html    usr/share/skillfish/dashboard/hud.html
 put $P 0644 apps/dashboard/web/snapshots.html usr/share/skillfish/dashboard/snapshots.html
@@ -1076,7 +1108,7 @@ P=skillfish-snapshots
 # l'elenco senza password e chiedere la password per cancellare o ripristinare.
 # Se fossero un programma solo, o si chiede la password ogni volta che si apre
 # la finestra, o non la si chiede mai, nemmeno per cancellare.
-put $P 0755 apps/snapshots/skillfish-snapshots        usr/local/bin/skillfish-snapshots
+put $P 0755 apps/control-center/lanciatori/skillfish-snapshots usr/local/bin/skillfish-snapshots
 put $P 0755 apps/snapshots/skillfish-snapshots-read   usr/local/bin/skillfish-snapshots-read
 put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-snapshots-helper
 # La manutenzione programmata: la chiamano sia il programma di lettura (per
@@ -1084,8 +1116,6 @@ put $P 0755 apps/snapshots/skillfish-snapshots-helper usr/local/bin/skillfish-sn
 # autorizzazione polkit.
 put $P 0755 apps/snapshots/skillfish-btrfs-manutenzione usr/local/bin/skillfish-btrfs-manutenzione
 put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.snapshots.policy usr/share/polkit-1/actions/os.skillfish.snapshots.policy
-shot $P apps/snapshots/os.skillfish.snapshots.metainfo.xml
-put $P 0644 system/usr/share/applications/os.skillfish.snapshots.desktop usr/share/applications/os.skillfish.snapshots.desktop
 put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg
 # L'icona: il tema la porta gia' dentro skillfish-theme (tutto l'albero),
 # ma serve anche in hicolor, per chi cambia tema e per la finestra stessa.
@@ -1094,7 +1124,7 @@ put $P 0644 system/usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png us
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
-ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
+ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base, skillfish-control-center" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
   "Snapshots before and after every apt operation, restored in seconds because
 btrfs swaps the subvolume. The second tab keeps btrfs in shape on a schedule."
 
@@ -1147,7 +1177,7 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
+for P in skillfish-control-center skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -1185,14 +1215,11 @@ deve_esserci() { [ -s "$1" ] && echo "OK  $2" || { echo "FAIL manca: $2 ($1)" >&
 check() { dpkg-deb --fsys-tarfile "$OUT/out/$1" | tar -xO "$2" | grep "$3" >/dev/null \
   && echo "OK  $1: $2 contains '$3'" || { echo "FAIL $1: $2 missing '$3'" >&2; exit 1; }; }
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner-helper  gov-mode
-check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner         gov_perf
 check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub           "return None"
 # L'ambito dei flatpak va detto sempre: senza --system, con flathub configurato
 # sia a sistema sia per utente, ogni installazione dall'Hub falliva con
 # "Remote flathub found in multiple installations".
 check skillfish-hub_${VER}_all.deb           ./usr/local/bin/skillfish-hub           '"--system", "flathub"' 
-check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-manager skillfish
-check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel       skillfish
 # Il portachiavi deve contenere la chiave GIUSTA: nel repository ne girava una
 # RSA che NON firma l'archivio, e chi l'avesse usata si sarebbe trovato apt che
 # rifiuta il repository senza capire perche'. L'impronta e' quella della ed25519
@@ -1289,7 +1316,6 @@ check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fand 'eme
 check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fand 'ripristina_da_fuori'
 check skillfish-fan_${VER}_all.deb           ./etc/systemd/system/skillfish-fand.service 'ExecStopPost'
 check skillfish-fan_${VER}_all.deb           ./usr/local/bin/skillfish-fan-helper 'MINIMO_ASSOLUTO'
-check skillfish-fan_${VER}_all.deb           ./usr/share/applications/os.skillfish.fan.desktop 'Name\[fr\]=SkillFishOS Ventilateur'
 # La soglia decide se la spiegazione esce come bollicina o come riquadro:
 # se sparisse, i testi lunghi del Tuner tornerebbero in una bollicina che si
 # chiude al primo movimento del mouse.
@@ -1297,9 +1323,6 @@ check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/aiuto.py 'SOG
 # ⚠️ Le tre applicazioni devono reggere l'assenza del modulo: base e le app
 # sono pacchetti diversi. Senza il try, un aggiornamento a meta' spegnerebbe
 # tre finestre invece di togliere tre pallini.
-check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner 'from aiuto import Aiuto'
-check skillfish-ai-panel_${VER}_all.deb      ./usr/local/bin/skillfish-ai-panel 'from aiuto import Aiuto'
-check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'from aiuto import Aiuto'
 check skillfish-base_${VER}_all.deb          ./usr/share/skillfish/i18n/ru.json 'Телеметрия'
 # ⚠️ it.json NON serve alle app — per loro l'italiano sta nel codice, e i18n.py
 # lo esclude apposta. Serve alle PAGINE WEB della dashboard, che leggono un
@@ -1358,7 +1381,6 @@ check    skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-core-unloc
 check    skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-core-unlock.service 'ConditionPathExists=/etc/skillfish/core-unlock.abilitato'
 check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'core-unlock.abilitato'
 # E l'interruttore nel Tuner, che e' l'unico modo che ha l'utente di accenderlo.
-check    skillfish-tuner_${VER}_all.deb ./usr/local/bin/skillfish-tuner 'core8_cb'
 notcheck skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-core-unlock 'os.system("systemctl reboot")'
 # 7. Il menu di ripristino non deve dipendere da grub-btrfsd, che non lo aggiorna.
 check    skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'grub-mkconfig'
@@ -1395,10 +1417,8 @@ if dpkg-deb -I "$OUT/out/skillfish-base_${VER}_all.deb" postinst 2>/dev/null | g
 else
   echo "FAIL skillfish-base: bc250-smu-oc non e' nell'elenco della guardia hardware" >&2; exit 1
 fi
-check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-tuner          _silicon
 check skillfish-console_${VER}_all.deb       ./opt/skillfish/steam-bin/steamos-session-select flatpak-spawn
 check skillfish-console_${VER}_all.deb       ./usr/local/bin/skillfish-gaming-mode    /usr/games
-check skillfish-monitor_${VER}_all.deb       ./usr/local/bin/skillfish-monitor        SFMON_EXT
 check skillfish-dashboard_${VER}_all.deb     ./usr/local/bin/skillfish-dashboardd     "SkillFish Remote"
 # Il motore AI non deve piu' puntare a /root: nell'immagine non esiste, e il
 # risultato era che su un'installazione fresca non partiva per nessuno.
@@ -1489,9 +1509,6 @@ check skillfish-menu_${VER}_all.deb         ./usr/share/desktop-directories/skil
 # l'applicazione senza la voce di menu, la voce fuori dal nostro gruppo, e
 # soprattutto la regola polkit senza la quale l'elenco chiede la password a
 # ogni apertura (o peggio, la cancellazione non la chiede piu').
-check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'skillfish-snapshots-read'
-check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop 'X-SkillFishOS'
-check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop 'Name\[fr\]=SkillFishOS Instantanés'
 check skillfish-snapshots_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.snapshots.policy '<allow_active>yes</allow_active>'
 check skillfish-snapshots_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.snapshots.policy 'auth_admin_keep'
 # L'aiutante NON deve accettare un numero qualunque: lo snapshot 0 e' il
@@ -1500,7 +1517,6 @@ check skillfish-snapshots_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfi
 # tradurre. Si controlla l'ETICHETTA, che e' cio' che l'applicazione
 # riconosce; il testo inglese puo' cambiare senza rompere la costruzione.
 check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-helper 'ERR:zero'
-check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'def spiega'
 # E il programma di sola lettura non deve accettare argomenti: e' quello che
 # gira senza password.
 check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-read 'ERR:argomenti'
@@ -1513,12 +1529,10 @@ check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-btrfs-manuten
 # spento, e senza questa riga la configurazione cambierebbe a vuoto.
 check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-btrfs-manutenzione 'btrfsmaintenance-refresh-cron.sh'
 check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots-read 'skillfish-btrfs-manutenzione stato'
-check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'def pagina_manutenzione'
 # Le spiegazioni stanno dietro a un «?», non nella pagina: e' lo standard
 # delle applicazioni nuove (come su PrintFlow). Se qualcuno rimettesse i
 # paragrafi nella finestra, questo controllo non se ne accorgerebbe, ma
 # almeno il pallino deve esserci.
-check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'class Aiuto'
 # Nella barra deve esserci il NOSTRO Hub. Il collegamento a Discover era rimasto
 # solo nello skel, quindi non si vedeva sulla board — dove il pannello era gia'
 # stato sistemato a mano — ma lo ereditava chiunque installasse da ISO.
@@ -1590,21 +1604,15 @@ avvia apps/kernel-manager/skillfish-kernel-manager
 # PER NOME — col percorso di un PNG il tema non puo' sostituirlo e KDE non
 # puo' scegliere la misura.
 check skillfish-monitor_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-monitor.svg "<svg"
-check skillfish-monitor_${VER}_all.deb ./usr/share/applications/os.skillfish.monitor.desktop "Icon=skillfish-monitor"
 check skillfish-tuner_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-tuner.svg "<svg"
-check skillfish-tuner_${VER}_all.deb ./usr/share/applications/os.skillfish.Tuner.desktop "Icon=skillfish-tuner"
 check skillfish-fan_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-fan.svg "<svg"
-check skillfish-fan_${VER}_all.deb ./usr/share/applications/os.skillfish.fan.desktop "Icon=skillfish-fan"
 check skillfish-tuner_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-hud.svg "<svg"
 check skillfish-tuner_${VER}_all.deb ./usr/share/applications/os.skillfish.hud.desktop "Icon=skillfish-hud"
 check skillfish-kernel-manager_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-kernel.svg "<svg"
-check skillfish-kernel-manager_${VER}_all.deb ./usr/share/applications/os.skillfish.kernel.desktop "Icon=skillfish-kernel"
 check skillfish-dashboard_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-remote.svg "<svg"
 check skillfish-dashboard_${VER}_all.deb ./usr/share/applications/os.skillfish.remote-manager.desktop "Icon=skillfish-remote"
 check skillfish-snapshots_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-snapshots.svg "<svg"
-check skillfish-snapshots_${VER}_all.deb ./usr/share/applications/os.skillfish.snapshots.desktop "Icon=skillfish-snapshots"
 check skillfish-ai-panel_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-ai.svg "<svg"
-check skillfish-ai-panel_${VER}_all.deb ./usr/share/applications/os.skillfish.ai.desktop "Icon=skillfish-ai"
 check skillfish-base_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-info.svg "<svg"
 check skillfish-base_${VER}_all.deb ./usr/share/applications/skillfish-info.desktop "Icon=skillfish-info"
 check skillfish-emulators_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-emudeck.svg "<svg"
@@ -1693,6 +1701,25 @@ check skillfish-hub_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.hub
 check skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-local 'flatpakbundle'
 notcheck skillfish-hub_${VER}_all.deb ./usr/local/bin/skillfish-hub-helper 'flatpakbundle'
 check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'systemd-run'
+
+# THE CONTROL CENTER. The helper must ask for the password like the Tuner did,
+# the trial must exist (a curve applied without one hangs boards), and the
+# divert of the system Mesa must go somewhere ldconfig does not look.
+check skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_active>auth_admin_keep</allow_active>'
+notcheck skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_any>yes</allow_any>'
+check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'gov-prova'
+check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'reset-failed'
+check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper '/var/lib/skillfish/mesa-distrib'
+check skillfish-control-center_${VER}_all.deb ./usr/share/skillfish/control-center/sfcc/pagine/tuner.py 'ProvaCurva'
+check skillfish-control-center_${VER}_all.deb ./usr/share/applications/os.skillfish.control-center.desktop 'StartupWMClass=os.skillfish.control-center'
+check skillfish-control-center_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-control-center.svg '<svg'
+# the old commands still work: they open the right section
+check skillfish-tuner_${VER}_all.deb ./usr/local/bin/skillfish-tuner 'pagina tuner'
+check skillfish-fan_${VER}_all.deb ./usr/local/bin/skillfish-fan 'pagina ventola'
+check skillfish-monitor_${VER}_all.deb ./usr/local/bin/skillfish-monitor 'pagina monitor'
+check skillfish-kernel-manager_${VER}_all.deb ./usr/local/bin/skillfish-kernel-manager 'pagina kernel'
+check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'pagina snapshots'
+check skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-ai-panel 'pagina ai'
 
 echo "
 ALL DEBS VERIFIED"

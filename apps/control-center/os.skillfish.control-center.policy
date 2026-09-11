@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  One helper for the whole Control Center, one password per session.
+
+  auth_admin_keep on the active session: the window writes several settings in
+  a row (a profile is four of them) and asking every time would mean typing the
+  password five times to apply one profile. Remote and inactive sessions ask
+  every time: someone logged in over SSH must not raise the clocks unasked.
+
+  polkit binds the authorisation to the PATH of the executable: if the helper
+  ever moves, this file must follow.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.control-center.helper">
+    <description>Change the hardware and system settings of the board</description>
+    <description xml:lang="it">Modificare le impostazioni hardware e di sistema della scheda</description>
+    <description xml:lang="fr">Modifier les réglages matériels et système de la carte</description>
+    <description xml:lang="es">Cambiar los ajustes de hardware y del sistema de la placa</description>
+    <description xml:lang="pt">Alterar as definições de hardware e de sistema da placa</description>
+    <description xml:lang="de">Die Hardware- und Systemeinstellungen der Karte ändern</description>
+    <description xml:lang="pl">Zmiana ustawień sprzętowych i systemowych płyty</description>
+    <description xml:lang="ru">Изменить аппаратные и системные настройки платы</description>
+    <description xml:lang="uk">Змінити апаратні та системні налаштування плати</description>
+    <message>Authentication is required to change clocks, voltage, fan, kernel and snapshots</message>
+    <message xml:lang="it">È richiesta l'autenticazione per cambiare frequenze, tensione, ventola, kernel e snapshot</message>
+    <message xml:lang="fr">Une authentification est requise pour changer fréquences, tension, ventilateur, noyau et instantanés</message>
+    <message xml:lang="es">Se requiere autenticación para cambiar frecuencias, voltaje, ventilador, kernel e instantáneas</message>
+    <message xml:lang="pt">É necessária autenticação para alterar frequências, tensão, ventoinha, kernel e snapshots</message>
+    <message xml:lang="de">Zum Ändern von Takt, Spannung, Lüfter, Kernel und Snapshots ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="pl">Do zmiany zegarów, napięcia, wentylatora, jądra i migawek wymagane jest uwierzytelnienie</message>
+    <message xml:lang="ru">Для изменения частот, напряжения, вентилятора, ядра и снимков требуется аутентификация</message>
+    <message xml:lang="uk">Для зміни частот, напруги, вентилятора, ядра та знімків потрібна автентифікація</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-cc-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

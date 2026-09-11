@@ -1,0 +1,20 @@
+{
+  "silenzioso": {
+    "nome_it": "Silenzioso", "nome_en": "Quiet",
+    "tetto": 1850, "cpu": 3500, "ventola": "silenzioso", "scx": false,
+    "desc_it": "Tetto 1850, ventola bassa: per film, navigazione e giochi leggeri. Dieci gradi in meno, quasi gli stessi fotogrammi.",
+    "desc_en": "Ceiling 1850, fan low: for films, browsing and light games. Ten degrees less, nearly the same frames."
+  },
+  "equilibrato": {
+    "nome_it": "Equilibrato", "nome_en": "Balanced",
+    "tetto": 2000, "cpu": 3500, "ventola": "equilibrato", "scx": true,
+    "desc_it": "Tetto 2000, ventola equilibrata, schedulatore nei giochi. Quello di tutti i giorni.",
+    "desc_en": "Ceiling 2000, balanced fan, scheduler while gaming. The everyday one."
+  },
+  "prestazioni": {
+    "nome_it": "Prestazioni", "nome_en": "Performance",
+    "tetto": 2100, "cpu": 3500, "ventola": "prestazioni", "scx": true,
+    "desc_it": "Tetto 2100, la curva misurata, ventola pronta. Si sente la ventola.",
+    "desc_en": "Ceiling 2100, the measured curve, fan ready. You will hear the fan."
+  }
+}

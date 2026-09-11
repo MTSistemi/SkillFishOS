@@ -1,0 +1,3 @@
+#!/bin/sh
+# The Kernel Manager is a section of SkillFishOS Control Center since 26.09.
+exec /usr/local/bin/skillfish-control-center --pagina kernel "$@"

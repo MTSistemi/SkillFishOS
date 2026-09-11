@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# SkillFishOS Control Center - launcher.
+#
+#     skillfish-control-center [--pagina SECTION] [FILE.sfmon]
+#
+# The program itself lives in /usr/share/skillfish/control-center/sfcc. The
+# old per-app commands (skillfish-tuner, skillfish-fan, ...) now exec this
+# with --pagina, so anything that used to launch them still lands on the right
+# section.
+import os
+import signal
+import sys
+
+sys.path.insert(0, "/usr/share/skillfish/control-center")
+sys.path.insert(0, "/usr/share/skillfish")
+
+from PyQt6.QtCore import QTimer                      # noqa: E402
+from PyQt6.QtGui import QIcon                        # noqa: E402
+from PyQt6.QtWidgets import QApplication             # noqa: E402
+
+from sfcc import stile                               # noqa: E402
+from sfcc.comune import ICONA                        # noqa: E402
+from sfcc.finestra import Finestra                   # noqa: E402
+
+
+def main():
+    pagina = "stato"
+    file_sfmon = None
+    args = sys.argv[1:]
+    while args:
+        a = args.pop(0)
+        if a == "--pagina" and args:
+            pagina = args.pop(0)
+        elif a.startswith("--pagina="):
+            pagina = a.split("=", 1)[1]
+        elif a.endswith((".sfmon", ".csv")) and os.path.isfile(a):
+            file_sfmon = a
+            pagina = "monitor"
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS Control Center")
+    # Without this KDE shows "python3" in the task bar and loses the icon: the
+    # desktop file is what ties the window to its name and icon.
+    app.setDesktopFileName("os.skillfish.control-center")
+    if os.path.exists(ICONA):
+        app.setWindowIcon(QIcon(ICONA))
+    app.setStyleSheet(stile.QSS)
+    w = Finestra(pagina)
+    if file_sfmon:
+        w.file_da_aprire = file_sfmon
+        w.mostra("monitor")
+    w.show()
+    w.raise_()
+    w.activateWindow()
+    signal.signal(signal.SIGTERM, lambda *_a: app.quit())
+    signal.signal(signal.SIGINT, lambda *_a: app.quit())
+    # let Python see the signals while Qt is in charge of the loop
+    tenuta = QTimer()
+    tenuta.start(250)
+    tenuta.timeout.connect(lambda: None)
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

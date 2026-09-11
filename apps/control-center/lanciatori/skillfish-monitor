@@ -1,0 +1,4 @@
+#!/bin/sh
+# The Monitor is a section of SkillFishOS Control Center since 26.09. A .sfmon
+# file passed as argument opens in the viewer, as before.
+exec /usr/local/bin/skillfish-control-center --pagina monitor "$@"

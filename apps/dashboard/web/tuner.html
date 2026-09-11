@@ -29,7 +29,6 @@
   .stub{color:var(--muted);font-size:.84rem;margin-top:6px}
   .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;
         padding:2px 10px;font-size:.78rem;color:var(--gold-lt)}
-  /* CU grid */
   .cugrid{display:grid;grid-template-columns:auto repeat(5,1fr);gap:6px;align-items:center;margin-top:8px}
   .cuh{color:var(--muted);font-size:.72rem;text-align:center}
   .curow-l{color:var(--muted);font-size:.78rem;font-family:monospace;padding-right:6px}
@@ -46,6 +45,13 @@
   #toast.show{opacity:1}
   pre.log{background:#08060350;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:monospace;
           font-size:.74rem;color:#bda874;max-height:200px;overflow:auto;white-space:pre-wrap;margin-top:8px;display:none}
+  /* the V/F curve: same box as the native Tuner, MHz across and mV up */
+  #vf{width:100%;height:300px;background:#120e0a;border:1px solid #8a6a2a;border-radius:8px;display:block;cursor:crosshair;touch-action:none}
+  .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:.75rem;font-weight:600;border:1px solid}
+  .b-ok{color:#8fbf6a;border-color:#8fbf6a} .b-no{color:#e8703a;border-color:#e8703a} .b-q{color:var(--muted);border-color:var(--muted)}
+  #prova{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:9}
+  #prova .box{background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:22px;max-width:420px;text-align:center}
+  #prova .num{font-size:2.6rem;font-weight:800;color:var(--gold-lt);margin:10px 0}
 </style></head>
 <body><div class="wrap">
 <header><b>🎛️ SkillFishOS Tuner</b><span class="sp"></span>
@@ -59,7 +65,7 @@
 </div>
 
 <div class="panel"><h3 data-i18n="t_h_cpu">🧠 CPU</h3>
-  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="cmhz" min="3500" max="4500" step="50"><span class="val" id="cmhzv"></span></div>
+  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="cmhz" min="3000" max="4500" step="50"><span class="val" id="cmhzv"></span></div>
   <div class="row"><label data-i18n="t_uv">Undervolt (scale)</label><input type="range" id="cscale" min="-50" max="0" step="1"><span class="val" id="cscalev"></span></div>
   <div class="row"><label data-i18n="t_templim">Temperature limit</label><input type="range" id="ctemp" min="60" max="95" step="1"><span class="val" id="ctempv"></span></div>
   <div class="brow"><button class="btn" id="cpuapply" data-i18n="apply">Apply</button><button class="btn sec" id="cpupersist" data-i18n="t_persist">Save at boot</button>
@@ -69,16 +75,23 @@
   <pre class="log" id="cpulog"></pre>
 </div>
 
-<div class="panel"><h3 data-i18n="t_h_gpu">🎮 GPU</h3>
-  <div class="row"><label data-i18n="t_maxfreq">Max frequency</label><input type="range" id="gmhz" min="350" max="2200" step="10"><span class="val" id="gmhzv"></span></div>
-  <div class="row"><label data-i18n="t_maxvolt">Max voltage</label><input type="range" id="gmv" min="700" max="1129" step="1"><span class="val" id="gmvv"></span></div>
-  <div class="row"><label data-i18n="t_gov">Governor</label>
-    <button class="btn sec" id="govbal" data-m="balanced" data-i18n="t_bal">Balanced</button>
-    <button class="btn sec" id="govperf" data-m="performance" data-i18n="t_perf">Performance</button>
+<!-- The GPU: the real curve of the V/F governor, not two sliders. Same
+     scheme as the native Tuner: drag a knot, double-click to add one,
+     right-click to remove; Apply runs it on trial with a countdown. -->
+<div class="panel"><h3>🎮 GPU <span class="badge b-q" id="govstato">…</span><span class="sp"></span>
+  <label class="pill" style="cursor:pointer"><input type="checkbox" id="govcb" style="vertical-align:-2px"> Governor</label></h3>
+  <canvas id="vf"></canvas>
+  <div class="row" style="margin-top:10px"><label data-i18n-c="Ceiling">Ceiling</label>
+    <input type="range" id="tetto" min="350" max="2300" step="50"><span class="val" id="tettov"></span></div>
+  <div class="brow">
+    <button class="btn sec" data-tetto="1850" data-i18n-c="Cautious">Cautious</button>
+    <button class="btn sec" data-tetto="2000" data-i18n-c="Balanced">Balanced</button>
+    <button class="btn sec" id="misurato" data-i18n-c="Measured">Measured</button>
+    <span class="sp"></span>
+    <button class="btn sec" id="gpuannulla" data-i18n-c="Discard">Discard</button>
+    <button class="btn" id="gpuapply" data-i18n="apply">Apply</button>
   </div>
-  <div class="brow"><button class="btn" id="gpuapply" data-i18n="apply">Apply</button>
-    <button class="btn sec" id="gputest" data-i18n="test">Test</button><button class="btn sec" id="gpuwiz" data-i18n="t_findmax">🎰 Find the maximum</button><button class="btn sec" id="gpucal" data-i18n="t_calibra">🎯 Auto-calibration</button></div>
-  <div class="stub" data-i18n="t_hintgpu">Above 2200 MHz with ≤1000 mV it is capped at 2200 (anti-freeze).</div>
+  <div class="stub" id="gpunota" data-i18n-c="The chart shows the governor's curve: MHz across, millivolts up. Drag a point, double-click to add one, right-click to remove it. The dashed line is the ceiling: it never goes beyond. Apply runs the curve on trial with a countdown: the old curve stays on disk until you press Keep.">…</div>
   <pre class="log" id="gpulog"></pre>
 </div>
 
@@ -109,19 +122,15 @@
     <button class="btn sec" data-cores="6" data-i18n="t_6core">6 cores</button>
     <button class="btn sec" data-cores="4" data-i18n="t_4core">4 cores</button>
     <label class="pill" style="cursor:pointer"><input type="checkbox" id="smtcb" checked style="vertical-align:-2px"> SMT</label>
-    <label class="pill" style="cursor:pointer"><input type="checkbox" id="scxcb" style="vertical-align:-2px"> <span data-i18n="t_scx">lavd scheduler</span></label>
+    <label class="pill" style="cursor:pointer"><input type="checkbox" id="scxcb" style="vertical-align:-2px"> <span data-i18n-c="bpfland while gaming">bpfland while gaming</span></label>
   </div>
   <div class="cugrid" id="cpugrid" style="grid-template-columns:repeat(8,1fr)"></div>
   <div class="brow"><button class="btn" id="cpucoresapply" data-i18n="t_applyco">Apply cores</button></div>
   <div class="stub" data-i18n="t_coreshint">Each box = 1 physical core with its 2 threads. Core 0 always stays on: it hosts the boot CPU and the kernel cannot switch it off. Turning cores off frees thermal budget so the remaining ones clock higher. A reboot brings them all back.</div>
-  <div class="stub" data-i18n="t_scxhint">Loads scx_lavd, a scheduler that lives inside the kernel and decides which task gets the CPU next. It does not make more frames: it makes them arrive more evenly. Measured with Wukong, the average did not move while the one per cent lows went up by a fifth. It needs a kernel built with sched_ext: without one the box stays off.</div>
+  <div class="stub" data-i18n-c="scx_bpfland, the CachyOS scheduler, loaded ONLY while a game runs: GameMode raises it at launch and drops it at exit. Measured: +1.5-2% in Cyberpunk and steadier frames. If the kernel ejects it twice (lavd's disease on this board) the service refuses to start until you reset the counter.">…</div>
   <div class="stub" style="margin-top:10px" data-i18n="t_hintgrid">Physical core layout (for game affinity/pinning). Live MHz per core.</div>
   <div id="coremap" style="margin-top:8px"></div>
 </div>
-<!-- ⚠️ La ventola NON si comanda da qui. Aveva Auto/cursore/Applica e un
-     editor completo della curva: un secondo editor della stessa curva, in
-     concorrenza con l'applicazione Ventola. Due posti che scrivono la
-     stessa configurazione, e vince l'ultimo che salva. -->
 <div class="panel"><h3 data-i18n="t_h_fan">🌀 Fan</h3>
   <div class="stub" data-i18n="t_fan_moved">The fan has an app of its own, with the real curve.</div>
   <div class="brow"><button class="btn" id="openventola" data-i18n="t_fan_open">Open Fan</button></div>
@@ -137,13 +146,22 @@
 
 </div>
 <div id="toast"></div>
+<div id="prova"><div class="box">
+  <div data-i18n-c="The new curve is running. The old one is still on disk: if the board hangs and comes back, that is the one that boots.">…</div>
+  <div class="num" id="provasec">25 s</div>
+  <div class="stub" id="provavivo"></div>
+  <div class="brow" style="justify-content:center;margin-top:12px">
+    <button class="btn sec" id="provano" data-i18n-c="Go back">Go back</button>
+    <button class="btn" id="provasi" data-i18n-c="Keep">Keep</button>
+  </div>
+</div></div>
 <script src="/static/i18n.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let STATE = null;
 const CU_ROWS = [["0.0","SE0.SH0"],["0.1","SE0.SH1"],["1.0","SE1.SH0"],["1.1","SE1.SH1"]];
-let cuMask = {};       // key -> 5-bit mask
-let cuFloor = 7;       // locked floor bitmask
+let cuMask = {};
+let cuFloor = 7;
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
 async function api(path, body){
@@ -151,230 +169,141 @@ async function api(path, body){
   if(body){ o.method="POST"; o.headers={"Content-Type":"application/json"}; o.body=JSON.stringify(body); }
   return (await fetch(path, o)).json();
 }
+// the shared dictionary (English keys), same words as the native window
+function C(en){ return (typeof sfC==="function") ? sfC(en) : en; }
+function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); }); }
 function popcount(n){ let c=0; while(n){ c+=n&1; n>>=1; } return c; }
 function cuActive(){ let t=0; CU_ROWS.forEach(([k])=> t += popcount(cuMask[k]||0)*2); return t; }
-
 function bindSlider(id, fmt){ const el=$("#"+id), v=$("#"+id+"v"); const upd=()=>v.textContent=fmt(el.value); el.oninput=upd; upd(); }
 
-function renderGov(){ const m=(STATE.gpu||{}).gov_mode||"balanced";
-  $("#govbal").classList.toggle("on", m==="balanced"); $("#govperf").classList.toggle("on", m!=="balanced"); }
-
-// ---- CPU cores (live hotplug) ----
-let CPU_CORES = [];        // [{core, online, removable, cpus:[...]}]
-let cpuWant = {};          // core -> desired state, applied on the "Apply cores" button (t_applyco)
-
-function renderCPUCores(){
-  const g = $("#cpugrid"); if(!g) return;
-  g.innerHTML = "";
-  CPU_CORES.forEach(c=>{
-    const on = cpuWant[c.core];
-    const locked = !c.removable;          // core 0: holds the boot CPU
-    const d = document.createElement('div');
-    d.className = 'wgp'+(on?' on':'')+(locked?' locked':'');
-    d.innerHTML = '<div class="cu"></div><div class="cu"></div>';
-    d.title = locked ? 'core di avvio — sempre acceso' : (on?'acceso':'spento');
-    if(!locked) d.onclick = ()=>{ cpuWant[c.core] = !cpuWant[c.core]; renderCPUCores(); };
-    g.appendChild(d);
-  });
-  const n = CPU_CORES.filter(c=>cpuWant[c.core]).length;
-  const thr = n * ($("#smtcb") && $("#smtcb").checked ? 2 : 1);
-  $("#cpucount").textContent = n+" / "+CPU_CORES.length+" core · "+thr+" thread";
+// ================= the V/F curve =================
+let GOV = null;            // last gov-get
+let PUNTI = [];            // [[mhz, mv], ...]
+let TETTO = 2100;
+let trascina = -1;
+const X0=300, X1=2300, Y0=650, Y1=1150, MV_MIN=700, MV_MAX=1129;
+function areaVF(c){ return {l:44,t:10,r:c.width-14,b:c.height-24}; }
+function pxVF(a,x,y){ return [a.l+(x-X0)/(X1-X0)*(a.r-a.l), a.b-(y-Y0)/(Y1-Y0)*(a.b-a.t)]; }
+function valVF(a,px,py){ return [X0+(px-a.l)/(a.r-a.l)*(X1-X0), Y0+(a.b-py)/(a.b-a.t)*(Y1-Y0)]; }
+function disegnaVF(){
+  const c=$("#vf"); c.width=c.clientWidth; c.height=c.clientHeight;
+  const x=c.getContext("2d"), a=areaVF(c);
+  x.clearRect(0,0,c.width,c.height); x.font="10px system-ui";
+  for(let m=500;m<=2300;m+=250){ const p=pxVF(a,m,Y0)[0]; x.strokeStyle="#3a322a"; x.beginPath(); x.moveTo(p,a.t); x.lineTo(p,a.b); x.stroke();
+    if(m%500===0){ x.fillStyle="#8a6a2a"; x.fillText(m,p-10,a.b+13); } }
+  for(let v=700;v<1150;v+=50){ const p=pxVF(a,X0,v)[1]; x.strokeStyle=(v%100)?"#3a322a":"#4a4036"; x.beginPath(); x.moveTo(a.l,p); x.lineTo(a.r,p); x.stroke();
+    if(v%100===0){ x.fillStyle="#8a6a2a"; x.fillText(v,4,p+4); } }
+  x.fillStyle="#8a6a2a"; x.fillText("MHz",a.r-24,a.b+13); x.fillText("mV",4,a.t+8);
+  for(const mv of [MV_MIN,MV_MAX]){ const p=pxVF(a,X0,mv)[1]; x.strokeStyle="rgba(216,90,90,.5)"; x.setLineDash([4,4]); x.beginPath(); x.moveTo(a.l,p); x.lineTo(a.r,p); x.stroke(); x.setLineDash([]); }
+  const tx=pxVF(a,TETTO,Y0)[0]; x.strokeStyle="#d8a849"; x.setLineDash([5,4]); x.lineWidth=1.5; x.beginPath(); x.moveTo(tx,a.t); x.lineTo(tx,a.b); x.stroke(); x.setLineDash([]); x.lineWidth=1;
+  x.fillStyle="#d8a849"; x.font="bold 10px system-ui"; x.fillText(C("ceiling %d").replace("%d",TETTO),tx+4,a.t+10); x.font="10px system-ui";
+  if(!PUNTI.length) return;
+  x.beginPath(); x.moveTo(a.l,pxVF(a,PUNTI[0][0],PUNTI[0][1])[1]);
+  for(const [m,v] of PUNTI){ const q=pxVF(a,m,v); x.lineTo(q[0],q[1]); }
+  x.lineTo(a.r,pxVF(a,X1,PUNTI[PUNTI.length-1][1])[1]);
+  x.strokeStyle="#d8a849"; x.lineWidth=2; x.stroke(); x.lineWidth=1;
+  x.lineTo(a.r,a.b); x.lineTo(a.l,a.b); x.closePath(); x.fillStyle="rgba(216,168,73,.16)"; x.fill();
+  PUNTI.forEach(([m,v],i)=>{ const q=pxVF(a,m,v); x.fillStyle="#d8a849"; x.beginPath(); x.arc(q[0],q[1],5,0,7); x.fill();
+    if(i===trascina||i===PUNTI.length-1){ x.fillStyle="#c9b184"; x.fillText(i===trascina?(m+" MHz  "+v+" mV"):String(v),q[0]+7,q[1]-6); } });
+  const b=GOV&&GOV.battito; if(b&&b.mhz){ const q=pxVF(a,b.mhz,Math.max(Y0,Math.min(Y1,(GOV.mv||0)))); x.fillStyle="#7fd4ff"; x.beginPath(); x.arc(q[0],q[1],4.5,0,7); x.fill(); }
 }
-
-async function loadCPUCores(){
-  const r = await api("/api/tuner/cpu-cores");
-  if(!r || !r.cores) return;
-  CPU_CORES = r.cores;
-  cpuWant = {}; CPU_CORES.forEach(c=> cpuWant[c.core] = c.online);
-  if($("#smtcb")) $("#smtcb").checked = (r.smt || "on") === "on";
-  renderCPUCores();
+function vicinoVF(mx,my){ const c=$("#vf"), a=areaVF(c); for(let i=0;i<PUNTI.length;i++){ const q=pxVF(a,PUNTI[i][0],PUNTI[i][1]); if((q[0]-mx)**2+(q[1]-my)**2<=144) return i; } return -1; }
+function clampaVF(m,v){ return [Math.max(350,Math.min(2300,Math.round(m/5)*5)), Math.max(MV_MIN,Math.min(MV_MAX,Math.round(v/5)*5))]; }
+function sistemaVF(){ PUNTI.sort((p,q)=>p[0]-q[0]); for(let i=1;i<PUNTI.length;i++) if(PUNTI[i][1]<PUNTI[i-1][1]) PUNTI[i][1]=PUNTI[i-1][1];
+  TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz";
+  $("#gpunota").textContent=C("changed, not applied"); disegnaVF(); }
+$("#vf").addEventListener("mousedown",e=>{ const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top; const i=vicinoVF(mx,my);
+  if(e.button===2){ if(i>=0&&PUNTI.length>2){ PUNTI.splice(i,1); sistemaVF(); } return; } trascina=i; });
+$("#vf").addEventListener("contextmenu",e=>e.preventDefault());
+$("#vf").addEventListener("dblclick",e=>{ const r=e.target.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top; if(vicinoVF(mx,my)>=0) return;
+  const a=areaVF($("#vf")); PUNTI.push(clampaVF(...valVF(a,mx,my))); sistemaVF(); });
+window.addEventListener("mousemove",e=>{ if(trascina<0) return; const c=$("#vf"), r=c.getBoundingClientRect(), a=areaVF(c); let [m,v]=valVF(a,e.clientX-r.left,e.clientY-r.top);
+  if(trascina>0) m=Math.max(m,PUNTI[trascina-1][0]+5); if(trascina<PUNTI.length-1) m=Math.min(m,PUNTI[trascina+1][0]-5);
+  PUNTI[trascina]=clampaVF(m,v); disegnaVF(); });
+window.addEventListener("mouseup",()=>{ if(trascina>=0){ trascina=-1; sistemaVF(); } });
+$("#tetto").oninput=()=>{ TETTO=+$("#tetto").value; if(PUNTI.length) TETTO=Math.max(PUNTI[0][0],Math.min(PUNTI[PUNTI.length-1][0],TETTO)); $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz"; $("#gpunota").textContent=C("changed, not applied"); disegnaVF(); };
+document.querySelectorAll("[data-tetto]").forEach(b=> b.onclick=()=>{ $("#tetto").value=+b.dataset.tetto; $("#tetto").oninput(); });
+$("#misurato").onclick=async()=>{ const r=await api("/api/tuner/gov"); const p=(r.predefinita||{}).curva; if(p){ PUNTI=p.map(q=>[q[0],q[1]]); TETTO=2100; sistemaVF(); } };
+$("#gpuannulla").onclick=()=>caricaGov();
+async function caricaGov(){
+  const r=await api("/api/tuner/gov"); if(!r||!r.ok) return; GOV=r;
+  const c=r.conf||{}; PUNTI=(c.curva||[[350,700],[2100,1050]]).map(q=>[q[0],q[1]]); TETTO=c.freq_max||PUNTI[PUNTI.length-1][0];
+  $("#tetto").value=TETTO; $("#tettov").textContent=TETTO+" MHz";
+  const vivo=r.battito && (Date.now()/1000-r.battito.quando<5);
+  const b=$("#govstato"); b.className="badge "+(r.prova?"b-q":(vivo?"b-ok":"b-no")); b.textContent=r.prova?C("trial running"):(vivo?C("governor running"):C("governor stopped"));
+  $("#govcb").checked=!!r.abilitato; $("#gpunota").textContent=C("curve in use"); disegnaVF();
 }
+$("#govcb").onchange=async e=>{ const x=await api("/api/tuner/gov",{azione:"attiva",on:e.target.checked}); if(!x.ok) toast(x.err||"?"); setTimeout(caricaGov,1500); };
+// Apply = trial with countdown. The board may hang: the old curve stays on disk.
+let provaTimer=null, provaResto=0;
+async function provaFine(tieni){ clearInterval(provaTimer); provaTimer=null; $("#prova").style.display="none";
+  const x=await api("/api/tuner/gov",{azione:tieni?"conferma":"annulla"});
+  toast(tieni?(x.ok?C("applied")||"applied":(x.err||"?")):C("cancelled: the previous curve is back")); setTimeout(caricaGov,2000); }
+$("#provasi").onclick=()=>provaFine(true); $("#provano").onclick=()=>provaFine(false);
+$("#gpuapply").onclick=async()=>{ const conf=Object.assign({},GOV&&GOV.conf||{},{curva:PUNTI.map(q=>[q[0],q[1]]),freq_max:TETTO});
+  toast(C("starting the trial…")); const x=await api("/api/tuner/gov",{azione:"prova",conf});
+  if(!x.ok){ toast(x.err||"?"); if(String(x.err||"").indexOf("prova")>=0) await api("/api/tuner/gov",{azione:"annulla"}); return; }
+  provaResto=25; $("#provasec").textContent=provaResto+" s"; $("#prova").style.display="flex";
+  provaTimer=setInterval(async()=>{ provaResto--; $("#provasec").textContent=Math.max(0,provaResto)+" s";
+    try{ const r=await api("/api/tuner/gov"); const b=r.battito; if(b) $("#provavivo").textContent=b.mhz+" MHz · "+b.gradi+" °C · "+b.watt+" W · "+C("load")+" "+b.carico+"%"; }catch(e){}
+    if(provaResto<=0) provaFine(false); },1000); };
+window.addEventListener("resize",disegnaVF);
 
-function renderCU(){
-  const g = $("#cugrid"); g.innerHTML = '<div class="cuh"></div>' +
-    [0,1,2,3,4].map(i=>'<div class="cuh">WGP'+i+'</div>').join('');
-  CU_ROWS.forEach(([k,lbl])=>{
-    g.insertAdjacentHTML('beforeend','<div class="curow-l">'+lbl+'</div>');
-    for(let w=0; w<5; w++){
-      const on = (cuMask[k]>>w)&1;
-      const locked = (cuFloor>>w)&1;
-      const d=document.createElement('div');
-      d.className='wgp'+(on?' on':'')+(locked?' locked':'');
-      d.innerHTML='<div class="cu"></div><div class="cu"></div>';
-      if(!locked) d.onclick=()=>{ cuMask[k]^=(1<<w); renderCU(); };
-      g.appendChild(d);
-    }
-  });
-  $("#cucount").textContent = cuActive()+" CU attive";
-}
-
-function fill(){
-  const s=STATE; const c=s.cpu||{}, g=s.gpu||{}, cu=s.cu||{}, vr=s.vram||{};
-  $("#cmhz").value=c.frequency||3700; $("#cscale").value=c.scale||0; $("#ctemp").value=c.max_temperature||85;
-  $("#gmhz").value=g.max_mhz||2200; $("#gmv").value=g.max_mv||1000;
-  ["cmhz","cscale","ctemp","gmhz","gmv"].forEach(id=>$("#"+id).dispatchEvent(new Event("input")));
-  renderGov();
-  cuFloor = cu.floor!=null?cu.floor:7;
-  cuMask = Object.assign({"0.0":31,"0.1":31,"1.0":31,"1.1":31}, cu.rows||{});
-  renderCU();
-  $("#live").textContent = "CU: "+(cu.active!=null?cu.active:"–")+" / "+(cu.max!=null?cu.max:"–");
-  // VRAM options
-  const sel=$("#vram"); sel.innerHTML="";
-  [2048,3072,4096,6144,8192,10240,12288].forEach(mb=>{ const o=document.createElement("option");
-    o.value=mb; o.textContent=(mb/1024)+" GB"; if(mb===(vr.uma_mb||8192)) o.selected=true; sel.appendChild(o); });
-}
-
-async function load(){
-  const r = await api("/api/tuner");
-  (r.presets||[]).length, STATE = (r.state&&r.state.data)||{};
-  // presets
-  const pc=$("#presets"); pc.innerHTML="";
-  (r.presets||[]).forEach(p=>{ const b=document.createElement("button"); b.className="btn sec"; b.textContent=p.name;
-    b.onclick=async()=>{ $("#presetdesc").textContent=p.desc||""; toast("Applico preset "+p.name+"…");
-      const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?(sfT("p_presetapp").replace("{x}",p.name)):("Errore: "+(x.error||""))); setTimeout(load,600); };
-    pc.appendChild(b); });
-  fill();
-}
-
-// bind sliders
-bindSlider("cmhz", v=>v+" MHz"); bindSlider("cscale", v=>v); bindSlider("ctemp", v=>v+" °C");
-bindSlider("gmhz", v=>v+" MHz"); bindSlider("gmv", v=>v+" mV");
-
-$("#reload").onclick=load;
-$("#cpuapply").onclick=async()=>{ toast("Applico CPU…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); toast(x.ok?sfT("p_cpuapp"):"Errore CPU"); };
-$("#cpupersist").onclick=async()=>{ toast("Salvo al boot…"); const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value,persist:true}); toast(x.ok?sfT("p_savedboot"):"Errore"); };
-$("#gpuapply").onclick=async()=>{ toast("Applico GPU…"); const x=await api("/api/tuner/gpu",{maxmhz:+$("#gmhz").value,maxmv:+$("#gmv").value,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); toast(x.ok?sfT("p_gpuapp"):"Errore GPU"); };
-
+// ================= CPU cores =================
+let CPU_CORES=[], cpuWant={};
+function renderCPUCores(){ const g=$("#cpugrid"); if(!g) return; g.innerHTML="";
+  CPU_CORES.forEach(c=>{ const on=cpuWant[c.core], locked=!c.removable; const d=document.createElement('div'); d.className='wgp'+(on?' on':'')+(locked?' locked':''); d.innerHTML='<div class="cu"></div><div class="cu"></div>';
+    if(!locked) d.onclick=()=>{ cpuWant[c.core]=!cpuWant[c.core]; renderCPUCores(); }; g.appendChild(d); });
+  const n=CPU_CORES.filter(c=>cpuWant[c.core]).length, thr=n*($("#smtcb").checked?2:1); $("#cpucount").textContent=n+" / "+CPU_CORES.length+" core · "+thr+" thread"; }
+async function loadCPUCores(){ const r=await api("/api/tuner/cpu-cores"); if(!r||!r.cores) return; CPU_CORES=r.cores; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online); $("#smtcb").checked=(r.smt||"on")==="on"; renderCPUCores(); }
+function renderCU(){ const g=$("#cugrid"); g.innerHTML='<div class="cuh"></div>'+[0,1,2,3,4].map(i=>'<div class="cuh">WGP'+i+'</div>').join('');
+  CU_ROWS.forEach(([k,lbl])=>{ g.insertAdjacentHTML('beforeend','<div class="curow-l">'+lbl+'</div>');
+    for(let w=0;w<5;w++){ const on=(cuMask[k]>>w)&1, locked=(cuFloor>>w)&1; const d=document.createElement('div'); d.className='wgp'+(on?' on':'')+(locked?' locked':''); d.innerHTML='<div class="cu"></div><div class="cu"></div>'; if(!locked) d.onclick=()=>{ cuMask[k]^=(1<<w); renderCU(); }; g.appendChild(d); } });
+  $("#cucount").textContent=cuActive()+" CU"; }
+function fill(){ const s=STATE; const c=s.cpu||{}, cu=s.cu||{}, vr=s.vram||{};
+  $("#cmhz").value=c.frequency||3500; $("#cscale").value=c.scale||0; $("#ctemp").value=c.max_temperature||85;
+  ["cmhz","cscale","ctemp"].forEach(id=>$("#"+id).dispatchEvent(new Event("input")));
+  cuFloor=cu.floor!=null?cu.floor:7; cuMask=Object.assign({"0.0":31,"0.1":31,"1.0":31,"1.1":31},cu.rows||{}); renderCU();
+  $("#live").textContent="CU: "+(cu.active!=null?cu.active:"–")+" / "+(cu.max!=null?cu.max:"–");
+  const sel=$("#vram"); sel.innerHTML=""; [2048,3072,4096,6144,8192,10240,12288].forEach(mb=>{ const o=document.createElement("option"); o.value=mb; o.textContent=(mb/1024)+" GB"; if(mb===(vr.uma_mb||8192)) o.selected=true; sel.appendChild(o); }); }
+async function load(){ const r=await api("/api/tuner"); STATE=(r.state&&r.state.data)||{};
+  const pc=$("#presets"); pc.innerHTML=""; (r.presets||[]).forEach(p=>{ const b=document.createElement("button"); b.className="btn sec"; b.textContent=p.name;
+    b.onclick=async()=>{ $("#presetdesc").textContent=p.desc||""; const x=await api("/api/tuner/preset",{name:p.name}); toast(x.ok?(sfT("p_presetapp").replace("{x}",p.name)):("Errore: "+(x.error||""))); setTimeout(load,600); setTimeout(caricaGov,3000); }; pc.appendChild(b); });
+  fill(); }
+bindSlider("cmhz",v=>v+" MHz"); bindSlider("cscale",v=>v); bindSlider("ctemp",v=>v+" °C");
+$("#reload").onclick=()=>{ load(); caricaGov(); };
+$("#cpuapply").onclick=async()=>{ const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); toast(x.ok?sfT("p_cpuapp"):"Errore CPU"); };
+$("#cpupersist").onclick=async()=>{ const x=await api("/api/tuner/cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value,persist:true}); toast(x.ok?sfT("p_savedboot"):"Errore"); };
 function lg(id,msg,clear){ const e=$("#"+id); e.style.display="block"; if(clear)e.textContent=""; e.textContent+=(e.textContent?"\n":"")+msg; e.scrollTop=e.scrollHeight; }
 function busy(b){ document.querySelectorAll(".btn").forEach(x=>x.disabled=b); }
-// --- CPU test / suggest / wizard ---
 $("#cputest").onclick=async()=>{ busy(true); lg("cpulog","▶ Test CPU "+$("#cmhz").value+" MHz scale "+$("#cscale").value+" (60s)…",true);
-  const x=await api("/api/tuner/test-cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value});
-  lg("cpulog", x.ok?("✓ Stabile"+(x.bench?(" — "+JSON.stringify(x.bench)):"")):("✗ Instabile: "+(x.err||"")) ); busy(false); };
-$("#cpuuv").onclick=async()=>{ busy(true); lg("cpulog",sfT("p_uvsearch")+$("#cmhz").value+" MHz…",true);
-  const x=await api("/api/tuner/suggest-uv",{mhz:+$("#cmhz").value});
-  if(x.ok){ $("#cscale").value=x.suggested_scale; $("#cscale").dispatchEvent(new Event("input")); lg("cpulog",sfT("p_uvfound")+x.suggested_scale); toast(sfT("p_uvsugg")+x.suggested_scale); }
-  else lg("cpulog","✗ "+(x.err||"errore")); busy(false); };
-$("#cpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizcpu")))return;
-  busy(true); const steps=[[3600,-8],[3700,-16],[3800,-20],[3900,-24],[4000,-36]]; let best=null; lg("cpulog","🎰 Wizard CPU…",true);
-  for(const [m,s] of steps){ lg("cpulog","▶ "+m+" MHz scale "+s+" …");
-    const x=await api("/api/tuner/test-cpu",{mhz:m,scale:s,temp:+$("#ctemp").value});
-    if(x.ok){ best=[m,s]; lg("cpulog","  ✓ stabile"); } else { lg("cpulog","  ✗ instabile — stop"); break; } }
-  if(best){ $("#cmhz").value=best[0]; $("#cscale").value=best[1]; ["cmhz","cscale"].forEach(i=>$("#"+i).dispatchEvent(new Event("input")));
-    await api("/api/tuner/cpu",{mhz:best[0],scale:best[1],temp:+$("#ctemp").value,persist:true}); lg("cpulog",sfT("p_maxstable")+best[0]+" MHz scale "+best[1]+sfT("p_appsaved")); toast("Max CPU: "+best[0]+" MHz"); }
-  else lg("cpulog","Nessun passo stabile."); busy(false); };
-// --- GPU test / wizard ---
-$("#gputest").onclick=async()=>{ busy(true); lg("gpulog","▶ Test GPU "+$("#gmhz").value+" MHz "+$("#gmv").value+" mV…",true);
-  const x=await api("/api/tuner/test-gpu",{maxmhz:+$("#gmhz").value,maxmv:+$("#gmv").value,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700});
-  lg("gpulog", x.ok?"✓ Stabile":("✗ Instabile: "+(x.err||"")) ); busy(false); };
-$("#gpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizgpu")))return;
-  busy(true); const steps=[2000,2050,2100,2150,2200]; let best=null; lg("gpulog","🎰 Wizard GPU…",true);
-  for(const m of steps){ lg("gpulog","▶ "+m+" MHz @ 1000 mV …");
-    const x=await api("/api/tuner/test-gpu",{maxmhz:m,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700});
-    if(x.ok){ best=m; lg("gpulog","  ✓ stabile"); } else { lg("gpulog","  ✗ instabile — stop"); break; } }
-  if(best){ $("#gmhz").value=best; $("#gmv").value=1000; ["gmhz","gmv"].forEach(i=>$("#"+i).dispatchEvent(new Event("input")));
-    await api("/api/tuner/gpu",{maxmhz:best,maxmv:1000,minmhz:(STATE.gpu||{}).min_mhz||350,minmv:(STATE.gpu||{}).min_mv||700}); lg("gpulog",sfT("p_maxstable")+best+(" MHz"+sfT("p_applied"))); toast("Max GPU: "+best+" MHz"); }
-  else lg("gpulog","Nessun passo stabile."); busy(false); };
-// --- taratura automatica della curva GPU ---
-// ⚠️ Non e' un pulsante che fa una cosa e torna: la taratura dura una mezz'ora.
-// Quindi si avvia soltanto, e poi si CHIEDE lo stato ogni cinque secondi.
-// Chiudere la pagina non la ferma, ed e' voluto: va avanti per conto suo, e
-// riaprendo la pagina si ritrova a che punto e' arrivata.
-let calTimer=null;
-function calRendi(s){
-  if(!s) return;
-  const g=$("#gpulog"); g.style.display="block";
-  g.textContent=(s.righe||[]).join("\n"); g.scrollTop=g.scrollHeight;
-  $("#gpucal").textContent = s.in_corso ? sfT("t_calstop") : sfT("t_calibra");
-  if(s.in_corso && !calTimer) calTimer=setInterval(calGiro,5000);
-  if(!s.in_corso && calTimer){ clearInterval(calTimer); calTimer=null;
-    if(s.esito) toast(sfT("t_calfine")+" "+s.esito.mv_punta+" mV"); }
-}
-async function calGiro(){ try{ calRendi(await api("/api/tuner/gpu-calibrate")); }catch(e){} }
-$("#gpucal").onclick=async()=>{
-  const s=await api("/api/tuner/gpu-calibrate");
-  if(s && s.in_corso){ if(!confirm(sfT("p_calstop")))return;
-    calRendi(await api("/api/tuner/gpu-calibrate",{azione:"ferma"})); return; }
-  if(!confirm(sfT("p_calibra")))return;
-  const r=await api("/api/tuner/gpu-calibrate",{azione:"avvia"});
-  if(r && r.ok===false){ toast(r.error||"errore"); return; }
-  calGiro();
-};
-calGiro();   // se una taratura era gia' in corso, la pagina la ritrova
-$("#govbal").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"balanced"}); STATE.gpu.gov_mode="balanced"; renderGov(); toast(sfT("p_govbal")); };
-$("#govperf").onclick=async()=>{ await api("/api/tuner/govmode",{mode:"performance"}); STATE.gpu.gov_mode="performance"; renderGov(); toast(sfT("p_govperf")); };
-document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{
-  const k=+b.dataset.cores;
-  CPU_CORES.forEach(c=> cpuWant[c.core] = (k>=CPU_CORES.length) ? true : (c.core<k || !c.removable));
-  renderCPUCores(); });
-$("#cpucoresapply").onclick=async()=>{ toast("Applico i core…");
-  const cores=CPU_CORES.map(c=>({core:c.core, online:!!cpuWant[c.core]}));
-  const x=await api("/api/tuner/cpu-cores",{cores});
-  if(x && x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online);
-    renderCPUCores(); toast(sfT("p_coresapp")+(x.nproc||"?")+" thread attivi"); }
-  else toast("Errore core: "+((x&&x.err)||"")); };
-$("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; toast("SMT "+(on?"acceso":"spento")+"…");
-  const x=await api("/api/tuner/cpu-cores",{smt:on});
-  if(x && x.ok){ toast("SMT "+(on?"acceso":"spento")+" — "+(x.nproc||"?")+" thread"); await loadCPUCores(); }
-  else toast("SMT: "+((x&&x.err)||"errore")); };
+  const x=await api("/api/tuner/test-cpu",{mhz:+$("#cmhz").value,scale:+$("#cscale").value,temp:+$("#ctemp").value}); lg("cpulog", x.ok?("✓ "+(x.bench?JSON.stringify(x.bench):"")):("✗ "+(x.err||""))); busy(false); };
+$("#cpuuv").onclick=async()=>{ busy(true); lg("cpulog",sfT("p_uvsearch")+$("#cmhz").value+" MHz…",true); const x=await api("/api/tuner/suggest-uv",{mhz:+$("#cmhz").value});
+  if(x.ok){ $("#cscale").value=x.suggested_scale; $("#cscale").dispatchEvent(new Event("input")); lg("cpulog",sfT("p_uvfound")+x.suggested_scale); } else lg("cpulog","✗ "+(x.err||"errore")); busy(false); };
+$("#cpuwiz").onclick=async()=>{ if(!confirm(sfT("p_wizcpu")))return; busy(true); const steps=[[3600,-8],[3700,-16],[3800,-20],[3900,-24],[4000,-36]]; let best=null; lg("cpulog","🎰 Wizard CPU…",true);
+  for(const [m,s] of steps){ lg("cpulog","▶ "+m+" MHz scale "+s+" …"); const x=await api("/api/tuner/test-cpu",{mhz:m,scale:s,temp:+$("#ctemp").value}); if(x.ok){ best=[m,s]; lg("cpulog","  ✓"); } else { lg("cpulog","  ✗ stop"); break; } }
+  if(best){ $("#cmhz").value=best[0]; $("#cscale").value=best[1]; ["cmhz","cscale"].forEach(i=>$("#"+i).dispatchEvent(new Event("input"))); await api("/api/tuner/cpu",{mhz:best[0],scale:best[1],temp:+$("#ctemp").value,persist:true}); lg("cpulog",sfT("p_maxstable")+best[0]+" MHz scale "+best[1]); } busy(false); };
+document.querySelectorAll("[data-cores]").forEach(b=> b.onclick=()=>{ const k=+b.dataset.cores; CPU_CORES.forEach(c=> cpuWant[c.core]=(k>=CPU_CORES.length)?true:(c.core<k||!c.removable)); renderCPUCores(); });
+$("#cpucoresapply").onclick=async()=>{ const cores=CPU_CORES.map(c=>({core:c.core,online:!!cpuWant[c.core]})); const x=await api("/api/tuner/cpu-cores",{cores});
+  if(x&&x.ok){ CPU_CORES=x.cores||CPU_CORES; cpuWant={}; CPU_CORES.forEach(c=>cpuWant[c.core]=c.online); renderCPUCores(); toast(sfT("p_coresapp")+(x.nproc||"?")+" thread"); } else toast("Errore core: "+((x&&x.err)||"")); };
+$("#smtcb").onchange=async()=>{ const on=$("#smtcb").checked; const x=await api("/api/tuner/cpu-cores",{smt:on}); if(x&&x.ok){ await loadCPUCores(); } else toast("SMT: "+((x&&x.err)||"errore")); };
 document.querySelectorAll("[data-cu]").forEach(b=> b.onclick=()=>{ const m=+b.dataset.cu; CU_ROWS.forEach(([k])=>cuMask[k]=m|cuFloor); renderCU(); });
-$("#cuapply").onclick=async()=>{ toast("Applico CU a caldo…"); const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor);
-  const x=await api("/api/tuner/cu",{rows}); toast(x.ok?(sfT("p_cuapp")+(x.active||cuActive())+" attive"):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cutest").onclick=async()=>{ const lg=$("#cutestlog"); lg.style.display="block"; lg.textContent=sfT("p_cutest");
-  $("#cutest").disabled=true; const x=await api("/api/tuner/cu-test",{}); $("#cutest").disabled=false;
-  lg.textContent=JSON.stringify(x,null,2); toast(sfT("p_cudone")); };
-$("#vramapply").onclick=async()=>{ toast("Imposto VRAM…"); const x=await api("/api/tuner/vram",{mb:+$("#vram").value});
-  toast(x.ok?sfT("p_vramset"):"Errore VRAM"); };
-
-// --- CU profiles (#7) ---
-async function loadProfiles(){ const r=await api("/api/tuner/cu-profiles"); const sel=$("#cuprof"); const cur=sel.value;
-  const names=Object.keys(r.profiles||{}); sel.innerHTML=names.length?names.map(n=>'<option>'+n+'</option>').join(""):'<option value="">(nessun profilo)</option>';
-  if(cur&&names.includes(cur))sel.value=cur; }
-$("#cuprofsave").onclick=async()=>{ const n=prompt(sfT("p_cuprofname")); if(!n)return;
-  const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu-profile",{action:"save",name:n,rows});
-  if(x.ok){ await loadProfiles(); $("#cuprof").value=n; toast(sfT("p_profsavedn").replace("{x}",n)); } else toast("Errore: "+(x.error||"")); };
-$("#cuprofapply").onclick=async()=>{ const n=$("#cuprof").value; if(!n)return; toast("Applico profilo '"+n+"'…");
-  const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?(sfT("p_profapp")+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
-$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm(sfT("p_profdelq2").replace("{x}",n)))return;
-  const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); toast(sfT("p_profdel")); } };
-
-// --- CPU core map (#8) ---
-async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=$("#coremap");
-  if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">'+sfT("p_navail")+'</span>'; return; }
-  // raggruppa per core fisico
+$("#cuapply").onclick=async()=>{ const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu",{rows}); toast(x.ok?(sfT("p_cuapp")+(x.active||cuActive())):("Errore CU: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cutest").onclick=async()=>{ const l=$("#cutestlog"); l.style.display="block"; l.textContent=sfT("p_cutest"); $("#cutest").disabled=true; const x=await api("/api/tuner/cu-test",{}); $("#cutest").disabled=false; l.textContent=JSON.stringify(x,null,2); };
+$("#vramapply").onclick=async()=>{ const x=await api("/api/tuner/vram",{mb:+$("#vram").value}); toast(x.ok?sfT("p_vramset"):"Errore VRAM"); };
+async function loadProfiles(){ const r=await api("/api/tuner/cu-profiles"); const sel=$("#cuprof"); const cur=sel.value; const names=Object.keys(r.profiles||{}); sel.innerHTML=names.length?names.map(n=>'<option>'+n+'</option>').join(""):'<option value="">–</option>'; if(cur&&names.includes(cur)) sel.value=cur; }
+$("#cuprofsave").onclick=async()=>{ const n=prompt(sfT("p_cuprofname")); if(!n)return; const rows=CU_ROWS.map(([k])=>cuMask[k]|cuFloor); const x=await api("/api/tuner/cu-profile",{action:"save",name:n,rows}); if(x.ok){ await loadProfiles(); $("#cuprof").value=n; } else toast("Errore: "+(x.error||"")); };
+$("#cuprofapply").onclick=async()=>{ const n=$("#cuprof").value; if(!n)return; const x=await api("/api/tuner/cu-profile",{action:"apply",name:n}); toast(x.ok?(sfT("p_profapp")+(x.active||"")+" CU"):("Errore: "+(x.err||x.error||""))); setTimeout(load,500); };
+$("#cuprofdel").onclick=async()=>{ const n=$("#cuprof").value; if(!n||!confirm(sfT("p_profdelq2").replace("{x}",n)))return; const x=await api("/api/tuner/cu-profile",{action:"delete",name:n}); if(x.ok){ await loadProfiles(); } };
+async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=$("#coremap"); if(!r.ok||!r.cpus){ el.innerHTML='<span class="stub">'+sfT("p_navail")+'</span>'; return; }
   const byCore={}; r.cpus.forEach(c=>{ (byCore[c.core]=byCore[c.core]||[]).push(c); });
-  let h='<table style="width:100%;border-collapse:collapse;font-size:.85rem">'+
-    '<tr style="color:var(--muted)"><th style="text-align:left;padding:4px">Core fisico</th><th style="text-align:left">CPU logiche</th><th style="text-align:right">MHz</th></tr>';
-  Object.keys(byCore).sort((a,b)=>a-b).forEach(core=>{ const cs=byCore[core];
-    const cpus=cs.map(c=>c.cpu).join(", "); const mhz=cs.map(c=>c.mhz).filter(Boolean).join("/");
-    h+='<tr style="border-top:1px solid rgba(216,168,73,.1)"><td style="padding:5px 4px">core '+core+'</td><td class="val" style="text-align:left">CPU '+esc(cpus)+'</td><td style="text-align:right;color:var(--gold-lt);font-family:monospace">'+esc(mhz)+'</td></tr>'; });
-  h+='</table><div class="stub" style="margin-top:6px">'+r.n+' CPU logiche su '+Object.keys(byCore).length+' core fisici. Per fissare un gioco a certi core: <code>taskset -c 0-3 &lt;gioco&gt;</code>.</div>';
-  el.innerHTML=h;
-}
+  let h='<table style="width:100%;border-collapse:collapse;font-size:.85rem">'; Object.keys(byCore).sort((a,b)=>a-b).forEach(core=>{ const cs=byCore[core]; h+='<tr style="border-top:1px solid rgba(216,168,73,.1)"><td style="padding:5px 4px">core '+core+'</td><td class="val" style="text-align:left">CPU '+esc(cs.map(c=>c.cpu).join(", "))+'</td><td style="text-align:right;color:var(--gold-lt);font-family:monospace">'+esc(cs.map(c=>c.mhz).filter(Boolean).join("/"))+'</td></tr>'; });
+  el.innerHTML=h+'</table>'; }
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+$("#openventola").onclick=()=>{ location.href="/static/ventola.html"; };
+async function loadSCX(){ const cb=$("#scxcb"); const r=await api("/api/tuner/scx"); if(!r) return; cb.checked=!!r.abilitato; cb.disabled=!r.supportato; }
+$("#scxcb").onchange=async e=>{ const x=await api("/api/tuner/scx",{on:e.target.checked}); if(!(x&&x.ok)) toast("Errore: "+((x&&x.err)||"")); setTimeout(loadSCX,800); };
 
-// La curva della ventola stava qui: adesso e' dell'applicazione Ventola e
-// della sua pagina, /static/ventola.html. Un solo posto che la scrive.
-$("#openventola").onclick = () => { location.href = "/static/ventola.html"; };
-
-// Lo schedulatore lavd (sched_ext). ⚠️ La casella segue il SERVIZIO, cioe' cosa
-// succedera' al prossimo avvio; «caricato» invece e' quello che sta lavorando
-// adesso, e sono due cose diverse. Su un kernel senza sched_ext si disattiva:
-// meglio spenta che bugiarda.
-async function loadSCX(){
-  const cb = $("#scxcb"); if(!cb) return;
-  const r = await api("/api/tuner/scx");
-  if(!r) return;
-  cb.checked  = !!r.abilitato;
-  cb.disabled = !r.supportato;
-}
-$("#scxcb") && ($("#scxcb").onchange = async (e)=>{
-  const on = e.target.checked;
-  const x = await api("/api/tuner/scx", {on:on});
-  toast(x && x.ok ? sfT("t_scx")+" "+(on?"on":"off") : ("Errore: "+((x&&x.err)||"")));
-  setTimeout(loadSCX, 800);
-});
-
-load(); loadProfiles(); loadCoremap(); loadCPUCores(); loadSCX();
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); load(); caricaGov(); loadProfiles(); loadCoremap(); loadCPUCores(); loadSCX(); setInterval(caricaGov,4000); });
 </script>
 </body></html>

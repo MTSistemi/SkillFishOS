@@ -1,0 +1,991 @@
+#!/usr/bin/env python3
+"""SkillFishOS Control Center - the privileged helper (root via pkexec).
+
+One JSON command per line on stdin, one JSON reply per line on stdout, so the
+user authenticates ONCE when the first privileged thing is asked and not per
+action. It is a superset of the old skillfish-tuner-helper: every command that
+one accepted still works, which is what keeps the Remote Manager going.
+
+WHAT IS NEW AGAINST THE TUNER HELPER
+- the GPU is the V/F governor (skillfish-vf-governor): a curve of MHz/mV knots
+  and a ceiling in /etc/skillfish-vf-governor.json, not two safe-points in a
+  TOML. gov-* below read it, validate it, and apply it with a TRIAL: while a
+  candidate runs, the file on disk keeps the last known good curve, so a hang
+  followed by a power cycle boots into the curve that worked.
+- the scheduler is scx_bpfland armed through GameMode (skillfish-scx.path),
+  not scx_lavd running all the time.
+- our Mesa can be made the system Vulkan driver (mesa-sistema), by diverting
+  the 64-bit library only: the 32-bit games keep Debian's.
+- kernel, snapshot and fan helpers are reached through here, so one password
+  covers the whole window.
+"""
+import glob
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+NL = chr(10)
+
+# ---- paths -----------------------------------------------------------------
+OC_DIR = next((p for p in ("/opt/bc250_smu_oc", "/root/bc250_smu_oc") if os.path.isdir(p)),
+              "/opt/bc250_smu_oc")
+OC_CONF = "/etc/bc250-smu-oc.conf"
+GOV_CONF = "/etc/skillfish-vf-governor.json"
+GOV_BUONO = "/etc/skillfish-vf-governor.json.buono"
+GOV_PROVA = "/run/skillfish/gov-prova.json"
+GOV_UNIT = "skillfish-vf-governor.service"
+GOV_STOCK_UNIT = "cyan-skillfish-governor.service"
+GOV_BATTITO = "/run/skillfish-vf-governor.battito"
+MEMCFG = next((p for p in ("/usr/local/bin/skillfish-memcfg", "/opt/bc250_memcfg/bc250memcfg")
+               if os.path.exists(p)), "/usr/local/bin/skillfish-memcfg")
+VKPEAK = (glob.glob("/opt/bench/vkpeak*/vkpeak") or glob.glob("/root/bench/vkpeak*/vkpeak") or [None])[0]
+SEGNAPOSTO_CORE = "/etc/skillfish/core-unlock.abilitato"
+SCX_PATH_UNIT = "skillfish-scx.path"
+SCX_SERVICE = "skillfish-scx.service"
+SCX_BIN = "/usr/lib/skillfish-scx/scx_bpfland"
+SCX_STATO = "/sys/kernel/sched_ext/state"
+SCX_OPS = "/sys/kernel/sched_ext/root/ops"
+SCX_CONTA = "/var/lib/skillfish/scx-espulsioni"
+MESA_LIB = "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so"
+MESA_NOSTRA = "/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/libvulkan_radeon.so"
+# ⚠️ The diverted copy goes into a directory ldconfig does not scan. Left next
+# to the original as libvulkan_radeon.so.distrib, ldconfig found a library
+# whose SONAME is libvulkan_radeon.so and rebuilt the symlink to point at IT --
+# our link lasted until the next apt run. Measured 11/09/2026.
+MESA_DISTRIB = "/var/lib/skillfish/mesa-distrib/libvulkan_radeon.so"
+MESA_PKG = "skillfish-mesa-gfx1013"
+KERNEL_HELPER = "/usr/local/bin/skillfish-kernel-helper"
+SNAP_HELPER = "/usr/local/bin/skillfish-snapshots-helper"
+SNAP_MANUT = "/usr/local/bin/skillfish-btrfs-manutenzione"
+FAN_HELPER = "/usr/local/bin/skillfish-fan-helper"
+FAN_CONF = "/etc/skillfish/ventola.json"
+
+MV_MIN, MV_MAX = 700, 1129
+MHZ_MIN, MHZ_MAX = 350, 2300
+
+
+# ---- small utilities --------------------------------------------------------
+def _rd(path):
+    with open(path) as f:
+        return f.read()
+
+
+def _wr(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(data)
+    os.replace(tmp, path)
+
+
+def sh(cmd, t=120):
+    try:
+        return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+    except Exception as e:
+        class R:
+            returncode = 1
+            stdout = ""
+            stderr = str(e)
+        return R()
+
+
+def _log(msg):
+    """journalctl -t skillfish-cc-helper: everything that touches the hardware."""
+    try:
+        import syslog
+        syslog.openlog("skillfish-cc-helper")
+        syslog.syslog(msg)
+        syslog.closelog()
+    except Exception:
+        pass
+
+
+def _unit(stato, unit):
+    return sh("systemctl %s %s" % (stato, unit), 30).returncode == 0
+
+
+def temp(name):
+    for h in glob.glob("/sys/class/hwmon/hwmon*"):
+        try:
+            if _rd(h + "/name").strip() == name:
+                return int(_rd(h + "/temp1_input")) // 1000
+        except Exception:
+            pass
+    return 0
+
+
+def cpu_min_freq():
+    fs = [float(x) for x in re.findall(r'cpu MHz\s*:\s*([\d.]+)', _rd("/proc/cpuinfo"))]
+    return int(min(fs)) if fs else 0
+
+
+# ---- the governor -------------------------------------------------------------
+def gov_leggi(percorso=GOV_CONF):
+    try:
+        return json.loads(_rd(percorso))
+    except Exception:
+        return {}
+
+
+def gov_valida(c):
+    """The curve and the ceiling, checked against the limits of the chip.
+
+    Returns (clean_config, error). Nothing here trusts the caller: the window
+    is ours, but the Remote Manager talks to this too, over the network.
+    """
+    if not isinstance(c, dict):
+        return None, "configurazione non valida"
+    base = gov_leggi()
+    out = dict(base)
+    curva = c.get("curva", base.get("curva"))
+    try:
+        pts = sorted((int(p[0]), int(p[1])) for p in curva)
+    except Exception:
+        return None, "curva non valida"
+    if len(pts) < 2:
+        return None, "servono almeno due punti"
+    mhz_prec, mv_prec = None, None
+    for mhz, mv in pts:
+        if not (MHZ_MIN <= mhz <= MHZ_MAX):
+            return None, "%d MHz fuori dai limiti %d-%d" % (mhz, MHZ_MIN, MHZ_MAX)
+        if not (MV_MIN <= mv <= MV_MAX):
+            return None, "%d mV fuori dai limiti %d-%d" % (mv, MV_MIN, MV_MAX)
+        if mhz_prec is not None and mhz == mhz_prec:
+            return None, "due punti a %d MHz" % mhz
+        if mv_prec is not None and mv < mv_prec:
+            return None, "la tensione scende salendo di frequenza (%d MHz)" % mhz
+        mhz_prec, mv_prec = mhz, mv
+    out["curva"] = [[m, v] for m, v in pts]
+    try:
+        fmax = int(c.get("freq_max", base.get("freq_max", pts[-1][0])))
+        fmin = int(c.get("freq_min", base.get("freq_min", pts[0][0])))
+    except Exception:
+        return None, "tetto non valido"
+    if not (pts[0][0] <= fmax <= pts[-1][0]):
+        return None, "il tetto %d deve stare fra %d e %d MHz" % (fmax, pts[0][0], pts[-1][0])
+    if not (MHZ_MIN <= fmin <= fmax):
+        return None, "frequenza minima non valida"
+    out["freq_max"], out["freq_min"] = fmax, fmin
+    # the tunables: numbers and booleans only, within sane ranges
+    numerici = {"gradi_ok": (60, 95), "gradi_max": (65, 97), "gradi_rottura": (70, 99),
+                "watt_max": (60, 220), "watt_ok": (40, 200), "margine_salita": (0, 80),
+                "passo_su": (50, 2000), "gradino": (10, 300), "conferme_giu": (1, 20),
+                "carico_salto": (10, 100), "carico_passo_su": (5, 100),
+                "carico_passo_giu": (0, 95), "carico_fondo": (0, 50),
+                "droop_max": (0, 200), "droop_su": (0, 50), "droop_giu": (0, 50),
+                "droop_da": (350, 2300), "droop_tolleranza": (0, 50)}
+    for k, (lo, hi) in numerici.items():
+        if k in c:
+            try:
+                v = int(c[k])
+            except Exception:
+                return None, "%s non valido" % k
+            if not (lo <= v <= hi):
+                return None, "%s fuori dai limiti %d-%d" % (k, lo, hi)
+            out[k] = v
+    for k in ("droop_attivo", "isteresi_fine", "target_uso"):
+        if k in c:
+            out[k] = bool(c[k])
+    if out.get("gradi_ok", 0) >= out.get("gradi_max", 999) or out.get("gradi_max", 0) >= out.get("gradi_rottura", 999):
+        return None, "le soglie di temperatura devono crescere: ok < max < rottura"
+    return out, None
+
+
+def gov_scrivi(c, percorso=GOV_CONF):
+    _wr(percorso, json.dumps(c, indent=1) + NL)
+
+
+def gov_riavvia():
+    """Stop, let the SMU settle, start. The BC-250 can hang on an abrupt jump.
+
+    ⚠️ reset-failed first. The unit allows three starts in five minutes
+    (StartLimitBurst): a trial, its confirmation and one more change are three,
+    and the fourth start was refused -- measured 11/09/2026, the governor stayed
+    down with the board parked at 350 MHz. reset-failed clears that counter.
+    """
+    sh("systemctl stop " + GOV_UNIT, 60)
+    time.sleep(1.5)
+    sh("systemctl reset-failed " + GOV_UNIT, 30)
+    return sh("systemctl start " + GOV_UNIT, 60).returncode == 0
+
+
+def gov_battito():
+    try:
+        p = _rd(GOV_BATTITO).split()
+        return {"quando": float(p[0]), "mhz": int(p[1]), "tetto": int(p[2]),
+                "gradi": int(p[3]), "watt": int(p[4]), "carico": int(p[5])}
+    except Exception:
+        return None
+
+
+def gov_get():
+    prova = None
+    try:
+        prova = json.loads(_rd(GOV_PROVA))
+    except Exception:
+        pass
+    return {"ok": True, "conf": gov_leggi(), "attivo": _unit("is-active", GOV_UNIT),
+            "abilitato": _unit("is-enabled", GOV_UNIT),
+            "stock_attivo": _unit("is-active", GOV_STOCK_UNIT),
+            "installato": os.path.exists("/usr/bin/skillfish-vf-governor"),
+            "battito": gov_battito(), "prova": prova,
+            "limiti": {"mv": [MV_MIN, MV_MAX], "mhz": [MHZ_MIN, MHZ_MAX]}}
+
+
+def gov_set(c):
+    pulita, err = gov_valida(c)
+    if err:
+        return {"ok": False, "err": err}
+    if os.path.exists(GOV_PROVA):
+        return {"ok": False, "err": "c'e' una prova in corso: confermala o annullala prima"}
+    _log("curva GPU riscritta: tetto %d, %d punti, ultimo %s" % (
+        pulita["freq_max"], len(pulita["curva"]), pulita["curva"][-1]))
+    gov_scrivi(pulita)
+    return {"ok": gov_riavvia(), "conf": pulita}
+
+
+def gov_prova(c):
+    """Run a candidate curve with the last known good one still on disk."""
+    pulita, err = gov_valida(c)
+    if err:
+        return {"ok": False, "err": err}
+    if os.path.exists(GOV_PROVA):
+        return {"ok": False, "err": "c'e' gia' una prova in corso"}
+    buona = gov_leggi()
+    gov_scrivi(buona, GOV_BUONO)
+    _log("PROVA curva GPU: tetto %d, ultimo punto %s" % (pulita["freq_max"], pulita["curva"][-1]))
+    gov_scrivi(pulita)
+    ok = gov_riavvia()
+    # the governor has read the candidate: put the good one back on disk NOW,
+    # so a hang in the next minute reboots into it
+    gov_scrivi(buona)
+    os.makedirs(os.path.dirname(GOV_PROVA), exist_ok=True)
+    _wr(GOV_PROVA, json.dumps({"candidata": pulita, "da": time.time()}))
+    return {"ok": ok, "conf": pulita}
+
+
+def gov_conferma():
+    try:
+        cand = json.loads(_rd(GOV_PROVA))["candidata"]
+    except Exception:
+        return {"ok": False, "err": "nessuna prova in corso"}
+    gov_scrivi(cand)
+    os.unlink(GOV_PROVA)
+    _log("curva GPU confermata: tetto %d" % cand["freq_max"])
+    return {"ok": True, "conf": cand}
+
+
+def gov_annulla():
+    if os.path.exists(GOV_PROVA):
+        os.unlink(GOV_PROVA)
+    _log("prova curva GPU annullata: torno alla curva su disco")
+    return {"ok": gov_riavvia(), "conf": gov_leggi()}
+
+
+def gov_attiva(on):
+    if on:
+        ok = sh("systemctl enable --now " + GOV_UNIT, 60).returncode == 0
+    else:
+        ok = sh("systemctl disable --now " + GOV_UNIT, 60).returncode == 0
+    return {"ok": ok, **{k: v for k, v in gov_get().items() if k != "ok"}}
+
+
+def _gpu_compat():
+    """The old {min_mhz,min_mv,max_mhz,max_mv} view, for whoever still asks."""
+    c = gov_leggi()
+    pts = c.get("curva") or [[350, 700], [2100, 1050]]
+    fmax = int(c.get("freq_max", pts[-1][0]))
+    mv = pts[-1][1]
+    for m, v in pts:
+        if m <= fmax:
+            mv = v
+    return {"min_mhz": int(pts[0][0]), "min_mv": int(pts[0][1]), "max_mhz": fmax,
+            "max_mv": int(mv), "gov_mode": "vf", "punti": len(pts)}
+
+
+def apply_gpu_compat(minmhz, minmv, maxmhz, maxmv):
+    """Old two-point call: move the ceiling and make sure the curve has that knot."""
+    c = gov_leggi()
+    pts = [list(p) for p in c.get("curva") or []]
+    maxmhz, maxmv = int(maxmhz), int(maxmv)
+    pts = [p for p in pts if p[0] != maxmhz]
+    pts.append([maxmhz, maxmv])
+    pts.sort()
+    for i in range(1, len(pts)):
+        if pts[i][1] < pts[i - 1][1]:
+            pts[i][1] = pts[i - 1][1]
+    c["curva"] = pts
+    c["freq_max"] = maxmhz
+    return gov_set(c).get("ok", False)
+
+
+# ---- CPU --------------------------------------------------------------------
+def _cpu_conf():
+    cpu = {"frequency": 3500, "scale": 0, "max_temperature": 85}
+    try:
+        for line in _rd(OC_CONF).splitlines():
+            m = re.match(r'(\w+)\s*=\s*(-?\d+)', line.strip())
+            if m:
+                cpu[m.group(1)] = int(m.group(2))
+    except Exception:
+        pass
+    return cpu
+
+
+def _write_cpu_conf(mhz, scale, tmp):
+    _wr(OC_CONF, "[overclock]\nfrequency = %d\nscale = %d\nmax_temperature = %d\n" % (mhz, scale, tmp))
+
+
+def apply_cpu(mhz, scale, tmp):
+    mhz, scale, tmp = int(mhz), int(scale), int(tmp)
+    if not (2000 <= mhz <= 4500 and -60 <= scale <= 10 and 50 <= tmp <= 100):
+        return False
+    _log("CPU: %d MHz, scale %d, limite %d C" % (mhz, scale, tmp))
+    _write_cpu_conf(mhz, scale, tmp)
+    r = sh("python3 %s/bc250_apply.py --apply %s" % (OC_DIR, OC_CONF))
+    return r.returncode == 0
+
+
+def persist_cpu():
+    sh("python3 %s/bc250_apply.py --install %s" % (OC_DIR, OC_CONF))
+    sh("systemctl enable bc250-smu-oc.service")
+
+
+def cpu_cores_get():
+    cores = {}
+    for p in sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*")):
+        n = os.path.basename(p)[3:]
+        if not n.isdigit():
+            continue
+        n = int(n)
+        try:
+            core = int(_rd("%s/topology/core_id" % p).strip())
+        except Exception:
+            continue
+        online = True if not os.path.exists(p + "/online") else _rd(p + "/online").strip() == "1"
+        cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
+        cores[core]["cpus"].append({"cpu": n, "online": online, "removable": os.path.exists(p + "/online")})
+        if online:
+            cores[core]["online"] = True
+        if not os.path.exists(p + "/online"):
+            cores[core]["removable"] = False
+    for p in sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*")):
+        n = os.path.basename(p)[3:]
+        if not n.isdigit():
+            continue
+        n = int(n)
+        if any(c["cpu"] == n for e in cores.values() for c in e["cpus"]):
+            continue
+        core = n // 2
+        cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
+        cores[core]["cpus"].append({"cpu": n, "online": False, "removable": True})
+    smt = None
+    try:
+        smt = _rd("/sys/devices/system/cpu/smt/control").strip()
+    except Exception:
+        pass
+    out = [cores[k] for k in sorted(cores)]
+    for e in out:
+        e["cpus"].sort(key=lambda c: c["cpu"])
+    return {"ok": True, "cores": out, "nproc": os.cpu_count(), "smt": smt}
+
+
+def cpu_cores_set(states):
+    want = {}
+    for s in states or []:
+        try:
+            want[int(s["core"])] = bool(s["online"])
+        except Exception:
+            pass
+    if not want:
+        return {"ok": False, "err": "nessun core specificato"}
+    cur = cpu_cores_get()["cores"]
+    if not any(want.get(e["core"], e["online"]) for e in cur):
+        return {"ok": False, "err": "almeno un core deve restare acceso"}
+    for e in cur:
+        tgt = want.get(e["core"])
+        if tgt is None:
+            continue
+        for c in e["cpus"]:
+            if not c["removable"]:
+                continue
+            _wr("/sys/devices/system/cpu/cpu%d/online" % c["cpu"], "1" if tgt else "0")
+    time.sleep(1)
+    return cpu_cores_get()
+
+
+def cpu_smt_set(on):
+    p = "/sys/devices/system/cpu/smt/control"
+    if not os.path.exists(p):
+        return {"ok": False, "err": "SMT non controllabile su questo kernel"}
+    _wr(p, "on" if on else "off")
+    time.sleep(1)
+    return cpu_cores_get()
+
+
+def core_unlock_get():
+    try:
+        n = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        n = os.cpu_count() or 0
+    return {"ok": True, "abilitato": os.path.exists(SEGNAPOSTO_CORE), "thread": n,
+            "supportato": os.path.exists("/sys/bus/pci/devices/0000:00:00.0/config")}
+
+
+def core_unlock_set(on):
+    try:
+        if on:
+            os.makedirs("/etc/skillfish", exist_ok=True)
+            _wr(SEGNAPOSTO_CORE, "# The presence of this file turns the 8-core unlock on.\n"
+                "# Managed by SkillFishOS Control Center.\n")
+        elif os.path.exists(SEGNAPOSTO_CORE):
+            os.remove(SEGNAPOSTO_CORE)
+    except OSError as e:
+        return {"ok": False, "err": str(e)}
+    d = core_unlock_get()
+    d["riavvio"] = True
+    return d
+
+
+def thermal_guard(limit):
+    limit = int(limit)
+    if not (60 <= limit <= 100):
+        return False
+    os.makedirs("/etc/skillfish", exist_ok=True)
+    _wr("/etc/skillfish/thermal-guard.conf",
+        "# Written by SkillFishOS Control Center. Above this temperature the CPU\n"
+        "# is slowed by 100 MHz at a time.\nLIMITE=%d\n" % limit)
+    sh("systemctl enable --now skillfish-thermal-guard.service; systemctl restart skillfish-thermal-guard.service")
+    return True
+
+
+def thermal_guard_get():
+    m = re.search(r"LIMITE=(\d+)", _rd("/etc/skillfish/thermal-guard.conf") if os.path.exists(
+        "/etc/skillfish/thermal-guard.conf") else "")
+    return {"ok": True, "limite": int(m.group(1)) if m else None,
+            "attiva": _unit("is-active", "skillfish-thermal-guard.service")}
+
+
+# ---- compute units ----------------------------------------------------------
+def cu_get():
+    try:
+        return json.loads(sh("/usr/local/bin/skillfish-cu get", 30).stdout)
+    except Exception:
+        return {}
+
+
+def cu_apply(rows):
+    try:
+        if not os.path.exists("/usr/local/bin/umr"):
+            return {"ok": False, "err": "manca /usr/local/bin/umr, senza il quale le CU non si possono instradare"}
+        if not os.path.exists("/usr/local/share/umr/database/pci.did"):
+            return {"ok": False, "err": "manca il database dei registri di umr: reinstalla skillfish-tuner"}
+        r = [int(x) & 0x1f for x in rows][:4]
+        while len(r) < 4:
+            r.append(0x07)
+        _log("CU: maschere %s" % r)
+        p = sh("/usr/local/bin/skillfish-cu set-rows %s" % (" ".join(str(x) for x in r)))
+        j = cu_get()
+        if p.returncode != 0:
+            motivo = (getattr(p, "stderr", "") or "").strip() or (p.stdout or "").strip()
+            return {"ok": False, "err": motivo or "skillfish-cu e' uscito con %d" % p.returncode,
+                    "active": j.get("active_cu"), "rows": j.get("rows")}
+        return {"ok": True, "active": j.get("active_cu"), "rows": j.get("rows")}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def cu_test():
+    if not VKPEAK:
+        return {"ok": False, "err": "vkpeak assente"}
+    vdir = os.path.dirname(VKPEAK)
+
+    def vk():
+        r = sh("cd %s && stdbuf -oL -eL timeout 22 ./vkpeak" % vdir, t=35)
+        m = re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
+        return (float(m.group(1)) if m else 0.0), r.returncode
+
+    def alive():
+        return "BC-250" in sh("timeout 12 vulkaninfo --summary 2>/dev/null | grep -m1 deviceName", t=20).stdout
+
+    def errs():
+        s = sh("dmesg --since '16 seconds ago' 2>/dev/null | grep -ciE 'amdgpu.*(fault|timeout|reset|hang|recover|failed)'").stdout.strip()
+        return int(s) if s.isdigit() else 0
+
+    cur = cu_get().get("rows", {})
+    order = ["0.0", "0.1", "1.0", "1.1"]
+    res = []
+    sh("/usr/local/bin/skillfish-cu set-rows 7 7 7 7")
+    time.sleep(1)
+    base, _ = vk()
+    for rk in order:
+        for wgp in (3, 4):
+            rows = {k: 7 for k in order}
+            rows[rk] = 7 | (1 << wgp)
+            sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (rows["0.0"], rows["0.1"], rows["1.0"], rows["1.1"]))
+            time.sleep(1)
+            g, rc = vk()
+            e = errs()
+            al = alive()
+            verdict = "FAIL" if (not al or e > 0) else ("N/A" if g <= 0 else "OK")
+            res.append({"row": rk, "wgp": wgp, "cu": "%d-%d" % (wgp * 2, wgp * 2 + 1),
+                        "gflops": round(g), "errors": e, "verdict": verdict})
+            time.sleep(1.5)
+    sh("/usr/local/bin/skillfish-cu max")
+    time.sleep(1)
+    rf = sh("cd %s && ./vkpeak" % vdir, t=120)
+    mf = re.search(r'fp32-scalar\s*=\s*([\d.]+)', rf.stdout)
+    full = round(float(mf.group(1)) if mf else 0.0)
+    full_err = errs()
+    g0 = lambda k: int(cur.get(k, 31))  # noqa: E731
+    sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (g0("0.0"), g0("0.1"), g0("1.0"), g0("1.1")))
+    return {"ok": True, "baseline": round(base), "results": res,
+            "bad": sum(1 for x in res if x["verdict"] == "FAIL"),
+            "na": sum(1 for x in res if x["verdict"] == "N/A"), "full40": full, "full40_err": full_err}
+
+
+# ---- VRAM -----------------------------------------------------------------------
+def vram_get():
+    if os.path.exists(MEMCFG):
+        m = re.search(r'UMA_SIZE=(\d+)', sh(MEMCFG + ' get').stdout)
+        if m:
+            return int(m.group(1))
+    return 0
+
+
+def set_vram(mb):
+    if not os.path.exists(MEMCFG):
+        return False
+    mb = max(256, int(mb))
+    nostro = MEMCFG.endswith("skillfish-memcfg")
+    cmd = "%s set %d" % (MEMCFG, mb) if nostro else "%s UMA_SIZE %d" % (MEMCFG, mb)
+    _log("VRAM: %d MB" % mb)
+    if sh(cmd).returncode != 0:
+        return False
+    letto = sh("%s %s" % (MEMCFG, "get" if nostro else "")).stdout or ""
+    m = re.search(r"UMA_SIZE\s*[=:]?\s*(\d+)", letto)
+    return bool(m) and int(m.group(1)) == mb
+
+
+# ---- scheduler ----------------------------------------------------------------
+def _testo(p):
+    try:
+        return _rd(p).strip()
+    except OSError:
+        return ""
+
+
+def scx_get():
+    supportato = os.path.isdir("/sys/kernel/sched_ext") and os.path.exists(SCX_BIN)
+    conta = _testo(SCX_CONTA)
+    return {"ok": True, "supportato": supportato, "installato": os.path.exists(SCX_BIN),
+            "kernel": os.path.isdir("/sys/kernel/sched_ext"),
+            "abilitato": _unit("is-enabled", SCX_PATH_UNIT),
+            "attivo": _unit("is-active", SCX_SERVICE),
+            "caricato": _testo(SCX_STATO) == "enabled", "nome": _testo(SCX_OPS),
+            "espulsioni": int(conta) if conta.isdigit() else 0,
+            "in_gioco": os.path.exists("/run/skillfish/gamemode/attivo")}
+
+
+def scx_set(on):
+    if not os.path.isdir("/sys/kernel/sched_ext"):
+        return {"ok": False, "err": "questo kernel non ha sched_ext"}
+    if not os.path.exists(SCX_BIN):
+        return {"ok": False, "err": "manca skillfish-scx"}
+    if on:
+        r = sh("systemctl enable --now " + SCX_PATH_UNIT, 30)
+    else:
+        r = sh("systemctl disable --now %s; systemctl stop %s" % (SCX_PATH_UNIT, SCX_SERVICE), 30)
+    if r.returncode != 0:
+        return {"ok": False, "err": "systemctl ha rifiutato (%d)" % r.returncode}
+    return scx_get()
+
+
+def scx_azzera():
+    _wr(SCX_CONTA, "0\n")
+    return scx_get()
+
+
+# ---- our Mesa as the system driver -------------------------------------------
+def mesa_sistema_get():
+    div = sh("dpkg-divert --list %s" % MESA_LIB, 20).stdout.strip()
+    attivo = bool(div) and os.path.islink(MESA_LIB) and os.path.realpath(MESA_LIB) == os.path.realpath(MESA_NOSTRA)
+    return {"ok": True, "attivo": attivo, "installata": os.path.exists(MESA_NOSTRA),
+            "kernel_nostro": "skillfishos" in os.uname().release, "divert": div,
+            "versione": sh("dpkg-query -W -f='${Version}' %s 2>/dev/null" % MESA_PKG, 10).stdout.strip()}
+
+
+def mesa_sistema_set(on):
+    """Divert the 64-bit library only; the ICD file and the 32-bit driver stay Debian's."""
+    st = mesa_sistema_get()
+    if on:
+        if not st["installata"]:
+            return {"ok": False, "err": "la nostra Mesa non e' installata (%s)" % MESA_PKG}
+        if not st["kernel_nostro"]:
+            return {"ok": False, "err": "serve il kernel SkillFishOS: su un altro kernel le code compute piantano la GPU"}
+        if st["attivo"]:
+            return st
+        _log("Mesa nostra come driver di sistema: divert di %s" % MESA_LIB)
+        os.makedirs(os.path.dirname(MESA_DISTRIB), exist_ok=True)
+        r = sh("dpkg-divert --package %s --add --rename --divert %s %s" % (MESA_PKG, MESA_DISTRIB, MESA_LIB), 30)
+        if r.returncode != 0:
+            return {"ok": False, "err": (r.stderr or r.stdout).strip()}
+        if os.path.lexists(MESA_LIB):
+            os.unlink(MESA_LIB)
+        os.symlink(MESA_NOSTRA, MESA_LIB)
+    else:
+        if not st["divert"]:
+            return st
+        _log("Mesa di serie come driver di sistema: tolgo il divert")
+        if os.path.islink(MESA_LIB):
+            os.unlink(MESA_LIB)
+        r = sh("dpkg-divert --package %s --remove --rename %s" % (MESA_PKG, MESA_LIB), 30)
+        if r.returncode != 0:
+            return {"ok": False, "err": (r.stderr or r.stdout).strip()}
+    sh("ldconfig", 30)
+    return mesa_sistema_get()
+
+
+# ---- other helpers, reached through this one -----------------------------------
+def kernel(azione, kv):
+    if azione not in ("default", "once", "uninstall") or not re.match(r"^[A-Za-z0-9._+-]+$", kv or ""):
+        return {"ok": False, "err": "richiesta non valida"}
+    r = sh("%s %s %s" % (KERNEL_HELPER, azione, kv), 900)
+    return {"ok": r.returncode == 0, "out": (r.stdout or "").strip(), "err": (r.stderr or "").strip()}
+
+
+def snapshot(argomenti, attesa=600):
+    if not isinstance(argomenti, list) or not all(isinstance(a, str) for a in argomenti):
+        return {"ok": False, "err": "richiesta non valida"}
+    if not os.path.exists(SNAP_HELPER):
+        return {"ok": False, "err": "manca skillfish-snapshots"}
+    try:
+        p = subprocess.run([SNAP_HELPER] + argomenti, capture_output=True, text=True, timeout=attesa)
+        return {"ok": p.returncode == 0, "out": (p.stdout or "").strip(), "err": (p.stderr or "").strip(),
+                "rc": p.returncode}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def manutenzione(argomenti):
+    if not isinstance(argomenti, list) or not all(isinstance(a, str) for a in argomenti):
+        return {"ok": False, "err": "richiesta non valida"}
+    if not os.path.exists(SNAP_MANUT):
+        return {"ok": False, "err": "manca skillfish-btrfs-manutenzione"}
+    try:
+        p = subprocess.run([SNAP_MANUT] + argomenti, capture_output=True, text=True, timeout=600)
+        return {"ok": p.returncode == 0, "out": (p.stdout or "").strip(), "err": (p.stderr or "").strip()}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def ventola(azione, dati):
+    """The fan helper rebuilds the configuration field by field: we pass it on."""
+    if azione not in ("scrivi", "etichette", "prova"):
+        return {"ok": False, "err": "azione non valida"}
+    if not os.path.exists(FAN_HELPER):
+        return {"ok": False, "err": "manca skillfish-fan"}
+    try:
+        p = subprocess.run([FAN_HELPER, azione], input=json.dumps(dati), capture_output=True,
+                           text=True, timeout=200)
+        out = {"ok": p.returncode == 0, "err": (p.stderr or p.stdout or "").strip()}
+        try:
+            out["dati"] = json.loads(p.stdout)
+        except Exception:
+            pass
+        return out
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def servizio(azione, unit):
+    """enable/disable/start/stop/restart for a short allow-list of our units."""
+    permessi = ("skillfish-unsloth.service", "skillfish-dashboard.service", "skillfish-fand.service",
+                "skillfish-thermal-guard.service", "skillfish-vf-governor.service",
+                "skillfish-scx.path", "skillfish-cu.service", "bc250-smu-oc.service",
+                "skillfish-gaming-mode.service")
+    if unit not in permessi or azione not in ("enable --now", "disable --now", "start", "stop", "restart"):
+        return {"ok": False, "err": "non permesso"}
+    r = sh("systemctl %s %s" % (azione, unit), 120)
+    return {"ok": r.returncode == 0, "err": (r.stderr or "").strip(),
+            "attivo": _unit("is-active", unit), "abilitato": _unit("is-enabled", unit)}
+
+
+def gtt(mb):
+    """The GTT limit of the AI panel goes through skillfish-gtt."""
+    if not os.path.exists("/usr/local/bin/skillfish-gtt"):
+        return {"ok": False, "err": "manca skillfish-gtt"}
+    r = sh("/usr/local/bin/skillfish-gtt %d" % int(mb), 120)
+    return {"ok": r.returncode == 0, "out": (r.stdout or r.stderr or "").strip()}
+
+
+# ---- benchmarks (kept from the Tuner) --------------------------------------------
+def _govs_get():
+    out = {}
+    for p in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
+        try:
+            out[p] = _rd(p).strip()
+        except OSError:
+            pass
+    return out
+
+
+def bench_cpu(secs=60):
+    nth = os.cpu_count() or 6
+    import threading
+    prev_govs = _govs_get()
+    for p in prev_govs:
+        try:
+            _wr(p, "performance")
+        except OSError:
+            pass
+    samp = {"minf": 99999, "maxt": 0}
+    stop = threading.Event()
+
+    def mon():
+        deadline = time.monotonic() + 8
+        while not stop.is_set() and time.monotonic() < deadline:
+            time.sleep(0.5)
+        while not stop.is_set():
+            f = cpu_min_freq()
+            t = temp("k10temp")
+            if 0 < f < samp["minf"]:
+                samp["minf"] = f
+            if t > samp["maxt"]:
+                samp["maxt"] = t
+            time.sleep(2)
+    th = threading.Thread(target=mon, daemon=True)
+    th.start()
+    r = sh("sysbench cpu --threads=%d --time=%d --cpu-max-prime=20000 run" % (nth, secs), t=secs + 30)
+    stop.set()
+    th.join(timeout=3)
+    for p, g in prev_govs.items():
+        try:
+            _wr(p, g)
+        except OSError:
+            pass
+    m = re.search(r'events per second:\s*([\d.]+)', r.stdout)
+    eps = float(m.group(1)) if m else 0
+    minf = samp["minf"] if samp["minf"] < 99999 else cpu_min_freq()
+    return {"score": round(eps, 1), "unit": "ev/s", "min_mhz": minf,
+            "temp": samp["maxt"] or temp("k10temp"), "ok": r.returncode == 0 and eps > 0}
+
+
+def bench_gpu():
+    if not VKPEAK:
+        return {"score": 0, "unit": "GFLOPS", "ok": False, "err": "vkpeak assente"}
+    r = sh("cd %s && ./vkpeak" % os.path.dirname(VKPEAK), t=150)
+    m = re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
+    g = float(m.group(1)) if m else 0
+    return {"score": round(g, 0), "unit": "GFLOPS", "temp": temp("amdgpu"), "ok": r.returncode == 0 and g > 0}
+
+
+def test_cpu(mhz, scale, tmp):
+    prev = _cpu_conf()
+    if not apply_cpu(mhz, scale, tmp):
+        _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
+        return {"ok": False, "phase": "apply", "err": "applicazione fallita"}
+    # while the candidate is benched the LAST GOOD values stay on disk: a hard
+    # freeze mid-bench must not boot into the unstable candidate
+    _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
+    b = bench_cpu()
+    stable = b["ok"] and b["min_mhz"] >= (int(mhz) - 200)
+    if not stable:
+        apply_cpu(prev["frequency"], prev["scale"], prev["max_temperature"])
+        return {"ok": False, "applied": False, "bench": b,
+                "err": "Instabile/throttle: %d MHz sotto carico (target %d). Ripristinato." % (b["min_mhz"], int(mhz))}
+    _write_cpu_conf(int(mhz), int(scale), int(tmp))
+    return {"ok": True, "applied": True, "bench": b}
+
+
+def suggest_uv(mhz):
+    prev = _cpu_conf()
+    best, s = 0, 0
+    while s > -20:
+        if not apply_cpu(mhz, s, prev["max_temperature"]):
+            break
+        _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
+        b = bench_cpu(12)
+        if b["ok"] and b["min_mhz"] >= (int(mhz) - 200):
+            best = s
+            s -= 2
+        else:
+            break
+    apply_cpu(prev["frequency"], prev["scale"], prev["max_temperature"])
+    return {"ok": True, "suggested_scale": best, "mhz": mhz}
+
+
+def test_gpu(maxmhz, maxmv):
+    """Trial a ceiling, bench it, keep it only if vkpeak comes back clean."""
+    c = gov_leggi()
+    pts = [list(p) for p in c.get("curva") or []]
+    maxmhz, maxmv = int(maxmhz), int(maxmv)
+    pts = [p for p in pts if p[0] != maxmhz] + [[maxmhz, maxmv]]
+    pts.sort()
+    for i in range(1, len(pts)):
+        if pts[i][1] < pts[i - 1][1]:
+            pts[i][1] = pts[i - 1][1]
+    cand = dict(c, curva=pts, freq_max=maxmhz)
+    r = gov_prova(cand)
+    if not r.get("ok"):
+        return {"ok": False, "phase": "apply", "err": r.get("err", "applicazione fallita")}
+    b = bench_gpu()
+    if not b["ok"]:
+        gov_annulla()
+        return {"ok": False, "applied": False, "bench": b, "err": "Benchmark GPU fallito/instabile. Ripristinato."}
+    gov_conferma()
+    return {"ok": True, "applied": True, "bench": b}
+
+
+# ---- the old "get", for the Remote Manager ----------------------------------------
+def get():
+    out = {"cpu": _cpu_conf(), "gpu": _gpu_compat(), "vram": {"uma_mb": vram_get()}}
+    fan = {"mode": "auto", "pct": 0, "rpm": 0}
+    try:
+        s = json.loads(_rd("/run/skillfish/ventola.json"))
+        fan = {"mode": "curve" if s.get("in_controllo") else "auto", "pct": int(s.get("duty") or 0),
+               "rpm": next((int(x["value"]) for x in s.get("sensori", []) if x.get("type") == "fan" and x.get("value")), 0)}
+    except Exception:
+        pass
+    out["fan"] = fan
+    cu = {"active": 0, "max": 40, "floor": 7, "rows": {"0.0": 7, "0.1": 7, "1.0": 7, "1.1": 7}, "live": False}
+    j = cu_get()
+    if j:
+        cu.update({"active": j.get("active_cu", 0), "rows": j.get("rows", cu["rows"]),
+                   "floor": j.get("floor", 7), "live": True})
+    out["cu"] = cu
+    return out
+
+
+# ---- dispatch ---------------------------------------------------------------------
+def handle(req):
+    c = req.get("cmd")
+    if c == "ping":
+        return {"ok": True}
+    if c == "get":
+        return {"ok": True, "data": get()}
+    # the governor
+    if c == "gov-get":
+        return gov_get()
+    if c == "gov-set":
+        return gov_set(req.get("conf") or {})
+    if c == "gov-prova":
+        return gov_prova(req.get("conf") or {})
+    if c == "gov-conferma":
+        return gov_conferma()
+    if c == "gov-annulla":
+        return gov_annulla()
+    if c == "gov-attiva":
+        return gov_attiva(bool(req.get("on", True)))
+    if c == "apply-gpu":
+        return {"ok": apply_gpu_compat(req["minmhz"], req["minmv"], req["maxmhz"], req["maxmv"])}
+    if c == "gov-mode":
+        return {"ok": True, "mode": "vf"}
+    # the CPU
+    if c == "apply-cpu":
+        return {"ok": apply_cpu(req["mhz"], req["scale"], req["temp"])}
+    if c == "persist-cpu":
+        ok = apply_cpu(req["mhz"], req["scale"], req["temp"])
+        persist_cpu()
+        return {"ok": ok}
+    if c == "cpu-cores":
+        return cpu_cores_get()
+    if c == "cpu-cores-set":
+        return cpu_cores_set(req.get("cores", []))
+    if c == "cpu-smt":
+        return cpu_smt_set(bool(req.get("on", True)))
+    if c == "core-unlock":
+        return core_unlock_get()
+    if c == "core-unlock-set":
+        return core_unlock_set(bool(req.get("on", False)))
+    if c == "thermal-guard":
+        return {"ok": thermal_guard(req["limit"])}
+    if c == "thermal-guard-get":
+        return thermal_guard_get()
+    # compute units, memory
+    if c == "cu-get":
+        return {"ok": True, **cu_get()}
+    if c == "cu-apply":
+        return cu_apply(req.get("rows", []))
+    if c == "cu-test":
+        return cu_test()
+    if c == "set-vram":
+        return {"ok": set_vram(req["mb"]), "reboot": True}
+    # scheduler, Mesa
+    if c == "scx":
+        return scx_get()
+    if c == "scx-set":
+        return scx_set(bool(req.get("on", False)))
+    if c == "scx-azzera":
+        return scx_azzera()
+    if c == "mesa-sistema":
+        return mesa_sistema_get()
+    if c == "mesa-sistema-set":
+        return mesa_sistema_set(bool(req.get("on", False)))
+    # the other helpers
+    if c == "kernel":
+        return kernel(req.get("azione"), req.get("kv"))
+    if c == "snapshot":
+        return snapshot(req.get("args", []), int(req.get("attesa", 600)))
+    if c == "manutenzione":
+        return manutenzione(req.get("args", []))
+    if c == "ventola":
+        return ventola(req.get("azione"), req.get("dati") or {})
+    if c == "servizio":
+        return servizio(req.get("azione"), req.get("unit"))
+    if c == "gtt":
+        return gtt(req.get("mb", 0))
+    if c == "riavvia":
+        _log("riavvio chiesto dal Control Center")
+        sh("systemctl reboot")
+        return {"ok": True}
+    if c == "spegni":
+        _log("spegnimento chiesto dal Control Center")
+        sh("systemctl poweroff")
+        return {"ok": True}
+    # benchmarks
+    if c == "test-cpu":
+        return test_cpu(req["mhz"], req["scale"], req["temp"])
+    if c == "test-gpu":
+        return test_gpu(req.get("maxmhz"), req.get("maxmv"))
+    if c == "suggest-uv":
+        return suggest_uv(req["mhz"])
+    if c == "bench-cpu":
+        return bench_cpu(int(req.get("secs", 60)))
+    if c == "bench-gpu":
+        return bench_gpu()
+    return {"ok": False, "err": "comando sconosciuto"}
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "get":
+        print(json.dumps(get()))
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "gov-get":
+        print(json.dumps(gov_get()))
+        return
+    sys.stdout.write(json.dumps({"ok": True, "ready": True}) + NL)
+    sys.stdout.flush()
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+        except Exception:
+            continue
+        if req.get("cmd") == "quit":
+            break
+        try:
+            rep = handle(req)
+        except Exception as e:
+            rep = {"ok": False, "err": str(e)}
+        sys.stdout.write(json.dumps(rep) + NL)
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

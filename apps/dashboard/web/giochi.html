@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS Games</title>
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;--gold-lt:#e8c878;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);min-height:100vh}
+  .wrap{max-width:920px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:10px;margin-bottom:14px} header b{color:var(--gold-lt);font-size:1.15rem} .sp{flex:1}
+  .panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .panel h3{color:var(--gold-lt);font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap} .row .k{color:var(--muted);min-width:150px;font-size:.9rem}
+  .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer;font-size:.9rem}
+  .btn.sec{background:linear-gradient(160deg,#241b10,#1a140b);color:var(--gold-lt);border:1px solid var(--line)} .btn:disabled{opacity:.5}
+  .brow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+  .stub{color:var(--muted);font-size:.84rem;margin-top:6px}
+  .pill{display:inline-block;background:rgba(216,168,73,.12);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.78rem;color:var(--gold-lt)}
+  .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:.75rem;font-weight:600;border:1px solid}
+  .b-ok{color:#8fbf6a;border-color:#8fbf6a} .b-q{color:var(--muted);border-color:var(--muted)} .b-w{color:var(--gold);border-color:var(--gold)}
+  label.sw{cursor:pointer} input[type=checkbox]{accent-color:var(--gold);width:16px;height:16px;vertical-align:-3px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem} td{padding:6px 4px;border-top:1px solid rgba(216,168,73,.1)} td.ok{color:#8fbf6a}
+  select{background:#241b10;color:var(--gold-lt);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#241b10;border:1px solid var(--gold);color:var(--cream);padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw} #toast.show{opacity:1}
+</style></head>
+<body><div class="wrap">
+<header><b>🎮 SkillFishOS <span data-i18n-c="Games">Games</span></b><span class="sp"></span><button class="btn sec" id="reload">⟳</button></header>
+<div class="stub" style="margin-bottom:12px" data-i18n-c="The driver, the scheduler and Proton: what a game goes through on its way to the screen.">…</div>
+
+<div class="panel"><h3><span data-i18n-c="Vulkan driver">Vulkan driver</span> <span class="badge b-q" id="mesabadge">…</span></h3>
+  <div class="row"><label class="sw"><input type="checkbox" id="m_steam"> Steam</label>
+    <label class="sw"><input type="checkbox" id="m_heroic"> Heroic</label>
+    <label class="sw"><input type="checkbox" id="m_sys"> <span data-i18n-c="Whole system">Whole system</span></label></div>
+  <div class="row"><span class="k" data-i18n-c="Package">Package</span><span id="mesaver">—</span></div>
+  <div class="row"><span class="k">Kernel</span><span id="mesakernel">—</span></div>
+  <div class="stub" data-i18n-c="Our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in Cyberpunk, and +12% with FSR 4 on. It is switched per launcher, through a flatpak override, or for the whole system.
+
+IT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those queues wedge the GPU, and on the BC-250 a wedge is fixed by pulling the plug. The «system» mode refuses to start on another kernel; the per-launcher one does not, that is on you.">…</div>
+</div>
+
+<div class="panel"><h3><span data-i18n-c="Scheduler">Scheduler</span> <span class="badge b-q" id="scxbadge">…</span></h3>
+  <div class="row"><label class="sw"><input type="checkbox" id="scxcb"> <span data-i18n-c="While gaming">While gaming</span></label>
+    <span class="k" data-i18n-c="Now">Now</span><span id="scxnome">—</span>
+    <span class="k" data-i18n-c="Ejections">Ejections</span><span id="scxesp">—</span>
+    <button class="btn sec" id="scxazzera" data-i18n-c="Reset counter">Reset counter</button></div>
+  <div class="stub" data-i18n-c="scx_bpfland, the CachyOS scheduler, loaded ONLY while a game runs: GameMode raises it at launch and drops it at exit. Measured: +1.5-2% in Cyberpunk and steadier frames. If the kernel ejects it twice (lavd's disease on this board) the service refuses to start until you reset the counter.">…</div>
+</div>
+
+<div class="panel"><h3>FSR 4</h3>
+  <div class="row"><label class="sw"><input type="checkbox" id="f_steam"> Steam</label><label class="sw"><input type="checkbox" id="f_heroic"> Heroic</label></div>
+  <div class="stub" data-i18n-c="FSR 4 runs on the BC-250 through OptiScaler, on the game's DLSS path: GE-Proton 11 downloads OptiScaler by itself when it finds PROTON_USE_OPTISCALER=1, and the game must be set to DLSS. AMD's FSR 4 library (amdxcffx64.dll) is needed too and we cannot ship it: it is in AMD's Windows driver, and goes next to the game. With our Mesa it is worth +12%.">…</div>
+</div>
+
+<div class="panel"><h3>Proton</h3>
+  <table id="proton"><tr><td colspan="3" class="stub">…</td></tr></table>
+  <div class="row" style="margin-top:10px"><span class="k" data-i18n-c="Default in Steam">Default in Steam</span><select id="def_steam"></select><button class="btn sec" data-def="steam" data-i18n-c="Apply">Apply</button></div>
+  <div class="row"><span class="k" data-i18n-c="Default in Heroic">Default in Heroic</span><select id="def_heroic"></select><button class="btn sec" data-def="heroic" data-i18n-c="Apply">Apply</button></div>
+  <div class="stub" data-i18n-c="The GE-Proton versions installed in Steam and Heroic. Installing new ones is done from the Control Center on the machine; here you pick the default. For Steam, Steam must be closed: it rewrites its configuration on exit.">…</div>
+</div>
+</div>
+<div id="toast"></div>
+<script src="/static/i18n.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
+async function api(p,b){ const o={credentials:"same-origin"}; if(b){ o.method="POST"; o.headers={"Content-Type":"application/json"}; o.body=JSON.stringify(b); } return (await fetch(p,o)).json(); }
+function C(en){ return (typeof sfC==="function")?sfC(en):en; }
+function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); }); }
+let S={};
+async function carica(){
+  S=await api("/api/giochi"); if(!S||!S.ok){ toast(S&&S.err||"?"); return; }
+  const m=S.mesa||{}, ms=S.mesa_sistema||{};
+  $("#m_steam").checked=!!m.steam; $("#m_heroic").checked=!!m.heroic; $("#m_sys").checked=!!ms.attivo;
+  [$("#m_steam"),$("#m_heroic"),$("#m_sys")].forEach(c=>c.disabled=!ms.installata);
+  const dove=[m.steam&&"Steam",m.heroic&&"Heroic",ms.attivo&&C("system")].filter(Boolean);
+  const b=$("#mesabadge"); b.className="badge "+(dove.length?"b-ok":"b-q"); b.textContent=ms.installata?(dove.length?C("ours: %s").replace("%s",dove.join(", ")):C("stock")):C("not installed");
+  $("#mesaver").textContent=ms.versione||"—"; $("#mesakernel").textContent=ms.kernel_nostro?C("ours"):C("NOT ours"); $("#mesakernel").style.color=ms.kernel_nostro?"#8fbf6a":"#e8703a";
+  const x=S.scx||{}; $("#scxcb").checked=!!x.abilitato; $("#scxcb").disabled=!(x.kernel&&x.installato);
+  const sb=$("#scxbadge"); sb.className="badge "+(x.caricato?"b-ok":(x.abilitato?"b-w":"b-q"));
+  sb.textContent=!x.kernel?C("kernel without sched_ext"):(!x.installato?C("skillfish-scx not installed"):(x.caricato?C("loaded now"):(x.abilitato?C("armed"):C("stopped"))));
+  $("#scxnome").textContent=x.nome||C("stock"); $("#scxesp").textContent=(x.espulsioni||0)+" / 2";
+  const f=S.fsr4||{}; $("#f_steam").checked=!!f.steam; $("#f_heroic").checked=!!f.heroic;
+  const p=S.proton||{steam:[],heroic:[]}; const nomi=[...new Set([...(p.steam||[]),...(p.heroic||[])])];
+  $("#proton").innerHTML=nomi.length?nomi.map(n=>'<tr><td>'+n+'</td><td class="'+((p.steam||[]).includes(n)?'ok':'')+'">'+((p.steam||[]).includes(n)?'Steam'+(n===p.default_steam?' ★':''):'')+'</td><td class="'+((p.heroic||[]).includes(n)?'ok':'')+'">'+((p.heroic||[]).includes(n)?'Heroic'+(n===p.default_heroic?' ★':''):'')+'</td></tr>').join(""):'<tr><td class="stub">'+C("no version found")+'</td></tr>';
+  for(const d of ["steam","heroic"]){ const sel=$("#def_"+d); sel.innerHTML=(p[d]||[]).map(n=>'<option'+(n===p["default_"+d]?' selected':'')+'>'+n+'</option>').join(""); }
+}
+$("#m_steam").onchange=$("#m_heroic").onchange=async e=>{ const x=await api("/api/giochi/mesa",{app:e.target.id==="m_steam"?"steam":"heroic",on:e.target.checked}); toast(x.ok?C("Takes effect the next time the launcher starts."):(x.err||"?")); carica(); };
+$("#m_sys").onchange=async e=>{ if(e.target.checked&&!confirm(C("From now on EVERYTHING that uses Vulkan goes through our Mesa, desktop included. 32-bit stays on the stock driver. Proceed?"))){ e.target.checked=false; return; }
+  const x=await api("/api/giochi/mesa-sistema",{on:e.target.checked}); toast(x.ok?C("Applies to programs started from now on."):(x.err||"?")); carica(); };
+$("#scxcb").onchange=async e=>{ const x=await api("/api/tuner/scx",{on:e.target.checked}); if(!x.ok) toast(x.err||"?"); carica(); };
+$("#scxazzera").onclick=async()=>{ const x=await api("/api/giochi/scx-azzera",{}); toast(x.ok?C("counter reset"):(x.err||"?")); carica(); };
+$("#f_steam").onchange=$("#f_heroic").onchange=async e=>{ const x=await api("/api/giochi/fsr4",{app:e.target.id==="f_steam"?"steam":"heroic",on:e.target.checked}); toast(x.ok?C("Takes effect the next time the launcher starts. In the game pick DLSS."):(x.err||"?")); };
+document.querySelectorAll("[data-def]").forEach(b=> b.onclick=async()=>{ const d=b.dataset.def, n=$("#def_"+d).value; if(!n) return; const x=await api("/api/giochi/proton-default",{dove:d,nome:n}); toast(x.ok?C(d==="steam"?"%s is Steam's default.":"%s is Heroic's default.").replace("%s",n):(x.err||"?")); carica(); });
+$("#reload").onclick=carica;
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); carica(); });
+</script>
+</body></html>

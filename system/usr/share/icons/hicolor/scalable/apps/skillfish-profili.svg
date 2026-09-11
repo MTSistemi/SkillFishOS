@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Profiles section: three brass sliders on the dark plate. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="plate" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#3a2d1f"/><stop offset="1" stop-color="#15110d"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0cf7a"/><stop offset="0.5" stop-color="#d8a849"/><stop offset="1" stop-color="#8a6a2a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#plate)" stroke="#8a6a2a" stroke-width="6"/>
+  <g stroke="#5a4426" stroke-width="8" stroke-linecap="round">
+    <line x1="68" y1="92" x2="188" y2="92"/><line x1="68" y1="128" x2="188" y2="128"/><line x1="68" y1="164" x2="188" y2="164"/>
+  </g>
+  <g fill="url(#brass)" stroke="#5a4426" stroke-width="3">
+    <rect x="96" y="76" width="20" height="32" rx="6"/><rect x="150" y="112" width="20" height="32" rx="6"/><rect x="120" y="148" width="20" height="32" rx="6"/>
+  </g>
+  <g stroke="#d8a849" stroke-width="8" stroke-linecap="round">
+    <line x1="68" y1="92" x2="96" y2="92"/><line x1="68" y1="128" x2="150" y2="128"/><line x1="68" y1="164" x2="120" y2="164"/>
+  </g>
+</svg>

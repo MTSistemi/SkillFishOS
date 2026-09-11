@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" href="/static/badge.png" type="image/png">
+<title>SkillFishOS Profiles</title>
+<style>
+  :root{--bg:#0d0b06;--panel:#1a140b;--panel2:#211a0f;--gold:#d8a849;--gold-lt:#e8c878;--cream:#efe6d3;--muted:#a9967a;--line:rgba(216,168,73,.2)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--cream);min-height:100vh}
+  .wrap{max-width:920px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:10px;margin-bottom:14px} header b{color:var(--gold-lt);font-size:1.15rem} .sp{flex:1}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+  .panel h3{color:var(--gold-lt);font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .r{display:flex;justify-content:space-between;font-size:.9rem} .r span:first-child{color:var(--muted)}
+  .btn{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer;font-size:.9rem;margin-top:auto}
+  .btn.sec{background:linear-gradient(160deg,#241b10,#1a140b);color:var(--gold-lt);border:1px solid var(--line);margin-top:0}
+  .stub{color:var(--muted);font-size:.84rem;margin:6px 0 12px}
+  .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:.75rem;font-weight:600;border:1px solid #8fbf6a;color:#8fbf6a}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#241b10;border:1px solid var(--gold);color:var(--cream);padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw} #toast.show{opacity:1}
+</style></head>
+<body><div class="wrap">
+<header><b>🎚️ SkillFishOS <span data-i18n-c="Profiles">Profiles</span></b><span class="sp"></span><button class="btn sec" id="reload">⟳</button></header>
+<div class="stub" data-i18n-c="One click for GPU ceiling, CPU, fan and scheduler together. The curve is not touched: a profile moves the ceiling within the curve that is already there.">…</div>
+<div class="grid" id="grid"></div>
+</div>
+<div id="toast"></div>
+<script src="/static/i18n.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),3000); }
+async function api(p,b){ const o={credentials:"same-origin"}; if(b){ o.method="POST"; o.headers={"Content-Type":"application/json"}; o.body=JSON.stringify(b); } return (await fetch(p,o)).json(); }
+function C(en){ return (typeof sfC==="function")?sfC(en):en; }
+function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); }); }
+const VENT={silenzioso:"Silent",equilibrato:"Balanced",prestazioni:"Performance",massimo:"Full"};
+const IT = (typeof SFLANG!=="undefined" && SFLANG==="it");
+async function carica(){
+  const r=await api("/api/profili"); if(!r||!r.ok){ toast(r&&r.err||"?"); return; }
+  const g=$("#grid"); g.innerHTML="";
+  for(const [k,p] of Object.entries(r.profili||{})){
+    const nome=(IT?p.nome_it:p.nome_en)||p.nome||k, desc=(IT?p.desc_it:p.desc_en)||p.desc||"";
+    const d=document.createElement("div"); d.className="panel";
+    d.innerHTML='<h3>'+nome+(r.attivo===k?' <span class="badge">'+C("active")+'</span>':'')+'</h3>'+
+      (desc?'<div class="stub" style="margin:0 0 6px">'+desc+'</div>':'')+
+      '<div class="r"><span>'+C("GPU ceiling")+'</span><span>'+(p.tetto||"—")+' MHz</span></div>'+
+      '<div class="r"><span>CPU</span><span>'+(p.cpu||"—")+' MHz</span></div>'+
+      '<div class="r"><span>'+C("Fan")+'</span><span>'+C(VENT[p.ventola]||p.ventola||"—")+'</span></div>'+
+      '<div class="r"><span>'+C("Scheduler")+'</span><span>'+(p.scx?C("while gaming"):C("stock"))+'</span></div>'+
+      '<button class="btn" data-k="'+k+'">'+C("Apply")+'</button>';
+    d.querySelector("button").onclick=async()=>{ toast("…"); const x=await api("/api/profili",{chiave:k}); toast(x.ok?C("Profile «%s» applied").replace("%s",nome):(x.err||"?")); setTimeout(carica,1500); };
+    g.appendChild(d);
+  }
+}
+$("#reload").onclick=carica;
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); carica(); });
+</script>
+</body></html>

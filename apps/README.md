@@ -2,11 +2,15 @@
 
 Small native apps shipped with SkillFishOS (KDE Plasma), all themed by Kvantum.
 
-- **`tuner/`** — **SkillFishOS Tuner** (PyQt6): GUI to control the BC-250 hardware
-  with no terminal — CPU OC/UV, GPU governor safe-point, fan, UMA VRAM split,
-  40-CU toggle, with *apply → benchmark → verify/rollback* tests. `skillfish-tuner`
-  is the GUI (→ `/usr/local/bin/`); `skillfish-tuner-helper` is the privileged
-  daemon (JSON-per-line over a single `pkexec`).
+- **`control-center/`** — **SkillFishOS Control Center** (PyQt6): every tool in
+  one window. Status, Tuner (the V/F governor curve with a trial countdown),
+  Fan, Monitor, Games (our Mesa, scx, FSR 4, GE-Proton), Profiles, Kernel,
+  Snapshots, AI, Emulators, Console, ISO. `skillfish-control-center` is the
+  window; `skillfish-cc-helper` is the privileged daemon (JSON-per-line over a
+  single `pkexec`). See [control-center/README.md](control-center/README.md).
+- **`tuner/`** — the old **SkillFishOS Tuner**; since 26.09 `skillfish-tuner`
+  opens the Tuner section of the Control Center. The package keeps
+  `skillfish-tuner-helper`, `skillfish-cu` and the CU boot service.
 - **`ai-panel/`** — **SkillFish AI** (PyQt6): one-click on/off for the on-device
   LLM engine (Unsloth Studio, Vulkan), freeing the GPU/RAM for gaming. See [../docs/AI.md](../docs/AI.md).
 - **`iso-mount/`** — native KDE ISO mounting via udisks2 (no GNOME). See its README.

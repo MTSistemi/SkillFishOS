@@ -1,0 +1,4 @@
+#!/bin/sh
+# The Tuner is a section of SkillFishOS Control Center since 26.09: this keeps
+# the old command working for whoever still calls it.
+exec /usr/local/bin/skillfish-control-center --pagina tuner "$@"

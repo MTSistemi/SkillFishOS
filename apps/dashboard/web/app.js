@@ -564,6 +564,35 @@ const RENDER = {
     card.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => action("/api/tuner/preset", { name: b.dataset.preset }, T("c_applied", { x: b.dataset.preset })));
     card.querySelectorAll("[data-gov]").forEach(b => b.onclick = () => action("/api/tuner/govmode", { mode: b.dataset.gov }, "Governor: " + b.dataset.gov));
   },
+  async giochi(card) {
+    // Giochi: driver, schedulatore, Proton. La scheda mostra lo stato e apre
+    // la pagina vera, come fanno Ventola e Snapshot.
+    const it = LANG === "it";
+    card.innerHTML = "<h3>🎮 " + (it ? "Giochi" : "Games") + '</h3><div id="gk">…</div>';
+    let d = {};
+    try { d = await (await api("/api/giochi")).json(); } catch (e) {}
+    const m = d.mesa || {}, ms = d.mesa_sistema || {}, x = d.scx || {};
+    const dove = [m.steam && "Steam", m.heroic && "Heroic", ms.attivo && (it ? "sistema" : "system")].filter(Boolean);
+    const row = (a, b) => `<div class="r"><span>${a}</span><span>${b || "–"}</span></div>`;
+    $("#gk", card).innerHTML = '<div class="rows">' +
+      row(it ? "Driver nostro" : "Our driver", dove.length ? dove.join(", ") : (it ? "di serie" : "stock")) +
+      row(it ? "Schedulatore" : "Scheduler", x.caricato ? (it ? "caricato" : "loaded") : (x.abilitato ? (it ? "armato" : "armed") : (it ? "spento" : "off"))) +
+      row("Proton", ((d.proton || {}).default_heroic || "–")) + "</div>" +
+      '<div class="brow"><button class="dbtn" id="opengiochi" style="border-color:var(--gold)">🎮 ' + (it ? "Apri" : "Open") + "</button></div>";
+    $("#opengiochi", card).onclick = () => openFrame("SkillFishOS " + (it ? "Giochi" : "Games"), "/static/giochi.html");
+  },
+  async profili(card) {
+    // Profili: un bottone per profilo, come nella finestra.
+    const it = LANG === "it";
+    card.innerHTML = "<h3>🎚️ " + (it ? "Profili" : "Profiles") + '</h3><div id="pk">…</div>';
+    let d = {};
+    try { d = await (await api("/api/profili")).json(); } catch (e) {}
+    const btns = Object.entries(d.profili || {}).map(([k, p]) => `<button class="dbtn" data-prof="${k}" ${d.attivo === k ? 'style="border-color:var(--gold)"' : ""}>${(it ? p.nome_it : p.nome_en) || k}</button>`).join("");
+    $("#pk", card).innerHTML = '<div class="brow">' + btns + '</div>' +
+      '<div class="brow" style="margin-top:8px"><button class="dbtn" id="openprofili">' + (it ? "Apri" : "Open") + "</button></div>";
+    card.querySelectorAll("[data-prof]").forEach(b => b.onclick = async () => { await action("/api/profili", { chiave: b.dataset.prof }, (it ? "Profilo applicato: " : "Profile applied: ") + b.textContent); });
+    $("#openprofili", card).onclick = () => openFrame("SkillFishOS " + (it ? "Profili" : "Profiles"), "/static/profili.html");
+  },
   async ventola(card) {
     // ⚠️ La scheda mostra i due numeri che si guardano e apre il modulo vero.
     // Non rifà il controllo: quello è di skillfish-fand, e due controllori
