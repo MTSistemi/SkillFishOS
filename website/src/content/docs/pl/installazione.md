@@ -56,7 +56,7 @@ Stąd możesz:
 - sparować swoje [kontrolery](/pl/docs/gaming) (DualShock 4 przez Bluetooth albo pada przez USB);
 - dodać swoje gry do [Steama/EmuDeck](/pl/docs/gaming);
 - włączyć [lokalną AI](/pl/docs/ai-locale), kiedy będzie potrzebna;
-- dostroić sprzęt [Tunerem](/pl/docs/app-native), jeśli chcesz.
+- dostroić sprzęt [Tunerem](/pl/docs/control-center), jeśli chcesz.
 
 ## Układ dysku
 

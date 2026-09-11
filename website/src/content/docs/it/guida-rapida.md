@@ -38,7 +38,7 @@ Dettagli e risoluzione problemi → [Gaming](/docs/gaming) e [Risoluzione proble
 
 ## 5. (Opzionale) Spingi l'hardware
 
-SkillFishOS parte in profilo **Stock** per essere sicuro su qualunque scheda. Quando vuoi più prestazioni apri il **[Tuner](/docs/app-native)** e sali di profilo:
+SkillFishOS parte in profilo **Stock** per essere sicuro su qualunque scheda. Quando vuoi più prestazioni apri il **[Tuner](/docs/control-center)** e sali di profilo:
 
 **Stock → Performance → Turbo → Crazy**
 

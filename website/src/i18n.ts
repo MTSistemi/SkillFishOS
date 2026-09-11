@@ -200,16 +200,10 @@ export const strings: Record<string, Entry> = {
     it: "Con EmuDeck installi e configuri gli emulatori (RetroArch, Dolphin, PCSX2, PPSSPP, RPCS3 e altri) e il frontend ES-DE in pochi clic. Il sistema offre gli strumenti: i giochi e le ROM li metti tu.",
     en: "EmuDeck installs and configures the emulators (RetroArch, Dolphin, PCSX2, PPSSPP, RPCS3 and more) and the ES-DE frontend in a few clicks. The system provides the tools: you supply the games and ROMs.",
   },
-  "s4.t": { it: "AI in casa, con un clic", en: "On-device AI, one click away" },
-  "s4.d": {
-    it: "Un pannello dedicato accende o spegne il motore AI locale (Qwen su GPU Vulkan). Chat web, terminale di coding e gestione: l'intelligenza artificiale gira in casa, e libera la GPU quando vuoi giocare.",
-    en: "A dedicated panel turns the local AI engine (Qwen on the Vulkan GPU) on or off. Web chat, a coding terminal and management: AI runs at home, and frees the GPU when it's time to play.",
-  },
-  "s5.t": { it: "Tuning a portata di clic", en: "One-click tuning" },
-  "s5.d": {
-    it: "Il Tuner regola frequenze, undervolt, ventola e Compute Unit con quattro preset pronti (Stock, Performance, Turbo, Crazy) e un thermal-guard che protegge l'hardware. Tutta la potenza, in sicurezza, senza riga di comando.",
-    en: "The Tuner adjusts clocks, undervolt, fan and Compute Units with four ready presets (Stock, Performance, Turbo, Crazy) and a thermal-guard that protects the hardware. All the power, safely, with no command line.",
-  },
+  "s4.t": { it: "L'AI in casa, dentro il Control Center", en: "AI at home, inside the Control Center" },
+  "s4.d": { it: "La sezione AI accende il motore locale sulla GPU Vulkan, scarica i modelli e misura i token al secondo. Quando si gioca si spegne, e la memoria torna al gioco.", en: "The AI section starts the local engine on the Vulkan GPU, downloads the models and measures the tokens per second. Turn it off to play, and the memory goes back to the game." },
+  "s5.t": { it: "Tuning a portata di clic", en: "Tuning a click away" },
+  "s5.d": { it: "Il Tuner disegna la curva tensione/frequenza del governor, con il tetto e tre preset. Applica è una prova a tempo: se non confermi, al riavvio torna la curva di prima.", en: "The Tuner draws the voltage/frequency curve of the governor, with the ceiling and three presets. Apply is a timed trial: without your confirmation the previous curve is what boots." },
 
   "hw.eye": { it: "Hardware", en: "Hardware" },
   "hw.h2": { it: "Nato per l'AMD BC-250.", en: "Born for the AMD BC-250." },
@@ -428,43 +422,16 @@ export const strings: Record<string, Entry> = {
     it: "Il frontend ES-DE per sfogliare e avviare le tue librerie.",
     en: "The ES-DE frontend to browse and launch your libraries.",
   },
-  "gal.ai.t": { it: "Pannello AI", en: "AI panel" },
-  "gal.ai.d": {
-    it: "Accendi e spegni lo stack AI locale (Vulkan) con un clic.",
-    en: "Turn the local AI stack (Vulkan) on and off with one click.",
-  },
-  "gal.tuner.t": {
-    it: "Tuner — Compute Unit a caldo",
-    en: "Tuner — live Compute Units",
-  },
-  "gal.tuner.d": {
-    it: "Griglia delle CU (verde = attiva, rosso = spenta), preset 24/32/40 e test, senza riavvio.",
-    en: "CU grid (green = active, red = off), 24/32/40 presets and test, no reboot.",
-  },
-  "gal.tunerctl.t": {
-    it: "Tuner — preset, governor e wizard",
-    en: "Tuner — presets, governor and wizards",
-  },
-  "gal.tunerctl.d": {
-    it: "Preset Stock/Performance/Turbo/Crazy, pannello «Il mio silicio», modalità governor Bilanciata/Performance e i wizard «Trova il massimo» per CPU e GPU.",
-    en: "Stock/Performance/Turbo/Crazy presets, the “My silicon” panel, Balanced/Performance governor mode and the “Find my max” wizards for CPU and GPU.",
-  },
-  "gal.monitor.t": {
-    it: "Telemetry live durante i test",
-    en: "Live Telemetry during tests",
-  },
-  "gal.monitor.d": {
-    it: "Grafici in tempo reale di temperatura, frequenza, voltaggio e ventola.",
-    en: "Real-time temperature, frequency, voltage and fan charts.",
-  },
-  "gal.cutest.t": {
-    it: "Test CU — lotteria del silicio",
-    en: "CU test — silicon lottery",
-  },
-  "gal.cutest.d": {
-    it: "Verifica che tutte le 40 CU reggano lo sforzo senza difetti (utile sugli esemplari «discarto»).",
-    en: "Checks that all 40 CUs sustain the load with no defects (useful on salvaged chips).",
-  },
+  "gal.ai.t": { it: "AI — Unsloth Studio sulla GPU", en: "AI — Unsloth Studio on the GPU" },
+  "gal.ai.d": { it: "Motore, modelli scaricati dall'Hub, memoria e una chat di prova con i token al secondo.", en: "Engine, models pulled from the Hub, memory and a chat test with the tokens per second." },
+  "gal.tuner.t": { it: "Tuner — la curva del governor", en: "Tuner — the governor curve" },
+  "gal.tuner.d": { it: "MHz e millivolt: i nodi si trascinano o si scrivono nella tabella, e Applica è una prova a tempo.", en: "MHz and millivolts: drag the knots or type them in the table, and Apply is a timed trial." },
+  "gal.stato.t": { it: "Stato — tutto a colpo d'occhio", en: "Status — everything at a glance" },
+  "gal.stato.d": { it: "Un numero per scheda: GPU e tetto, CPU, unità di calcolo, ventola, kernel e driver Vulkan.", en: "One number per card: GPU and ceiling, CPU, compute units, fan, kernel and Vulkan driver." },
+  "gal.monitor.t": { it: "Monitor — un grafico per grandezza", en: "Monitor — one chart per quantity" },
+  "gal.monitor.d": { it: "Temperature, frequenze, carico, potenza, tensioni, ventola e memoria, con una barra per thread.", en: "Temperatures, clocks, load, power, voltages, fan and memory, with one bar per thread." },
+  "gal.giochi.t": { it: "Giochi — Mesa, scheduler e Proton", en: "Games — Mesa, scheduler and Proton" },
+  "gal.giochi.d": { it: "La nostra Mesa per lanciatore o di sistema, scx_bpfland durante il gioco, FSR 4 e GE-Proton 11.", en: "Our Mesa per launcher or system-wide, scx_bpfland while a game runs, FSR 4 and GE-Proton 11." },
   "gal.wukong.t": {
     it: "Black Myth: Wukong — 112 FPS",
     en: "Black Myth: Wukong — 112 FPS",

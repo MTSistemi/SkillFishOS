@@ -29,6 +29,17 @@ export default defineConfig({
     format: 'directory',
   },
   redirects: {
+    // The "Native apps" page is gone: those apps are the Control Center now.
+    // The old addresses were linked from the forum and from our own posts.
+    '/docs/app-native': '/docs/control-center',
+    '/en/docs/app-native': '/en/docs/control-center',
+    '/pl/docs/app-native': '/pl/docs/control-center',
+    '/uk/docs/app-native': '/uk/docs/control-center',
+    '/ru/docs/app-native': '/ru/docs/control-center',
+    '/es/docs/app-native': '/es/docs/control-center',
+    '/pt/docs/app-native': '/pt/docs/control-center',
+    '/de/docs/app-native': '/de/docs/control-center',
+    '/fr/docs/app-native': '/fr/docs/control-center',
     // Senza queste voci /<lang>/docs non genera un index.html e il server
     // risponde con l'elenco delle cartelle. PL e UK hanno l'interfaccia
     // tradotta ma i documenti in inglese, quindi puntano alle stesse pagine.

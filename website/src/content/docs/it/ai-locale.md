@@ -7,7 +7,7 @@ order: 2
 
 SkillFishOS include uno stack di **intelligenza artificiale locale**: modelli di chat e coding che girano interamente sulla GPU della BC-250, **senza cloud** e senza inviare dati all’esterno. Si accende e spegne con un clic, così da liberare GPU e RAM quando vuoi giocare.
 
-![Pannello AI di SkillFishOS — accende e spegne il motore LLM locale accelerato in Vulkan](/img/ai-panel.jpg)
+![Sezione AI del Control Center: motore, modelli, memoria e una prova di chat](/img/control-center-ai.png)
 
 ## Perché Vulkan e non ROCm
 
@@ -30,15 +30,20 @@ Cosa cambia in pratica:
 - **I modelli sono quelli di Hugging Face.** Unsloth scarica direttamente i **GGUF** dal catalogo completo di Hugging Face, invece di un registro curato: la scelta di modelli e di quantizzazioni disponibili è enormemente più ampia, comprese le build che il team Unsloth pubblica per conto proprio.
 - **Ascolta solo su localhost.** Da fuori ci si arriva attraverso la dashboard, che autentica via PAM: nessuna porta AI esposta sulla rete.
 
-> Dalla 26.06.3 la dashboard e il pannello AI pilotano **solo** Unsloth: i rami che comandavano Ollama via Docker sono stati rimossi, insieme a Docker stesso, che non è più installato. Chi ha ancora i container di Ollama da un'installazione precedente se li ritrova funzionanti finché ha Docker, ma non li gestisce più da qui: adatta i comandi. Il rilevamento non richiede configurazione.
 
 ## I modelli
 
-I modelli si scaricano **dentro Unsloth Studio**, dalla sua interfaccia. Regola pratica su questa scheda: i 16 GB di GDDR6 sono condivisi tra sistema e GPU, quindi conviene stare sotto gli ~11 GB di pesi per lasciare respiro al resto.
+I modelli sono file **GGUF** del catalogo di Hugging Face, e si scaricano da due posti: dalla sezione **AI** del [Control Center](/docs/control-center), scrivendo il nome del repository (per esempio `unsloth/Qwen3-4B-GGUF`) e scegliendo la variante dall'elenco, che riporta le dimensioni; oppure dall'Hub dentro Unsloth Studio, che ha la ricerca e le schede complete.
 
-## Accensione/spegnimento
+Regola pratica su questa scheda: i 16 GB di GDDR6 sono condivisi tra sistema e GPU, quindi conviene stare sotto gli ~11 GB di pesi per lasciare respiro al resto.
 
-Un **pannello AI** dedicato (app nativa, vedi [App native](/docs/app-native)) accende e spegne il motore con un clic; lo stesso interruttore c’è nella [dashboard web](/docs/controllo-remoto). Tieni presente che:
+## Accensione, aggiornamento e chiave
+
+La sezione **AI** del [Control Center](/docs/control-center) accende e spegne il motore, lo abilita all'avvio e mostra la versione con l'aggiornamento in un clic. Lo stesso c'è nel [Remote Manager](/docs/controllo-remoto), dal browser.
+
+Unsloth genera una password a caso quando si installa, e **si spegne da solo dopo un'ora** se non viene cambiata. Quel passaggio lo fa la sezione AI: scegli la password di Studio e la chiave API viene creata insieme. La chiave serve alla finestra e al Remote Manager per parlare col motore; i modelli sul disco, la memoria (VRAM, GTT, RAM, swap) e una prova di chat con i token al secondo misurati stanno lì accanto.
+
+Tieni presente che:
 
 - **AI e giochi non vanno usati insieme**: condividono la stessa GPU e la stessa memoria;
 - a motore spento, GPU e RAM tornano completamente disponibili per il gaming.

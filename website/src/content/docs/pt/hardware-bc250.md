@@ -34,7 +34,7 @@ A engenharia reversa é a [bc250-core-unlock (rw-r-r-0644)](https://github.com/r
 
 ## Destravamento das 40 CU
 
-A GPU tem 40 CU, mas o driver ativa só **24** por padrão. O SkillFishOS **leva a 40 em tempo real** (sem reiniciar): dá boot com o mínimo do driver e um serviço sobe para 40 na inicialização, ajustável pelo [Tuner](/pt/docs/app-native). A engenharia reversa do destravamento está documentada no [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); o controle em tempo real via `umr` é inspirado no [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (reescrito do zero).
+A GPU tem 40 CU, mas o driver ativa só **24** por padrão. O SkillFishOS **leva a 40 em tempo real** (sem reiniciar): dá boot com o mínimo do driver e um serviço sobe para 40 na inicialização, ajustável pelo [Tuner](/pt/docs/control-center). A engenharia reversa do destravamento está documentada no [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); o controle em tempo real via `umr` é inspirado no [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (reescrito do zero).
 
 > Com as 40 CU ativas, o SkillFishOS mede **11385 GFLOPS** FP32 (vkpeak) a frio, contra cerca de 6141 de uma configuração base de 24 CU: aproximadamente **+85%**.
 

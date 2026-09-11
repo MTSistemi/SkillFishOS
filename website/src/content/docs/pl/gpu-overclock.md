@@ -7,11 +7,11 @@ order: 2
 
 Na zwykłym APU taktowanie stroi się przez `amdgpu` w sysfs. Na BC-250 **to nie działa**: sterowanie idzie przez **SMU** (System Management Unit) i wymaga osobnych narzędzi. SkillFishOS ma je wszystkie w komplecie, z gotowymi bezpiecznymi profilami i systemem ochrony termicznej.
 
-> **Uwaga:** **Loteria krzemowa.** Każda liczba na tej stronie jest **zmierzona na naszej BC-250**. Każdy egzemplarz jest inny: jeden przyjmie głębsze obniżenie napięcia, drugi mniejsze. Dlatego SkillFishOS **zawsze startuje w profilu Stock** i pozwala wspinać się wyżej [Tunerem](/pl/docs/app-native), który sprawdza każdy profil **na twojej płycie**, z automatycznym testem i cofnięciem zmian.
+> **Uwaga:** **Loteria krzemowa.** Każda liczba na tej stronie jest **zmierzona na naszej BC-250**. Każdy egzemplarz jest inny: jeden przyjmie głębsze obniżenie napięcia, drugi mniejsze. Dlatego SkillFishOS **zawsze startuje w profilu Stock** i pozwala wspinać się wyżej [Tunerem](/pl/docs/control-center), który sprawdza każdy profil **na twojej płycie**, z automatycznym testem i cofnięciem zmian.
 
 ## Cztery profile
 
-[Tuner](/pl/docs/app-native) udostępnia **cztery gotowe profile**. Obraz ISO startuje w **Stock**; do pozostałych jest jedno kliknięcie po teście.
+[Tuner](/pl/docs/control-center) udostępnia **cztery gotowe profile**. Obraz ISO startuje w **Stock**; do pozostałych jest jedno kliknięcie po teście.
 
 | Profil | Procesor | Grafika | Uwagi |
 |---|---|---|---|
@@ -47,11 +47,11 @@ Procesor i grafika dzielą **ten sam krzem** i **ten sam budżet mocy**. Pod obc
 
 ## 40 jednostek obliczeniowych — na żywo
 
-BC-250 ma **40 jednostek** (20 WGP, 1 WGP = 2 CU), ale sterownik domyślnie włącza **24**. SkillFishOS podnosi je do 40 **w czasie pracy, bez restartu**: system startuje na wartości bazowej sterownika (24 CU), a usługa doprowadza go do 40 przy uruchamianiu; z [Tunera](/pl/docs/app-native) zmieniasz ich liczbę **na żywo** siatką kwadratów i profilami 24/32/40. Pierwsze 24 jednostki są zablokowane przez sterownik i zawsze włączone.
+BC-250 ma **40 jednostek** (20 WGP, 1 WGP = 2 CU), ale sterownik domyślnie włącza **24**. SkillFishOS podnosi je do 40 **w czasie pracy, bez restartu**: system startuje na wartości bazowej sterownika (24 CU), a usługa doprowadza go do 40 przy uruchamianiu; z [Tunera](/pl/docs/control-center) zmieniasz ich liczbę **na żywo** siatką kwadratów i profilami 24/32/40. Pierwsze 24 jednostki są zablokowane przez sterownik i zawsze włączone.
 
 Ze wszystkimi 40 jednostkami grafika osiąga **11385 GFLOPS** FP32 (vkpeak) na zimno, wobec ~**6141** przy bazowych 24 CU: **+85%**. Pod ciągłym obciążeniem (na gorąco) ustala się w okolicach **10214 GFLOPS**. Zmierzona przepustowość pamięci (clpeak) to **~350–367 GB/s**.
 
-> **Loteria krzemowa.** Na odzyskanych układach „z odrzutu” część jednostek może być słaba. [Tuner](/pl/docs/app-native) ma **„Test CU”**, który obciąża każdą parę i zgłasza błędy oraz zawieszenia grafiki, żebyś mógł potwierdzić, że twój układ utrzymuje wszystkie 40. (Mechanizm przez `umr`, zapisujący maski WGP — z podziękowaniem dla [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), napisane od nowa.)
+> **Loteria krzemowa.** Na odzyskanych układach „z odrzutu” część jednostek może być słaba. [Tuner](/pl/docs/control-center) ma **„Test CU”**, który obciąża każdą parę i zgłasza błędy oraz zawieszenia grafiki, żebyś mógł potwierdzić, że twój układ utrzymuje wszystkie 40. (Mechanizm przez `umr`, zapisujący maski WGP — z podziękowaniem dla [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), napisane od nowa.)
 
 ## Ochrona termiczna — limit 85 °C
 
@@ -74,7 +74,7 @@ Kiedy obciążenie **jest** ograniczone grafiką (np. *przelot* z testu Wukonga)
 
 ## I to wszystko bez terminala
 
-Taktowanie, obniżanie napięcia, wentylator i jednostki obliczeniowe stroi się z okna **Tunera**, mając cztery gotowe profile i **automatyczny test z cofnięciem zmian**, jeśli twoja płyta nie utrzyma wartości — zobacz [Własne aplikacje](/pl/docs/app-native). To zalecana droga: zacznij od Stock, przejdź na Performance, spróbuj Turbo albo Crazy, a Tuner sprawdzi wszystko na **twojej** BC-250.
+Taktowanie, obniżanie napięcia, wentylator i jednostki obliczeniowe stroi się z okna **Tunera**, mając cztery gotowe profile i **automatyczny test z cofnięciem zmian**, jeśli twoja płyta nie utrzyma wartości — zobacz [Control Center](/pl/docs/control-center). To zalecana droga: zacznij od Stock, przejdź na Performance, spróbuj Turbo albo Crazy, a Tuner sprawdzi wszystko na **twojej** BC-250.
 
 ## Źródła
 

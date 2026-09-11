@@ -34,7 +34,7 @@ Die Rückentwicklung stammt von [bc250-core-unlock (rw-r-r-0644)](https://github
 
 ## Freischalten der 40 CU
 
-Die GPU hat 40 CU, der Treiber aktiviert aber standardmäßig nur **24**. SkillFishOS **hebt sie im laufenden Betrieb auf 40** (ohne Neustart): der Start erfolgt mit dem Treiber-Grundwert, ein Dienst bringt sie beim Hochfahren auf 40, einstellbar im [Tuner](/de/docs/app-native). Die Rückentwicklung der Freischaltung ist in [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock) dokumentiert; die Steuerung im Betrieb über `umr` ist von [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) angeregt (von Grund auf neu geschrieben).
+Die GPU hat 40 CU, der Treiber aktiviert aber standardmäßig nur **24**. SkillFishOS **hebt sie im laufenden Betrieb auf 40** (ohne Neustart): der Start erfolgt mit dem Treiber-Grundwert, ein Dienst bringt sie beim Hochfahren auf 40, einstellbar im [Tuner](/de/docs/control-center). Die Rückentwicklung der Freischaltung ist in [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock) dokumentiert; die Steuerung im Betrieb über `umr` ist von [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) angeregt (von Grund auf neu geschrieben).
 
 > Mit 40 aktiven CU misst SkillFishOS aus dem kalten Zustand **11385 GFLOPS** FP32 (vkpeak) gegenüber rund 6141 bei einer Grundeinstellung mit 24 CU: etwa **+85%**.
 

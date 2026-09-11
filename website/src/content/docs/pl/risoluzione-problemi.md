@@ -36,7 +36,7 @@ Dźwięk przez DisplayPort działa, ale:
 
 ## Grafika wydaje się wolna / temperatury są wysokie
 
-- Sprawdź w [Tunerze](/pl/docs/app-native), czy **40 jednostek obliczeniowych** i zarządca SMU są aktywne.
+- Sprawdź w [Tunerze](/pl/docs/control-center), czy **40 jednostek obliczeniowych** i zarządca SMU są aktywne.
 - Pamiętaj, że chłodzenie jest na granicy: po dłuższym obciążeniu wchodzi **zabezpieczenie termiczne** (85 °C). Żeby testy były miarodajne, pozwól płycie ostygnąć między przebiegami (zobacz [GPU](/pl/docs/gpu-overclock)).
 - W grach **ograniczonych procesorem** obniżenie rozdzielczości nie podniesie liczby klatek.
 

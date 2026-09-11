@@ -5,7 +5,7 @@ group: Referência
 order: 4
 ---
 
-O SkillFishOS foi feito para **não** exigir o terminal: para o uso normal bastam o [Tuner](/pt/docs/app-native) e os aplicativos gráficos. Esta página é para quem quer **mexer** ou diagnosticar. Os comandos com privilégio usam `sudo`.
+O SkillFishOS foi feito para **não** exigir o terminal: para o uso normal bastam o [Tuner](/pt/docs/control-center) e os aplicativos gráficos. Esta página é para quem quer **mexer** ou diagnosticar. Os comandos com privilégio usam `sudo`.
 
 > Antes de experiências arriscadas, lembre-se da rede de segurança: snapshots Btrfs e volta atrás pelo menu do GRUB (veja [Armazenamento e snapshots](/pt/docs/storage-snapshot)).
 
@@ -30,7 +30,7 @@ cat /etc/cyan-skillfish-governor/config.toml               # pontos seguros de f
 nvtop        # ou: radeontop
 ```
 
-> Na BC-250 o controle da frequência **não** passa pelo sysfs padrão do amdgpu, e sim pelo **governador SMU**. Mude os valores pelo [Tuner](/pt/docs/app-native), não na mão.
+> Na BC-250 o controle da frequência **não** passa pelo sysfs padrão do amdgpu, e sim pelo **governador SMU**. Mude os valores pelo [Tuner](/pt/docs/control-center), não na mão.
 
 ## CPU — overclock e undervolt
 
@@ -52,7 +52,7 @@ cat /run/skillfish/cu_active # “40/40” (o HUD lê o mesmo)
 vulkaninfo | grep -i "deviceName\|driverName"   # a GPU como o Vulkan a vê (RADV)
 ```
 
-As CU são mais bem manejadas pela **grade** do [Tuner](/pt/docs/app-native) (clique e perfis, com o “Teste de CU”). As primeiras 24 são travadas pelo driver e ficam sempre ligadas.
+As CU são mais bem manejadas pela **grade** do [Tuner](/pt/docs/control-center) (clique e perfis, com o “Teste de CU”). As primeiras 24 são travadas pelo driver e ficam sempre ligadas.
 
 Medições rápidas (as mesmas que o Tuner usa):
 

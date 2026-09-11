@@ -34,7 +34,7 @@ La ingeniería inversa es [bc250-core-unlock (rw-r-r-0644)](https://github.com/r
 
 ## Desbloqueo de las 40 CU
 
-La GPU tiene 40 CU, pero el controlador activa solo **24** de serie. SkillFishOS **las lleva a 40 en caliente** (sin reiniciar): arranca con el mínimo del controlador y un servicio sube a 40 al inicio, ajustable desde el [Tuner](/es/docs/app-native). La ingeniería inversa del desbloqueo está documentada en [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); el control en caliente con `umr` se inspira en [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (reescrito desde cero).
+La GPU tiene 40 CU, pero el controlador activa solo **24** de serie. SkillFishOS **las lleva a 40 en caliente** (sin reiniciar): arranca con el mínimo del controlador y un servicio sube a 40 al inicio, ajustable desde el [Tuner](/es/docs/control-center). La ingeniería inversa del desbloqueo está documentada en [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); el control en caliente con `umr` se inspira en [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (reescrito desde cero).
 
 > Con las 40 CU activas, SkillFishOS mide **11385 GFLOPS** FP32 (vkpeak) en frío, frente a unos 6141 de una configuración base de 24 CU: alrededor de **+85%**.
 

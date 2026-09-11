@@ -56,7 +56,7 @@ sudo dd if=SkillFishOS_amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 - спарувати свої [контролери](/uk/docs/gaming) (DualShock 4 через Bluetooth або геймпад через USB);
 - додати свої ігри до [Steam/EmuDeck](/uk/docs/gaming);
 - увімкнути [локальний ШІ](/uk/docs/ai-locale), коли він знадобиться;
-- налаштувати залізо через [Tuner](/uk/docs/app-native), якщо схочете.
+- налаштувати залізо через [Tuner](/uk/docs/control-center), якщо схочете.
 
 ## Розмітка диска
 

@@ -38,7 +38,7 @@ Pas pour installer ; il en faudra une ensuite pour Steam, les mises à jour et l
 ## Performances et overclock
 
 **Pourquoi démarre-t-il « lentement », en Stock ?**
-Par sécurité : chaque BC-250 est différente (*loterie du silicium*). On monte de profil depuis le **[Tuner](/fr/docs/app-native)**, qui vérifie tout sur votre carte. Voir [GPU et overclock](/fr/docs/gpu-overclock).
+Par sécurité : chaque BC-250 est différente (*loterie du silicium*). On monte de profil depuis le **[Tuner](/fr/docs/control-center)**, qui vérifie tout sur votre carte. Voir [GPU et overclock](/fr/docs/gpu-overclock).
 
 **L'overclock est-il dangereux ?**
 Le Tuner applique un profil, le **teste** et **revient en arrière** si la carte ne tient pas ; le plafond de 85 °C et la garde thermique sont toujours actifs. C'est conçu pour être sûr.

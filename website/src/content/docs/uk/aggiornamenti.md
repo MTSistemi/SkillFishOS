@@ -13,7 +13,7 @@ SkillFishOS побудований на **Debian sid** (*unstable*) — гілц
 
 - оптимізоване **[ядро](/uk/docs/kernel)** (образ + заголовки);
 - **керівник SMU** й засоби розгону;
-- **власні програми** [Tuner і AI](/uk/docs/app-native);
+- **власні програми** [Control Center](/uk/docs/control-center);
 - **тема steampunk** і **оформлення марки**;
 - налаштування системи.
 

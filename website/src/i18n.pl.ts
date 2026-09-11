@@ -64,12 +64,10 @@ export const pl: Record<string, string> = {
   "s2.t": "Łatwa emulacja z EmuDeck",
   "s2.d":
     "EmuDeck instaluje i konfiguruje emulatory (RetroArch, Dolphin, PCSX2, PPSSPP, RPCS3 i inne) oraz frontend ES-DE w kilku kliknięciach. System daje narzędzia: gry i ROM-y dokładasz sam.",
-  "s4.t": "AI w domu, jednym kliknięciem",
-  "s4.d":
-    "Dedykowany panel włącza i wyłącza lokalny silnik AI na GPU (Vulkan). Czat webowy, terminal do kodowania i zarządzanie: sztuczna inteligencja działa u ciebie, a gdy chcesz grać — zwalnia GPU.",
-  "s5.t": "Strojenie na kliknięcie",
-  "s5.d":
-    "Tuner reguluje zegary, undervolt, wentylator i jednostki obliczeniowe za pomocą gotowych ustawień (Stock, Performance, Turbo, Crazy) oraz zabezpieczenia termicznego chroniącego sprzęt. Cała moc, bezpiecznie, bez wiersza poleceń.",
+  "s4.t": "AI w domu, w Control Center",
+  "s4.d": "Sekcja AI włącza lokalny silnik na GPU przez Vulkan, pobiera modele i mierzy tokeny na sekundę. Przed graniem się ją wyłącza i pamięć wraca do gry.",
+  "s5.t": "Strojenie jednym kliknięciem",
+  "s5.d": "Tuner rysuje krzywą napięcie/częstotliwość governora, z sufitem i trzema presetami. Zastosuj to próba na czas: bez potwierdzenia wraca poprzednia krzywa.",
 
   "hw.eye": "Sprzęt",
   "hw.h2": "Stworzony dla AMD BC-250.",
@@ -143,20 +141,16 @@ export const pl: Record<string, string> = {
   "gal.esde1.t": "ES-DE — frontend",
   "gal.esde1.d":
     "Frontend ES-DE do przeglądania i uruchamiania twoich bibliotek.",
-  "gal.ai.t": "Panel AI",
-  "gal.ai.d": "Włącz i wyłącz lokalny stos AI (Vulkan) jednym kliknięciem.",
-  "gal.tuner.t": "Tuner — jednostki obliczeniowe na żywo",
-  "gal.tuner.d":
-    "Siatka CU (zielone = aktywne, czerwone = wyłączone), ustawienia 24/32/40 i test, bez restartu.",
-  "gal.tunerctl.t": "Tuner — ustawienia, governor i kreatory",
-  "gal.tunerctl.d":
-    "Ustawienia Stock/Performance/Turbo/Crazy, panel „Mój krzem”, tryb governora Zrównoważony/Wydajność i kreatory „Znajdź maksimum” dla CPU i GPU.",
-  "gal.monitor.t": "Telemetria na żywo podczas testów",
-  "gal.monitor.d":
-    "Wykresy temperatury, częstotliwości, napięcia i wentylatora w czasie rzeczywistym.",
-  "gal.cutest.t": "Test CU — loteria krzemowa",
-  "gal.cutest.d":
-    "Sprawdza, czy wszystkie 40 CU wytrzymują obciążenie bez błędów (przydatne przy układach z odzysku).",
+  "gal.ai.t": "AI — Unsloth Studio na GPU",
+  "gal.ai.d": "Silnik, modele pobrane z Hubu, pamięć i próbny czat ze zmierzonymi tokenami na sekundę.",
+  "gal.tuner.t": "Tuner — krzywa governora",
+  "gal.tuner.d": "MHz i miliwolty: węzły przeciąga się albo wpisuje w tabeli, a Zastosuj to próba na czas.",
+  "gal.stato.t": "Stan — wszystko na jednym ekranie",
+  "gal.stato.d": "Jedna liczba na kafelek: GPU i sufit, CPU, jednostki obliczeniowe, wentylator, jądro i sterownik Vulkan.",
+  "gal.monitor.t": "Monitor — jeden wykres na wielkość",
+  "gal.monitor.d": "Temperatury, częstotliwości, obciążenie, moc, napięcia, wentylator i pamięć, ze słupkiem na wątek.",
+  "gal.giochi.t": "Gry — Mesa, scheduler i Proton",
+  "gal.giochi.d": "Nasza Mesa dla launchera albo systemowo, scx_bpfland podczas gry, FSR 4 i GE-Proton 11.",
   "gal.wukong.t": "Black Myth: Wukong — 112 FPS",
   "gal.wukong.d": "Średnia w 1080p na BC-250 (maks. 128, 1% low 101).",
   "gal.super.t": "Unigine Superposition — 12 938",

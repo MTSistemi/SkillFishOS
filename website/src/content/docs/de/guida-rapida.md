@@ -38,7 +38,7 @@ Einzelheiten und Fehlersuche → [Spiele](/de/docs/gaming) und [Fehlersuche](/de
 
 ## 5. (Freiwillig) Die Hardware ausreizen
 
-SkillFishOS startet im Profil **Stock**, um auf jeder Platine sicher zu sein. Wenn du mehr Leistung willst, öffne den **[Tuner](/de/docs/app-native)** und geh ein Profil höher:
+SkillFishOS startet im Profil **Stock**, um auf jeder Platine sicher zu sein. Wenn du mehr Leistung willst, öffne den **[Tuner](/de/docs/control-center)** und geh ein Profil höher:
 
 **Stock → Performance → Turbo → Crazy**
 

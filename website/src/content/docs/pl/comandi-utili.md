@@ -5,7 +5,7 @@ group: Materiały
 order: 4
 ---
 
-SkillFishOS jest pomyślany tak, żeby terminal **nie** był potrzebny: do normalnego używania wystarczają [Tuner](/pl/docs/app-native) i pozostałe aplikacje graficzne. Ta strona jest dla tych, którzy chcą **pogrzebać** albo zdiagnozować problem. Polecenia wymagające uprawnień używają `sudo`.
+SkillFishOS jest pomyślany tak, żeby terminal **nie** był potrzebny: do normalnego używania wystarczają [Tuner](/pl/docs/control-center) i pozostałe aplikacje graficzne. Ta strona jest dla tych, którzy chcą **pogrzebać** albo zdiagnozować problem. Polecenia wymagające uprawnień używają `sudo`.
 
 > Przed ryzykownymi eksperymentami pamiętaj o siatce bezpieczeństwa: migawki Btrfs i cofanie zmian z menu GRUB (zobacz [Dyski i migawki](/pl/docs/storage-snapshot)).
 
@@ -30,7 +30,7 @@ cat /etc/cyan-skillfish-governor/config.toml               # bezpieczne punkty c
 nvtop        # albo: radeontop
 ```
 
-> Na BC-250 sterowanie częstotliwością **nie** idzie przez standardowe sysfs amdgpu, tylko przez **zarządcę SMU**. Wartości zmieniaj [Tunerem](/pl/docs/app-native), a nie ręcznie.
+> Na BC-250 sterowanie częstotliwością **nie** idzie przez standardowe sysfs amdgpu, tylko przez **zarządcę SMU**. Wartości zmieniaj [Tunerem](/pl/docs/control-center), a nie ręcznie.
 
 ## Procesor — podkręcanie i obniżanie napięcia
 
@@ -52,7 +52,7 @@ cat /run/skillfish/cu_active # „40/40” (odczytuje to również HUD)
 vulkaninfo | grep -i "deviceName\|driverName"   # grafika widziana przez Vulkana (RADV)
 ```
 
-Jednostkami najwygodniej zarządzać z **siatki** w [Tunerze](/pl/docs/app-native) (klikanie + profile, z „Testem CU”). Pierwsze 24 są zablokowane przez sterownik i zawsze włączone.
+Jednostkami najwygodniej zarządzać z **siatki** w [Tunerze](/pl/docs/control-center) (klikanie + profile, z „Testem CU”). Pierwsze 24 są zablokowane przez sterownik i zawsze włączone.
 
 Szybkie testy (te same, których używa Tuner):
 

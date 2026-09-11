@@ -36,7 +36,7 @@ DisplayPort audio works, but:
 
 ## The GPU seems slow / temperatures are high
 
-- Check in the [Tuner](/en/docs/app-native) that the **40 CUs** and the SMU governor are active.
+- Check in the [Tuner](/en/docs/control-center) that the **40 CUs** and the SMU governor are active.
 - Remember the cooling is marginal: after prolonged load the **thermal-guard** (85 °C) kicks in. For valid benchmarks, let the board cool between runs (see [GPU](/en/docs/gpu-overclock)).
 - For **CPU-bound** games, lowering the resolution won't raise the FPS.
 

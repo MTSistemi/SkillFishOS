@@ -13,7 +13,7 @@ the menu (SkillFishOS → Control Center) or with `skillfish-control-center`.
 | **Profiles** | Quiet / Balanced / Performance: ceiling, CPU, fan preset and scheduler in one click. Save the current state as your own. |
 | **Kernel** | The installed kernels, the default, boot once, uninstall. |
 | **Snapshots** | The system snapshots and the btrfs maintenance schedule. |
-| **AI** | Unsloth Studio on Vulkan: on/off, hardware, the GTT limit. |
+| **AI** | Unsloth Studio on Vulkan: engine on/off and at-boot, version and update, first sign-in and API key, models on disk and GGUF downloads, a quick chat with measured tok/s, memory (VRAM/GTT/RAM/swap, GTT limit slider) and network reachability. |
 | **Emulators** | EmuDeck, or the emulators one by one from Flathub. |
 | **Console** | Steam Big Picture inside gamescope, now or from the login screen. |
 | **ISO** | Disk images mounted through udisks. |
@@ -51,8 +51,8 @@ The panels open on demand:
   kept on by the driver. Type the number of CUs you want (24 to 40, in pairs)
   or click the cells; "Test CU" turns the extra pairs on one at a time under
   vkpeak and reports errors.
-- **VRAM**: the UMA split in the CMOS, any value from 512 MB, applied at the
-  next boot.
+- **VRAM**: the UMA split in the CMOS, any value from 512 MB to 12 GB, with
+  presets at 512 MB, 1, 2, 4, 6 and 8 GB, applied at the next boot.
 - **Advanced**: the governor's own knobs (ascent margin, step, thermal and
   power thresholds, droop).
 - **Test**: vkpeak and the helper log.
@@ -67,6 +67,39 @@ instant. REC writes a `.sfmon` (CSV) that Open reloads with a scrubber; CSV
 exports it for a spreadsheet. The window can be shrunk: below 1150 px the
 charts stack in one column, below 1250 px the Tuner moves its readouts above
 the curve, and cards everywhere reflow to fewer columns.
+
+## AI
+
+Unsloth Studio (llama.cpp on Vulkan — the only GPU path on `gfx1013`, ROCm
+does not support it) run from one section:
+
+- **Engine**: on/off, and "at boot".
+- **Version**: the installed Unsloth version, an update check, and a
+  one-click **Update** that reruns the official installer
+  (`https://unsloth.ai/install.sh`, with `UNSLOTH_FORCE_VULKAN=1`) through
+  `skillfish-unsloth-update`, in the user's home — never `/root`.
+- **First sign-in**: Unsloth generates a random initial password at install
+  and shuts itself down after an hour if it isn't changed; the window lets
+  the user choose the Studio password and creates the API key in the same
+  step.
+- **API key**: created from the Studio password, or pasted in — shared with
+  the Remote Manager at `/etc/skillfish/unsloth.key` (root, mode 0600); the
+  window keeps its own copy at `~/.config/skillfish/unsloth.key`.
+- **Models**: what's on disk, with quantization and size; download GGUFs
+  from the Hugging Face Hub by repository id (e.g. `unsloth/Qwen3-4B-GGUF`),
+  with the available variants and their sizes listed.
+- **Quick chat**: a small chat over the OpenAI-compatible API
+  (`http://127.0.0.1:8888/v1`) with measured tokens per second. The full
+  chat, Chat with Files (RAG), the Hub page, parallel chats and Deep
+  Research stay inside Studio's own UI at `http://localhost:8888`.
+- **Memory**: VRAM, GTT, RAM, swap and the model budget, plus a GTT limit
+  slider — the kernel parameter `ttm.pages_limit`, applied after a reboot.
+- **Network**: "reachable from the local network" sets `UNSLOTH_BIND=0.0.0.0`
+  and `UNSLOTH_PARALLEL=<slots>` in `/etc/default/skillfish-unsloth`, read by
+  `skillfish-unsloth.service`. Studio keeps its own login regardless.
+
+See [AI.md](AI.md) for why Vulkan and not ROCm, and the memory tuning behind
+the GTT limit.
 
 ## Our Mesa as the system driver
 

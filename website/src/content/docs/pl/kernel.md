@@ -36,7 +36,7 @@ ttm.page_pool_size=1572864
 
 > **A co z DisplayPort?** HPD na BC-250 jest zepsute (zobacz [sprzęt](/pl/docs/hardware-bc250)), ale SkillFishOS **nie** używa parametru `video=DP-1:e`: usługa `skillfish-dp-hotswap` pilnuje EDID i włącza wyjście z powrotem, gdy monitor wraca. To obejmuje również włączenie monitora po płycie, czego sam parametr nie załatwia.
 
-> **Jednostki obliczeniowe na żywo.** SkillFishOS nie używa już parametru `amdgpu.bc250_cc_write_mode=3` (który przypinał 40 CU przy starcie i blokował zmiany w czasie pracy). System startuje teraz na wartości bazowej sterownika (24 CU), a usługa podnosi **40 CU na żywo** przy uruchamianiu; zmienisz je bez restartu z [Tunera](/pl/docs/app-native). Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
+> **Jednostki obliczeniowe na żywo.** SkillFishOS nie używa już parametru `amdgpu.bc250_cc_write_mode=3` (który przypinał 40 CU przy starcie i blokował zmiany w czasie pracy). System startuje teraz na wartości bazowej sterownika (24 CU), a usługa podnosi **40 CU na żywo** przy uruchamianiu; zmienisz je bez restartu z [Tunera](/pl/docs/control-center). Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
 
 ## Jądra, których lepiej unikać
 

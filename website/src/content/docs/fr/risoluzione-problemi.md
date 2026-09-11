@@ -36,7 +36,7 @@ Le son par DisplayPort fonctionne, mais :
 
 ## Le GPU semble lent, les températures sont hautes
 
-- Vérifiez dans le [Tuner](/fr/docs/app-native) que les **40 CU** et le gouverneur SMU sont actifs.
+- Vérifiez dans le [Tuner](/fr/docs/control-center) que les **40 CU** et le gouverneur SMU sont actifs.
 - Rappelez-vous que le refroidissement est juste : après une charge prolongée la **garde thermique** (85 °C) entre en jeu. Pour des mesures valables, laissez la carte refroidir entre les essais (voir [GPU](/fr/docs/gpu-overclock)).
 - Pour les jeux **limités par le CPU**, baisser la définition ne fera pas monter les images par seconde.
 

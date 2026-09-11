@@ -7,11 +7,11 @@ order: 2
 
 En una APU normal las frecuencias se ajustan por el sysfs de `amdgpu`. En la BC-250 **eso no funciona**: el control pasa por la **SMU** (System Management Unit) y necesita herramientas propias. SkillFishOS las trae todas, preconfiguradas con perfiles seguros y un sistema de protección térmica.
 
-> **Aviso:** **lotería del silicio.** Cada cifra de esta página está **medida en nuestra BC-250**. Cada placa es distinta: una aguanta un undervolt más profundo, otra menos. Por eso SkillFishOS **arranca siempre en el perfil Stock** y te deja subir desde el [Tuner](/es/docs/app-native), que valida cada perfil **en tu placa** con una prueba automática y vuelta atrás.
+> **Aviso:** **lotería del silicio.** Cada cifra de esta página está **medida en nuestra BC-250**. Cada placa es distinta: una aguanta un undervolt más profundo, otra menos. Por eso SkillFishOS **arranca siempre en el perfil Stock** y te deja subir desde el [Tuner](/es/docs/control-center), que valida cada perfil **en tu placa** con una prueba automática y vuelta atrás.
 
 ## Los cuatro perfiles
 
-El [Tuner](/es/docs/app-native) ofrece **cuatro perfiles**. La ISO arranca en **Stock**; los demás están a un clic tras la prueba.
+El [Tuner](/es/docs/control-center) ofrece **cuatro perfiles**. La ISO arranca en **Stock**; los demás están a un clic tras la prueba.
 
 | Perfil | CPU | GPU | Notas |
 |---|---|---|---|
@@ -47,11 +47,11 @@ CPU y GPU comparten el **mismo chip** y el **mismo presupuesto de potencia**. Co
 
 ## Las 40 unidades de cómputo, en caliente
 
-La BC-250 tiene **40 CU** (20 WGP, 1 WGP = 2 CU), pero el controlador habilita **24** por defecto. SkillFishOS las lleva a 40 **en caliente, sin reiniciar**: el sistema arranca en el mínimo del controlador (24 CU) y un servicio las sube a 40 al inicio; desde el [Tuner](/es/docs/app-native) ajustas el número **en vivo** con una rejilla de casillas y perfiles de 24/32/40. Las primeras 24 están fijadas por el controlador y siempre encendidas.
+La BC-250 tiene **40 CU** (20 WGP, 1 WGP = 2 CU), pero el controlador habilita **24** por defecto. SkillFishOS las lleva a 40 **en caliente, sin reiniciar**: el sistema arranca en el mínimo del controlador (24 CU) y un servicio las sube a 40 al inicio; desde el [Tuner](/es/docs/control-center) ajustas el número **en vivo** con una rejilla de casillas y perfiles de 24/32/40. Las primeras 24 están fijadas por el controlador y siempre encendidas.
 
 Con las 40 CU la GPU mide **11385 GFLOPS** FP32 (vkpeak) en frío, frente a unos **6141** con las 24 de partida: **+85 %**. Bajo esfuerzo sostenido (en caliente) se asienta en torno a **10214 GFLOPS**. El ancho de banda de memoria medido (clpeak) es de **~350–367 GB/s**.
 
-> **Lotería del silicio.** En chips recuperados o de «descarte» algunas CU pueden ser flojas. El [Tuner](/es/docs/app-native) trae una **«Prueba de CU»** que esfuerza cada pareja y señala fallos o cuelgues de la GPU, para confirmar que tu chip aguanta las 40. (Mecanismo con `umr`, escribiendo las máscaras WGP; crédito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementación propia.)
+> **Lotería del silicio.** En chips recuperados o de «descarte» algunas CU pueden ser flojas. El [Tuner](/es/docs/control-center) trae una **«Prueba de CU»** que esfuerza cada pareja y señala fallos o cuelgues de la GPU, para confirmar que tu chip aguanta las 40. (Mecanismo con `umr`, escribiendo las máscaras WGP; crédito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementación propia.)
 
 ## Protección térmica: el tope de 85 °C
 
@@ -74,7 +74,7 @@ Cuando la carga **sí** está limitada por la GPU (por ejemplo el *vuelo de cám
 
 ## Todo esto, sin terminal
 
-Frecuencias, undervolt, ventilador y unidades de cómputo se ajustan desde la interfaz del **Tuner**, con los cuatro perfiles listos y **prueba automática con vuelta atrás** si tu placa no aguanta un valor; ver [Aplicaciones propias](/es/docs/app-native). Es la vía recomendada: empieza en Stock, pasa a Performance, prueba Turbo o Crazy, y el Tuner lo valida todo en **tu** BC-250.
+Frecuencias, undervolt, ventilador y unidades de cómputo se ajustan desde la interfaz del **Tuner**, con los cuatro perfiles listos y **prueba automática con vuelta atrás** si tu placa no aguanta un valor; ver [Control Center](/es/docs/control-center). Es la vía recomendada: empieza en Stock, pasa a Performance, prueba Turbo o Crazy, y el Tuner lo valida todo en **tu** BC-250.
 
 ## Fuentes
 

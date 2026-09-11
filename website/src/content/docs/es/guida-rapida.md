@@ -38,7 +38,7 @@ Detalles y solución de problemas → [Juegos](/es/docs/gaming) y [Solución de 
 
 ## 5. (Opcional) Exprimir el hardware
 
-SkillFishOS arranca con el perfil **Stock** para ir seguro en cualquier placa. Cuando quieras más rendimiento abre el **[Tuner](/es/docs/app-native)** y sube un perfil:
+SkillFishOS arranca con el perfil **Stock** para ir seguro en cualquier placa. Cuando quieras más rendimiento abre el **[Tuner](/es/docs/control-center)** y sube un perfil:
 
 **Stock → Performance → Turbo → Crazy**
 

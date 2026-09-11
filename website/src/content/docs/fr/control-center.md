@@ -17,7 +17,7 @@ Tous les outils SkillFishOS tiennent dans une fenêtre. Elle s'ouvre depuis le m
 - **Profils**: plafond, CPU, ventilateur et ordonnanceur en un clic ; enregistrez les vôtres.
 - **Noyau**: les noyaux installés, celui par défaut, démarrer une fois, désinstaller.
 - **Instantanés**: les instantanés du système et l'entretien btrfs planifié.
-- **IA**: Unsloth Studio sur Vulkan : marche/arrêt, matériel, la limite GTT.
+- **IA**: Unsloth Studio sur Vulkan : moteur, mise à jour, modèles depuis le Hub Hugging Face, essai de chat, mémoire et réseau.
 - **Émulateurs**: EmuDeck, ou les émulateurs un par un depuis Flathub.
 - **Console**: Steam Big Picture dans gamescope, maintenant ou depuis l'écran de connexion.
 - **ISO**: images disque montées via udisks.
@@ -33,7 +33,7 @@ Les panneaux s'ouvrent à la demande :
 - **CPU** : fréquence, palier d'undervolt (6,25 mV chacun) et limite thermique, chacun avec un curseur et un champ numérique au pas de 1. *Suggérer UV* descend l'undervolt de deux paliers à la fois avec douze secondes de charge par palier ; *Trouver mon max* monte de 3600 à 4000 MHz ; *Test 60 s* charge les valeurs actuelles. Chaque essai affiche un compte à rebours et un bouton Stop ; les valeurs testées ne sont jamais écrites sur le disque, un blocage redémarre donc avec les précédentes. Au-dessus de 3500 MHz avec huit cœurs le gain est nul : c'est la chaleur qui commande.
 - **Cœurs** : quels cœurs sont actifs, le SMT, le déblocage des 8 cœurs (6c/12t devient 8c/16t, +20 % mesuré) et *Avant le démarrage (EFI)* : le déblocage fait avant GRUB en un seul démarrage, au lieu du redémarrage supplémentaire du service dans le système.
 - **CU** : les 40 unités de calcul en 20 cases (paires) : vert allumé, rouge éteint, gris gardé allumé par le pilote. Tapez le nombre de CU voulu (24 à 40, par paires) ou cliquez les cases ; *Test CU* allume les paires supplémentaires une à une sous vkpeak et signale les erreurs, pour la loterie du silicium.
-- **VRAM** : le partage UMA dans la CMOS, appliqué au prochain démarrage. Avec les 512 Mo dynamiques certains jeux choisissent des textures basses : si elles sont floues, essayez 4 ou 6 Go fixes.
+- **VRAM** : le partage UMA dans la CMOS, appliqué au prochain démarrage. Avec les 512 Mo dynamiques certains jeux choisissent des textures basses : si elles sont floues, essayez 4 ou 6 Go fixes. De 512 Mo à 12 Go, avec les préréglages 512 Mo, 1, 2, 4, 6 et 8 Go.
 - **Avancé** : les réglages propres du governor : marge en montée, pas, confirmations en descente, seuils thermiques et de puissance, droop.
 - **Test** : vkpeak et le journal de l'assistant.
 
@@ -47,6 +47,17 @@ Un graphique par grandeur, chacun avec sa vraie échelle : températures (CPU, G
 - **Ordonnanceur** : scx_bpfland, chargé seulement pendant qu'un jeu tourne (GameMode le lance et l'arrête) : +1,5-2 % dans Cyberpunk et des images plus régulières. Si le noyau l'éjecte deux fois, le service s'arrête jusqu'à la remise à zéro du compteur : c'est la ligne « Éjecté par le noyau ».
 - **FSR 4** : via OptiScaler sur le chemin DLSS du jeu. GE-Proton 11 télécharge OptiScaler tout seul quand il trouve `PROTON_USE_OPTISCALER=1`, le jeu doit être réglé sur DLSS, et la bibliothèque FSR 4 d'AMD (`amdxcffx64.dll`, du pilote Windows d'AMD) va à côté du jeu. XeSS, quand un jeu l'intègre, coûte autant que FSR 3 en 1080p.
 - **Proton** : les versions GE-Proton 11 ; Installer en télécharge une (environ 500 Mo) dans les dossiers de Steam et Heroic, Par défaut la choisit. Steam doit être fermé pour que son défaut soit écrit.
+
+## IA
+
+Le moteur est **Unsloth Studio** : il fait tourner les modèles GGUF avec llama.cpp sur le backend **Vulkan**, qui sur le gfx1013 de la BC-250 est la seule voie accélérée, car ROCm ne le prend pas en charge. Mesuré sur la carte avec Qwen3-1.7B Q4_K_M : 210 tokens par seconde contre 41 sur le seul CPU.
+
+- **Moteur** : allumé, éteint, au démarrage. Allumé, il garde la mémoire du GPU : éteins-le avant de jouer. À côté se trouvent la version, la vérification des mises à jour et *Mettre à jour*, qui relance l'installateur officiel avec le paquet Vulkan de llama.cpp.
+- **Accès** : Unsloth génère un mot de passe au hasard à l'installation, et s'éteint tout seul au bout d'une heure s'il n'est pas changé. La première connexion se fait ici : tu choisis le mot de passe de Studio, la clé API est créée en même temps et partagée avec le Remote Manager.
+- **Modèles** : ceux qui sont sur le disque, avec quantification et taille. Pour en télécharger un, il faut le nom du dépôt sur Hugging Face (par exemple `unsloth/Qwen3-4B-GGUF`) et la variante choisie dans la liste, tailles comprises.
+- **Chat** : un essai rapide sur l'API compatible OpenAI (`http://127.0.0.1:8888/v1`), avec les tokens par seconde mesurés. Le chat complet, avec les fichiers et la recherche, est dans Studio.
+- **Mémoire** : VRAM, GTT, RAM, swap et le budget du modèle. La limite du GTT est un paramètre du noyau : elle s'applique au redémarrage.
+- **Réseau** : ouvert sur le réseau local, Studio répond aussi aux autres appareils de la maison, avec son propre utilisateur et mot de passe. Les chats en parallèle sont les slots de llama-server.
 
 ## Ventilateur, profils et le reste
 

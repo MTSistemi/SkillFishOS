@@ -38,7 +38,7 @@ Detalhes e solução de problemas → [Jogos](/pt/docs/gaming) e [Solução de p
 
 ## 5. (Opcional) Espremer o hardware
 
-O SkillFishOS dá boot no perfil **Stock** para ficar seguro em qualquer placa. Quando quiser mais desempenho, abra o **[Tuner](/pt/docs/app-native)** e suba um perfil:
+O SkillFishOS dá boot no perfil **Stock** para ficar seguro em qualquer placa. Quando quiser mais desempenho, abra o **[Tuner](/pt/docs/control-center)** e suba um perfil:
 
 **Stock → Performance → Turbo → Crazy**
 

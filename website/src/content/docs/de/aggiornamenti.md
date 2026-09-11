@@ -13,7 +13,7 @@ Die heikelsten Teile bauen und verteilen **wir selbst**, aus einer **eigenen, si
 
 - den optimierten **[Kernel](/de/docs/kernel)** (Abbild und Header);
 - den **SMU-Governor** und die Werkzeuge zur Übertaktung;
-- die **eigenen Anwendungen** [Tuner und AI](/de/docs/app-native);
+- die **eigenen Anwendungen** [Control Center](/de/docs/control-center);
 - die **Steampunk-Gestaltung** und das **Erscheinungsbild**;
 - die Systemkonfiguration.
 

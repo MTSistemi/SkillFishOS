@@ -38,7 +38,7 @@ Para instalar, não; depois será necessária para a Steam, as atualizações e 
 ## Desempenho e overclock
 
 **Por que ele começa “devagar”, no Stock?**
-Por segurança: cada BC-250 é diferente (*loteria do silício*). Os perfis são elevados pelo **[Tuner](/pt/docs/app-native)**, que valida tudo na sua própria placa. Veja [GPU e overclock](/pt/docs/gpu-overclock).
+Por segurança: cada BC-250 é diferente (*loteria do silício*). Os perfis são elevados pelo **[Tuner](/pt/docs/control-center)**, que valida tudo na sua própria placa. Veja [GPU e overclock](/pt/docs/gpu-overclock).
 
 **Overclock é perigoso?**
 O Tuner aplica um perfil, **testa** e **volta atrás** se a placa não aguentar; o teto de 85 °C e a proteção térmica ficam sempre ligados. Foi feito para ser seguro.

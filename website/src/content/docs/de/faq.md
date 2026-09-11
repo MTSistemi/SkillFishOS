@@ -38,7 +38,7 @@ Zum Installieren nicht; danach für Steam, Aktualisierungen und die KI schon.
 ## Leistung und Übertaktung
 
 **Warum startet es „langsam“, im Profil Stock?**
-Aus Sicherheit: jede BC-250 ist anders (*Silizium-Lotterie*). Die Profile hebst du im **[Tuner](/de/docs/app-native)** an, der alles auf deiner eigenen Platine prüft. Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
+Aus Sicherheit: jede BC-250 ist anders (*Silizium-Lotterie*). Die Profile hebst du im **[Tuner](/de/docs/control-center)** an, der alles auf deiner eigenen Platine prüft. Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
 
 **Ist Übertakten gefährlich?**
 Der Tuner setzt ein Profil, **prüft** es und **nimmt es zurück**, wenn die Platine nicht mitmacht; die Grenze von 85 °C und der Temperaturschutz sind immer aktiv. Es ist so gebaut, dass es sicher ist.

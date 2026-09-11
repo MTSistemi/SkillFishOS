@@ -38,7 +38,7 @@ Détails et dépannage → [Jeu](/fr/docs/gaming) et [Dépannage](/fr/docs/risol
 
 ## 5. (Facultatif) Pousser le matériel
 
-SkillFishOS démarre sur le profil **Stock** pour être sûr sur n'importe quelle carte. Quand vous voulez plus de performances, ouvrez le **[Tuner](/fr/docs/app-native)** et montez d'un profil :
+SkillFishOS démarre sur le profil **Stock** pour être sûr sur n'importe quelle carte. Quand vous voulez plus de performances, ouvrez le **[Tuner](/fr/docs/control-center)** et montez d'un profil :
 
 **Stock → Performance → Turbo → Crazy**
 

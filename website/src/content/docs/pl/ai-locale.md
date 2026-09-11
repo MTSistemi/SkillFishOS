@@ -7,7 +7,7 @@ order: 2
 
 SkillFishOS ma w zestawie **lokalną AI**: modele do rozmowy i do kodu działające w całości na grafice BC-250, **bez chmury**, bez wysyłania czegokolwiek na zewnątrz. Jedno kliknięcie włącza je i wyłącza, więc grafika i pamięć wracają do dyspozycji, gdy chcesz zagrać.
 
-![Panel SkillFishOS AI — włącza i wyłącza lokalny silnik modeli przyspieszany Vulkanem](/img/ai-panel.jpg)
+![Sekcja SI w Control Center: silnik, modele, pamięć i próbny czat](/img/control-center-ai.png)
 
 ## Dlaczego Vulkan, a nie ROCm
 
@@ -30,18 +30,23 @@ Co się przez to zmienia:
 - **Modele przychodzą z Hugging Face.** Unsloth pobiera pliki **GGUF** wprost z pełnego katalogu Hugging Face, a nie z wybranego rejestru, więc wachlarz dostępnych modeli i kwantyzacji jest nieporównanie szerszy — łącznie z tym, co publikuje sam zespół Unsloth.
 - **Nasłuchuje tylko lokalnie.** Z zewnątrz dociera się przez panel sterowania, który uwierzytelnia przez PAM: żaden port AI nie jest wystawiony do sieci.
 
-> Od 26.06.3 panel sterowania i panel AI obsługują **wyłącznie** Unsloth: gałęzie kodu sterujące Ollamą przez Dockera zniknęły, a razem z nimi sam Docker, który nie jest już instalowany. Kto trzyma jeszcze kontenery Ollamy z wcześniejszej instalacji, może je uruchamiać, dopóki zostawi sobie Dockera, ale nie zarządza nimi już stąd. Nic nie trzeba konfigurować.
 
 ## Modele
 
-Modele pobiera się **wewnątrz Unsloth Studio**, z jego własnego interfejsu. Praktyczna zasada na tej płycie: 16 GB GDDR6 dzieli się między system i grafikę, więc trzymanie się poniżej ~11 GB samych wag zostawia miejsce na całą resztę.
+Modele to pliki **GGUF** z katalogu Hugging Face i pochodzą z dwóch miejsc: z sekcji **SI** [Control Center](/pl/docs/control-center), gdzie wpisujesz nazwę repozytorium (na przykład `unsloth/Qwen3-4B-GGUF`) i wybierasz wariant z listy, z rozmiarami; albo z Hubu w Unsloth Studio, który ma wyszukiwarkę i pełne karty modeli.
 
-## Włączanie i wyłączanie
+Praktyczna zasada na tej płycie: 16 GB GDDR6 dzieli system z GPU, więc lepiej zostać poniżej ~11 GB wag, żeby reszcie zostało miejsce.
 
-Osobny **panel AI** (własna aplikacja, zobacz [Własne aplikacje](/pl/docs/app-native)) uruchamia i zatrzymuje silnik jednym kliknięciem; ten sam przełącznik jest w [panelu webowym](/pl/docs/controllo-remoto). Pamiętaj:
+## Włączanie, aktualizacja i klucz
 
-- **AI i gry nie powinny chodzić razem**: dzielą tę samą grafikę i tę samą pamięć;
-- przy wyłączonym silniku grafika i pamięć są znowu w pełni dostępne do grania.
+Sekcja **SI** w [Control Center](/pl/docs/control-center) włącza i wyłącza silnik, włącza go przy starcie i pokazuje wersję z aktualizacją jednym kliknięciem. To samo jest w [Remote Managerze](/pl/docs/controllo-remoto), z przeglądarki.
+
+Unsloth przy instalacji tworzy losowe hasło i **wyłącza się sam po godzinie**, jeśli hasło nie zostanie zmienione. Ten krok wykonuje sekcja SI: wybierasz hasło do Studio, a klucz API powstaje razem z nim. Kluczem okno i Remote Manager rozmawiają z silnikiem; modele na dysku, pamięć (VRAM, GTT, RAM, swap) i próbny czat ze zmierzonymi tokenami na sekundę są obok.
+
+Pamiętaj, że:
+
+- **SI i gry nie chodzą razem**: dzielą to samo GPU i tę samą pamięć;
+- przy wyłączonym silniku GPU i RAM wracają w całości do grania.
 
 ## Źródła
 

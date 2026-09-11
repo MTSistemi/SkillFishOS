@@ -56,7 +56,7 @@ sudo dd if=SkillFishOS_amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 - связать [геймпады](/ru/docs/gaming) (DualShock 4 по Bluetooth или геймпад по USB);
 - добавить свои игры в [Steam или EmuDeck](/ru/docs/gaming);
 - включить [локальный ИИ](/ru/docs/ai-locale), когда понадобится;
-- при желании подстроить железо через [Tuner](/ru/docs/app-native).
+- при желании подстроить железо через [Tuner](/ru/docs/control-center).
 
 ## Разметка диска
 

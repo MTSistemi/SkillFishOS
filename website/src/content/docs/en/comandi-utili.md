@@ -5,7 +5,7 @@ group: Reference
 order: 4
 ---
 
-SkillFishOS is designed **not** to require the terminal: the [Tuner](/en/docs/app-native) and the graphical apps are enough for normal use. This page is for those who want to **tinker** or diagnose. Privileged commands use `sudo`.
+SkillFishOS is designed **not** to require the terminal: the [Tuner](/en/docs/control-center) and the graphical apps are enough for normal use. This page is for those who want to **tinker** or diagnose. Privileged commands use `sudo`.
 
 > Before risky experiments, remember the safety net: Btrfs snapshots and rollback from the GRUB menu (see [Storage & snapshots](/en/docs/storage-snapshot)).
 
@@ -30,7 +30,7 @@ cat /etc/cyan-skillfish-governor/config.toml               # freq/volt safe-poin
 nvtop        # or: radeontop
 ```
 
-> On the BC-250 frequency control does **not** go through standard amdgpu sysfs but through the **SMU governor**. Change the values from the [Tuner](/en/docs/app-native), not by hand.
+> On the BC-250 frequency control does **not** go through standard amdgpu sysfs but through the **SMU governor**. Change the values from the [Tuner](/en/docs/control-center), not by hand.
 
 ## CPU — overclock/undervolt
 
@@ -52,7 +52,7 @@ cat /run/skillfish/cu_active # "40/40" (also read by the HUD)
 vulkaninfo | grep -i "deviceName\|driverName"   # GPU as seen by Vulkan (RADV)
 ```
 
-CUs are best managed from the [Tuner](/en/docs/app-native) **grid** (click + presets, with "CU test"). The first 24 are driver-locked and always on.
+CUs are best managed from the [Tuner](/en/docs/control-center) **grid** (click + presets, with "CU test"). The first 24 are driver-locked and always on.
 
 Quick benchmarks (the same ones the Tuner uses):
 

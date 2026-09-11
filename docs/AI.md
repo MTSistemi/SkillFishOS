@@ -1,6 +1,6 @@
 # Local AI on the integrated GPU
 
-The BC‑250's 16 GB of shared GDDR6 makes it a surprisingly capable local‑LLM box. SkillFishOS runs **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU, with a one‑click brass panel to start/stop it (so it gives the GPU back when you want to game).
+The BC‑250's 16 GB of shared GDDR6 makes it a surprisingly capable local‑LLM box. SkillFishOS runs **Unsloth Studio** accelerated in **Vulkan** on the integrated GPU, controlled from the **AI** section of the Control Center — and mirrored in the Remote Manager — so it gives the GPU back when you want to game.
 
 ## Why Vulkan, not ROCm
 
@@ -38,8 +38,8 @@ The venv is built against **uv's bundled Python**, deliberately: an earlier inst
 Earlier releases ran Ollama (`:11434`) plus OpenWebUI (`:8080`) as a docker-compose
 stack with a custom Vulkan image, managed through Dockge.
 
-As of 26.06.3 none of that is here any more. The dashboard and the AI panel drive
-only Unsloth: every `docker compose` and `docker exec ollama` path was removed, and
+As of 26.06.3 none of that is here any more. The Remote Manager and the Control
+Center's AI section drive only Unsloth: every `docker compose` and `docker exec ollama` path was removed, and
 Docker itself was uninstalled — it was running exactly one container, Dockge, whose
 stack directory was empty once the AI moved to a native service. That is a daemon at
 every boot, a bridge, iptables rules and a container-management panel listening on
@@ -49,8 +49,37 @@ An existing installation that still has Docker keeps its Ollama containers runni
 they simply are not managed from our tools any more. New installations start with
 Unsloth and nothing else.
 
-## One‑click panel
+## The AI section of the Control Center
 
-The **SkillFish AI** panel toggles the engine, and the same switch exists in the web dashboard's *AI locale* card. It shows engine status, Vulkan acceleration and a shortcut to the chat UI. This is how "AI now, games later" stays a one‑click decision — AI and games should not share the GPU.
+Since 26.09.3, Unsloth Studio is managed from the **AI** section of the SkillFishOS
+Control Center (`skillfish-control-center`, or the old `skillfish-ai-panel`
+command, which now just opens this section). The same controls are mirrored in
+the Remote Manager's *AI* card. This is how "AI now, games later" stays a
+one‑click decision — AI and games should not share the GPU.
+
+- **Engine**: on/off, and "at boot".
+- **Version**: the installed Unsloth version, an update check, and a one‑click
+  **Update** that reruns the official installer
+  (`https://unsloth.ai/install.sh`, with `UNSLOTH_FORCE_VULKAN=1`) through
+  `skillfish-unsloth-update`, in the user's home — never `/root`.
+- **First sign‑in**: Unsloth generates a random initial password at install
+  and shuts itself down after an hour if it isn't changed. The window lets
+  the user pick the Studio password and creates the API key in the same
+  step.
+- **API key**: created from the Studio password, or pasted in. It is shared
+  with the Remote Manager at `/etc/skillfish/unsloth.key` (root, mode 0600);
+  the window keeps its own copy at `~/.config/skillfish/unsloth.key`.
+- **Models**: what's on disk, with quantization and size; download GGUFs
+  from the Hugging Face Hub by repository id (e.g. `unsloth/Qwen3-4B-GGUF`),
+  with the available variants and their sizes listed.
+- **Quick chat**: a small chat over the OpenAI‑compatible API
+  (`http://127.0.0.1:8888/v1`) with measured tokens per second — for the
+  full chat, Chat with Files (RAG), the Hub page, parallel chats and Deep
+  Research, use Studio's own UI at `http://localhost:8888`.
+- **Memory**: VRAM, GTT, RAM, swap and the model budget, plus a GTT limit
+  slider — the kernel parameter `ttm.pages_limit`, applied after a reboot.
+- **Network**: "reachable from the local network" sets `UNSLOTH_BIND=0.0.0.0`
+  and `UNSLOTH_PARALLEL=<slots>` in `/etc/default/skillfish-unsloth`, read by
+  `skillfish-unsloth.service`. Studio keeps its own login regardless.
 
 See [OPTIMIZATIONS.md §5](OPTIMIZATIONS.md#5-memory-split--vram-uma--gtt) for the memory split details.

@@ -7,7 +7,7 @@ order: 2
 
 SkillFishOS bringt eine **lokale KI** mit: Modelle zum Chatten und zum Programmieren laufen vollständig auf der GPU der BC-250, **ohne Cloud**, nichts verlässt das Gerät. Ein Klick schaltet sie ein und aus, damit GPU und Arbeitsspeicher wieder frei sind, wenn du spielen willst.
 
-![SkillFishOS-KI-Fenster — schaltet den lokalen, mit Vulkan beschleunigten Motor ein und aus](/img/ai-panel.jpg)
+![Der KI-Bereich des Control Center: Motor, Modelle, Speicher und ein Chat-Test](/img/control-center-ai.png)
 
 ## Warum Vulkan und nicht ROCm
 
@@ -30,18 +30,23 @@ Was sich in der Praxis ändert:
 - **Die Modelle kommen von Hugging Face.** Unsloth holt **GGUF**-Dateien unmittelbar aus dem vollständigen Katalog von Hugging Face statt aus einer ausgewählten Liste, die Auswahl an Modellen und Quantisierungen ist damit ungleich größer — samt der Fassungen, die das Unsloth-Team selbst veröffentlicht.
 - **Er lauscht nur auf dem Loopback.** Von außen erreicht man ihn über die Fernsteuerung, die sich über PAM anmeldet: kein KI-Port ist zum Netz hin offen.
 
-> Seit 26.06.3 steuern die Fernsteuerung und das KI-Fenster **nur** Unsloth: die Zweige, die Ollama über Docker befehligten, sind verschwunden, und Docker selbst ebenso — es wird nicht mehr installiert. Wer noch Ollama-Container aus einer früheren Installation hat, behält sie laufend, solange er Docker behält, verwaltet sie aber nicht mehr von hier aus. Einzurichten ist nichts.
 
-## Modelle
+## Die Modelle
 
-Die Modelle werden **innerhalb von Unsloth Studio** geladen, aus dessen eigener Oberfläche. Faustregel auf dieser Platine: die 16 GB GDDR6 teilen sich System und GPU, unter rund 11 GB Gewichten zu bleiben lässt also Platz für alles andere.
+Die Modelle sind **GGUF**-Dateien aus dem Katalog von Hugging Face und kommen aus zwei Quellen: aus dem Bereich **KI** des [Control Center](/de/docs/control-center), wo du den Namen des Repositorys eingibst (zum Beispiel `unsloth/Qwen3-4B-GGUF`) und die Variante aus der Liste mit den Größen wählst; oder aus dem Hub in Unsloth Studio, der die Suche und die vollständigen Modellseiten hat.
 
-## Ein- und ausschalten
+Faustregel auf dieser Platine: die 16 GB GDDR6 teilen sich System und GPU, also bleibt man besser unter etwa 11 GB Gewichten, damit für den Rest Luft bleibt.
 
-Ein eigenes **KI-Fenster** (native Anwendung, siehe [Eigene Anwendungen](/de/docs/app-native)) startet und stoppt den Motor mit einem Klick; derselbe Schalter steckt in der [Fernsteuerung](/de/docs/controllo-remoto). Bedenke dabei:
+## Einschalten, aktualisieren, Schlüssel
 
-- **KI und Spiele sollten nicht gleichzeitig laufen**: sie teilen sich dieselbe GPU und denselben Speicher;
-- ist der Motor aus, stehen GPU und Speicher wieder vollständig zum Spielen bereit.
+Der Bereich **KI** des [Control Center](/de/docs/control-center) startet und stoppt den Motor, schaltet ihn beim Systemstart ein und zeigt die Version mit der Aktualisierung in einem Klick. Dasselbe steht im [Remote Manager](/de/docs/controllo-remoto), im Browser.
+
+Unsloth erzeugt bei der Installation ein zufälliges Passwort und **schaltet sich nach einer Stunde selbst ab**, wenn es nicht geändert wird. Diesen Schritt erledigt der KI-Bereich: du wählst das Studio-Passwort, und der API-Schlüssel entsteht dabei. Über den Schlüssel sprechen das Fenster und der Remote Manager mit dem Motor; die Modelle auf der Platte, der Speicher (VRAM, GTT, RAM, Swap) und ein Chat-Test mit den gemessenen Token pro Sekunde stehen daneben.
+
+Denk daran:
+
+- **KI und Spiele gehören nicht gleichzeitig benutzt**: sie teilen sich dieselbe GPU und denselben Speicher;
+- mit ausgeschaltetem Motor stehen GPU und RAM wieder ganz zum Spielen bereit.
 
 ## Quellen
 

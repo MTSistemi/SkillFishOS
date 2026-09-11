@@ -38,7 +38,7 @@ Szczegóły i rozwiązywanie problemów → [Granie](/pl/docs/gaming) i [Rozwią
 
 ## 5. (Opcjonalnie) Przyciśnij sprzęt
 
-SkillFishOS startuje w profilu **Stock**, żeby było bezpiecznie na każdej płycie. Gdy zechcesz więcej wydajności, otwórz **[Tuner](/pl/docs/app-native)** i przejdź poziom wyżej:
+SkillFishOS startuje w profilu **Stock**, żeby było bezpiecznie na każdej płycie. Gdy zechcesz więcej wydajności, otwórz **[Tuner](/pl/docs/control-center)** i przejdź poziom wyżej:
 
 **Stock → Performance → Turbo → Crazy**
 

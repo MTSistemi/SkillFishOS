@@ -38,7 +38,7 @@ Do instalacji nie; przyda się później do Steama, aktualizacji i AI.
 ## Wydajność i podkręcanie
 
 **Dlaczego startuje „wolno”, w profilu Stock?**
-Dla bezpieczeństwa: każda BC-250 jest inna (*loteria krzemowa*). Profile podnosi się z **[Tunera](/pl/docs/app-native)**, który sprawdza wszystko na twojej własnej płycie. Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
+Dla bezpieczeństwa: każda BC-250 jest inna (*loteria krzemowa*). Profile podnosi się z **[Tunera](/pl/docs/control-center)**, który sprawdza wszystko na twojej własnej płycie. Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
 
 **Czy podkręcanie jest niebezpieczne?**
 Tuner nakłada profil, **testuje** go i **cofa**, jeśli płyta sobie nie radzi; limit 85 °C i zabezpieczenie termiczne są zawsze włączone. Zaprojektowano to tak, żeby było bezpieczne.

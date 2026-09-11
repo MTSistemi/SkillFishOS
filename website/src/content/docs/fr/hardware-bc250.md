@@ -34,7 +34,7 @@ La rétro-ingénierie est celle de [bc250-core-unlock (rw-r-r-0644)](https://git
 
 ## Le déverrouillage des 40 CU
 
-Le GPU a 40 CU mais le pilote n'en active que **24** par défaut. SkillFishOS les **met en route jusqu'à 40 à chaud** (sans redémarrage) : il démarre au minimum du pilote et un service passe à 40 au démarrage, réglable depuis le [Tuner](/fr/docs/app-native). La rétro-ingénierie du déverrouillage est documentée par [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock) ; la commande à chaud par `umr` s'inspire de [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (réécriture indépendante).
+Le GPU a 40 CU mais le pilote n'en active que **24** par défaut. SkillFishOS les **met en route jusqu'à 40 à chaud** (sans redémarrage) : il démarre au minimum du pilote et un service passe à 40 au démarrage, réglable depuis le [Tuner](/fr/docs/control-center). La rétro-ingénierie du déverrouillage est documentée par [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock) ; la commande à chaud par `umr` s'inspire de [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (réécriture indépendante).
 
 > Avec 40 CU actives, SkillFishOS mesure **11385 GFLOPS** FP32 (vkpeak) à froid, contre environ 6141 pour une configuration de départ à 24 CU : environ **+85 %**.
 

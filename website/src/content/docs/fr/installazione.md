@@ -56,7 +56,7 @@ Au premier démarrage **tout est déjà configuré** : noyau optimisé, gouverne
 - appairer vos [manettes](/fr/docs/gaming) (DualShock 4 en Bluetooth ou une manette USB) ;
 - ajouter vos jeux dans [Steam et EmuDeck](/fr/docs/gaming) ;
 - allumer l'[IA locale](/fr/docs/ai-locale) quand vous en avez besoin ;
-- régler le matériel avec le [Tuner](/fr/docs/app-native) si vous le souhaitez.
+- régler le matériel avec le [Tuner](/fr/docs/control-center) si vous le souhaitez.
 
 ## Schéma du disque
 

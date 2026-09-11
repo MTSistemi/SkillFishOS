@@ -5,7 +5,7 @@ group: Nachschlagen
 order: 4
 ---
 
-SkillFishOS ist so gebaut, dass das Terminal **nicht** nötig ist: für den gewöhnlichen Gebrauch reichen der [Tuner](/de/docs/app-native) und die grafischen Anwendungen. Diese Seite ist für alle, die **basteln** oder auf Fehlersuche gehen wollen. Befehle mit erhöhten Rechten laufen über `sudo`.
+SkillFishOS ist so gebaut, dass das Terminal **nicht** nötig ist: für den gewöhnlichen Gebrauch reichen der [Tuner](/de/docs/control-center) und die grafischen Anwendungen. Diese Seite ist für alle, die **basteln** oder auf Fehlersuche gehen wollen. Befehle mit erhöhten Rechten laufen über `sudo`.
 
 > Denk vor riskanten Versuchen an das Sicherheitsnetz: Btrfs-Schnappschüsse und die Rückkehr aus dem GRUB-Menü (siehe [Speicher und Schnappschüsse](/de/docs/storage-snapshot)).
 
@@ -30,7 +30,7 @@ cat /etc/cyan-skillfish-governor/config.toml               # sichere Punkte aus 
 nvtop        # oder: radeontop
 ```
 
-> Auf der BC-250 läuft die Taktsteuerung **nicht** über das übliche sysfs von amdgpu, sondern über den **SMU-Governor**. Ändere die Werte im [Tuner](/de/docs/app-native), nicht von Hand.
+> Auf der BC-250 läuft die Taktsteuerung **nicht** über das übliche sysfs von amdgpu, sondern über den **SMU-Governor**. Ändere die Werte im [Tuner](/de/docs/control-center), nicht von Hand.
 
 ## CPU — Übertaktung und Undervolting
 
@@ -52,7 +52,7 @@ cat /run/skillfish/cu_active # „40/40“ (das liest auch das HUD)
 vulkaninfo | grep -i "deviceName\|driverName"   # die GPU, wie Vulkan sie sieht (RADV)
 ```
 
-Die CU verwaltet man am besten über das **Raster** im [Tuner](/de/docs/app-native) (Klick und Vorgaben, mit der „CU-Prüfung“). Die ersten 24 sind vom Treiber festgelegt und immer an.
+Die CU verwaltet man am besten über das **Raster** im [Tuner](/de/docs/control-center) (Klick und Vorgaben, mit der „CU-Prüfung“). Die ersten 24 sind vom Treiber festgelegt und immer an.
 
 Schnelle Messungen (dieselben, die der Tuner benutzt):
 

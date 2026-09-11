@@ -36,7 +36,7 @@ ttm.page_pool_size=1572864
 
 > **What about DisplayPort?** The BC-250's HPD is broken (see [hardware](/en/docs/hardware-bc250)), but SkillFishOS does **not** use the `video=DP-1:e` parameter: the `skillfish-dp-hotswap` service watches the EDID and re-enables the output when the monitor comes back. That also covers switching the monitor on after the board, which the parameter alone does not.
 
-> **Live Compute Units.** SkillFishOS no longer uses the `amdgpu.bc250_cc_write_mode=3` parameter (which locked 40 CU at boot and blocked runtime changes). The system now boots at the driver baseline (24 CU) and a service routes the **40 CUs live** at startup; you can change them without a reboot from the [Tuner](/en/docs/app-native). See [GPU and overclock](/en/docs/gpu-overclock).
+> **Live Compute Units.** SkillFishOS no longer uses the `amdgpu.bc250_cc_write_mode=3` parameter (which locked 40 CU at boot and blocked runtime changes). The system now boots at the driver baseline (24 CU) and a service routes the **40 CUs live** at startup; you can change them without a reboot from the [Tuner](/en/docs/control-center). See [GPU and overclock](/en/docs/gpu-overclock).
 
 ## Kernels to avoid
 

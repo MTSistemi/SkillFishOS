@@ -5,7 +5,7 @@ group: Referencia
 order: 4
 ---
 
-SkillFishOS está pensado para **no** necesitar la terminal: para el uso normal bastan el [Tuner](/es/docs/app-native) y las aplicaciones gráficas. Esta página es para quien quiere **trastear** o diagnosticar. Las órdenes con privilegios usan `sudo`.
+SkillFishOS está pensado para **no** necesitar la terminal: para el uso normal bastan el [Tuner](/es/docs/control-center) y las aplicaciones gráficas. Esta página es para quien quiere **trastear** o diagnosticar. Las órdenes con privilegios usan `sudo`.
 
 > Antes de experimentos arriesgados, recuerda la red de seguridad: instantáneas Btrfs y vuelta atrás desde el menú de GRUB (ver [Almacenamiento e instantáneas](/es/docs/storage-snapshot)).
 
@@ -30,7 +30,7 @@ cat /etc/cyan-skillfish-governor/config.toml               # puntos seguros de f
 nvtop        # o: radeontop
 ```
 
-> En la BC-250 el control de la frecuencia **no** pasa por el sysfs estándar de amdgpu, sino por el **gobernador SMU**. Cambia los valores desde el [Tuner](/es/docs/app-native), no a mano.
+> En la BC-250 el control de la frecuencia **no** pasa por el sysfs estándar de amdgpu, sino por el **gobernador SMU**. Cambia los valores desde el [Tuner](/es/docs/control-center), no a mano.
 
 ## CPU — overclock y undervolt
 
@@ -52,7 +52,7 @@ cat /run/skillfish/cu_active # «40/40» (también lo lee el HUD)
 vulkaninfo | grep -i "deviceName\|driverName"   # la GPU tal como la ve Vulkan (RADV)
 ```
 
-Las CU se manejan mejor desde la **rejilla** del [Tuner](/es/docs/app-native) (clic y perfiles, con «Prueba de CU»). Las primeras 24 están fijadas por el controlador y siempre encendidas.
+Las CU se manejan mejor desde la **rejilla** del [Tuner](/es/docs/control-center) (clic y perfiles, con «Prueba de CU»). Las primeras 24 están fijadas por el controlador y siempre encendidas.
 
 Mediciones rápidas (las mismas que usa el Tuner):
 

@@ -95,7 +95,7 @@ Terminy, które wracają w całej dokumentacji, każdy wyjaśniony w jednym zdan
 
 **qwen3:14b** — wzorcowy model AI, działający w całości na grafice.
 
-**Tuner** — własna aplikacja SkillFishOS do strojenia sprzętu z testem i cofaniem zmian (zobacz [Własne aplikacje](/pl/docs/app-native)).
+**Tuner** — własna aplikacja SkillFishOS do strojenia sprzętu z testem i cofaniem zmian (zobacz [Control Center](/pl/docs/control-center)).
 
 ## Źródła
 

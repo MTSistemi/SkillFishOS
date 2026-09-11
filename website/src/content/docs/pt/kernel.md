@@ -36,7 +36,7 @@ ttm.page_pool_size=1572864
 
 > **E o DisplayPort?** O HPD da BC-250 é defeituoso (veja [hardware](/pt/docs/hardware-bc250)), mas o SkillFishOS **não** usa o parâmetro `video=DP-1:e`: o serviço `skillfish-dp-hotswap` acompanha o EDID e reativa a saída quando o monitor volta. Isso cobre também o caso de ligar o monitor depois da placa, que o parâmetro sozinho não resolve.
 
-> **Unidades de computação em tempo real.** O SkillFishOS não usa mais o parâmetro `amdgpu.bc250_cc_write_mode=3` (que cravava 40 CU no boot e impedia mudanças em tempo real). Agora o sistema dá boot no mínimo do driver (24 CU) e um serviço **leva a 40 em tempo real** na inicialização; dá para mudar sem reiniciar pelo [Tuner](/pt/docs/app-native). Veja [GPU e overclock](/pt/docs/gpu-overclock).
+> **Unidades de computação em tempo real.** O SkillFishOS não usa mais o parâmetro `amdgpu.bc250_cc_write_mode=3` (que cravava 40 CU no boot e impedia mudanças em tempo real). Agora o sistema dá boot no mínimo do driver (24 CU) e um serviço **leva a 40 em tempo real** na inicialização; dá para mudar sem reiniciar pelo [Tuner](/pt/docs/control-center). Veja [GPU e overclock](/pt/docs/gpu-overclock).
 
 ## Kernels a evitar
 

@@ -13,7 +13,7 @@ Le parti più critiche le costruiamo e distribuiamo **noi**, da un **repository 
 
 - il **[kernel](/docs/kernel)** ottimizzato (immagine + headers);
 - il **governor SMU** e gli strumenti di overclock;
-- le **app native** [Tuner e AI](/docs/app-native);
+- le **app native** [Control Center](/docs/control-center);
 - il **tema steampunk** e il **branding**;
 - la configurazione di sistema.
 

@@ -7,7 +7,7 @@ order: 2
 
 SkillFishOS ships a **local AI** stack: chat and coding models running entirely on the BC-250 GPU, **no cloud**, nothing sent outside. One click turns it on and off, so GPU and RAM are free again when you want to play.
 
-![SkillFishOS AI panel — turns the Vulkan-accelerated local LLM engine on and off](/img/ai-panel.jpg)
+![The AI section of the Control Center: engine, models, memory and a chat test](/img/control-center-ai.png)
 
 ## Why Vulkan and not ROCm
 
@@ -30,15 +30,20 @@ What changes in practice:
 - **Models come from Hugging Face.** Unsloth pulls **GGUF** files straight from the full Hugging Face catalogue rather than a curated registry, so the range of available models and quantisations is vastly wider — including the builds the Unsloth team publishes themselves.
 - **It listens on loopback only.** From outside you reach it through the dashboard, which authenticates over PAM: no AI port is exposed to the network.
 
-> From 26.06.3 the dashboard and the AI panel drive **only** Unsloth: the branches that commanded Ollama through Docker are gone, and so is Docker itself, which is no longer installed. Anyone still holding Ollama containers from an earlier install keeps them running as long as they keep Docker, but no longer manages them from here. No configuration needed.
 
 ## Models
 
-Models are downloaded **inside Unsloth Studio**, from its own interface. Rule of thumb on this board: the 16 GB of GDDR6 are shared between system and GPU, so staying under ~11 GB of weights leaves room for everything else.
+Models are **GGUF** files from the Hugging Face catalogue, and they come from two places: the **AI** section of the [Control Center](/en/docs/control-center), where you type the repository name (for example `unsloth/Qwen3-4B-GGUF`) and pick the variant from the list, sizes included; or the Hub inside Unsloth Studio, which has the search and the full model pages.
 
-## Turning it on and off
+Rule of thumb on this board: the 16 GB of GDDR6 are shared between system and GPU, so staying under ~11 GB of weights leaves room for everything else.
 
-A dedicated **AI panel** (native app, see [Native apps](/en/docs/app-native)) starts and stops the engine with one click; the same switch is in the [web dashboard](/en/docs/controllo-remoto). Bear in mind:
+## Switch, update and key
+
+The **AI** section of the [Control Center](/en/docs/control-center) starts and stops the engine, enables it at boot and shows the version with a one-click update. The same is in the [Remote Manager](/en/docs/controllo-remoto), from a browser.
+
+Unsloth generates a random password when it installs, and **shuts itself down after an hour** if that password is not changed. The AI section does that step for you: choose the Studio password and the API key is created with it. The key is how the window and the Remote Manager talk to the engine; the models on disk, the memory (VRAM, GTT, RAM, swap) and a chat test with the measured tokens per second sit next to it.
+
+Bear in mind:
 
 - **AI and games should not run together**: they share the same GPU and the same memory;
 - with the engine off, GPU and RAM are fully available for gaming again.

@@ -24,16 +24,13 @@ Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BU
 
 ## 2. GPU clock control — the governor
 
-**Warning:** The standard amdgpu sysfs (`power_dpm_force_performance_level`) **does not control the BC‑250** — only the SMU does, through the OD voltage curve. SkillFishOS uses the [`cyan-skillfish-governor`](https://github.com/Magnap/cyan-skillfish-governor) (Rust), installed as a systemd service with safe‑points in `/etc/cyan-skillfish-governor/config.toml`.
+**Warning:** The standard amdgpu sysfs (`power_dpm_force_performance_level`) **does not control the BC‑250** — only the SMU does, through the OD voltage curve. SkillFishOS drives it with its own **V/F governor** (`skillfish-vf-governor`), installed as a systemd service.
 
-It is **load‑based**: it settles on the *lowest* frequency that keeps GPU utilisation inside the `[load-target]` band, idling to **350 MHz** when the GPU is unused. Two profiles, switchable from the **SkillFishOS Tuner** (GPU → *Governor mode*):
+The governor follows a **voltage/frequency curve**: a multi‑point ladder of MHz/mV knots, drawn and edited as a chart in the Control Center's **Tuner** section — drag a knot, or type the value in the table beside the chart — with a **ceiling** (maximum MHz) on top. Three presets are built in: **Cautious** (1850 MHz), **Balanced** (2000 MHz) and **Performance** (2100 MHz). Apply runs a candidate curve *on trial* for 25 seconds before it is written to disk, so a bad curve never survives a reboot. The governor idles the GPU to **350 MHz** when it is unused.
 
-- **Balanced** (default, band `0.70–0.95`): raises the clock only as much as the workload needs — cooler and quieter.
-- **Performance** (band `0.08–0.20` + snappier ramp): holds the **top safe‑point under any gaming load**, for the best FPS in GPU‑bound titles. Still idles to 350 MHz on the desktop.
+**Warning:** **The voltage curve must be a smooth multi‑point ladder — `350/700, 1500/900, 2000/1000, 2200/1000`.** On the BC‑250, **1000 mV is the practical stable ceiling at ~2150–2200 MHz**; **2230 MHz @ 1000 mV is undervolted**, and an abrupt clock transition there can **hard‑freeze the whole machine** (reproduced: a 2‑point `350/700 → 2230/1000` curve hung the box on the load→idle transition, with nothing in the logs). Governor reloads stop → settle → start to avoid the abrupt SMU jump. 2230 needs 1000–1060 mV and the silicon lottery.
 
-**Measured (Black Myth: Wukong Benchmark Tool, 1080p):** Balanced ≈ **100 FPS** avg / 92 FPS 5%‑low; Performance ≈ **111 FPS** avg / 102 FPS 5%‑low — **+11%**. (An earlier note claimed 2000 ≈ 2230 MHz gave identical FPS; that held for *gameplay*, which is more CPU/draw‑call bound. The benchmark **flythrough** is heavier and *is* GPU‑bound, so holding a high clock clearly helps there.)
-
-**Warning:** **The voltage curve must be a smooth multi‑point ladder — `350/700, 1500/900, 2000/1000, 2200/1000`.** On the BC‑250, **1000 mV is the practical stable ceiling at ~2150–2200 MHz**; **2230 MHz @ 1000 mV is undervolted**, and an abrupt clock transition there can **hard‑freeze the whole machine** (reproduced: a 2‑point `350/700 → 2230/1000` curve hung the box on the load→idle transition, with nothing in the logs). The Tuner therefore caps the max at **2200 MHz** and inserts the mid‑points so transitions are gentle; governor reloads stop → settle → start to avoid the abrupt SMU jump. 2230 needs 1000–1060 mV and the silicon lottery.
+Current FPS numbers with the curve‑based governor are in [docs/CONTROL-CENTER.md](CONTROL-CENTER.md), under "Measured after the change": moving to the Control Center changed nothing on the hardware side.
 
 Memory bandwidth was *measured* (clpeak/OpenCL) at **~350–367 GB/s** — healthy, not a bottleneck. The `Memory Clock 450 MHz` the driver reports is a reporting convention, not a 1/4 clock. Memory clock is **not** adjustable on the BC‑250.
 
@@ -158,7 +155,8 @@ The BC‑250's ACPI suspend is broken (it enters `s2idle` and never wakes → re
 
 ## Further reading
 
-- [DESKTOP.md](DESKTOP.md) — desktop, theme, HUD, Tuner, AI panel
+- [DESKTOP.md](DESKTOP.md) — desktop, theme, HUD, Control Center
+- [CONTROL-CENTER.md](CONTROL-CENTER.md) — the Tuner section: the V/F curve, ceiling and presets
 - [GAMING.md](GAMING.md) — the gaming & emulation stack
 - [AI.md](AI.md) — local LLMs on the GPU
 - [BUILD.md](BUILD.md) — build the kernel and ISO

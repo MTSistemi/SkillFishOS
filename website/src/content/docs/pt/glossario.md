@@ -95,7 +95,7 @@ Os termos que se repetem por toda a documentação, cada um explicado em uma lin
 
 **qwen3:14b** — o modelo de IA de referência, rodando inteiramente na GPU.
 
-**Tuner** — o aplicativo próprio do SkillFishOS para ajustar o hardware com teste e retorno (veja [Aplicativos próprios](/pt/docs/app-native)).
+**Tuner** — o aplicativo próprio do SkillFishOS para ajustar o hardware com teste e retorno (veja [Control Center](/pt/docs/control-center)).
 
 ## Fontes
 

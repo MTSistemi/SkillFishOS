@@ -17,7 +17,7 @@ Tutti gli strumenti di SkillFishOS stanno in una finestra. Si apre dal menu (Ski
 - **Profili**: tetto, CPU, ventola e schedulatore in un clic; salva i tuoi.
 - **Kernel**: i kernel installati, quello predefinito, avvia una volta, disinstalla.
 - **Snapshot**: le fotografie del sistema e la manutenzione btrfs programmata.
-- **AI**: Unsloth Studio su Vulkan: acceso/spento, hardware, il limite GTT.
+- **AI**: Unsloth Studio su Vulkan: motore, aggiornamento, modelli dall'Hub di Hugging Face, chat di prova, memoria e rete.
 - **Emulatori**: EmuDeck, oppure gli emulatori uno per uno da Flathub.
 - **Console**: Steam Big Picture dentro gamescope, adesso o dalla schermata di accesso.
 - **ISO**: immagini disco montate attraverso udisks.
@@ -33,7 +33,7 @@ I pannelli si aprono quando servono:
 - **CPU**: frequenza, scalino di undervolt (6,25 mV l'uno) e limite termico, ognuno con un cursore e una casella numerica a passo 1. *Suggerisci UV* scende di due scalini alla volta con dodici secondi di carico per scalino; *Trova il massimo* sale da 3600 a 4000 MHz; *Test 60 s* carica i valori attuali. Ogni prova mostra un conto alla rovescia e un bottone Stop; i valori in prova non vengono mai scritti su disco, quindi un blocco riavvia con quelli di prima. Sopra i 3500 MHz con otto core il guadagno è zero: comanda il calore.
 - **Core**: quali core sono attivi, SMT, lo sblocco degli 8 core (6c/12t diventa 8c/16t, +20% misurato) e *Prima dell'avvio (EFI)*: lo sblocco fatto prima di GRUB in un avvio solo, invece del riavvio in più del servizio dentro al sistema.
 - **CU**: le 40 unità di calcolo come 20 caselle (coppie): verde accesa, rossa spenta, grigia tenuta accesa dal driver. Scrivi quante CU vuoi (da 24 a 40, a coppie) o clicca le caselle; *Test CU* accende le coppie extra una alla volta sotto vkpeak e riporta gli errori, per la lotteria del silicio.
-- **VRAM**: la quota UMA nel CMOS, applicata al prossimo avvio. Con i 512 MB dinamici alcuni giochi scelgono texture basse: se sono sfocate, prova 4 o 6 GB fissi.
+- **VRAM**: la quota UMA nel CMOS, applicata al prossimo avvio. Con i 512 MB dinamici alcuni giochi scelgono texture basse: se sono sfocate, prova 4 o 6 GB fissi. Va da 512 MB a 12 GB, con i preset 512 MB, 1, 2, 4, 6 e 8 GB.
 - **Avanzate**: le manopole del governor: margine in salita, gradino, conferme in discesa, soglie termiche e di potenza, droop.
 - **Test**: vkpeak e il registro dell'helper.
 
@@ -47,6 +47,17 @@ Un grafico per grandezza, ognuno con la sua scala vera: temperature (CPU, GPU, V
 - **Schedulatore**: scx_bpfland, caricato solo mentre gira un gioco (lo alza GameMode all'avvio e lo toglie alla chiusura): +1,5-2% in Cyberpunk e fotogrammi più regolari. Se il kernel lo espelle due volte il servizio si ferma finché non azzeri il contatore: è la riga «Espulso dal kernel».
 - **FSR 4**: attraverso OptiScaler sul percorso DLSS del gioco. GE-Proton 11 scarica OptiScaler da solo quando trova `PROTON_USE_OPTISCALER=1`, il gioco va messo su DLSS, e la libreria FSR 4 di AMD (`amdxcffx64.dll`, dal driver Windows di AMD) va accanto al gioco. XeSS, dove un gioco ce l'ha di suo, costa quanto FSR 3 a 1080p.
 - **Proton**: le versioni GE-Proton 11; Installa ne scarica una (circa 500 MB) nelle cartelle di Steam e Heroic, Predefinita la sceglie. Steam va chiuso perché la sua predefinita venga scritta.
+
+## AI
+
+Il motore è **Unsloth Studio**: fa girare i modelli GGUF con llama.cpp sul backend **Vulkan**, che sulla gfx1013 della BC-250 è l'unica strada accelerata, perché ROCm non la supporta. Misurato sulla scheda con Qwen3-1.7B Q4_K_M: 210 token al secondo contro i 41 della sola CPU.
+
+- **Motore**: acceso, spento, all'avvio. Acceso tiene la memoria della GPU, quindi si spegne prima di giocare. Accanto stanno la versione, il controllo degli aggiornamenti e *Aggiorna*, che rilancia l'installatore ufficiale con il pacchetto Vulkan di llama.cpp.
+- **Accesso**: Unsloth genera una password a caso quando si installa, e si spegne da solo dopo un'ora se non viene cambiata. Il primo accesso si fa da qui: scegli la password di Studio e la chiave API viene creata insieme, e condivisa con il Remote Manager.
+- **Modelli**: quelli sul disco con quantizzazione e dimensione. Per scaricarne uno serve il nome del repository su Hugging Face (per esempio `unsloth/Qwen3-4B-GGUF`) e la variante scelta dall'elenco, che riporta le dimensioni.
+- **Chat**: una prova rapida sull'API compatibile OpenAI (`http://127.0.0.1:8888/v1`), con i token al secondo misurati. La chat completa, con i file e la ricerca, è dentro Studio.
+- **Memoria**: VRAM, GTT, RAM, swap e il budget del modello. Il limite del GTT è un parametro del kernel: vale dal riavvio.
+- **Rete**: aperto sulla rete locale, Studio risponde anche agli altri dispositivi di casa, con il suo utente e la sua password. Le chat in parallelo sono i posti di llama-server.
 
 ## Ventola, profili e il resto
 

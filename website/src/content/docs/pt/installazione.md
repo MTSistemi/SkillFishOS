@@ -56,7 +56,7 @@ Daqui você pode:
 - parear seus [controles](/pt/docs/gaming) (DualShock 4 por Bluetooth ou um controle por USB);
 - adicionar seus jogos à [Steam ou ao EmuDeck](/pt/docs/gaming);
 - ligar a [IA local](/pt/docs/ai-locale) quando precisar;
-- ajustar o hardware com o [Tuner](/pt/docs/app-native), se quiser.
+- ajustar o hardware com o [Tuner](/pt/docs/control-center), se quiser.
 
 ## Divisão do disco
 

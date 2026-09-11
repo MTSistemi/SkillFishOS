@@ -8,30 +8,45 @@ Small native apps shipped with SkillFishOS (KDE Plasma), all themed by Kvantum.
   Snapshots, AI, Emulators, Console, ISO. `skillfish-control-center` is the
   window; `skillfish-cc-helper` is the privileged daemon (JSON-per-line over a
   single `pkexec`). See [control-center/README.md](control-center/README.md).
-- **`tuner/`** — the old **SkillFishOS Tuner**; since 26.09 `skillfish-tuner`
-  opens the Tuner section of the Control Center. The package keeps
-  `skillfish-tuner-helper`, `skillfish-cu` and the CU boot service.
-- **`ai-panel/`** — **SkillFish AI** (PyQt6): one-click on/off for the on-device
-  LLM engine (Unsloth Studio, Vulkan), freeing the GPU/RAM for gaming. See [../docs/AI.md](../docs/AI.md).
-- **`iso-mount/`** — native KDE ISO mounting via udisks2 (no GNOME). See its README.
-
-The Tuner/AI panels were originally GTK4/libadwaita; they were rewritten in PyQt6
-so Kvantum themes them natively with no GTK CSS hacks.
+- **`tuner/`, `monitor/`, `fan/`, `kernel-manager/`, `snapshots/`, `ai-panel/`,
+  `emulators/`, `console/`, `iso-mount/`** — the old per-tool packages. Since
+  26.09 their commands (`skillfish-tuner`, `skillfish-monitor`,
+  `skillfish-fan`, `skillfish-kernel-manager`, `skillfish-snapshots`,
+  `skillfish-ai-panel`) open the matching Control Center section instead of a
+  standalone window. The packages stay because they carry the daemons and
+  helpers the Control Center relies on: the fan daemon, the tuner helper
+  (`skillfish-tuner-helper`), `skillfish-cu` and the CU boot service, and the
+  Unsloth launcher (`skillfish-unsloth`) and updater
+  (`skillfish-unsloth-update`). The Tuner and AI panel were originally
+  GTK4/libadwaita; both were rewritten in PyQt6 (and then folded into the
+  Control Center) so Kvantum themes them natively with no GTK CSS hacks.
+- **`hub/`** — **SkillFishOS Hub** (PyQt6): the Discover-style software
+  centre. A separate app.
+- **`hud/`** — the live system HUD: a translucent Conky overlay (BC-250
+  only). A separate app.
+- **`dashboard/`** — **SkillFishOS Remote Manager**: the web dashboard
+  (`https://<board>:8443`, PAM login). A separate app; it mirrors Tuner,
+  Games, Profiles, Fan, Monitor and AI on the web. See
+  [../docs/AI.md](../docs/AI.md) for the AI side.
 
 ## Install the prebuilt `.deb` packages
 
-The apps are published as Debian packages (architecture `all`) in the
-[**`apps-26.06`** release](https://github.com/MTSistemi/SkillFishOS/releases/tag/apps-26.06):
+The packages come from the signed APT repository:
 
-```sh
-# download the three .deb from the release, then:
-sudo apt install ./skillfish-tuner_26.06_all.deb \
-                 ./skillfish-ai-panel_26.06_all.deb \
-                 ./skillfish-iso-mount_26.06_all.deb
+```
+deb https://mtsistemi.github.io/SkillFishOS aetherium main
 ```
 
-`apt install ./file.deb` resolves the dependencies (`python3-pyqt6`, `udisks2`,
-`polkitd`, …) automatically. They are already preinstalled on the SkillFishOS ISO.
+(mirrored at [skillfishos.com/apt](https://skillfishos.com/apt) too). They
+are already preinstalled on the SkillFishOS ISO; on an existing Debian-based
+system, once the repository and its key are added:
+
+```sh
+sudo apt install skillfish-control-center
+```
+
+`apt` resolves the dependencies (`python3-pyqt6`, `udisks2`, `polkitd`, …)
+automatically.
 
 To rebuild the packages from the installed files on a SkillFishOS system, run
 [`build-debs.sh`](build-debs.sh) (output in `/tmp/debs/out/`).

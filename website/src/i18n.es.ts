@@ -75,12 +75,10 @@ export const es: Record<string, string> = {
   "s2.t": "Emulación fácil con EmuDeck",
   "s2.d":
     "EmuDeck instala y configura los emuladores (RetroArch, Dolphin, PCSX2, PPSSPP, RPCS3 y más) y la interfaz ES-DE en unos clics. El sistema pone las herramientas: los juegos y las ROMs los pones tú.",
-  "s4.t": "IA en el equipo, a un clic",
-  "s4.d":
-    "Un panel dedicado enciende y apaga el motor de IA local (Qwen en la GPU con Vulkan). Chat web, terminal para programar y gestión: la IA funciona en casa y libera la GPU cuando toca jugar.",
-  "s5.t": "Ajuste en un clic",
-  "s5.d":
-    "El Tuner ajusta frecuencias, undervolt, ventilador y unidades de cómputo con cuatro perfiles listos (Stock, Performance, Turbo, Crazy) y una protección térmica que cuida el hardware. Toda la potencia, con seguridad y sin línea de comandos.",
+  "s4.t": "La IA en casa, dentro del Control Center",
+  "s4.d": "La sección IA enciende el motor local en la GPU Vulkan, descarga los modelos y mide los tokens por segundo. Se apaga para jugar, y la memoria vuelve al juego.",
+  "s5.t": "Ajustar a un clic",
+  "s5.d": "El Tuner dibuja la curva tensión/frecuencia del governor, con el techo y tres preajustes. Aplicar es una prueba con cuenta atrás: sin confirmar, al arrancar vuelve la curva anterior.",
 
   "hw.eye": "Hardware",
   "hw.h2": "Nacido para la AMD BC-250.",
@@ -177,19 +175,16 @@ export const es: Record<string, string> = {
   "gal.emudeck.d": "Instalación y configuración de los emuladores en unos clics.",
   "gal.esde1.t": "ES-DE — interfaz",
   "gal.esde1.d": "La interfaz ES-DE para explorar y lanzar tus bibliotecas.",
-  "gal.ai.t": "Panel de IA",
-  "gal.ai.d": "Enciende y apaga la IA local (Vulkan) con un solo clic.",
-  "gal.tuner.t": "Tuner — unidades de cómputo en vivo",
-  "gal.tuner.d":
-    "Rejilla de CU (verde = activa, rojo = apagada), perfiles 24/32/40 y prueba, sin reiniciar.",
-  "gal.tunerctl.t": "Tuner — perfiles, gobernador y asistentes",
-  "gal.tunerctl.d":
-    "Perfiles Stock/Performance/Turbo/Crazy, el panel «Mi silicio», el modo de gobernador Balanced/Performance y los asistentes «Encuentra mi máximo» para CPU y GPU.",
-  "gal.monitor.t": "Telemetría en vivo durante las pruebas",
-  "gal.monitor.d": "Gráficas de temperatura, frecuencia, voltaje y ventilador en tiempo real.",
-  "gal.cutest.t": "Prueba de CU — lotería del silicio",
-  "gal.cutest.d":
-    "Comprueba que las 40 CU aguantan la carga sin defectos (útil en chips de segunda mano).",
+  "gal.ai.t": "IA — Unsloth Studio en la GPU",
+  "gal.ai.d": "Motor, modelos descargados del Hub, memoria y una prueba de chat con los tokens por segundo.",
+  "gal.tuner.t": "Tuner — la curva del governor",
+  "gal.tuner.d": "MHz y milivoltios: los puntos se arrastran o se escriben en la tabla, y Aplicar es una prueba con cuenta atrás.",
+  "gal.stato.t": "Estado — todo de un vistazo",
+  "gal.stato.d": "Un número por tarjeta: GPU y techo, CPU, unidades de cálculo, ventilador, kernel y driver Vulkan.",
+  "gal.monitor.t": "Monitor — un gráfico por magnitud",
+  "gal.monitor.d": "Temperaturas, frecuencias, carga, potencia, tensiones, ventilador y memoria, con una barra por hilo.",
+  "gal.giochi.t": "Juegos — Mesa, planificador y Proton",
+  "gal.giochi.d": "Nuestra Mesa por lanzador o de sistema, scx_bpfland mientras juegas, FSR 4 y GE-Proton 11.",
   "gal.wukong.t": "Black Myth: Wukong — 112 FPS",
   "gal.wukong.d": "Media a 1080p en la BC-250 (máximo 128, 1% low 101).",
   "gal.super.t": "Unigine Superposition — 12.938",

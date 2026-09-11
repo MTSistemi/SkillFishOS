@@ -56,7 +56,7 @@ Da qui puoi:
 - collegare i [controller](/docs/gaming) (DualShock 4 in Bluetooth o controller via USB);
 - aggiungere i tuoi giochi a [Steam/EmuDeck](/docs/gaming);
 - attivare lo stack [AI locale](/docs/ai-locale) quando ti serve;
-- regolare l'hardware col [Tuner](/docs/app-native) se vuoi.
+- regolare l'hardware col [Tuner](/docs/control-center) se vuoi.
 
 ## Schema del disco
 

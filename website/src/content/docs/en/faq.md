@@ -38,7 +38,7 @@ Not to install; you'll need one afterwards for Steam, updates and AI.
 ## Performance and overclock
 
 **Why does it start "slow" / in Stock?**
-For safety: every BC-250 is different (*silicon lottery*). You move up profiles from the **[Tuner](/en/docs/app-native)**, which validates everything on your card. See [GPU & overclock](/en/docs/gpu-overclock).
+For safety: every BC-250 is different (*silicon lottery*). You move up profiles from the **[Tuner](/en/docs/control-center)**, which validates everything on your card. See [GPU & overclock](/en/docs/gpu-overclock).
 
 **Is overclocking dangerous?**
 The Tuner applies a profile, **tests** it and **rolls back** if the card can't handle it; the 85 °C cap and the thermal-guard are always on. It's designed to be safe.

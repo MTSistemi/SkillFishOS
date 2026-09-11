@@ -13,7 +13,7 @@ Les parties les plus délicates sont construites et distribuées par **nous**, d
 
 - le **[noyau](/fr/docs/kernel)** optimisé (image et en-têtes) ;
 - le **gouverneur SMU** et les outils d'overclock ;
-- les **applications natives** [Tuner et IA](/fr/docs/app-native) ;
+- les **applications natives** [Control Center](/fr/docs/control-center) ;
 - le **thème steampunk** et l'identité visuelle ;
 - la configuration du système.
 

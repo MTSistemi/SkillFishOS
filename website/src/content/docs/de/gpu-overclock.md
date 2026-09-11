@@ -7,11 +7,11 @@ order: 2
 
 Auf einer gewöhnlichen APU stellt man die Takte über das sysfs von `amdgpu` ein. Auf der BC-250 **geht das nicht**: die Steuerung läuft über die **SMU** (System Management Unit) und braucht eigene Werkzeuge. SkillFishOS bringt sie alle mit, vorbereitet mit sicheren Profilen und einem Schutz vor Überhitzung.
 
-> **Achtung:** **Silizium-Lotterie.** Jede Zahl auf dieser Seite ist **auf unserer BC-250 gemessen**. Jede Platine ist anders: die eine verträgt ein tieferes Undervolting, die andere weniger. Deshalb startet SkillFishOS **immer im Profil Stock** und lässt dich über den [Tuner](/de/docs/app-native) höher steigen, der jedes Profil **auf deiner Platine** mit einer selbsttätigen Prüfung und Rücknahme absichert.
+> **Achtung:** **Silizium-Lotterie.** Jede Zahl auf dieser Seite ist **auf unserer BC-250 gemessen**. Jede Platine ist anders: die eine verträgt ein tieferes Undervolting, die andere weniger. Deshalb startet SkillFishOS **immer im Profil Stock** und lässt dich über den [Tuner](/de/docs/control-center) höher steigen, der jedes Profil **auf deiner Platine** mit einer selbsttätigen Prüfung und Rücknahme absichert.
 
 ## Die vier Profile
 
-Der [Tuner](/de/docs/app-native) bietet **vier Vorgaben**. Das Abbild startet in **Stock**; die übrigen sind nach der Prüfung einen Klick entfernt.
+Der [Tuner](/de/docs/control-center) bietet **vier Vorgaben**. Das Abbild startet in **Stock**; die übrigen sind nach der Prüfung einen Klick entfernt.
 
 | Profil | CPU | GPU | Anmerkungen |
 |---|---|---|---|
@@ -47,11 +47,11 @@ CPU und GPU sitzen auf **demselben Plättchen** und teilen sich **dasselbe Leist
 
 ## Die 40 Recheneinheiten — im Betrieb
 
-Die BC-250 hat **40 CU** (20 WGP, 1 WGP = 2 CU), der Treiber schaltet aber standardmäßig **24** frei. SkillFishOS führt sie **im Betrieb, ohne Neustart** auf 40: das System startet auf dem Grundwert des Treibers (24 CU), und ein Dienst bringt sie beim Start auf 40; im [Tuner](/de/docs/app-native) stellst du die Zahl **live** ein — mit einem Raster aus Kästchen und den Vorgaben 24/32/40. Die ersten 24 CU sind vom Treiber festgelegt und immer an.
+Die BC-250 hat **40 CU** (20 WGP, 1 WGP = 2 CU), der Treiber schaltet aber standardmäßig **24** frei. SkillFishOS führt sie **im Betrieb, ohne Neustart** auf 40: das System startet auf dem Grundwert des Treibers (24 CU), und ein Dienst bringt sie beim Start auf 40; im [Tuner](/de/docs/control-center) stellst du die Zahl **live** ein — mit einem Raster aus Kästchen und den Vorgaben 24/32/40. Die ersten 24 CU sind vom Treiber festgelegt und immer an.
 
 Mit allen 40 CU misst die GPU kalt **11385 GFLOPS** FP32 (vkpeak) gegenüber rund **6141** mit den 24 des Grundwerts: **+85 %**. Unter Dauerlast (warm) pendelt sie sich bei etwa **10214 GFLOPS** ein. Die gemessene Speicherbandbreite (clpeak) liegt bei **~350–367 GB/s**.
 
-> **Silizium-Lotterie.** Bei geretteten oder „aussortierten“ Chips können einzelne CU schwach sein. Der [Tuner](/de/docs/app-native) hat eine **„CU-Prüfung“**, die jedes Paar belastet und Fehler oder Hänger der GPU meldet, damit du dir sicher sein kannst, dass dein Chip alle 40 trägt. (Der Weg führt über `umr` und das Schreiben der WGP-Masken — Dank an [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), eigene Neuumsetzung.)
+> **Silizium-Lotterie.** Bei geretteten oder „aussortierten“ Chips können einzelne CU schwach sein. Der [Tuner](/de/docs/control-center) hat eine **„CU-Prüfung“**, die jedes Paar belastet und Fehler oder Hänger der GPU meldet, damit du dir sicher sein kannst, dass dein Chip alle 40 trägt. (Der Weg führt über `umr` und das Schreiben der WGP-Masken — Dank an [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), eigene Neuumsetzung.)
 
 ## Temperaturschutz — die Grenze von 85 °C
 
@@ -74,7 +74,7 @@ Wenn die Last **wirklich** an der GPU hängt (etwa der *Kameraflug* im Wukong-Be
 
 ## Und das alles ohne Terminal
 
-Takte, Undervolting, Lüfter und Recheneinheiten stellst du im Fenster des **Tuners** ein, mit den vier fertigen Vorgaben und **selbsttätiger Prüfung samt Rücknahme**, falls deine Platine einen Wert nicht hält — siehe [Eigene Anwendungen](/de/docs/app-native). Das ist der empfohlene Weg: fang bei Stock an, geh auf Performance, probier Turbo oder Crazy — der Tuner prüft alles auf **deiner** BC-250.
+Takte, Undervolting, Lüfter und Recheneinheiten stellst du im Fenster des **Tuners** ein, mit den vier fertigen Vorgaben und **selbsttätiger Prüfung samt Rücknahme**, falls deine Platine einen Wert nicht hält — siehe [Control Center](/de/docs/control-center). Das ist der empfohlene Weg: fang bei Stock an, geh auf Performance, probier Turbo oder Crazy — der Tuner prüft alles auf **deiner** BC-250.
 
 ## Quellen
 

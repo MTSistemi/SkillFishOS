@@ -95,7 +95,7 @@ The terms that recur throughout the documentation, each explained in one line. I
 
 **qwen3:14b** — the reference AI model, running entirely on the GPU.
 
-**Tuner** — SkillFishOS's native app to tune the hardware with test-and-rollback (see [Native apps](/en/docs/app-native)).
+**Tuner** — SkillFishOS's native app to tune the hardware with test-and-rollback (see [Control Center](/en/docs/control-center)).
 
 ## Sources
 

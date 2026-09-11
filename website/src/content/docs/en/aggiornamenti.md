@@ -13,7 +13,7 @@ The most critical parts are built and distributed by **us**, from our **own, sig
 
 - the optimized **[kernel](/en/docs/kernel)** (image + headers);
 - the **SMU governor** and the overclock tools;
-- the [Tuner and AI](/en/docs/app-native) **native apps**;
+- the [Control Center](/en/docs/control-center) **native apps**;
 - the **steampunk theme** and the **branding**;
 - the system configuration.
 

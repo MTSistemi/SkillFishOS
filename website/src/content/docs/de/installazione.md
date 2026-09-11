@@ -56,7 +56,7 @@ Von hier aus kannst du:
 - deine [Controller](/de/docs/gaming) koppeln (DualShock 4 über Bluetooth oder einen Controller über USB);
 - deine Spiele zu [Steam oder EmuDeck](/de/docs/gaming) hinzufügen;
 - die [lokale KI](/de/docs/ai-locale) einschalten, wenn du sie brauchst;
-- die Hardware mit dem [Tuner](/de/docs/app-native) feinjustieren, wenn du magst.
+- die Hardware mit dem [Tuner](/de/docs/control-center) feinjustieren, wenn du magst.
 
 ## Aufteilung der Platte
 

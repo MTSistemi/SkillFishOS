@@ -7,7 +7,7 @@ order: 2
 
 O SkillFishOS traz uma **IA local**: modelos de conversa e de programação rodando inteiramente na GPU da BC-250, **sem nuvem**, sem nada saindo para fora. Um clique liga e desliga, então a GPU e a memória ficam livres de novo quando você quer jogar.
 
-![Painel SkillFishOS AI — liga e desliga o motor local acelerado por Vulkan](/img/ai-panel.jpg)
+![Secção IA do Control Center: motor, modelos, memória e um teste de chat](/img/control-center-ai.png)
 
 ## Por que Vulkan e não ROCm
 
@@ -30,18 +30,23 @@ O que muda na prática:
 - **Os modelos vêm do Hugging Face.** O Unsloth baixa arquivos **GGUF** direto do catálogo completo do Hugging Face, e não de um registro selecionado, então a variedade de modelos e quantizações é muito maior — incluindo as compilações que a própria equipe do Unsloth publica.
 - **Ele escuta só em loopback.** De fora chega-se a ele pelo painel de controle, que autentica por PAM: nenhuma porta de IA fica exposta à rede.
 
-> Desde a 26.06.3 o painel de controle e o painel de IA falam **só** com o Unsloth: os ramos que comandavam o Ollama pelo Docker foram embora, e o Docker também, que não é mais instalado. Quem ainda tem contêineres do Ollama de uma instalação anterior continua com eles funcionando enquanto mantiver o Docker, mas não os gerencia mais por aqui. Não há nada para configurar.
 
-## Modelos
+## Os modelos
 
-Os modelos são baixados **dentro do Unsloth Studio**, pela interface dele. Regra prática nesta placa: os 16 GB de GDDR6 são divididos entre o sistema e a GPU, então ficar abaixo de uns 11 GB de pesos deixa espaço para todo o resto.
+Os modelos são ficheiros **GGUF** do catálogo da Hugging Face, e chegam de dois sítios: a secção **IA** do [Control Center](/pt/docs/control-center), onde escreves o nome do repositório (por exemplo `unsloth/Qwen3-4B-GGUF`) e escolhes a variante da lista, com os tamanhos; ou o Hub dentro do Unsloth Studio, que tem a pesquisa e as fichas completas.
 
-## Ligar e desligar
+Regra prática nesta placa: os 16 GB de GDDR6 são partilhados entre sistema e GPU, por isso convém ficar abaixo dos ~11 GB de pesos para deixar espaço ao resto.
 
-Um **painel de IA** próprio (aplicativo nativo, veja [Aplicativos próprios](/pt/docs/app-native)) inicia e para o motor com um clique; o mesmo interruptor está no [painel de controle](/pt/docs/controllo-remoto). Lembre-se:
+## Ligar, atualizar e a chave
 
-- **IA e jogos não devem rodar juntos**: dividem a mesma GPU e a mesma memória;
-- com o motor desligado, a GPU e a memória voltam inteiras para os jogos.
+A secção **IA** do [Control Center](/pt/docs/control-center) liga e desliga o motor, ativa-o no arranque e mostra a versão com a atualização num clique. O mesmo está no [Remote Manager](/pt/docs/controllo-remoto), pelo navegador.
+
+O Unsloth gera uma senha ao acaso quando se instala, e **desliga-se sozinho ao fim de uma hora** se essa senha não for mudada. Esse passo é feito pela secção IA: escolhes a senha do Studio e a chave API é criada com ela. A chave é como a janela e o Remote Manager falam com o motor; os modelos em disco, a memória (VRAM, GTT, RAM, swap) e um teste de chat com os tokens por segundo medidos ficam ao lado.
+
+Tem em conta que:
+
+- **IA e jogos não se usam juntos**: partilham a mesma GPU e a mesma memória;
+- com o motor desligado, GPU e RAM voltam a estar totalmente disponíveis para jogar.
 
 ## Fontes
 

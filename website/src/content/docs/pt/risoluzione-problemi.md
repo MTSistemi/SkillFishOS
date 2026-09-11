@@ -36,7 +36,7 @@ O áudio pelo DisplayPort funciona, mas:
 
 ## A GPU parece lenta / as temperaturas estão altas
 
-- Confira no [Tuner](/pt/docs/app-native) se as **40 CU** e o governador SMU estão ativos.
+- Confira no [Tuner](/pt/docs/control-center) se as **40 CU** e o governador SMU estão ativos.
 - Lembre que a refrigeração é justa: depois de carga prolongada entra a **proteção térmica** (85 °C). Para testes válidos, deixe a placa esfriar entre as passadas (veja [GPU](/pt/docs/gpu-overclock)).
 - Em jogos que dependem da **CPU**, baixar a resolução não aumenta os FPS.
 

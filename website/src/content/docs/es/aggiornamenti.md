@@ -13,7 +13,7 @@ Las partes más delicadas las compilamos y distribuimos **nosotros**, desde un *
 
 - el **[núcleo](/es/docs/kernel)** optimizado (imagen y cabeceras);
 - el **gobernador SMU** y las herramientas de overclock;
-- las **aplicaciones propias** [Tuner y AI](/es/docs/app-native);
+- las **aplicaciones propias** [Control Center](/es/docs/control-center);
 - la **estética steampunk** y la **identidad visual**;
 - la configuración del sistema.
 

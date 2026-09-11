@@ -78,12 +78,10 @@ export const de: Record<string, string> = {
   "s2.t": "Einfache Emulation mit EmuDeck",
   "s2.d":
     "EmuDeck installiert und richtet die Emulatoren (RetroArch, Dolphin, PCSX2, PPSSPP, RPCS3 und weitere) und die ES-DE-Oberfläche mit wenigen Klicks ein. Das System stellt die Werkzeuge: Spiele und ROMs bringst du mit.",
-  "s4.t": "KI auf dem Gerät, einen Klick entfernt",
-  "s4.d":
-    "Ein eigenes Fenster schaltet die lokale KI (Qwen auf der GPU über Vulkan) ein und aus. Web-Chat, ein Terminal zum Programmieren und die Verwaltung: die KI läuft zu Hause und gibt die GPU frei, wenn gespielt wird.",
-  "s5.t": "Feinabstimmung mit einem Klick",
-  "s5.d":
-    "Der Tuner stellt Takt, Undervolting, Lüfter und Recheneinheiten ein — mit vier fertigen Profilen (Stock, Performance, Turbo, Crazy) und einem Temperaturschutz, der die Hardware bewahrt. Die volle Leistung, sicher und ohne Kommandozeile.",
+  "s4.t": "KI zu Hause, im Control Center",
+  "s4.d": "Der KI-Bereich startet den lokalen Motor auf der Vulkan-GPU, lädt die Modelle und misst die Token pro Sekunde. Zum Spielen ausschalten, dann gehört der Speicher wieder dem Spiel.",
+  "s5.t": "Tuning einen Klick entfernt",
+  "s5.d": "Der Tuner zeichnet die Spannungs-/Frequenzkurve des Governors, mit Obergrenze und drei Vorgaben. Anwenden ist eine Probe auf Zeit: ohne Bestätigung startet wieder die vorige Kurve.",
 
   "hw.eye": "Hardware",
   "hw.h2": "Geboren für die AMD BC-250.",
@@ -180,19 +178,16 @@ export const de: Record<string, string> = {
   "gal.emudeck.d": "Installation und Einrichtung der Emulatoren mit wenigen Klicks.",
   "gal.esde1.t": "ES-DE — Oberfläche",
   "gal.esde1.d": "Die ES-DE-Oberfläche, um deine Sammlungen zu durchstöbern und zu starten.",
-  "gal.ai.t": "KI-Fenster",
-  "gal.ai.d": "Schaltet die lokale KI (Vulkan) mit einem Klick ein und aus.",
-  "gal.tuner.t": "Tuner — Recheneinheiten in Echtzeit",
-  "gal.tuner.d":
-    "CU-Raster (grün = an, rot = aus), Profile 24/32/40 und Prüfung, ohne Neustart.",
-  "gal.tunerctl.t": "Tuner — Profile, Governor und Assistenten",
-  "gal.tunerctl.d":
-    "Profile Stock/Performance/Turbo/Crazy, das Fenster „Mein Silizium“, der Governor-Modus Balanced/Performance und die Assistenten „Finde mein Maximum“ für CPU und GPU.",
-  "gal.monitor.t": "Telemetrie in Echtzeit während der Tests",
-  "gal.monitor.d": "Kurven von Temperatur, Takt, Spannung und Lüfter in Echtzeit.",
-  "gal.cutest.t": "CU-Prüfung — Silizium-Lotterie",
-  "gal.cutest.d":
-    "Prüft, ob alle 40 CU die Last ohne Fehler tragen (nützlich bei gebrauchten Chips).",
+  "gal.ai.t": "KI — Unsloth Studio auf der GPU",
+  "gal.ai.d": "Motor, Modelle aus dem Hub, Speicher und ein Chat-Test mit den Token pro Sekunde.",
+  "gal.tuner.t": "Tuner — die Governor-Kurve",
+  "gal.tuner.d": "MHz und Millivolt: Knoten ziehen oder in der Tabelle eintippen, und Anwenden ist eine Probe auf Zeit.",
+  "gal.stato.t": "Status — alles auf einen Blick",
+  "gal.stato.d": "Eine Zahl pro Karte: GPU und Obergrenze, CPU, Recheneinheiten, Lüfter, Kernel und Vulkan-Treiber.",
+  "gal.monitor.t": "Monitor — ein Diagramm je Größe",
+  "gal.monitor.d": "Temperaturen, Takte, Last, Leistung, Spannungen, Lüfter und Speicher, mit einem Balken je Thread.",
+  "gal.giochi.t": "Spiele — Mesa, Scheduler und Proton",
+  "gal.giochi.d": "Unsere Mesa pro Launcher oder systemweit, scx_bpfland während des Spiels, FSR 4 und GE-Proton 11.",
   "gal.wukong.t": "Black Myth: Wukong — 112 FPS",
   "gal.wukong.d": "Durchschnitt in 1080p auf der BC-250 (Maximum 128, 1% low 101).",
   "gal.super.t": "Unigine Superposition — 12.938",

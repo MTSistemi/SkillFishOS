@@ -7,11 +7,11 @@ order: 2
 
 On a normal APU you tune clocks through the `amdgpu` sysfs. On the BC-250 **that doesn't work**: control goes through the **SMU** (System Management Unit) and needs dedicated tools. SkillFishOS bundles them all, pre-configured with safe profiles and a thermal-protection system.
 
-> **Warning:** **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/en/docs/app-native), which validates each preset **on your card** with an automatic test and rollback.
+> **Warning:** **Silicon lottery.** Every number on this page is **measured on our BC-250**. Each card is different: one may take a deeper undervolt, another less. That's why SkillFishOS **always boots in the Stock profile** and lets you climb using the [Tuner](/en/docs/control-center), which validates each preset **on your card** with an automatic test and rollback.
 
 ## The four profiles
 
-The [Tuner](/en/docs/app-native) exposes **four presets**. The ISO boots in **Stock**; the others are one click away after the test.
+The [Tuner](/en/docs/control-center) exposes **four presets**. The ISO boots in **Stock**; the others are one click away after the test.
 
 | Profile | CPU | GPU | Notes |
 |---|---|---|---|
@@ -47,11 +47,11 @@ CPU and GPU share the **same die** and the **same power budget**. Under **mixed*
 
 ## The 40 Compute Units — live
 
-The BC-250 has **40 CUs** (20 WGP, 1 WGP = 2 CU), but the driver enables **24** by default. SkillFishOS routes them up to 40 **at runtime, no reboot**: the system boots at the driver baseline (24 CU) and a service brings it to 40 at startup; from the [Tuner](/en/docs/app-native) you adjust the count **live** with a grid of squares and 24/32/40 presets. The first 24 CUs are driver-locked and always on.
+The BC-250 has **40 CUs** (20 WGP, 1 WGP = 2 CU), but the driver enables **24** by default. SkillFishOS routes them up to 40 **at runtime, no reboot**: the system boots at the driver baseline (24 CU) and a service brings it to 40 at startup; from the [Tuner](/en/docs/control-center) you adjust the count **live** with a grid of squares and 24/32/40 presets. The first 24 CUs are driver-locked and always on.
 
 With all 40 CUs enabled the GPU measures **11385 GFLOPS** FP32 (vkpeak) cold, versus ~**6141** for a 24-CU baseline: **+85%**. Under sustained stress (hot) it settles around **10214 GFLOPS**. Measured memory bandwidth (clpeak) is **~350–367 GB/s**.
 
-> **Silicon lottery.** On salvaged/"discard" chips some CUs may be marginal. The [Tuner](/en/docs/app-native) has a **"CU test"** that stresses each pair and flags GPU faults/hangs, so you can confirm your chip sustains all 40 CUs. (Mechanism via `umr`, writing the WGP masks — credit to [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), clean-room reimplementation.)
+> **Silicon lottery.** On salvaged/"discard" chips some CUs may be marginal. The [Tuner](/en/docs/control-center) has a **"CU test"** that stresses each pair and flags GPU faults/hangs, so you can confirm your chip sustains all 40 CUs. (Mechanism via `umr`, writing the WGP masks — credit to [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), clean-room reimplementation.)
 
 ## Thermal protection — the 85 °C cap
 
@@ -74,7 +74,7 @@ When the workload **is** GPU-bound (e.g. the Wukong benchmark *flythrough*), the
 
 ## All of this, without a terminal
 
-Clocks, undervolt, fan and Compute Units are tuned from the **Tuner** GUI, with the four ready presets and **automatic test + rollback** if your card can't hold a value — see [Native apps](/en/docs/app-native). It's the recommended way: start at Stock, move to Performance, try Turbo or Crazy, and the Tuner validates everything on **your** BC-250.
+Clocks, undervolt, fan and Compute Units are tuned from the **Tuner** GUI, with the four ready presets and **automatic test + rollback** if your card can't hold a value — see [Control Center](/en/docs/control-center). It's the recommended way: start at Stock, move to Performance, try Turbo or Crazy, and the Tuner validates everything on **your** BC-250.
 
 ## Sources
 

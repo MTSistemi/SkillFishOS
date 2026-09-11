@@ -38,7 +38,7 @@ Details and troubleshooting → [Gaming](/en/docs/gaming) and [Troubleshooting](
 
 ## 5. (Optional) Push the hardware
 
-SkillFishOS boots in the **Stock** profile to be safe on any board. When you want more performance open the **[Tuner](/en/docs/app-native)** and move up a profile:
+SkillFishOS boots in the **Stock** profile to be safe on any board. When you want more performance open the **[Tuner](/en/docs/control-center)** and move up a profile:
 
 **Stock → Performance → Turbo → Crazy**
 

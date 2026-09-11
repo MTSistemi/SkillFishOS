@@ -36,7 +36,7 @@ Ton über DisplayPort funktioniert, aber:
 
 ## Die GPU wirkt langsam / die Temperaturen sind hoch
 
-- Prüfe im [Tuner](/de/docs/app-native), ob die **40 CU** und der SMU-Governor aktiv sind.
+- Prüfe im [Tuner](/de/docs/control-center), ob die **40 CU** und der SMU-Governor aktiv sind.
 - Denk daran, dass die Kühlung knapp ist: nach längerer Last greift der **Temperaturschutz** (85 °C). Für aussagekräftige Messungen lass die Platine zwischen den Durchläufen abkühlen (siehe [GPU](/de/docs/gpu-overclock)).
 - Bei Spielen, die an der **CPU** hängen, bringt eine niedrigere Auflösung keine zusätzlichen Bilder.
 

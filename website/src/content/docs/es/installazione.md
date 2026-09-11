@@ -56,7 +56,7 @@ Desde aquí puedes:
 - emparejar tus [mandos](/es/docs/gaming) (DualShock 4 por Bluetooth o un mando por USB);
 - añadir tus juegos a [Steam o EmuDeck](/es/docs/gaming);
 - encender la [IA local](/es/docs/ai-locale) cuando la necesites;
-- ajustar el hardware con el [Tuner](/es/docs/app-native) si te apetece.
+- ajustar el hardware con el [Tuner](/es/docs/control-center) si te apetece.
 
 ## Reparto del disco
 

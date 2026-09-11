@@ -17,7 +17,7 @@ Every SkillFishOS tool lives in one window. Open it from the menu (SkillFishOS â
 - **Profiles**: ceiling, CPU, fan and scheduler in one click; save your own.
 - **Kernel**: the installed kernels, the default one, boot once, uninstall.
 - **Snapshots**: system snapshots and the btrfs maintenance schedule.
-- **AI**: Unsloth Studio on Vulkan: on/off, hardware, the GTT limit.
+- **AI**: Unsloth Studio on Vulkan: engine, update, models from the Hugging Face Hub, a chat test, memory and network.
 - **Emulators**: EmuDeck, or the emulators one by one from Flathub.
 - **Console**: Steam Big Picture inside gamescope, now or from the login screen.
 - **ISO**: disk images mounted through udisks.
@@ -33,7 +33,7 @@ The panels open on demand:
 - **CPU**: clock, undervolt step (6.25 mV each) and thermal limit, each with a slider and a number box at step 1. *Suggest UV* walks the undervolt down two steps at a time with twelve seconds of load per step; *Find my max* climbs from 3600 to 4000 MHz; *Test 60 s* loads the current values. Every run shows a countdown and a Stop button; the values under test are never written to disk, so a hang boots the previous ones. Above 3500 MHz with eight cores the gain is nil: heat is in charge.
 - **Cores**: which cores are online, SMT, the 8-core unlock (6c/12t becomes 8c/16t, +20% measured) and *Before boot (EFI)*: the unlock done before GRUB in a single boot, instead of the extra reboot of the in-system service.
 - **CU**: the 40 compute units as 20 cells (pairs): green on, red off, grey kept on by the driver. Type the number of CUs you want (24 to 40, in pairs) or click the cells; *Test CU* turns the extra pairs on one at a time under vkpeak and reports errors, for the silicon lottery.
-- **VRAM**: the UMA split in the CMOS, applied at the next boot. With the 512 MB dynamic split some games pick low textures: if they look blurry, try 4 or 6 GB fixed.
+- **VRAM**: the UMA split in the CMOS, applied at the next boot. With the 512 MB dynamic split some games pick low textures: if they look blurry, try 4 or 6 GB fixed. Anything from 512 MB to 12 GB, with presets at 512 MB, 1, 2, 4, 6 and 8 GB.
 - **Advanced**: the governor's own knobs: ascent margin, step, descent confirmations, thermal and power thresholds, droop.
 - **Test**: vkpeak and the helper log.
 
@@ -47,6 +47,17 @@ One chart per quantity, each with its own true scale: temperatures (CPU, GPU, VR
 - **Scheduler**: scx_bpfland, loaded only while a game runs (GameMode raises it at launch and drops it at exit): +1.5-2% in Cyberpunk and steadier frames. If the kernel ejects it twice the service stops until you reset the counter: that is the "Ejected by the kernel" row.
 - **FSR 4**: through OptiScaler on the game's DLSS path. GE-Proton 11 downloads OptiScaler by itself when it finds `PROTON_USE_OPTISCALER=1`, the game must be set to DLSS, and AMD's FSR 4 library (`amdxcffx64.dll`, from AMD's Windows driver) goes next to the game. XeSS, where a game has it built in, costs the same as FSR 3 at 1080p.
 - **Proton**: the GE-Proton 11 releases; Install downloads one (about 500 MB) into the Steam and Heroic folders, Default picks it. Steam must be closed for its default to be written.
+
+## AI
+
+The engine is **Unsloth Studio**: it runs GGUF models through llama.cpp on the **Vulkan** backend, which on the BC-250's gfx1013 is the only accelerated path, because ROCm does not support it. Measured on the board with Qwen3-1.7B Q4_K_M: 210 tokens per second against 41 on the CPU alone.
+
+- **Engine**: on, off, at boot. On, it holds GPU memory, so turn it off before gaming. Beside it sit the version, the update check and *Update*, which reruns the official installer with the Vulkan bundle of llama.cpp.
+- **Access**: Unsloth generates a random password when it installs, and shuts itself down after an hour if that password is not changed. The first sign-in happens here: choose the Studio password and the API key is created with it, and shared with the Remote Manager.
+- **Models**: the ones on disk with quantization and size. To download one you need the repository name on Hugging Face (for example `unsloth/Qwen3-4B-GGUF`) and the variant picked from the list, sizes included.
+- **Chat**: a quick run over the OpenAI-compatible API (`http://127.0.0.1:8888/v1`), with the measured tokens per second. The full chat, with files and search, is inside Studio.
+- **Memory**: VRAM, GTT, RAM, swap and the model budget. The GTT limit is a kernel parameter: it takes effect at the next boot.
+- **Network**: open on the local network, Studio answers the other devices at home too, with its own user and password. Parallel chats are llama-server's slots.
 
 ## Fan, profiles and the rest
 

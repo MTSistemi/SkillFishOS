@@ -13,7 +13,7 @@ Najbardziej krytyczne elementy budujemy i rozprowadzamy **my sami**, z **własne
 
 - zoptymalizowane **[jądro](/pl/docs/kernel)** (obraz + nagłówki);
 - **zarządca SMU** i narzędzia do podkręcania;
-- **własne aplikacje** [Tuner i AI](/pl/docs/app-native);
+- **własne aplikacje** [Control Center](/pl/docs/control-center);
 - **motyw steampunk** i **oznaczenia marki**;
 - konfiguracja systemu.
 

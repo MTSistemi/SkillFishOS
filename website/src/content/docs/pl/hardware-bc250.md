@@ -34,7 +34,7 @@ Za inżynierię wsteczną odpowiada [bc250-core-unlock (rw-r-r-0644)](https://gi
 
 ## Odblokowanie 40 jednostek obliczeniowych
 
-Grafika ma 40 jednostek, ale sterownik domyślnie włącza tylko **24**. SkillFishOS **podnosi je do 40 na żywo** (bez restartu): system startuje na wartości bazowej sterownika, a usługa doprowadza go do 40 przy uruchamianiu, z możliwością zmiany w [Tunerze](/pl/docs/app-native). Inżynieria wsteczna odblokowania jest udokumentowana w [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); sterowanie w czasie pracy przez `umr` inspirowane jest projektem [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (napisane od nowa, bez zaglądania w kod).
+Grafika ma 40 jednostek, ale sterownik domyślnie włącza tylko **24**. SkillFishOS **podnosi je do 40 na żywo** (bez restartu): system startuje na wartości bazowej sterownika, a usługa doprowadza go do 40 przy uruchamianiu, z możliwością zmiany w [Tunerze](/pl/docs/control-center). Inżynieria wsteczna odblokowania jest udokumentowana w [bc250-40cu-unlock](https://github.com/duggasco/bc250-40cu-unlock); sterowanie w czasie pracy przez `umr` inspirowane jest projektem [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager) (napisane od nowa, bez zaglądania w kod).
 
 > Przy 40 aktywnych jednostkach SkillFishOS mierzy **11385 GFLOPS** FP32 (vkpeak) na zimno, wobec ~6141 dla bazowej konfiguracji 24 CU: około **+85%**.
 

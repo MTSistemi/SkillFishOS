@@ -36,7 +36,7 @@ ttm.page_pool_size=1572864
 
 > **Und der DisplayPort?** Das HPD der BC-250 ist defekt (siehe [Hardware](/de/docs/hardware-bc250)), aber SkillFishOS benutzt den Parameter `video=DP-1:e` **nicht**: der Dienst `skillfish-dp-hotswap` beobachtet die EDID und schaltet den Ausgang wieder ein, sobald der Bildschirm zurück ist. Das deckt auch den Fall ab, dass der Bildschirm nach der Platine eingeschaltet wird — was der Parameter allein nicht schafft.
 
-> **Recheneinheiten im laufenden Betrieb.** SkillFishOS benutzt den Parameter `amdgpu.bc250_cc_write_mode=3` nicht mehr (er nagelte 40 CU beim Start fest und verhinderte Änderungen im Betrieb). Das System startet nun mit dem Grundwert des Treibers (24 CU), und ein Dienst **hebt sie beim Hochfahren im Betrieb auf 40**; ändern lassen sie sich ohne Neustart im [Tuner](/de/docs/app-native). Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
+> **Recheneinheiten im laufenden Betrieb.** SkillFishOS benutzt den Parameter `amdgpu.bc250_cc_write_mode=3` nicht mehr (er nagelte 40 CU beim Start fest und verhinderte Änderungen im Betrieb). Das System startet nun mit dem Grundwert des Treibers (24 CU), und ein Dienst **hebt sie beim Hochfahren im Betrieb auf 40**; ändern lassen sie sich ohne Neustart im [Tuner](/de/docs/control-center). Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
 
 ## Kernel, die man meiden sollte
 

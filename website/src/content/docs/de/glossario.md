@@ -95,7 +95,7 @@ Die Begriffe, die sich durch die ganze Dokumentation ziehen, jeder in einer Zeil
 
 **qwen3:14b** — das Referenzmodell der KI, das vollständig auf der GPU läuft.
 
-**Tuner** — die eigene Anwendung von SkillFishOS, um die Hardware mit Prüfen und Zurücknehmen einzustellen (siehe [Eigene Anwendungen](/de/docs/app-native)).
+**Tuner** — die eigene Anwendung von SkillFishOS, um die Hardware mit Prüfen und Zurücknehmen einzustellen (siehe [Control Center](/de/docs/control-center)).
 
 ## Quellen
 

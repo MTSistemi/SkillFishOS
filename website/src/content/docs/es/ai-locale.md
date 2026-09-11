@@ -7,7 +7,7 @@ order: 2
 
 SkillFishOS trae una **IA local**: modelos de conversación y de programación funcionando enteramente en la GPU de la BC-250, **sin nube**, sin que nada salga fuera. Un clic la enciende y la apaga, así que la GPU y la memoria quedan libres otra vez cuando quieres jugar.
 
-![Panel SkillFishOS AI — enciende y apaga el motor local acelerado con Vulkan](/img/ai-panel.jpg)
+![Sección IA del Control Center: motor, modelos, memoria y una prueba de chat](/img/control-center-ai.png)
 
 ## Por qué Vulkan y no ROCm
 
@@ -30,18 +30,23 @@ Lo que cambia en la práctica:
 - **Los modelos vienen de Hugging Face.** Unsloth descarga archivos **GGUF** directamente del catálogo completo de Hugging Face y no de un registro seleccionado, así que la variedad de modelos y de cuantizaciones es muchísimo mayor — incluidas las compilaciones que publica el propio equipo de Unsloth.
 - **Escucha solo en loopback.** Desde fuera se llega a él por el panel de control, que autentica con PAM: no hay ningún puerto de IA expuesto a la red.
 
-> Desde la 26.06.3 el panel de control y el panel de IA manejan **solo** Unsloth: las ramas que mandaban sobre Ollama a través de Docker han desaparecido, y también Docker, que ya no se instala. Quien todavía conserve contenedores de Ollama de una instalación anterior los mantiene funcionando mientras conserve Docker, pero ya no los gestiona desde aquí. No hay que configurar nada.
 
-## Modelos
+## Los modelos
 
-Los modelos se descargan **dentro de Unsloth Studio**, desde su propia interfaz. Regla práctica en esta placa: los 16 GB de GDDR6 se reparten entre el sistema y la GPU, así que quedarse por debajo de unos 11 GB de pesos deja sitio para todo lo demás.
+Los modelos son archivos **GGUF** del catálogo de Hugging Face, y se descargan desde dos sitios: la sección **IA** del [Control Center](/es/docs/control-center), escribiendo el nombre del repositorio (por ejemplo `unsloth/Qwen3-4B-GGUF`) y eligiendo la variante de la lista, con los tamaños; o el Hub dentro de Unsloth Studio, que tiene la búsqueda y las fichas completas.
 
-## Encenderla y apagarla
+Regla práctica en esta placa: los 16 GB de GDDR6 se comparten entre sistema y GPU, así que conviene quedarse por debajo de unos 11 GB de pesos para dejar aire al resto.
 
-Un **panel de IA** propio (aplicación nativa, ver [Aplicaciones propias](/es/docs/app-native)) arranca y para el motor con un clic; el mismo interruptor está en el [panel de control](/es/docs/controllo-remoto). Ten en cuenta que:
+## Encendido, actualización y clave
 
-- **la IA y los juegos no deberían funcionar a la vez**: comparten la misma GPU y la misma memoria;
-- con el motor apagado, la GPU y la memoria vuelven a estar enteras para jugar.
+La sección **IA** del [Control Center](/es/docs/control-center) enciende y apaga el motor, lo habilita al arrancar y muestra la versión con la actualización en un clic. Lo mismo está en el [Remote Manager](/es/docs/controllo-remoto), desde el navegador.
+
+Unsloth genera una contraseña al azar al instalarse, y **se apaga solo al cabo de una hora** si no se cambia. Ese paso lo hace la sección IA: eliges la contraseña de Studio y la clave API se crea a la vez. La clave es como la ventana y el Remote Manager hablan con el motor; los modelos en disco, la memoria (VRAM, GTT, RAM, swap) y una prueba de chat con los tokens por segundo medidos están al lado.
+
+Ten en cuenta que:
+
+- **IA y juegos no se usan a la vez**: comparten la misma GPU y la misma memoria;
+- con el motor apagado, GPU y RAM vuelven a estar del todo disponibles para jugar.
 
 ## Fuentes
 

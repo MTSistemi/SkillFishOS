@@ -36,7 +36,7 @@ ttm.page_pool_size=1572864
 
 > **Et le DisplayPort ?** Le HPD de la BC-250 est cassé (voir [matériel](/fr/docs/hardware-bc250)), mais SkillFishOS n'utilise **pas** le paramètre `video=DP-1:e` : le service `skillfish-dp-hotswap` surveille l'EDID et réactive la sortie quand l'écran revient. Cela couvre aussi le cas où l'on allume l'écran après la carte, ce que le paramètre seul ne fait pas.
 
-> **Les unités de calcul à chaud.** SkillFishOS n'utilise plus le paramètre `amdgpu.bc250_cc_write_mode=3` (qui fixait 40 CU au démarrage et empêchait tout changement ensuite). Le système démarre maintenant au minimum du pilote (24 CU) et un service met les **40 CU en route à chaud** au démarrage ; vous pouvez les changer sans redémarrer depuis le [Tuner](/fr/docs/app-native). Voir [GPU et overclock](/fr/docs/gpu-overclock).
+> **Les unités de calcul à chaud.** SkillFishOS n'utilise plus le paramètre `amdgpu.bc250_cc_write_mode=3` (qui fixait 40 CU au démarrage et empêchait tout changement ensuite). Le système démarre maintenant au minimum du pilote (24 CU) et un service met les **40 CU en route à chaud** au démarrage ; vous pouvez les changer sans redémarrer depuis le [Tuner](/fr/docs/control-center). Voir [GPU et overclock](/fr/docs/gpu-overclock).
 
 ## Les noyaux à éviter
 
