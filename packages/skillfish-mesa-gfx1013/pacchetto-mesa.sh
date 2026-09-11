@@ -21,10 +21,8 @@ cat > "$P/opt/skillfish-gfx1013/share/vulkan/icd.d/radeon_icd.x86_64.json" <<'JS
 }
 JSON
 
-# il commutatore: e' quello gia' provato sulla scheda
-sshpass -p 47yk2d8r6c scp -q -o StrictHostKeyChecking=no \
-    root@192.168.5.32:/opt/attrezzi-banco/mesa-v33.py "$P/usr/bin/skillfish-mesa" || exit 1
-chmod 755 "$P/usr/bin/skillfish-mesa"
+# the switch: the copy kept in the repository next to this script
+install -m 0755 "$(dirname "$0")/skillfish-mesa" "$P/usr/bin/skillfish-mesa" || exit 1
 
 cat > "$P/DEBIAN/control" <<CTRL
 Package: skillfish-mesa-gfx1013
