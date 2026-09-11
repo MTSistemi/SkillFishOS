@@ -67,7 +67,7 @@
 </style></head>
 <body><div class="wrap">
 <header><b>🎛️ SkillFishOS Tuner</b>
-  <a href="https://github.com/MTSistemi/SkillFishOS/blob/main/docs/CONTROL-CENTER.md#tuner" target="_blank" rel="noopener"><span data-i18n-c="Documentation">Documentation</span> ↗</a>
+  <a id="doclink" href="https://skillfishos.com/en/docs/control-center/#tuner" target="_blank" rel="noopener"><span data-i18n-c="Documentation">Documentation</span> ↗</a>
   <span class="sp"></span>
   <span class="pill" id="live">CU: – / –</span>
   <button class="btn sec" id="reload">⟳</button>
@@ -91,9 +91,10 @@
       <div class="row" style="margin:4px 0"><label style="min-width:0" data-i18n-c="Ceiling">Ceiling</label>
         <input type="number" id="tetto" min="350" max="2300" step="1"><span class="val">MHz</span></div>
       <div class="brow" style="margin-top:0">
-        <button class="btn sec mini" data-tetto="1850" data-i18n-c="Cautious 1850">Cautious 1850</button>
-        <button class="btn sec mini" data-tetto="2000" data-i18n-c="Balanced 2000">Balanced 2000</button>
-        <button class="btn sec mini" id="misurato" data-i18n-c="Measured 2100">Measured 2100</button></div>
+        <!-- the preset names stay English in every language -->
+        <button class="btn sec mini" data-tetto="1850">Cautious 1850</button>
+        <button class="btn sec mini" data-tetto="2000">Balanced 2000</button>
+        <button class="btn sec mini" id="misurato">Performance 2100</button></div>
       <div class="stub" id="gpunota"></div>
       <div class="brow"><button class="btn sec" id="gpuannulla" data-i18n-c="Discard">Discard</button>
         <button class="btn" id="gpuapply" data-i18n="apply">Apply</button></div>
@@ -205,7 +206,10 @@ async function api(path, body){
 // the shared dictionary (English keys), same words as the native window
 function C(en){ return (typeof sfC==="function") ? sfC(en) : en; }
 function T(k){ return (typeof sfT==="function") ? sfT(k) : k; }
-function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); }); }
+function applicaC(){ document.querySelectorAll("[data-i18n-c]").forEach(el=>{ el.textContent=C(el.getAttribute("data-i18n-c")); });
+  // the documentation in the language of the browser, English when the site has no such page
+  const l=(navigator.language||"en").slice(0,2).toLowerCase(), ok=["it","en","pl","uk","ru","es","pt","de","fr"];
+  $("#doclink").href="https://skillfishos.com/"+(ok.includes(l)?l:"en")+"/docs/control-center/#tuner"; }
 function popcount(n){ let c=0; while(n){ c+=n&1; n>>=1; } return c; }
 function cuActive(){ let t=0; CU_ROWS.forEach(([k])=> t += popcount((cuMask[k]||0)|cuFloor)*2); return t; }
 // a range and a number box that agree: drag for the rough value, type the exact one

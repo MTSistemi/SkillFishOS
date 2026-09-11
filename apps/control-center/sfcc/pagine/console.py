@@ -30,11 +30,8 @@ class Pagina(PaginaBase):
             "console. Si esce da Steam, e il desktop e' ancora li'.",
             "Steam Big Picture full screen inside gamescope, with the controller: the board as a console. "
             "Quit Steam, and the desktop is still there.")))
-        self.c_avvia = Scheda(L("Adesso", "Now"), L(
-            "Parte sopra al desktop che sta girando: gamescope prende lo schermo e Steam si apre in "
-            "modalita' console. «Torna al desktop» dentro Steam, o chiudere Steam, richiude gamescope.",
-            "Starts on top of the running desktop: gamescope takes the screen and Steam opens in console "
-            "mode. «Return to desktop» inside Steam, or quitting Steam, closes gamescope again."))
+        self.c_avvia = Scheda(L("Adesso", "Now"), L("Parte sopra al desktop: gamescope prende lo schermo e Steam si apre in modalita' console.",
+            "Starts on top of the desktop: gamescope takes the screen and Steam opens in console mode."))
         self.b_stato = Stato("", "quieto")
         self.c_avvia.testa.insertWidget(self.c_avvia.testa.count() - 1, self.b_stato)
         imp = leggi_json(IMPOSTAZIONI, {}) or {}
@@ -59,13 +56,8 @@ class Pagina(PaginaBase):
         self.c_avvia.bottoni((L("Avvia la console", "Start the console"), self._avvia, True),
                              (L("Torna al desktop", "Back to the desktop"), self._desktop, False))
 
-        self.c_sessione = Scheda(L("Dalla schermata di accesso", "From the login screen"), L(
-            "Nella schermata di accesso, in basso, si sceglie la sessione «SkillFishOS Console (Big "
-            "Picture)»: la scheda parte direttamente in Steam, senza desktop. Per tornare al desktop si "
-            "esce da Steam e si rientra scegliendo Plasma.",
-            "On the login screen, at the bottom, pick the «SkillFishOS Console (Big Picture)» session: "
-            "the board starts straight into Steam, no desktop. To get the desktop back, quit Steam and log "
-            "in again choosing Plasma."))
+        self.c_sessione = Scheda(L("Dalla schermata di accesso", "From the login screen"), L("Nella schermata di accesso scegli la sessione «SkillFishOS Console»: la scheda parte in Steam senza desktop.",
+            "On the login screen pick the «SkillFishOS Console» session: the board starts into Steam, no desktop."))
         self.r_sess = self.c_sessione.riga(L("Sessione installata", "Session installed"))
         self.r_gs = self.c_sessione.riga("gamescope")
         self.r_steam = self.c_sessione.riga("Steam")

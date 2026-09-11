@@ -48,13 +48,8 @@ class Pagina(PaginaBase):
             "What the machine is doing right now. Nothing is set here: you look.")))
 
         # --- the four numbers
-        self.c_gpu = Scheda("GPU", L(
-            "La frequenza che il governor sta forzando in questo istante e il tetto che si e' "
-            "dato: sotto carico la frequenza sale al tetto in un colpo, e il tetto scende "
-            "piano quando la scheda scalda o tira troppi watt.",
-            "The clock the governor is forcing this instant and the ceiling it has set "
-            "itself: under load the clock jumps to the ceiling in one step, and the ceiling "
-            "drifts down when the board gets hot or draws too many watts."))
+        self.c_gpu = Scheda("GPU", L("Frequenza forzata dal governor e tetto: sotto carico sale al tetto, che scende se la scheda scalda o tira troppo.",
+            "Clock forced by the governor and its ceiling: under load it jumps to the ceiling, which drops when the board gets hot or draws too much."))
         self.n_gpu = Numerone(L("Frequenza", "Clock"), "MHz")
         self.c_gpu.aggiungi(self.n_gpu)
         self.r_tetto = self.c_gpu.riga(L("Tetto", "Ceiling"))
@@ -72,13 +67,8 @@ class Pagina(PaginaBase):
         self.r_cpu_c = self.c_cpu.riga(L("Temperatura", "Temperature"))
         self.r_cpu_oc = self.c_cpu.riga(L("Impostata", "Set to"))
 
-        self.c_cu = Scheda(L("Unita' di calcolo", "Compute units"), L(
-            "La BC-250 nasce con 24 unita' attive su 40: le altre 16 le accendiamo noi "
-            "all'avvio. Il numero qui viene dal servizio che le instrada, non dal driver, "
-            "che le conta una volta sola e resta a 24.",
-            "The BC-250 ships with 24 of its 40 units on: we switch the other 16 on at boot. "
-            "The number here comes from the service that routes them, not from the driver, "
-            "which counts once and stays at 24."))
+        self.c_cu = Scheda(L("Unita' di calcolo", "Compute units"), L("24 unita' attive di serie: le altre 16 le accendiamo noi all'avvio.",
+            "24 units on by default: we turn the other 16 on at boot."))
         self.n_cu = Numerone("CU", "/ 40")
         self.c_cu.aggiungi(self.n_cu)
         self.r_cu_boot = self.c_cu.riga(L("All'avvio", "At boot"))
@@ -102,15 +92,8 @@ class Pagina(PaginaBase):
         self.r_scx = self.c_sys.riga(L("Schedulatore", "Scheduler"))
         self.r_cc = self.c_sys.riga("Control Center")
 
-        self.c_boot = Scheda(L("Ultimo avvio", "Last boot"), L(
-            "Il sistema lascia un segno quando si spegne in ordine. Se all'avvio il segno "
-            "non c'e', l'ultima volta e' andato giu' senza che nessuno glielo chiedesse: "
-            "un blocco, la corrente, il tasto reset. Con l'overclock e' il sintomo che "
-            "conta: se si ripete, e' la curva o la CPU che chiedono troppo.",
-            "The system leaves a mark when it shuts down in order. If the mark is missing at "
-            "boot, last time it went down without being asked: a hang, the power, the reset "
-            "button. With an overclock this is the symptom that matters: if it repeats, the "
-            "curve or the CPU are asking too much."))
+        self.c_boot = Scheda(L("Ultimo avvio", "Last boot"), L("Se manca il segno dello spegnimento in ordine, l'ultima volta e' andato giu' da solo: con l'overclock e' il sintomo che conta.",
+            "If the orderly-shutdown mark is missing, the last time it went down on its own: with an overclock that is the symptom that counts."))
         self.e_boot = QLabel("")
         self.e_boot.setWordWrap(True)
         self.c_boot.aggiungi(self.e_boot)

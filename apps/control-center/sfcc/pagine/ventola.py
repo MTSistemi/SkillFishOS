@@ -100,17 +100,8 @@ class Pagina(PaginaBase):
         self.etichette = leggi_json(ETICHETTE, {})
         v = self.corpo_pieno()
         testa = QHBoxLayout()
-        testa.addWidget(intestazione(L("Ventola", "Fan"), "", L(
-            "Un grafico solo con dentro tutto: temperature, ventola, giri, watt e tensioni degli "
-            "ultimi cinque minuti. Le tessere sono la legenda: clic per accendere o spegnere una "
-            "linea, doppio clic per rinominare un sensore. Nel riquadro la curva: a questa "
-            "temperatura la ventola gira cosi'. Trascina un punto, doppio clic per aggiungerne "
-            "uno, tasto destro per toglierlo. Il pallino azzurro e' la macchina adesso.",
-            "One chart with everything in it: temperatures, fan, speed, watts and voltages of the "
-            "last five minutes. The tiles are the legend: click to show or hide a line, "
-            "double-click to rename a sensor. In the box, the curve: at this temperature, run the "
-            "fan this fast. Drag a point, double-click to add one, right-click to remove it. The "
-            "blue dot is the machine right now.")))
+        testa.addWidget(intestazione(L("Ventola", "Fan"), "", L("I sensori degli ultimi cinque minuti e la curva della ventola nel riquadro: trascina i punti, doppio clic per aggiungerne uno.",
+            "The sensors of the last five minutes and the fan curve in the box: drag the knots, double-click to add one.")))
         testa.addStretch(1)
         self.et_motivo = QLabel("")
         self.et_motivo.setObjectName("quieto")
@@ -195,15 +186,8 @@ class Pagina(PaginaBase):
         self.interruttore = QCheckBox(L("Controllo", "Control"))
         self.interruttore.setChecked(bool(self.conf.get("attivo")))
         ri.addWidget(self.interruttore)
-        ri.addWidget(Aiuto(L(
-            "ACCESO: il controllo si prende la ventola e applica la curva una volta al secondo, con "
-            "l'anticipo e l'emergenza. SPENTO: la ventola torna al firmware com'era, e la curva non "
-            "comanda niente. A controllo spento non c'e' nemmeno l'emergenza: sopra i gradi di "
-            "emergenza non succede niente.",
-            "ON: the controller takes the fan and applies the curve once a second, with the lead "
-            "and the emergency. OFF: the fan goes back to the firmware as it was, and the curve "
-            "commands nothing. With control off there is no emergency either: past the emergency "
-            "temperature nothing happens."), L("Controllo", "Control")))
+        ri.addWidget(Aiuto(L("Acceso: la curva comanda la ventola. Spento: torna al firmware, e non c'e' nemmeno l'emergenza.",
+            "On: the curve drives the fan. Off: back to the firmware, with no emergency either."), L("Controllo", "Control")))
         ri.addStretch(1)
         fine.addLayout(ri)
         self.et_salva = QLabel("")
@@ -282,13 +266,8 @@ class Pagina(PaginaBase):
         riga(L("Pre-raffredda", "Pre-cool"), self.preraffredda, "%")
         h = QHBoxLayout()
         h.addWidget(QLabel(L("Giochi", "Games")))
-        h.addWidget(Aiuto(L(
-            "Il segnale che arriva prima di tutti e' l'avvio del programma: un gioco pesante carica "
-            "per una ventina di secondi prima di scaldare. Un titolo gia' visto viene trattato per "
-            "quanto ha consumato davvero l'ultima volta; uno mai visto come pesante, per prudenza.",
-            "The earliest signal of all is the program starting: a heavy game loads for twenty "
-            "seconds before it heats anything. A title seen before is treated by what it actually "
-            "drew last time; one never seen as heavy, to be safe."), L("Giochi", "Games")))
+        h.addWidget(Aiuto(L("Un gioco pesante scalda venti secondi dopo l'avvio: la ventola parte prima.",
+            "A heavy game heats up twenty seconds after launch: the fan starts before."), L("Giochi", "Games")))
         h.addStretch(1)
         v.addLayout(h)
         self.et_gioco = QLabel("")
@@ -333,14 +312,8 @@ class Pagina(PaginaBase):
         self.bottone_prova = QPushButton(L("Test PWM", "PWM test"))
         self.bottone_prova.clicked.connect(self._prova_uscita)
         h.addWidget(self.bottone_prova, 1)
-        h.addWidget(Aiuto(L(
-            "Scrivere su un'uscita PWM non vuol dire che qualcosa si muova: su molte schede il firmware "
-            "tiene le ventole per se'. Questa prova manda la ventola al massimo, poi al 35%, poi di "
-            "nuovo al massimo, e guarda se il contagiri segue. Trenta secondi, si sente, e rimette tutto.",
-            "Writing to a PWM output does not mean anything moves: on many boards the firmware keeps "
-            "the fans to itself. This test takes the fan to full, then to 35%, then back to full, and "
-            "watches whether the tachometer follows. Thirty seconds, audible, and it puts everything "
-            "back."), "Test PWM"))
+        h.addWidget(Aiuto(L("Ventola al massimo, poi al 35%, poi di nuovo al massimo: se i giri seguono, il PWM comanda davvero. Trenta secondi.",
+            "Fan to full, then 35%, then full again: if the speed follows, the PWM really drives it. Thirty seconds."), "Test PWM"))
         v.addLayout(h)
         self.et_prova = QLabel("")
         self.et_prova.setWordWrap(True)

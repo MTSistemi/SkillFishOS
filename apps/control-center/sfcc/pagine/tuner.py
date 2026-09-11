@@ -366,9 +366,10 @@ class Pagina(PaginaBase):
         pr.setSpacing(2)
         self.gruppo_preset = QButtonGroup(self)
         for chiave, testo, aiuto in (
-                ("prudente", L("Prudente 1850", "Cautious 1850"), L("Il punto dolce col dissipatore di serie: quasi gli stessi fotogrammi, dieci gradi in meno.", "The sweet spot with the stock heatsink: nearly the same frames, ten degrees less.")),
-                ("equilibrato", L("Equilibrato 2000", "Balanced 2000"), L("Tetto a 2000 MHz.", "Ceiling at 2000 MHz.")),
-                ("misurato", L("Misurato 2100", "Measured 2100"), L("La curva a quindici punti misurata sulla scheda di sviluppo: quella che spediamo.", "The fifteen-point curve measured on the development board: the one we ship."))):
+                # the preset names stay English in every language (Mattia, 2026-09-12)
+                ("prudente", "Cautious 1850", L("Il punto dolce col dissipatore di serie: quasi gli stessi fotogrammi, dieci gradi in meno.", "The sweet spot with the stock heatsink: nearly the same frames, ten degrees less.")),
+                ("equilibrato", "Balanced 2000", L("Tetto a 2000 MHz.", "Ceiling at 2000 MHz.")),
+                ("misurato", "Performance 2100", L("La curva a quindici punti misurata sulla scheda di sviluppo: quella che spediamo.", "The fifteen-point curve measured on the development board: the one we ship."))):
             rr = QHBoxLayout()
             b = QRadioButton(testo)
             b.chiave = chiave

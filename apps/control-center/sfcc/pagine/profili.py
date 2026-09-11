@@ -67,11 +67,8 @@ class Pagina(PaginaBase):
         b = QPushButton(L("Salva lo stato attuale come profilo", "Save the current state as a profile"))
         b.clicked.connect(self._salva_attuale)
         r.addWidget(b)
-        r.addWidget(Aiuto(L(
-            "Prende tetto, CPU, preset della ventola e schedulatore come sono adesso e li mette in "
-            "un profilo tuo, in ~/.config/skillfish/profili.json.",
-            "Takes the ceiling, CPU, fan preset and scheduler as they are now and puts them in a "
-            "profile of yours, in ~/.config/skillfish/profili.json."), L("Profili", "Profiles")))
+        r.addWidget(Aiuto(L("Salva tetto, CPU, ventola e schedulatore come sono adesso in un profilo tuo.",
+            "Saves ceiling, CPU, fan and scheduler as they are now in a profile of yours."), L("Profili", "Profiles")))
         r.addStretch(1)
         self.v.addLayout(r)
         self.v.addStretch(1)

@@ -98,13 +98,8 @@ class Pagina(PaginaBase):
             "che sul processore. Domande e risposte restano su questa macchina.",
             "A language model that runs here, on the integrated GPU, about five times faster than on "
             "the processor. Questions and answers stay on this machine.")))
-        self.c_motore = Scheda(L("Motore", "Engine"), L(
-            "Unsloth Studio con llama.cpp su Vulkan. Acceso tiene la memoria della GPU: spegnilo prima "
-            "di giocare. Al primo accesso ti chiede di scegliere una password; i modelli si scaricano "
-            "dalla sua interfaccia.",
-            "Unsloth Studio with llama.cpp on Vulkan. While on it holds GPU memory: turn it off before "
-            "gaming. On first sign-in it asks you to choose a password; models are downloaded from its "
-            "own interface."))
+        self.c_motore = Scheda(L("Motore", "Engine"), L("Unsloth Studio con llama.cpp su Vulkan. Acceso tiene la memoria della GPU: spegnilo prima di giocare.",
+            "Unsloth Studio with llama.cpp on Vulkan. On, it holds GPU memory: turn it off before gaming."))
         self.b_stato = Stato("", "quieto")
         self.c_motore.testa.insertWidget(self.c_motore.testa.count() - 1, self.b_stato)
         self.acceso = QCheckBox(L("Acceso", "On"))
@@ -121,12 +116,8 @@ class Pagina(PaginaBase):
         self.r_ram = self.c_hw.riga("RAM")
         self.r_budget = self.c_hw.riga(L("Budget del modello", "Model budget"))
 
-        self.c_gtt = Scheda(L("Memoria condivisa (GTT)", "Shared memory (GTT)"), L(
-            "Sulla BC-250 la memoria e' condivisa fra GPU e CPU: questo alza la quota di RAM che il "
-            "modello puo' usare oltre alla VRAM, cosi' entrano modelli piu' grandi. E' un parametro del "
-            "kernel: serve un riavvio.",
-            "On the BC-250 memory is shared between GPU and CPU: this raises the share of RAM the model "
-            "may use on top of VRAM, so larger models fit. It is a kernel parameter: a reboot is needed."))
+        self.c_gtt = Scheda(L("Memoria condivisa (GTT)", "Shared memory (GTT)"), L("Quota di RAM che il modello puo' usare oltre alla VRAM. Parametro del kernel: serve un riavvio.",
+            "Share of RAM the model may use on top of VRAM. Kernel parameter: a reboot is needed."))
         self.n_gtt = Numerone("GTT", "GB")
         self.c_gtt.aggiungi(self.n_gtt)
         r = QHBoxLayout()

@@ -80,23 +80,15 @@ class Pagina(PaginaBase):
             "che configura tutto da solo, o la scelta uno per uno da Flathub.",
             "Not in the ISO: they weigh several gigabytes and not everyone wants them. Two ways: "
             "EmuDeck, which sets everything up by itself, or picking them one by one from Flathub.")))
-        self.c_emudeck = Scheda("EmuDeck", L(
-            "Installa e configura quasi tutti gli emulatori, le cartelle delle ROM, i BIOS e i controlli. "
-            "Nasce per Steam Deck: su Linux normale gli emulatori e le cartelle funzionano, l'integrazione "
-            "con la modalita' gaming di Steam puo' comportarsi diversamente. Installa tutto nella tua home.",
-            "Installs and configures nearly every emulator, the ROM folders, the BIOS files and the "
-            "controls. Born for the Steam Deck: on plain Linux the emulators and folders work, the Steam "
-            "gaming-mode integration may behave differently. Installs everything in your home."))
+        self.c_emudeck = Scheda("EmuDeck", L("Installa e configura emulatori, cartelle ROM, BIOS e controlli, tutto nella tua home.",
+            "Installs and configures emulators, ROM folders, BIOS files and controls, all in your home."))
         self.b_emudeck = Stato("", "quieto")
         self.c_emudeck.testa.insertWidget(self.c_emudeck.testa.count() - 1, self.b_emudeck)
         self.c_emudeck.aggiungi(QLabel(L("Scarica l'AppImage ufficiale e lo avvia: da li' scegli tu.", "Downloads the official AppImage and starts it: you choose from there.")))
         self.c_emudeck.bottoni((L("Installa / Avvia", "Install / Start"), self._emudeck, True))
 
-        self.c_lista = Scheda(L("Uno per uno", "One by one"), L(
-            "Flatpak da Flathub, perche' i pacchetti Debian di questi programmi sono spesso vecchi di anni "
-            "e su questa GPU rendono male o non partono. Spuntati quelli consigliati sulla BC-250.",
-            "Flatpaks from Flathub, because the Debian packages of these programs are often years old "
-            "and on this GPU run badly or not at all. The ones recommended on the BC-250 are ticked."))
+        self.c_lista = Scheda(L("Uno per uno", "One by one"), L("Flatpak da Flathub: i pacchetti Debian sono vecchi e su questa GPU rendono male. Spuntati i consigliati.",
+            "Flatpaks from Flathub: the Debian packages are old and run badly on this GPU. The recommended ones are ticked."))
         inst = flatpak_installati()
         for e in elenco_emulatori():
             r = QHBoxLayout()

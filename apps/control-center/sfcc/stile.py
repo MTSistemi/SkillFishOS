@@ -272,16 +272,24 @@ class Stato(QLabel):
                            "font-size:11px;font-weight:600;}" % (col, col))
 
 
-DOC_URL = "https://github.com/MTSistemi/SkillFishOS/blob/main/docs/CONTROL-CENTER.md"
+LINGUE_SITO = ("it", "en", "pl", "uk", "ru", "es", "pt", "de", "fr")
+
+
+def url_doc(ancora=""):
+    """The documentation page of the Control Center on the site, in the
+    language of the system (English when the site does not have it)."""
+    from .comune import LANG
+    lingua = LANG if LANG in LINGUE_SITO else "en"
+    return "https://skillfishos.com/%s/docs/control-center/%s" % (lingua, ("#" + ancora) if ancora else "")
 
 
 def link_doc(ancora=""):
     """The one place the long explanations live: a link to the documentation.
     Short help stays behind the "?" buttons; anything longer goes to the docs."""
-    e = QLabel('<a href="%s%s" style="color:%s;">%s ↗</a>' % (
-        DOC_URL, ("#" + ancora) if ancora else "", OTTONE, L("Documentazione", "Documentation")))
+    u = url_doc(ancora)
+    e = QLabel('<a href="%s" style="color:%s;">%s ↗</a>' % (u, OTTONE, L("Documentazione", "Documentation")))
     e.setOpenExternalLinks(True)
-    e.setToolTip(DOC_URL)
+    e.setToolTip(u)
     e.setStyleSheet("font-size:11px;")
     return e
 

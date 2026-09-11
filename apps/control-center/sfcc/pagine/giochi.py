@@ -202,19 +202,8 @@ class Pagina(PaginaBase):
             "way to the screen.")))
 
         # --- Mesa
-        self.c_mesa = Scheda(L("Driver Vulkan", "Vulkan driver"), L(
-            "La nostra Mesa apre le code compute che il driver di serie tiene chiuse su questa GPU: "
-            "+4% in Cyberpunk, e +12% con FSR 4 acceso. Si accende per lanciatore, con un override "
-            "flatpak, o per tutto il sistema.\n\n"
-            "SERVE IL NOSTRO KERNEL. Su un kernel senza le due patch delle code compute quelle code "
-            "piantano la GPU, e sulla BC-250 un aggancio si risolve staccando la corrente. Il modo "
-            "«sistema» si rifiuta di partire su un altro kernel; quello per lanciatore no, sta a te.",
-            "Our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in "
-            "Cyberpunk, and +12% with FSR 4 on. It is switched per launcher, through a flatpak "
-            "override, or for the whole system.\n\n"
-            "IT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those queues "
-            "wedge the GPU, and on the BC-250 a wedge is fixed by pulling the plug. The «system» "
-            "mode refuses to start on another kernel; the per-launcher one does not, that is on you."))
+        self.c_mesa = Scheda(L("Driver Vulkan", "Vulkan driver"), L("La nostra Mesa apre le code compute: +4% in Cyberpunk, +12% con FSR 4. Serve il nostro kernel.",
+            "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. It needs our kernel."))
         self.b_mesa = Stato("", "quieto")
         self.c_mesa.testa.insertWidget(self.c_mesa.testa.count() - 1, self.b_mesa)
         self.m_steam = QCheckBox("Steam")
@@ -234,36 +223,20 @@ class Pagina(PaginaBase):
         self.c_mesa.aggiungi(self.e_mesa)
 
         # --- scheduler
-        self.c_scx = Scheda(L("Schedulatore", "Scheduler"), L(
-            "scx_bpfland, lo schedulatore di CachyOS, caricato SOLO mentre gira un gioco: lo alza "
-            "GameMode all'avvio e lo toglie alla chiusura. Misurato: +1,5-2% in Cyberpunk e "
-            "fotogrammi piu' regolari. Se il kernel lo espelle due volte (la malattia di lavd su "
-            "questa scheda) il servizio si rifiuta di partire finche' non azzeri il contatore.",
-            "scx_bpfland, the CachyOS scheduler, loaded ONLY while a game runs: GameMode raises it "
-            "at launch and drops it at exit. Measured: +1.5-2% in Cyberpunk and steadier frames. If "
-            "the kernel ejects it twice (lavd's disease on this board) the service refuses to start "
-            "until you reset the counter."))
+        self.c_scx = Scheda(L("Schedulatore", "Scheduler"), L("scx_bpfland solo mentre gira un gioco (lo alza GameMode): +1,5-2% in Cyberpunk. Espulso due volte dal kernel, si ferma finche' non azzeri.",
+            "scx_bpfland only while a game runs (GameMode raises it): +1.5-2% in Cyberpunk. Ejected twice by the kernel, it stops until you reset."))
         self.b_scx = Stato("", "quieto")
         self.c_scx.testa.insertWidget(self.c_scx.testa.count() - 1, self.b_scx)
         self.s_armato = QCheckBox(L("Nei giochi", "While gaming"))
         self.s_armato.clicked.connect(self._scx_set)
         self.c_scx.aggiungi(self.s_armato)
         self.r_scx_nome = self.c_scx.riga(L("Adesso", "Now"))
-        self.r_scx_esp = self.c_scx.riga(L("Espulsioni", "Ejections"))
+        self.r_scx_esp = self.c_scx.riga(L("Espulso dal kernel", "Ejected by the kernel"))
         self.c_scx.bottoni((L("Azzera contatore", "Reset counter"), self._scx_azzera, False))
 
         # --- FSR 4
-        self.c_fsr = Scheda("FSR 4", L(
-            "FSR 4 gira sulla BC-250 attraverso OptiScaler, sul percorso DLSS del gioco: GE-Proton "
-            "11 scarica OptiScaler da solo quando trova PROTON_USE_OPTISCALER=1, e il gioco va "
-            "messo su DLSS. Serve anche la libreria FSR 4 di AMD (amdxcffx64.dll), che non "
-            "possiamo distribuire: la trovi nel driver Windows di AMD, e va copiata accanto al "
-            "gioco. Con la nostra Mesa vale +12%.",
-            "FSR 4 runs on the BC-250 through OptiScaler, on the game's DLSS path: GE-Proton 11 "
-            "downloads OptiScaler by itself when it finds PROTON_USE_OPTISCALER=1, and the game "
-            "must be set to DLSS. AMD's FSR 4 library (amdxcffx64.dll) is needed too and we cannot "
-            "ship it: it is in AMD's Windows driver, and goes next to the game. With our Mesa it is "
-            "worth +12%."))
+        self.c_fsr = Scheda("FSR 4", L("Via OptiScaler sul percorso DLSS: GE-Proton 11 lo scarica da solo e il gioco va messo su DLSS. Serve amdxcffx64.dll dal driver AMD.",
+            "Through OptiScaler on the DLSS path: GE-Proton 11 downloads it and the game must be set to DLSS. Needs amdxcffx64.dll from the AMD driver."))
         self.f_steam = QCheckBox("Steam")
         self.f_heroic = QCheckBox("Heroic")
         for cb in (self.f_steam, self.f_heroic):
@@ -282,14 +255,8 @@ class Pagina(PaginaBase):
         v.addWidget(griglia_schede(self.c_mesa, self.c_scx, self.c_fsr, colonne=3))
 
         # --- Proton
-        self.c_proton = Scheda("Proton", L(
-            "Le versioni GE-Proton 11 pubblicate da GloriousEggroll. «Installa» le scarica (circa "
-            "500 MB) e le mette nelle cartelle di Steam e di Heroic; «Predefinita» le sceglie come "
-            "default. Per Steam serve che Steam sia chiuso: il file di configurazione lo riscrive "
-            "lui all'uscita.",
-            "The GE-Proton 11 versions published by GloriousEggroll. «Install» downloads them "
-            "(about 500 MB) and puts them in the Steam and Heroic folders; «Default» picks one as "
-            "the default. For Steam, Steam must be closed: it rewrites its configuration on exit."))
+        self.c_proton = Scheda("Proton", L("Le GE-Proton 11 di GloriousEggroll: Installa scarica 500 MB per Steam e Heroic, Predefinita la sceglie. Steam va chiuso.",
+            "GloriousEggroll's GE-Proton 11: Install downloads 500 MB for Steam and Heroic, Default picks it. Steam must be closed."))
         self.lista = QListWidget()
         self.lista.setMinimumHeight(200)
         self.c_proton.aggiungi(self.lista, 1)
@@ -338,7 +305,7 @@ class Pagina(PaginaBase):
             self.m_sistema.setChecked(bool(st.get("attivo")))
             self.m_sistema.blockSignals(False)
             self.r_mesa_ver.setText(st.get("versione") or "?")
-            self.r_mesa_kernel.setText(L("nostro", "ours") if st.get("kernel_nostro") else L("NON nostro", "NOT ours"))
+            self.r_mesa_kernel.setText(os.uname().release)
             self.r_mesa_kernel.setStyleSheet("font-weight:600;color:%s;" % (stile.VERDE if st.get("kernel_nostro") else stile.ARANCIO))
             dove = [n for n, on in (("Steam", self.m_steam.isChecked()), ("Heroic", self.m_heroic.isChecked()), (L("sistema", "system"), self.m_sistema.isChecked())) if on]
             self.b_mesa.setText(L("nostra: %s", "ours: %s") % ", ".join(dove) if dove else L("di serie", "stock"))
