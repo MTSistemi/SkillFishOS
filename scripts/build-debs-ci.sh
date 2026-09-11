@@ -453,26 +453,6 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 # Lo schedulatore di CachyOS, compilato da noi perche' in Debian non c'e'.
 # Misurato sulla scheda: la media non cambia, i minimi all'1% salgono del 20%
 # e quelli allo 0,1% del 49%. Cioe' toglie gli scatti. Vedi vendor/scx/README.md.
-P=skillfish-audio-dolby
-# Real-time Dolby Digital 5.1 over HDMI/DisplayPort (MastaG/bc250-dual-audio):
-# a second sink that encodes AC-3 live for receivers that only take Dolby.
-# The ALSA monitor override is rebased on WirePlumber 0.5.17 EXACTLY, hence
-# the pinned dependency. License asked to the author (issue #1, 2026-09-11).
-put $P 0644 system/etc/alsa/conf.d/61-bc250-a52.conf                          etc/alsa/conf.d/61-bc250-a52.conf
-put $P 0644 system/etc/pipewire/pipewire.conf.d/60-bc250-ac3-output.conf      etc/pipewire/pipewire.conf.d/60-bc250-ac3-output.conf
-put $P 0644 system/etc/wireplumber/wireplumber.conf.d/50-bc250-audio.conf     etc/wireplumber/wireplumber.conf.d/50-bc250-audio.conf
-put $P 0644 system/usr/local/share/wireplumber/scripts/90-bc250-audio-mode.lua usr/local/share/wireplumber/scripts/90-bc250-audio-mode.lua
-put $P 0644 system/usr/local/share/wireplumber/scripts/monitors/alsa.lua      usr/local/share/wireplumber/scripts/monitors/alsa.lua
-put $P 0644 system/usr/share/doc/skillfish-audio-dolby/README.upstream.md     usr/share/doc/skillfish-audio-dolby/README.upstream.md
-put $P 0644 system/usr/share/doc/skillfish-audio-dolby/UPSTREAM-COMMIT        usr/share/doc/skillfish-audio-dolby/UPSTREAM-COMMIT
-ctrl $P "wireplumber (>= 0.5.17), wireplumber (<< 0.5.18), pipewire-audio, libasound2-plugins" "SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/DisplayPort" \
-  "Adds a second audio output, Dolby Digital 5.1 (AC3), that encodes the six
-channels live at 640 kbps for AV receivers, soundbars and TVs that do not take
-multichannel PCM. The normal HDMI/DisplayPort output stays as it is. Pick the
-output in the system settings, it applies to every program. Work of MastaG
-(bc250-dual-audio), packaged by SkillFishOS. Log out and in once after
-installing."
-
 P=skillfish-scx
 put $P 0755 vendor/scx/scx_lavd usr/local/bin/scx_lavd
 put $P 0644 system/etc/systemd/system/skillfish-scx.service etc/systemd/system/skillfish-scx.service
@@ -1215,7 +1195,7 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
+for P in skillfish-control-center skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -1744,7 +1724,6 @@ check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'syst
 # the trial must exist (a curve applied without one hangs boards), and the
 # divert of the system Mesa must go somewhere ldconfig does not look.
 check skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_active>auth_admin_keep</allow_active>'
-check skillfish-audio-dolby_${VER}_all.deb ./usr/local/share/wireplumber/scripts/monitors/alsa.lua 'bc250'
 notcheck skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_any>yes</allow_any>'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'gov-prova'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'reset-failed'
