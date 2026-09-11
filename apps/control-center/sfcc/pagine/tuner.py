@@ -334,14 +334,15 @@ class Pagina(PaginaBase):
         r.addWidget(Aiuto(L("Ogni riga e' un punto: MHz e mV si scrivono. + aggiunge un punto dopo quello scelto, − lo toglie.",
                             "Every row is a knot: type MHz and mV. + adds a knot after the selected one, − removes it."), L("Punti", "Knots")))
         r.addStretch(1)
-        b = QPushButton("+")
-        b.setFixedWidth(30)
-        b.clicked.connect(self._aggiungi_punto)
-        r.addWidget(b)
-        b = QPushButton("−")
-        b.setFixedWidth(30)
-        b.clicked.connect(self._togli_punto)
-        r.addWidget(b)
+        # the global button padding ate the glyph at 30 px: no padding here
+        for testo, slot, suggerimento in (("+", self._aggiungi_punto, L("Aggiungi un punto dopo quello scelto", "Add a knot after the selected one")),
+                                          ("−", self._togli_punto, L("Togli il punto scelto", "Remove the selected knot"))):
+            b = QPushButton(testo)
+            b.setFixedSize(34, 30)
+            b.setStyleSheet("QPushButton{padding:0;min-width:0;font-size:16px;font-weight:700;}")
+            b.setToolTip(suggerimento)
+            b.clicked.connect(slot)
+            r.addWidget(b)
         destra.addLayout(r)
         self.tabella = QTableWidget(0, 2)
         self.tabella.setHorizontalHeaderLabels(["MHz", "mV"])
