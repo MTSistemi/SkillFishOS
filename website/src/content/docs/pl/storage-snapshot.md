@@ -27,7 +27,7 @@ Najważniejsze z konfiguracji:
 
 - limit liczby przechowywanych migawek, żeby dysk się nie zapełnił;
 - migawki trzymane przy ważnych *kamieniach milowych* systemu;
-- zarządzanie z okna przez **SkillFishOS Migawki**, aplikację, którą napisaliśmy sami.
+- zarządzanie z okna w sekcji **Migawki** [Control Center](/pl/docs/control-center), napisanej przez nas.
 
 ## Ile ich zostaje
 

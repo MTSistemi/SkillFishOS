@@ -35,7 +35,7 @@ Die Begriffe, die sich durch die ganze Dokumentation ziehen, jeder in einer Zeil
 
 **SMU** — *System Management Unit*: der Mikrocontroller in der APU, der Takte und Spannungen regelt. Auf der BC-250 läuft die Steuerung **nur** über ihn, nicht über die gewöhnlichen amdgpu-Dateien in sysfs.
 
-**SMU-Governor** — der Dienst (`cyan-skillfish-governor`), der die *sicheren Punkte* aus Takt und Spannung für die GPU festlegt.
+**V/F-Governor** — der Dienst (`skillfish-vf-governor`), der die Spannungs-/Frequenzkurve der GPU über die SMU steuert, mit einstellbarem Deckel (Vorgaben Cautious/Balanced/Performance). Hat den alten `cyan-skillfish-governor` mit festen Vorgaben abgelöst.
 
 **sclk / mclk** — Takt des **Grafikkerns** (sclk) und des **Speichers** (mclk). Auf der BC-250 lässt sich der mclk **nicht** verstellen.
 
@@ -89,13 +89,13 @@ Die Begriffe, die sich durch die ganze Dokumentation ziehen, jeder in einer Zeil
 
 **EmuDeck / ES-DE** — der Einrichter für Emulatoren und die Oberfläche für die Emulation.
 
-**FSR / OptiScaler** — Verfahren zum **Hochskalieren**. FSR 4 gibt es hier nicht (es verlangt RDNA 4); verwendet werden FSR1/NIS oder OptiScaler.
+**FSR / OptiScaler** — Verfahren zum **Hochskalieren**. Unsere Mesa bringt **FSR 4** über [OptiScaler](https://github.com/optiscaler/OptiScaler) auf dem DLSS-Pfad des Spiels; gamescope bietet zusätzlich FSR1/NIS.
 
 **Unsloth Studio** — Motor und Oberfläche der lokalen KI: führt GGUF-Modelle auf der GPU aus und bietet eine zu OpenAI kompatible Schnittstelle.
 
-**qwen3:14b** — das Referenzmodell der KI, das vollständig auf der GPU läuft.
+**Qwen3-1.7B** — das Modell, das als Referenz bei den Messungen der lokalen KI dient: 210 Token/s auf der GPU gegenüber 41 auf der reinen CPU.
 
-**Tuner** — die eigene Anwendung von SkillFishOS, um die Hardware mit Prüfen und Zurücknehmen einzustellen (siehe [Control Center](/de/docs/control-center)).
+**Tuner** — der Bereich im [Control Center](/de/docs/control-center), um die Hardware (GPU-Kurve, CPU, Recheneinheiten, VRAM) mit selbsttätiger Prüfung und Rücknahme einzustellen.
 
 ## Quellen
 

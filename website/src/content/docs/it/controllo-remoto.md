@@ -40,7 +40,7 @@ La dashboard si compone in automatico in base ai moduli che hai attivato:
 
 - **Telemetria** — grafici live di temperature, frequenze, Watt e carichi CPU/GPU, con i valori sull'asse verticale e un pannello a barre della **frequenza per core/thread** (tutti i 16 thread, con evidenza di quelli spenti dal Tuner).
 - **Stato sistema** — host, IP, kernel, uptime, RAM, disco, CU attive, freeze rilevati.
-- **Controlli (Tuner)** — preset rapidi + il **Tuner completo** in versione web: CPU (frequenza/undervolt/temperatura), GPU (frequenza/voltaggio/governor), **controllo delle Compute Unit a caldo** (griglia WGP, senza riavvio), ventola, VRAM, *Test* e wizard **"Trova il massimo"**.
+- **Controlli (Tuner)** — il **Tuner completo** in versione web: CPU (frequenza, undervolt, temperatura, con *Suggerisci UV* e *Trova il massimo*), GPU (curva tensione/frequenza col governor V/F e i preset Cautious/Balanced/Performance), **controllo delle Compute Unit a caldo** (griglia a coppie, senza riavvio), ventola, VRAM, *Test*.
 - **App e pacchetti (Hub)** — un vero **app store** (AppStream + Flatpak + Snap): sfoglia per categorie, cerca, installa/rimuovi, aggiorna. Le **app SkillFishOS** sono messe in evidenza in cima.
 - **Desktop (KVM)** — vedi e controlli il desktop reale della board dal browser (noVNC), niente hardware aggiuntivo.
 - **Terminale** — una shell web (ttyd) dentro la dashboard.

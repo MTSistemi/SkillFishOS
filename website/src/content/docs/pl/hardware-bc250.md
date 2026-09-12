@@ -11,7 +11,7 @@ order: 2
 
 | Element | Szczegóły |
 |---|---|
-| **Procesor** | 8 rdzeni / 16 wątków **Zen 2** (płyta pokazuje 6; SkillFishOS odblokowuje pozostałe dwa przez SMU) („Oberon”), do **3,9 GHz** (Turbo), 4,0 GHz zwalidowane |
+| **Procesor** | 8 rdzeni / 16 wątków **Zen 2** (płyta pokazuje 6; SkillFishOS odblokowuje pozostałe dwa przez SMU) („Oberon”), do **3,9 GHz** po podkręceniu, 4,0 GHz zwalidowane |
 | **Grafika** | **RDNA 2** „Cyan Skillfish” (`gfx1013`), do **40 jednostek obliczeniowych** do odblokowania |
 | **Pamięć** | **16 GB GDDR6** dzielone (UMA) między procesor i grafikę |
 | **Moc obliczeniowa** | ~**11,3 TFLOPS** FP32 przy 40 CU / 2000 MHz (zmierzone vkpeakiem) |
@@ -24,7 +24,7 @@ Pamięć jest **wspólna**: GDDR6 dzieli się między system i grafikę. Domyśl
 
 Płyta przedstawia się jako **6 rdzeni / 12 wątków**, ale fizycznych rdzeni jest **osiem**: dwa brakujące nie są uszkodzone, lecz wyłączone konfiguracją produktu. Zdradza to maska obecności rdzeni — na praktycznie każdej płycie odczytuje się z niej `0x77`, wartość **symetryczną**: po cztery rdzenie na kompleks, z czwartym wyłączonym w obu. Prawdziwy odsiew produkcyjny zostawiłby układ niesymetryczny, bo wady nie rozkładają się tak równo.
 
-SkillFishOS przepisuje tę maskę przez **SMU** przy starcie i płyta wraca jako **8 rdzeni / 16 wątków**. Bez modyfikowanego BIOS-u, bez lutowania.
+SkillFishOS przepisuje tę maskę przez **SMU** przy starcie i płyta wraca jako **8 rdzeni / 16 wątków**. Bez modyfikowanego BIOS-u, bez lutowania. To samo odblokowanie można zrobić też **przed startem**, programem EFI, w jednym restarcie zamiast dodatkowego restartu wymaganego przez usługę systemową.
 
 W usługę wbudowane są dwa zabezpieczenia: jeśli maska **nie** wynosi `0x77`, nie rusza niczego, bo inny układ może oznaczać, że rdzenie naprawdę wyłączono fabrycznie; a ciepły restart następuje **dopiero po** odczytaniu zapisu z powrotem i potwierdzeniu go, więc nie może wpaść w pętlę ponownych uruchomień.
 

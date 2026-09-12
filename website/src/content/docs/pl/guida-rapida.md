@@ -13,7 +13,7 @@ Zainstalowałeś SkillFishOS (zobacz [Instalacja](/pl/docs/installazione)) i jes
 
 ## 1. Pierwsze uruchomienie (wszystko gotowe)
 
-Przy pierwszym uruchomieniu dostajesz pulpit **KDE Plasma 6** z motywem steampunk, zoptymalizowane jądro, zarządcę SMU, profil **Stock**, zestaw do grania i migawki **już włączone**. W prawym górnym rogu **HUD** pokazuje na żywo procesor, grafikę, temperatury, pamięć, wentylator i podłączone urządzenia Bluetooth.
+Przy pierwszym uruchomieniu dostajesz pulpit **KDE Plasma 6** z motywem steampunk, zoptymalizowane jądro, regulator V/F, fabryczną krzywą GPU, zestaw do grania i migawki **już włączone**. W prawym górnym rogu **HUD** pokazuje na żywo procesor, grafikę, temperatury, pamięć, wentylator i podłączone urządzenia Bluetooth.
 
 Nie musisz instalować sterowników, ustawiać częstotliwości ani niczego włączać: system startuje „na maksymalnej zgodności”.
 
@@ -38,11 +38,11 @@ Szczegóły i rozwiązywanie problemów → [Granie](/pl/docs/gaming) i [Rozwią
 
 ## 5. (Opcjonalnie) Przyciśnij sprzęt
 
-SkillFishOS startuje w profilu **Stock**, żeby było bezpiecznie na każdej płycie. Gdy zechcesz więcej wydajności, otwórz **[Tuner](/pl/docs/control-center)** i przejdź poziom wyżej:
+SkillFishOS startuje z fabryczną krzywą GPU (profil **Performance**, sufit 2100 MHz), żeby było bezpiecznie na każdej płycie. Gdy zechcesz ją zmienić, otwórz **[Tuner](/pl/docs/control-center)** i wybierz profil:
 
-**Stock → Performance → Turbo → Crazy**
+**Cautious → Balanced → Performance**
 
-Tuner **sprawdza każdy profil na twojej własnej BC-250** i automatycznie **cofa zmiany**, jeśli płyta sobie nie radzi. To bezpieczny sposób na znalezienie granicy własnego układu (zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock)).
+Tuner **sprawdza każdą krzywą na twojej własnej BC-250** przez 25 sekund i automatycznie **cofa zmiany**, jeśli płyta sobie nie radzi. To bezpieczny sposób na znalezienie granicy własnego układu (zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock)).
 
 ## 6. (Opcjonalnie) Włącz lokalną AI
 

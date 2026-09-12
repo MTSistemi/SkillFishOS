@@ -18,10 +18,10 @@ Valem para **todos** os testes abaixo, salvo indicação contrária.
 | Placa | **AMD BC-250** — APU Zen 2 “Oberon” + RDNA 2 “Cyan Skillfish” (`gfx1013`) |
 | Memória | **16 GB GDDR6** unificada (UMA) |
 | Unidades de computação | **40 / 40 ativas** (comutadas em tempo real, veja [GPU](/pt/docs/gpu-overclock)) |
-| Kernel | **7.0.10-skillfishos** (linux-tkg) — a versão com que estes números foram tirados; hoje entregamos o **7.2.0**; o 7.1.7 foi remedido com menos de 2 % de diferença |
-| Driver | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; hoje entregamos a **26.1.6** |
-| Governador da GPU | cyan-skillfish — repouso **350 MHz / 700 mV**, carga **2230 MHz / ~1000 mV** |
-| Perfil de OC | **Turbo/Crazy** (teto de GPU 2230 MHz, CPU 3,9–4,0 GHz) |
+| Kernel | **7.0.10-skillfishos** (linux-tkg) — a versão com que estes números foram tirados; o 7.1.7 foi remedido com menos de 2 % de diferença; hoje entregamos o **7.2.4** |
+| Driver | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; hoje entregamos a nossa própria build em `skillfish-mesa-gfx1013` |
+| Governador da GPU | cyan-skillfish (sistema de perfis, aposentado em setembro de 2026) — repouso **350 MHz / 700 mV**, carga **2230 MHz / ~1000 mV** |
+| Perfil de OC | **Turbo/Crazy** (teto de GPU 2230 MHz, CPU 3,9–4,0 GHz) — perfis aposentados; hoje a GPU usa o governador V/F com teto e os perfis Cautious/Balanced/Performance, veja [GPU e overclock](/pt/docs/gpu-overclock) |
 | Teto térmico | **85 °C** (SMU e thermal-guard), ventoinha no **automático** |
 | Resolução | **1920×1080** |
 
@@ -57,16 +57,16 @@ Valem para **todos** os testes abaixo, salvo indicação contrária.
 
 > Lição: em *jogo*, num título limitado pelas chamadas de desenho como o Wukong, o que mais conta é a **estabilidade da CPU** sob carga e uma boa refrigeração.
 
-### Governador Balanced contra Performance (ferramenta de teste)
+### Governador Balanced contra Performance (ferramenta de teste, dados históricos)
 
-O *sobrevoo* da ferramenta de teste é **limitado pela GPU**, e ali a frequência conta. Pondo o governador em **Performance** pelo Tuner (ele segura a GPU no ponto seguro mais alto sob carga e cai para 350 MHz em repouso):
+O *sobrevoo* da ferramenta de teste é **limitado pela GPU**, e ali a frequência conta. Essa medição é do antigo governador de perfis (aposentado em setembro de 2026): pondo-o em **Performance** pelo Tuner (ele segurava a GPU no ponto seguro mais alto sob carga e caía para 350 MHz em repouso):
 
 | Modo do governador | Média | 5 % piores |
 |---|---|---|
 | **Balanced** (padrão) | 100 FPS | 92 FPS |
 | **Performance** | **111 FPS** | **102 FPS** |
 
-**+11 %** na média e nos quadros mais lentos, só por manter a frequência. Por segurança o Tuner limita a GPU a **2200 MHz a 1000 mV** com uma curva de tensão de vários pontos: 2230 MHz a 1000 mV fica abaixo da tensão necessária e pode travar a máquina de vez.
+**+11 %** na média e nos quadros mais lentos, só por manter a frequência. Com o governador V/F atual o equivalente é subir o perfil para **Performance** (teto de 2100 MHz): medido no Wukong, **+4,5% com a placa fria e +11% com a placa quente** frente ao governador de fábrica (veja [GPU e overclock](/pt/docs/gpu-overclock)).
 
 ---
 
@@ -154,21 +154,23 @@ Com as 40 CU ativas: **+85 %** em FP32 sobre a base (≈**11,3 TFLOPS**). A quen
 
 ---
 
-## Perfis do Tuner — frequências, tensões, temperaturas
+## Os quatro perfis originais — frequências, tensões, temperaturas (dados históricos)
 
-| Perfil | CPU | Tensão da CPU | GPU | Temperatura de pico |
+Até setembro de 2026 o Tuner oferecia quatro perfis que uniam CPU e GPU. Foram **aposentados**: hoje a CPU se ajusta com controles independentes (frequência, undervolt, limite térmico) e a GPU com uma curva de três perfis — Cautious 1850 · Balanced 2000 · Performance 2100 MHz — veja [GPU e overclock](/pt/docs/gpu-overclock). Os dados abaixo ficam como medida histórica do hardware:
+
+| Perfil (aposentado) | CPU | Tensão da CPU | GPU | Temperatura de pico |
 |---|---|---|---|---|
-| **Stock** *(padrão da ISO)* | 3500 MHz | — | 1500 MHz | a mais baixa |
+| **Stock** | 3500 MHz | — | 1500 MHz | a mais baixa |
 | **Performance** | 3700 MHz | ~1106 mV (`scale −16`) | 2000 MHz | equilibrada |
 | **Turbo** | 3900 MHz | ~1199 mV (`scale −24`) | 2230 MHz | < 85 °C (teto) |
 | **Crazy** | 4,0 GHz | ~1224 mV (`scale −36`) | 2230 MHz | ~83 °C em 120 s de esforço |
 
-- **Máximo rígido de Vid: 1,325 V** (nunca ultrapassado).
-- Teto térmico de 85 °C em todos os perfis; ventoinha no automático; em repouso a GPU fica em **350 MHz / 700 mV**.
+- **Máximo rígido de Vid: 1,325 V** (nunca ultrapassado — continua valendo hoje).
+- Teto térmico de 85 °C; ventoinha no automático; em repouso a GPU fica em **350 MHz / 700 mV**.
 
 ## A liberação dos 8 núcleos — um +20 % real
 
-A BC-250 vem com **dois núcleos desligados por software**: a máscara de núcleos habilitados da SMU mostra 3 de 4 por CCX. O SkillFishOS a reescreve e leva a CPU a **8 núcleos / 16 threads**, sem BIOS remendada.
+A BC-250 vem com **dois núcleos desligados por software**: a máscara de núcleos habilitados da SMU mostra 3 de 4 por CCX. O SkillFishOS a reescreve e leva a CPU a **8 núcleos / 16 threads**, sem BIOS remendada. O mesmo desbloqueio também dá para fazer **antes do boot**, com um programa EFI, numa única reinicialização em vez da reinicialização extra que o serviço do sistema pede.
 
 Medido no mesmo boot, desligando e ligando os dois núcleos extras em tempo real:
 
@@ -213,7 +215,7 @@ Dados registrados durante a validação automática do Tuner (teste com volta at
 
 | Sistema | Pontuação |
 |---|---|
-| **SkillFishOS** (GPU 2230 · CPU 3900, 40 CU) | **5513** |
+| **SkillFishOS** (GPU 2230 · CPU 3900, 40 CU — perfil Crazy, aposentado) | **5513** |
 | Outra distribuição (Bazzite, frequências de fábrica) | 4102 |
 
 → **+34 % de desempenho real** do mesmíssimo chip, graças às 40 CU liberadas, a um governador que empurra 2230 MHz e ao overclock com undervolt da CPU.

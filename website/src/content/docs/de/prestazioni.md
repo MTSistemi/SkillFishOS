@@ -18,10 +18,10 @@ Gelten für **alle** folgenden Messungen, sofern nichts anderes steht.
 | Platine | **AMD BC-250** — APU Zen 2 „Oberon“ + RDNA 2 „Cyan Skillfish“ (`gfx1013`) |
 | Speicher | **16 GB GDDR6**, gemeinsam genutzt (UMA) |
 | Recheneinheiten | **40 / 40 aktiv** (im Betrieb umgeschaltet, siehe [GPU](/de/docs/gpu-overclock)) |
-| Kernel | **7.0.10-skillfishos** (linux-tkg) — die Fassung, mit der diese Zahlen entstanden; heute liefern wir **7.2.0** aus; 7.1.7 wurde mit weniger als 2 % Abweichung nachgemessen |
-| Treiber | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; heute liefern wir **26.1.6** aus |
-| GPU-Governor | cyan-skillfish — Leerlauf **350 MHz / 700 mV**, Last **2230 MHz / ~1000 mV** |
-| Übertaktungsprofil | **Turbo/Crazy** (GPU-Grenze 2230 MHz, CPU 3,9–4,0 GHz) |
+| Kernel | **7.0.10-skillfishos** (linux-tkg) — die Fassung, mit der diese Zahlen entstanden; 7.1.7 wurde mit weniger als 2 % Abweichung nachgemessen; heute liefern wir **7.2.4** aus |
+| Treiber | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; heute liefern wir unseren eigenen Build in `skillfish-mesa-gfx1013` aus |
+| GPU-Governor | cyan-skillfish (Vorgabensystem, im September 2026 abgelöst) — Leerlauf **350 MHz / 700 mV**, Last **2230 MHz / ~1000 mV** |
+| Übertaktungsprofil | **Turbo/Crazy** (GPU-Grenze 2230 MHz, CPU 3,9–4,0 GHz) — Vorgaben abgelöst; die GPU läuft heute über den V/F-Governor mit Deckel und den Vorgaben Cautious/Balanced/Performance, siehe [GPU und Übertaktung](/de/docs/gpu-overclock) |
 | Wärmegrenze | **85 °C** (SMU und thermal-guard), Lüfter auf **automatisch** |
 | Auflösung | **1920×1080** |
 
@@ -57,16 +57,16 @@ Gelten für **alle** folgenden Messungen, sofern nichts anderes steht.
 
 > Lehre: im *Spielgeschehen* eines an Zeichenaufrufen hängenden Titels wie Wukong zählen vor allem die **Stabilität der CPU** unter Last und eine gute Kühlung.
 
-### Governor Balanced gegen Performance (Messprogramm)
+### Governor Balanced gegen Performance (Messprogramm, historische Daten)
 
-Der *Kameraflug* des Messprogramms hängt dagegen **an der GPU**, dort zählt der Takt. Stellt man den Governor im Tuner auf **Performance** (er hält die GPU unter Last auf ihrem obersten sicheren Punkt und geht im Leerlauf auf 350 MHz):
+Der *Kameraflug* des Messprogramms hängt dagegen **an der GPU**, dort zählt der Takt. Diese Messung stammt vom alten Vorgaben-Governor (im September 2026 abgelöst): stellte man ihn im Tuner auf **Performance** (hielt die GPU unter Last auf ihrem obersten sicheren Punkt und ging im Leerlauf auf 350 MHz):
 
 | Betriebsart des Governors | Mittel | 5 % schlechteste |
 |---|---|---|
 | **Balanced** (Vorgabe) | 100 Bilder/s | 92 Bilder/s |
 | **Performance** | **111 Bilder/s** | **102 Bilder/s** |
 
-**+11 %** im Mittel und bei den langsamsten Bildern, allein durchs Halten des Takts. Zur Sicherheit begrenzt der Tuner die GPU auf **2200 MHz bei 1000 mV** mit einer Spannungskurve aus mehreren Punkten: 2230 MHz bei 1000 mV liegt unter der nötigen Spannung und kann die Maschine hart einfrieren lassen.
+**+11 %** im Mittel und bei den langsamsten Bildern, allein durchs Halten des Takts. Beim heutigen V/F-Governor ist die gleichwertige Maßnahme, die Vorgabe auf **Performance** (Deckel bei 2100 MHz) hochzustellen: auf Wukong gemessen, **+4,5 % auf kalter, +11 % auf warmer Platine** gegenüber dem Werks-Governor (siehe [GPU und Übertaktung](/de/docs/gpu-overclock)).
 
 ---
 
@@ -154,21 +154,23 @@ Mit allen 40 CU: **+85 %** bei FP32 gegenüber dem Grundwert (≈**11,3 TFLOPS**
 
 ---
 
-## Profile des Tuners — Takte, Spannungen, Temperaturen
+## Die vier ursprünglichen Profile — Takte, Spannungen, Temperaturen (historische Daten)
 
-| Profil | CPU | CPU-Spannung | GPU | Höchsttemperatur |
+Bis September 2026 bot der Tuner vier Profile, die CPU und GPU gemeinsam einstellten. Sie wurden **abgelöst**: heute stellt man die CPU über unabhängige Regler ein (Takt, Undervolting, Wärmegrenze) und die GPU über eine Kurve mit drei Vorgaben — Cautious 1850 · Balanced 2000 · Performance 2100 MHz — siehe [GPU und Übertaktung](/de/docs/gpu-overclock). Die Daten unten bleiben als historische Messung der Hardware erhalten:
+
+| Profil (abgelöst) | CPU | CPU-Spannung | GPU | Höchsttemperatur |
 |---|---|---|---|---|
-| **Stock** *(Vorgabe des Abbilds)* | 3500 MHz | — | 1500 MHz | die niedrigste |
+| **Stock** | 3500 MHz | — | 1500 MHz | die niedrigste |
 | **Performance** | 3700 MHz | ~1106 mV (`scale −16`) | 2000 MHz | ausgewogen |
 | **Turbo** | 3900 MHz | ~1199 mV (`scale −24`) | 2230 MHz | < 85 °C (Grenze) |
 | **Crazy** | 4,0 GHz | ~1224 mV (`scale −36`) | 2230 MHz | ~83 °C in 120 s Last |
 
-- **Harte Höchstgrenze Vid: 1,325 V** (nie überschritten).
-- Wärmegrenze 85 °C in allen Profilen; Lüfter auf automatisch; im Leerlauf liegt die GPU bei **350 MHz / 700 mV**.
+- **Harte Höchstgrenze Vid: 1,325 V** (nie überschritten — gilt bis heute).
+- Wärmegrenze 85 °C; Lüfter auf automatisch; im Leerlauf liegt die GPU bei **350 MHz / 700 mV**.
 
 ## Das Freischalten der 8 Kerne — echte +20 %
 
-Die BC-250 kommt mit **zwei per Software abgeschalteten Kernen**: die Kern-Freigabemaske der SMU zeigt 3 von 4 je CCX. SkillFishOS schreibt sie neu und bringt die CPU auf **8 Kerne / 16 Threads**, ganz ohne verändertes BIOS.
+Die BC-250 kommt mit **zwei per Software abgeschalteten Kernen**: die Kern-Freigabemaske der SMU zeigt 3 von 4 je CCX. SkillFishOS schreibt sie neu und bringt die CPU auf **8 Kerne / 16 Threads**, ganz ohne verändertes BIOS. Dasselbe Freischalten geht auch **vor dem Start**, mit einem EFI-Programm, in einem einzigen Neustart statt des zusätzlichen Neustarts, den der Systemdienst braucht.
 
 Im selben Startvorgang gemessen, mit Aus- und Einschalten der beiden zusätzlichen Kerne im Betrieb:
 
@@ -213,7 +215,7 @@ Werte, aufgezeichnet während der selbsttätigen Prüfung des Tuners (Prüfen un
 
 | System | Punkte |
 |---|---|
-| **SkillFishOS** (GPU 2230 · CPU 3900, 40 CU) | **5513** |
+| **SkillFishOS** (GPU 2230 · CPU 3900, 40 CU — Vorgabe Crazy, abgelöst) | **5513** |
 | Andere Distribution (Bazzite, werkseitige Takte) | 4102 |
 
 → **+34 % echte Leistung** aus genau demselben Chip, dank 40 freigeschalteter CU, einem Governor, der auf 2230 MHz geht, und Übertaktung samt Undervolting der CPU.

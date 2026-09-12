@@ -13,7 +13,7 @@ Has instalado SkillFishOS (ver [Instalación](/es/docs/installazione)) y estás 
 
 ## 1. Primer arranque (está todo listo)
 
-En el primer arranque encuentras un escritorio **KDE Plasma 6** con estética steampunk, un núcleo optimizado, el gobernador SMU, el perfil **Stock**, el conjunto para jugar y las instantáneas **ya activas**. Arriba a la derecha, el **HUD** muestra en tiempo real CPU, GPU, temperaturas, memoria, ventilador y dispositivos Bluetooth conectados.
+En el primer arranque encuentras un escritorio **KDE Plasma 6** con estética steampunk, un núcleo optimizado, el gobernador V/F, la curva de GPU de fábrica, el conjunto para jugar y las instantáneas **ya activas**. Arriba a la derecha, el **HUD** muestra en tiempo real CPU, GPU, temperaturas, memoria, ventilador y dispositivos Bluetooth conectados.
 
 No hace falta instalar controladores, fijar frecuencias ni activar nada: el sistema arranca «con la máxima compatibilidad».
 
@@ -38,11 +38,11 @@ Detalles y solución de problemas → [Juegos](/es/docs/gaming) y [Solución de 
 
 ## 5. (Opcional) Exprimir el hardware
 
-SkillFishOS arranca con el perfil **Stock** para ir seguro en cualquier placa. Cuando quieras más rendimiento abre el **[Tuner](/es/docs/control-center)** y sube un perfil:
+SkillFishOS arranca con la curva de GPU de fábrica (perfil **Performance**, tope de 2100 MHz) para ir seguro en cualquier placa. Cuando quieras cambiarla abre el **[Tuner](/es/docs/control-center)** y elige un perfil:
 
-**Stock → Performance → Turbo → Crazy**
+**Cautious → Balanced → Performance**
 
-El Tuner **prueba cada perfil en tu propia BC-250** y **vuelve atrás solo** si la placa no aguanta. Es la forma segura de encontrar el límite de tu chip (ver [GPU y overclock](/es/docs/gpu-overclock)).
+El Tuner **prueba cada curva en tu propia BC-250** durante 25 segundos y **vuelve atrás solo** si la placa no aguanta. Es la forma segura de encontrar el límite de tu chip (ver [GPU y overclock](/es/docs/gpu-overclock)).
 
 ## 6. (Opcional) Encender la IA local
 

@@ -5,38 +5,39 @@ group: Sistema
 order: 2
 ---
 
-Su una APU normale le frequenze si regolano via sysfs `amdgpu`. Sulla BC-250 **non funziona così**: il controllo passa per l'**SMU** (System Management Unit) e richiede strumenti dedicati. SkillFishOS li integra tutti, già configurati con profili sicuri e un sistema di protezione termica.
+Su una APU normale le frequenze si regolano via sysfs `amdgpu`. Sulla BC-250 **non funziona così**: il controllo passa per l'**SMU** (System Management Unit) e richiede strumenti dedicati. SkillFishOS li integra tutti, già configurati con una curva sicura e un sistema di protezione termica.
 
-> **Attenzione:** **Silicon lottery.** Tutti i valori di questa pagina sono **misurati sulla nostra BC-250**. Ogni esemplare è diverso: una scheda può reggere un undervolt più spinto, un'altra meno. Per questo SkillFishOS **parte sempre in profilo Stock** e ti lascia salire con il [Tuner](/docs/control-center), che valida ogni preset **sulla tua scheda** con test automatico e rollback.
+> **Attenzione:** **Silicon lottery.** Tutti i valori di questa pagina sono **misurati sulla nostra BC-250**. Ogni esemplare è diverso: una scheda può reggere una curva più spinta, un'altra meno. Per questo SkillFishOS **parte con la curva di serie** (preset **Performance**, tetto 2100 MHz) e ti lascia cambiarla dal [Tuner](/docs/control-center), che prova ogni curva **sulla tua scheda** con un test automatico di 25 secondi e torna indietro da sola se non regge.
 
-## I quattro profili
+## La curva tensione/frequenza e i tre preset
 
-Il [Tuner](/docs/control-center) espone **quattro preset**. La ISO si avvia con **Stock**; gli altri si attivano con un clic dopo il test.
+Il [Tuner](/docs/control-center) governa la GPU con una **curva tensione/frequenza**: MHz in orizzontale, millivolt in verticale, punti che si trascinano nel grafico o si scrivono a mano nella tabella accanto. Tre preset spostano il **tetto** della curva:
 
-| Profilo | CPU | GPU | Note |
-|---|---|---|---|
-| **Stock** *(default ISO)* | 3500 MHz | 1500 MHz | Massima compatibilità su qualunque BC-250 |
-| **Performance** | 3700 MHz · ~1106 mV | 2000 MHz | Bilanciato e undervoltato |
-| **Turbo** | 3900 MHz · ~1199 mV | 2230 MHz | Spinta alta, validato sotto cap 85 °C |
-| **Crazy** | 4.0 GHz · ~1224 mV | 2230 MHz | Massimo validato (~83 °C in stress) |
+| Preset | Tetto GPU | Note |
+|---|---|---|
+| **Cautious** | 1850 MHz | Il punto dolce col dissipatore di serie: quasi gli stessi fotogrammi, dieci gradi in meno |
+| **Balanced** | 2000 MHz | Compromesso fra clock e calore |
+| **Performance** | 2100 MHz | La curva a quindici punti misurata sulla scheda di sviluppo: quella che spediamo di default |
 
-Tutti i profili rispettano lo stesso **cap termico a 85 °C** e tengono la **ventola in automatico**.
+**Applica è una prova, non una scrittura immediata.** Una curva che chiede troppo poca tensione pianta la scheda, e sulla BC-250 un blocco si risolve solo staccando la corrente. Per questo Applica tiene la curva precedente ancora su disco, prova la candidata per **25 secondi** e aspetta conferma: premi Tieni e viene scritta per davvero; altrimenti — o se la scheda si blocca e riparte da sola — all'avvio torna la curva di prima.
 
-## Il governor SMU della GPU
+## Il governor V/F della GPU
 
-Le frequenze GPU sono gestite dal **[cyan-skillfish-governor](https://github.com/Magnap/cyan-skillfish-governor)** (scritto in Rust), un servizio di sistema con configurazione in `/etc/cyan-skillfish-governor/config.toml`. Definisce dei *safe-point* di frequenza/tensione: a riposo **350 MHz / 700 mV**, sotto carico il valore del profilo (es. 1500/900 in Stock, 2230/1000 in Turbo).
+Le frequenze GPU sono gestite da **skillfish-vf-governor**, il nostro servizio che toglie il clock e la tensione al governor di serie e li pilota direttamente via SMU, tenendo un **tetto di frequenza** che calore e potenza possono abbassare e, quando la scheda si è calmata, restituire. Un processo separato, **skillfish-vf-watchdog**, tiene la situazione sotto controllo se il governor si pianta con il clock forzato.
 
-> Il sysfs amdgpu standard (`power_dpm_force_performance_level`, `pp_dpm_sclk`) **non** controlla la BC-250: solo il governor SMU lo fa. La GPU sale alla frequenza di boost solo sotto **saturazione grafica** reale.
+Misurato su *Black Myth: Wukong*, stessa sessione, stessi 84 °C in entrambi i bracci: **+4,5%** a scheda fredda, **+11%** a scheda calda rispetto al governor di serie. Il vantaggio cresce con la temperatura perché il governor di serie cede clock scaldandosi, il nostro no.
+
+> Il sysfs amdgpu standard (`power_dpm_force_performance_level`, `pp_dpm_sclk`) **non** controlla la BC-250: solo skillfish-vf-governor lo fa. La GPU sale al tetto solo sotto **saturazione grafica** reale.
 
 ## Overclock e undervolt della CPU
 
-La CPU (**8 core / 16 thread** Zen 2 "Oberon", due sbloccati da SkillFishOS via SMU) è gestita da un servizio one-shot **`bc250-smu-oc.service`** che applica i valori da `/etc/bc250-smu-oc.conf` tramite il progetto [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc). Risulta *inactive* dopo l'applicazione: è normale (è "one-shot").
+La CPU (**8 core / 16 thread** Zen 2 "Oberon", due sbloccati da SkillFishOS via SMU — anche prima dell'avvio, con un programma EFI, in un solo riavvio) è gestita per l'overclock da un servizio one-shot **`bc250-smu-oc.service`** che applica i valori da `/etc/bc250-smu-oc.conf` tramite il progetto [bc250_smu_oc](https://github.com/bc250-collective/bc250_smu_oc). Risulta *inactive* dopo l'applicazione: è normale (è "one-shot").
 
 Cosa abbiamo misurato spingendo la **nostra** scheda:
 
-- **3700 MHz** (preset *Performance*) con undervolt a ~**1106 mV** (`scale −16`);
-- **3900 MHz** (preset *Turbo*) a ~**1199 mV** (`scale −24`);
-- **4.0 GHz** (preset *Crazy*) validati a ~**1224 mV** (`scale −36`) per 120 s di stress continuo, picco **83 °C** — il massimo utile su questo esemplare;
+- **3700 MHz** con undervolt a ~**1106 mV** (`scale −16`);
+- **3900 MHz** a ~**1199 mV** (`scale −24`);
+- **4.0 GHz** validati a ~**1224 mV** (`scale −36`) per 120 s di stress continuo, picco **83 °C** — il massimo utile su questo esemplare;
 - **Vid massimo invalicabile: 1.325 V** (mai superato).
 
 L'**undervolt** non serve a "spingere" ma a fare lo stesso lavoro con **meno calore e meno consumo**: a parità di frequenza, abbassare la tensione finché resta stabile abbassa la temperatura e lascia margine termico al resto dell'APU.
@@ -47,18 +48,18 @@ CPU e GPU condividono lo **stesso die** e lo **stesso budget di potenza**. Sotto
 
 ## Le 40 Compute Unit — a caldo
 
-La BC-250 ha **40 CU** (20 WGP, 1 WGP = 2 CU), ma il driver ne attiva di default **24**. SkillFishOS le instrada fino a 40 **a runtime, senza riavvio**: il sistema parte alla baseline driver (24 CU) e un servizio porta a 40 all'avvio; dal [Tuner](/docs/control-center) regoli la quantità **a caldo** con una griglia di quadratini e i preset 24/32/40. Le prime 24 CU sono bloccate dal driver e restano sempre attive.
+La BC-250 ha **40 CU** (20 coppie), ma il driver ne attiva di default **24**. SkillFishOS le porta fino a 40 **all'avvio, senza intervento**; dal [Tuner](/docs/control-center) regoli la quantità **a caldo** scrivendo il numero desiderato o cliccando sulle 20 caselle a coppie. Le prime 24 CU sono bloccate dal driver e restano sempre attive.
 
 Con le 40 CU attive la GPU misura **11385 GFLOPS** FP32 (vkpeak) da freddo, contro i ~**6141** di una baseline a 24 CU: **+85%**. Sotto stress prolungato (a caldo) si assesta intorno a **10214 GFLOPS**. La banda di memoria misurata (clpeak) è **~350–367 GB/s**.
 
-> **Lotteria del silicio.** Su esemplari "discarto" qualche CU può essere marginale. Il [Tuner](/docs/control-center) ha un **«Test CU»** che mette sotto sforzo ogni coppia e segnala errori/blocchi GPU, così verifichi che il tuo chip regga le 40 CU. (Meccanismo via `umr`, scrittura delle mask WGP — credito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementato clean-room.)
+> **Lotteria del silicio.** Su esemplari "discarto" qualche CU può essere marginale. Il [Tuner](/docs/control-center) ha un **«Test CU»** che mette sotto sforzo ogni coppia con vkpeak e segnala errori/blocchi GPU, così verifichi che il tuo chip regga le 40 CU. (Meccanismo via `umr`, scrittura delle mask WGP — credito a [bc250-cu-live-manager](https://github.com/WinnieLV/bc250-cu-live-manager), reimplementato clean-room.)
 
 ## Protezione termica — il cap a 85 °C
 
 Il tetto termico è **85 °C** ed è applicato su due livelli:
 
-1. **lato SMU**: il valore `max_temperature` nella configurazione fa sì che il chip riduca i clock *prima* di superare gli 85 °C (evitando il throttling brusco);
-2. **lato sistema**: un **thermal-guard** (watchdog) che, se la temperatura supera il cap, abbassa di 100 MHz alla volta finché rientra.
+1. **lato governor**: `gradi_max` e `watt_max` in `/etc/skillfish-vf-governor.json` fanno scendere il tetto di frequenza *prima* di superare gli 85 °C o il limite di potenza (il nostro, non quello del firmware), e lo restituiscono quando la scheda si è calmata;
+2. **lato sistema**: **skillfish-vf-watchdog**, un processo separato che tiene la situazione sotto controllo se il governor si pianta con il clock forzato.
 
 Cose da sapere sul raffreddamento di serie (vedi anche [hardware BC-250](/docs/hardware-bc250) per **case 3D e ventole consigliate**):
 
@@ -68,17 +69,17 @@ Cose da sapere sul raffreddamento di serie (vedi anche [hardware BC-250](/docs/h
 
 ## Un caso pratico: giochi CPU-bound
 
-Alcuni titoli — come *Black Myth: Wukong* in **gameplay** — sono **CPU/draw-call bound**: gli FPS dipendono poco dalla risoluzione e dal clock della GPU. Lì aiutano l'overclock **CPU** e un buon raffreddamento. Per l'upscaling, FSR 4 **non è disponibile** (è hardware RDNA 4); si usano gamescope (FSR1/NIS) o [OptiScaler](https://github.com/optiscaler/OptiScaler) per-gioco.
+Alcuni titoli — come *Black Myth: Wukong* in **gameplay** — sono **CPU/draw-call bound**: gli FPS dipendono poco dalla risoluzione e dal clock della GPU. Lì aiutano l'overclock **CPU** e un buon raffreddamento. Per l'upscaling, FSR 4 passa da [OptiScaler](https://github.com/optiscaler/OptiScaler) sul percorso DLSS del gioco (vedi [Gaming](/docs/gaming)).
 
-Quando invece il carico **è** GPU-bound (es. il *flythrough* del benchmark di Wukong), il clock conta: nel **Tuner** puoi attivare la **modalità governor "Performance"**, che tiene la GPU al suo safe-point massimo sotto carico (a riposo torna comunque a 350 MHz). Misurato nel benchmark di Wukong: **100 → 111 FPS di media (+11%)**, 92 → 102 sui frame più lenti. Per sicurezza il Tuner limita la GPU a **2200 MHz @ 1000 mV** (massimo stabile su raffreddamento stock) con una curva di voltaggio multi-punto — spingere a 2230 MHz a 1000 mV è sotto-voltato e può bloccare la macchina.
+Quando invece il carico **è** GPU-bound (es. il *flythrough* del benchmark di Wukong), il tetto della curva conta: nel [Tuner](/docs/control-center) alza il preset da Cautious o Balanced a **Performance** (2100 MHz), oppure scrivi una curva tua. Il vantaggio misurato su Wukong contro il vecchio governor di serie è **+4,5% a scheda fredda e +11% a scheda calda**: il governor V/F non cede clock scaldandosi, dove quello di serie lo fa. Resta comunque un limite fisico invalicabile: **1129 mV**, il tetto di tensione che amdgpu dichiara per questa GPU — nessuna curva può superarlo.
 
 ## Tutto questo, senza terminale
 
-Frequenze, undervolt, ventola e Compute Unit si regolano dalla GUI **Tuner**, con i quattro preset pronti, **test automatico e rollback** se la tua scheda non regge un valore — vedi [Control Center](/docs/control-center). È il modo consigliato: parti da Stock, sali a Performance, prova Turbo o Crazy, e il Tuner valida tutto sulla **tua** BC-250.
+Frequenze, curva GPU, ventola e Compute Unit si regolano dalla GUI **Tuner**, con i tre preset della GPU pronti, **prova automatica di 25 secondi e ritorno alla curva precedente** se la tua scheda non la regge — vedi [Control Center](/docs/control-center). È il modo consigliato: parti da Cautious, sali a Balanced o Performance, e il Tuner valida tutto sulla **tua** BC-250.
 
 ## Fonti
 
-- [cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor) — governor SMU GPU
+- skillfish-vf-governor — il nostro governor V/F per la GPU, SMU diretto con tetto configurabile
 - [bc250_smu_oc (bc250-collective)](https://github.com/bc250-collective/bc250_smu_oc) — overclock/undervolt CPU via SMU
 - [bc250.info](https://bc250.info) — safe-point e note termiche della comunità
 - [vkpeak](https://github.com/nihui/vkpeak) · [clpeak](https://github.com/krrishnarraj/clpeak) — benchmark FP32 e banda memoria

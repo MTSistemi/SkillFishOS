@@ -36,7 +36,7 @@ O áudio pelo DisplayPort funciona, mas:
 
 ## A GPU parece lenta / as temperaturas estão altas
 
-- Confira no [Tuner](/pt/docs/control-center) se as **40 CU** e o governador SMU estão ativos.
+- Confira no [Tuner](/pt/docs/control-center) se as **40 CU** e o governador V/F (skillfish-vf-governor) estão ativos.
 - Lembre que a refrigeração é justa: depois de carga prolongada entra a **proteção térmica** (85 °C). Para testes válidos, deixe a placa esfriar entre as passadas (veja [GPU](/pt/docs/gpu-overclock)).
 - Em jogos que dependem da **CPU**, baixar a resolução não aumenta os FPS.
 
@@ -45,9 +45,9 @@ O áudio pelo DisplayPort funciona, mas:
 A BC-250 pode dar um **travamento total**, muitas vezes ligado a um **undervolt agressivo demais**: a instabilidade aparece principalmente com **pouca carga**, então um travamento pode acontecer até em repouso. O SkillFishOS ataca isso por dois lados:
 
 - **Vigia por hardware** — o temporizador **SP5100 TCO** do chipset está ativo (`RuntimeWatchdogSec=2min`): se o sistema travar por completo, a placa **se reinicia sozinha** em menos de dois minutos, sem precisar tirar da tomada.
-- **Detector de travamentos** — no boot, um serviço percebe se o desligamento anterior foi anormal (falta a marca de desligamento limpo) e **registra** isso em `/var/log/skillfish-freeze.log`, com um aviso na área de trabalho. O contador também aparece no painel **“Meu silício”** do Tuner.
+- **Detector de travamentos** — no boot, um serviço percebe se o desligamento anterior foi anormal (falta a marca de desligamento limpo) e **registra** isso em `/var/log/skillfish-freeze.log`, com um aviso na área de trabalho. A mesma informação aparece na página **Status** do [Control Center](/pt/docs/control-center).
 
-Se os travamentos se repetirem, **desça um perfil** (por exemplo de Crazy ou Turbo para Performance) no Tuner: o valor menos agressivo quase sempre resolve. Todos os perfis são **à prova de travamento** — um travamento no meio de um teste nunca deixa a placa com um perfil instável no próximo boot. Se persistirem até no Stock, desconfie da **fonte de alimentação**.
+Se os travamentos se repetirem, **abaixe o teto da curva** (por exemplo de Performance para Balanced ou Cautious) no Tuner: o valor menos agressivo quase sempre resolve. Cada curva é aplicada com **teste automático e volta atrás** — um travamento no meio do teste nunca deixa a placa com uma curva instável no próximo boot. Se persistirem até no Cautious, desconfie da **fonte de alimentação**.
 
 ## Uma atualização quebrou alguma coisa
 

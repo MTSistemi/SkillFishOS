@@ -40,7 +40,7 @@ Panel składa się z modułów, które włączysz:
 
 - **Telemetria** — wykresy temperatur, częstotliwości, watów i obciążenia procesora oraz grafiki na żywo, z wartościami na osi pionowej i panelem słupków pokazującym **częstotliwość na rdzeń i wątek** (wszystkie 16 wątków, wyłączone wyraźnie oznaczone).
 - **Stan systemu** — host, adres IP, jądro, czas pracy, pamięć, dysk, aktywne CU, wykryte zawieszenia.
-- **Sterowanie (Tuner)** — szybkie profile oraz **pełny Tuner** w wersji webowej: procesor (częstotliwość/napięcie/temperatura), grafika (częstotliwość/napięcie/zarządca), **sterowanie jednostkami obliczeniowymi na żywo** (siatka WGP, bez restartu), wentylator, VRAM, *Test* i kreatory **„Znajdź mój maksimum”**.
+- **Sterowanie (Tuner)** — **pełny Tuner** w wersji webowej: procesor (częstotliwość, obniżenie napięcia, temperatura, z *Zasugeruj UV* i *Znajdź maksimum*), grafika (krzywa napięcie/częstotliwość z regulatorem V/F i profilami Cautious/Balanced/Performance), **sterowanie jednostkami obliczeniowymi na żywo** (siatka par, bez restartu), wentylator, VRAM, *Test*.
 - **Aplikacje i pakiety (Hub)** — prawdziwy **sklep z aplikacjami** (AppStream + Flatpak + Snap): przeglądanie po kategoriach, szukanie, instalowanie i usuwanie, aktualizacje. **Aplikacje SkillFishOS** są wyróżnione na górze.
 - **Pulpit (KVM)** — patrz na prawdziwy pulpit płyty i steruj nim z przeglądarki (noVNC), bez dodatkowego sprzętu.
 - **Terminal** — powłoka webowa (ttyd) wewnątrz panelu.

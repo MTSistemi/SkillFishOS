@@ -23,14 +23,14 @@ inxi -Fxxxz                   # riepilogo hardware completo
 ```bash
 # frequenza/temperatura GPU dal sysfs amdgpu
 cat /sys/class/drm/card*/device/hwmon/hwmon*/temp1_input   # °C ×1000
-# stato del governor SMU della GPU
-systemctl status cyan-skillfish-governor
-cat /etc/cyan-skillfish-governor/config.toml               # safe-point freq/volt
+# stato del governor V/F della GPU
+systemctl status skillfish-vf-governor
+cat /etc/skillfish-vf-governor.json                         # curva MHz/mV, tetto, soglie
 # monitoraggio GPU in tempo reale
 nvtop        # oppure: radeontop
 ```
 
-> Sulla BC-250 il controllo frequenze **non** passa dal sysfs amdgpu standard ma dal **governor SMU**. Modifica i valori dal [Tuner](/docs/control-center), non a mano.
+> Sulla BC-250 il controllo frequenze **non** passa dal sysfs amdgpu standard ma dal **governor V/F** (`skillfish-vf-governor`). Modifica i valori dal [Tuner](/docs/control-center), non a mano.
 
 ## CPU — overclock/undervolt
 

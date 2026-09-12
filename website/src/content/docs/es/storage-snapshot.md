@@ -27,7 +27,7 @@ De la configuración conviene destacar:
 
 - un tope de instantáneas conservadas para que el disco no se llene;
 - instantáneas guardadas en los *hitos* importantes del sistema;
-- gestión desde una ventana con **SkillFishOS Instantáneas**, la aplicación que hemos escrito nosotros.
+- gestión desde una ventana en la sección **Instantáneas** del [Control Center](/es/docs/control-center), escrita por nosotros.
 
 ## Cuántas se guardan
 

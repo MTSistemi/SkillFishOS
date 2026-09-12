@@ -13,7 +13,7 @@ Du hast SkillFishOS installiert (siehe [Installation](/de/docs/installazione)) u
 
 ## 1. Erster Start (es ist alles fertig)
 
-Beim ersten Start bekommst du einen **KDE-Plasma-6**-Schreibtisch in Steampunk-Gestaltung, einen optimierten Kernel, den SMU-Governor, das Profil **Stock**, die Spiele-Ausstattung und Schnappschüsse — **alles bereits aktiv**. Oben rechts zeigt das **HUD** in Echtzeit CPU, GPU, Temperaturen, Arbeitsspeicher, Lüfter und verbundene Bluetooth-Geräte.
+Beim ersten Start bekommst du einen **KDE-Plasma-6**-Schreibtisch in Steampunk-Gestaltung, einen optimierten Kernel, den V/F-Governor, die werkseitige GPU-Kurve, die Spiele-Ausstattung und Schnappschüsse — **alles bereits aktiv**. Oben rechts zeigt das **HUD** in Echtzeit CPU, GPU, Temperaturen, Arbeitsspeicher, Lüfter und verbundene Bluetooth-Geräte.
 
 Du musst keine Treiber installieren, keine Taktraten setzen und nichts einschalten: das System startet „mit größtmöglicher Verträglichkeit“.
 
@@ -38,11 +38,11 @@ Einzelheiten und Fehlersuche → [Spiele](/de/docs/gaming) und [Fehlersuche](/de
 
 ## 5. (Freiwillig) Die Hardware ausreizen
 
-SkillFishOS startet im Profil **Stock**, um auf jeder Platine sicher zu sein. Wenn du mehr Leistung willst, öffne den **[Tuner](/de/docs/control-center)** und geh ein Profil höher:
+SkillFishOS startet mit der werkseitigen GPU-Kurve (Vorgabe **Performance**, Deckel bei 2100 MHz), um auf jeder Platine sicher zu sein. Wenn du sie ändern willst, öffne den **[Tuner](/de/docs/control-center)** und wähl eine Vorgabe:
 
-**Stock → Performance → Turbo → Crazy**
+**Cautious → Balanced → Performance**
 
-Der Tuner **prüft jedes Profil auf deiner eigenen BC-250** und **nimmt es von selbst zurück**, wenn die Platine es nicht mitmacht. Das ist der sichere Weg, die Grenze deines Chips zu finden (siehe [GPU und Übertaktung](/de/docs/gpu-overclock)).
+Der Tuner **prüft jede Kurve auf deiner eigenen BC-250** 25 Sekunden lang und **nimmt sie von selbst zurück**, wenn die Platine es nicht mitmacht. Das ist der sichere Weg, die Grenze deines Chips zu finden (siehe [GPU und Übertaktung](/de/docs/gpu-overclock)).
 
 ## 6. (Freiwillig) Die lokale KI einschalten
 

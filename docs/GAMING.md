@@ -9,7 +9,7 @@ Gaming is the carrot that makes the whole project worthwhile. SkillFishOS ships 
 - **Steam** (Flatpak) with **Proton** / **GE‑Proton**, plus **gamescope**, **GameMode** and **MangoHud** preinstalled.
 - **Heroic Games Launcher** for Epic / GOG / sideloaded titles.
 - A dedicated **gamescope console session** (Steam Big Picture) selectable at login — turn the box into a couch console.
-- **Upscaling that works on RDNA 2:** gamescope **FSR 1 / NIS** (`-F fsr` / `-F nis`) is the universal, zero‑cost baseline. (FSR 4 is RDNA 4‑only and **not** possible on this hardware; OptiScaler/lsfg‑vk are options per‑game.)
+- **Upscaling:** gamescope **FSR 1 / NIS** (`-F fsr` / `-F nis`) is the universal, zero‑cost baseline. **FSR 4** also runs on this hardware now, through OptiScaler plus our INT8-lowering patch in `skillfish-mesa-gfx1013` (measured **+12%** with FSR 4 on, no change with it off — see [COMMUNITY.md](COMMUNITY.md)); lsfg‑vk is another per‑game option.
 
 ## Emulation — EmuDeck + ES‑DE
 

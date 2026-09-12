@@ -36,7 +36,7 @@ DisplayPort audio works, but:
 
 ## The GPU seems slow / temperatures are high
 
-- Check in the [Tuner](/en/docs/control-center) that the **40 CUs** and the SMU governor are active.
+- Check in the [Tuner](/en/docs/control-center) that the **40 CUs** and the V/F governor (skillfish-vf-governor) are active.
 - Remember the cooling is marginal: after prolonged load the **thermal-guard** (85 °C) kicks in. For valid benchmarks, let the board cool between runs (see [GPU](/en/docs/gpu-overclock)).
 - For **CPU-bound** games, lowering the resolution won't raise the FPS.
 
@@ -45,9 +45,9 @@ DisplayPort audio works, but:
 The BC-250 can hit a **hard freeze** (total lock-up), often tied to **too-aggressive undervolt**: the instability mostly shows up at **low load**, so a freeze can even strike at idle. SkillFishOS tackles it on two fronts:
 
 - **Hardware watchdog** — the chipset's **SP5100 TCO** timer is active (`RuntimeWatchdogSec=2min`): if the system locks up completely, the board **reboots itself** within two minutes, no need to pull the power.
-- **Freeze detector** — at boot a service notices whether the previous shutdown was abnormal (no clean-shutdown marker) and **logs it** to `/var/log/skillfish-freeze.log`, with a desktop notification. The counter also shows up in the Tuner's **"My silicon"** panel.
+- **Freeze detector** — at boot a service notices whether the previous shutdown was abnormal (no clean-shutdown marker) and **logs it** to `/var/log/skillfish-freeze.log`, with a desktop notification. This also shows up on the **Status** page of [Control Center](/en/docs/control-center).
 
-If freezes recur, **drop one preset** (e.g. from Crazy/Turbo to Performance) in the Tuner: the less aggressive value is almost always the fix. All presets are **crash-safe** — a freeze mid-test never leaves the board on an unstable profile at reboot. If they persist even in Stock, suspect the **power supply**.
+If freezes recur, **lower the curve's ceiling** (e.g. from Performance to Balanced or Cautious) in the Tuner: the less aggressive value is almost always the fix. Every curve is applied with an **automatic test and rollback** — a freeze mid-trial never leaves the board on an unstable curve at reboot. If they persist even at Cautious, suspect the **power supply**.
 
 ## An update broke something
 

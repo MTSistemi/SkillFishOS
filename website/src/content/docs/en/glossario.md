@@ -35,7 +35,7 @@ The terms that recur throughout the documentation, each explained in one line. I
 
 **SMU** — *System Management Unit*: the micro-controller inside the APU that manages clocks and voltages. On the BC-250 control goes **only** through it, not through standard amdgpu sysfs.
 
-**SMU governor** — the service (`cyan-skillfish-governor`) that sets the GPU's frequency/voltage *safe-points*.
+**V/F governor** — the service (`skillfish-vf-governor`) that drives the GPU's voltage/frequency curve via the SMU, with a configurable ceiling (Cautious/Balanced/Performance presets). Replaced the old fixed-preset `cyan-skillfish-governor`.
 
 **sclk / mclk** — GPU **core** clock (sclk) and **memory** clock (mclk). On the BC-250 the mclk is **not** adjustable.
 
@@ -89,13 +89,13 @@ The terms that recur throughout the documentation, each explained in one line. I
 
 **EmuDeck / ES-DE** — emulator installer and frontend for emulation.
 
-**FSR / OptiScaler** — **upscaling** technologies. FSR 4 is unavailable (needs RDNA 4); FSR1/NIS or OptiScaler are used.
+**FSR / OptiScaler** — **upscaling** technologies. Our Mesa carries **FSR 4** through [OptiScaler](https://github.com/optiscaler/OptiScaler) on the game's DLSS path; gamescope also offers FSR1/NIS.
 
 **Unsloth Studio** — engine and interface of the local AI: runs GGUF models on the GPU and exposes an OpenAI-compatible API.
 
-**qwen3:14b** — the reference AI model, running entirely on the GPU.
+**Qwen3-1.7B** — the model used as the reference in local AI measurements: 210 tokens/s on GPU versus 41 on CPU alone.
 
-**Tuner** — SkillFishOS's native app to tune the hardware with test-and-rollback (see [Control Center](/en/docs/control-center)).
+**Tuner** — the [Control Center](/en/docs/control-center)'s section for tuning the hardware (GPU curve, CPU, Compute Units, VRAM) with automatic test-and-rollback.
 
 ## Sources
 

@@ -27,12 +27,12 @@ Di conseguenza SkillFishOS è adatto a:
 
 ## Cosa c'è dentro, in breve
 
-- **Kernel su misura** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) con le patch per la BC-250: 40 Compute Unit sbloccate, frequenze sbloccate, governor SMU dedicato.
+- **Kernel su misura** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) con le patch per la BC-250: 40 Compute Unit sbloccate, frequenze sbloccate, governor V/F dedicato.
 - **Desktop KDE Plasma 6** a tema steampunk (icone, cursori, wallpaper, HUD di sistema).
 - **Gaming pronto**: Steam, [gamescope](https://github.com/ValveSoftware/gamescope), [EmuDeck](https://www.emudeck.com/), [ES-DE](https://es-de.org/), [Heroic](https://heroicgameslauncher.com/), Proton.
 - **AI in locale**: [Unsloth Studio](https://unsloth.ai/) accelerato in Vulkan sulla GPU integrata — **5,1×** più veloce della CPU, misurato.
 - **Snapshot Btrfs** con [Snapper](http://snapper.io/) e rollback dal menu GRUB.
-- **App native**: il *Tuner* (controllo hardware senza terminale) e il pannello *AI*.
+- **Un'unica finestra**: il [Control Center](/docs/control-center) riunisce Tuner, Ventola, Monitor, Giochi, Profili, Kernel, Snapshot, AI, Emulatori, Console e ISO; restano app a parte l'Hub (centro software), l'HUD e il Remote Manager (cruscotto via browser).
 - **Aggiornamenti dedicati** da un repository APT proprio, testati, per non farsi sorprendere dagli aggiornamenti di Debian.
 
 Le pagine successive entrano nel dettaglio di ciascun componente.

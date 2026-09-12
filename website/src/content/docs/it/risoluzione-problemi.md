@@ -36,7 +36,7 @@ L'audio del DisplayPort funziona, ma:
 
 ## La GPU sembra lenta / temperature alte
 
-- Verifica con il [Tuner](/docs/control-center) che siano attive le **40 CU** e il governor SMU.
+- Verifica con il [Tuner](/docs/control-center) che siano attive le **40 CU** e il governor V/F (skillfish-vf-governor).
 - Ricorda che il raffreddamento è marginale: dopo un carico prolungato interviene il **thermal-guard** (85 °C). Per benchmark validi, lascia raffreddare la scheda tra una prova e l'altra (vedi [GPU](/docs/gpu-overclock)).
 - Per i giochi **CPU-bound** abbassare la risoluzione non aumenta gli FPS.
 
@@ -45,9 +45,9 @@ L'audio del DisplayPort funziona, ma:
 La BC-250 può andare in **hard freeze** (blocco totale), spesso legato a un **undervolt troppo spinto**: l'instabilità colpisce soprattutto negli stati a **basso carico**, quindi a volte il blocco arriva persino da fermi. SkillFishOS lo affronta su due fronti:
 
 - **Watchdog hardware** — il timer **SP5100 TCO** del chipset è attivo (`RuntimeWatchdogSec=2min`): se il sistema si pianta del tutto, la scheda si **riavvia da sola** entro due minuti, senza staccare la corrente.
-- **Rilevatore di freeze** — al boot, un servizio riconosce se lo spegnimento precedente è stato anomalo (nessun marker di shutdown pulito) e lo **registra** in `/var/log/skillfish-freeze.log`, con una notifica sul desktop. Il contatore compare anche nel pannello **«Il mio silicio»** del [Tuner](/docs/control-center).
+- **Rilevatore di freeze** — al boot, un servizio riconosce se lo spegnimento precedente è stato anomalo (nessun marker di shutdown pulito) e lo **registra** in `/var/log/skillfish-freeze.log`, con una notifica sul desktop. L'informazione compare anche nella pagina **Stato** del [Control Center](/docs/control-center).
 
-Se i freeze si ripetono, **scendi di un preset** (es. da Crazy/Turbo a Performance) col Tuner: il valore meno spinto è quasi sempre la cura. Tutti i preset sono **crash-safe** — un blocco a metà test non lascia la scheda su un profilo instabile al riavvio. Se persistono anche in Stock, sospetta l'**alimentatore**.
+Se i freeze si ripetono, **abbassa il tetto della curva** (es. da Performance a Balanced o Cautious) col Tuner: il valore meno spinto è quasi sempre la cura. Ogni curva si applica con **test e rollback automatico** — un blocco a metà prova non lascia la scheda su una curva instabile al riavvio. Se persistono anche con Cautious, sospetta l'**alimentatore**.
 
 ## Un aggiornamento ha rotto qualcosa
 

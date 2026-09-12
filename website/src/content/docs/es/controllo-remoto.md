@@ -40,7 +40,7 @@ El panel se compone con los módulos que hayas activado:
 
 - **Telemetría** — gráficas en vivo de temperaturas, frecuencias, vatios y carga de CPU y GPU, con los valores en el eje vertical y un panel de barras que muestra la **frecuencia por núcleo e hilo** (los 16 hilos, con los apagados claramente marcados).
 - **Estado del sistema** — nombre de la máquina, IP, núcleo, tiempo encendida, memoria, disco, CU activas, cuelgues detectados.
-- **Controles (Tuner)** — perfiles rápidos y el **Tuner completo** en la web: CPU (frecuencia, undervolt, temperatura), GPU (frecuencia, voltaje, gobernador), **control de las unidades de cómputo en caliente** (rejilla WGP, sin reiniciar), ventilador, VRAM, *Prueba* y los asistentes **«Encuentra mi máximo»**.
+- **Controles (Tuner)** — el **Tuner completo** en la web: CPU (frecuencia, undervolt, temperatura, con *Sugerir undervolt* y *Encontrar mi máximo*), GPU (curva voltaje/frecuencia con el gobernador V/F y los perfiles Cautious/Balanced/Performance), **control de las unidades de cómputo en caliente** (rejilla por parejas, sin reiniciar), ventilador, VRAM, *Prueba*.
 - **Programas y paquetes (Hub)** — una **tienda de aplicaciones** de verdad (AppStream + Flatpak + Snap): navegar por categorías, buscar, instalar y quitar, actualizar. Las **aplicaciones de SkillFishOS** aparecen destacadas arriba.
 - **Escritorio (KVM)** — ver y manejar el escritorio real de la placa desde el navegador (noVNC), sin hardware adicional.
 - **Terminal** — una consola web (ttyd) dentro del panel.

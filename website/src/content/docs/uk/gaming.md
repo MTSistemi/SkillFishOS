@@ -7,13 +7,17 @@ order: 1
 
 SkillFishOS народився для ігор. Увесь ігровий набір уже встановлено й налаштовано; ви додаєте **свої** ігри та **свої** ROM-и.
 
+## Наша Mesa (драйвер Vulkan)
+
+Розділ **Ігри** в [Control Center](/uk/docs/control-center) може ввімкнути нашу збірку **Mesa/RADV**, яка відкриває черги compute, що заводський драйвер тримає закритими на цій графіці: виміряно **+4% у Cyberpunk 2077**, **+12% з увімкненим FSR 4**. Працює для лаунчера (Steam, Heroic) через override flatpak, або для **всієї системи** (разом зі стільницею). Потрібне ядро SkillFishOS: на іншому ядрі ці черги compute вішають графіку, і системний перемикач відмовляється стартувати. Програми 32-біт лишаються на драйвері Debian.
+
 ## Steam і Proton
 
-**Steam** (через [Flatpak](https://flatpak.org/)) поєднано з **[gamescope](https://github.com/ValveSoftware/gamescope)** (мікрокомпозитором від Valve), **[gamemode](https://github.com/FeralInteractive/gamemode)** і **[MangoHud](https://github.com/flightlessmango/MangoHud)**. Під час входу можна обрати окремий **консольний сеанс** (gamescope, у стилі Big Picture). Ігри для Windows працюють через **Proton**.
+**Steam** (через [Flatpak](https://flatpak.org/)) поєднано з **[gamescope](https://github.com/ValveSoftware/gamescope)** (мікрокомпозитором від Valve), **[gamemode](https://github.com/FeralInteractive/gamemode)** і **[MangoHud](https://github.com/flightlessmango/MangoHud)**. Під час входу можна обрати окремий **консольний сеанс** (gamescope, у стилі Big Picture). Ігри для Windows працюють через **Proton**: розділ Ігри в Control Center встановлює й робить типовими **GE-Proton 11-6** і **GE-Proton 10-34**, спільні для Steam і Heroic.
 
 ## Ігри поза Steam: Heroic
 
-**[Heroic Games Launcher](https://heroicgameslauncher.com/)** веде тайтли з **Epic Games** і **GOG**, а ігри для Windows — через **GE-Proton**. За допомогою **[ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt)** легко встановити потрібні версії Proton і Wine. Ігри з Heroic можна додати до Steam (разом з обкладинками).
+**[Heroic Games Launcher](https://heroicgameslauncher.com/)** веде тайтли з **Epic Games** і **GOG**, а ігри для Windows — через **GE-Proton**. За допомогою **[ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt)** вручну встановлюють інші версії Proton і Wine, крім тих, що вже встановлює Control Center. Ігри з Heroic можна додати до Steam (разом з обкладинками).
 
 ## Емуляція: EmuDeck + ES-DE
 
@@ -43,7 +47,7 @@ SkillFishOS народився для ігор. Увесь ігровий наб
 
 ## Масштабування зображення
 
-**FSR 4 недоступний** на BC-250 (він потребує заліза RDNA 4). Заміною є масштабування в **gamescope** (FSR1/NIS) або **[OptiScaler](https://github.com/optiscaler/OptiScaler)** для окремих ігор. У тайтлах, що *впираються в процесор* (наприклад, *Black Myth: Wukong*), зниження роздільності чи частоти графіки не допоможе — див. [GPU і розгін](/uk/docs/gpu-overclock).
+Наша Mesa несе **FSR 4** через **[OptiScaler](https://github.com/optiscaler/OptiScaler)** на шляху DLSS гри: GE-Proton 11 сам завантажує OptiScaler, коли знаходить `PROTON_USE_OPTISCALER=1`, гру треба поставити на DLSS, а бібліотеку FSR 4 від AMD (`amdxcffx64.dll`, узяту з драйвера Windows від AMD) — покласти поряд із грою. Заміною лишаються масштабування в **gamescope** (FSR1/NIS) і XeSS, там, де гра має його вбудованим. У тайтлах, що *впираються в процесор* (наприклад, *Black Myth: Wukong*), зниження роздільності чи частоти графіки не допоможе — див. [GPU і розгін](/uk/docs/gpu-overclock).
 
 ## Джерела
 

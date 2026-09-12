@@ -14,7 +14,7 @@ SkillFishOS — це праця з поєднання: він зводить д�
 
 ## Проєкти саме під BC-250
 
-- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — керівник SMU для частот графіки.
+- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — керівник SMU для частот графіки, використовувався до вересня 2026: сьогодні замінений нашим власним `skillfish-vf-governor`.
 - **[bc250_smu_oc (bc250-collective)](https://github.com/bc250-collective/bc250_smu_oc)** — розгін і зниження напруги через SMU.
 - **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — розблокування 8 ядер процесора.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — розблокування 40 обчислювальних блоків.

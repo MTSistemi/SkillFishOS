@@ -23,14 +23,14 @@ inxi -Fxxxz                   # повний огляд заліза
 ```bash
 # температура графіки з sysfs amdgpu
 cat /sys/class/drm/card*/device/hwmon/hwmon*/temp1_input   # °C ×1000
-# стан керівника SMU для графіки
-systemctl status cyan-skillfish-governor
-cat /etc/cyan-skillfish-governor/config.toml               # безпечні точки частоти й напруги
+# стан регулятора V/F для графіки
+systemctl status skillfish-vf-governor
+cat /etc/skillfish-vf-governor.json                         # крива МГц/мВ, стеля, пороги
 # спостереження за графікою в реальному часі
 nvtop        # або: radeontop
 ```
 
-> На BC-250 керування частотою йде **не** через звичайний sysfs amdgpu, а через **керівника SMU**. Значення змінюйте через [Tuner](/uk/docs/control-center), а не вручну.
+> На BC-250 керування частотою йде **не** через звичайний sysfs amdgpu, а через **регулятор V/F** (`skillfish-vf-governor`). Значення змінюйте через [Tuner](/uk/docs/control-center), а не вручну.
 
 ## Процесор — розгін і зниження напруги
 

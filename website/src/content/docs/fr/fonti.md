@@ -14,7 +14,7 @@ SkillFishOS est un travail d'assemblage : il réunit l'effort de nombreuses comm
 
 ## Les projets propres à la BC-250
 
-- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — le gouverneur SMU pour les fréquences du GPU.
+- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — le gouverneur SMU pour les fréquences du GPU, utilisé jusqu'en septembre 2026 : remplacé aujourd'hui par notre propre `skillfish-vf-governor`.
 - **[bc250_smu_oc (bc250-collective)](https://github.com/bc250-collective/bc250_smu_oc)** — overclock et undervolt par la SMU.
 - **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — le déverrouillage des 8 cœurs du CPU.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — le déverrouillage des 40 unités de calcul.

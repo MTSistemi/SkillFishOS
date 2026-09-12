@@ -36,7 +36,7 @@ Dźwięk przez DisplayPort działa, ale:
 
 ## Grafika wydaje się wolna / temperatury są wysokie
 
-- Sprawdź w [Tunerze](/pl/docs/control-center), czy **40 jednostek obliczeniowych** i zarządca SMU są aktywne.
+- Sprawdź w [Tunerze](/pl/docs/control-center), czy **40 jednostek obliczeniowych** i regulator V/F (skillfish-vf-governor) są aktywne.
 - Pamiętaj, że chłodzenie jest na granicy: po dłuższym obciążeniu wchodzi **zabezpieczenie termiczne** (85 °C). Żeby testy były miarodajne, pozwól płycie ostygnąć między przebiegami (zobacz [GPU](/pl/docs/gpu-overclock)).
 - W grach **ograniczonych procesorem** obniżenie rozdzielczości nie podniesie liczby klatek.
 
@@ -45,9 +45,9 @@ Dźwięk przez DisplayPort działa, ale:
 BC-250 potrafi **twardo się zawiesić** (całkowita blokada), często przy **zbyt agresywnym obniżeniu napięcia**: niestabilność ujawnia się głównie przy **małym obciążeniu**, więc zawieszenie może trafić nawet na bezczynności. SkillFishOS bierze to z dwóch stron:
 
 - **Sprzętowy watchdog** — licznik **SP5100 TCO** chipsetu jest włączony (`RuntimeWatchdogSec=2min`): przy całkowitej blokadzie płyta **uruchamia się ponownie sama** w ciągu dwóch minut, bez odcinania zasilania.
-- **Wykrywacz zawieszeń** — przy starcie usługa zauważa, czy poprzednie wyłączenie było nieprawidłowe (brak znacznika czystego zamknięcia), i **zapisuje to** do `/var/log/skillfish-freeze.log`, wraz z powiadomieniem na pulpicie. Licznik pojawia się też w panelu **„Mój krzem”** w Tunerze.
+- **Wykrywacz zawieszeń** — przy starcie usługa zauważa, czy poprzednie wyłączenie było nieprawidłowe (brak znacznika czystego zamknięcia), i **zapisuje to** do `/var/log/skillfish-freeze.log`, wraz z powiadomieniem na pulpicie. Informacja pojawia się też na stronie **Stan** w [Control Center](/pl/docs/control-center).
 
-Jeśli zawieszenia się powtarzają, **zejdź o jeden profil** (np. z Crazy/Turbo na Performance) w Tunerze: mniej agresywna wartość prawie zawsze załatwia sprawę. Wszystkie profile są **odporne na awarię** — zawieszenie w trakcie testu nigdy nie zostawia płyty na niestabilnym profilu po ponownym uruchomieniu. Jeśli zdarzają się nawet na Stock, podejrzewaj **zasilacz**.
+Jeśli zawieszenia się powtarzają, **obniż sufit krzywej** (np. z Performance na Balanced albo Cautious) w Tunerze: mniej agresywna wartość prawie zawsze załatwia sprawę. Każda krzywa jest stosowana z **automatycznym testem i cofnięciem** — zawieszenie w trakcie próby nigdy nie zostawia płyty na niestabilnej krzywej po ponownym uruchomieniu. Jeśli zdarzają się nawet przy Cautious, podejrzewaj **zasilacz**.
 
 ## Aktualizacja coś zepsuła
 

@@ -18,10 +18,10 @@ Dotyczą **wszystkich** poniższych testów, o ile nie napisano inaczej.
 | Płyta | **AMD BC-250** — APU Zen 2 „Oberon” + RDNA 2 „Cyan Skillfish” (`gfx1013`) |
 | Pamięć | **16 GB GDDR6** wspólne (UMA) |
 | Jednostki obliczeniowe | **40 / 40 aktywnych** (podniesione na żywo, zobacz [GPU](/pl/docs/gpu-overclock)) |
-| Jądro | **7.0.10-skillfishos** (linux-tkg) — wersja, przy której zebrano te liczby; dziś wydajemy **7.2.0**; 7.1.7 przemierzono z różnicą poniżej 2% |
-| Sterownik | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; dziś wydajemy **26.1.6** |
-| Zarządca grafiki | cyan-skillfish — bezczynność **350 MHz / 700 mV**, obciążenie **2230 MHz / ~1000 mV** |
-| Profil OC | **Turbo/Crazy** (limit grafiki 2230 MHz, procesor 3,9–4,0 GHz) |
+| Jądro | **7.0.10-skillfishos** (linux-tkg) — wersja, przy której zebrano te liczby; 7.1.7 przemierzono z różnicą poniżej 2%; dziś wydajemy **7.2.4** |
+| Sterownik | **Mesa 26.0.8** — RADV (Vulkan) / radeonsi (OpenGL), ACO; dziś wydajemy naszą własną kompilację w `skillfish-mesa-gfx1013` |
+| Zarządca grafiki | cyan-skillfish (system profili, wycofany we wrześniu 2026) — bezczynność **350 MHz / 700 mV**, obciążenie **2230 MHz / ~1000 mV** |
+| Profil OC | **Turbo/Crazy** (limit grafiki 2230 MHz, procesor 3,9–4,0 GHz) — profile wycofane; dziś grafika używa regulatora V/F z sufitem i profilami Cautious/Balanced/Performance, zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock) |
 | Limit termiczny | **85 °C** (SMU + thermal-guard), wentylator na **auto** |
 | Rozdzielczość | **1920×1080** |
 
@@ -57,16 +57,16 @@ Dotyczą **wszystkich** poniższych testów, o ile nie napisano inaczej.
 
 > Wniosek: w *rozgrywce* w tytule ograniczonym wywołaniami rysowania, takim jak Wukong, najbardziej liczy się **stabilność procesora** pod obciążeniem i dobre chłodzenie.
 
-### Zarządca: Zrównoważony kontra Wydajność (narzędzie testowe)
+### Zarządca: Zrównoważony kontra Wydajność (narzędzie testowe, dane historyczne)
 
-*Przelot* z narzędzia testowego jest **ograniczony grafiką**, więc tam taktowanie ma znaczenie. Po przełączeniu zarządcy na **Wydajność** w Tunerze (trzyma grafikę na najwyższym bezpiecznym punkcie pod obciążeniem, na bezczynności schodząc do 350 MHz):
+*Przelot* z narzędzia testowego jest **ograniczony grafiką**, więc tam taktowanie ma znaczenie. Ten pomiar pochodzi ze starego regulatora profilowego (wycofanego we wrześniu 2026): po przełączeniu na **Wydajność** w Tunerze (trzymał grafikę na najwyższym bezpiecznym punkcie pod obciążeniem, na bezczynności schodząc do 350 MHz):
 
 | Tryb zarządcy | Średnia | 5%-low |
 |---|---|---|
 | **Zrównoważony** (domyślny) | 100 klatek | 92 klatki |
 | **Wydajność** | **111 klatek** | **102 klatki** |
 
-**+11%** na średniej i na najwolniejszych klatkach, samo z utrzymania wysokiego taktowania. Dla bezpieczeństwa Tuner ogranicza grafikę do **2200 MHz @ 1000 mV** z wielopunktową krzywą napięcia: 2230 MHz przy 1000 mV to już obniżone napięcie i może twardo zawiesić maszynę.
+**+11%** na średniej i na najwolniejszych klatkach, samo z utrzymania wysokiego taktowania. Przy dzisiejszym regulatorze V/F odpowiednikiem jest podniesienie profilu do **Performance** (sufit 2100 MHz): zmierzone na Wukongu, **+4,5% na zimnej płycie i +11% na rozgrzanej** względem fabrycznego regulatora (zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock)).
 
 ---
 
@@ -154,21 +154,23 @@ Z 40 aktywnymi jednostkami: **+85%** w FP32 wobec wartości bazowej (≈**11,3 T
 
 ---
 
-## Profile Tunera — taktowanie, napięcia, temperatury
+## Cztery pierwotne profile — taktowanie, napięcia, temperatury (dane historyczne)
 
-| Profil | Procesor | Napięcie procesora | Grafika | Szczyt temperatury |
+Do września 2026 Tuner oferował cztery profile łączące procesor i grafikę razem. Zostały **wycofane**: dziś procesor stroi się niezależnymi suwakami (częstotliwość, obniżenie napięcia, limit termiczny), a grafikę krzywą z trzema profilami — Cautious 1850 · Balanced 2000 · Performance 2100 MHz — zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock). Dane poniżej zostają jako historyczny pomiar sprzętu:
+
+| Profil (wycofany) | Procesor | Napięcie procesora | Grafika | Szczyt temperatury |
 |---|---|---|---|---|
-| **Stock** *(domyślny w ISO)* | 3500 MHz | — | 1500 MHz | najniższy |
+| **Stock** | 3500 MHz | — | 1500 MHz | najniższy |
 | **Performance** | 3700 MHz | ~1106 mV (`scale −16`) | 2000 MHz | zrównoważony |
 | **Turbo** | 3900 MHz | ~1199 mV (`scale −24`) | 2230 MHz | < 85 °C (limit) |
 | **Crazy** | 4,0 GHz | ~1224 mV (`scale −36`) | 2230 MHz | ~83 °C przy 120 s obciążenia |
 
-- **Twarde maksimum Vid: 1,325 V** (nigdy nieprzekroczone).
-- Limit 85 °C we wszystkich profilach; wentylator na auto; na bezczynności grafika siedzi na **350 MHz / 700 mV**.
+- **Twarde maksimum Vid: 1,325 V** (nigdy nieprzekroczone — obowiązuje do dziś).
+- Limit 85 °C; wentylator na auto; na bezczynności grafika siedzi na **350 MHz / 700 mV**.
 
 ## Odblokowanie 8 rdzeni — realne +20%
 
-BC-250 przychodzi z **dwoma rdzeniami wyłączonymi programowo**: maska włączonych rdzeni w SMU pokazuje 3 z 4 rdzeni na CCX. SkillFishOS przepisuje ją i doprowadza procesor do **8 rdzeni / 16 wątków**, bez modyfikowanego BIOS-u.
+BC-250 przychodzi z **dwoma rdzeniami wyłączonymi programowo**: maska włączonych rdzeni w SMU pokazuje 3 z 4 rdzeni na CCX. SkillFishOS przepisuje ją i doprowadza procesor do **8 rdzeni / 16 wątków**, bez modyfikowanego BIOS-u. To samo odblokowanie można zrobić też **przed startem**, programem EFI, w jednym restarcie zamiast dodatkowego restartu wymaganego przez usługę systemową.
 
 Zmierzone przy tym samym uruchomieniu, przez wyłączanie i włączanie dwóch dodatkowych rdzeni w czasie pracy:
 
@@ -213,7 +215,7 @@ Dane zapisane podczas samoczynnej walidacji w Tunerze (test i cofnięcie zmian).
 
 | System | Wynik |
 |---|---|
-| **SkillFishOS** (grafika 2230 · procesor 3900, 40 CU) | **5513** |
+| **SkillFishOS** (grafika 2230 · procesor 3900, 40 CU — profil Crazy, wycofany) | **5513** |
 | Inna dystrybucja (Bazzite, fabryczne taktowanie) | 4102 |
 
 → **+34% realnej wydajności** z dokładnie tego samego układu, dzięki 40 odblokowanym jednostkom, zarządcy dociskającemu 2230 MHz oraz podkręceniu i obniżeniu napięcia procesora.

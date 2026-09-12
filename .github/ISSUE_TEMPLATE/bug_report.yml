@@ -27,7 +27,7 @@ body:
         line in the whole report: most "it does not boot" cases turn out to be the BC-250
         image on a PC that is not a BC-250. Write "installed from the APT repository, no ISO"
         if you did not use an image.
-      placeholder: "SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso"
+      placeholder: "SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso"
     validations:
       required: true
   - type: input
@@ -65,7 +65,7 @@ body:
       description: >-
         Paste the output of `uname -r`, exactly. If the system does not boot far enough to
         run it, write what the boot menu shows, or "does not boot".
-      placeholder: "7.2.0-skillfishos-generic"
+      placeholder: "7.2.4-skillfishos-x64"
     validations:
       required: true
   - type: dropdown

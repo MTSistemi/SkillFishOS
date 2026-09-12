@@ -13,7 +13,7 @@ Kurze Antworten auf die häufigsten Fragen. Wer es genauer wissen will, folgt au
 Eine Linux-Distribution (Debian + KDE Plasma 6), entworfen und abgestimmt für die Platine **AMD BC-250**: Spiele, Emulation, lokale KI und ganz normale Schreibtischarbeit, alles fertig eingerichtet. Siehe [Einführung](/de/docs/introduzione).
 
 **Auf welcher Hardware läuft es?**
-Die Platine, für die es gebaut ist, ist die **AMD BC-250** (APU Zen 2 + RDNA 2 „gfx1013“, 16 GB GDDR6), und dort kann es alles, was es kann: 40 freigeschaltete Recheneinheiten, SMU-Governor, acht Kerne. Es gibt außerdem eine Ausgabe **Generic x86-64**, die auf jedem PC und in jeder virtuellen Maschine läuft — ein gewöhnlicher Kernel, wobei sich die platinenspezifischen Teile verstecken, statt zu scheitern. Siehe [BC-250-Hardware](/de/docs/hardware-bc250).
+Die Platine, für die es gebaut ist, ist die **AMD BC-250** (APU Zen 2 + RDNA 2 „gfx1013“, 16 GB GDDR6), und dort kann es alles, was es kann: 40 freigeschaltete Recheneinheiten, V/F-Governor, acht Kerne. Es gibt außerdem eine Ausgabe **Generic x86-64**, die auf jedem PC und in jeder virtuellen Maschine läuft — ein gewöhnlicher Kernel, wobei sich die platinenspezifischen Teile verstecken, statt zu scheitern. Siehe [BC-250-Hardware](/de/docs/hardware-bc250).
 
 **Was kostet es? Ist es quelloffen?**
 Es ist **kostenlos**. Es fügt quelloffene Software aus vielen Gemeinschaften zusammen; der Code des Projekts liegt auf [GitHub](https://github.com/MTSistemi/SkillFishOS). Siehe [Quellen](/de/docs/fonti).
@@ -37,17 +37,17 @@ Zum Installieren nicht; danach für Steam, Aktualisierungen und die KI schon.
 
 ## Leistung und Übertaktung
 
-**Warum startet es „langsam“, im Profil Stock?**
-Aus Sicherheit: jede BC-250 ist anders (*Silizium-Lotterie*). Die Profile hebst du im **[Tuner](/de/docs/control-center)** an, der alles auf deiner eigenen Platine prüft. Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
+**Warum startet es „vorsichtig“?**
+Aus Sicherheit: jede BC-250 ist anders (*Silizium-Lotterie*). SkillFishOS startet mit der werkseitigen GPU-Kurve (Vorgabe **Performance**, Deckel bei 2100 MHz), und du hebst sie im **[Tuner](/de/docs/control-center)** an, der jede Kurve auf deiner eigenen Platine prüft. Siehe [GPU und Übertaktung](/de/docs/gpu-overclock).
 
 **Ist Übertakten gefährlich?**
-Der Tuner setzt ein Profil, **prüft** es und **nimmt es zurück**, wenn die Platine nicht mitmacht; die Grenze von 85 °C und der Temperaturschutz sind immer aktiv. Es ist so gebaut, dass es sicher ist.
+Der Tuner setzt eine Kurve, **prüft** sie 25 Sekunden lang und nimmt sie von selbst zurück, wenn die Platine nicht mitmacht; die Grenze von 85 °C und der Temperaturschutz sind immer aktiv. Es ist so gebaut, dass es sicher ist.
 
 **Wie viele Bilder pro Sekunde im Spiel X?**
 Kommt darauf an: manche Spiele hängen an der **CPU** (etwa *Black Myth: Wukong*) und werden mit einer schnelleren GPU nicht besser. Siehe [Leistung und Messungen](/de/docs/prestazioni).
 
 **Kann ich FSR 4 nutzen?**
-Nein, das verlangt RDNA-4-Hardware. Nimm gamescope (FSR1/NIS) oder OptiScaler. Siehe [Spiele](/de/docs/gaming).
+Ja: unsere Mesa bringt es über OptiScaler auf dem DLSS-Pfad des Spiels. Daneben bietet gamescope FSR1/NIS. Siehe [Spiele](/de/docs/gaming).
 
 ## Täglicher Gebrauch
 

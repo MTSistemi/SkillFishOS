@@ -11,7 +11,7 @@ Die **AMD BC-250** ist eine kompakte Platine auf Basis einer **teilweise maßgef
 
 | Baustein | Einzelheit |
 |---|---|
-| **CPU** | 8 Kerne / 16 Threads **Zen 2** (die Platine zeigt 6; SkillFishOS schaltet die anderen beiden über die SMU frei) („Oberon“), bis **3,9 GHz** (Turbo), 4,0 GHz bestätigt |
+| **CPU** | 8 Kerne / 16 Threads **Zen 2** (die Platine zeigt 6; SkillFishOS schaltet die anderen beiden über die SMU frei) („Oberon“), bis **3,9 GHz** übertaktet, 4,0 GHz bestätigt |
 | **GPU** | **RDNA 2** „Cyan Skillfish“ (`gfx1013`), bis zu **40 Recheneinheiten** freischaltbar |
 | **Speicher** | **16 GB GDDR6**, gemeinsam genutzt (UMA) von CPU und GPU |
 | **Rechenleistung** | ~**11,3 TFLOPS** FP32 bei 40 CU / 2000 MHz (mit vkpeak gemessen) |
@@ -24,7 +24,7 @@ Der Speicher ist **einheitlich**: der GDDR6 wird zwischen System und Grafik gete
 
 Die Platine gibt sich als **6 Kerne / 12 Threads** aus, physisch sind es aber **acht**: die beiden fehlenden sind nicht defekt, sie sind durch die Produktkonfiguration abgeschaltet. Verraten wird das durch die Maske der vorhandenen Kerne — auf praktisch jeder Platine steht dort `0x77`, ein **symmetrischer** Wert: vier Kerne je Komplex, in beiden ist der vierte deaktiviert. Eine echte Aussortierung in der Fertigung hinterließe ein unsymmetrisches Muster, denn Defekte verteilen sich nicht so ordentlich.
 
-SkillFishOS schreibt diese Maske beim Start über die **SMU** neu, und die Platine kommt als **8 Kerne / 16 Threads** zurück. Kein verändertes BIOS, kein Lötkolben.
+SkillFishOS schreibt diese Maske beim Start über die **SMU** neu, und die Platine kommt als **8 Kerne / 16 Threads** zurück. Kein verändertes BIOS, kein Lötkolben. Dasselbe Freischalten geht auch **vor dem Start**, mit einem EFI-Programm, in einem einzigen Neustart statt des zusätzlichen Neustarts, den der Systemdienst braucht.
 
 Zwei Sicherungen stecken im Dienst: ist die Maske **nicht** `0x77`, wird nichts angefasst, denn ein anderes Muster kann bedeuten, dass die Kerne wirklich ab Werk abgeschaltet wurden; und der warme Neustart erfolgt **erst dann**, wenn der Schreibvorgang zurückgelesen und bestätigt wurde — eine Neustartschleife ist damit ausgeschlossen.
 

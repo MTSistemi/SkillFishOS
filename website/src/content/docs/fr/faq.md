@@ -13,7 +13,7 @@ Des réponses rapides aux questions les plus courantes. Pour aller plus loin, ch
 Une distribution Linux (Debian + KDE Plasma 6) pensée et réglée pour la carte **AMD BC-250** : jeu, émulation, IA locale et usage de bureau, tout préconfiguré. Voir [Introduction](/fr/docs/introduzione).
 
 **Sur quel matériel tourne-t-il ?**
-La carte pour laquelle il est fait est l'**AMD BC-250** (APU Zen 2 + RDNA 2 « gfx1013 », 16 Go de GDDR6), et c'est là qu'il fait tout ce dont il est capable : 40 unités de calcul déverrouillées, gouverneur SMU, huit cœurs. Il existe aussi une édition **Générique x86-64** qui tourne sur n'importe quel PC ou machine virtuelle — un noyau ordinaire, où les morceaux propres à la carte se cachent au lieu d'échouer. Voir [Matériel BC-250](/fr/docs/hardware-bc250).
+La carte pour laquelle il est fait est l'**AMD BC-250** (APU Zen 2 + RDNA 2 « gfx1013 », 16 Go de GDDR6), et c'est là qu'il fait tout ce dont il est capable : 40 unités de calcul déverrouillées, gouverneur V/F, huit cœurs. Il existe aussi une édition **Générique x86-64** qui tourne sur n'importe quel PC ou machine virtuelle — un noyau ordinaire, où les morceaux propres à la carte se cachent au lieu d'échouer. Voir [Matériel BC-250](/fr/docs/hardware-bc250).
 
 **Combien coûte-t-il ? Est-il libre ?**
 Il est **gratuit**. Il assemble des logiciels libres venus de nombreuses communautés ; le code du projet est sur [GitHub](https://github.com/MTSistemi/SkillFishOS). Voir [Sources](/fr/docs/fonti).
@@ -37,17 +37,17 @@ Pas pour installer ; il en faudra une ensuite pour Steam, les mises à jour et l
 
 ## Performances et overclock
 
-**Pourquoi démarre-t-il « lentement », en Stock ?**
-Par sécurité : chaque BC-250 est différente (*loterie du silicium*). On monte de profil depuis le **[Tuner](/fr/docs/control-center)**, qui vérifie tout sur votre carte. Voir [GPU et overclock](/fr/docs/gpu-overclock).
+**Pourquoi démarre-t-il « prudemment » ?**
+Par sécurité : chaque BC-250 est différente (*loterie du silicium*). SkillFishOS démarre avec la courbe GPU d'usine (profil **Performance**, plafond à 2100 MHz), et vous la montez depuis le **[Tuner](/fr/docs/control-center)**, qui vérifie chaque courbe sur votre carte. Voir [GPU et overclock](/fr/docs/gpu-overclock).
 
 **L'overclock est-il dangereux ?**
-Le Tuner applique un profil, le **teste** et **revient en arrière** si la carte ne tient pas ; le plafond de 85 °C et la garde thermique sont toujours actifs. C'est conçu pour être sûr.
+Le Tuner applique une courbe, la **teste** pendant 25 secondes et revient en arrière tout seul si la carte ne tient pas ; le plafond de 85 °C et la garde thermique sont toujours actifs. C'est conçu pour être sûr.
 
 **Combien d'images par seconde dans le jeu X ?**
 Ça dépend : certains jeux sont **limités par le CPU** (par exemple *Black Myth: Wukong*) et ne suivent pas le GPU. Voir [Performances et mesures](/fr/docs/prestazioni).
 
 **Puis-je utiliser FSR 4 ?**
-Non, il demande du matériel RDNA 4. Utilisez gamescope (FSR1/NIS) ou OptiScaler. Voir [Jeu](/fr/docs/gaming).
+Oui : notre Mesa l'apporte via OptiScaler sur le chemin DLSS du jeu. gamescope propose aussi FSR1/NIS. Voir [Jeu](/fr/docs/gaming).
 
 ## Au quotidien
 

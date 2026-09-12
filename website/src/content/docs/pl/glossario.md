@@ -35,7 +35,7 @@ Terminy, które wracają w całej dokumentacji, każdy wyjaśniony w jednym zdan
 
 **SMU** — *System Management Unit*: mikrokontroler wewnątrz APU zarządzający taktowaniem i napięciami. Na BC-250 sterowanie idzie **wyłącznie** przez niego, a nie przez standardowe sysfs amdgpu.
 
-**Zarządca SMU** — usługa (`cyan-skillfish-governor`) ustawiająca *bezpieczne punkty* częstotliwości i napięcia grafiki.
+**Regulator V/F** — usługa (`skillfish-vf-governor`) sterująca krzywą napięcie/częstotliwość grafiki przez SMU, z regulowanym sufitem (profile Cautious/Balanced/Performance). Zastąpiła stary `cyan-skillfish-governor` ze stałymi profilami.
 
 **sclk / mclk** — taktowanie **rdzenia** grafiki (sclk) i **pamięci** (mclk). Na BC-250 mclk **nie** da się zmieniać.
 
@@ -89,13 +89,13 @@ Terminy, które wracają w całej dokumentacji, każdy wyjaśniony w jednym zdan
 
 **EmuDeck / ES-DE** — instalator emulatorów i nakładka do emulacji.
 
-**FSR / OptiScaler** — technologie **skalowania obrazu**. FSR 4 jest niedostępne (wymaga RDNA 4); używa się FSR1/NIS albo OptiScalera.
+**FSR / OptiScaler** — technologie **skalowania obrazu**. Nasza Mesa niesie **FSR 4** przez [OptiScaler](https://github.com/optiscaler/OptiScaler) na ścieżce DLSS gry; gamescope oferuje też FSR1/NIS.
 
 **Unsloth Studio** — silnik i interfejs lokalnej AI: uruchamia modele GGUF na grafice i wystawia API zgodne z OpenAI.
 
-**qwen3:14b** — wzorcowy model AI, działający w całości na grafice.
+**Qwen3-1.7B** — model użyty jako wzorzec w pomiarach lokalnej AI: 210 tokenów/s na grafice wobec 41 na samym procesorze.
 
-**Tuner** — własna aplikacja SkillFishOS do strojenia sprzętu z testem i cofaniem zmian (zobacz [Control Center](/pl/docs/control-center)).
+**Tuner** — sekcja [Control Center](/pl/docs/control-center) do strojenia sprzętu (krzywa GPU, procesor, jednostki obliczeniowe, VRAM) z automatycznym testem i cofaniem zmian.
 
 ## Źródła
 

@@ -7,13 +7,17 @@ order: 1
 
 SkillFishOS was born to play. The whole gaming stack is preinstalled and configured; you add **your** games and **your** ROMs.
 
+## Our Mesa (Vulkan driver)
+
+The **Games** section of the [Control Center](/en/docs/control-center) can turn on our **Mesa/RADV** build, which opens the compute queues the stock driver keeps closed on this GPU: measured **+4% in Cyberpunk 2077**, **+12% with FSR 4 on**. It applies per launcher (Steam, Heroic) through a flatpak override, or **system-wide** (desktop included). It needs the SkillFishOS kernel: on a different kernel those compute queues wedge the GPU and the system-wide switch refuses to start. 32-bit programs stay on Debian's driver.
+
 ## Steam and Proton
 
-**Steam** (via [Flatpak](https://flatpak.org/)) is integrated with **[gamescope](https://github.com/ValveSoftware/gamescope)** (Valve's micro-compositor), **[gamemode](https://github.com/FeralInteractive/gamemode)** and **[MangoHud](https://github.com/flightlessmango/MangoHud)**. A dedicated **console session** (gamescope, Big Picture style) is selectable at login. Windows games run through **Proton**.
+**Steam** (via [Flatpak](https://flatpak.org/)) is integrated with **[gamescope](https://github.com/ValveSoftware/gamescope)** (Valve's micro-compositor), **[gamemode](https://github.com/FeralInteractive/gamemode)** and **[MangoHud](https://github.com/flightlessmango/MangoHud)**. A dedicated **console session** (gamescope, Big Picture style) is selectable at login. Windows games run through **Proton**: the Control Center's Games section installs and sets as default **GE-Proton 11-6** and **GE-Proton 10-34**, shared between Steam and Heroic.
 
 ## Non-Steam games: Heroic
 
-**[Heroic Games Launcher](https://heroicgameslauncher.com/)** manages **Epic Games** and **GOG** titles, and Windows games via **GE-Proton**. With **[ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt)** you can easily install Proton/Wine versions. Heroic games can be added to Steam (with their cover art).
+**[Heroic Games Launcher](https://heroicgameslauncher.com/)** manages **Epic Games** and **GOG** titles, and Windows games via **GE-Proton**. With **[ProtonUp-Qt](https://github.com/DavidoTek/ProtonUp-Qt)** you can install other Proton/Wine versions by hand, on top of the ones the Control Center already installs. Heroic games can be added to Steam (with their cover art).
 
 ## Emulation: EmuDeck + ES-DE
 
@@ -43,7 +47,7 @@ The `xpad`, `hid_playstation` and `hid_nintendo` drivers are included in the ker
 
 ## Upscaling
 
-**FSR 4 is not available** on the BC-250 (it requires RDNA 4 hardware). The alternatives are **gamescope** upscaling (FSR1/NIS) or **[OptiScaler](https://github.com/optiscaler/OptiScaler)** for individual games. For *CPU-bound* titles (e.g. *Black Myth: Wukong*), lowering resolution or GPU clock won't help — see [GPU and overclock](/en/docs/gpu-overclock).
+Our Mesa carries **FSR 4** through **[OptiScaler](https://github.com/optiscaler/OptiScaler)** on the game's DLSS path: GE-Proton 11 downloads OptiScaler by itself when it finds `PROTON_USE_OPTISCALER=1`, the game must be set to DLSS, and AMD's FSR 4 library (`amdxcffx64.dll`, from AMD's Windows driver) goes next to the game. The alternatives are **gamescope** upscaling (FSR1/NIS) and XeSS, where a game has it built in. For *CPU-bound* titles (e.g. *Black Myth: Wukong*), lowering resolution or GPU clock won't help — see [GPU and overclock](/en/docs/gpu-overclock).
 
 ## Sources
 

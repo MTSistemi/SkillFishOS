@@ -13,7 +13,7 @@ Respuestas rápidas a las preguntas más habituales. Para profundizar, cada resp
 Una distribución de Linux (Debian + KDE Plasma 6) diseñada y ajustada para la placa **AMD BC-250**: juegos, emulación, IA local y uso de escritorio, todo preconfigurado. Ver [Introducción](/es/docs/introduzione).
 
 **¿En qué hardware funciona?**
-La placa para la que está hecho es la **AMD BC-250** (APU Zen 2 + RDNA 2 «gfx1013», 16 GB GDDR6), y ahí hace todo lo que sabe hacer: 40 unidades de cómputo desbloqueadas, gobernador SMU, ocho núcleos. También hay una edición **Generic x86-64** que funciona en cualquier PC o máquina virtual — un núcleo normal, con las partes propias de la placa escondiéndose en vez de fallar. Ver [Hardware BC-250](/es/docs/hardware-bc250).
+La placa para la que está hecho es la **AMD BC-250** (APU Zen 2 + RDNA 2 «gfx1013», 16 GB GDDR6), y ahí hace todo lo que sabe hacer: 40 unidades de cómputo desbloqueadas, gobernador V/F, ocho núcleos. También hay una edición **Generic x86-64** que funciona en cualquier PC o máquina virtual — un núcleo normal, con las partes propias de la placa escondiéndose en vez de fallar. Ver [Hardware BC-250](/es/docs/hardware-bc250).
 
 **¿Cuánto cuesta? ¿Es de código abierto?**
 Es **gratuito**. Integra software libre de muchas comunidades; el código del proyecto está en [GitHub](https://github.com/MTSistemi/SkillFishOS). Ver [Fuentes](/es/docs/fonti).
@@ -37,17 +37,17 @@ Para instalar no; luego hará falta para Steam, las actualizaciones y la IA.
 
 ## Rendimiento y overclock
 
-**¿Por qué arranca «lento», en Stock?**
-Por seguridad: cada BC-250 es distinta (*lotería del silicio*). Los perfiles se suben desde el **[Tuner](/es/docs/control-center)**, que lo valida todo en tu propia placa. Ver [GPU y overclock](/es/docs/gpu-overclock).
+**¿Por qué arranca «prudente»?**
+Por seguridad: cada BC-250 es distinta (*lotería del silicio*). SkillFishOS arranca con la curva de GPU de fábrica (perfil **Performance**, tope de 2100 MHz) y la subes desde el **[Tuner](/es/docs/control-center)**, que valida cada curva en tu propia placa. Ver [GPU y overclock](/es/docs/gpu-overclock).
 
 **¿Es peligroso el overclock?**
-El Tuner aplica un perfil, lo **prueba** y **vuelve atrás** si la placa no aguanta; el tope de 85 °C y la protección térmica están siempre activos. Está pensado para ser seguro.
+El Tuner aplica una curva, la **prueba** durante 25 segundos y vuelve atrás sola si la placa no aguanta; el tope de 85 °C y la protección térmica están siempre activos. Está pensado para ser seguro.
 
 **¿Cuántos FPS en el juego X?**
 Depende: algunos juegos dependen de la **CPU** (por ejemplo *Black Myth: Wukong*) y no mejoran con una GPU más rápida. Ver [Rendimiento y pruebas](/es/docs/prestazioni).
 
 **¿Puedo usar FSR 4?**
-No, necesita hardware RDNA 4. Usa gamescope (FSR1/NIS) u OptiScaler. Ver [Juegos](/es/docs/gaming).
+Sí: nuestra Mesa lo lleva a través de OptiScaler en la ruta DLSS del juego. Además, gamescope ofrece FSR1/NIS. Ver [Juegos](/es/docs/gaming).
 
 ## Uso diario
 

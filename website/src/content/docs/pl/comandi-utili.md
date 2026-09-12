@@ -23,14 +23,14 @@ inxi -Fxxxz                   # pełne podsumowanie sprzętu
 ```bash
 # temperatura grafiki z sysfs amdgpu
 cat /sys/class/drm/card*/device/hwmon/hwmon*/temp1_input   # °C ×1000
-# stan zarządcy SMU dla grafiki
-systemctl status cyan-skillfish-governor
-cat /etc/cyan-skillfish-governor/config.toml               # bezpieczne punkty częstotliwości i napięcia
+# stan regulatora V/F dla grafiki
+systemctl status skillfish-vf-governor
+cat /etc/skillfish-vf-governor.json                         # krzywa MHz/mV, sufit, progi
 # podgląd grafiki w czasie rzeczywistym
 nvtop        # albo: radeontop
 ```
 
-> Na BC-250 sterowanie częstotliwością **nie** idzie przez standardowe sysfs amdgpu, tylko przez **zarządcę SMU**. Wartości zmieniaj [Tunerem](/pl/docs/control-center), a nie ręcznie.
+> Na BC-250 sterowanie częstotliwością **nie** idzie przez standardowe sysfs amdgpu, tylko przez **regulator V/F** (`skillfish-vf-governor`). Wartości zmieniaj [Tunerem](/pl/docs/control-center), a nie ręcznie.
 
 ## Procesor — podkręcanie i obniżanie napięcia
 

@@ -13,7 +13,7 @@ You've installed SkillFishOS (see [Installation](/en/docs/installazione)) and yo
 
 ## 1. First boot (it's all ready)
 
-On first boot you get a **KDE Plasma 6** desktop with a steampunk theme, an optimized kernel, the SMU governor, the **Stock** profile, the gaming stack and snapshots **already active**. Top-right, the **HUD** shows CPU, GPU, temperatures, RAM, fan and connected Bluetooth devices in real time.
+On first boot you get a **KDE Plasma 6** desktop with a steampunk theme, an optimized kernel, the V/F governor, the stock GPU curve, the gaming stack and snapshots **already active**. Top-right, the **HUD** shows CPU, GPU, temperatures, RAM, fan and connected Bluetooth devices in real time.
 
 You don't need to install drivers, set frequencies or enable anything: the system boots "at maximum compatibility".
 
@@ -38,11 +38,11 @@ Details and troubleshooting → [Gaming](/en/docs/gaming) and [Troubleshooting](
 
 ## 5. (Optional) Push the hardware
 
-SkillFishOS boots in the **Stock** profile to be safe on any board. When you want more performance open the **[Tuner](/en/docs/control-center)** and move up a profile:
+SkillFishOS boots with the stock GPU curve (**Performance** preset, 2100 MHz ceiling) to be safe on any board. When you want to change it, open the **[Tuner](/en/docs/control-center)** and pick a preset:
 
-**Stock → Performance → Turbo → Crazy**
+**Cautious → Balanced → Performance**
 
-The Tuner **tests each profile on your own BC-250** and automatically **rolls back** if the card can't handle it. It's the safe way to find your chip's limit (see [GPU & overclock](/en/docs/gpu-overclock)).
+The Tuner **tests each curve on your own BC-250** for 25 seconds and automatically **rolls back** if the card can't handle it. It's the safe way to find your chip's limit (see [GPU & overclock](/en/docs/gpu-overclock)).
 
 ## 6. (Optional) Turn on local AI
 

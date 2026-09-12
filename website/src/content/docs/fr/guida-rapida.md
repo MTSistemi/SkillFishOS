@@ -13,7 +13,7 @@ Vous avez installé SkillFishOS (voir [Installation](/fr/docs/installazione)) et
 
 ## 1. Le premier démarrage (tout est prêt)
 
-Au premier démarrage vous arrivez sur un bureau **KDE Plasma 6** en thème steampunk, avec un noyau optimisé, le gouverneur SMU, le profil **Stock**, tout le nécessaire pour jouer et les instantanés **déjà actifs**. En haut à droite, l'**affichage système** montre en temps réel le CPU, le GPU, les températures, la mémoire, le ventilateur et les appareils Bluetooth connectés.
+Au premier démarrage vous arrivez sur un bureau **KDE Plasma 6** en thème steampunk, avec un noyau optimisé, le gouverneur V/F, la courbe GPU d'usine, tout le nécessaire pour jouer et les instantanés **déjà actifs**. En haut à droite, l'**affichage système** montre en temps réel le CPU, le GPU, les températures, la mémoire, le ventilateur et les appareils Bluetooth connectés.
 
 Vous n'avez pas de pilotes à installer, pas de fréquences à régler, rien à activer : le système démarre « à compatibilité maximale ».
 
@@ -38,11 +38,11 @@ Détails et dépannage → [Jeu](/fr/docs/gaming) et [Dépannage](/fr/docs/risol
 
 ## 5. (Facultatif) Pousser le matériel
 
-SkillFishOS démarre sur le profil **Stock** pour être sûr sur n'importe quelle carte. Quand vous voulez plus de performances, ouvrez le **[Tuner](/fr/docs/control-center)** et montez d'un profil :
+SkillFishOS démarre avec la courbe GPU d'usine (profil **Performance**, plafond à 2100 MHz) pour être sûr sur n'importe quelle carte. Quand vous voulez la changer, ouvrez le **[Tuner](/fr/docs/control-center)** et choisissez un profil :
 
-**Stock → Performance → Turbo → Crazy**
+**Cautious → Balanced → Performance**
 
-Le Tuner **essaie chaque profil sur votre propre BC-250** et **revient en arrière** tout seul si la carte ne tient pas. C'est la façon sûre de trouver la limite de votre puce (voir [GPU et overclock](/fr/docs/gpu-overclock)).
+Le Tuner **essaie chaque courbe sur votre propre BC-250** pendant 25 secondes et **revient en arrière** tout seul si la carte ne tient pas. C'est la façon sûre de trouver la limite de votre puce (voir [GPU et overclock](/fr/docs/gpu-overclock)).
 
 ## 6. (Facultatif) Allumer l'IA locale
 

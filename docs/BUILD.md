@@ -25,8 +25,8 @@ cd linux-tkg
 cp /path/to/kernel-build/customization.cfg .
 
 # 2. Drop the BC-250 userpatches into the version's userpatches dir
-# (e.g. linux70-tkg-userpatches/ for the 7.0 series):
-cp /path/to/kernel-build/userpatches/*.mypatch linux70-tkg-userpatches/
+# (e.g. linux72-tkg-userpatches/ for the 7.2 series):
+cp /path/to/kernel-build/userpatches/*.mypatch linux72-tkg-userpatches/
 
 # 3. Build the .deb packages
 ./install.sh install
@@ -45,12 +45,12 @@ The three userpatches:
 Output `.deb`s land in `DEBS/`. Install:
 
 ```sh
-sudo dpkg -i linux-image-7.2.0-skillfishos_*.deb linux-headers-7.2.0-skillfishos_*.deb
-sudo apt-mark hold linux-image-7.2.0-skillfishos linux-headers-7.2.0-skillfishos
+sudo dpkg -i linux-image-7.2.4-skillfishos_*.deb linux-headers-7.2.4-skillfishos_*.deb
+sudo apt-mark hold linux-image-7.2.4-skillfishos linux-headers-7.2.4-skillfishos
 sudo update-grub
 ```
 
-A prebuilt build is also published under [Releases](../../../releases/tag/kernel-7.2.0-skillfishos).
+A prebuilt build is also published under [Releases](../../../releases/tag/kernel-7.2.4-skillfishos).
 
 ### Publishing a release
 

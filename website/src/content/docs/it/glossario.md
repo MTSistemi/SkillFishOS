@@ -35,7 +35,7 @@ I termini che ricorrono nella documentazione, spiegati in una riga. In ordine al
 
 **SMU** — *System Management Unit*: il micro-controllore interno all'APU che gestisce frequenze e tensioni. Sulla BC-250 il controllo passa **solo** da qui, non dal sysfs amdgpu standard.
 
-**Governor SMU** — il servizio (`cyan-skillfish-governor`) che imposta i *safe-point* di frequenza/tensione della GPU.
+**Governor V/F** — il servizio (`skillfish-vf-governor`) che pilota la curva tensione/frequenza della GPU via SMU, con un tetto configurabile (preset Cautious/Balanced/Performance). Ha sostituito il vecchio `cyan-skillfish-governor` a preset fissi.
 
 **sclk / mclk** — frequenza del **core** GPU (sclk) e della **memoria** (mclk). Sulla BC-250 il mclk **non** è regolabile.
 
@@ -89,13 +89,13 @@ I termini che ricorrono nella documentazione, spiegati in una riga. In ordine al
 
 **EmuDeck / ES-DE** — installer di emulatori e frontend per l'emulazione.
 
-**FSR / OptiScaler** — tecnologie di **upscaling**. FSR 4 non è disponibile (richiede RDNA 4); si usano FSR1/NIS o OptiScaler.
+**FSR / OptiScaler** — tecnologie di **upscaling**. La nostra Mesa porta **FSR 4** attraverso [OptiScaler](https://github.com/optiscaler/OptiScaler) sul percorso DLSS del gioco; gamescope offre anche FSR1/NIS.
 
-**Unsloth Studio** — motore e interfaccia dell'AI locale: esegue modelli GGUF sulla GPU ed espone un'API compatibile OpenAI.
+**Unsloth Studio** — motore e interfaccia dell'AI locale: esegue modelli GGUF sulla GPU (backend Vulkan) ed espone un'API compatibile OpenAI.
 
-**qwen3:14b** — il modello AI di riferimento, che gira interamente su GPU.
+**Qwen3-1.7B** — il modello usato come riferimento nelle misure dell'AI locale: 210 token/s su GPU contro 41 con la sola CPU.
 
-**Tuner** — l'app nativa di SkillFishOS per regolare l'hardware con test-and-rollback (vedi [Control Center](/docs/control-center)).
+**Tuner** — la sezione del [Control Center](/docs/control-center) per regolare l'hardware (curva GPU, CPU, Compute Unit, VRAM) con prova e rollback automatico.
 
 ## Fonti
 

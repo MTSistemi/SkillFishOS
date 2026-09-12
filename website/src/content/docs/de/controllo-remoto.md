@@ -40,7 +40,7 @@ Die Oberfläche setzt sich aus den Bausteinen zusammen, die du eingeschaltet has
 
 - **Telemetrie** — Kurven in Echtzeit für Temperaturen, Takte, Watt und Auslastung von CPU und GPU, mit Werten an der senkrechten Achse und einem Balkenfeld für den **Takt je Kern und Thread** (alle 16 Threads, abgeschaltete deutlich gekennzeichnet).
 - **Systemzustand** — Rechnername, IP, Kernel, Laufzeit, Arbeitsspeicher, Platte, aktive CU, erkannte Aussetzer.
-- **Steuerung (Tuner)** — schnelle Profile sowie der **vollständige Tuner** im Web: CPU (Takt, Undervolting, Temperatur), GPU (Takt, Spannung, Governor), **Steuerung der Recheneinheiten im Betrieb** (WGP-Raster, ohne Neustart), Lüfter, Grafikspeicher, *Prüfen* und die Assistenten **„Finde mein Maximum“**.
+- **Steuerung (Tuner)** — der **vollständige Tuner** im Web: CPU (Takt, Undervolting, Temperatur, mit „UV vorschlagen“ und „Mein Maximum finden“), GPU (Spannungs-/Frequenzkurve mit dem V/F-Governor und den Vorgaben Cautious/Balanced/Performance), **Steuerung der Recheneinheiten im Betrieb** (Raster aus Paaren, ohne Neustart), Lüfter, Grafikspeicher, *Prüfen*.
 - **Anwendungen und Pakete (Hub)** — eine richtige **Anwendungsverwaltung** (AppStream + Flatpak + Snap): nach Kategorien blättern, suchen, installieren und entfernen, aktualisieren. Die **SkillFishOS-Anwendungen** stehen hervorgehoben oben.
 - **Schreibtisch (KVM)** — den echten Schreibtisch der Platine im Browser sehen und bedienen (noVNC), ohne zusätzliche Hardware.
 - **Terminal** — eine Konsole im Web (ttyd) innerhalb der Oberfläche.

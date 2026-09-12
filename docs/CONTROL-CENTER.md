@@ -9,7 +9,7 @@ the menu (SkillFishOS → Control Center) or with `skillfish-control-center`.
 | **Tuner** | The V/F governor curve, drawn inside the chart: drag a knot, double-click to add one, right-click to remove it. The ceiling, three presets, and Apply with a trial countdown (the old curve stays on disk until you press Keep). Panels for CPU, cores, compute units, VRAM, the advanced governor knobs and a quick vkpeak. |
 | **Fan** | The fan curve, the source sensors, the lead, the safety limits and the PWM test. The controller runs with or without the window. |
 | **Monitor** | Every reading in one chart plus the per-thread bars. REC writes a `.sfmon` you can reopen and scrub. |
-| **Games** | Our Mesa per launcher (Steam, Heroic) or for the whole system; the scx_bpfland scheduler armed through GameMode; FSR 4 through OptiScaler; GE-Proton 11 install and default for Steam and Heroic. |
+| **Games** | Our Mesa per launcher (Steam, Heroic) or for the whole system; the scx_bpfland scheduler armed through GameMode; FSR 4 through OptiScaler; GE-Proton 11-6 and GE-Proton 10-34 install and default for Steam and Heroic. |
 | **Profiles** | Quiet / Balanced / Performance: ceiling, CPU, fan preset and scheduler in one click. Save the current state as your own. |
 | **Kernel** | The installed kernels, the default, boot once, uninstall. |
 | **Snapshots** | The system snapshots and the btrfs maintenance schedule. |

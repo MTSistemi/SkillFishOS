@@ -40,7 +40,7 @@ Le tableau de bord se compose lui-même à partir des modules que vous avez acti
 
 - **Télémétrie** — courbes en direct des températures, des fréquences, des watts et de la charge du CPU et du GPU, avec les valeurs sur l'axe vertical et un panneau de barres montrant la **fréquence par cœur et par fil** (les 16 fils, ceux qui sont garés bien signalés).
 - **État du système** — machine, adresse IP, noyau, temps de fonctionnement, mémoire, disque, CU actives, blocages détectés.
-- **Commandes (Tuner)** — les profils rapides et le **Tuner complet** sur le web : CPU (fréquence, undervolt, température), GPU (fréquence, tension, gouverneur), **commande des unités de calcul à chaud** (grille de WGP, sans redémarrer), ventilateur, mémoire graphique, *Test* et les assistants **« Trouver mon maximum »**.
+- **Commandes (Tuner)** — le **Tuner complet** sur le web : CPU (fréquence, undervolt, température, avec « Suggérer l'undervolt » et « Trouver mon maximum »), GPU (courbe tension/fréquence avec le gouverneur V/F et les profils Cautious/Balanced/Performance), **commande des unités de calcul à chaud** (grille par paires, sans redémarrer), ventilateur, mémoire graphique, *Test*.
 - **Applications et paquets (Hub)** — une vraie **logithèque** (AppStream + Flatpak + Snap) : parcourir par catégorie, chercher, installer, retirer, mettre à jour. Les **applications SkillFishOS** sont mises en avant en haut.
 - **Bureau (KVM)** — voir et piloter le vrai bureau de la carte depuis le navigateur (noVNC), sans matériel en plus.
 - **Terminal** — une ligne de commande web (ttyd) à l'intérieur du tableau de bord.

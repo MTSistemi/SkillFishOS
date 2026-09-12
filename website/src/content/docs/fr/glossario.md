@@ -35,7 +35,7 @@ Les termes qui reviennent dans toute la documentation, chacun expliqué en une l
 
 **SMU** — *System Management Unit* : le micro-contrôleur à l'intérieur de l'APU qui gère les fréquences et les tensions. Sur la BC-250 la commande passe **uniquement** par lui, pas par le sysfs habituel d'amdgpu.
 
-**Gouverneur SMU** — le service (`cyan-skillfish-governor`) qui fixe les *points sûrs* de fréquence et de tension du GPU.
+**Gouverneur V/F** — le service (`skillfish-vf-governor`) qui pilote la courbe tension/fréquence du GPU par la SMU, avec un plafond réglable (profils Cautious/Balanced/Performance). A remplacé l'ancien `cyan-skillfish-governor` à profils fixes.
 
 **sclk / mclk** — la fréquence du **cœur graphique** (sclk) et celle de la **mémoire** (mclk). Sur la BC-250 le mclk n'est **pas** réglable.
 
@@ -89,13 +89,13 @@ Les termes qui reviennent dans toute la documentation, chacun expliqué en une l
 
 **EmuDeck / ES-DE** — l'installateur d'émulateurs et l'interface d'émulation.
 
-**FSR / OptiScaler** — des techniques de **rehaussement de définition**. FSR 4 n'existe pas ici (il demande du RDNA 4) ; on utilise FSR1/NIS ou OptiScaler.
+**FSR / OptiScaler** — des techniques de **rehaussement de définition**. Notre Mesa apporte **FSR 4** via [OptiScaler](https://github.com/optiscaler/OptiScaler) sur le chemin DLSS du jeu ; gamescope propose aussi FSR1/NIS.
 
 **Unsloth Studio** — le moteur et l'interface de l'IA locale : il exécute des modèles GGUF sur le GPU et offre une interface compatible OpenAI.
 
-**qwen3:14b** — le modèle d'IA de référence, qui tourne entièrement sur le GPU.
+**Qwen3-1.7B** — le modèle pris comme référence dans les mesures de l'IA locale : 210 jetons/s sur le GPU contre 41 sur le seul CPU.
 
-**Tuner** — l'application native de SkillFishOS pour régler le matériel avec test et retour en arrière (voir [Control Center](/fr/docs/control-center)).
+**Tuner** — la section du [Control Center](/fr/docs/control-center) pour régler le matériel (courbe GPU, CPU, unités de calcul, VRAM) avec essai automatique et retour en arrière.
 
 ## Sources
 

@@ -12,7 +12,7 @@ SkillFishOS è basato su **Debian sid** (*unstable*), il ramo di sviluppo di Deb
 Le parti più critiche le costruiamo e distribuiamo **noi**, da un **repository APT proprio e firmato**:
 
 - il **[kernel](/docs/kernel)** ottimizzato (immagine + headers);
-- il **governor SMU** e gli strumenti di overclock;
+- il **governor V/F** e gli strumenti di overclock;
 - le **app native** [Control Center](/docs/control-center);
 - il **tema steampunk** e il **branding**;
 - la configurazione di sistema.

@@ -36,7 +36,7 @@ El audio por DisplayPort funciona, pero:
 
 ## La GPU parece lenta / las temperaturas son altas
 
-- Comprueba en el [Tuner](/es/docs/control-center) que estén activas las **40 CU** y el gobernador SMU.
+- Comprueba en el [Tuner](/es/docs/control-center) que estén activas las **40 CU** y el gobernador V/F (skillfish-vf-governor).
 - Recuerda que la refrigeración va justa: tras una carga larga entra la **protección térmica** (85 °C). Para pruebas válidas, deja enfriar la placa entre pasadas (ver [GPU](/es/docs/gpu-overclock)).
 - En juegos que dependen de la **CPU**, bajar la resolución no sube los FPS.
 
@@ -45,9 +45,9 @@ El audio por DisplayPort funciona, pero:
 La BC-250 puede sufrir un **cuelgue total**, a menudo por un **undervolt demasiado agresivo**: la inestabilidad aparece sobre todo con **poca carga**, así que un cuelgue puede darse incluso en reposo. SkillFishOS lo ataca por dos lados:
 
 - **Vigilante por hardware** — el temporizador **SP5100 TCO** del chipset está activo (`RuntimeWatchdogSec=2min`): si el sistema se bloquea por completo, la placa **se reinicia sola** en menos de dos minutos, sin quitar la corriente.
-- **Detector de cuelgues** — al arrancar, un servicio nota si el apagado anterior fue anormal (falta la marca de apagado limpio) y lo **anota** en `/var/log/skillfish-freeze.log`, con un aviso en el escritorio. El contador aparece también en el panel **«Mi silicio»** del Tuner.
+- **Detector de cuelgues** — al arrancar, un servicio nota si el apagado anterior fue anormal (falta la marca de apagado limpio) y lo **anota** en `/var/log/skillfish-freeze.log`, con un aviso en el escritorio. Lo mismo aparece en la página **Estado** del [Control Center](/es/docs/control-center).
 
-Si los cuelgues se repiten, **baja un perfil** (por ejemplo de Crazy o Turbo a Performance) en el Tuner: el valor menos agresivo casi siempre lo arregla. Todos los perfiles son **a prueba de cuelgue**: un bloqueo a mitad de una prueba nunca deja la placa con un perfil inestable al reiniciar. Si persisten incluso en Stock, sospecha de la **fuente de alimentación**.
+Si los cuelgues se repiten, **baja el tope de la curva** (por ejemplo de Performance a Balanced o Cautious) en el Tuner: el valor menos agresivo casi siempre lo arregla. Cada curva se aplica con **prueba automática y vuelta atrás**: un bloqueo a mitad de la prueba nunca deja la placa con una curva inestable al reiniciar. Si persisten incluso con Cautious, sospecha de la **fuente de alimentación**.
 
 ## Una actualización ha roto algo
 

@@ -27,12 +27,12 @@ SkillFishOS passt also gut zu:
 
 ## Was drinsteckt, in Kürze
 
-- Ein **maßgeschneiderter Kernel** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) mit den BC-250-Patches: 40 freigeschaltete Recheneinheiten, entsperrte Taktraten, ein eigener SMU-Governor.
+- Ein **maßgeschneiderter Kernel** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) mit den BC-250-Patches: 40 freigeschaltete Recheneinheiten, entsperrte Taktraten, ein eigener V/F-Governor.
 - Ein **KDE-Plasma-6-Schreibtisch** in Steampunk-Gestaltung (Symbole, Zeiger, Hintergrundbild, System-HUD).
 - **Bereit zum Spielen**: Steam, [gamescope](https://github.com/ValveSoftware/gamescope), [EmuDeck](https://www.emudeck.com/), [ES-DE](https://es-de.org/), [Heroic](https://heroicgameslauncher.com/), Proton.
 - **KI auf dem Gerät**: [Unsloth Studio](https://unsloth.ai/), mit Vulkan auf der eingebauten GPU beschleunigt — gemessen **5,1×** schneller als auf der CPU.
 - **Btrfs-Schnappschüsse** mit [Snapper](http://snapper.io/) und Rückkehr aus dem GRUB-Menü.
-- **Eigene Anwendungen**: der *Tuner* (Hardware-Steuerung ohne Terminal) und das *KI*-Fenster.
+- **Ein einziges Fenster**: das [Control Center](/de/docs/control-center) bündelt Tuner, Lüfter, Monitor, Spiele, Profile, Kernel, Schnappschüsse, KI, Emulatoren, Konsole und ISO; als eigene Anwendungen bleiben der Hub (Software-Center), das HUD und der Remote Manager (Steuerung im Browser).
 - **Eigene, geprüfte Aktualisierungen** aus unserer APT-Paketquelle, damit Debian-Aktualisierungen dich nicht überraschen.
 
 Die folgenden Seiten gehen auf jeden Baustein im Einzelnen ein.

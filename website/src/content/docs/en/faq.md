@@ -13,7 +13,7 @@ Quick answers to the most common questions. For depth, each answer links to the 
 A Linux distribution (Debian + KDE Plasma 6) designed and tuned for the **AMD BC-250** board: gaming, emulation, local AI and desktop use, all preconfigured. See [Introduction](/en/docs/introduzione).
 
 **What hardware does it run on?**
-The board it is built for is the **AMD BC-250** (Zen 2 + RDNA 2 "gfx1013" APU, 16 GB GDDR6), and that is where it does everything it can do: 40 Compute Units unlocked, SMU governor, eight cores. There is also a **Generic x86-64** edition that runs on any PC or virtual machine — an ordinary kernel, with the board-specific parts hiding themselves rather than failing. See [BC-250 hardware](/en/docs/hardware-bc250).
+The board it is built for is the **AMD BC-250** (Zen 2 + RDNA 2 "gfx1013" APU, 16 GB GDDR6), and that is where it does everything it can do: 40 Compute Units unlocked, V/F governor, eight cores. There is also a **Generic x86-64** edition that runs on any PC or virtual machine — an ordinary kernel, with the board-specific parts hiding themselves rather than failing. See [BC-250 hardware](/en/docs/hardware-bc250).
 
 **How much does it cost? Is it open source?**
 It's **free**. It integrates open-source software from many communities; the project's code is on [GitHub](https://github.com/MTSistemi/SkillFishOS). See [Sources](/en/docs/fonti).
@@ -37,17 +37,17 @@ Not to install; you'll need one afterwards for Steam, updates and AI.
 
 ## Performance and overclock
 
-**Why does it start "slow" / in Stock?**
-For safety: every BC-250 is different (*silicon lottery*). You move up profiles from the **[Tuner](/en/docs/control-center)**, which validates everything on your card. See [GPU & overclock](/en/docs/gpu-overclock).
+**Why does it start "cautious"?**
+For safety: every BC-250 is different (*silicon lottery*). SkillFishOS boots with the stock GPU curve (**Performance** preset, 2100 MHz ceiling) and you raise it from the **[Tuner](/en/docs/control-center)**, which validates every curve on your card. See [GPU & overclock](/en/docs/gpu-overclock).
 
 **Is overclocking dangerous?**
-The Tuner applies a profile, **tests** it and **rolls back** if the card can't handle it; the 85 °C cap and the thermal-guard are always on. It's designed to be safe.
+The Tuner applies a curve, **tests** it for 25 seconds and rolls back on its own if the card can't handle it; the 85 °C cap and the thermal-guard are always on. It's designed to be safe.
 
 **How many FPS in game X?**
 It depends: some games are **CPU-bound** (e.g. *Black Myth: Wukong*) and don't scale with the GPU. See [Performance & benchmarks](/en/docs/prestazioni).
 
 **Can I use FSR 4?**
-No, it requires RDNA 4 hardware. Use gamescope (FSR1/NIS) or OptiScaler. See [Gaming](/en/docs/gaming).
+Yes: our Mesa carries it through OptiScaler on the game's DLSS path. Otherwise gamescope offers FSR1/NIS. See [Gaming](/en/docs/gaming).
 
 ## Daily use
 

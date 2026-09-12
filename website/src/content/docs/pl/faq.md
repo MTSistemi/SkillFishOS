@@ -13,7 +13,7 @@ Szybkie odpowiedzi na najczęstsze pytania. Po szczegóły każda odpowiedź ods
 Dystrybucją Linuksa (Debian + KDE Plasma 6) zaprojektowaną i dostrojoną pod płytę **AMD BC-250**: granie, emulacja, lokalna AI i praca na pulpicie, wszystko skonfigurowane z góry. Zobacz [Wprowadzenie](/pl/docs/introduzione).
 
 **Na jakim sprzęcie działa?**
-Płytą, pod którą jest zbudowany, jest **AMD BC-250** (APU Zen 2 + RDNA 2 „gfx1013”, 16 GB GDDR6) — i tam robi wszystko, co potrafi: 40 odblokowanych jednostek obliczeniowych, zarządca SMU, osiem rdzeni. Jest też edycja **Generic x86-64**, która działa na dowolnym pececie i w maszynie wirtualnej — ze zwykłym jądrem, przy czym elementy dotyczące tylko tej płyty same się chowają, zamiast zgłaszać błędy. Zobacz [Sprzęt BC-250](/pl/docs/hardware-bc250).
+Płytą, pod którą jest zbudowany, jest **AMD BC-250** (APU Zen 2 + RDNA 2 „gfx1013”, 16 GB GDDR6) — i tam robi wszystko, co potrafi: 40 odblokowanych jednostek obliczeniowych, regulator V/F, osiem rdzeni. Jest też edycja **Generic x86-64**, która działa na dowolnym pececie i w maszynie wirtualnej — ze zwykłym jądrem, przy czym elementy dotyczące tylko tej płyty same się chowają, zamiast zgłaszać błędy. Zobacz [Sprzęt BC-250](/pl/docs/hardware-bc250).
 
 **Ile kosztuje? Czy jest otwartoźródłowy?**
 Jest **darmowy**. Łączy otwarte oprogramowanie z wielu społeczności; kod projektu jest na [GitHubie](https://github.com/MTSistemi/SkillFishOS). Zobacz [Źródła](/pl/docs/fonti).
@@ -37,17 +37,17 @@ Do instalacji nie; przyda się później do Steama, aktualizacji i AI.
 
 ## Wydajność i podkręcanie
 
-**Dlaczego startuje „wolno”, w profilu Stock?**
-Dla bezpieczeństwa: każda BC-250 jest inna (*loteria krzemowa*). Profile podnosi się z **[Tunera](/pl/docs/control-center)**, który sprawdza wszystko na twojej własnej płycie. Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
+**Dlaczego startuje „ostrożnie”?**
+Dla bezpieczeństwa: każda BC-250 jest inna (*loteria krzemowa*). SkillFishOS startuje z fabryczną krzywą GPU (profil **Performance**, sufit 2100 MHz), a podnosisz ją z **[Tunera](/pl/docs/control-center)**, który sprawdza każdą krzywą na twojej własnej płycie. Zobacz [GPU i podkręcanie](/pl/docs/gpu-overclock).
 
 **Czy podkręcanie jest niebezpieczne?**
-Tuner nakłada profil, **testuje** go i **cofa**, jeśli płyta sobie nie radzi; limit 85 °C i zabezpieczenie termiczne są zawsze włączone. Zaprojektowano to tak, żeby było bezpieczne.
+Tuner nakłada krzywą, **testuje** ją przez 25 sekund i sam się cofa, jeśli płyta sobie nie radzi; limit 85 °C i zabezpieczenie termiczne są zawsze włączone. Zaprojektowano to tak, żeby było bezpieczne.
 
 **Ile klatek w grze X?**
 To zależy: niektóre gry są **ograniczone procesorem** (np. *Black Myth: Wukong*) i nie skalują się z grafiką. Zobacz [Wydajność i testy](/pl/docs/prestazioni).
 
 **Czy mogę użyć FSR 4?**
-Nie, wymaga sprzętu RDNA 4. Skorzystaj z gamescope (FSR1/NIS) albo OptiScalera. Zobacz [Granie](/pl/docs/gaming).
+Tak: nasza Mesa niesie go przez OptiScaler na ścieżce DLSS gry. Poza tym gamescope oferuje FSR1/NIS. Zobacz [Granie](/pl/docs/gaming).
 
 ## Codzienne używanie
 

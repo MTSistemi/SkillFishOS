@@ -11,7 +11,7 @@ A **AMD BC-250** é uma placa compacta baseada numa **APU semipersonalizada** de
 
 | Componente | Detalhe |
 |---|---|
-| **CPU** | 8 núcleos / 16 threads **Zen 2** (a placa mostra 6; o SkillFishOS destrava os outros dois pelo SMU) (“Oberon”), até **3,9 GHz** (turbo), 4,0 GHz validados |
+| **CPU** | 8 núcleos / 16 threads **Zen 2** (a placa mostra 6; o SkillFishOS destrava os outros dois pelo SMU) (“Oberon”), até **3,9 GHz** com overclock, 4,0 GHz validados |
 | **GPU** | **RDNA 2** “Cyan Skillfish” (`gfx1013`), até **40 unidades de computação** destraváveis |
 | **Memória** | **16 GB GDDR6** compartilhada (UMA) entre CPU e GPU |
 | **Computação** | ~**11,3 TFLOPS** FP32 com 40 CU / 2000 MHz (medido com o vkpeak) |
@@ -24,7 +24,7 @@ A memória é **unificada**: a GDDR6 é dividida entre o sistema e os gráficos.
 
 A placa se apresenta como **6 núcleos / 12 threads**, mas os núcleos físicos são **oito**: os dois que faltam não estão com defeito, estão desligados por configuração do produto. Quem entrega isso é a máscara de presença dos núcleos — em praticamente todas as placas ela vale `0x77`, um valor **simétrico**: quatro núcleos por complexo, com o quarto desativado nos dois. Um descarte real de fabricação deixaria um padrão assimétrico, porque defeitos não se distribuem com tanta arrumação.
 
-O SkillFishOS reescreve essa máscara pelo **SMU** no boot e a placa volta como **8 núcleos / 16 threads**. Sem BIOS modificada e sem ferro de solda.
+O SkillFishOS reescreve essa máscara pelo **SMU** no boot e a placa volta como **8 núcleos / 16 threads**. Sem BIOS modificada e sem ferro de solda. O mesmo desbloqueio também dá para fazer **antes do boot**, com um programa EFI, numa única reinicialização em vez da reinicialização extra que o serviço do sistema pede.
 
 O serviço traz duas salvaguardas: se a máscara **não** for `0x77`, ele não mexe em nada, porque um padrão diferente pode significar que os núcleos foram mesmo desativados de fábrica; e o reinício a quente só acontece **depois** de a escrita ter sido relida e confirmada, então não há como entrar num laço de reinícios.
 

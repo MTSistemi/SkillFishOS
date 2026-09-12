@@ -27,7 +27,7 @@ Da configuração vale destacar:
 
 - um limite de snapshots guardados para o disco não encher;
 - snapshots preservados nos *marcos* importantes do sistema;
-- gestão a partir de uma janela com **SkillFishOS Snapshots**, a aplicação que escrevemos nós.
+- gestão a partir de uma janela na seção **Snapshots** do [Control Center](/pt/docs/control-center), escrita por nós.
 
 ## Quantos ficam guardados
 

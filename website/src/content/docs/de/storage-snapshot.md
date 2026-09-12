@@ -27,7 +27,7 @@ Aus der Konfiguration hervorzuheben:
 
 - eine Obergrenze für die Zahl der aufbewahrten Schnappschüsse, damit die Platte nicht volläuft;
 - Schnappschüsse an wichtigen *Wegmarken* des Systems;
-- Verwaltung in einem Fenster mit **SkillFishOS Schnappschüsse**, der Anwendung, die wir selbst geschrieben haben.
+- Verwaltung in einem Fenster im Bereich **Schnappschüsse** des [Control Center](/de/docs/control-center), von uns selbst geschrieben.
 
 ## Wie viele aufbewahrt werden
 

@@ -11,7 +11,7 @@ La **AMD BC-250** es una placa compacta basada en una **APU semipersonalizada** 
 
 | Componente | Detalle |
 |---|---|
-| **CPU** | 8 núcleos / 16 hilos **Zen 2** (la placa muestra 6; SkillFishOS desbloquea los otros dos por el SMU) («Oberon»), hasta **3,9 GHz** (turbo), 4,0 GHz validados |
+| **CPU** | 8 núcleos / 16 hilos **Zen 2** (la placa muestra 6; SkillFishOS desbloquea los otros dos por el SMU) («Oberon»), hasta **3,9 GHz** con overclock, 4,0 GHz validados |
 | **GPU** | **RDNA 2** «Cyan Skillfish» (`gfx1013`), hasta **40 unidades de cómputo** desbloqueables |
 | **Memoria** | **16 GB GDDR6** compartida (UMA) entre CPU y GPU |
 | **Cómputo** | ~**11,3 TFLOPS** FP32 con 40 CU / 2000 MHz (medido con vkpeak) |
@@ -24,7 +24,7 @@ La memoria es **unificada**: la GDDR6 se reparte entre el sistema y los gráfico
 
 La placa se presenta como **6 núcleos / 12 hilos**, pero los núcleos físicos son **ocho**: los dos que faltan no están defectuosos, están apagados por configuración del producto. Lo delata la máscara de presencia de núcleos — en prácticamente todas las placas vale `0x77`, un valor **simétrico**: cuatro núcleos por complejo, con el cuarto desactivado en ambos. Un descarte real de fabricación dejaría un patrón asimétrico, porque los defectos no se reparten con tanta pulcritud.
 
-SkillFishOS reescribe esa máscara a través del **SMU** en el arranque y la placa vuelve como **8 núcleos / 16 hilos**. Sin BIOS modificada y sin soldador.
+SkillFishOS reescribe esa máscara a través del **SMU** en el arranque y la placa vuelve como **8 núcleos / 16 hilos**. Sin BIOS modificada y sin soldador. El mismo desbloqueo también se puede hacer **antes de arrancar**, con un programa EFI, en un solo reinicio en vez del reinicio extra que pide el servicio del sistema.
 
 En el servicio hay dos salvaguardas: si la máscara **no** es `0x77` no toca nada, porque un patrón distinto puede significar que los núcleos sí se desactivaron en fábrica; y el reinicio en caliente ocurre **solo después** de releer y confirmar la escritura, así que no puede entrar en un bucle de reinicios.
 

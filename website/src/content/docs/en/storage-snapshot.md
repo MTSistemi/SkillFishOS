@@ -27,7 +27,7 @@ Configuration highlights:
 
 - a cap on the number of retained snapshots so the disk doesn't fill up;
 - snapshots kept at important system *milestones*;
-- management from a window with **SkillFishOS Snapshots**, the application we wrote ourselves.
+- management from a window in the **Snapshots** section of the [Control Center](/en/docs/control-center), written by us.
 
 ## How many are kept
 

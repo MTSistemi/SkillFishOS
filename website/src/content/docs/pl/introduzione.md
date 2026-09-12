@@ -27,12 +27,12 @@ SkillFishOS dobrze sprawdzi się więc u:
 
 ## Co jest w środku, w skrócie
 
-- **Dostrojone jądro** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) z łatkami na BC-250: odblokowane 40 jednostek obliczeniowych, odblokowane częstotliwości, dedykowany zarządca SMU.
+- **Dostrojone jądro** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) z łatkami na BC-250: odblokowane 40 jednostek obliczeniowych, odblokowane częstotliwości, dedykowany regulator V/F.
 - **Pulpit KDE Plasma 6** z motywem steampunk (ikony, kursory, tapeta, systemowy HUD).
 - **Gotowe do grania**: Steam, [gamescope](https://github.com/ValveSoftware/gamescope), [EmuDeck](https://www.emudeck.com/), [ES-DE](https://es-de.org/), [Heroic](https://heroicgameslauncher.com/), Proton.
 - **Lokalna AI**: [Unsloth Studio](https://unsloth.ai/) przyspieszone przez Vulkan na zintegrowanej grafice — **5,1×** szybciej niż na procesorze, zmierzone.
 - **Migawki Btrfs** ze [Snapperem](http://snapper.io/) i cofaniem zmian z menu GRUB.
-- **Własne aplikacje**: *Tuner* (sterowanie sprzętem bez terminala) i panel *AI*.
+- **Jedno okno**: [Control Center](/pl/docs/control-center) łączy Tuner, Wentylator, Monitor, Gry, Profile, Kernel, Migawki, AI, Emulatory, Konsolę i ISO; osobnymi aplikacjami zostają Hub (centrum oprogramowania), HUD i Remote Manager (kokpit w przeglądarce).
 - **Dedykowane, sprawdzone aktualizacje** z naszego repozytorium APT, żeby aktualizacje Debiana nie zaskakiwały.
 
 Kolejne strony omawiają każdy z tych elementów szczegółowo.

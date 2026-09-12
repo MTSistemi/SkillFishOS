@@ -36,7 +36,7 @@ Le son par DisplayPort fonctionne, mais :
 
 ## Le GPU semble lent, les températures sont hautes
 
-- Vérifiez dans le [Tuner](/fr/docs/control-center) que les **40 CU** et le gouverneur SMU sont actifs.
+- Vérifiez dans le [Tuner](/fr/docs/control-center) que les **40 CU** et le gouverneur V/F (skillfish-vf-governor) sont actifs.
 - Rappelez-vous que le refroidissement est juste : après une charge prolongée la **garde thermique** (85 °C) entre en jeu. Pour des mesures valables, laissez la carte refroidir entre les essais (voir [GPU](/fr/docs/gpu-overclock)).
 - Pour les jeux **limités par le CPU**, baisser la définition ne fera pas monter les images par seconde.
 
@@ -45,9 +45,9 @@ Le son par DisplayPort fonctionne, mais :
 La BC-250 peut se **figer complètement**, souvent à cause d'un **undervolt trop agressif** : l'instabilité se manifeste surtout **à faible charge**, si bien qu'un blocage peut survenir même au repos. SkillFishOS s'y attaque sur deux fronts :
 
 - **Chien de garde matériel** — le compteur **SP5100 TCO** du chipset est actif (`RuntimeWatchdogSec=2min`) : si le système se bloque complètement, la carte **redémarre d'elle-même** en moins de deux minutes, sans avoir à couper le courant.
-- **Détecteur de blocage** — au démarrage un service remarque si l'arrêt précédent a été anormal (pas de marque d'arrêt propre) et l'**inscrit** dans `/var/log/skillfish-freeze.log`, avec une notification sur le bureau. Le compteur apparaît aussi dans le panneau **« Mon silicium »** du Tuner.
+- **Détecteur de blocage** — au démarrage un service remarque si l'arrêt précédent a été anormal (pas de marque d'arrêt propre) et l'**inscrit** dans `/var/log/skillfish-freeze.log`, avec une notification sur le bureau. La même information apparaît sur la page **État** du [Control Center](/fr/docs/control-center).
 
-Si les blocages reviennent, **descendez d'un profil** (par exemple de Crazy ou Turbo à Performance) dans le Tuner : la valeur moins agressive est presque toujours la solution. Tous les profils sont **à l'épreuve des plantages** — un blocage en plein essai ne laisse jamais la carte sur un profil instable au redémarrage. Si cela persiste même en Stock, soupçonnez l'**alimentation**.
+Si les blocages reviennent, **baissez le plafond de la courbe** (par exemple de Performance à Balanced ou Cautious) dans le Tuner : la valeur moins agressive est presque toujours la solution. Chaque courbe s'applique avec un **essai automatique et un retour en arrière** — un blocage en plein essai ne laisse jamais la carte sur une courbe instable au redémarrage. Si cela persiste même en Cautious, soupçonnez l'**alimentation**.
 
 ## Une mise à jour a cassé quelque chose
 

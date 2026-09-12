@@ -11,7 +11,7 @@ La **AMD BC-250** è una scheda compatta basata su un'**APU semi-custom** chiama
 
 | Componente | Dettaglio |
 |---|---|
-| **CPU** | 8 core / 16 thread **Zen 2** ("Oberon") — la scheda ne espone 6, SkillFishOS sblocca gli altri due via SMU — fino a **3.9 GHz** (Turbo), 4.0 GHz validati |
+| **CPU** | 8 core / 16 thread **Zen 2** ("Oberon") — la scheda ne espone 6, SkillFishOS sblocca gli altri due via SMU — fino a **3.9 GHz** in overclock, 4.0 GHz validati |
 | **GPU** | **RDNA 2** "Cyan Skillfish" (`gfx1013`), fino a **40 Compute Unit** sbloccabili |
 | **Memoria** | **16 GB GDDR6** condivisa (UMA) tra CPU e GPU |
 | **Potenza** | ~**11.3 TFLOPS** FP32 con 40 CU a 2000 MHz (misurato con vkpeak) |
@@ -24,7 +24,7 @@ La memoria è **unificata**: la GDDR6 è condivisa tra sistema e grafica. Di def
 
 La scheda si presenta come **6 core / 12 thread**, ma i core fisici sono **otto**: i due mancanti non sono difettosi, sono spenti dalla configurazione di prodotto. Lo si vede dalla maschera di presenza dei core, che sulla quasi totalità delle schede vale `0x77` — un valore **simmetrico**, quattro core per complesso con il quarto spento in entrambi. Uno scarto reale di produzione lascerebbe un motivo asimmetrico, perché i difetti non si distribuiscono con quella regolarità.
 
-SkillFishOS riscrive quella maschera attraverso l'**SMU** all'avvio e la scheda riparte come **8 core / 16 thread**. Non serve un BIOS modificato, non serve saldare niente.
+SkillFishOS riscrive quella maschera attraverso l'**SMU** all'avvio e la scheda riparte come **8 core / 16 thread**. Non serve un BIOS modificato, non serve saldare niente. Lo stesso sblocco si può fare anche **prima dell'avvio**, con un programma EFI, in un solo riavvio invece del riavvio in più richiesto dal servizio di sistema.
 
 Due cautele sono cablate nel servizio: se la maschera **non** è `0x77` non tocca nulla, perché un motivo diverso può indicare core davvero disabilitati in fabbrica; e il riavvio a caldo avviene **solo dopo** aver riletto e confermato la scrittura, così non può innescare un ciclo di riavvii.
 

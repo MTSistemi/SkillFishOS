@@ -14,7 +14,7 @@ SkillFishOS ist eine Arbeit des Zusammenführens: es bringt die Mühe vieler que
 
 ## Projekte eigens für die BC-250
 
-- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — SMU-Governor für die Takte der GPU.
+- **[cyan-skillfish-governor (Magnap)](https://github.com/Magnap/cyan-skillfish-governor)** — SMU-Governor für die Takte der GPU, bis September 2026 im Einsatz: heute abgelöst durch unseren eigenen `skillfish-vf-governor`.
 - **[bc250_smu_oc (bc250-collective)](https://github.com/bc250-collective/bc250_smu_oc)** — Übertaktung und Undervolting über die SMU.
 - **[bc250-core-unlock (rw-r-r-0644)](https://github.com/rw-r-r-0644/bc250-core-unlock)** — Freischalten der 8 CPU-Kerne.
 - **[bc250-40cu-unlock (duggasco)](https://github.com/duggasco/bc250-40cu-unlock)** — Freischalten der 40 Recheneinheiten.

@@ -27,7 +27,7 @@ Les points saillants de la configuration :
 
 - un plafond sur le nombre d'instantanés gardés, pour que le disque ne se remplisse pas ;
 - des instantanés conservés aux *étapes* importantes du système ;
-- la gestion depuis une fenêtre avec **SkillFishOS Instantanés**, l'application que nous avons écrite.
+- la gestion depuis une fenêtre dans la section **Instantanés** du [Control Center](/fr/docs/control-center), que nous avons écrite nous-mêmes.
 
 ## Combien en sont gardés
 

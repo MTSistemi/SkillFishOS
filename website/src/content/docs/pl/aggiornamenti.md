@@ -12,7 +12,7 @@ SkillFishOS opiera się na **Debianie sid** (*unstable*), czyli gałęzi rozwojo
 Najbardziej krytyczne elementy budujemy i rozprowadzamy **my sami**, z **własnego, podpisanego repozytorium APT**:
 
 - zoptymalizowane **[jądro](/pl/docs/kernel)** (obraz + nagłówki);
-- **zarządca SMU** i narzędzia do podkręcania;
+- **regulator V/F** i narzędzia do podkręcania;
 - **własne aplikacje** [Control Center](/pl/docs/control-center);
 - **motyw steampunk** i **oznaczenia marki**;
 - konfiguracja systemu.

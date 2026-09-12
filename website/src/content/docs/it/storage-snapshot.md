@@ -27,7 +27,7 @@ Caratteristiche della configurazione:
 
 - limite di snapshot mantenuti per non riempire il disco;
 - snapshot conservati ai *milestone* importanti del sistema;
-- gestione da finestra con **SkillFishOS Snapshot**, l'applicazione che abbiamo scritto noi.
+- gestione da finestra nella sezione **Snapshot** del [Control Center](/docs/control-center), scritta da noi.
 
 ## Quanti se ne tengono
 

@@ -27,12 +27,12 @@ SkillFishOS convient donc bien :
 
 ## Ce qu'il y a dedans, en bref
 
-- Un **noyau sur mesure** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) avec les correctifs pour la BC-250 : 40 unités de calcul déverrouillées, fréquences libérées, gouverneur SMU dédié.
+- Un **noyau sur mesure** ([linux-tkg](https://github.com/Frogging-Family/linux-tkg)) avec les correctifs pour la BC-250 : 40 unités de calcul déverrouillées, fréquences libérées, gouverneur V/F dédié.
 - Un **bureau KDE Plasma 6** en thème steampunk (icônes, curseurs, fond d'écran, affichage système).
 - **Prêt à jouer** : Steam, [gamescope](https://github.com/ValveSoftware/gamescope), [EmuDeck](https://www.emudeck.com/), [ES-DE](https://es-de.org/), [Heroic](https://heroicgameslauncher.com/), Proton.
 - **IA sur la machine** : [Unsloth Studio](https://unsloth.ai/) accéléré en Vulkan sur le GPU intégré — **5,1×** plus rapide que le CPU, mesuré.
 - **Instantanés Btrfs** avec [Snapper](http://snapper.io/) et retour en arrière depuis le menu GRUB.
-- **Applications natives** : le *Tuner* (piloter le matériel sans terminal) et le panneau *IA*.
+- **Une seule fenêtre** : le [Control Center](/fr/docs/control-center) réunit Tuner, Ventilateur, Monitor, Jeux, Profils, Kernel, Instantanés, IA, Émulateurs, Console et ISO ; restent des applications à part le Hub (centre logiciel), l'affichage système et le Remote Manager (tableau de bord dans le navigateur).
 - **Mises à jour dédiées et testées** depuis notre propre dépôt APT, pour que les mises à jour de Debian ne vous surprennent pas.
 
 Les pages qui suivent détaillent chaque élément.

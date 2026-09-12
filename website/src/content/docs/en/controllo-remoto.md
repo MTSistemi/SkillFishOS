@@ -40,7 +40,7 @@ The dashboard composes itself from the modules you enabled:
 
 - **Telemetry** — live charts of temperatures, frequencies, Watts and CPU/GPU load, with values on the vertical axis and a bar panel showing **per core/thread frequency** (all 16 threads, parked ones clearly marked).
 - **System status** — host, IP, kernel, uptime, RAM, disk, active CUs, detected freezes.
-- **Controls (Tuner)** — quick presets plus the **full Tuner** on the web: CPU (frequency/undervolt/temperature), GPU (frequency/voltage/governor), **live Compute-Unit control** (WGP grid, no reboot), fan, VRAM, *Test* and the **"Find my max"** wizards.
+- **Controls (Tuner)** — the **full Tuner** on the web: CPU (frequency, undervolt, temperature, with *Suggest UV* and *Find my max*), GPU (voltage/frequency curve with the V/F governor and the Cautious/Balanced/Performance presets), **live Compute-Unit control** (paired grid, no reboot), fan, VRAM, *Test*.
 - **Apps & packages (Hub)** — a real **app store** (AppStream + Flatpak + Snap): browse by category, search, install/remove, update. The **SkillFishOS apps** are featured at the top.
 - **Desktop (KVM)** — see and control the board's real desktop from the browser (noVNC), no extra hardware.
 - **Terminal** — a web shell (ttyd) inside the dashboard.

@@ -11,7 +11,7 @@ L'**AMD BC-250** est une carte compacte bâtie autour d'un **APU semi-personnali
 
 | Élément | Détail |
 |---|---|
-| **CPU** | 8 cœurs / 16 fils **Zen 2** (la carte en montre 6 ; SkillFishOS déverrouille les deux autres par la SMU) (« Oberon »), jusqu'à **3,9 GHz** (Turbo), 4,0 GHz validés |
+| **CPU** | 8 cœurs / 16 fils **Zen 2** (la carte en montre 6 ; SkillFishOS déverrouille les deux autres par la SMU) (« Oberon »), jusqu'à **3,9 GHz** en overclock, 4,0 GHz validés |
 | **GPU** | **RDNA 2** « Cyan Skillfish » (`gfx1013`), jusqu'à **40 unités de calcul** déverrouillables |
 | **Mémoire** | **16 Go de GDDR6** partagés (UMA) entre le CPU et le GPU |
 | **Calcul** | environ **11,3 TFLOPS** FP32 à 40 CU / 2000 MHz (mesuré avec vkpeak) |
@@ -24,7 +24,7 @@ La mémoire est **unifiée** : la GDDR6 est partagée entre le système et la pa
 
 La carte se présente avec **6 cœurs / 12 fils**, mais il y a **huit** cœurs physiques : les deux qui manquent ne sont pas défectueux, ils sont éteints par la configuration du produit. Le masque de présence des cœurs le trahit — sur pratiquement toutes les cartes il vaut `0x77`, une valeur **symétrique** : quatre cœurs par complexe avec le quatrième désactivé des deux côtés. Un vrai tri de fabrication laisserait un motif asymétrique, parce que les défauts ne se répartissent pas aussi proprement.
 
-SkillFishOS réécrit ce masque par la **SMU** au démarrage et la carte revient en **8 cœurs / 16 fils**. Pas de BIOS modifié, pas de soudure.
+SkillFishOS réécrit ce masque par la **SMU** au démarrage et la carte revient en **8 cœurs / 16 fils**. Pas de BIOS modifié, pas de soudure. Le même déverrouillage se fait aussi **avant le démarrage**, avec un programme EFI, en un seul redémarrage au lieu du redémarrage en plus qu'exige le service système.
 
 Deux garde-fous sont dans le service : si le masque n'est **pas** `0x77` il ne touche à rien, car un autre motif peut vouloir dire que des cœurs ont vraiment été désactivés en usine ; et le redémarrage à chaud n'arrive **qu'après** que l'écriture a été relue et confirmée, si bien qu'il ne peut pas partir en boucle de redémarrage.
 

@@ -35,7 +35,7 @@ Los términos que se repiten por toda la documentación, cada uno explicado en u
 
 **SMU** — *System Management Unit*: el microcontrolador dentro de la APU que gobierna frecuencias y voltajes. En la BC-250 el control pasa **solo** por él, no por los archivos estándar de amdgpu en sysfs.
 
-**Gobernador SMU** — el servicio (`cyan-skillfish-governor`) que fija los *puntos seguros* de frecuencia y voltaje de la GPU.
+**Gobernador V/F** — el servicio (`skillfish-vf-governor`) que lleva la curva voltaje/frecuencia de la GPU por la SMU, con un tope configurable (perfiles Cautious/Balanced/Performance). Sustituyó al viejo `cyan-skillfish-governor` de perfiles fijos.
 
 **sclk / mclk** — frecuencia del **núcleo** gráfico (sclk) y de la **memoria** (mclk). En la BC-250 la mclk **no** se puede ajustar.
 
@@ -89,13 +89,13 @@ Los términos que se repiten por toda la documentación, cada uno explicado en u
 
 **EmuDeck / ES-DE** — el instalador de emuladores y la interfaz para la emulación.
 
-**FSR / OptiScaler** — tecnologías de **escalado**. FSR 4 no está disponible (necesita RDNA 4); se usan FSR1/NIS u OptiScaler.
+**FSR / OptiScaler** — tecnologías de **escalado**. Nuestra Mesa lleva **FSR 4** a través de [OptiScaler](https://github.com/optiscaler/OptiScaler) en la ruta DLSS del juego; gamescope también ofrece FSR1/NIS.
 
 **Unsloth Studio** — motor e interfaz de la IA local: ejecuta modelos GGUF en la GPU y ofrece una API compatible con la de OpenAI.
 
-**qwen3:14b** — el modelo de IA de referencia, funcionando enteramente en la GPU.
+**Qwen3-1.7B** — el modelo usado como referencia en las medidas de la IA local: 210 tokens/s en la GPU frente a 41 solo con la CPU.
 
-**Tuner** — la aplicación propia de SkillFishOS para ajustar el hardware con prueba y retroceso (ver [Control Center](/es/docs/control-center)).
+**Tuner** — la sección del [Control Center](/es/docs/control-center) para ajustar el hardware (curva de GPU, CPU, unidades de cómputo, VRAM) con prueba y vuelta atrás automáticas.
 
 ## Fuentes
 

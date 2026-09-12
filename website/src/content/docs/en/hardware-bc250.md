@@ -11,7 +11,7 @@ The **AMD BC-250** is a compact board based on a **semi-custom APU** codenamed *
 
 | Component | Detail |
 |---|---|
-| **CPU** | 8 cores / 16 threads **Zen 2** (the board exposes 6; SkillFishOS unlocks the other two via the SMU) ("Oberon"), up to **3.9 GHz** (Turbo), 4.0 GHz validated |
+| **CPU** | 8 cores / 16 threads **Zen 2** (the board exposes 6; SkillFishOS unlocks the other two via the SMU) ("Oberon"), up to **3.9 GHz** overclocked, 4.0 GHz validated |
 | **GPU** | **RDNA 2** "Cyan Skillfish" (`gfx1013`), up to **40 Compute Units** unlockable |
 | **Memory** | **16 GB GDDR6** shared (UMA) between CPU and GPU |
 | **Compute** | ~**11.3 TFLOPS** FP32 at 40 CU / 2000 MHz (measured with vkpeak) |
@@ -24,7 +24,7 @@ Memory is **unified**: the GDDR6 is shared between system and graphics. By defau
 
 The board presents itself as **6 cores / 12 threads**, but there are **eight** physical cores: the two missing ones are not defective, they are switched off by product configuration. The core presence mask gives it away — on virtually every board it reads `0x77`, a **symmetric** value: four cores per complex with the fourth disabled in both. A genuine manufacturing harvest would leave an asymmetric pattern, because defects do not distribute themselves that neatly.
 
-SkillFishOS rewrites that mask through the **SMU** at boot and the board comes back up as **8 cores / 16 threads**. No modified BIOS, no soldering.
+SkillFishOS rewrites that mask through the **SMU** at boot and the board comes back up as **8 cores / 16 threads**. No modified BIOS, no soldering. The same unlock can also be done **before boot**, with an EFI program, in a single reboot instead of the extra reboot the system service needs.
 
 Two safeguards are wired into the service: if the mask is **not** `0x77` it touches nothing, since a different pattern may mean cores really were disabled at the factory; and the warm reboot happens **only after** the write has been read back and confirmed, so it cannot start a reboot loop.
 

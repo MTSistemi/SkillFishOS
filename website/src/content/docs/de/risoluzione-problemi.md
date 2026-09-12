@@ -36,7 +36,7 @@ Ton über DisplayPort funktioniert, aber:
 
 ## Die GPU wirkt langsam / die Temperaturen sind hoch
 
-- Prüfe im [Tuner](/de/docs/control-center), ob die **40 CU** und der SMU-Governor aktiv sind.
+- Prüfe im [Tuner](/de/docs/control-center), ob die **40 CU** und der V/F-Governor (skillfish-vf-governor) aktiv sind.
 - Denk daran, dass die Kühlung knapp ist: nach längerer Last greift der **Temperaturschutz** (85 °C). Für aussagekräftige Messungen lass die Platine zwischen den Durchläufen abkühlen (siehe [GPU](/de/docs/gpu-overclock)).
 - Bei Spielen, die an der **CPU** hängen, bringt eine niedrigere Auflösung keine zusätzlichen Bilder.
 
@@ -45,9 +45,9 @@ Ton über DisplayPort funktioniert, aber:
 Die BC-250 kann **komplett einfrieren**, oft im Zusammenhang mit **zu beherztem Undervolting**: die Unruhe zeigt sich vor allem bei **geringer Last**, ein Einfrieren kann also sogar im Leerlauf zuschlagen. SkillFishOS geht das von zwei Seiten an:
 
 - **Hardware-Wachhund** — der **SP5100-TCO**-Zeitgeber des Chipsatzes ist aktiv (`RuntimeWatchdogSec=2min`): steht das System vollständig, **startet sich die Platine innerhalb von zwei Minuten selbst neu**, ohne den Stecker zu ziehen.
-- **Einfrier-Melder** — beim Start merkt ein Dienst, ob das vorherige Herunterfahren unsauber war (die Markierung für sauberes Beenden fehlt), und **schreibt** das nach `/var/log/skillfish-freeze.log`, mit einer Meldung auf dem Schreibtisch. Der Zähler steht auch im Fenster **„Mein Silizium“** des Tuners.
+- **Einfrier-Melder** — beim Start merkt ein Dienst, ob das vorherige Herunterfahren unsauber war (die Markierung für sauberes Beenden fehlt), und **schreibt** das nach `/var/log/skillfish-freeze.log`, mit einer Meldung auf dem Schreibtisch. Dieselbe Angabe steht auch auf der Seite **Status** im [Control Center](/de/docs/control-center).
 
-Häufen sich die Aussetzer, geh im Tuner **ein Profil zurück** (etwa von Crazy oder Turbo auf Performance): der weniger beherzte Wert ist fast immer die Lösung. Alle Profile sind **absturzsicher** — ein Einfrieren mitten in einer Prüfung lässt die Platine beim Neustart nie auf einem unruhigen Profil stehen. Bleiben die Aussetzer selbst bei Stock, verdächtige das **Netzteil**.
+Häufen sich die Aussetzer, senk im Tuner **den Deckel der Kurve** (etwa von Performance auf Balanced oder Cautious): der weniger beherzte Wert ist fast immer die Lösung. Jede Kurve wird mit **selbsttätiger Prüfung und Rücknahme** angewendet — ein Einfrieren mitten in der Probe lässt die Platine beim Neustart nie auf einer unruhigen Kurve stehen. Bleiben die Aussetzer selbst bei Cautious, verdächtige das **Netzteil**.
 
 ## Eine Aktualisierung hat etwas kaputt gemacht
 
