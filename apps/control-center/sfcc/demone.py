@@ -45,8 +45,19 @@ class Demone:
             self.rifiutato = True
             return False
 
-    def cmd(self, timeout=None, **kw):
-        """Send one command and wait for its reply. Never raises."""
+    def cmd(self, timeout=None, insisti=False, **kw):
+        """Send one command and wait for its reply. Never raises.
+
+        ⚠️ `insisti=True` per le azioni chieste con un clic: azzera il rifiuto
+        e la password si torna a chiedere. Senza, un Annulla (o una password
+        sbagliata) rendeva muti per sempre tutti i pulsanti della finestra, e
+        i clic successivi non facevano niente senza dire perche'.
+
+        Le letture automatiche NON devono insistere: chiederebbero la password
+        a ogni giro.
+        """
+        if insisti:
+            self.rifiutato = False
         if not self.avvia():
             return {"ok": False, "err": L("autenticazione annullata", "authentication cancelled"),
                     "annullato": True}

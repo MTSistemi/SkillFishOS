@@ -58,6 +58,34 @@ on)
     [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }
     if [ -f "$SEGNA" ]; then stato_json; exit 0; fi
 
+    # ⚠️ DA QUI IN POI QUESTO PROCESSO PUO' MORIRE.
+    # Fermare il display manager chiude la sessione grafica, e logind termina
+    # ogni processo che le appartiene. Se siamo arrivati dal Control Center
+    # (finestra → pkexec → helper → questo script) apparteniamo tutti a quella
+    # sessione: lo script veniva ucciso a meta', con il segno gia' scritto e i
+    # servizi fermati a meta'. Da ssh non succedeva, ed e' per questo che il
+    # guasto si vedeva solo premendo il pulsante.
+    # L'unita' transitoria non e' figlia della sessione e sopravvive.
+    if [ -z "${SKF_AI_STACCATO:-}" ] && [ -d /run/systemd/system ]; then
+        # ⚠️ Se non si riesce a staccarsi NON si fallisce: si prosegue qui.
+        # Lo stacco e' una precauzione, e una precauzione che rompe il caso
+        # normale e' peggio del problema che evita.
+        if systemd-run --quiet --collect --unit=skillfish-ai-mode-on \
+                --setenv=SKF_AI_STACCATO=1 \
+                /usr/local/bin/skillfish-ai-mode on; then
+            # Si aspetta il segno, cosi' chi ha chiamato riceve uno stato vero
+            # e non un "attiva: false" scritto un istante prima che diventi
+            # vera.
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+                [ -f "$SEGNA" ] && break
+                sleep 1
+            done
+            stato_json
+            exit 0
+        fi
+        log "systemd-run non riuscito: proseguo dentro la sessione"
+    fi
+
     install -d /var/lib/skillfish
     : > "$SEGNA"
 

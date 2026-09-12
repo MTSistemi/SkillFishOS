@@ -29,6 +29,9 @@
   #cluster .tot span{font-size:.8rem;font-weight:400;color:var(--muted);margin-left:8px}
   #cluster .n{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
   #cluster .pallino{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  #cluster.cl_fermo .pallino{background:#7f6f55!important}
+  #cluster.cl_fermo .dati,#cluster.cl_fermo .nome{opacity:.55}
+  #cluster.cl_fermo .tot span{color:#d8956a}
   #cluster .nome{color:var(--cream);min-width:130px}
   #cluster .dati{color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
   #cluster .barra{position:relative;height:16px;border:1px solid var(--line);border-radius:4px;background:#0d0b06;flex:1 1 100%;overflow:hidden}
@@ -121,9 +124,14 @@
     box.hidden = false;
     const gb = b => (b || 0) / 1073741824;
     const libera = gb(d.memoria_totale) - gb(d.memoria_usata);
+    // ⚠️ Numeri fermi: si dice, e non si colora di verde qualcosa che non
+    // sappiamo se e' ancora vero.
+    const fermo = !!d.fermo;
+    box.classList.toggle("cl_fermo", fermo);
     $("#cl_tot").innerHTML = libera.toFixed(1) + " GB <span>" +
       sfT("c_free") + " " + gb(d.memoria_totale).toFixed(1) + " GB · " +
-      nodi.length + " " + sfT("c_boards") + " · " + (d.watt_totali || 0) + " W</span>";
+      nodi.length + " " + sfT("c_boards") + " · " + (d.watt_totali || 0) + " W" +
+      (fermo ? " · " + sfT("c_stale") + " " + (d.eta || 0) + " s" : "") + "</span>";
     $("#cl_nodi").innerHTML = nodi.map(n => {
       if (n.errore) {
         return '<div class="n"><span class="pallino" style="background:#d85a5a"></span>' +

@@ -851,8 +851,15 @@ def unsloth_password_reset(scelta=""):
                 nuova = cand
                 break
     if not scelta:
+        # ⚠️ Anche qui la chiave va rifatta: il reset l'ha revocata comunque, e
+        # senza questa riga il Control Center resta con una chiave morta in
+        # mano senza accorgersene.
+        chiave, _ = _studio_nuova_chiave(nuova)
+        if chiave:
+            unsloth_key_set(chiave)
         _log("unsloth: password di Studio ruotata (casuale)")
         return {"ok": True, "password": nuova, "scelta": False,
+                "chiave": chiave, "chiave_rifatta": bool(chiave),
                 "uscita": testo.strip()[-400:]}
 
     # ⚠️ Il secondo passo: da quella casuale a quella che l'utente ha scelto.
@@ -867,8 +874,14 @@ def unsloth_password_reset(scelta=""):
                 "uscita": testo.strip()[-400:]}
     err = _studio_cambia_password(nuova, scelta)
     if err:
+        # La password buona adesso e' quella casuale: la chiave si rifa' con
+        # quella, non con la scelta che Studio ha rifiutato.
+        chiave, _ = _studio_nuova_chiave(nuova)
+        if chiave:
+            unsloth_key_set(chiave)
         _log("unsloth: password ruotata, ma il cambio a quella scelta non e' riuscito")
-        return {"ok": True, "password": nuova, "scelta": False, "errore": err}
+        return {"ok": True, "password": nuova, "scelta": False, "errore": err,
+                "chiave": chiave}
     # ⚠️ IL RESET HA REVOCATO ANCHE LE CHIAVI API: lo dice l'uscita del comando.
     # Senza rifarla, dopo questo smettono di funzionare insieme il Control
     # Center, il Remote Manager e qualunque editor collegato - e nessuno
@@ -878,7 +891,12 @@ def unsloth_password_reset(scelta=""):
         unsloth_key_set(chiave)
     _log("unsloth: password impostata da chi usa la macchina, chiave API rifatta"
          if chiave else "unsloth: password impostata, chiave API DA RIFARE: %s" % err_k)
+    # ⚠️ La chiave torna alla finestra, che la salva in casa dell'utente.
+    # unsloth_key_set() scrive SOLO la copia che legge il Remote Manager: se ci
+    # si ferma li', il Control Center continua a usare quella vecchia e revocata
+    # e mostra schede vuote senza dire perche'.
     return {"ok": True, "password": "", "scelta": True,
+            "chiave": chiave,
             "chiave_rifatta": bool(chiave),
             "errore_chiave": "" if chiave else err_k}
 
@@ -897,8 +915,21 @@ def _studio_nuova_chiave(password):
             with urllib.request.urlopen(req, timeout=20) as r:
                 return _json.loads(r.read().decode("utf-8"))
 
-        r = chiama("/api/auth/login", {"username": "unsloth", "password": password})
-        tok = r.get("access_token")
+        # ⚠️ Si riprova: dopo un reset il rate limit di Studio puo' restare
+        # chiuso fino a un minuto anche con la password giusta, e un solo
+        # tentativo fa credere che la password non vada.
+        import time
+        tok = ""
+        for _ in range(12):
+            try:
+                r = chiama("/api/auth/login",
+                           {"username": "unsloth", "password": password})
+                tok = r.get("access_token") or ""
+                if tok:
+                    break
+            except Exception:
+                pass
+            time.sleep(5)
         if not tok:
             return "", "non entro in Studio con la password nuova"
         r2 = chiama("/api/auth/api-keys", {"name": "SkillFishOS"}, tok)

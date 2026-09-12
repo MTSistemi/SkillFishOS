@@ -120,6 +120,17 @@ const STR = {
               ru: "скачать модель (напр. qwen3:14b)", es: "descargar modelo (p. ej. qwen3:14b)", pt: "baixar modelo (ex.: qwen3:14b)", de: "Modell holen (z. B. qwen3:14b)",
               fr: "télécharger un modèle (p. ex. qwen3:14b)" },
   x_pull: { it: "Scarica", en: "Pull", pl: "Pobierz", uk: "Завантажити", ru: "Скачать", es: "Descargar", pt: "Baixar", de: "Holen", fr: "Télécharger" },
+  x_aimode_on: { it: "AI-Mode On", en: "AI-Mode On", pl: "AI-Mode On", uk: "AI-Mode On", ru: "AI-Mode On", es: "AI-Mode On", pt: "AI-Mode On", de: "AI-Mode On", fr: "AI-Mode On" },
+  x_aimode_off: { it: "AI-Mode Off", en: "AI-Mode Off", pl: "AI-Mode Off", uk: "AI-Mode Off", ru: "AI-Mode Off", es: "AI-Mode Off", pt: "AI-Mode Off", de: "AI-Mode Off", fr: "AI-Mode Off" },
+  x_aimode_ask: { it: "Spengo il desktop della scheda? Si chiude tutto quello che c'e' aperto, senza salvare, e la memoria va al modello.",
+                  en: "Shut the board's desktop down? Everything open closes without saving, and the memory goes to the model.",
+                  pl: "Wyłączyć pulpit płyty? Wszystko otwarte zamknie się bez zapisywania, a pamięć trafi do modelu.",
+                  uk: "Вимкнути стільницю плати? Усе відкрите закриється без збереження, а пам'ять піде моделі.",
+                  ru: "Выключить рабочий стол платы? Всё открытое закроется без сохранения, а память уйдёт модели.",
+                  es: "¿Apagar el escritorio de la placa? Todo lo abierto se cierra sin guardar y la memoria pasa al modelo.",
+                  pt: "Desligar a área de trabalho da placa? Tudo o que está aberto fecha sem salvar e a memória vai para o modelo.",
+                  de: "Den Desktop der Karte herunterfahren? Alles Offene schließt ohne Speichern, und der Speicher geht an das Modell.",
+                  fr: "Éteindre le bureau de la carte ? Tout ce qui est ouvert se ferme sans enregistrer, et la mémoire va au modèle." },
   x_optai: { it: "Ottimizza per AI", en: "Optimize for AI", pl: "Zoptymalizuj pod SI", uk: "Оптимізувати для ШІ",
              ru: "Настроить под ИИ", es: "Optimizar para IA", pt: "Otimizar para IA", de: "Auf KI abstimmen",
              fr: "Optimiser pour l'IA" },
@@ -784,7 +795,11 @@ const RENDER = {
         '<button class="dbtn" id="aidlgo" disabled>' + T("ai_download") + '</button>' +
         '<button class="dbtn" id="aihub"' + (s.webui ? "" : " disabled") + '>' + T("ai_openhub") + ' ↗</button></div>' +
         '<pre id="aidl" class="stub" style="white-space:pre-wrap;margin-top:4px"></pre>' +
-        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + T("x_optai") + '</button></div><div id="aitune"></div>' +
+        '<div class="brow" style="margin-top:10px"><button class="dbtn" id="aitunebtn" style="border-color:var(--gold)">⚡ ' + T("x_optai") + '</button>' +
+        // Un solo pulsante che cambia scritta: acceso dice come spegnerlo,
+        // spento dice come accenderlo. Due pulsanti sarebbero uno sempre
+        // inutile.
+        '<button class="dbtn" id="aimode" style="border-color:var(--gold)">🖥️ ' + T(s.ai_mode ? "x_aimode_off" : "x_aimode_on") + '</button></div><div id="aitune"></div>' +
         '<div class="stub" style="margin-top:8px">' + (it ? "Gira sulla GPU: spegnilo quando giochi. La chat completa, con file e ricerca, e' dentro Studio."
                                                           : "It runs on the GPU: turn it off when gaming. The full chat, with files and search, is inside Studio.") + "</div>";
       const studioUrl = "http://" + location.hostname + ":" + (s.port || 8888);
@@ -805,6 +820,15 @@ const RENDER = {
       if ($("#aikeysave", card)) $("#aikeysave", card).onclick = async () => {
         const v = $("#aikey", card).value.trim(); if (!v) return;
         await action("/api/ai/key", { key: v }, T("x_keysaved")); setTimeout(refresh, 800);
+      };
+      if ($("#aimode", card)) $("#aimode", card).onclick = async () => {
+        // ⚠️ Accendendola si spegne il desktop di chi e' davanti alla scheda e
+        // si chiude quello che ha aperto, senza salvare. Da remoto non si vede
+        // se c'e' qualcuno: la domanda e' l'unica difesa che abbiamo.
+        if (!s.ai_mode && !confirm(T("x_aimode_ask"))) return;
+        await action("/api/ai/mode", { azione: s.ai_mode ? "off" : "on" },
+                     T(s.ai_mode ? "x_aimode_off" : "x_aimode_on"));
+        setTimeout(refresh, 3000);
       };
       if ($("#aichat", card)) $("#aichat", card).onclick = () => openFrame("SkillFishOS AI", "/static/aichat.html");
       // Studio is opened DIRECTLY, not through the dashboard proxy: its pages ask

@@ -24,8 +24,21 @@ FLAG=/run/skillfish-freeze-detected
 #
 # ⚠️ E' PER UTENTE: su una macchina con due profili il secondo deve vederlo
 # comunque, perche' quell'avviso spiega perche' il computer si e' piantato.
-VISTO="$FLAG.visto-$(id -u)"
+# ⚠️ IL SEGNO VA IN CASA, NON IN /run: /run e' di root e 755, e questo script
+# gira come utente del desktop. Il segno la' dentro non si creava mai, il
+# `|| true` mangiava l'errore, e l'avviso tornava a ogni accesso: esattamente
+# il guasto che questa riga doveva chiudere (visto sulla .32 il 13/09/2026).
+#
+# Legato all'identificativo dell'avvio, cosi' "una volta per avvio" vale anche
+# quando la sessione grafica si spegne e si riaccende - cioe' ogni volta che si
+# esce dalla modalita' AI.
+AVVIO=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null | tr -d -)
+CASA="${XDG_CACHE_HOME:-$HOME/.cache}/skillfish"
+VISTO="$CASA/freeze-visto-${AVVIO:-0}"
 [ -e "$VISTO" ] && exit 0
+mkdir -p "$CASA" 2>/dev/null || true
+# i segni degli avvii passati non servono piu'
+rm -f "$CASA"/freeze-visto-* 2>/dev/null || true
 : > "$VISTO" 2>/dev/null || true
 
 count=$(sed -n 1p "$FLAG" 2>/dev/null)

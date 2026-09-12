@@ -2124,6 +2124,11 @@ def cluster_stato():
                 "memoria_usata": 0, "watt_totali": 0, "servizio": False}
     d["ok"] = True
     d["servizio"] = True
+    # ⚠️ Il file sopravvive al servizio che lo scrive: se e' vecchio si dice,
+    # invece di servire l'ultima fotografia come se fosse adesso.
+    ag = d.get("aggiornato") or 0
+    d["eta"] = max(0, int(time.time() - ag)) if ag else 0
+    d["fermo"] = d["eta"] > 30
     return d
 
 
@@ -2326,6 +2331,9 @@ def ai_status():
             "installed": _unsloth_installed() and bool(_unsloth_home()),
             "conf": _unsloth_conf_read(),
             "update_running": _AI_UPD["running"],
+            # ⚠️ Il segno lo scrive skillfish-ai-mode: si guarda quello e non
+            # si lancia un comando a ogni giro del riquadro.
+            "ai_mode": os.path.exists("/var/lib/skillfish/ai-mode"),
             **(_unsloth_version() if running else {})}
 
 

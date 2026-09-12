@@ -15,6 +15,8 @@ skillfish-gpu-util samples it with radeontop instead. If that service is not
 running the figure is -1, and -1 is drawn as "?" rather than as zero, because
 zero would be a lie.
 """
+import time
+
 from PyQt6.QtCore import Qt, QRectF
 from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen
 from PyQt6.QtWidgets import QSizePolicy, QWidget
@@ -64,6 +66,14 @@ class Cluster(QWidget):
         y = 0
 
         schede = self.dati.get("schede") or []
+        # ⚠️ Numeri vecchi = servizio fermo. Il file resta dov'e' anche quando
+        # skillfish-cluster.service muore, e senza questo controllo il riquadro
+        # continua a mostrare l'ultima fotografia per sempre.
+        eta = 0
+        ag = self.dati.get("aggiornato") or 0
+        if ag:
+            eta = max(0, int(time.time() - ag))
+        fermi = eta > 30
         tot = _gb(self.dati.get("memoria_totale"))
         uso = _gb(self.dati.get("memoria_usata"))
         libera = max(0.0, tot - uso)
@@ -81,10 +91,13 @@ class Cluster(QWidget):
         p.setFont(f)
         p.setPen(QColor(TESTO_2))
         larg = p.fontMetrics().horizontalAdvance("%.1f GB " % libera) + 66
+        coda = ("  ·  fermi da %d s" % eta) if fermi else ""
+        if fermi:
+            p.setPen(QColor(ROSSO))
         p.drawText(QRectF(larg, y, W - larg, 30),
                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                   "liberi su %.1f GB · %d schede · %d W"
-                   % (tot, len(schede), self.dati.get("watt_totali", 0)))
+                   "liberi su %.1f GB · %d schede · %d W%s"
+                   % (tot, len(schede), self.dati.get("watt_totali", 0), coda))
         y += 34
 
         if not schede:
@@ -94,16 +107,20 @@ class Cluster(QWidget):
             return
 
         for s in schede:
-            self._riga(p, s, y, W)
+            self._riga(p, s, y, W, fermi)
             y += 52
 
-    def _riga(self, p, s, y, W):
+    def _riga(self, p, s, y, W, fermi=False):
         f = QFont()
         f.setPointSize(10)
         p.setFont(f)
 
         # il nome, e un pallino che dice se il nodo risponde
         col = VERDE if s.get("nodo") else (TESTO_3 if s.get("locale") else ROSSO)
+        if fermi:
+            # Il pallino verde su numeri vecchi e' la bugia peggiore del
+            # riquadro: dice "questa scheda risponde" quando non lo sappiamo.
+            col = TESTO_3
         p.setBrush(QColor(col))
         p.setPen(Qt.PenStyle.NoPen)
         p.drawEllipse(QRectF(2, y + 9, 8, 8))

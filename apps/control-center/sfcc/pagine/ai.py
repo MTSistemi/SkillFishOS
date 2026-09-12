@@ -16,6 +16,7 @@ the key the Remote Manager reads, the GTT limit (a kernel parameter, reboot).
 import glob
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.error
@@ -158,6 +159,56 @@ def dim_n(n):
     return str(n)
 
 
+CARTELLE_MODELLI = ("modelli", "models", ".unsloth/models", ".cache/unsloth/models")
+
+
+def quant_dal_nome(nome):
+    """La quantizzazione, letta dalla coda del nome: Q4_K_M, UD-Q6_K, IQ3_XXS.
+
+    ⚠️ Non la chiediamo a Studio perche' Studio non ce l'ha: /v1/models
+    restituisce id, loaded e display_name e basta.
+    """
+    m = re.search(r"((?:UD-)?(?:IQ|Q)\d+(?:_[A-Za-z0-9]+)*)$", nome or "")
+    return m.group(1) if m else ""
+
+
+_GGUF = {}
+
+
+def _gguf_sul_disco(rinfresca=False):
+    """Nome del file (senza .gguf) -> quanto occupa.
+
+    ⚠️ Si guardano le cartelle dove i modelli finiscono davvero, non l'Hub:
+    /api/hub/cached-gguf conosce solo quelli scaricati da li', e chi si copia
+    un .gguf a mano - che e' il caso normale su una scheda di prova - non
+    comparirebbe mai.
+    """
+    if _GGUF and not rinfresca:
+        return _GGUF
+    _GGUF.clear()
+    viste = set()
+    for base in CARTELLE_MODELLI:
+        d = os.path.join(CASA, base)
+        if not os.path.isdir(d) or d in viste:
+            continue
+        viste.add(d)
+        # ⚠️ Due livelli, non di piu': dentro .unsloth c'e' la cache di uv con
+        # decine di migliaia di file, e scandagliarla a ogni apertura della
+        # pagina si sentirebbe.
+        for radice, cartelle, file in os.walk(d):
+            if radice[len(d):].count(os.sep) >= 2:
+                cartelle[:] = []
+            for n in file:
+                if not n.endswith(".gguf"):
+                    continue
+                try:
+                    _GGUF[n[:-5]] = os.path.getsize(os.path.join(radice, n))
+                except OSError:
+                    # sparito fra la lettura e lo stat: non e' un guasto
+                    pass
+    return _GGUF
+
+
 def cerca_hf(q, limite=40):
     """I GGUF di Hugging Face che somigliano a quello che uno ha scritto.
 
@@ -281,6 +332,7 @@ class Pagina(PaginaBase):
         self.chiave = chiave()
         self.msgs = []
         self.modelli = []
+        self._chiave_morta = False
         self.varianti = []
 
     # ---- build
@@ -369,6 +421,7 @@ class Pagina(PaginaBase):
             (L("Dimentica la chiave", "Forget the key"), self._togli_chiave, False),
             (L("Reimposta la password", "Reset the password"), self._reset_password, False))
         self.b_togli_chiave = bottoni[0]
+        self.b_reset = bottoni[1]
 
         # -- memory
         self.c_mem = Scheda(L("Memoria", "Memory"), L(
@@ -659,6 +712,8 @@ class Pagina(PaginaBase):
             self.r_chiave.setText(L("impostata", "set") + " (%s…)" % self.chiave[:14])
         elif on and primo:
             self.r_chiave.setText(L("dopo il primo accesso", "after the first sign-in"))
+        elif getattr(self, "_chiave_morta", False):
+            self.r_chiave.setText(L("non vale piu'", "no longer valid"))
         else:
             self.r_chiave.setText(L("manca", "missing"))
         if st:
@@ -690,6 +745,26 @@ class Pagina(PaginaBase):
         if be.get("backend"):
             self.r_backend.setText("llama.cpp %s (%s)" % (be["backend"], be.get("installed_tag") or ""))
         v1 = r.get("v1") or {}
+        # ⚠️ 401 = la chiave e' stata revocata (di solito da un reset della
+        # password, anche fatto da un'altra parte). Senza questo controllo la
+        # pagina resta muta: schede vuote, "nessun modello scaricato" con i
+        # modelli sul disco, e la riga della chiave che dice "impostata".
+        if isinstance(v1, dict) and v1.get("_errore") in (401, 403):
+            self.chiave = ""
+            salva_chiave("")
+            self._chiave_morta = True
+            self.r_backend.setText("—")
+            self.modelli = []
+            self.modello.clear()
+            self._riempi_modelli([], [])
+            return
+        # ⚠️ Solo una lettura andata a buon fine con una chiave in mano
+        # cancella il segno. Azzerarlo sempre lo faceva sparire al giro dopo,
+        # quando la chiave revocata era gia' stata tolta e il 401 non arrivava
+        # piu': il messaggio durava sei secondi e poi tornava un innocuo
+        # "nessun modello scaricato".
+        if self.chiave:
+            self._chiave_morta = False
         dati = [m for m in v1.get("data", []) if m.get("id")]
         ids = sorted(m["id"] for m in dati)
         if ids != self.modelli:
@@ -706,12 +781,15 @@ class Pagina(PaginaBase):
         """/v1/models says what can be served (and what is loaded), the Hub
         cache says how big each repository is on disk."""
         dimensioni = {rp.get("repo_id"): rp.get("size_bytes") for rp in repos}
+        # Quello che l'Hub non sa lo sa il disco.
+        sul_disco = _gguf_sul_disco(rinfresca=True)
         righe = []
         for m in sorted(dati, key=lambda x: x["id"]):
-            q = m.get("quant") or ""
+            q = m.get("quant") or quant_dal_nome(m["id"])
             if m.get("loaded"):
                 q += ("  ·  " if q else "") + L("in memoria", "loaded")
-            righe.append((m["id"], q, dim(dimensioni.get(m["id"]))))
+            peso = dimensioni.get(m["id"]) or sul_disco.get(m["id"])
+            righe.append((m["id"], q, dim(peso)))
         self.tab.setRowCount(len(righe))
         for i, (a, b, c) in enumerate(righe):
             for j, t in enumerate((a, b, c)):
@@ -721,7 +799,15 @@ class Pagina(PaginaBase):
                 self.tab.setItem(i, j, it)
         if not righe:
             self.tab.setRowCount(1)
-            self.tab.setItem(0, 0, QTableWidgetItem(L("nessun modello scaricato", "no model downloaded")))
+            if getattr(self, "_chiave_morta", False):
+                vuoto = L("la chiave API non vale piu': rientra con la password",
+                          "the API key is no longer valid: sign in again")
+            elif not self.chiave:
+                vuoto = L("serve la chiave API: entra qui sopra",
+                          "the API key is missing: sign in above")
+            else:
+                vuoto = L("nessun modello scaricato", "no model downloaded")
+            self.tab.setItem(0, 0, QTableWidgetItem(vuoto))
             self.tab.setSpan(0, 0, 1, 3)
         else:
             self.tab.clearSpans()
@@ -838,7 +924,24 @@ class Pagina(PaginaBase):
                   "or `skillfish-ai-mode off` over ssh.")
         ) != QMessageBox.StandardButton.Yes:
             return
-        self.demone.cmd(cmd="ai-mode", azione="on")
+        # ⚠️ La risposta si guarda. Prima si buttava via: se l'helper non
+        # partiva (password annullata) il pulsante non faceva niente e non
+        # diceva niente, ed e' esattamente cosi' che il guasto e' arrivato in
+        # mano a chi usa la macchina.
+        r = self.demone.cmd(cmd="ai-mode", azione="on", insisti=True)
+        if not r.get("ok"):
+            QMessageBox.warning(self, L("Modalita' AI", "AI mode"),
+                                r.get("errore") or r.get("err") or L(
+                                    "non ci sono riuscito", "could not do it"))
+            return
+        # Se il desktop e' ancora in piedi dopo la risposta, qualcosa non ha
+        # funzionato: meglio dirlo che lasciare un pulsante che sembra inerte.
+        if not r.get("attiva"):
+            QMessageBox.warning(self, L("Modalita' AI", "AI mode"), L(
+                "La modalita' AI non si e' accesa. Da ssh: "
+                "`skillfish-ai-mode on` dice perche'.",
+                "AI mode did not come on. Over ssh, `skillfish-ai-mode on` "
+                "says why."))
 
     def _cluster_leggi(self):
         """La telemetria di tutte le schede, letta da /run.
@@ -865,7 +968,7 @@ class Pagina(PaginaBase):
         self.cl_esito.setText(L("controllo...", "checking..."))
         ut = self.cl_utente.text().strip() or "root"
         pw = self.cl_pw.text()
-        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="aggiungi",
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="aggiungi", insisti=True,
                                           ip=ip, utente=ut, password=pw),
                   self._cluster_aggiunta, self)
 
@@ -894,11 +997,11 @@ class Pagina(PaginaBase):
         self._cluster_leggi()
 
     def _cluster_avvia(self):
-        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="avvia"),
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="avvia", insisti=True),
                   lambda r: self._cluster_esito(r, True), self)
 
     def _cluster_ferma(self):
-        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="ferma"),
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="ferma", insisti=True),
                   lambda r: self._cluster_esito(r, False), self)
 
     def _cluster_esito(self, r, acceso):
@@ -947,9 +1050,26 @@ class Pagina(PaginaBase):
             QMessageBox.warning(self, "AI", L("le due password non coincidono",
                                               "the two passwords do not match"))
             return
-        r = self.demone.cmd(cmd="unsloth-password-reset", scelta=scelta)
+        # ⚠️ In sottofondo: fra il reset, i tentativi di rientro e la chiave
+        # nuova si arriva a piu' di un minuto, e una finestra che non ridisegna
+        # per un minuto la si chiude credendo che sia piantata.
+        self.b_reset.setEnabled(False)
+        self.b_reset.setText(L("Cambio la password…", "Changing the password…"))
+        in_sfondo(lambda: self.demone.cmd(cmd="unsloth-password-reset", scelta=scelta, insisti=True),
+                  lambda r: self._reset_fatto(r, scelta), self)
+
+    def _reset_fatto(self, r, scelta):
+        self.b_reset.setEnabled(True)
+        self.b_reset.setText(L("Reimposta la password", "Reset the password"))
+        if r.get("chiave"):
+            self.chiave = r["chiave"]
+            salva_chiave(self.chiave)
+            self._chiave_morta = False
         if not r.get("ok"):
-            QMessageBox.warning(self, "AI", r.get("errore") or L(
+            # ⚠️ `errore` lo mette la nostra funzione, `err` il demone quando e'
+            # lui a non partire (pkexec annullato, nessun agente polkit). Senza
+            # il secondo si vedeva un "non ci sono riuscito" muto.
+            QMessageBox.warning(self, "AI", r.get("errore") or r.get("err") or L(
                 "non ci sono riuscito", "could not do it"))
             return
         nuova = r.get("password") or ""
@@ -969,17 +1089,17 @@ class Pagina(PaginaBase):
                 "The password was changed, but NOT to the one you chose:"
                 "\n\n%s\n\nUse the one below.") % r["errore"])
         if nuova:
-            d = QMessageBox(self)
-            d.setWindowTitle(L("Password di Studio", "Studio password"))
-            d.setText(L("La password nuova e':\n\n%s\n\nUtente: unsloth",
+            m = QMessageBox(self)
+            m.setWindowTitle(L("Password di Studio", "Studio password"))
+            m.setText(L("La password nuova e':\n\n%s\n\nUtente: unsloth",
                         "The new password is:\n\n%s\n\nUser: unsloth") % nuova)
-            d.setInformativeText(L("Non la salviamo da nessuna parte.",
+            m.setInformativeText(L("Non la salviamo da nessuna parte.",
                                    "We do not store it anywhere."))
             # Un pulsante per copiarla: nessuno ricopia a mano trenta caratteri.
-            copia = d.addButton(L("Copia", "Copy"), QMessageBox.ButtonRole.ActionRole)
-            d.addButton(QMessageBox.StandardButton.Ok)
-            d.exec()
-            if d.clickedButton() is copia:
+            copia = m.addButton(L("Copia", "Copy"), QMessageBox.ButtonRole.ActionRole)
+            m.addButton(QMessageBox.StandardButton.Ok)
+            m.exec()
+            if m.clickedButton() is copia:
                 QApplication.clipboard().setText(nuova)
         else:
             QMessageBox.information(self, "AI", L(
