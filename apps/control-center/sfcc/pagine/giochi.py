@@ -194,11 +194,10 @@ class Scarica(QThread):
                     for m in tf.getmembers():
                         if m.name.startswith("/") or ".." in m.name.split("/"):
                             raise ValueError("archivio sospetto: %s" % m.name)
-                    try:
-                        tf.extractall(cartella, filter="data")
-                    except TypeError:
-                        # Python < 3.12: extraction filters do not exist yet
-                        tf.extractall(cartella)
+                    # filter="data" is the standard guard against a member
+                    # that walks out of the folder; it needs Python 3.12, and
+                    # every system we ship on has 3.13
+                    tf.extractall(cartella, filter="data")
             self.finito.emit(True, self.nome)
         except Exception as e:
             self.finito.emit(False, str(e))

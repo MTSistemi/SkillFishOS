@@ -14,7 +14,8 @@ import sys
 
 repo = sys.argv[1] if len(sys.argv) > 1 else "."
 p = os.path.join(repo, "apps", "dashboard", "skillfish-dashboardd")
-s = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    s = f.read()
 
 # ---- 1. the Proton folder name (py/path-injection)
 VECCHIO = '''    import re as _re

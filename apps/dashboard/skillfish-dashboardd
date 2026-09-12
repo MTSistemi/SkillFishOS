@@ -1110,10 +1110,17 @@ def _cc_proton_nome_interno(dove, n):
     import re as _re
     # il nome arriva anche dalla rete: qui si pretende che sia un nome di
     # cartella e nient'altro, cosi' nessun ".." puo' uscire da tools.d
-    if not _re.match(r"^[A-Za-z0-9._-]+$", n or "") or n in (".", ".."):
+    # il nome arriva anche dalla rete. Non basta guardarne la forma: si accetta
+    # solo se e' una delle cartelle che esistono davvero li' dentro, cosi' non
+    # c'e' percorso che possa uscire da tools.d
+    base = _cc_proton_dir(dove)
+    try:
+        if n not in os.listdir(base):
+            return n
+    except OSError:
         return n
     try:
-        with open(os.path.join(_cc_proton_dir(dove), n, "compatibilitytool.vdf"),
+        with open(os.path.join(base, n, "compatibilitytool.vdf"),
                   encoding="utf-8", errors="replace") as f:
             m = _re.search(r'"compat_tools"\s*\{\s*"([^"]+)"', f.read())
         if m:
