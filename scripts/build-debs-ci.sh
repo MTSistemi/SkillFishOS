@@ -550,6 +550,11 @@ put $P 0755 system/usr/local/bin/skillfish-hud-gpu usr/local/bin/skillfish-hud-g
 # la finestra per accenderla e il Remote Manager per SPEGNERLA. Il secondo e'
 # quello che conta: con il desktop fermo il Control Center non esiste piu'.
 put $P 0755 system/usr/local/bin/skillfish-ai-mode usr/local/bin/skillfish-ai-mode
+# Il cluster AI: elenco delle schede, telemetria via ssh, aggiunta di una
+# scheda nuova. ⚠️ Vuole sshpass, e SOLO per il primo collegamento: serve a
+# posare la chiave, dopo di che la password non si usa e non si salva.
+put $P 0755 system/usr/local/bin/skillfish-cluster usr/local/bin/skillfish-cluster
+put $P 0644 system/etc/systemd/system/skillfish-cluster.service etc/systemd/system/skillfish-cluster.service
 put $P 0755 system/usr/local/bin/skillfish-gpu-util.sh      usr/local/bin/skillfish-gpu-util.sh
 put $P 0755 system/usr/local/bin/skillfish-kde-firstrun.sh  usr/local/bin/skillfish-kde-firstrun.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillfish-freeze-check.sh
@@ -682,7 +687,7 @@ put $P 0644 system/usr/share/skillfish/coreunlock/LICENSE             usr/share/
 put $P 0644 system/usr/share/skillfish/coreunlock/main.c              usr/share/skillfish/coreunlock/main.c
 put $P 0644 system/usr/share/skillfish/coreunlock/Makefile            usr/share/skillfish/coreunlock/Makefile
 put $P 0755 system/usr/local/bin/skillfish-coreunlock-efi             usr/local/bin/skillfish-coreunlock-efi
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read."

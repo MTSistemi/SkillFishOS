@@ -23,21 +23,24 @@ import urllib.request
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QTextCursor
-from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+from PyQt6.QtWidgets import (QDialog, QDialogButtonBox, QApplication, QCheckBox, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
                              QPlainTextEdit, QProgressBar, QPushButton, QSlider, QSpinBox,
                              QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView,
                              QAbstractItemView)
 
+from ..cluster import Cluster
 from ..comune import L, leggi_testo, sh
 from ..demone import in_sfondo
 from ..finestra import PaginaBase
-from ..stile import Scheda, Stato, griglia_schede, intestazione
+from ..stile import Scheda, Stato, griglia_schede, intestazione, TESTO_3
 
 UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
 UNSLOTH_UPDATE = "/usr/local/bin/skillfish-unsloth-update"
 UNSLOTH_SVC = "skillfish-unsloth.service"
 PORTA = 8888
 UNSLOTH_URL = "http://127.0.0.1:%d" % PORTA
+# Lo scrive skillfish-cluster.service: leggibile da tutti, niente pkexec.
+CLUSTER_STATO = "/run/skillfish/cluster.json"
 CASA = os.path.expanduser("~")
 BIN_UTENTE = os.path.join(CASA, ".unsloth", "studio", "unsloth_studio", "bin", "unsloth")
 BOOTSTRAP = os.path.join(CASA, ".unsloth", "studio", "auth", ".bootstrap_password")
@@ -499,6 +502,63 @@ class Pagina(PaginaBase):
         r.addStretch(1)
         self.c_rete.aggiungi(r)
         self.c_rete.bottoni((L("Applica", "Apply"), self._rete, True))
+        # --- il cluster ------------------------------------------------
+        # ⚠️ IL CLUSTER NON FA ANDARE PIU' VELOCE. Misurato fra .32 e .40 il
+        # 12/09/2026: un modello che entra in una scheda sola perde il 35%
+        # quando lo si divide (35,7 contro 23,3 token al secondo), perche' ogni
+        # confine fra strati e' un viaggio sulla rete. Serve a far girare quello
+        # che da solo non gira: il 27B a Q6 su una scheda non si carica
+        # nemmeno, su due fa 7,6 token al secondo. Il testo della scheda lo
+        # dice, perche' e' la prima cosa che uno deve sapere prima di
+        # accenderlo.
+        self.c_cluster = Scheda(L("Cluster", "Cluster"), L(
+            "Piu' schede BC-250 che si dividono un modello troppo grande per una "
+            "sola. NON va piu' veloce: la rete costa. Serve per i modelli che "
+            "su una scheda non entrano.",
+            "Several BC-250 boards sharing a model too large for one. It is NOT "
+            "faster: the network costs. It is for models that do not fit on a "
+            "single board."))
+        self.cluster = Cluster()
+        self.c_cluster.aggiungi(self.cluster)
+
+        # il pannello per aggiungerne una, chiuso finche' non serve
+        self.w_agg = QWidget()
+        ag = QVBoxLayout(self.w_agg)
+        ag.setContentsMargins(0, 6, 0, 0)
+        ag.setSpacing(6)
+        r = QHBoxLayout()
+        self.cl_ip = QLineEdit()
+        self.cl_ip.setPlaceholderText(L("indirizzo, es. 192.168.1.40", "address, e.g. 192.168.1.40"))
+        r.addWidget(self.cl_ip, 2)
+        self.cl_utente = QLineEdit("root")
+        self.cl_utente.setPlaceholderText(L("utente", "user"))
+        r.addWidget(self.cl_utente, 1)
+        ag.addLayout(r)
+        r = QHBoxLayout()
+        self.cl_pw = QLineEdit()
+        self.cl_pw.setEchoMode(QLineEdit.EchoMode.Password)
+        self.cl_pw.setPlaceholderText(L("password (serve una volta sola)",
+                                        "password (needed once)"))
+        r.addWidget(self.cl_pw, 2)
+        b = QPushButton(L("Aggiungi", "Add"))
+        b.setObjectName("primario")
+        b.clicked.connect(self._cluster_aggiungi)
+        r.addWidget(b)
+        ag.addLayout(r)
+        self.cl_esito = QLabel("")
+        self.cl_esito.setWordWrap(True)
+        self.cl_esito.setStyleSheet("color: %s;" % TESTO_3)
+        ag.addWidget(self.cl_esito)
+        self.w_agg.hide()
+        self.c_cluster.aggiungi(self.w_agg)
+
+        self.c_cluster.bottoni(
+            (L("Aggiungi una scheda", "Add a board"),
+             lambda: self.w_agg.setVisible(not self.w_agg.isVisible()), False),
+            (L("Accendi i nodi", "Start the nodes"), self._cluster_avvia, False),
+            (L("Spegni i nodi", "Stop the nodes"), self._cluster_ferma, False))
+        v.addWidget(self.c_cluster)
+
         v.addWidget(griglia_schede(self.c_modelli, self.c_chat, self.c_rete, colonne=3))
 
         self.log = QPlainTextEdit()
@@ -578,6 +638,15 @@ class Pagina(PaginaBase):
             in_sfondo(self._leggi_studio, self._studio_letto, self)
         if on and self.barra.isVisible() and self._giro % 1 == 0:
             in_sfondo(self._leggi_download, self._download_letto, self)
+        # ⚠️ Il cluster si rilegge nel giro, non solo all'apertura. La prima
+        # stesura lo leggeva una volta sola nel costruttore: a quel punto
+        # l'helper non e' ancora autenticato (pkexec deve ancora chiedere la
+        # password), la risposta e' un errore e il grafico restava a zero
+        # schede per sempre.
+        # Ogni cinque giri: la telemetria passa da ssh e una scheda spenta
+        # costa otto secondi di attesa, che non si vogliono ogni secondo.
+        if self._giro % 5 == 0:
+            self._cluster_leggi()
         self._giro += 1
 
     def _accesso(self, on):
@@ -771,6 +840,75 @@ class Pagina(PaginaBase):
             return
         self.demone.cmd(cmd="ai-mode", azione="on")
 
+    def _cluster_leggi(self):
+        """La telemetria di tutte le schede, letta da /run.
+
+        ⚠️ NON si passa dall'helper. Chiedere la telemetria a root vuol dire
+        pkexec, cioe' una password: il riquadro restava vuoto finche' l'utente
+        non la digitava per qualche altro motivo, e diceva "0 schede" con due
+        schede accese e funzionanti (visto sulla .32 il 12/09/2026). La
+        raccolta la fa skillfish-cluster.service e lascia il risultato in un
+        file che leggono tutti.
+        """
+        try:
+            with open(CLUSTER_STATO, encoding="utf-8") as f:
+                self.cluster.aggiorna(json.load(f))
+        except (OSError, ValueError):
+            # Il servizio puo' essere spento: non e' un errore da mostrare,
+            # il riquadro dice gia' "nessuna scheda".
+            pass
+
+    def _cluster_aggiungi(self):
+        ip = self.cl_ip.text().strip()
+        if not ip:
+            return
+        self.cl_esito.setText(L("controllo...", "checking..."))
+        ut = self.cl_utente.text().strip() or "root"
+        pw = self.cl_pw.text()
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="aggiungi",
+                                          ip=ip, utente=ut, password=pw),
+                  self._cluster_aggiunta, self)
+
+    def _cluster_aggiunta(self, r):
+        # ⚠️ La password si cancella SUBITO dal campo: e' servita per mettere
+        # la chiave, da adesso in poi non serve piu' a niente e non deve
+        # restare a schermo.
+        self.cl_pw.clear()
+        passi = r.get("passi") or []
+        righe = []
+        for x in passi:
+            segno = "ok" if x.get("ok") else "no"
+            nota = (" - " + x["nota"]) if x.get("nota") else ""
+            righe.append("%s  %s%s" % (segno, x.get("passo", ""), nota))
+        if not r.get("ok"):
+            righe.append(r.get("errore", ""))
+        elif not r.get("ha_nodo"):
+            righe.append(L(
+                "La scheda e' nell'elenco, ma il nodo RPC non c'e' ancora: va "
+                "installato su quella macchina in /opt/skillfish-rpc.",
+                "The board is in the list, but the RPC node is not there yet: "
+                "it has to be installed on that machine in /opt/skillfish-rpc."))
+        self.cl_esito.setText("\n".join(x for x in righe if x))
+        if r.get("ok"):
+            self.cl_ip.clear()
+        self._cluster_leggi()
+
+    def _cluster_avvia(self):
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="avvia"),
+                  lambda r: self._cluster_esito(r, True), self)
+
+    def _cluster_ferma(self):
+        in_sfondo(lambda: self.demone.cmd(cmd="cluster", azione="ferma"),
+                  lambda r: self._cluster_esito(r, False), self)
+
+    def _cluster_esito(self, r, acceso):
+        quante = len(r.get("schede") or [])
+        self.cl_esito.setText(
+            (L("nodi accesi su %d schede", "nodes started on %d boards")
+             if acceso else
+             L("nodi spenti su %d schede", "nodes stopped on %d boards")) % quante)
+        self._cluster_leggi()
+
     def _reset_password(self):
         """Ruota la password di Studio e la mostra una volta sola.
 
@@ -778,23 +916,58 @@ class Pagina(PaginaBase):
         collegamenti di anteprima gia' condivisi restano validi (vanno
         rigenerati dalle impostazioni di Studio).
         """
-        if QMessageBox.question(
-                self, L("Password di Studio", "Studio password"),
-                L("Genero una password nuova per Unsloth Studio?\n\n"
-                  "Quella di adesso smette di funzionare subito, e chi sta "
-                  "usando Studio viene scollegato. La password nuova te la "
-                  "mostro una volta sola: scrivitela.",
-                  "Generate a new password for Unsloth Studio?\n\n"
-                  "The current one stops working right away and anyone using "
-                  "Studio is signed out. The new password is shown once: "
-                  "write it down.")) != QMessageBox.StandardButton.Yes:
+        # La password la sceglie chi usa la macchina. Lasciando vuoto si
+        # prende quella casuale che genera Studio, e la si copia.
+        d = QDialog(self)
+        d.setWindowTitle(L("Password di Studio", "Studio password"))
+        g = QVBoxLayout(d)
+        t = QLabel(L("Scegli la password nuova per Unsloth Studio (utente "
+                     "unsloth).\n\nQuella di adesso smette di funzionare "
+                     "subito e chi sta usando Studio viene scollegato.\n"
+                     "Lascia vuoto per farne generare una a caso.",
+                     "Choose the new password for Unsloth Studio (user "
+                     "unsloth).\n\nThe current one stops working right away "
+                     "and anyone using Studio is signed out.\n"
+                     "Leave empty to have a random one generated."))
+        t.setWordWrap(True)
+        g.addWidget(t)
+        p1 = QLineEdit(); p1.setEchoMode(QLineEdit.EchoMode.Password)
+        p1.setPlaceholderText(L("password nuova", "new password"))
+        p2 = QLineEdit(); p2.setEchoMode(QLineEdit.EchoMode.Password)
+        p2.setPlaceholderText(L("ripetila", "repeat it"))
+        g.addWidget(p1); g.addWidget(p2)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
+                              | QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+        g.addWidget(bb)
+        if d.exec() != QDialog.DialogCode.Accepted:
             return
-        r = self.demone.cmd(cmd="unsloth-password-reset")
+        scelta = p1.text()
+        if scelta and scelta != p2.text():
+            QMessageBox.warning(self, "AI", L("le due password non coincidono",
+                                              "the two passwords do not match"))
+            return
+        r = self.demone.cmd(cmd="unsloth-password-reset", scelta=scelta)
         if not r.get("ok"):
             QMessageBox.warning(self, "AI", r.get("errore") or L(
                 "non ci sono riuscito", "could not do it"))
             return
         nuova = r.get("password") or ""
+        if r.get("scelta"):
+            QMessageBox.information(self, "AI", L(
+                "Fatto. Entra in Studio con l'utente unsloth e la password che "
+                "hai scelto.",
+                "Done. Sign in to Studio with user unsloth and the password "
+                "you chose."))
+            return
+        if nuova and r.get("errore"):
+            # La casuale e' valida, la scelta no: si dice come stanno le cose
+            # invece di far credere che sia andata.
+            QMessageBox.warning(self, "AI", L(
+                "La password e' stata cambiata, ma NON in quella che hai "
+                "scelto:\n\n%s\n\nUsa quella qui sotto.",
+                "The password was changed, but NOT to the one you chose:"
+                "\n\n%s\n\nUse the one below.") % r["errore"])
         if nuova:
             d = QMessageBox(self)
             d.setWindowTitle(L("Password di Studio", "Studio password"))

@@ -1,0 +1,18 @@
+[Unit]
+Description=SkillFishOS - telemetria del cluster AI
+# ⚠️ Non e' il cluster: e' solo chi lo guarda. Il nodo RPC lo accende l'utente
+# quando gli serve, questo servizio si limita a scrivere in /run com'e' messo.
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/skillfish-cluster demone 5
+Restart=on-failure
+RestartSec=15
+Nice=10
+# Legge sysfs e apre connessioni ssh: non serve altro.
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -768,6 +768,36 @@ def unsloth_conf_set(lan, parallel):
     return unsloth_conf()
 
 
+def cluster(azione, ip="", utente="", password=""):
+    """Il cluster AI: elenco, telemetria, aggiunta, avvio dei nodi.
+
+    ⚠️ Passa da qui e non dalla finestra perche' serve root: la chiave ssh del
+    cluster sta in /etc/skillfish e l'elenco delle schede pure.
+    """
+    cmd = ["/usr/local/bin/skillfish-cluster"]
+    if azione in ("stato", "elenco", "avvia", "ferma"):
+        cmd.append(azione)
+    elif azione == "aggiungi":
+        if not ip or not utente:
+            return {"ok": False, "errore": "indirizzo o utente mancante"}
+        cmd += ["aggiungi", ip, utente, password]
+    elif azione == "togli":
+        cmd += ["togli", ip]
+    else:
+        return {"ok": False, "errore": "azione sconosciuta"}
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    try:
+        d = json.loads(r.stdout or "{}")
+    except ValueError:
+        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-300:]}
+    d.setdefault("ok", r.returncode == 0)
+    # ⚠️ La password non finisce nel registro: si scrive cosa e' stato fatto,
+    # non con cosa.
+    if azione in ("aggiungi", "togli", "avvia", "ferma"):
+        _log("cluster: %s %s" % (azione, ip or ""))
+    return d
+
+
 def ai_mode(azione):
     """Accende o spegne la modalita' AI: il desktop si ferma, il modello resta.
 
@@ -784,7 +814,7 @@ def ai_mode(azione):
         return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-300:]}
 
 
-def unsloth_password_reset():
+def unsloth_password_reset(scelta=""):
     """Ruota la password di Studio e restituisce quella nuova.
 
     ⚠️ Il binario sta nella HOME dell'utente che ha installato Studio, non in
@@ -808,15 +838,129 @@ def unsloth_password_reset():
     testo = (r.stdout or "") + (r.stderr or "")
     if r.returncode != 0:
         return {"ok": False, "errore": testo.strip()[-400:] or "reset-password non riuscito"}
-    # La password nuova e' l'unica cosa che somiglia a una password nell'uscita:
-    # si prende la riga piu' lunga senza spazi, che e' come il comando la stampa.
+    # ⚠️ La password sta DOPO i due punti, su una riga che di spazi ne ha:
+    #     New password for 'unsloth': PulpBalconyThrongDiabetic
+    # La prima stesura cercava la riga piu' lunga senza spazi e non trovava
+    # niente, quindi la password scelta dall'utente non veniva mai impostata.
     nuova = ""
     for riga in testo.splitlines():
-        riga = riga.strip().strip("'\"`")
-        if riga and " " not in riga and len(riga) >= 8 and len(riga) > len(nuova):
-            nuova = riga
-    _log("unsloth: password di Studio ruotata")
-    return {"ok": True, "password": nuova, "uscita": testo.strip()[-400:]}
+        riga = riga.strip()
+        if "password" in riga.lower() and ":" in riga:
+            cand = riga.split(":", 1)[1].strip().strip("'\"`")
+            if cand and " " not in cand and len(cand) >= 8:
+                nuova = cand
+                break
+    if not scelta:
+        _log("unsloth: password di Studio ruotata (casuale)")
+        return {"ok": True, "password": nuova, "scelta": False,
+                "uscita": testo.strip()[-400:]}
+
+    # ⚠️ Il secondo passo: da quella casuale a quella che l'utente ha scelto.
+    # `reset-password` non prende argomenti (verificato col suo --help), quindi
+    # e' l'unica strada. Se qui qualcosa va storto NON si fallisce: la casuale
+    # e' valida, e la finestra la mostra con il pulsante per copiarla. Meglio
+    # una password brutta che si puo' copiare che una scheda in cui non si
+    # entra piu'.
+    if not nuova:
+        return {"ok": True, "password": "", "scelta": False,
+                "errore": "password nuova non leggibile dall'uscita del comando",
+                "uscita": testo.strip()[-400:]}
+    err = _studio_cambia_password(nuova, scelta)
+    if err:
+        _log("unsloth: password ruotata, ma il cambio a quella scelta non e' riuscito")
+        return {"ok": True, "password": nuova, "scelta": False, "errore": err}
+    # ⚠️ IL RESET HA REVOCATO ANCHE LE CHIAVI API: lo dice l'uscita del comando.
+    # Senza rifarla, dopo questo smettono di funzionare insieme il Control
+    # Center, il Remote Manager e qualunque editor collegato - e nessuno
+    # collegherebbe la cosa al cambio di password.
+    chiave, err_k = _studio_nuova_chiave(scelta)
+    if chiave:
+        unsloth_key_set(chiave)
+    _log("unsloth: password impostata da chi usa la macchina, chiave API rifatta"
+         if chiave else "unsloth: password impostata, chiave API DA RIFARE: %s" % err_k)
+    return {"ok": True, "password": "", "scelta": True,
+            "chiave_rifatta": bool(chiave),
+            "errore_chiave": "" if chiave else err_k}
+
+
+def _studio_nuova_chiave(password):
+    """Una chiave API nuova dopo il reset. Restituisce (chiave, motivo)."""
+    import json as _json
+    import urllib.request
+    try:
+        def chiama(rotta, dati, token=""):
+            req = urllib.request.Request(
+                "http://127.0.0.1:8888" + rotta,
+                data=_json.dumps(dati).encode("utf-8"),
+                headers={"Content-Type": "application/json",
+                         **({"Authorization": "Bearer " + token} if token else {})})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return _json.loads(r.read().decode("utf-8"))
+
+        r = chiama("/api/auth/login", {"username": "unsloth", "password": password})
+        tok = r.get("access_token")
+        if not tok:
+            return "", "non entro in Studio con la password nuova"
+        r2 = chiama("/api/auth/api-keys", {"name": "SkillFishOS"}, tok)
+        k = r2.get("key") or r2.get("api_key") or ""
+        return (k, "") if k else ("", "Studio non ha restituito una chiave")
+    except Exception as e:
+        return "", str(e)
+
+
+def _studio_cambia_password(vecchia, nuova):
+    """Da quella casuale a quella scelta, passando dall'API di Studio.
+
+    Restituisce "" se e' andata, altrimenti il motivo. ⚠️ Studio ascolta su
+    127.0.0.1 salvo che l'utente non l'abbia aperto: si passa sempre da li',
+    anche quando e' aperto in rete, perche' e' l'unico indirizzo che c'e'
+    sempre.
+    """
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    def chiama(rotta, dati, token=""):
+        req = urllib.request.Request(
+            "http://127.0.0.1:8888" + rotta,
+            data=_json.dumps(dati).encode("utf-8"),
+            headers={"Content-Type": "application/json",
+                     **({"Authorization": "Bearer " + token} if token else {})})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return _json.loads(r.read().decode("utf-8"))
+
+    # ⚠️ Subito dopo un reset Studio puo' rifiutare anche la password giusta:
+    # lo dice il comando stesso, "repeated failed logins can hold the rate
+    # limit shut for up to a minute". Si riprova per un minuto invece di
+    # dichiarare un guasto che non c'e'.
+    import time
+    tok = ""
+    ultimo = ""
+    for _ in range(12):
+        try:
+            r = chiama("/api/auth/login", {"username": "unsloth", "password": vecchia})
+            tok = r.get("access_token") or ""
+            if tok:
+                break
+            ultimo = "la password appena generata non e' stata accettata"
+        except Exception as e:
+            ultimo = "Studio non risponde: %s" % e
+        time.sleep(5)
+    if not tok:
+        return ultimo or "non sono riuscito a entrare in Studio"
+    try:
+        chiama("/api/auth/change-password",
+               {"current_password": vecchia, "new_password": nuova}, tok)
+    except urllib.error.HTTPError as e:
+        corpo = ""
+        try:
+            corpo = e.read().decode("utf-8", "replace")[:200]
+        except Exception:
+            pass
+        return "Studio ha rifiutato la password scelta: %s %s" % (e.code, corpo)
+    except Exception as e:
+        return str(e)
+    return ""
 
 
 def _unsloth_utente():
@@ -1119,10 +1263,13 @@ def handle(req):
         return unsloth_conf()
     if c == "unsloth-conf-set":
         return unsloth_conf_set(bool(req.get("lan")), req.get("parallel", 4))
+    if c == "cluster":
+        return cluster(req.get("azione", "stato"), req.get("ip", ""),
+                       req.get("utente", ""), req.get("password", ""))
     if c == "ai-mode":
         return ai_mode(req.get("azione", "stato"))
     if c == "unsloth-password-reset":
-        return unsloth_password_reset()
+        return unsloth_password_reset(req.get("scelta", ""))
     if c == "unsloth-key-set":
         return unsloth_key_set(req.get("key", ""))
     if c == "riavvia":
