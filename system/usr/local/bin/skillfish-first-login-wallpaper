@@ -49,7 +49,27 @@ LOG="${XDG_CACHE_HOME:-$HOME/.cache}/skillfish-wallpaper.log"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
 nota() { echo "$(date -Is) $*" >> "$LOG" 2>/dev/null || true; }
 
-[ -f "$STAMP" ] && exit 0
+QD=""
+for c in qdbus6 qdbus-qt6 qdbus; do
+    command -v "$c" >/dev/null 2>&1 && { QD="$c"; break; }
+done
+
+
+# ⚠️ IL SEGNAPOSTO NON BASTA PIU'.
+# Prima bastava, e infatti sulla VM di build ha tenuto in piedi una settimana di
+# sfondo sbagliato: c'era il segnaposto, quindi lo script usciva subito, quindi
+# nessuno rimetteva a posto niente. Adesso il segnaposto vale solo se anche la
+# configurazione e' davvero a posto; se non lo e' si riprova, e chi si e'
+# scelto un altro sfondo di suo non viene disturbato perche' quella e'
+# un'immagine che non contiene SkillFishOS e il controllo la lascia stare.
+if [ -f "$STAMP" ]; then
+    messo && exit 0
+    if grep -q "Image=.*SkillFishOS" "$CFG" 2>/dev/null; then
+        nota "segnaposto presente ma la configurazione e' in presentazione: riparo"
+    else
+        exit 0
+    fi
+fi
 [ -d "$PKG" ] || { nota "il pacchetto $PKG non c'e'"; exit 0; }
 command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || {
     nota "plasma-apply-wallpaperimage non c'e'"; exit 0; }
@@ -58,11 +78,6 @@ command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || {
 # ⚠️ Il binario si chiama qdbus6 su trixie/sid: cercarne solo "qdbus" vuol dire
 # non trovarlo e ripiegare sul controllo del processo, che dice "esiste" molto
 # prima che sia pronto.
-QD=""
-for c in qdbus6 qdbus-qt6 qdbus; do
-    command -v "$c" >/dev/null 2>&1 && { QD="$c"; break; }
-done
-
 i=0
 pronto=0
 while [ "$i" -lt 90 ]; do
@@ -79,19 +94,47 @@ done
 # --- 2. applicare, e verificare ---------------------------------------------
 # Si guarda dentro la sezione giusta: un "SkillFishOS" trovato altrove nel file
 # (il tema, le icone, il nome di un pannello) non c'entra niente con lo sfondo.
+# ⚠️ NON BASTA CHE Image= SIA LA NOSTRA.
+# Con DynamicMode=2 (presentazione) il plugin ignora quell'immagine e pesca a
+# rotazione da SlidePaths, dove c'e' anche lo sfondo di Debian. Sulla VM di
+# build e' rimasto cosi' per una settimana: il file diceva SkillFishOS, lo
+# schermo mostrava Debian, e lo script aveva scritto il segnaposto.
 messo() {
     [ -f "$CFG" ] || return 1
     awk '
         /^\[Containments\]\[[0-9]+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$/ { dentro = 1; next }
-        /^\[/                                                                     { dentro = 0 }
-        dentro && /^Image=/ && /SkillFishOS/                                      { ok = 1 }
-        END { exit ok ? 0 : 1 }
+        /^\[/                                                          { dentro = 0 }
+        dentro && /^Image=/ && /SkillFishOS/                            { img = 1 }
+        dentro && /^DynamicMode=/ && !/^DynamicMode=0$/                 { modo = 1 }
+        dentro && /^SlidePaths=./                                       { slide = 1 }
+        END { exit (img && !modo && !slide) ? 0 : 1 }
     ' "$CFG"
+}
+
+# La modalita' immagine fissa, scritta con lo scripting di Plasma: e' l'unico
+# modo di toccare la configurazione mentre la sessione gira senza che Plasma la
+# riscriva sopra un attimo dopo.
+# ⚠️ Il binario si chiama qdbus6 su trixie/sid.
+ferma_la_presentazione() {
+    [ -n "$QD" ] || return 1
+    "$QD" org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript '
+var ds = desktops();
+for (var i = 0; i < ds.length; i++) {
+    ds[i].wallpaperPlugin = "org.kde.image";
+    ds[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+    ds[i].writeConfig("Image", "file:///usr/share/wallpapers/SkillFishOS/");
+    ds[i].writeConfig("DynamicMode", 0);
+    ds[i].writeConfig("SlidePaths", "");
+}
+' >/dev/null 2>&1
 }
 
 i=0
 while [ "$i" -lt 30 ]; do
     plasma-apply-wallpaperimage "$PKG" >/dev/null 2>&1
+    # ⚠️ plasma-apply-wallpaperimage scrive Image= e NIENTE ALTRO: se la
+    # configurazione e' in presentazione, quell'immagine non si vede.
+    ferma_la_presentazione
     sleep 2
     if messo; then
         mkdir -p "$(dirname "$STAMP")" 2>/dev/null || true

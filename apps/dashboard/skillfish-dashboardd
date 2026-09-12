@@ -2085,8 +2085,34 @@ def _unsloth_conf_read():
     return out
 
 
+def _ip_locale():
+    """L'indirizzo della scheda sulla rete di casa.
+
+    ⚠️ Si apre un socket UDP verso un indirizzo qualsiasi e si guarda da quale
+    interfaccia sarebbe uscito: non si manda niente e non serve che quel
+    destinatario esista. Leggere `hostname -I` darebbe anche gli indirizzi di
+    docker e di ZeroTier, e non si saprebbe quale scegliere.
+    """
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.0.2.1", 9))          # TEST-NET-1: non esiste apposta
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
 def ai_conf():
-    return {"ok": True, **_unsloth_conf_read()}
+    conf = _unsloth_conf_read()
+    # L'indirizzo da incollare in un editor o in opencode. Lo diciamo noi
+    # perche' il browser vede l'indirizzo da cui ha aperto la pagina, che puo'
+    # essere un nome, ZeroTier o un inoltro di porta: quello che serve e'
+    # l'indirizzo della SCHEDA sulla rete di casa.
+    conf["indirizzo"] = "http://%s:%d" % (
+        _ip_locale() if conf.get("lan") else "127.0.0.1", conf.get("porta", 8888))
+    return {"ok": True, **conf}
 
 
 def ai_conf_set(d):

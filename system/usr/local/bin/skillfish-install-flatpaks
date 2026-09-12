@@ -1,0 +1,190 @@
+#!/bin/bash
+# Installa le applicazioni che l'utente ha scelto al primo avvio, scrivendo
+# lo stato dove una finestra puo' leggerlo.
+#
+# PERCHE' NON STANNO DENTRO L'IMMAGINE
+# Sono circa sei gigabyte: Steam, Heroic, gli emulatori, un browser, i runtime
+# freedesktop. Le vecchie immagini li avevano solo perche' eggs clonava la
+# scheda intera, ed e' il motivo per cui pesavano 4,7 GB contro i 3,0 di adesso.
+# Metterli dentro vuol dire un'immagine che uno scarica in mezz'ora in piu' e
+# che invecchia al primo aggiornamento di Steam.
+#
+# ⚠️ E NON SI DECIDE PIU' NOI QUALI. Fino alla 26.06.5 l'elenco era scritto qui
+# dentro e tutti si ritrovavano Chrome, volenti o nolenti. Adesso l'elenco lo
+# scrive la finestra di primo avvio in primo-avvio-scelte.txt.
+#
+# ⚠️ E SE L'UTENTE RIAVVIA A META'?
+# Non si perde niente: il segnaposto si scrive SOLO quando sono andate a buon
+# fine tutte, quindi al riavvio il servizio riparte, e flatpak riprende gli
+# scaricamenti da dove erano arrivati (ostree tiene i pezzi gia' presi).
+set -u
+
+SEGNA=/var/lib/skillfish/.flatpaks-installed
+STATO=/var/lib/skillfish/flatpaks-stato.json
+SCELTE=/var/lib/skillfish/primo-avvio-scelte.txt
+CATALOGO=/usr/share/skillfish/primo-avvio-catalogo.json
+REPO=/var/lib/flatpak/repo
+
+log() { echo "[skillfish-flatpaks] $*" | tee -a /var/log/skillfish-flatpaks.log; }
+
+if grep -qw 'boot=live' /proc/cmdline 2>/dev/null; then
+    log "sessione live: non scarico niente, la memoria serve per provare il sistema"
+    exit 0
+fi
+
+# ⚠️ Senza scelte NON si installa niente. Prima qui c'era una lista fissa e il
+# servizio partiva da solo al primo avvio: adesso aspetta che qualcuno abbia
+# detto cosa vuole. Se il file non c'e', il servizio esce e la finestra di
+# primo avvio fara' la domanda al prossimo accesso.
+if [ ! -s "$SCELTE" ]; then
+    log "nessuna scelta ancora: aspetto che l'utente dica cosa vuole"
+    exit 0
+fi
+
+LIBERI=$(df -BM --output=avail /var/lib/flatpak 2>/dev/null | tail -1 | tr -dc '0-9')
+if [ -n "$LIBERI" ] && [ "$LIBERI" -lt 3000 ]; then
+    log "solo ${LIBERI} MB liberi: ne servono almeno 3000, riprovo al prossimo avvio"
+    exit 0
+fi
+
+# --- che nome ha, questa cosa -----------------------------------------------
+# Nel catalogo, accanto a ogni id, c'e' il nome da mostrare. Serve alla
+# finestra: "com.heroicgameslauncher.hgl" non lo legge nessuno.
+nome_di() {
+    python3 - "$CATALOGO" "$1" <<'PY' 2>/dev/null || echo "$1"
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print(sys.argv[2]); raise SystemExit
+for c in d.get("categorie", []):
+    for a in c.get("app", []):
+        if a.get("id") == sys.argv[2]:
+            print(a.get("nome", sys.argv[2])); raise SystemExit
+print(sys.argv[2])
+PY
+}
+
+mapfile -t IDS < "$SCELTE"
+NOMI=()
+for id in "${IDS[@]}"; do NOMI+=("$(nome_di "$id")"); done
+log "da installare: ${IDS[*]}"
+
+mkdir -p "$(dirname "$STATO")"
+declare -A ERRORI=()
+
+# --- il file di stato -------------------------------------------------------
+# Lo scrive questo script e lo legge la finestra. Niente D-Bus, niente socket:
+# un file che si puo' guardare con cat quando qualcosa non torna.
+#
+# ⚠️ Si scrive di fianco e poi si sposta: la finestra lo rilegge ogni secondo e
+# senza questo prenderebbe un JSON scritto a meta'.
+scrivi_stato() { # scrivi_stato <indice-corrente> <percentuale> <fase>
+    local corrente="$1" perc="$2" fase="$3" i st p
+    {
+        printf '{\n  "fase": "%s",\n  "corrente": %d,\n  "app": [\n' "$fase" "$corrente"
+        for i in "${!IDS[@]}"; do
+            if [ -n "${ERRORI[$i]:-}" ]; then st="errore"; p=0
+            elif [ "$i" -lt "$corrente" ]; then st="fatta"; p=100
+            elif [ "$i" -eq "$corrente" ]; then st="corso"; p="$perc"
+            else st="attesa"; p=0; fi
+            printf '    {"nome": "%s", "id": "%s", "stato": "%s", "perc": %d}' \
+                   "${NOMI[$i]}" "${IDS[$i]}" "$st" "$p"
+            [ "$i" -lt $((${#IDS[@]} - 1)) ] && printf ',\n' || printf '\n'
+        done
+        printf '  ]\n}\n'
+    } > "$STATO.nuovo"
+    mv -f "$STATO.nuovo" "$STATO"
+}
+
+# --- quanto e' arrivato -----------------------------------------------------
+# ⚠️ NON si legge la percentuale dall'output di flatpak: la scrive con i
+# ritorni a capo del terminale e cambia da una versione all'altra. Si guarda
+# invece quanto e' cresciuto il repository ostree rispetto a quanto pesa la
+# roba da scaricare, che e' un numero che flatpak stesso ci dice.
+kb_repo() { du -sk "$REPO" 2>/dev/null | cut -f1; }
+
+peso_atteso() { # peso_atteso <id> -> KB, 0 se non si sa
+    local r
+    r=$(flatpak remote-info --system --cached flathub "$1" 2>/dev/null \
+        || flatpak remote-info --system flathub "$1" 2>/dev/null)
+    printf '%s' "$r" | awk '
+        /Download:/ {
+            v = $2 + 0
+            u = $3
+            if (u ~ /^G/) v *= 1024 * 1024
+            else if (u ~ /^M/) v *= 1024
+            else if (u ~ /^k/ || u ~ /^K/) v *= 1
+            else v /= 1024
+            printf "%d", v
+            trovato = 1
+            exit
+        }
+        END { if (!trovato) printf "0" }'
+}
+
+scrivi_stato 0 0 "inizio"
+
+for i in "${!IDS[@]}"; do
+    id="${IDS[$i]}"; nome="${NOMI[$i]}"
+
+    if flatpak info --system "$id" >/dev/null 2>&1; then
+        log "$nome c'e' gia'."
+        scrivi_stato $((i + 1)) 0 "scarico"
+        continue
+    fi
+
+    log "installo $nome ($id) ..."
+    ATTESO=$(peso_atteso "$id")
+    PARTENZA=$(kb_repo)
+    scrivi_stato "$i" 0 "scarico"
+
+    flatpak install -y --system --noninteractive flathub "$id" \
+        >> /var/log/skillfish-flatpaks.log 2>&1 &
+    PID=$!
+
+    while kill -0 "$PID" 2>/dev/null; do
+        if [ "${ATTESO:-0}" -gt 0 ]; then
+            ORA=$(kb_repo)
+            P=$(( (ORA - PARTENZA) * 100 / ATTESO ))
+            [ "$P" -gt 99 ] && P=99
+            [ "$P" -lt 0 ] && P=0
+        else
+            P=-1   # non si sa: la finestra mostra una barra indeterminata
+        fi
+        scrivi_stato "$i" "$P" "scarico"
+        sleep 2
+    done
+
+    if wait "$PID"; then
+        log "$nome installato."
+    else
+        log "ATTENZIONE: $nome non si e' installato, ci riprovo al prossimo avvio."
+        ERRORI[$i]=1
+    fi
+    scrivi_stato $((i + 1)) 0 "scarico"
+done
+
+# --- i permessi e la cartella dei giochi ------------------------------------
+# Si fa adesso, non prima: un override di flatpak si scrive solo per una
+# applicazione che esiste.
+if [ -x /usr/local/bin/skillfish-giochi-cartella ]; then
+    /usr/local/bin/skillfish-giochi-cartella >> /var/log/skillfish-flatpaks.log 2>&1 \
+        || log "ATTENZIONE: la cartella dei giochi non si e' configurata"
+fi
+
+# Il segnaposto lo scrive lo script, non systemd con un ExecStartPost.
+# Prima veniva scritto SEMPRE, anche quando tutti gli scaricamenti erano
+# falliti: il registro prometteva "riprovo al prossimo avvio" e invece il
+# servizio non ripartiva mai piu'. Adesso si segna fatto solo se e' vero.
+MANCATE=${#ERRORI[@]}
+if [ "$MANCATE" -eq 0 ]; then
+    mkdir -p "$(dirname "$SEGNA")"
+    touch "$SEGNA"
+    scrivi_stato "${#IDS[@]}" 100 "finito"
+    log "tutte installate."
+else
+    scrivi_stato "${#IDS[@]}" 100 "incompleto"
+    log "$MANCATE non installate: non segno il lavoro come concluso."
+fi
+exit 0

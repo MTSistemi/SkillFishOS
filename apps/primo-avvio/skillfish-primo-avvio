@@ -1,0 +1,483 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""SkillFishOS - what to install, and what the machine is doing about it.
+
+Two pages. The first asks what the user wants; the second shows it being
+downloaded, one bar per application.
+
+WHY THIS WINDOW EXISTS
+A freshly installed system has no Steam, no browser and no emulator: they are
+Flatpaks, about six gigabytes, and they are not in the image. Until 12/09/2026
+a fixed list of them was downloaded in complete silence at first boot, so the
+first impression of SkillFishOS was a desktop with nothing in the menu and no
+way to tell whether anything was happening. Somebody would reasonably conclude
+the install had failed.
+
+And the list was fixed: everybody got Chrome whether they wanted it or not. One
+user said so out loud, and he was right.
+
+⚠️ THIS WINDOW DOES NOT INSTALL ANYTHING. The work is done by
+skillfish-firstboot-flatpaks.service, as root. This only writes down what was
+chosen (through the helper, via pkexec) and then reads the status file the
+service writes. A window that a user can close must never be the thing that
+decides whether the system finishes setting itself up.
+"""
+import json
+import os
+import subprocess
+import sys
+
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QIcon, QPixmap
+from PyQt6.QtWidgets import (QApplication, QCheckBox, QFrame, QHBoxLayout,
+                             QLabel, QMessageBox, QProgressBar, QPushButton,
+                             QScrollArea, QSizePolicy, QStackedWidget,
+                             QVBoxLayout, QWidget)
+
+sys.path.insert(0, "/usr/share/skillfish")
+try:
+    from i18n import L
+except Exception:                                        # pragma: no cover
+    def L(it, en):
+        return it if (os.environ.get("LANG", "") or "").startswith("it") else en
+
+CATALOGO = "/usr/share/skillfish/primo-avvio-catalogo.json"
+STATO = "/var/lib/skillfish/flatpaks-stato.json"
+SEGNA = "/var/lib/skillfish/.flatpaks-installed"
+SCELTE = "/var/lib/skillfish/primo-avvio-scelte.txt"
+HELPER = "/usr/local/bin/skillfish-primo-avvio-helper"
+ICONA = "/usr/share/icons/hicolor/256x256/apps/skillfishos.png"
+ZITTO = os.path.expanduser("~/.config/skillfish-primo-avvio-zitto")
+
+IT = (os.environ.get("LANG", "") or "").startswith("it")
+
+FONDO = "#15110d"
+SCHEDA = "#1f1913"
+BORDO = "#33291f"
+TESTO = "#ece0c8"
+TESTO_2 = "#b9a27a"
+TESTO_3 = "#7f6f55"
+OTTONE = "#d8a849"
+VERDE = "#8fbf6a"
+ROSSO = "#d85a5a"
+
+QSS = """
+QWidget { background: %(fondo)s; color: %(testo)s; font-size: 13px; }
+QScrollArea, QScrollArea > QWidget > QWidget { background: %(fondo)s; }
+QLabel#titolo { font-size: 21px; font-weight: bold; color: %(ottone)s; }
+QLabel#sotto  { color: %(testo2)s; }
+QLabel#cat    { font-size: 15px; font-weight: bold; color: %(ottone)s; }
+QLabel#catsub { color: %(testo3)s; }
+QLabel#desc   { color: %(testo3)s; }
+QLabel#nome   { font-size: 14px; }
+QLabel#stato  { color: %(testo2)s; }
+QFrame#riga   { background: %(scheda)s; border: 1px solid %(bordo)s; border-radius: 8px; }
+QProgressBar {
+    background: #0e0b08; border: 1px solid %(bordo)s; border-radius: 4px;
+    height: 16px; text-align: center; color: %(testo2)s; font-size: 11px;
+}
+QProgressBar::chunk { background: %(ottone)s; border-radius: 3px; }
+QPushButton {
+    background: %(scheda)s; border: 1px solid %(bordo)s; border-radius: 6px;
+    padding: 8px 20px;
+}
+QPushButton:hover { background: #261f18; }
+QPushButton#primario {
+    background: %(ottone)s; color: #1a130a; font-weight: bold;
+    border: 1px solid %(ottone)s;
+}
+QPushButton#primario:hover { background: #e8bb63; }
+QCheckBox { color: %(testo)s; font-size: 14px; spacing: 8px; }
+QCheckBox::indicator { width: 17px; height: 17px; border-radius: 4px;
+    border: 1px solid %(bordo)s; background: #0e0b08; }
+/* ⚠️ Il segno di spunta ci vuole: con la sola casella piena di ottone si
+   capisce, ma solo dopo averci pensato su, e questa e' la prima finestra che
+   vede chi ha appena installato. L'icona e' quella del nostro tema; se il tema
+   non ci fosse resta comunque la casella colorata. */
+QCheckBox::indicator:checked {
+    background: %(ottone)s; border: 1px solid %(ottone)s;
+    image: url(/usr/share/icons/SkillFishSteampunk/scalable/actions/dialog-ok.svg);
+}
+QScrollBar:vertical { background: %(fondo)s; width: 10px; }
+QScrollBar::handle:vertical { background: %(bordo)s; border-radius: 5px; min-height: 30px; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; }
+""" % {"fondo": FONDO, "scheda": SCHEDA, "bordo": BORDO, "testo": TESTO,
+       "testo2": TESTO_2, "testo3": TESTO_3, "ottone": OTTONE}
+
+
+def catalogo():
+    """L'elenco da proporre. Se manca il file non si inventa niente."""
+    try:
+        with open(CATALOGO, encoding="utf-8") as f:
+            return json.load(f).get("categorie", [])
+    except (OSError, ValueError):
+        return []
+
+
+# ---------------------------------------------------------------- la scelta --
+class VoceApp(QFrame):
+    """Una applicazione da spuntare, col suo perche'."""
+
+    def __init__(self, app):
+        super().__init__()
+        self.setObjectName("riga")
+        self.id = app["id"]
+        g = QVBoxLayout(self)
+        g.setContentsMargins(12, 9, 12, 9)
+        g.setSpacing(2)
+        self.casella = QCheckBox(app.get("nome", self.id))
+        self.casella.setChecked(bool(app.get("scelto")))
+        g.addWidget(self.casella)
+        d = app.get("desc_it" if IT else "desc_en", "")
+        if d:
+            e = QLabel(d)
+            e.setObjectName("desc")
+            e.setWordWrap(True)
+            e.setContentsMargins(25, 0, 0, 0)
+            g.addWidget(e)
+
+    def scelta(self):
+        return self.id if self.casella.isChecked() else None
+
+
+class PaginaScelta(QWidget):
+    def __init__(self, avanti):
+        super().__init__()
+        self.voci = []
+        v = QVBoxLayout(self)
+        v.setContentsMargins(24, 20, 24, 18)
+        v.setSpacing(12)
+
+        testa = QHBoxLayout()
+        if os.path.exists(ICONA):
+            p = QLabel()
+            p.setPixmap(QPixmap(ICONA).scaled(
+                72, 72, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation))
+            testa.addWidget(p)
+        col = QVBoxLayout()
+        t = QLabel(L("Cosa vuoi installare?", "What would you like installed?"))
+        t.setObjectName("titolo")
+        s = QLabel(L(
+            "Queste applicazioni non stanno dentro l'immagine: le scarichiamo "
+            "adesso, e scegli tu quali. Puoi aggiungerne altre quando vuoi "
+            "dall'Hub di SkillFishOS.",
+            "These applications are not inside the image: we download them now, "
+            "and you pick which ones. You can always add more later from the "
+            "SkillFishOS Hub."))
+        s.setObjectName("sotto")
+        s.setWordWrap(True)
+        col.addWidget(t)
+        col.addWidget(s)
+        testa.addLayout(col, 1)
+        v.addLayout(testa)
+
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        area.setFrameShape(QFrame.Shape.NoFrame)
+        dentro = QWidget()
+        dv = QVBoxLayout(dentro)
+        dv.setContentsMargins(0, 0, 8, 0)
+        dv.setSpacing(6)
+
+        for cat in catalogo():
+            c = QLabel(cat.get("nome_it" if IT else "nome_en", cat.get("id", "")))
+            c.setObjectName("cat")
+            dv.addSpacing(8)
+            dv.addWidget(c)
+            d = cat.get("descrizione_it" if IT else "descrizione_en", "")
+            if d:
+                e = QLabel(d)
+                e.setObjectName("catsub")
+                e.setWordWrap(True)
+                dv.addWidget(e)
+            for app in cat.get("app", []):
+                vo = VoceApp(app)
+                self.voci.append(vo)
+                dv.addWidget(vo)
+
+        dv.addStretch(1)
+        area.setWidget(dentro)
+        v.addWidget(area, 1)
+
+        self.nota = QLabel("")
+        self.nota.setObjectName("sotto")
+        self.nota.setWordWrap(True)
+        v.addWidget(self.nota)
+
+        basso = QHBoxLayout()
+        niente = QPushButton(L("Non installare niente", "Install nothing"))
+        niente.clicked.connect(lambda: avanti([]))
+        basso.addWidget(niente)
+        basso.addStretch(1)
+        self.installa = QPushButton(L("Installa", "Install"))
+        self.installa.setObjectName("primario")
+        self.installa.clicked.connect(lambda: avanti(self.scelte()))
+        basso.addWidget(self.installa)
+        v.addLayout(basso)
+
+        # ⚠️ Senza rete non si scarica niente, ed e' meglio dirlo adesso che
+        # dopo cinque minuti di barre ferme.
+        if not self.c_e_rete():
+            self.nota.setText(L(
+                "Non vedo la rete. Puoi scegliere lo stesso: quello che hai "
+                "spuntato si scarica da solo appena il computer sara' "
+                "collegato.",
+                "No network here. Choose anyway: what you ticked downloads by "
+                "itself as soon as the machine is online."))
+
+    @staticmethod
+    def c_e_rete():
+        try:
+            with open("/proc/net/route", encoding="utf-8") as f:
+                for r in f.readlines()[1:]:
+                    c = r.split()
+                    if len(c) > 1 and c[1] == "00000000":
+                        return True
+        except OSError:
+            pass
+        return False
+
+    def scelte(self):
+        return [s for s in (v.scelta() for v in self.voci) if s]
+
+
+# ----------------------------------------------------------- l'avanzamento --
+class Riga(QWidget):
+    """Una applicazione in corso: nome, barra, stato."""
+
+    def __init__(self, nome):
+        super().__init__()
+        g = QVBoxLayout(self)
+        g.setContentsMargins(0, 6, 0, 6)
+        g.setSpacing(4)
+        alto = QHBoxLayout()
+        self.nome = QLabel(nome)
+        self.nome.setObjectName("nome")
+        self.stato = QLabel("")
+        self.stato.setObjectName("stato")
+        self.stato.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        alto.addWidget(self.nome)
+        alto.addWidget(self.stato)
+        g.addLayout(alto)
+        self.barra = QProgressBar()
+        self.barra.setRange(0, 100)
+        self.barra.setValue(0)
+        self.barra.setTextVisible(False)
+        g.addWidget(self.barra)
+
+    def aggiorna(self, stato, perc):
+        if stato == "fatta":
+            self.barra.setRange(0, 100)
+            self.barra.setValue(100)
+            self.stato.setText(L("fatto", "done"))
+            self.stato.setStyleSheet("color: %s;" % VERDE)
+        elif stato == "errore":
+            self.barra.setRange(0, 100)
+            self.barra.setValue(0)
+            self.stato.setText(L("non riuscito, riprova al riavvio",
+                                 "failed, will retry on next boot"))
+            self.stato.setStyleSheet("color: %s;" % ROSSO)
+        elif stato == "corso":
+            if perc < 0:
+                # ⚠️ Barra indeterminata, non una percentuale inventata: quando
+                # Flathub non dice quanto pesa il pacchetto, un numero falso e'
+                # peggio di nessun numero.
+                self.barra.setRange(0, 0)
+                self.stato.setText(L("scarico...", "downloading..."))
+            else:
+                self.barra.setRange(0, 100)
+                self.barra.setValue(perc)
+                self.stato.setText(L("scarico... %d%%", "downloading... %d%%") % perc)
+            self.stato.setStyleSheet("color: %s;" % OTTONE)
+        else:
+            self.barra.setRange(0, 100)
+            self.barra.setValue(0)
+            self.stato.setText(L("in attesa", "waiting"))
+            self.stato.setStyleSheet("color: %s;" % TESTO_2)
+
+
+class PaginaAvanzamento(QWidget):
+    def __init__(self, chiudi):
+        super().__init__()
+        self.righe = {}
+        v = QVBoxLayout(self)
+        v.setContentsMargins(24, 20, 24, 18)
+        v.setSpacing(10)
+
+        testa = QHBoxLayout()
+        if os.path.exists(ICONA):
+            p = QLabel()
+            p.setPixmap(QPixmap(ICONA).scaled(
+                64, 64, Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation))
+            testa.addWidget(p)
+        col = QVBoxLayout()
+        t = QLabel(L("Sto preparando il sistema", "Setting up your system"))
+        t.setObjectName("titolo")
+        s = QLabel(L(
+            "Puoi usare il computer intanto: quando finisce le trovi nel menu.",
+            "You can use the computer meanwhile: they show up in the menu when "
+            "done."))
+        s.setObjectName("sotto")
+        s.setWordWrap(True)
+        col.addWidget(t)
+        col.addWidget(s)
+        testa.addLayout(col, 1)
+        v.addLayout(testa)
+        v.addSpacing(4)
+
+        self.contenitore = QVBoxLayout()
+        self.contenitore.setSpacing(2)
+        v.addLayout(self.contenitore)
+        v.addStretch(1)
+
+        self.nota = QLabel("")
+        self.nota.setObjectName("sotto")
+        self.nota.setWordWrap(True)
+        v.addWidget(self.nota)
+
+        basso = QHBoxLayout()
+        self.zitto = QCheckBox(L("Non mostrare piu' questa finestra",
+                                 "Do not show this window again"))
+        basso.addWidget(self.zitto)
+        basso.addStretch(1)
+        b = QPushButton(L("Chiudi", "Close"))
+        b.clicked.connect(chiudi)
+        basso.addWidget(b)
+        v.addLayout(basso)
+
+        self.t = QTimer(self)
+        self.t.timeout.connect(self.leggi)
+
+    def parti(self):
+        self.leggi()
+        self.t.start(1000)
+
+    def leggi(self):
+        try:
+            with open(STATO, encoding="utf-8") as f:
+                d = json.load(f)
+        except (OSError, ValueError):
+            # Il servizio non ha ancora scritto niente, o sta scrivendo adesso:
+            # si riprova fra un secondo invece di mostrare un errore.
+            return
+
+        for app in d.get("app", []):
+            nome = app.get("nome", "?")
+            if nome not in self.righe:
+                r = Riga(nome)
+                self.righe[nome] = r
+                self.contenitore.addWidget(r)
+            self.righe[nome].aggiorna(app.get("stato", "attesa"),
+                                      int(app.get("perc", 0)))
+
+        fase = d.get("fase", "")
+        if fase == "finito":
+            self.nota.setText(L("Tutto pronto. Le applicazioni sono nel menu.",
+                                "All set. The applications are in the menu."))
+            self.t.stop()
+        elif fase == "incompleto":
+            self.nota.setText(L(
+                "Qualcosa non si e' scaricato. Non serve fare niente: il "
+                "sistema ci riprova al prossimo avvio.",
+                "Something did not download. Nothing to do: the system will "
+                "try again on the next boot."))
+            self.t.stop()
+        else:
+            self.nota.setText(L(
+                "Puoi spegnere quando vuoi: quello che manca riparte da solo "
+                "al prossimo avvio, senza ricominciare da capo.",
+                "You can shut down whenever you like: whatever is missing "
+                "resumes by itself on the next boot, without starting over."))
+
+
+# ------------------------------------------------------------- la finestra --
+class Finestra(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(L("SkillFishOS - primo avvio", "SkillFishOS - first boot"))
+        self.setStyleSheet(QSS)
+        self.resize(640, 620)
+        if os.path.exists(ICONA):
+            self.setWindowIcon(QIcon(ICONA))
+
+        self.pile = QStackedWidget()
+        self.scelta = PaginaScelta(self.installa)
+        self.avanz = PaginaAvanzamento(self.chiudi)
+        self.pile.addWidget(self.scelta)
+        self.pile.addWidget(self.avanz)
+        v = QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.addWidget(self.pile)
+
+    def installa(self, scelte):
+        """Passa le scelte al servizio di sistema, che e' l'unico che installa."""
+        if not scelte:
+            r = QMessageBox.question(
+                self, L("Non installo niente?", "Install nothing?"),
+                L("Senza almeno un browser non potrai navigare. Vuoi davvero "
+                  "andare avanti senza installare niente?\n\nPuoi sempre "
+                  "installarle dopo dall'Hub di SkillFishOS.",
+                  "Without at least a browser you will not be able to get "
+                  "online. Really go on with nothing?\n\nYou can always "
+                  "install them later from the SkillFishOS Hub."))
+            if r != QMessageBox.StandardButton.Yes:
+                return
+
+        self.scelta.installa.setEnabled(False)
+        try:
+            e = subprocess.run(["pkexec", HELPER, "installa"] + scelte,
+                               capture_output=True, text=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired) as errore:
+            self.scelta.installa.setEnabled(True)
+            QMessageBox.warning(self, L("Non ci riesco", "Cannot do that"),
+                                str(errore))
+            return
+        if e.returncode != 0:
+            # ⚠️ 126 e' pkexec che dice "l'utente ha annullato": non e' un
+            # guasto e non va raccontato come tale.
+            self.scelta.installa.setEnabled(True)
+            if e.returncode != 126:
+                QMessageBox.warning(
+                    self, L("Non ci riesco", "Cannot do that"),
+                    (e.stderr or "").strip() or L("errore sconosciuto",
+                                                  "unknown error"))
+            return
+
+        self.pile.setCurrentWidget(self.avanz)
+        self.avanz.parti()
+
+    def chiudi(self):
+        if self.avanz.zitto.isChecked():
+            try:
+                os.makedirs(os.path.dirname(ZITTO), exist_ok=True)
+                open(ZITTO, "w").close()
+            except OSError:
+                pass
+        self.close()
+
+
+def main():
+    # Niente finestra se non c'e' niente da chiedere ne' da raccontare.
+    if os.path.exists(SEGNA) or os.path.exists(ZITTO):
+        return 0
+
+    app = QApplication(sys.argv)
+    app.setApplicationName("SkillFishOS First Boot")
+    if os.path.exists(ICONA):
+        app.setWindowIcon(QIcon(ICONA))
+    f = Finestra()
+    # Se la scelta e' gia' stata fatta (l'utente ha chiuso mentre scaricava, o
+    # ha riavviato), si riapre direttamente sull'avanzamento: chiedergli di
+    # nuovo cosa vuole, mentre il servizio sta gia' scaricando, sarebbe una
+    # domanda a cui non si puo' piu' rispondere.
+    if os.path.exists(SCELTE):
+        f.pile.setCurrentWidget(f.avanz)
+        f.avanz.parti()
+    f.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

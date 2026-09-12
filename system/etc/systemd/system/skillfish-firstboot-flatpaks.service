@@ -1,0 +1,14 @@
+[Unit]
+Description=SkillFishOS - installa le applicazioni Flatpak al primo avvio
+After=network-online.target flatpak-system-helper.service
+Wants=network-online.target
+ConditionPathExists=!/var/lib/skillfish/.flatpaks-installed
+ConditionKernelCommandLine=!boot=live
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-install-flatpaks
+
+[Install]
+WantedBy=multi-user.target

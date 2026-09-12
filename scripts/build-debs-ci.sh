@@ -1020,6 +1020,40 @@ printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboar
 printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then systemctl disable --now skillfish-dashboard.service 2>/dev/null || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
+P=skillfish-primo-avvio
+# La finestra che chiede cosa installare, e quello che serve a installarlo.
+#
+# ⚠️ LA FINESTRA NON INSTALLA NIENTE. Passa le scelte all'helper via pkexec, e
+# l'helper fa partire il servizio. Un programma che l'utente puo' chiudere non
+# deve mai essere quello che decide se il sistema finisce di prepararsi.
+put $P 0755 apps/primo-avvio/skillfish-primo-avvio usr/local/bin/skillfish-primo-avvio
+put $P 0755 system/usr/local/bin/skillfish-primo-avvio-helper usr/local/bin/skillfish-primo-avvio-helper
+put $P 0755 system/usr/local/bin/skillfish-install-flatpaks usr/local/bin/skillfish-install-flatpaks
+put $P 0755 system/usr/local/bin/skillfish-giochi-cartella usr/local/bin/skillfish-giochi-cartella
+# ⚠️ L'elenco sta in un file, non nel codice: cambiare cosa proponiamo non deve
+# voler dire toccare un'applicazione. E ogni id va verificato su Flathub prima
+# di metterlo dentro: org.ryujinx.Ryujinx non esiste piu' da quando quel
+# progetto ha chiuso, e l'installazione falliva in silenzio.
+put $P 0644 system/usr/share/skillfish/primo-avvio-catalogo.json usr/share/skillfish/primo-avvio-catalogo.json
+put $P 0644 apps/primo-avvio/os.skillfish.primo-avvio.policy usr/share/polkit-1/actions/os.skillfish.primo-avvio.policy
+put $P 0644 system/etc/systemd/system/skillfish-firstboot-flatpaks.service etc/systemd/system/skillfish-firstboot-flatpaks.service
+put $P 0644 system/etc/skel/.config/autostart/skillfish-primo-avvio.desktop etc/skel/.config/autostart/skillfish-primo-avvio.desktop
+ctrl $P "flatpak, policykit-1, python3-pyqt6" \
+  "SkillFishOS first boot - choose what to install" \
+  "Asks which applications to install on a freshly installed system, then shows
+them being downloaded with a bar each. Nothing is preinstalled and nothing is
+decided for you: the browser included."
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTPA'
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload || true
+  systemctl enable skillfish-firstboot-flatpaks.service 2>/dev/null || true
+fi
+exit 0
+POSTPA
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
 P=skillfish-boot
 # Come si presenta e come parte la macchina: il tema del menu di avvio e il
 # frammento di configurazione.
@@ -1370,7 +1404,7 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
+for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.

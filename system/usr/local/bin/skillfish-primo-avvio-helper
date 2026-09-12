@@ -1,0 +1,57 @@
+#!/bin/bash
+# Scrive le scelte del primo avvio e fa partire il servizio che installa.
+#
+#     skillfish-primo-avvio-helper installa [id ...]
+#
+# Gira da root attraverso pkexec. La finestra che lo chiama e' un programma
+# dell'utente e non deve poter installare niente da sola: qui si controlla
+# quello che arriva e si avvia il servizio, punto.
+#
+# ⚠️ GLI ID SI CONTROLLANO, NON SI FIDA.
+# Quello che arriva finisce in un file che poi un servizio di root da' in pasto
+# a `flatpak install`. Un id con dentro uno spazio, un punto e virgola o un
+# apice sarebbe un modo per far eseguire altro: si accettano solo i nomi che
+# Flathub puo' davvero avere, e solo quelli che stanno nel nostro catalogo.
+set -u
+
+CATALOGO=/usr/share/skillfish/primo-avvio-catalogo.json
+SCELTE=/var/lib/skillfish/primo-avvio-scelte.txt
+SEGNA=/var/lib/skillfish/.flatpaks-installed
+SERVIZIO=skillfish-firstboot-flatpaks.service
+
+[ "$(id -u)" = 0 ] || { echo "serve root (passa da pkexec)" >&2; exit 1; }
+[ "${1:-}" = installa ] || { echo "uso: $0 installa [id ...]" >&2; exit 2; }
+shift
+
+install -d -m 755 /var/lib/skillfish
+
+: > "$SCELTE.nuovo"
+for id in "$@"; do
+    # forma di un id flatpak: lettere, numeri, punti, trattini e trattini bassi
+    if ! printf '%s' "$id" | grep -qE '^[A-Za-z][A-Za-z0-9_.-]{2,127}$'; then
+        echo "id scartato, forma non valida: $id" >&2
+        continue
+    fi
+    # e deve stare nel catalogo che spediamo noi
+    if ! grep -qF "\"$id\"" "$CATALOGO" 2>/dev/null; then
+        echo "id scartato, non e' nel catalogo: $id" >&2
+        continue
+    fi
+    printf '%s\n' "$id" >> "$SCELTE.nuovo"
+done
+mv -f "$SCELTE.nuovo" "$SCELTE"
+chmod 644 "$SCELTE"
+
+if [ ! -s "$SCELTE" ]; then
+    # L'utente non vuole niente. Si segna il lavoro come concluso, altrimenti
+    # il servizio ci riprova a ogni avvio e la finestra torna a farsi viva.
+    touch "$SEGNA"
+    echo "nessuna scelta: non c'e' niente da installare"
+    exit 0
+fi
+
+echo "scelte: $(tr '\n' ' ' < "$SCELTE")"
+# --no-block: la finestra deve poter mostrare l'avanzamento mentre il servizio
+# lavora, non restare ferma ad aspettare che finisca.
+systemctl start --no-block "$SERVIZIO"
+exit 0

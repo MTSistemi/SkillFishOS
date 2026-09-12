@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SkillFishOS first boot
+Name[it]=SkillFishOS primo avvio
+Comment=Shows what is still downloading after the first login
+Comment[it]=Mostra cosa si sta ancora scaricando dopo il primo accesso
+Exec=skillfish-primo-avvio
+Icon=skillfishos
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

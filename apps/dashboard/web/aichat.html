@@ -20,14 +20,49 @@
   textarea{flex:1;resize:none;background:#0d0b06;color:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:.95rem;height:46px}
   button{background:linear-gradient(135deg,#e8c878,#d8a849 55%,#b9722f);color:#1a130a;border:none;border-radius:10px;padding:0 18px;font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:default}
+  #rete{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+  #rete code{background:#0d0b06;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--gold-lt);user-select:all}
+  #rete label{display:flex;align-items:center;gap:6px;color:var(--cream);cursor:pointer}
+  #rete .nota{color:#d8956a}
 </style></head>
 <body>
 <header><b>🧠 SkillFishOS AI</b><span style="flex:1"></span><span style="color:var(--muted);font-size:.8rem" data-i18n="a_model">model</span><select id="model"></select></header>
+<div id="rete">
+  <label><input type="checkbox" id="lan"/>
+    <span data-i18n="a_lan">Reachable from the local network</span></label>
+  <span data-i18n="a_lan_addr">Address</span> <code id="indirizzo">—</code>
+  <span class="nota" id="avviso" hidden data-i18n="a_lan_warn">Open on the network anyone at home can use this GPU: keep it off on networks that are not yours.</span>
+</div>
 <div id="log"><div class="m sys" data-i18n="a_intro">Ask the local model something. It runs on the BC-250 GPU, no cloud.</div></div>
 <form id="f"><textarea id="q" placeholder="Scrivi un messaggio…  (Invio per inviare)"></textarea><button id="send" type="submit" data-i18n="a_send">Send</button></form>
 <script src="/static/i18n.js"></script>
 <script>
   const $ = s => document.querySelector(s);
+
+  // La rete: si legge com'e' adesso, e la casella la cambia.
+  // ⚠️ L'indirizzo lo dice il demone, non si indovina dal browser: chi guarda
+  // la pagina puo' arrivarci da un nome, da ZeroTier o da un inoltro di porta,
+  // e quello che serve incollare in un editor e' l'indirizzo della SCHEDA.
+  async function reteLeggi() {
+    try {
+      const r = await (await fetch("/api/ai/conf", { credentials: "same-origin" })).json();
+      $("#lan").checked = !!r.lan;
+      $("#indirizzo").textContent = r.indirizzo || ("http://127.0.0.1:" + (r.porta || 8888));
+      $("#avviso").hidden = !r.lan;
+    } catch (e) { /* il motore puo' essere spento: non e' un errore da urlare */ }
+  }
+  $("#lan").addEventListener("change", async () => {
+    const acceso = $("#lan").checked;
+    $("#lan").disabled = true;
+    try {
+      await fetch("/api/ai/conf", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lan: acceso })
+      });
+    } finally { $("#lan").disabled = false; reteLeggi(); }
+  });
+  reteLeggi();
   const log = $("#log"); const msgs = [];
   const add = (role, text) => { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : role === "assistant" ? "a" : "sys"); d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };
   (async () => { try { const s = await (await fetch("/api/ai", { credentials: "same-origin" })).json();

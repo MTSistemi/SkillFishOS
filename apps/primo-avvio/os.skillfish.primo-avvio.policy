@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  The first-boot window asks what to install; this is what lets it hand that
+  answer to the service that actually installs.
+
+  auth_admin on the active session and nothing else: it happens once, on a
+  machine somebody has just installed and is sitting in front of. A remote or
+  inactive session has no business choosing what gets installed on somebody
+  else's desktop.
+
+  polkit binds the authorisation to the PATH of the executable: if the helper
+  ever moves, this file must follow.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.primo-avvio.helper">
+    <description>Choose which applications to install at first boot</description>
+    <description xml:lang="it">Scegliere le applicazioni da installare al primo avvio</description>
+    <description xml:lang="fr">Choisir les applications à installer au premier démarrage</description>
+    <description xml:lang="es">Elegir las aplicaciones que se instalan en el primer arranque</description>
+    <description xml:lang="pt">Escolher as aplicações a instalar no primeiro arranque</description>
+    <description xml:lang="de">Die beim ersten Start zu installierenden Anwendungen auswählen</description>
+    <description xml:lang="pl">Wybór aplikacji instalowanych przy pierwszym uruchomieniu</description>
+    <description xml:lang="ru">Выбрать приложения для установки при первом запуске</description>
+    <description xml:lang="uk">Вибрати застосунки для встановлення під час першого запуску</description>
+    <message>Authentication is required to install the applications you chose</message>
+    <message xml:lang="it">È richiesta l'autenticazione per installare le applicazioni che hai scelto</message>
+    <message xml:lang="fr">Une authentification est requise pour installer les applications choisies</message>
+    <message xml:lang="es">Se requiere autenticación para instalar las aplicaciones elegidas</message>
+    <message xml:lang="pt">É necessária autenticação para instalar as aplicações escolhidas</message>
+    <message xml:lang="de">Zum Installieren der ausgewählten Anwendungen ist eine Authentifizierung erforderlich</message>
+    <message xml:lang="pl">Do zainstalowania wybranych aplikacji wymagane jest uwierzytelnienie</message>
+    <message xml:lang="ru">Для установки выбранных приложений требуется аутентификация</message>
+    <message xml:lang="uk">Для встановлення обраних застосунків потрібна автентифікація</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-primo-avvio-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

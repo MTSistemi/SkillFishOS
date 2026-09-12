@@ -1,0 +1,140 @@
+{
+  "_leggimi": [
+    "Quello che SkillFishOS propone di installare al primo avvio.",
+    "Sta qui e non dentro il codice perche' cambiare l'elenco non deve voler",
+    "dire toccare un'applicazione: si modifica questo file e si ripubblica il",
+    "pacchetto.",
+    "",
+    "ATTENZIONE: ogni id va verificato su Flathub PRIMA di metterlo qui. Fino",
+    "al 12/09/2026 l'elenco conteneva org.ryujinx.Ryujinx, che su Flathub non",
+    "esiste piu' da quando quel progetto ha chiuso: l'installazione falliva in",
+    "silenzio e l'utente restava senza emulatore senza sapere perche'.",
+    "   flatpak remote-info --system flathub <id>",
+    "",
+    "'scelto' e' quello che appare gia' spuntato. Gli emulatori no: chi vuole",
+    "emulare lo sa, chi non lo vuole non deve scaricare due giga per scoprirlo."
+  ],
+
+  "categorie": [
+    {
+      "id": "giochi",
+      "nome_it": "Giochi",
+      "nome_en": "Games",
+      "descrizione_it": "I negozi e i lanciatori. Sono il motivo per cui si prende una BC-250.",
+      "descrizione_en": "The stores and launchers. They are why you bought a BC-250.",
+      "app": [
+        {
+          "id": "com.valvesoftware.Steam",
+          "nome": "Steam",
+          "scelto": true,
+          "desc_it": "Il negozio di Valve. Installa i giochi in /games/SteamLibrary.",
+          "desc_en": "Valve's store. Installs games into /games/SteamLibrary."
+        },
+        {
+          "id": "com.heroicgameslauncher.hgl",
+          "nome": "Heroic Games Launcher",
+          "scelto": true,
+          "desc_it": "Epic Games, GOG e Amazon. I giochi e i prefissi vanno in /games/Heroic.",
+          "desc_en": "Epic Games, GOG and Amazon. Games and prefixes go to /games/Heroic."
+        },
+        {
+          "id": "net.lutris.Lutris",
+          "nome": "Lutris",
+          "scelto": false,
+          "desc_it": "Per i giochi che non stanno in nessun negozio.",
+          "desc_en": "For the games that live in no store."
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "nome_it": "Browser",
+      "nome_en": "Web browser",
+      "descrizione_it": "SkillFishOS non ne impone nessuno: scegli il tuo. Senza almeno uno non potrai navigare.",
+      "descrizione_en": "SkillFishOS forces none on you: pick your own. Without at least one you will not be able to browse.",
+      "app": [
+        {
+          "id": "org.mozilla.firefox",
+          "nome": "Firefox",
+          "scelto": true,
+          "desc_it": "Libero, di Mozilla.",
+          "desc_en": "Free software, by Mozilla."
+        },
+        {
+          "id": "com.google.Chrome",
+          "nome": "Google Chrome",
+          "scelto": false,
+          "desc_it": "Quello di Google. Fino alla 26.06.5 era preinstallato e non si poteva scegliere.",
+          "desc_en": "Google's one. Up to 26.06.5 it was preinstalled with no say in it."
+        },
+        {
+          "id": "org.chromium.Chromium",
+          "nome": "Chromium",
+          "scelto": false,
+          "desc_it": "Lo stesso motore di Chrome, senza le parti di Google.",
+          "desc_en": "Chrome's engine without Google's own parts."
+        },
+        {
+          "id": "com.brave.Browser",
+          "nome": "Brave",
+          "scelto": false,
+          "desc_it": "Basato su Chromium, blocca pubblicita' e tracciamento.",
+          "desc_en": "Chromium based, blocks ads and tracking."
+        }
+      ]
+    },
+    {
+      "id": "emulatori",
+      "nome_it": "Emulatori",
+      "nome_en": "Emulators",
+      "descrizione_it": "Pesano parecchio: prendi quello che usi davvero. Le chiavi e il firmware li metti tu.",
+      "descrizione_en": "They are big: take the one you actually use. Keys and firmware are on you.",
+      "app": [
+        {
+          "id": "dev.eden_emu.eden",
+          "nome": "Eden",
+          "scelto": false,
+          "desc_it": "Switch. Il seguito di yuzu, quello che rende meglio sulla BC-250.",
+          "desc_en": "Switch. The successor to yuzu, the one that runs best on the BC-250."
+        },
+        {
+          "id": "io.github.ryubing.Ryujinx",
+          "nome": "Ryujinx (Ryubing)",
+          "scelto": false,
+          "desc_it": "Switch. Il seguito di Ryujinx dopo la chiusura del progetto originale.",
+          "desc_en": "Switch. The continuation of Ryujinx after the original project closed."
+        },
+        {
+          "id": "org.libretro.RetroArch",
+          "nome": "RetroArch",
+          "scelto": false,
+          "desc_it": "Tutte le console vecchie in una finestra sola.",
+          "desc_en": "Every old console in a single window."
+        }
+      ]
+    },
+    {
+      "id": "strumenti",
+      "nome_it": "Strumenti",
+      "nome_en": "Tools",
+      "descrizione_it": "Quello che serve intorno ai giochi.",
+      "descrizione_en": "What you need around the games.",
+      "app": [
+        {
+          "id": "net.davidotek.pupgui2",
+          "nome": "ProtonUp-Qt",
+          "scelto": true,
+          "desc_it": "Per installare e cambiare le versioni di Proton e Wine.",
+          "desc_en": "Installs and switches Proton and Wine versions."
+        },
+        {
+          "id": "org.onlyoffice.desktopeditors",
+          "nome": "OnlyOffice",
+          "scelto": true,
+          "desc_it": "Documenti, fogli di calcolo e presentazioni.",
+          "desc_en": "Documents, spreadsheets and presentations."
+        }
+      ]
+    }
+  ]
+}

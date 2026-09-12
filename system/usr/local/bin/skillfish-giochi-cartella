@@ -1,0 +1,129 @@
+#!/bin/bash
+# /games: la cartella dove finiscono i giochi, e i permessi per arrivarci.
+#
+# PERCHE' UNA CARTELLA A PARTE E NON LA HOME
+# Su una BC-250 i giochi sono la parte grossa del disco, e chi ne ha uno
+# esterno vuole spostarli senza portarsi dietro la home. /games e' un posto
+# solo, con lo stesso nome su tutte le macchine, che Steam e Heroic conoscono.
+#
+# ⚠️ QUESTO FILE NASCE DA ROBA SCRITTA A MANO SULLA .40.
+# Cartella e permessi esistevano solo li', su quella scheda, e finivano nelle
+# immagini perche' eggs la clonava: `dpkg -S` su /var/lib/flatpak/overrides non
+# rispondeva. Gli originali avevano dentro /mnt/nas (la rete di casa di Mattia)
+# e /home/skillfish scritto per esteso: qui non ci sono, i percorsi sono quelli
+# dell'utente che trova la macchina.
+#
+# ⚠️ devices=all NON E' UN DI PIU': senza, dentro il flatpak il pad non si
+# vede. Su una console da gioco vuol dire non giocare.
+set -u
+
+GIOCHI=/games
+log() { echo "[skillfish-giochi] $*"; }
+
+# --- l'utente vero ----------------------------------------------------------
+# Il primo utente umano: e' quello creato dall'installatore. Si guarda l'uid
+# invece del nome perche' il nome lo sceglie chi installa.
+UTENTE=$(awk -F: '$3 >= 1000 && $3 < 65000 { print $1; exit }' /etc/passwd)
+if [ -z "$UTENTE" ]; then
+    log "nessun utente: non c'e' niente da configurare"
+    exit 0
+fi
+CASA=$(getent passwd "$UTENTE" | cut -d: -f6)
+GRUPPO=$(id -gn "$UTENTE")
+
+# --- la cartella ------------------------------------------------------------
+if [ ! -d "$GIOCHI" ]; then
+    install -d -o "$UTENTE" -g "$GRUPPO" -m 755 "$GIOCHI"
+    log "creata $GIOCHI"
+fi
+for d in "$GIOCHI/SteamLibrary" "$GIOCHI/Heroic" "$GIOCHI/Heroic/Prefixes"; do
+    [ -d "$d" ] || install -d -o "$UTENTE" -g "$GRUPPO" -m 755 "$d"
+done
+
+# --- i permessi dei flatpak -------------------------------------------------
+# Si scrive un override solo per quello che e' davvero installato: un file per
+# un'applicazione che non c'e' non fa danni, ma confonde chi ci guarda dopo.
+ha() { flatpak info --system "$1" >/dev/null 2>&1; }
+override() { # override <id> <righe...>
+    local id="$1"; shift
+    install -d -m 755 /var/lib/flatpak/overrides
+    printf '%s\n' "$@" > "/var/lib/flatpak/overrides/$id"
+    chmod 644 "/var/lib/flatpak/overrides/$id"
+    log "permessi per $id"
+}
+
+if ha com.valvesoftware.Steam; then
+    # ⚠️ org.freedesktop.Flatpak=talk serve a Proton per lanciare i suoi
+    # processi fuori dal contenitore: senza, parecchi giochi non partono.
+    override com.valvesoftware.Steam \
+        "[Context]" \
+        "filesystems=$GIOCHI;~/Games;" \
+        "devices=all;" \
+        "" \
+        "[Session Bus Policy]" \
+        "org.freedesktop.Flatpak=talk"
+fi
+
+if ha com.heroicgameslauncher.hgl; then
+    # Heroic deve vedere anche la cartella di Steam, altrimenti non riesce ad
+    # aggiungere i giochi alla libreria di Steam.
+    override com.heroicgameslauncher.hgl \
+        "[Context]" \
+        "filesystems=$GIOCHI;~/Games;~/.var/app/com.valvesoftware.Steam;~/.local/share/Steam;" \
+        "devices=all;"
+fi
+
+for e in io.github.ryubing.Ryujinx dev.eden_emu.eden org.libretro.RetroArch; do
+    ha "$e" && override "$e" "[Context]" "filesystems=$GIOCHI;" "devices=all;"
+done
+
+if ha net.davidotek.pupgui2; then
+    # ⚠️ QT_XCB_GL_INTEGRATION=none: senza, su gfx1013 la finestra di
+    # ProtonUp-Qt resta nera.
+    override net.davidotek.pupgui2 \
+        "[Context]" \
+        "filesystems=$GIOCHI;" \
+        "" \
+        "[Environment]" \
+        "QT_XCB_GL_INTEGRATION=none"
+fi
+
+# Il tema per le applicazioni flatpak, che vivono fuori dal sistema e delle
+# nostre impostazioni non sanno niente.
+override global \
+    "[Environment]" \
+    "GTK_THEME=Adwaita-dark" \
+    "QT_QPA_PLATFORMTHEME=xdgdesktopportal"
+
+# --- dove installa Heroic ---------------------------------------------------
+# ⚠️ Si scrive solo se il file non c'e' ancora: se l'utente ha gia' aperto
+# Heroic e scelto un'altra cartella, quella e' sua.
+CONF_H="$CASA/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json"
+if [ ! -e "$CONF_H" ]; then
+    install -d -o "$UTENTE" -g "$GRUPPO" -m 755 "$(dirname "$CONF_H")"
+    cat > "$CONF_H" <<CONF
+{
+  "defaultSettings": {
+    "defaultInstallPath": "$GIOCHI/Heroic",
+    "defaultWinePrefix": "$GIOCHI/Heroic/Prefixes",
+    "winePrefix": "$GIOCHI/Heroic/Prefixes/shared",
+    "wineVersion": { "name": "GE-Proton-latest", "type": "proton" },
+    "autoInstallDxvk": true,
+    "autoInstallVkd3d": true
+  }
+}
+CONF
+    chown "$UTENTE:$GRUPPO" "$CONF_H"
+    log "Heroic installa in $GIOCHI/Heroic"
+fi
+
+# --- dove installa Steam ----------------------------------------------------
+# ⚠️ libraryfolders.vdf lo scrive Steam al primo avvio e ci mette dentro le
+# SUE librerie: non si tocca un file che non c'e' ancora e non si riscrive uno
+# che c'e'. Si prepara solo la cartella con il suo file di riconoscimento, cosi'
+# quando l'utente aggiunge la libreria dall'interfaccia la trova gia' pronta.
+mkdir -p "$GIOCHI/SteamLibrary/steamapps"
+chown -R "$UTENTE:$GRUPPO" "$GIOCHI/SteamLibrary"
+
+log "fatto."
+exit 0
