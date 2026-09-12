@@ -154,3 +154,13 @@ adwaita-icon-theme
 
 # --- Dischi ---
 gparted
+
+# L'avvio grafico. Senza questi tre l'utente vede scorrere i messaggi di
+# systemd, che e' quello che faceva l'immagine fino alla 26.06.5 compresa.
+# ⚠️ plymouth-label non e' un di piu': il nostro tema disegna i pallini della
+# password con Image.Text, e senza quel pacchetto la richiesta della
+# passphrase su disco cifrato resta invisibile.
+# Il tema skillfish-brass arriva con skillfish-theme.
+plymouth
+plymouth-label
+plymouth-themes

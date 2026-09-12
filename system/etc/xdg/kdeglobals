@@ -1,0 +1,6 @@
+# Il valore di partenza per TUTTI gli utenti, anche quelli che esistono gia':
+# /etc/skel vale solo per chi viene creato dopo. Senza questa riga Plasma non
+# sa quale sia il nostro look-and-feel e, alla prima pagina delle impostazioni
+# che si apre, propone Breeze come predefinito.
+[KDE]
+LookAndFeelPackage=org.skillfish.steampunk

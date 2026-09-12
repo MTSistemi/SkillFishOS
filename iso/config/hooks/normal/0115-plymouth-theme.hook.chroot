@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+# Il tema di avvio: il nostro, non quello di Debian.
+#
+# ⚠️ Qui NON si rigenera l'initramfs. Lo fa l'hook che viene dopo, e farlo due
+# volte significa costruirne uno contro il kernel sbagliato. Qui si sposta solo
+# il collegamento default.plymouth.
+#
+# Se il tema non c'e' non e' un guaio: vuol dire che skillfish-theme non e'
+# entrato, e lo dice chiaro nel registro invece di far fallire la costruzione.
+TEMA=/usr/share/plymouth/themes/skillfish-brass/skillfish-brass.plymouth
+if [ ! -f "$TEMA" ]; then
+    echo "[plymouth] ATTENZIONE: manca $TEMA, l'avvio restera' quello di serie"
+    exit 0
+fi
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+    plymouth-set-default-theme skillfish-brass
+    echo "[plymouth] tema di avvio: $(plymouth-set-default-theme)"
+else
+    echo "[plymouth] plymouth non installato: niente splash"
+fi
+exit 0

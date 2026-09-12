@@ -8,6 +8,11 @@ set -e
 KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.2.5-skillfishos}"
 # La release ha quattro .deb (default, -x64): senza filtro se ne
 # installerebbero due kernel insieme. VARIANTE sceglie quale prendere.
+# ⚠️ Il file lo scrive build.sh, perche' l'ambiente non attraversa il chroot.
+# La variabile resta per chi lancia l'hook a mano.
+if [ -z "${SKILLFISH_KERNEL_VARIANT:-}" ] && [ -r /etc/skillfish-kernel-variant ]; then
+    SKILLFISH_KERNEL_VARIANT=$(cat /etc/skillfish-kernel-variant)
+fi
 VARIANTE="${SKILLFISH_KERNEL_VARIANT:-x64}"
 REPO="MTSistemi/SkillFishOS"
 log(){ echo "[tkg-kernel] $*"; }

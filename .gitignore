@@ -25,3 +25,6 @@ website/debug.log
 
 # local test/automation scripts (may contain box credentials) — never publish
 art/
+
+# The ISO checksum sits next to the image, which is ignored: keep both out.
+*.iso.sha256

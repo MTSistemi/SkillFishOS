@@ -1,0 +1,28 @@
+#!/bin/sh
+# Una riga sola con i valori GPU VERI di questa scheda, per MangoHud.
+#
+# ⚠️ PERCHE' NON SI USA IL BLOCCO GPU DI MANGOHUD. Su gfx1013 la sua percentuale
+# di carico e' 655%: l'SMU non espone la metrica di attivita' e riporta 0xFFFF
+# nella tabella gpu_metrics, che diviso 100 fa 655,35. E in MangoHud il carico
+# non si puo' togliere da solo: spegnere gpu_stats spegne anche temperatura,
+# clock e potenza, che invece sono valori veri. Quindi si spegne il gruppo e si
+# rimette tutto da qui.
+#
+# ⚠️ UN SOLO PROCESSO. MangoHud esegue questo comando circa una volta al secondo:
+# quattro `exec` separati vorrebbero dire quattro processi al secondo sopra al
+# gioco. Qui si legge tutto in un colpo.
+#
+# Il carico arriva da skillfish-gpu-util.service, che campiona i contatori GRBM
+# con radeontop: e' la stessa fonte dell'HUD del desktop, quindi i due numeri
+# coincidono.
+D=/sys/class/drm/card0/device
+u=$(cat /run/skillfish-gpu-util 2>/dev/null || echo '-')
+t=$(cat "$D"/hwmon/hwmon*/temp1_input 2>/dev/null | head -1)
+[ -n "$t" ] && t=$((t / 1000)) || t='-'
+f=$(awk '/\*/{sub(/Mhz/,"",$2); print $2; exit}' "$D"/pp_dpm_sclk 2>/dev/null)
+[ -z "$f" ] && f='-'
+w=$(cat "$D"/hwmon/hwmon*/power1_average 2>/dev/null | head -1)
+[ -n "$w" ] && w=$((w / 1000000)) || w='-'
+v=$(cat "$D"/mem_info_vram_used 2>/dev/null)
+[ -n "$v" ] && v=$((v / 1048576)) || v='-'
+printf '%s%%  %s C  %s MHz  %s W  %s MiB' "$u" "$t" "$f" "$w" "$v"

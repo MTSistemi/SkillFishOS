@@ -541,6 +541,10 @@ put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-base.png usr/s
 # correzione a uno di questi non poteva raggiungere chi ha gia' installato.
 put $P 0755 system/usr/local/bin/skillfish-dp-hotswap.sh    usr/local/bin/skillfish-dp-hotswap.sh
 put $P 0755 system/usr/local/bin/skillfish-thermal-guard.sh usr/local/bin/skillfish-thermal-guard.sh
+# ⚠️ Non lo citava NESSUN file del repository: viveva solo sulla scheda,
+# chiamato dalla configurazione di MangoHud. Serve perche' su gfx1013 il carico
+# GPU di MangoHud e' 655%: l'SMU non espone quella metrica e riporta 0xFFFF.
+put $P 0755 system/usr/local/bin/skillfish-hud-gpu usr/local/bin/skillfish-hud-gpu
 put $P 0755 system/usr/local/bin/skillfish-gpu-util.sh      usr/local/bin/skillfish-gpu-util.sh
 put $P 0755 system/usr/local/bin/skillfish-kde-firstrun.sh  usr/local/bin/skillfish-kde-firstrun.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillfish-freeze-check.sh
@@ -1024,6 +1028,14 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-theme.svg usr
 put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-theme.png usr/share/icons/hicolor/48x48/apps/skillfish-theme.png
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-theme.png usr/share/icons/hicolor/128x128/apps/skillfish-theme.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-theme.png usr/share/icons/hicolor/256x256/apps/skillfish-theme.png
+# L'icona dell'installatore. Il .desktop lo scrive un hook della ISO, ma
+# l'immagine deve arrivare da un pacchetto, altrimenti vive solo dentro
+# l'immagine e una correzione non raggiunge chi ha gia' installato.
+for m in 48x48 128x128 256x256; do
+  put $P 0644 "system/usr/share/icons/hicolor/$m/apps/skillfish-installer.png" \
+      "usr/share/icons/hicolor/$m/apps/skillfish-installer.png"
+done
+put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-installer.svg usr/share/icons/hicolor/scalable/apps/skillfish-installer.svg
 # The steampunk look used to be baked into the ISO filesystem only (no package
 # owned it), so a fix could not reach installed systems through apt. It ships
 # as a package now — same paths, so it simply takes ownership of the files.
@@ -1074,10 +1086,64 @@ put $P 0755 system/usr/local/bin/skillfish-first-login-wallpaper usr/local/bin/s
 # che si vede del sistema, nella lingua sbagliata.
 putdir $P system/usr/share/sddm/themes/skillfish-brass usr/share/sddm/themes/skillfish-brass
 put $P 0644 system/etc/skel/.config/autostart/skillfish-wallpaper.desktop etc/skel/.config/autostart/skillfish-wallpaper.desktop
+
+# ⚠️ IL TEMA INSTALLATO NON E' IL TEMA APPLICATO.
+# Fino alla 26.09.6 /etc/skel aveva solo il pannello e lo sfondo: un utente
+# nuovo apriva la sessione con Breeze addosso e il nostro sfondo dietro. Si
+# vede benissimo nella live, ed e' esattamente quello che ottiene chi installa.
+# Questi sono i file che plasma-apply-lookandfeel scrive quando il tema lo si
+# applica a mano; messi qui, la sessione li trova gia' pronti al primo accesso.
+for f in plasmarc kcminputrc ksplashrc ksmserverrc kwalletrc mimeapps.list \
+         plasmashellrc Kvantum/kvantum.kvconfig \
+         gtk-3.0/settings.ini gtk-3.0/gtk.css \
+         gtk-4.0/settings.ini gtk-4.0/gtk.css \
+         environment.d/20-theme.conf environment.d/30-cursor.conf \
+         kdedefaults/package kdedefaults/kdeglobals kdedefaults/plasmarc \
+         kdedefaults/kcminputrc kdedefaults/ksplashrc kdedefaults/kwinrc; do
+  put $P 0644 "system/etc/skel/.config/$f" "etc/skel/.config/$f"
+done
+# Lo schema colori di Konsole: il terminale e' l'unica finestra che resta
+# aperta per ore, e con i colori di serie stona con tutto il resto.
+put $P 0644 system/etc/skel/.local/share/konsole/SkillFishSteampunk.colorscheme \
+    etc/skel/.local/share/konsole/SkillFishSteampunk.colorscheme
+
+# ⚠️ /etc/xdg VALE ANCHE PER CHI HA GIA' UNA HOME.
+# /etc/skel serve solo agli utenti creati dopo l'installazione del pacchetto:
+# chi ha gia' il suo profilo non lo vede mai. Questa riga invece la legge KDE
+# per tutti, come valore di partenza.
+put $P 0644 system/etc/xdg/kdeglobals etc/xdg/kdeglobals
+
+# Le icone che sulla .40 non appartenevano a nessun pacchetto. Erano nelle ISO
+# solo perche' eggs fotocopiava la scheda.
+for i in 128x128/apps/skillfishos.png 256x256/apps/skillfishos.png \
+         512x512/apps/skillfishos.png scalable/apps/skillfishos.svg \
+         32x32/apps/skillfish-ai.png 64x64/apps/skillfish-ai.png \
+         32x32/apps/skillfish-tuner.png 64x64/apps/skillfish-tuner.png \
+         256x256/apps/emudeck.png; do
+  put $P 0644 "system/usr/share/icons/hicolor/$i" "usr/share/icons/hicolor/$i"
+done
+
+# I COLORI vanno dentro kdeglobals, non basta il nome dello schema: KDE legge
+# le tinte da li', e il file .colors serve solo alla pagina delle impostazioni
+# per farlo scegliere. Si genera dallo stesso .colors che spediamo, cosi' i
+# valori stanno scritti in un posto solo.
+install -d "$OUT/$P/etc/skel/.config"
+{
+  cat theme/color-scheme/SkillFishSteampunk.colors
+  printf '\n[General]\nAccentColor=216,168,73\n\n[Icons]\nTheme=SkillFishSteampunk\n\n[KDE]\nwidgetStyle=kvantum\nLookAndFeel=org.skillfish.steampunk\ncontrast=7\nframeContrast=0.2\n'
+} > "$OUT/$P/etc/skel/.config/kdeglobals"
+chmod 0644 "$OUT/$P/etc/skel/.config/kdeglobals"
+
+# ⚠️ IL TEMA DI AVVIO NON APPARTENEVA A NESSUN PACCHETTO.
+# Su entrambe le schede /usr/share/plymouth/themes/skillfish-brass esiste da
+# giugno, ma `dpkg -S` su quella cartella non risponde: qualcuno (io) ce l'ha
+# messo a mano. Fuori da quelle due schede non esisteva, quindi l'avvio di chi
+# installa era la parete di testo di systemd. Adesso viaggia nel pacchetto.
+putdir $P system/usr/share/plymouth/themes/skillfish-brass usr/share/plymouth/themes/skillfish-brass
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done
-ctrl $P "hicolor-icon-theme" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours" \
+ctrl $P "hicolor-icon-theme, plymouth, plymouth-label" "SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours" \
   "Icons, cursors, Plasma theme, colours and panel layout. Also puts the menu
 button back if an update changed it."
 # NON generare una icon-theme.cache per i nostri temi: TOGLIERLA.
@@ -1091,7 +1157,33 @@ button back if an update changed it."
 #
 # Senza cache Qt legge direttamente le cartelle del tema, che funziona sempre.
 # La cache di hicolor invece va aggiornata, e la fa gia' ctrl().
-printf '#!/bin/sh\nset -e\nfor t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do\n  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true\ndone\n[ -x /usr/local/bin/skillfish-menu-icon-fix ] && /usr/local/bin/skillfish-menu-icon-fix || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTTHEME'
+#!/bin/sh
+set -e
+for t in SkillFishSteampunk SkillFish-Steampunk-Cursors; do
+  rm -f "/usr/share/icons/$t/icon-theme.cache" 2>/dev/null || true
+done
+[ -x /usr/local/bin/skillfish-menu-icon-fix ] && /usr/local/bin/skillfish-menu-icon-fix || true
+
+# Il tema di avvio. plymouth-set-default-theme cambia solo il collegamento:
+# il tema entra davvero nell'initramfs quando lo si rigenera.
+#
+# ⚠️ La rigenerazione si fa SOLO su un sistema vivo. Dentro il chroot di
+# live-build /run/systemd/system non esiste, e li' ci pensa gia' l'hook che
+# costruisce l'initramfs dopo di noi: farlo qui vorrebbe dire generarlo due
+# volte, la seconda contro il kernel sbagliato.
+if [ -x /usr/sbin/plymouth-set-default-theme ] || command -v plymouth-set-default-theme >/dev/null 2>&1; then
+  plymouth-set-default-theme skillfish-brass >/dev/null 2>&1 || true
+  if [ -d /run/systemd/system ]; then
+    if command -v update-initramfs >/dev/null 2>&1; then
+      update-initramfs -u >/dev/null 2>&1 || true
+    elif command -v dracut >/dev/null 2>&1; then
+      dracut --force >/dev/null 2>&1 || true
+    fi
+  fi
+fi
+exit 0
+POSTTHEME
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 

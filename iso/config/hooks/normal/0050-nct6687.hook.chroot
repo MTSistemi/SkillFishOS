@@ -2,15 +2,25 @@
 # Modulo DKMS nct6687 per i sensori e la ventola. Costruito contro il kernel
 # tkg installato. Se non riesce, non e' un guaio: si va avanti.
 #
+# ⚠️ IL SORGENTE NON SI SCARICA PIU'. Sta in
+# config/includes.chroot/usr/src/nct6687d-1.0, quindi e' gia' dentro il chroot
+# quando questo hook parte. Due motivi, trovati il 12/09/2026 costruendo la
+# prima immagine dalla VM:
+#   - a monte non esiste nessun rilascio: l'indirizzo del .deb risponde 404 da
+#     sempre, quindi si finiva comunque a clonare;
+#   - e il sorgente di HEAD non compila piu' con il nostro kernel 7.2.5. Quello
+#     che spediamo ha due correzioni nostre del 18/08 (include esplicito di
+#     string.h e strscpy al posto di strncpy), senza le quali il 7.2 rifiuta il
+#     modulo. Clonare HEAD significava costruire un'immagine diversa ogni volta,
+#     a seconda di cosa era cambiato a monte quel giorno.
+#
 # ⚠️ MANCAVA Kbuild, ED E' PER QUESTO CHE NON COMPILAVA (15/08/2026)
 # Il progetto di partenza tiene l'`obj-m := nct6687.o` in un file `Kbuild`
-# separato, non nel Makefile. Noi copiavamo `*.c`, `*.h`, `Makefile` e
-# `dkms.conf` e ci fermavamo li'. Senza Kbuild kbuild non sa COSA compilare:
-# make attraversa la cartella, non trova moduli, scrive un Module.symvers
-# vuoto ed esce con **successo**. Nel registro si legge "exit code: 0" e
-# subito sotto "Error! Build of nct6687.ko failed": sembra assurdo, ma e'
-# esattamente questo. Cercare l'errore nel compilatore era tempo perso,
-# perche' il compilatore non era mai stato chiamato.
+# separato, non nel Makefile. Copiando solo `*.c`, `*.h`, `Makefile` e
+# `dkms.conf` kbuild non sa COSA compilare: make attraversa la cartella, non
+# trova moduli, scrive un Module.symvers vuoto ed esce con **successo**. Nel
+# registro si legge "exit code: 0" e subito sotto "Error! Build of nct6687.ko
+# failed". Il sorgente che spediamo ha il Kbuild al suo posto.
 #
 # ⚠️ E SE NON RIESCE, IL MODULO VA TOLTO DAL REGISTRO DI DKMS
 # Un modulo registrato che non compila non fa danni oggi, ma fa restituire 1
@@ -19,12 +29,13 @@
 # intera. Meglio nessun modulo che un modulo rotto.
 set +e
 KVER=$(ls /lib/modules 2>/dev/null | sort -V | tail -1)
+V=1.0
+SORGENTE="/usr/src/nct6687d-$V"
 echo "[nct6687] kernel di destinazione: ${KVER:-sconosciuto}"
 
 costruisci_e_verifica() {
-    # $1 = versione DKMS. Ritorna 0 solo se il .ko esiste davvero.
-    local V="$1"
-    [ -n "$V" ] && [ -n "$KVER" ] || return 1
+    [ -n "$KVER" ] || return 1
+    dkms add -m nct6687d -v "$V" >/dev/null 2>&1
     dkms build   -m nct6687d -v "$V" -k "$KVER" --force
     dkms install -m nct6687d -v "$V" -k "$KVER" --force
     # dkms puo' dire di aver finito senza aver prodotto niente: si guarda il file
@@ -32,54 +43,35 @@ costruisci_e_verifica() {
 }
 
 rinuncia() {
-    local V="$1"
     echo "[nct6687] ATTENZIONE: il modulo non si costruisce, lo tolgo da DKMS."
     echo "[nct6687] Un modulo rotto nel registro farebbe fallire ogni futuro"
     echo "[nct6687] aggiornamento del kernel sul computer dell'utente."
-    [ -n "$V" ] && dkms remove -m nct6687d -v "$V" --all >/dev/null 2>&1
-    rm -rf "/usr/src/nct6687d-$V" 2>/dev/null
+    dkms remove -m nct6687d -v "$V" --all >/dev/null 2>&1
     sed -i '/^nct6687$/d' /etc/modules 2>/dev/null
 }
 
-# ⚠️ Questo indirizzo risponde 404, e non per un guasto passeggero: il
-# progetto a monte non pubblica NESSUN rilascio (l'API /releases/latest
-# risponde 404 a sua volta, verificato il 15/08/2026). In pratica si passa
-# sempre dai sorgenti. Il tentativo resta perche' costa un istante e perche'
-# se un giorno pubblicheranno un pacchetto sara' la strada migliore.
-DEB="https://github.com/Fred78290/nct6687d/releases/latest/download/nct6687d-dkms_all.deb"
-V=""
-if curl -fsSL "$DEB" -o /tmp/nct6687-dkms.deb; then
-    dpkg -i /tmp/nct6687-dkms.deb || apt-get -f install -y
-    rm -f /tmp/nct6687-dkms.deb
-    # in un chroot DKMS non prende di mira da solo il kernel installato
-    V=$(dkms status 2>/dev/null | grep -oiP 'nct6687d?[/, ]\K[0-9][^,: ]*' | head -1)
-    costruisci_e_verifica "$V" && echo "[nct6687] costruito dal pacchetto .deb"
-else
-    echo "[nct6687] .deb non disponibile, provo dai sorgenti"
-    git clone --depth 1 https://github.com/Fred78290/nct6687d /tmp/nct6687d
-    if [ -d /tmp/nct6687d ]; then
-        V=$(grep -oP '(?<=VERSION = ).*' /tmp/nct6687d/Makefile 2>/dev/null || echo 1.0)
-        mkdir -p "/usr/src/nct6687d-$V"
-        # Kbuild e' obbligatorio: e' li' che sta obj-m
-        cp /tmp/nct6687d/Kbuild /tmp/nct6687d/Makefile /tmp/nct6687d/dkms.conf \
-           "/usr/src/nct6687d-$V/" 2>/dev/null
-        cp /tmp/nct6687d/*.c "/usr/src/nct6687d-$V/" 2>/dev/null
-        cp /tmp/nct6687d/*.h "/usr/src/nct6687d-$V/" 2>/dev/null
-        if [ ! -f "/usr/src/nct6687d-$V/Kbuild" ]; then
-            echo "[nct6687] ATTENZIONE: Kbuild non c'e' nemmeno a monte, non si puo' costruire"
-        fi
-        dkms add -m nct6687d -v "$V"
-        costruisci_e_verifica "$V" && echo "[nct6687] costruito dai sorgenti"
-        rm -rf /tmp/nct6687d
-    else
-        echo "[nct6687] ATTENZIONE: non sono riuscito a scaricare i sorgenti"
-    fi
+# ⚠️ Si guarda il Makefile, non Kbuild: nel sorgente che spediamo l'`obj-m`
+# sta nella prima riga del Makefile stesso, e un Kbuild separato non c'e'.
+# Cercare Kbuild qui ha fatto uscire un'immagine senza modulo (12/09/2026).
+if [ ! -f "$SORGENTE/Makefile" ] || [ ! -f "$SORGENTE/dkms.conf" ]; then
+    echo "[nct6687] sorgente incompleto in $SORGENTE: niente da costruire"
+    exit 0
 fi
 
-if [ -n "$KVER" ] && find "/lib/modules/$KVER" -name 'nct6687.ko*' -print -quit 2>/dev/null | grep -q .; then
-    grep -qx nct6687 /etc/modules 2>/dev/null || echo nct6687 >> /etc/modules
-    echo "[nct6687] a posto: il modulo c'e' e verra' caricato all'avvio"
+if costruisci_e_verifica; then
+    echo "[nct6687] modulo costruito e installato per $KVER"
+    # ⚠️ nct6687, NON nct6683: quello di serie accetta i comandi PWM e non li
+    # esegue, in silenzio. Il nostro va caricato con force=1.
+    grep -q '^nct6687$' /etc/modules 2>/dev/null || echo nct6687 >> /etc/modules
+    install -d /etc/modprobe.d
+    cat > /etc/modprobe.d/skillfish-nct6687.conf <<'CONF'
+# Il sensore della ventola della BC-250. force=1 perche' il chip non si
+# dichiara con un ID che il driver riconosce da solo.
+options nct6687 force=1
+# E il driver di serie va tenuto fuori: accetta i comandi PWM e non li esegue.
+blacklist nct6683
+CONF
 else
-    rinuncia "$V"
+    rinuncia
 fi
 exit 0

@@ -42,10 +42,10 @@ strings:
   releaseNotesUrl: https://github.com/MTSistemi/SkillFishOS/releases
   shortProductName: SkillFishOS
   shortVersion: '26.06.3'
-  shortVersionedName: SkillFishOS 26.06.3 Aetherium
+  shortVersionedName: SkillFishOS 26.06.5 Aetherium
   supportUrl: https://skillfishos.com
-  version: '26.06.3'
-  versionedName: SkillFishOS 26.06.3 Aetherium
+  version: '26.06.5'
+  versionedName: SkillFishOS 26.06.5 Aetherium
 
 # Le chiavi dello stile sono ripetute con e senza maiuscola perche' Calamares ha
 # cambiato convenzione fra la 3.2 e la 3.3: tenendole entrambe la barra laterale

@@ -16,7 +16,10 @@ Name=Install SkillFishOS
 GenericName=System Installer
 Comment=Install SkillFishOS to disk
 Exec=pkexec calamares
-Icon=calamares
+# ⚠️ NON `calamares`: quella e' la freccia viola del progetto a monte, ed era
+# la prima icona che vedeva chi provava il sistema. L'immagine arriva con
+# skillfish-theme, che sta nella lista 70.
+Icon=skillfish-installer
 Terminal=false
 Categories=System;
 Keywords=install;

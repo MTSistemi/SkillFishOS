@@ -10,9 +10,14 @@ set -e
 
 mkdir -p /etc/sddm.conf.d
 
+# ⚠️ skillfish-brass, NON breeze. Questa riga diceva `breeze` da prima che il
+# nostro tema di accesso esistesse, e cosi' l'immagine scriveva a mano il tema
+# di serie sopra il nostro: la schermata di accesso della live e del sistema
+# installato era quella di KDE. Il tema arriva con skillfish-theme, che e'
+# nella lista 70.
 cat > /etc/sddm.conf.d/00-skillfish.conf << 'SDDM'
 [Theme]
-Current=breeze
+Current=skillfish-brass
 CursorTheme=SkillFish-Steampunk-Cursors
 
 [General]
