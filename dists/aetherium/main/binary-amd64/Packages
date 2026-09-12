@@ -444,21 +444,21 @@ Description: SkillFishOS archive keyring and APT source
  Part of SkillFishOS.
 
 Package: skillfishos-kernel
-Version: 7.2.4-1
+Version: 7.2.5-1
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
 Depends: curl | wget, initramfs-tools, skillfish-base (>= 26.08.27)
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.4-1_amd64.deb
-Size: 61272
-SHA256: e57ee7019be5ee68d373579d69ecb5ae8a7e018ef2b79f30bad3317b68fd9cbd
-SHA1: 65b0ddd49db729d5bf58ca326e2f7c8ada4771fa
-MD5sum: 16eadf20566296725e075aaf8bdbfbed
-Description: SkillFishOS kernel (linux-tkg 7.2.4-skillfishos / 7.2.4-skillfishos-x64)
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.5-1_amd64.deb
+Size: 61256
+SHA256: 24a3bf6a177e6aadb981a583c60fd6cb106d1f03ac20d51ae1ad7a4d96e87e54
+SHA1: ba19981f89a219941d8aa02c3acede69a56d5b48
+MD5sum: 483ccc30ddc2986ed068ce9bb66ce855
+Description: SkillFishOS kernel (linux-tkg 7.2.5-skillfishos / 7.2.5-skillfishos-x64)
  Meta-package that downloads and installs the prebuilt linux-tkg kernel (image
  + headers) from the SkillFishOS GitHub release. It picks the right build for the
- machine it is installed on: 7.2.4-skillfishos on an AMD BC-250, 7.2.4-skillfishos-x64 on
+ machine it is installed on: 7.2.5-skillfishos on an AMD BC-250, 7.2.5-skillfishos-x64 on
  any other x86-64 PC. The ~150 MB kernel image is hosted as a release asset
  because GitHub's 100 MB/file limit prevents shipping it in the APT pool.
 
