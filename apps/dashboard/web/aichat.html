@@ -31,6 +31,9 @@
   <label><input type="checkbox" id="lan"/>
     <span data-i18n="a_lan">Reachable from the local network</span></label>
   <span data-i18n="a_lan_addr">Address</span> <code id="indirizzo">—</code>
+  <span style="flex:1"></span>
+  <button id="modo" type="button" style="padding:5px 12px;font-size:.8rem" data-i18n="a_mode_on">Free RAM: shut the desktop</button>
+  <span id="ram" style="color:var(--muted)"></span>
   <span class="nota" id="avviso" hidden data-i18n="a_lan_warn">Open on the network anyone at home can use this GPU: keep it off on networks that are not yours.</span>
 </div>
 <div id="log"><div class="m sys" data-i18n="a_intro">Ask the local model something. It runs on the BC-250 GPU, no cloud.</div></div>
@@ -62,6 +65,37 @@
       });
     } finally { $("#lan").disabled = false; reteLeggi(); }
   });
+
+  // La modalita' AI: il desktop si spegne e la memoria va al modello.
+  // ⚠️ Da qui si fa soprattutto il RITORNO: con il desktop spento il Control
+  // Center sulla scheda non esiste piu', e questa pagina e' l'unica strada che
+  // non passa da ssh.
+  let modoAttivo = false;
+  function modoMostra(r) {
+    modoAttivo = !!r.attiva;
+    const b = $("#modo");
+    b.textContent = sfT(modoAttivo ? "a_mode_off" : "a_mode_on");
+    $("#ram").textContent = r.ram_disponibile_mb
+      ? sfT("a_mode_ram") + " " + r.ram_disponibile_mb + " / " + r.ram_totale_mb + " MB" : "";
+  }
+  async function modoLeggi() {
+    try { modoMostra(await (await fetch("/api/ai/mode", { credentials: "same-origin" })).json()); }
+    catch (e) { /* il modulo AI puo' essere spento */ }
+  }
+  $("#modo").addEventListener("click", async () => {
+    if (!modoAttivo && !confirm(sfT("a_mode_ask"))) return;
+    $("#modo").disabled = true;
+    try {
+      const r = await (await fetch("/api/ai/mode", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ azione: modoAttivo ? "off" : "on" })
+      })).json();
+      modoMostra(r);
+    } finally { $("#modo").disabled = false; }
+  });
+  modoLeggi();
+  setInterval(modoLeggi, 15000);
   reteLeggi();
   const log = $("#log"); const msgs = [];
   const add = (role, text) => { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : role === "assistant" ? "a" : "sys"); d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; return d; };

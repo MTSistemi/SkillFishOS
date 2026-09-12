@@ -2104,6 +2104,23 @@ def _ip_locale():
         s.close()
 
 
+def ai_mode(azione):
+    """La modalita' AI, vista da remoto.
+
+    ⚠️ E' QUI CHE SI TORNA INDIETRO. Con il desktop spento il Control Center
+    non esiste, quindi questa rotta e' l'unica strada che non passa da ssh: il
+    demone della dashboard non si ferma mai, proprio per questo.
+    """
+    if azione not in ("on", "off", "stato"):
+        return {"ok": False, "errore": "azione sconosciuta"}
+    r = subprocess.run(["/usr/local/bin/skillfish-ai-mode", azione],
+                       capture_output=True, text=True, timeout=120)
+    try:
+        return {"ok": r.returncode == 0, **json.loads(r.stdout or "{}")}
+    except ValueError:
+        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-300:]}
+
+
 def ai_conf():
     conf = _unsloth_conf_read()
     # L'indirizzo da incollare in un editor o in opencode. Lo diciamo noi
@@ -3288,6 +3305,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_update_state())
+        if path == "/api/ai/mode":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_mode("stato"))
         if path == "/api/ai/conf":
             if not self._guard("ai"):
                 return
@@ -3701,6 +3722,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_update_start())
+        if path == "/api/ai/mode":
+            if not self._guard("ai"):
+                return
+            # ⚠️ E' QUI CHE SI TORNA AL DESKTOP. Con la modalita' accesa il
+            # Control Center non esiste piu': questa e' l'unica strada che non
+            # passa da ssh, e il demone della dashboard non si ferma mai
+            # proprio per questo.
+            return self._json(200, ai_mode(data.get("azione", "stato")))
         if path == "/api/ai/conf":
             if not self._guard("ai"):
                 return

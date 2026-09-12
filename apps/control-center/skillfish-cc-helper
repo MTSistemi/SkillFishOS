@@ -22,6 +22,7 @@ WHAT IS NEW AGAINST THE TUNER HELPER
 import glob
 import json
 import os
+import pwd
 import re
 import subprocess
 import sys
@@ -767,6 +768,65 @@ def unsloth_conf_set(lan, parallel):
     return unsloth_conf()
 
 
+def ai_mode(azione):
+    """Accende o spegne la modalita' AI: il desktop si ferma, il modello resta.
+
+    ⚠️ Accendendola si chiude quello che l'utente ha aperto, senza salvare. La
+    domanda la fa la finestra; qui si esegue e basta.
+    """
+    if azione not in ("on", "off", "stato"):
+        return {"ok": False, "errore": "azione sconosciuta"}
+    r = subprocess.run(["/usr/local/bin/skillfish-ai-mode", azione],
+                       capture_output=True, text=True, timeout=120)
+    try:
+        return {"ok": r.returncode == 0, **json.loads(r.stdout or "{}")}
+    except ValueError:
+        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-300:]}
+
+
+def unsloth_password_reset():
+    """Ruota la password di Studio e restituisce quella nuova.
+
+    ⚠️ Il binario sta nella HOME dell'utente che ha installato Studio, non in
+    /usr: va eseguito COME QUELL'UTENTE, altrimenti scrive un auth.db di root
+    accanto a quello vero e Studio continua a rifiutare la password.
+
+    ⚠️ La password nuova la stampa il comando e non la salviamo da nessuna
+    parte: chi la vuole se la scrive. Un file con dentro la password di Studio
+    sarebbe una password in chiaro sul disco, che e' esattamente quello che
+    stiamo cercando di non fare.
+    """
+    utente = _unsloth_utente()
+    if not utente:
+        return {"ok": False, "errore": "no Unsloth installation found"}
+    casa = pwd.getpwnam(utente).pw_dir
+    binario = os.path.join(casa, ".unsloth", "studio", "unsloth_studio", "bin", "unsloth")
+    if not os.access(binario, os.X_OK):
+        return {"ok": False, "errore": "%s non e' eseguibile" % binario}
+    r = subprocess.run(["runuser", "-u", utente, "--", binario, "studio", "reset-password"],
+                       capture_output=True, text=True, timeout=120)
+    testo = (r.stdout or "") + (r.stderr or "")
+    if r.returncode != 0:
+        return {"ok": False, "errore": testo.strip()[-400:] or "reset-password non riuscito"}
+    # La password nuova e' l'unica cosa che somiglia a una password nell'uscita:
+    # si prende la riga piu' lunga senza spazi, che e' come il comando la stampa.
+    nuova = ""
+    for riga in testo.splitlines():
+        riga = riga.strip().strip("'\"`")
+        if riga and " " not in riga and len(riga) >= 8 and len(riga) > len(nuova):
+            nuova = riga
+    _log("unsloth: password di Studio ruotata")
+    return {"ok": True, "password": nuova, "uscita": testo.strip()[-400:]}
+
+
+def _unsloth_utente():
+    """Chi ha Studio installato in casa. Stesso criterio di skillfish-unsloth."""
+    for u in pwd.getpwall():
+        if 1000 <= u.pw_uid < 65534 and os.path.isdir(os.path.join(u.pw_dir, ".unsloth")):
+            return u.pw_name
+    return ""
+
+
 def unsloth_key_set(key):
     """The copy of the API key the Remote Manager reads (root, 0600)."""
     key = (key or "").strip()
@@ -1059,6 +1119,10 @@ def handle(req):
         return unsloth_conf()
     if c == "unsloth-conf-set":
         return unsloth_conf_set(bool(req.get("lan")), req.get("parallel", 4))
+    if c == "ai-mode":
+        return ai_mode(req.get("azione", "stato"))
+    if c == "unsloth-password-reset":
+        return unsloth_password_reset()
     if c == "unsloth-key-set":
         return unsloth_key_set(req.get("key", ""))
     if c == "riavvia":

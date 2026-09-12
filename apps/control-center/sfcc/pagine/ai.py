@@ -23,7 +23,7 @@ import urllib.request
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QTextCursor
-from PyQt6.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
                              QPlainTextEdit, QProgressBar, QPushButton, QSlider, QSpinBox,
                              QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView,
                              QAbstractItemView)
@@ -316,13 +316,24 @@ class Pagina(PaginaBase):
         kv.addLayout(r)
         self.w_chiave.hide()
         self.c_accesso.aggiungi(self.w_chiave)
-        self.b_togli_chiave = self.c_accesso.bottoni((L("Dimentica la chiave", "Forget the key"), self._togli_chiave, False))[0]
+        bottoni = self.c_accesso.bottoni(
+            (L("Dimentica la chiave", "Forget the key"), self._togli_chiave, False),
+            (L("Reimposta la password", "Reset the password"), self._reset_password, False))
+        self.b_togli_chiave = bottoni[0]
 
         # -- memory
         self.c_mem = Scheda(L("Memoria", "Memory"), L(
             "Sul BC-250 VRAM e RAM sono lo stesso chip: il GTT e' la quota di RAM che il modello puo' usare oltre alla VRAM. Parametro del kernel: serve un riavvio.",
             "On the BC-250 VRAM and RAM are the same chip: the GTT is the share of RAM the model may use on top of VRAM. Kernel parameter: a reboot is needed."))
         self.r_vram = self.c_mem.riga("VRAM")
+        # ⚠️ Con la modalita' accesa questa finestra non c'e' piu': il desktop
+        # si spegne. Per tornare indietro c'e' il Remote Manager da un altro
+        # computer, oppure ssh. Il testo lo dice prima di farlo.
+        self.r_ai_mode = self.c_mem.riga(
+            L("Modalita' AI", "AI mode"), L("desktop acceso", "desktop running"))
+        self.b_ai_mode = self.c_mem.bottoni(
+            (L("Spegni il desktop per l'AI", "Shut the desktop down for AI"),
+             self._ai_mode, False))[0]
         self.r_gtt = self.c_mem.riga("GTT")
         self.r_ram = self.c_mem.riga("RAM")
         self.r_swap = self.c_mem.riga("Swap")
@@ -672,6 +683,76 @@ class Pagina(PaginaBase):
         self.demone.cmd(cmd="unsloth-key-set", key=k)
         self._giro = 0
         self.aggiorna()
+
+    def _ai_mode(self):
+        """Spegne il desktop per lasciare la memoria al modello.
+
+        ⚠️ Da qui si puo' solo ACCENDERE. Per spegnerla servirebbe una finestra
+        che, un secondo dopo, non esiste piu': il ritorno si fa dal Remote
+        Manager di un altro computer, o da ssh. Dirlo prima e' l'unica cosa
+        onesta da fare.
+        """
+        if QMessageBox.question(
+                self, L("Modalita' AI", "AI mode"),
+                L("Spengo il desktop?\n\n"
+                  "Si chiude tutto quello che hai aperto, senza salvare, e "
+                  "liberi circa mezzo giga per il modello. Lo schermo diventa "
+                  "nero.\n\n"
+                  "Per tornare al desktop: dal Remote Manager di un altro "
+                  "computer, oppure `skillfish-ai-mode off` da ssh.",
+                  "Shut the desktop down?\n\n"
+                  "Everything you have open closes without saving, and about "
+                  "half a gigabyte goes to the model. The screen goes "
+                  "black.\n\n"
+                  "To come back: from the Remote Manager on another computer, "
+                  "or `skillfish-ai-mode off` over ssh.")
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        self.demone.cmd(cmd="ai-mode", azione="on")
+
+    def _reset_password(self):
+        """Ruota la password di Studio e la mostra una volta sola.
+
+        ⚠️ Si chiede conferma prima: ruotarla butta fuori chi era dentro, e i
+        collegamenti di anteprima gia' condivisi restano validi (vanno
+        rigenerati dalle impostazioni di Studio).
+        """
+        if QMessageBox.question(
+                self, L("Password di Studio", "Studio password"),
+                L("Genero una password nuova per Unsloth Studio?\n\n"
+                  "Quella di adesso smette di funzionare subito, e chi sta "
+                  "usando Studio viene scollegato. La password nuova te la "
+                  "mostro una volta sola: scrivitela.",
+                  "Generate a new password for Unsloth Studio?\n\n"
+                  "The current one stops working right away and anyone using "
+                  "Studio is signed out. The new password is shown once: "
+                  "write it down.")) != QMessageBox.StandardButton.Yes:
+            return
+        r = self.demone.cmd(cmd="unsloth-password-reset")
+        if not r.get("ok"):
+            QMessageBox.warning(self, "AI", r.get("errore") or L(
+                "non ci sono riuscito", "could not do it"))
+            return
+        nuova = r.get("password") or ""
+        if nuova:
+            d = QMessageBox(self)
+            d.setWindowTitle(L("Password di Studio", "Studio password"))
+            d.setText(L("La password nuova e':\n\n%s\n\nUtente: unsloth",
+                        "The new password is:\n\n%s\n\nUser: unsloth") % nuova)
+            d.setInformativeText(L("Non la salviamo da nessuna parte.",
+                                   "We do not store it anywhere."))
+            # Un pulsante per copiarla: nessuno ricopia a mano trenta caratteri.
+            copia = d.addButton(L("Copia", "Copy"), QMessageBox.ButtonRole.ActionRole)
+            d.addButton(QMessageBox.StandardButton.Ok)
+            d.exec()
+            if d.clickedButton() is copia:
+                QApplication.clipboard().setText(nuova)
+        else:
+            QMessageBox.information(self, "AI", L(
+                "Password cambiata, ma non sono riuscito a leggerla "
+                "dall'uscita del comando:\n\n%s",
+                "Password changed, but I could not read it from the command "
+                "output:\n\n%s") % (r.get("uscita") or ""))
 
     def _togli_chiave(self):
         if QMessageBox.question(self, "AI", L("Dimentico la chiave qui e nel Remote Manager? In Studio resta valida.",

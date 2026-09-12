@@ -545,6 +545,11 @@ put $P 0755 system/usr/local/bin/skillfish-thermal-guard.sh usr/local/bin/skillf
 # chiamato dalla configurazione di MangoHud. Serve perche' su gfx1013 il carico
 # GPU di MangoHud e' 655%: l'SMU non espone quella metrica e riporta 0xFFFF.
 put $P 0755 system/usr/local/bin/skillfish-hud-gpu usr/local/bin/skillfish-hud-gpu
+# La modalita' AI: spegne il desktop per lasciare la memoria al modello.
+# ⚠️ Sta in skillfish-base e non nel Control Center perche' lo chiamano in due:
+# la finestra per accenderla e il Remote Manager per SPEGNERLA. Il secondo e'
+# quello che conta: con il desktop fermo il Control Center non esiste piu'.
+put $P 0755 system/usr/local/bin/skillfish-ai-mode usr/local/bin/skillfish-ai-mode
 put $P 0755 system/usr/local/bin/skillfish-gpu-util.sh      usr/local/bin/skillfish-gpu-util.sh
 put $P 0755 system/usr/local/bin/skillfish-kde-firstrun.sh  usr/local/bin/skillfish-kde-firstrun.sh
 put $P 0755 system/usr/local/bin/skillfish-freeze-check.sh  usr/local/bin/skillfish-freeze-check.sh

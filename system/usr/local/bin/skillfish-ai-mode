@@ -1,0 +1,115 @@
+#!/bin/bash
+# Modalita' AI: la scheda smette di fare il desktop e si dedica al modello.
+#
+#     skillfish-ai-mode on       spegne il desktop e quello che non serve
+#     skillfish-ai-mode off      rimette tutto com'era
+#     skillfish-ai-mode stato    dice com'e' adesso, in JSON
+#
+# PERCHE'
+# Su una BC-250 VRAM e RAM sono lo stesso chip: quello che tiene KDE non ce
+# l'ha il modello. Misurato sulla .32 mentre girava Studio: plasmashell 384 MB,
+# kwin 218, polkit-kde 198, kded6 116, Xorg 116, i portali 154, kdeconnect 81.
+# Circa 1,3 GB, che sono la differenza fra un modello che entra e uno che va in
+# swap sul disco - e in swap un modello non "rallenta", diventa inservibile.
+#
+# ⚠️ SPEGNERE IL DESKTOP CHIUDE QUELLO CHE E' APERTO, senza salvare niente.
+# Non lo si fa di nascosto: chi lo chiede dal Control Center o dal Remote
+# Manager riceve prima una domanda chiara.
+#
+# ⚠️ E SI DEVE POTER TORNARE INDIETRO DA REMOTO.
+# Per questo skillfish-dashboard e ssh NON si toccano mai: se si spegnesse
+# anche la dashboard, chi ha acceso la modalita' da un altro computer
+# resterebbe davanti a uno schermo nero senza modo di rimettere il desktop, e
+# l'unica via sarebbe staccare la corrente.
+set -u
+
+SEGNA=/var/lib/skillfish/ai-mode
+LOG=/var/log/skillfish-ai-mode.log
+log() { echo "$(date -Is) $*" >> "$LOG" 2>/dev/null; }
+
+# I servizi che si possono spegnere: roba da scrivania, inutile mentre la
+# scheda fa solo il modello. ⚠️ Non c'e' NIENTE che serva per rientrare:
+# niente ssh, niente dashboard, niente rete.
+SPEGNIBILI="bluetooth.service cups.service cups-browsed.service avahi-daemon.service
+            ModemManager.service packagekit.service upower.service colord.service
+            skillfish-conky.service switcheroo-control.service"
+
+stato_json() {
+    local attiva=false
+    [ -f "$SEGNA" ] && attiva=true
+    local dm
+    dm=$(systemctl is-active display-manager.service 2>/dev/null)
+    # La memoria: quella che conta e' "disponibile", non "libera". Linux usa la
+    # RAM avanzata per la cache e la restituisce quando serve: guardare "free"
+    # farebbe sembrare pieno un sistema che pieno non e'.
+    local disp tot
+    disp=$(awk '/^MemAvailable:/ {printf "%d", $2 / 1024}' /proc/meminfo)
+    tot=$(awk '/^MemTotal:/ {printf "%d", $2 / 1024}' /proc/meminfo)
+    printf '{"attiva": %s, "desktop": "%s", "ram_disponibile_mb": %d, "ram_totale_mb": %d}\n' \
+           "$attiva" "${dm:-sconosciuto}" "${disp:-0}" "${tot:-0}"
+}
+
+case "${1:-stato}" in
+stato)
+    stato_json
+    ;;
+
+on)
+    [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }
+    if [ -f "$SEGNA" ]; then stato_json; exit 0; fi
+
+    install -d /var/lib/skillfish
+    : > "$SEGNA"
+
+    # Si segna cosa era acceso PRIMA, altrimenti "off" non sa cosa riaccendere
+    # e si finirebbe col riaccendere anche quello che l'utente teneva spento.
+    for s in $SPEGNIBILI; do
+        if [ "$(systemctl is-active "$s" 2>/dev/null)" = active ]; then
+            echo "$s" >> "$SEGNA"
+            systemctl stop "$s" 2>/dev/null
+        fi
+    done
+
+    # Il desktop per ultimo: da qui in poi lo schermo e' nero e si torna solo
+    # da ssh o dal Remote Manager.
+    if [ "$(systemctl is-active display-manager.service 2>/dev/null)" = active ]; then
+        echo "display-manager.service" >> "$SEGNA"
+        systemctl stop display-manager.service 2>/dev/null
+    fi
+
+    # Le cache: non e' memoria "liberata" (Linux la restituirebbe da solo), ma
+    # fa si' che il modello trovi pagine contigue subito invece di aspettare
+    # che il kernel gliele recuperi durante il primo caricamento.
+    sync
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+
+    log "modalita' AI accesa: $(tr '\n' ' ' < "$SEGNA")"
+    stato_json
+    ;;
+
+off)
+    [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }
+    if [ ! -f "$SEGNA" ]; then stato_json; exit 0; fi
+
+    # Si riaccende SOLO quello che era acceso prima, e il desktop per primo
+    # cosi' chi guarda lo schermo vede subito che si sta tornando indietro.
+    if grep -q '^display-manager.service$' "$SEGNA"; then
+        systemctl start display-manager.service 2>/dev/null
+    fi
+    while read -r s; do
+        [ -z "$s" ] && continue
+        [ "$s" = display-manager.service ] && continue
+        systemctl start "$s" 2>/dev/null
+    done < "$SEGNA"
+
+    rm -f "$SEGNA"
+    log "modalita' AI spenta, desktop rimesso"
+    stato_json
+    ;;
+
+*)
+    echo "uso: $0 [on|off|stato]" >&2
+    exit 2
+    ;;
+esac
+exit 0
