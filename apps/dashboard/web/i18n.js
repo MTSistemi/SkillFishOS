@@ -512,6 +512,12 @@ var SFSTR = {
                fr: "Chargement du catalogue…" },
 
   // --- chat ---
+  c_free: { it: "liberi su", en: "free of", pl: "wolne z", uk: "вільно з",
+                ru: "свободно из", es: "libres de", pt: "livres de",
+                de: "frei von", fr: "libres sur" },
+  c_boards: { it: "schede", en: "boards", pl: "płyty", uk: "плати",
+                ru: "платы", es: "placas", pt: "placas",
+                de: "Karten", fr: "cartes" },
   a_mode_on: { it: "Libera RAM: spegni il desktop", en: "Free RAM: shut the desktop",
                 pl: "Zwolnij RAM: wyłącz pulpit", uk: "Звільнити ОЗП: вимкнути стільницю",
                 ru: "Освободить ОЗУ: выключить рабочий стол", es: "Liberar RAM: apagar el escritorio",

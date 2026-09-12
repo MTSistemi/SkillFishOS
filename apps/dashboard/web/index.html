@@ -202,6 +202,7 @@
     <span class="brand">SkillFish<span class="g">OS</span> Remote Manager</span>
     <span class="host" id="host"></span>
     <span class="sp"></span>
+    <button class="ghost" id="desk-top" hidden title="Back to the desktop" data-i18n-title="a_mode_off" style="color:#e8c878">🖥️</button>
     <button class="ghost pwr" id="reboot-top" title="Reboot" data-i18n-title="p_reboot">🔄</button>
     <button class="ghost pwr" id="off-top" title="Shut down" data-i18n-title="p_off">⏻</button>
     <span id="hidden-wrap"></span>
@@ -216,5 +217,32 @@
 
 <script src="/static/telem.js"></script>
 <script src="/static/app.js"></script>
+<script>
+  // ⚠️ Il pulsante del desktop si mostra SOLO con la modalita' AI accesa.
+  // A desktop acceso non serve, e un pulsante che spegne lo schermo di una
+  // macchina in uso non deve stare a portata di clic distratto.
+  (function () {
+    const b = document.getElementById("desk-top");
+    if (!b) return;
+    async function guarda() {
+      try {
+        const r = await (await fetch("/api/ai/mode", { credentials: "same-origin" })).json();
+        b.hidden = !r.attiva;
+      } catch (e) { b.hidden = true; }
+    }
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        await fetch("/api/ai/mode", {
+          method: "POST", credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ azione: "off" })
+        });
+      } finally { b.disabled = false; guarda(); }
+    });
+    guarda();
+    setInterval(guarda, 10000);
+  })();
+</script>
 </body>
 </html>

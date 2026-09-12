@@ -24,6 +24,17 @@
   #rete code{background:#0d0b06;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--gold-lt);user-select:all}
   #rete label{display:flex;align-items:center;gap:6px;color:var(--cream);cursor:pointer}
   #rete .nota{color:#d8956a}
+  #cluster{padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-size:.85rem}
+  #cluster .tot{font-size:1.5rem;font-weight:700;color:var(--gold);line-height:1.1}
+  #cluster .tot span{font-size:.8rem;font-weight:400;color:var(--muted);margin-left:8px}
+  #cluster .n{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  #cluster .pallino{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  #cluster .nome{color:var(--cream);min-width:130px}
+  #cluster .dati{color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+  #cluster .barra{position:relative;height:16px;border:1px solid var(--line);border-radius:4px;background:#0d0b06;flex:1 1 100%;overflow:hidden}
+  #cluster .barra i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#8a6a2a,var(--gold));display:block}
+  #cluster .barra i.pieno{background:linear-gradient(90deg,#8a6a2a,#d85a5a)}
+  #cluster .barra b{position:absolute;right:6px;top:0;line-height:16px;font-weight:400;font-size:.72rem;color:var(--muted)}
 </style></head>
 <body>
 <header><b>🧠 SkillFishOS AI</b><span style="flex:1"></span><span style="color:var(--muted);font-size:.8rem" data-i18n="a_model">model</span><select id="model"></select></header>
@@ -35,6 +46,10 @@
   <button id="modo" type="button" style="padding:5px 12px;font-size:.8rem" data-i18n="a_mode_on">Free RAM: shut the desktop</button>
   <span id="ram" style="color:var(--muted)"></span>
   <span class="nota" id="avviso" hidden data-i18n="a_lan_warn">Open on the network anyone at home can use this GPU: keep it off on networks that are not yours.</span>
+</div>
+<div id="cluster" hidden>
+  <div class="tot"><span id="cl_tot">—</span></div>
+  <div id="cl_nodi"></div>
 </div>
 <div id="log"><div class="m sys" data-i18n="a_intro">Ask the local model something. It runs on the BC-250 GPU, no cloud.</div></div>
 <form id="f"><textarea id="q" placeholder="Scrivi un messaggio…  (Invio per inviare)"></textarea><button id="send" type="submit" data-i18n="a_send">Send</button></form>
@@ -94,6 +109,50 @@
       modoMostra(r);
     } finally { $("#modo").disabled = false; }
   });
+
+  // Il cluster: le stesse cose del Control Center, ma da qui si vedono anche
+  // quando il desktop della scheda e' spento.
+  // ⚠️ Una riga per scheda, con i suoi numeri: il totale dice se il modello ci
+  // sta, i singoli dicono QUALE scheda e' al limite. Servono tutti e due.
+  function clusterMostra(d) {
+    const box = $("#cluster");
+    const nodi = d.schede || [];
+    if (!nodi.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const gb = b => (b || 0) / 1073741824;
+    const libera = gb(d.memoria_totale) - gb(d.memoria_usata);
+    $("#cl_tot").innerHTML = libera.toFixed(1) + " GB <span>" +
+      sfT("c_free") + " " + gb(d.memoria_totale).toFixed(1) + " GB · " +
+      nodi.length + " " + sfT("c_boards") + " · " + (d.watt_totali || 0) + " W</span>";
+    $("#cl_nodi").innerHTML = nodi.map(n => {
+      if (n.errore) {
+        return '<div class="n"><span class="pallino" style="background:#d85a5a"></span>' +
+               '<span class="nome">' + (n.nome || n.ip) + '</span>' +
+               '<span class="dati" style="color:#d85a5a">' + n.errore + '</span></div>';
+      }
+      const tot = gb(n.vram_totale) + gb(n.gtt_totale);
+      const uso = gb(n.vram_usata) + gb(n.gtt_usata);
+      const q = tot ? Math.min(100, uso / tot * 100) : 0;
+      // Il carico a -1 vuol dire "non si sa": su gfx1013 l'SMU non lo riporta
+      // e scrivere 0% sarebbe una bugia.
+      const car = (n.carico >= 0) ? n.carico + "%" : "?";
+      return '<div class="n">' +
+        '<span class="pallino" style="background:' + (n.nodo ? "#8fbf6a" : "#7f6f55") + '"></span>' +
+        '<span class="nome">' + (n.nome || n.ip) + (n.locale ? " ·" : "") + '</span>' +
+        '<span class="dati">' + car + "   " + (n.watt || 0) + " W   " +
+        (n.clock || 0) + " MHz   " + (n.temp || 0) + " °C</span>" +
+        '<span class="barra"><i class="' + (q > 85 ? "pieno" : "") + '" style="width:' +
+        q.toFixed(1) + '%"></i><b>' + uso.toFixed(1) + " / " + tot.toFixed(1) + " GB</b></span>" +
+        "</div>";
+    }).join("");
+  }
+  async function clusterLeggi() {
+    try { clusterMostra(await (await fetch("/api/cluster", { credentials: "same-origin" })).json()); }
+    catch (e) { /* il modulo AI puo' essere spento */ }
+  }
+  clusterLeggi();
+  setInterval(clusterLeggi, 6000);
+
   modoLeggi();
   setInterval(modoLeggi, 15000);
   reteLeggi();

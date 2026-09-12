@@ -2104,6 +2104,29 @@ def _ip_locale():
         s.close()
 
 
+CLUSTER_STATO = "/run/skillfish/cluster.json"
+
+
+def cluster_stato():
+    """Lo stato del cluster, letto dal file che scrive il servizio.
+
+    ⚠️ Si legge e basta: niente ssh, niente root. La raccolta la fa
+    skillfish-cluster.service, che e' l'unico che ha la chiave delle altre
+    schede.
+    """
+    try:
+        with open(CLUSTER_STATO, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        # Il servizio puo' essere spento: si risponde "nessuna scheda" invece
+        # di un errore, perche' per chi guarda e' la stessa cosa.
+        return {"ok": True, "schede": [], "memoria_totale": 0,
+                "memoria_usata": 0, "watt_totali": 0, "servizio": False}
+    d["ok"] = True
+    d["servizio"] = True
+    return d
+
+
 def ai_mode(azione):
     """La modalita' AI, vista da remoto.
 
@@ -3305,6 +3328,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_update_state())
+        if path == "/api/cluster":
+            if not self._guard("ai"):
+                return
+            return self._json(200, cluster_stato())
         if path == "/api/ai/mode":
             if not self._guard("ai"):
                 return

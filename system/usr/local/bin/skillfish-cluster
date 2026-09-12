@@ -233,6 +233,133 @@ def stato():
 
 
 # --------------------------------------------------------------- aggiungere --
+SORGENTI = [
+    # dove puo' stare llama.cpp: Unsloth lo mette nella home dell'utente
+    "~/.unsloth/llama.cpp",
+    "/opt/unsloth/llama.cpp",
+]
+
+
+def _dove_llama():
+    """L'albero di llama.cpp su questa macchina, se c'e'."""
+    import glob
+    for base in SORGENTI:
+        for d in glob.glob(os.path.expanduser(base)):
+            if os.path.isdir(os.path.join(d, "tools", "rpc")):
+                return d
+    # e le home degli utenti veri, che e' dove finisce davvero
+    for u in os.listdir("/home"):
+        d = "/home/%s/.unsloth/llama.cpp" % u
+        if os.path.isdir(os.path.join(d, "tools", "rpc")):
+            return d
+    return ""
+
+
+def compila_nodo(log=None):
+    """Compila ggml-rpc-server su QUESTA macchina. Restituisce (percorso, motivo).
+
+    ⚠️ Il target si chiama `ggml-rpc-server`, non `rpc-server`: quello non
+    esiste e make risponde "No rule to make target", che sembra un guasto e
+    invece e' solo il nome sbagliato.
+
+    ⚠️ Servono glslc e spirv-headers, che su una SkillFishOS appena installata
+    non ci sono: senza, cmake si ferma su "Could not find SPIRV-Headers" e il
+    messaggio non dice quale pacchetto manchi.
+    """
+    def nota(x):
+        if log is not None:
+            log.append(x)
+
+    src = _dove_llama()
+    if not src:
+        return "", "non trovo il sorgente di llama.cpp"
+    pronto = os.path.join(src, "build-rpc", "bin", "ggml-rpc-server")
+    if os.access(pronto, os.X_OK):
+        nota("nodo gia' compilato qui")
+        return pronto, ""
+    nota("compilo il nodo su questa macchina")
+
+    mancanti = [x for x in ("cmake", "glslc") if not _ha(x)]
+    if not os.path.exists("/usr/share/cmake/SPIRV-Headers") and \
+       not os.path.exists("/usr/lib/cmake/SPIRV-Headers"):
+        mancanti.append("spirv-headers")
+    if mancanti:
+        nota("installo: " + " ".join(mancanti))
+        pacchetti = ["cmake" if m == "cmake" else m for m in mancanti]
+        r = subprocess.run(["apt-get", "install", "-y"] + pacchetti,
+                           capture_output=True, text=True, timeout=900,
+                           env={**os.environ, "DEBIAN_FRONTEND": "noninteractive"})
+        if r.returncode != 0:
+            return "", "non riesco a installare: " + " ".join(pacchetti)
+
+    nota("preparo la compilazione")
+    r = subprocess.run(
+        ["cmake", "-B", "build-rpc", "-DGGML_VULKAN=ON", "-DGGML_RPC=ON",
+         "-DLLAMA_BUILD_TESTS=OFF", "-DLLAMA_BUILD_EXAMPLES=OFF",
+         "-DLLAMA_CURL=OFF", "-DCMAKE_BUILD_TYPE=Release"],
+        cwd=src, capture_output=True, text=True, timeout=600)
+    if r.returncode != 0:
+        return "", (r.stderr or r.stdout).strip()[-300:]
+
+    nota("compilo (qualche minuto)")
+    r = subprocess.run(["cmake", "--build", "build-rpc",
+                        "--target", "ggml-rpc-server", "-j", str(os.cpu_count() or 4)],
+                       cwd=src, capture_output=True, text=True, timeout=3600)
+    if not os.access(pronto, os.X_OK):
+        return "", (r.stderr or r.stdout).strip()[-300:] or "compilazione non riuscita"
+    return pronto, ""
+
+
+def installa_nodo(ip, utente, log=None):
+    """Porta il nodo RPC sulla scheda remota. Restituisce (ok, motivo)."""
+    import tarfile
+    import tempfile
+
+    def nota(x):
+        if log is not None:
+            log.append(x)
+
+    locale_bin = NODO if os.access(NODO, os.X_OK) else ""
+    if not locale_bin:
+        # ⚠️ Puo' esserci gia' compilato dentro l'albero di llama.cpp senza
+        # essere stato copiato in /opt: in quel caso non si compila niente, e
+        # dirlo lo stesso sarebbe raccontare un lavoro che non si e' fatto.
+        locale_bin, err = compila_nodo(log)
+        if not locale_bin:
+            return False, err
+
+    # il binario e le sue librerie: si spedisce la cartella intera, perche'
+    # ggml-rpc-server senza le sue libggml non parte
+    cartella = os.path.dirname(locale_bin)
+    with tempfile.NamedTemporaryFile(suffix=".tgz", delete=False) as t:
+        pacco = t.name
+    with tarfile.open(pacco, "w:gz") as tar:
+        for n in sorted(os.listdir(cartella)):
+            if n == "ggml-rpc-server" or n.startswith("libggml"):
+                tar.add(os.path.join(cartella, n), arcname=n)
+
+    nota("copio il nodo sulla scheda")
+    r = subprocess.run(
+        ["scp", "-i", CHIAVE, "-o", "StrictHostKeyChecking=accept-new",
+         "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+         pacco, "%s@%s:/tmp/skillfish-rpc.tgz" % (utente, ip)],
+        capture_output=True, text=True, timeout=300)
+    os.unlink(pacco)
+    if r.returncode != 0:
+        return False, (r.stderr or "copia non riuscita").strip()[:200]
+
+    rc, out, err = ssh(ip, utente,
+                       "mkdir -p /opt/skillfish-rpc && "
+                       "tar xzf /tmp/skillfish-rpc.tgz -C /opt/skillfish-rpc && "
+                       "rm -f /tmp/skillfish-rpc.tgz && "
+                       "test -x /opt/skillfish-rpc/ggml-rpc-server && echo installato",
+                       t=120)
+    if rc != 0 or "installato" not in out:
+        return False, (err or "non si scompatta").strip()[:200]
+    nota("nodo installato")
+    return True, ""
+
+
 def aggiungi(ip, utente, password):
     """Verifica una scheda, ci mette la chiave e prepara il nodo.
 
@@ -273,7 +400,18 @@ def aggiungi(ip, utente, password):
 
     rc, out, _ = ssh(ip, utente, "test -x %s && echo si || echo no" % NODO)
     ha_nodo = "si" in out
-    passo("nodo RPC", True, "presente" if ha_nodo else "da installare")
+    if ha_nodo:
+        passo("nodo RPC", True, "presente")
+    else:
+        # ⚠️ Si installa copiando il binario di QUESTA macchina, non
+        # compilandolo la': il protocollo RPC e' versionato e le due parti
+        # devono parlare la stessa versione. Compilare sull'altra scheda da un
+        # sorgente magari piu' vecchio e' esattamente l'errore che il
+        # 12/09/2026 ha prodotto "RPC handshake failed".
+        righe = []
+        ok, err = installa_nodo(ip, utente, righe)
+        ha_nodo = ok
+        passo("nodo RPC", ok, "; ".join(righe) if ok else err)
 
     d = leggi()
     d["schede"] = [s for s in d["schede"] if s["ip"] != ip]
