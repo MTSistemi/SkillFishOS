@@ -262,23 +262,26 @@ Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyze
  Part of SkillFishOS.
 
 Package: skillfish-scx
-Version: 26.09.1
+Version: 26.09.6
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: systemd
+Depends: systemd, gamemode
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-scx/skillfish-scx_26.09.1_all.deb
-Size: 2471892
-SHA256: 1411fe13272909990ea07128c73db79ba2c5bd97247cc40979e60ef2f8f36c64
-SHA1: be056f9bbd216c65c26f0bcd4c0c2c1fcd69e60d
-MD5sum: c421c8db1064ddcf24901c5267e1bcf0
-Description: SkillFishOS scheduler - scx_lavd, the sched_ext scheduler
+Filename: pool/main/s/skillfish-scx/skillfish-scx_26.09.6_all.deb
+Size: 1857876
+SHA256: 0e166ba2a5f890f6e7c924ba4f7c143ed913a457ad2bb427f5b5c348da4c1d5d
+SHA1: 3db33c53a75ecfdc77f390b110817a8b0eaeaefe
+MD5sum: 712ff6c80efe2ffe0f7648ad8da804f2
+Description: SkillFishOS scheduler - scx_bpfland while a game runs
  A CPU scheduler loaded into the kernel through sched_ext, the one CachyOS
- uses. Off by default: measured on the BC-250 over three runs a side it changes
- nothing in Wukong and costs about 9 per cent in Cyberpunk. Turn it on from the
- Tuner if your games disagree.
+ uses. It runs ONLY while a game runs: GameMode raises a flag when the game
+ starts, a .path unit starts the scheduler, and the flag going away stops it.
+ If the kernel ejects it twice the service refuses to start again until the
+ counter is reset, because a scheduler that keeps being ejected wedges the
+ desktop every forty seconds. Turn it on from the Control Center or from the
+ Remote Manager.
  .
  Part of SkillFishOS.
 
