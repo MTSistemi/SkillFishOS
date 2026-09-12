@@ -1,0 +1,4 @@
+#!/bin/bash
+# GameMode start hook: raise the flag, the .path unit does the rest.
+mkdir -p /run/skillfish/gamemode 2>/dev/null
+exec touch /run/skillfish/gamemode/attivo

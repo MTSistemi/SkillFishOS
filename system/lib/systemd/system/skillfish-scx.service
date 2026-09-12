@@ -1,0 +1,14 @@
+[Unit]
+Description=SkillFishOS - scheduler sched_ext per i giochi (scx_bpfland)
+Documentation=man:scx_bpfland(8)
+ConditionPathExists=/sys/kernel/sched_ext
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/skillfish-scx esegui
+# ⚠️ niente Restart: se il kernel lo caccia NON si insiste, o si ottiene il
+# ciclo espulsione-riavvio che pianta il desktop ogni 40 secondi
+ExecStopPost=/bin/rm -f /run/skillfish/gamemode/attivo
+Restart=no
+KillMode=mixed
+TimeoutStopSec=10

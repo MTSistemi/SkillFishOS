@@ -91,3 +91,28 @@ scheduler that fails quietly is worse than a noisy one.
 And enabling the unit returns before the scheduler is attached: it needs about
 five seconds to load its BPF program. Read the state straight away and you get
 "on but not loaded", which looks like a fault and is not one.
+
+## What we ship now: scx_bpfland, and only while a game runs
+
+Since 26.09.6 the package carries **scx_bpfland**, not `scx_lavd`, and it is
+wired to GameMode instead of being a service somebody turns on and forgets:
+
+    game starts  ->  GameMode runs skillfish-gamemode-inizio  ->  a flag appears
+                     in /run/skillfish/gamemode/attivo
+    the flag     ->  skillfish-scx.path starts skillfish-scx.service
+    game ends    ->  the flag goes away and the scheduler is stopped
+
+The wrapper `/usr/bin/skillfish-scx` counts how many times the kernel ejected
+the scheduler (`/var/lib/skillfish/scx-espulsioni`). After two it refuses to
+start: a scheduler the kernel keeps throwing out wedges the desktop every forty
+seconds, and the counter is reset by hand, from the Control Center or with
+`skillfish-scx azzera`.
+
+⚠️ **This is what was running on the development board since 9 September, and
+it was not in the repository.** The published package shipped `scx_lavd` off by
+default while the Control Center's Games page described the GameMode wiring and
+read a counter no installed file wrote. Anyone who pressed the switch got
+"skillfish-scx missing". Found on 12/09/2026, put right the same day.
+
+The `scx_lavd` binary stays in this folder: the measurements below were taken
+with it and they are the reason the scheduler is not enabled by default.

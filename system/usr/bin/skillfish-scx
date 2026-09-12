@@ -1,0 +1,67 @@
+#!/bin/bash
+# sched_ext game scheduler for SkillFishOS: start, stop, status, reset counter.
+#
+#     skillfish-scx esegui|stato|azzera
+#
+# `esegui` non torna: e' il processo principale del servizio. Resta acceso
+# finche' esiste la bandierina /run/skillfish/gamemode/attivo (la scrive il
+# gancio di GameMode); se la bandierina non c'e' proprio all'avvio, vuol dire
+# che qualcuno lo ha acceso a mano e allora si resta su finche' non lo fermano.
+#
+# ⚠️ Se il kernel caccia lo scheduler ("runnable task stall", la malattia di
+# lavd su questa scheda) il contatore sale e dopo due volte questo servizio si
+# rifiuta di partire: meglio senza scheduler che con il desktop che si pianta
+# ogni quaranta secondi. `skillfish-scx azzera` per ricominciare.
+set -u
+BIN=/usr/lib/skillfish-scx/scx_bpfland
+BANDIERINA=/run/skillfish/gamemode/attivo
+CONTA=/var/lib/skillfish/scx-espulsioni
+LOG=/var/log/skillfish-scx.log
+MAX=2
+
+case "${1:-esegui}" in
+  azzera) echo 0 > "$CONTA"; echo "contatore azzerato"; exit 0 ;;
+  accendi) mkdir -p "$(dirname "$BANDIERINA")"; touch "$BANDIERINA"
+           echo "bandierina alzata (l'unita' .path fa il resto)"; exit 0 ;;
+  spegni)  rm -f "$BANDIERINA"; echo "bandierina tolta"; exit 0 ;;
+  stato)
+    echo "scheduler: $(cat /sys/kernel/sched_ext/state 2>/dev/null || echo n/d)"
+    echo "in uso:    $(cat /sys/kernel/sched_ext/root/ops 2>/dev/null || echo nessuno)"
+    echo "bandierina: $([ -e "$BANDIERINA" ] && echo presente || echo assente)"
+    echo "espulsioni: $(cat "$CONTA" 2>/dev/null || echo 0) su $MAX"
+    exit 0 ;;
+esac
+
+N=$(cat "$CONTA" 2>/dev/null || echo 0)
+if [ "$N" -ge "$MAX" ]; then
+    echo "$(date +%F' '%T) mi rifiuto di partire: $N espulsioni, resto sullo scheduler di serie" >> "$LOG"
+    exit 0
+fi
+[ -x "$BIN" ] || { echo "$(date +%F' '%T) manca $BIN" >> "$LOG"; exit 0; }
+# ⚠️ nessuna bandierina, nessuno scheduler: se il gioco e' gia' finito (o era
+# solo il test di gamemoded) non c'e' niente da accendere
+if [ ! -e "$BANDIERINA" ]; then
+    echo "$(date +%F' '%T) niente bandierina: non accendo" >> "$LOG"
+    exit 0
+fi
+
+echo "$(date +%F' '%T) accendo $(basename "$BIN")" >> "$LOG"
+"$BIN" >> "$LOG" 2>&1 &
+PID=$!
+trap 'kill "$PID" 2>/dev/null; wait "$PID" 2>/dev/null; exit 0' TERM INT
+
+# la bandierina comanda: quando sparisce si spegne, punto
+while kill -0 "$PID" 2>/dev/null; do
+    if [ ! -e "$BANDIERINA" ]; then
+        echo "$(date +%F' '%T) bandierina sparita: spengo" >> "$LOG"
+        kill "$PID" 2>/dev/null; wait "$PID" 2>/dev/null
+        exit 0
+    fi
+    sleep 1
+done
+wait "$PID"; ESITO=$?
+if [ "$ESITO" -ne 0 ] && tail -20 "$LOG" | grep -qiE "stall|unregister.*error|BPF scheduler.*disabled"; then
+    echo $((N + 1)) > "$CONTA"
+    echo "$(date +%F' '%T) espulso (uscita $ESITO): ora sono $((N + 1)) su $MAX" >> "$LOG"
+fi
+exit 0

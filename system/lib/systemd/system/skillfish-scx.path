@@ -1,0 +1,10 @@
+[Unit]
+Description=SkillFishOS - aspetta che parta un gioco (bandierina di GameMode)
+ConditionPathExists=/sys/kernel/sched_ext
+
+[Install]
+WantedBy=multi-user.target
+
+[Path]
+PathExists=/run/skillfish/gamemode/attivo
+Unit=skillfish-scx.service

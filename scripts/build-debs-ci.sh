@@ -475,25 +475,43 @@ output in the system settings, it applies to every program. Work of MastaG
 installing."
 
 P=skillfish-scx
-put $P 0755 vendor/scx/scx_lavd usr/local/bin/scx_lavd
-put $P 0644 system/etc/systemd/system/skillfish-scx.service etc/systemd/system/skillfish-scx.service
-ctrl $P "systemd" "SkillFishOS scheduler - scx_lavd, the sched_ext scheduler" \
+put $P 0755 vendor/scx/scx_bpfland                        usr/lib/skillfish-scx/scx_bpfland
+put $P 0755 system/usr/bin/skillfish-scx                  usr/bin/skillfish-scx
+put $P 0755 system/usr/bin/skillfish-gamemode-inizio      usr/bin/skillfish-gamemode-inizio
+put $P 0755 system/usr/bin/skillfish-gamemode-fine        usr/bin/skillfish-gamemode-fine
+put $P 0644 system/lib/systemd/system/skillfish-scx.path    lib/systemd/system/skillfish-scx.path
+put $P 0644 system/lib/systemd/system/skillfish-scx.service lib/systemd/system/skillfish-scx.service
+ctrl $P "systemd, gamemode" "SkillFishOS scheduler - scx_bpfland while a game runs" \
   "A CPU scheduler loaded into the kernel through sched_ext, the one CachyOS
-uses. Off by default: measured on the BC-250 over three runs a side it changes
-nothing in Wukong and costs about 9 per cent in Cyberpunk. Turn it on from the
-Tuner if your games disagree."
-# ⚠️ Si accende da solo, ma solo dove ha senso: il servizio ha
-# ConditionPathExists su /sys/kernel/sched_ext, quindi su un kernel senza
-# sched_ext resta fermo in silenzio invece di fallire a ogni avvio.
+uses. It runs ONLY while a game runs: GameMode raises a flag when the game
+starts, a .path unit starts the scheduler, and the flag going away stops it.
+If the kernel ejects it twice the service refuses to start again until the
+counter is reset, because a scheduler that keeps being ejected wedges the
+desktop every forty seconds. Turn it on from the Control Center or from the
+Remote Manager."
+# ⚠️ I GANCI DI GAMEMODE STANNO IN /etc/gamemode.ini, che non e' di nessun
+# pacchetto: Debian ne spedisce solo l'esempio. Quindi il file lo tocchiamo noi,
+# aggiungendo le due righe se non ci sono, e le togliamo quando il pacchetto se
+# ne va. Senza quelle due righe il pacchetto e' installato e non si accende mai:
+# nessun errore, nessun sintomo, solo niente.
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTSCX'
 #!/bin/sh
 set -e
 if [ "$1" = configure ]; then
-    # ⚠️ NON si abilita da solo. Ripetendo le misure (tre giri per parte) lavd
-    # non cambia niente su Wukong e costa il 9 per cento su Cyberpunk. Il
-    # pacchetto c'e' e funziona; lo accende chi vuole, dal Tuner o dal Remote
-    # Manager. Il primo confronto, un giro per parte, diceva il contrario: era
-    # dentro al rumore.
+    INI=/etc/gamemode.ini
+    [ -f "$INI" ] || { [ -f /usr/share/gamemode/gamemode.ini ] && cp /usr/share/gamemode/gamemode.ini "$INI"; }
+    [ -f "$INI" ] || printf '[custom]\n' > "$INI"
+    if ! grep -q 'skillfish-gamemode-inizio' "$INI"; then
+        if grep -q '^\[custom\]' "$INI"; then
+            sed -i 's|^\[custom\]|[custom]\nstart=/usr/bin/skillfish-gamemode-inizio\nend=/usr/bin/skillfish-gamemode-fine|' "$INI"
+        else
+            printf '\n[custom]\nstart=/usr/bin/skillfish-gamemode-inizio\nend=/usr/bin/skillfish-gamemode-fine\n' >> "$INI"
+        fi
+    fi
+    mkdir -p /var/lib/skillfish
+    [ -f /var/lib/skillfish/scx-espulsioni ] || echo 0 > /var/lib/skillfish/scx-espulsioni
+    # ⚠️ NON si accende da solo: il .path si abilita dal Control Center. Il
+    # servizio comunque non parte se il kernel non ha sched_ext.
     systemctl daemon-reload 2>/dev/null || true
 fi
 exit 0
@@ -503,7 +521,9 @@ cat > "$OUT/$P/DEBIAN/prerm" <<'PRESCX'
 #!/bin/sh
 set -e
 if [ "$1" = remove ]; then
-    systemctl disable --now skillfish-scx.service 2>/dev/null || true
+    systemctl disable --now skillfish-scx.path 2>/dev/null || true
+    systemctl stop skillfish-scx.service 2>/dev/null || true
+    sed -i '\|^start=/usr/bin/skillfish-gamemode-inizio$|d; \|^end=/usr/bin/skillfish-gamemode-fine$|d' /etc/gamemode.ini 2>/dev/null || true
 fi
 exit 0
 PRESCX

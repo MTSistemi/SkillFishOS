@@ -1,0 +1,3 @@
+#!/bin/bash
+# GameMode end hook: drop the flag, the service notices within a second.
+exec rm -f /run/skillfish/gamemode/attivo
