@@ -15,6 +15,19 @@
 FLAG=/run/skillfish-freeze-detected
 [ -f "$FLAG" ] || exit 0
 
+# ⚠️ UNA VOLTA SOLA PER AVVIO, non a ogni accesso.
+# Il flag sta in /run, quindi vive quanto l'avvio: questo script parte a ogni
+# accesso e fino al 12/09/2026 rimostrava lo stesso avviso ogni volta che uno
+# usciva e rientrava. Con la modalita' AI, che spegne e riaccende il desktop,
+# sarebbe diventato un avviso a ogni ritorno. Il segno sta accanto al flag,
+# quindi al prossimo avvio riparte tutto pulito.
+#
+# ⚠️ E' PER UTENTE: su una macchina con due profili il secondo deve vederlo
+# comunque, perche' quell'avviso spiega perche' il computer si e' piantato.
+VISTO="$FLAG.visto-$(id -u)"
+[ -e "$VISTO" ] && exit 0
+: > "$VISTO" 2>/dev/null || true
+
 count=$(sed -n 1p "$FLAG" 2>/dev/null)
 profilo=$(sed -n 2p "$FLAG" 2>/dev/null)
 # Flag written by an older skillfish-base: work the profile out ourselves.

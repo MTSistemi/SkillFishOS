@@ -143,6 +143,52 @@ def studio(path, dati=None, key=None, t=8, metodo=None):
         return None
 
 
+def dim_n(n):
+    """12862655 -> 12,9M. Un numero a sette cifre non lo legge nessuno."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return "?"
+    for soglia, suff in ((1000000000, "G"), (1000000, "M"), (1000, "k")):
+        if n >= soglia:
+            return ("%.1f%s" % (n / soglia, suff)).replace(".0", "")
+    return str(n)
+
+
+def cerca_hf(q, limite=40):
+    """I GGUF di Hugging Face che somigliano a quello che uno ha scritto.
+
+    Restituisce (elenco, errore). Ogni voce e' (repo_id, scaricamenti, like).
+
+    ⚠️ Niente chiave: questa API risponde in chiaro a chiunque, ed e' un bene,
+    perche' vuol dire che la ricerca funziona anche su una scheda dove Studio
+    non e' ancora configurato.
+
+    ⚠️ filter=gguf, sempre. Altrimenti escono i modelli in safetensors, che
+    llama.cpp non apre: si vedrebbero nell'elenco, si scaricherebbero decine di
+    gigabyte e si scoprirebbe dopo.
+    """
+    q = (q or "").strip()
+    if not q:
+        return [], L("scrivi qualcosa da cercare", "type something to look for")
+    url = ("https://huggingface.co/api/models?search=%s&filter=gguf"
+           "&sort=downloads&direction=-1&limit=%d"
+           % (urllib.request.quote(q), max(1, min(100, limite))))
+    try:
+        with urllib.request.urlopen(url, timeout=25) as r:
+            dati = json.loads(r.read().decode("utf-8"))
+    except Exception as e:                       # rete assente, HF giu', ...
+        return [], str(e)
+    fuori = []
+    for m in dati:
+        rid = m.get("id") or m.get("modelId")
+        if rid:
+            fuori.append((rid, m.get("downloads") or 0, m.get("likes") or 0))
+    if not fuori:
+        return [], L("nessun modello trovato", "no model found")
+    return fuori, None
+
+
 def crea_chiave(password):
     """Sign in with the Studio password and mint an API key for this machine."""
     r = studio("/api/auth/login", {"username": "unsloth", "password": password})
@@ -367,6 +413,21 @@ class Pagina(PaginaBase):
         self.tab.setMinimumHeight(120)
         self.tab.setMaximumHeight(180)
         self.c_modelli.aggiungi(self.tab)
+        # La ricerca su Hugging Face: sopra la tendina, perche' e' da li' che
+        # si parte quando non si sa gia' come si chiama il modello.
+        r = QHBoxLayout()
+        self.cerca_txt = QLineEdit()
+        self.cerca_txt.setPlaceholderText(
+            L("cerca su Hugging Face: qwen, llama, gemma, coder...",
+              "search Hugging Face: qwen, llama, gemma, coder..."))
+        self.cerca_txt.returnPressed.connect(self._cerca_hf)
+        r.addWidget(self.cerca_txt, 2)
+        b = QPushButton(L("Cerca modelli", "Search models"))
+        b.clicked.connect(self._cerca_hf)
+        r.addWidget(b)
+        self.c_modelli.aggiungi(r)
+        self.r_trovati = self.c_modelli.riga(L("Trovati", "Found"), "—")
+
         r = QHBoxLayout()
         self.repo = QComboBox()
         self.repo.setEditable(True)
@@ -777,8 +838,39 @@ class Pagina(PaginaBase):
             self.toast(r.get("out") or r.get("err") or "?")
 
     # ---- models
+    def _cerca_hf(self):
+        """Cerca su Hugging Face e riempie la tendina con quello che esce."""
+        q = self.cerca_txt.text().strip()
+        if not q:
+            return
+        self.r_trovati.setText(L("cerco...", "searching..."))
+        in_sfondo(lambda: cerca_hf(q), self._trovati_hf, self)
+
+    def _trovati_hf(self, r):
+        elenco, errore = r
+        if errore:
+            self.r_trovati.setText(errore)
+            return
+        # ⚠️ Dopo una ricerca si mostra il PRIMO RISULTATO, non quello che
+        # c'era prima. La prima stesura conservava il valore precedente per non
+        # cancellare quello che uno stava scrivendo: provata sulla scheda, il
+        # risultato era che la tendina non cambiava e la ricerca sembrava non
+        # aver fatto niente.
+        self.repo.clear()
+        for rid, scar, like in elenco:
+            # Gli scaricamenti sono l'unico indizio utile per capire, fra dieci
+            # repository con lo stesso nome, quale usa la gente.
+            self.repo.addItem("%s   (%s ↓)" % (rid, dim_n(scar)), rid)
+        self.r_trovati.setText(L("%d modelli", "%d models") % len(elenco))
+        self.repo.setCurrentIndex(0)
+        # e si guardano subito le quantizzazioni del primo: e' il passo dopo,
+        # e farlo fare a mano sarebbe un clic in piu' per nessun motivo.
+        self._cerca_varianti()
+
     def _cerca_varianti(self):
-        repo = self.repo.currentText().strip()
+        # ⚠️ L'etichetta della tendina ha appeso il numero di scaricamenti:
+        # a Unsloth va l'id nudo, che sta nel dato della voce.
+        repo = (self.repo.currentData() or self.repo.currentText().split("   ")[0]).strip()
         if not repo or "/" not in repo:
             self.toast(L("Indica il repository come utente/nome.", "Give the repository as user/name."))
             return
@@ -813,7 +905,9 @@ class Pagina(PaginaBase):
         if i < 0 or i >= len(self.varianti):
             return
         v = self.varianti[i]
-        repo = self.repo.currentText().strip()
+        # ⚠️ L'etichetta della tendina ha appeso il numero di scaricamenti:
+        # a Unsloth va l'id nudo, che sta nel dato della voce.
+        repo = (self.repo.currentData() or self.repo.currentText().split("   ")[0]).strip()
         self._dl_repo = repo
         self.b_scarica.setEnabled(False)
         self.barra.setValue(0)
