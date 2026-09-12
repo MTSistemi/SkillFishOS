@@ -1100,6 +1100,24 @@ def _cc_proton_dir(dove):
             else os.path.join(casa, ".var/app/com.heroicgameslauncher.hgl/config/heroic/tools/proton"))
 
 
+def _cc_proton_nome_interno(dove, n):
+    """The name Steam knows the tool by, read from compatibilitytool.vdf.
+
+    ⚠️ Not the folder name: GE-Proton11-6 declares itself GE-Proton11-6-x86_64,
+    and a name Steam does not know means the game starts with no Proton at all.
+    """
+    import re as _re
+    try:
+        with open(os.path.join(_cc_proton_dir(dove), n, "compatibilitytool.vdf"),
+                  encoding="utf-8", errors="replace") as f:
+            m = _re.search(r'"compat_tools"\s*\{\s*"([^"]+)"', f.read())
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    return n
+
+
 def cc_proton():
     import re as _re
     out = {}
@@ -1115,6 +1133,7 @@ def cc_proton():
     except Exception:
         pass
     out["default_steam"] = ""
+    out["nomi_interni"] = {d: _cc_proton_nome_interno("steam", d) for d in out.get("steam", [])}
     try:
         with open(os.path.join(user_home(), ".var/app/com.valvesoftware.Steam/data/Steam/config/config.vdf"), encoding="utf-8", errors="replace") as f:
             m = _re.search(r'"CompatToolMapping"\s*\{(.*?)\n\t{4}\}', f.read(), _re.S)
@@ -1148,6 +1167,8 @@ def cc_proton_default(dove, nome):
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "err": str(e)}
+    # from here down it is Steam, which wants the name declared inside the tool
+    nome = _cc_proton_nome_interno("steam", nome)
     try:
         aperto = "com.valvesoftware.Steam" in subprocess.run(["flatpak", "ps", "--columns=application"], capture_output=True, text=True, timeout=10).stdout
     except Exception:

@@ -104,6 +104,25 @@ def _fsr4_set(app, on):
     _scrivi_override(app, c)
 
 
+def nome_interno(cartella, n):
+    """The name Steam knows a compatibility tool by.
+
+    ⚠️ It is NOT the name of the folder. GE-Proton11-6 sits in a folder called
+    GE-Proton11-6 and declares itself "GE-Proton11-6-x86_64"; writing the
+    folder name into config.vdf makes Steam find no tool and start the game's
+    .exe with no Proton, which dies instantly and looks like a broken game.
+    """
+    try:
+        with open(os.path.join(cartella, n, "compatibilitytool.vdf"), encoding="utf-8", errors="replace") as f:
+            t = f.read()
+        m = re.search(r'"compat_tools"\s*\{\s*"([^"]+)"', t)
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    return n
+
+
 def proton_installati():
     out = {}
     for nome, cartella in (("steam", STEAM_TOOLS), ("heroic", HEROIC_TOOLS)):
@@ -452,7 +471,7 @@ class Pagina(PaginaBase):
         for n in nomi:
             dove = []
             if n in inst["steam"]:
-                dove.append("Steam" + (" ★" if n == ds else ""))
+                dove.append("Steam" + (" ★" if ds in (n, nome_interno(STEAM_TOOLS, n)) else ""))
             if n in inst["heroic"]:
                 dove.append("Heroic" + (" ★" if n == dh else ""))
             v = next((x for x in self.versioni if x["nome"] == n), None)
@@ -553,7 +572,7 @@ class Pagina(PaginaBase):
             if steam_aperto():
                 self.toast(L("Chiudi Steam prima: riscrive la configurazione all'uscita.", "Close Steam first: it rewrites its configuration on exit."), 7)
                 return
-            if not self._steam_default(n):
+            if not self._steam_default(nome_interno(STEAM_TOOLS, n)):
                 self.toast(L("Non sono riuscito a scrivere config.vdf.", "Could not write config.vdf."))
             else:
                 self.e_proton.setText(L("%s e' la predefinita di Steam.", "%s is Steam's default.") % n)
