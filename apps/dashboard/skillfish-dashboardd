@@ -1113,15 +1113,19 @@ def _cc_proton_nome_interno(dove, n):
     # il nome arriva anche dalla rete. Non basta guardarne la forma: si accetta
     # solo se e' una delle cartelle che esistono davvero li' dentro, cosi' non
     # c'e' percorso che possa uscire da tools.d
-    base = _cc_proton_dir(dove)
+    base = os.path.realpath(_cc_proton_dir(dove))
     try:
         if n not in os.listdir(base):
             return n
     except OSError:
         return n
+    # e comunque si guarda dove si e' finiti: il percorso deve stare dentro la
+    # cartella degli strumenti, altrimenti non lo si apre
+    dentro = os.path.realpath(os.path.join(base, n, "compatibilitytool.vdf"))
+    if not dentro.startswith(base + os.sep):
+        return n
     try:
-        with open(os.path.join(base, n, "compatibilitytool.vdf"),
-                  encoding="utf-8", errors="replace") as f:
+        with open(dentro, encoding="utf-8", errors="replace") as f:
             m = _re.search(r'"compat_tools"\s*\{\s*"([^"]+)"', f.read())
         if m:
             return m.group(1)

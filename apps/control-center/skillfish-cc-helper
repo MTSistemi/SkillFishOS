@@ -958,8 +958,9 @@ def get():
         fan = {"mode": "curve" if s.get("in_controllo") else "auto", "pct": int(s.get("duty") or 0),
                "rpm": next((int(x["value"]) for x in s.get("sensori", []) if x.get("type") == "fan" and x.get("value")), 0)}
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        # skillfish-fand is not running yet, or the file is mid-write: report the default above
-        fan = {"mode": "auto", "pct": 0, "rpm": 0}
+        # skillfish-fand is not running yet, or the file is mid-write: the
+        # default set above is the answer, there is nothing to add here
+        pass
     out["fan"] = fan
     cu = {"active": 0, "max": 40, "floor": 7, "rows": {"0.0": 7, "0.1": 7, "1.0": 7, "1.1": 7}, "live": False}
     j = cu_get()

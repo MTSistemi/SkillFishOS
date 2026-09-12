@@ -79,5 +79,6 @@ if VECCHIO in s:
     s = s.replace(VECCHIO, NUOVO, 1)
     print("anche ai_downloads")
 
-open(p, "w", encoding="utf-8", newline="\n").write(s)
+with open(p, "w", encoding="utf-8", newline="\n") as f:
+    f.write(s)
 print("fatto")
