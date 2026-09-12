@@ -171,7 +171,7 @@ sh -n "$OUT/DEBIAN/postinst" || { echo "ERRORE: il postinst non e' sh valido" >&
 # ⚠️ LA SCHEDA E L'ICONA VANNO QUI, non in scripts/build-debs-ci.sh.
 # Questo .deb lo scrive questo file, e per questo era l'unico nostro pacchetto
 # che nell'Hub restava senza descrizione tradotta, senza icona e senza note.
-SRC=/root/sfx-src
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"   # la radice del repo, presa da dove sta questo script
 install -Dm644 "$SRC/kernel-build/os.skillfish.kernel-image.metainfo.xml" "$OUT/usr/share/metainfo/os.skillfish.kernel-image.metainfo.xml"
 install -Dm644 "$SRC/system/usr/share/icons/hicolor/scalable/apps/skillfishos-kernel.svg" "$OUT/usr/share/icons/hicolor/scalable/apps/skillfishos-kernel.svg"
 for M in 48 128 256; do
