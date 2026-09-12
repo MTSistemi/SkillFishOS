@@ -1,0 +1,33 @@
+#!/bin/sh
+# La sessione predefinita di SDDM: Plasma su X11.
+#
+# ⚠️ PERCHE' NON BASTA sddm.conf. La chiave `Session=` sotto [Autologin] vale
+# solo per l'accesso automatico. Senza accesso automatico SDDM propone la prima
+# sessione dell'elenco, e plasma.desktop (Wayland) viene prima di
+# plasmax11.desktop in ordine alfabetico: e' cosi' che un'installazione appena
+# fatta nasceva in Wayland. Quello che SDDM guarda davvero e' state.conf, dove
+# tiene l'ultima sessione usata.
+#
+# ⚠️ E NON SI SOVRASCRIVE UNA SCELTA GIA' FATTA. Se state.conf esiste vuol dire
+# che qualcuno ha gia' fatto l'accesso almeno una volta: la sua scelta e' sua.
+# Questo script mette il valore di partenza, non decide per chi ci usa.
+#
+# Su X11 e non Wayland perche' e' quello che gira sulla BC-250: con Wayland
+# quella GPU ha dato grattacapi, e la console di gioco parte in X11.
+set -e
+SESSIONE=/usr/share/xsessions/plasmax11.desktop
+[ -f "$SESSIONE" ] || SESSIONE=/usr/share/xsessions/plasma.desktop
+[ -f "$SESSIONE" ] || exit 0
+
+STATO=/var/lib/sddm/state.conf
+[ -e "$STATO" ] && exit 0
+
+install -d -o sddm -g sddm -m 755 /var/lib/sddm 2>/dev/null || install -d /var/lib/sddm
+cat > "$STATO" <<CONF
+[Last]
+# La sessione proposta al primo accesso. Da qui in avanti la riscrive SDDM con
+# l'ultima che l'utente ha scelto davvero.
+Session=$SESSIONE
+CONF
+chown sddm:sddm "$STATO" 2>/dev/null || true
+chmod 644 "$STATO"

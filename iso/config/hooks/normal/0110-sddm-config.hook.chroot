@@ -27,3 +27,21 @@ InputMethod=
 MaximumUid=60000
 MinimumUid=1000
 SDDM
+
+# La sessione proposta al primo accesso: Plasma su X11, non Wayland.
+#
+# ⚠️ QUI E NON SOLO NEL POSTINST DEL PACCHETTO. Nell'immagine skillfish-boot e'
+# gia' configurato dentro il squashfs: quando l'utente installa, dpkg non
+# riesegue niente, quindi il postinst non arriva mai a creare state.conf. Il
+# file va scritto adesso, nel chroot, e viene ereditato dal sistema installato.
+#
+# Senza, l'installazione nasce in WAYLAND: SDDM al primo accesso propone la
+# prima sessione dell'elenco e plasma.desktop viene prima di plasmax11.desktop.
+# Sulla BC-250 giriamo in X11 di proposito. Verificato installando davvero in
+# macchina virtuale il 12/09/2026: `loginctl` diceva Type=wayland.
+if [ -x /usr/local/bin/skillfish-sessione-x11 ]; then
+    /usr/local/bin/skillfish-sessione-x11
+    echo "[sddm] sessione predefinita: $(grep -h Session= /var/lib/sddm/state.conf 2>/dev/null | tail -1)"
+else
+    echo "[sddm] ATTENZIONE: manca skillfish-sessione-x11 (skillfish-boot non e' entrato)"
+fi

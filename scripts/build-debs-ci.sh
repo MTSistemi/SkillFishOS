@@ -1030,6 +1030,7 @@ P=skillfish-boot
 # perdere quella firma e doverlo firmare con la nostra MOK.
 putdir $P theme/grub/skillfish boot/grub/themes/skillfish
 put $P 0644 system/etc/default/grub.d/80-skillfish-boot.cfg etc/default/grub.d/80-skillfish-boot.cfg
+put $P 0755 system/usr/local/bin/skillfish-sessione-x11 usr/local/bin/skillfish-sessione-x11
 # ⚠️ shim-signed E grub-efi-amd64-signed SONO LA PARTE CHE CONTA.
 # Nel chroot dell'immagine c'era solo grub-efi-amd64-unsigned: firmavamo i
 # kernel e non spedivamo la catena che li verifica, quindi su una scheda col
@@ -1054,6 +1055,8 @@ if [ -d /run/systemd/system ]; then
   if command -v update-grub >/dev/null 2>&1; then
     update-grub >/dev/null 2>&1 || true
   fi
+  # La sessione proposta al primo accesso: Plasma su X11, non Wayland.
+  [ -x /usr/local/bin/skillfish-sessione-x11 ] && /usr/local/bin/skillfish-sessione-x11 || true
 fi
 exit 0
 POSTBOOT
