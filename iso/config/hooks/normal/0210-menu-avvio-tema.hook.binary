@@ -3,7 +3,7 @@ set -e
 # Il menu di avvio dell'immagine: il nostro tema al posto di quello di
 # live-build.
 #
-# ⚠️ COSA C'ERA PRIMA, E PERCHE' ERA SBAGLIATO
+# COSA C'ERA PRIMA, E PERCHE' ERA SBAGLIATO
 # live-build disegna il suo splash.png partendo da config/bootloaders/splash.svg
 # e ci stampa sopra tre segnaposto. Uno, @LINUX_VERSIONS@, resta VUOTO da
 # sempre: il kernel non lo installa apt ma il nostro hook 0005, quindi
@@ -13,17 +13,20 @@ set -e
 # tutta un'altra cosa: il pesce ottone su verde scuro, lo stesso dello splash
 # di Plymouth, e nessuna scritta.
 #
-# ⚠️ GIRA COME .binary, NON .chroot: qui la cartella di lavoro e' binary/, e
-# binary_grub_cfg ha gia' scritto il tema di live-build. Prima e' inutile,
-# dopo binary_iso e' troppo tardi.
+# ⚠️ GIRA COME .binary, NON .chroot: qui la cartella di lavoro e' binary/, e il
+# chroot sta un livello SOPRA (../chroot). Con il percorso sbagliato l'hook non
+# trova niente, lo scrive nel registro e l'immagine esce col tema di
+# live-build: un avviso in mezzo a diecimila righe non lo legge nessuno, per
+# questo adesso si ferma.
 #
-# ⚠️ E il tema arriva dal chroot, non dal repository: e' skillfish-theme che lo
-# porta, cosi' l'immagine e il sistema installato hanno lo stesso file e non
-# due copie da tenere allineate a mano.
-# ⚠️ ../chroot, NON chroot. Un hook .binary gira DENTRO binary/, quindi il
-# chroot sta un livello sopra. Con il percorso sbagliato l'hook non trovava
-# niente, lo diceva nel registro e l'immagine usciva col tema di live-build:
-# un messaggio di avviso in mezzo a diecimila righe non lo legge nessuno.
+# ⚠️ E IL TEMA ARRIVA DAL CHROOT, cioe' da skillfish-boot, non dal repository:
+# l'immagine e il sistema installato usano lo stesso identico file.
+#
+# ⚠️⚠️ DENTRO theme.txt NON SI SCRIVONO COMMENTI NOSTRI.
+# Il 12/09/2026 ci ho messo dentro un commento in italiano, con i simboli di
+# avviso: GRUB ha scartato il tema INTERO ed e' uscito il menu di testo, senza
+# scrivere un errore da nessuna parte. Le spiegazioni stanno qui, nel file che
+# genera il tema, non nel tema.
 TEMA_SRC=../chroot/boot/grub/themes/skillfish
 DEST=boot/grub
 
@@ -42,8 +45,14 @@ cp "$TEMA_SRC/font.pf2"  "$DEST/skillfish.pf2"
 cp "$TEMA_SRC/title.pf2" "$DEST/skillfish-title.pf2"
 
 # La disposizione: quella della scheda, piu' la riga di aiuto in basso che in
-# una live serve (chi la prova non sa che si puo' premere "e").
-cat > "$DEST/live-theme/theme.txt" <<THEME
+# una live serve, perche' chi la prova non sa che si puo' premere "e".
+#
+# ⚠️ OGNI font nominato qui dentro deve essere caricato da theme.cfg, terminal-font
+# compreso: un nome che GRUB non conosce fa scartare il tema intero. Per questo
+# non si usa "Unifont Regular 16" come faceva il tema di live-build: in questa
+# immagine unicode.pf2 non risulta caricato (verificato con lsfonts in macchina
+# virtuale), mentre i nostri due DejaVu si'.
+cat > "$DEST/live-theme/theme.txt" <<'THEME'
 desktop-image: "../splash.png"
 desktop-color: "#0b100b"
 title-text: ""
@@ -78,11 +87,79 @@ terminal-font: "DejaVu Sans Regular 18"
 }
 THEME
 
-# I font e la risoluzione. ⚠️ 800x600 era il valore copiato dall'immagine
-# netinst di Debian: lo sfondo e' 1920x1080 e veniva schiacciato.
-sed -i -e "s|^    set gfxmode=800x600|    set gfxmode=1920x1080,auto|" "$DEST/config.cfg"
-if ! grep -q skillfish.pf2 "$DEST/config.cfg"; then
-    sed -i -e "s|^source /boot/grub/theme.cfg|loadfont \$prefix/skillfish.pf2\nloadfont \$prefix/skillfish-title.pf2\nsource /boot/grub/theme.cfg|" "$DEST/config.cfg"
+# LA MODALITA' GRAFICA SI ACCENDE FUORI DALL'IF, SEMPRE.
+#
+# Questo e' il pezzo che e' costato tre immagini. Il config.cfg di live-build
+# imposta gfxmode e i moduli video DENTRO un `if loadfont $font`, dove $font e'
+# unicode.pf2. In questa immagine quel loadfont FALLISCE (lsfonts, dalla riga di
+# comando di GRUB in macchina virtuale, elencava i nostri due DejaVu e nessun
+# Unifont), quindi si finisce nel ramo else, che si limita a `set gfxmode=auto`
+# senza i moduli EFI. Con quello gfxterm non parte, e senza gfxterm GRUB non usa
+# nessun tema: menu di testo, nessun errore, niente da leggere da nessuna parte.
+#
+# Provato a mano: con `set gfxmode=1920x1080,auto` seguito da
+# `terminal_output gfxterm` il tema compare all'istante. Quindi il file si
+# riscrive per intero, con la sequenza fuori da ogni condizione.
+cat > "$DEST/config.cfg" <<'CONFIGCFG'
+set default=0
+
+# Il font del terminale. Se unicode non si carica non e' un guaio: il tema usa
+# i nostri, caricati da theme.cfg.
+if [ x$feature_default_font_path = xy ] ; then
+    font=unicode
+else
+    font=$prefix/unicode.pf2
+fi
+loadfont $font
+
+# La modalita' grafica, senza condizioni: e' quella che permette a GRUB di
+# usare un tema.
+set gfxmode=1920x1080,auto
+set gfxpayload=keep
+insmod efi_gop
+insmod efi_uga
+insmod video_bochs
+insmod video_cirrus
+insmod all_video
+insmod gfxterm
+insmod png
+
+# Prima il tema (theme.cfg carica i font e imposta la variabile), poi si accende
+# il terminale grafico. E' l'ordine che ho verificato a mano dalla riga di
+# comando di GRUB, ed e' anche quello che gira sulla scheda.
+source /boot/grub/theme.cfg
+
+terminal_output gfxterm
+
+insmod play
+play 960 440 1 0 4 440 1
+CONFIGCFG
+
+# I font si caricano ACCANTO al tema, nello stesso ramo dell'if che lo imposta
+# e con il percorso assoluto: e' la sequenza che gira sulla scheda vera.
+cat > "$DEST/theme.cfg" <<'THEMECFG'
+set color_normal=light-gray/black
+set color_highlight=white/dark-gray
+
+if [ -e /boot/grub/splash.png ]; then
+    loadfont /boot/grub/skillfish.pf2
+    loadfont /boot/grub/skillfish-title.pf2
+    set theme=/boot/grub/live-theme/theme.txt
+    export theme
+else
+    set menu_color_normal=cyan/blue
+    set menu_color_highlight=white/blue
+fi
+THEMECFG
+
+# ⚠️ E ADESSO SI CONTROLLA. Un tema che GRUB scarta non lo dice a nessuno: il
+# menu esce di testo e basta. L'unica cosa che possiamo verificare qui e' che
+# nel file non ci sia finito niente che GRUB non sa leggere, cioe' caratteri
+# fuori dall'ASCII. E' esattamente l'errore che ho fatto il 12/09/2026.
+if LC_ALL=C grep -qP '[^\x00-\x7F]' "$DEST/live-theme/theme.txt" 2>/dev/null; then
+    echo "[menu di avvio] ERRORE: caratteri non ASCII dentro theme.txt" >&2
+    LC_ALL=C grep -nP '[^\x00-\x7F]' "$DEST/live-theme/theme.txt" >&2
+    exit 1
 fi
 
 echo "[menu di avvio] tema SkillFishOS: sfondo, font ottone e 1920x1080"
