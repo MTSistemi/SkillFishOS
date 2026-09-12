@@ -80,7 +80,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.4
+Version: 26.09.5
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -90,11 +90,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.4_all.deb
-Size: 932880
-SHA256: 4ee83a8a366e48d54829f31fe786aa1bcd2c0436d4b8465af83e4ed350167a6b
-SHA1: 10ff9c50626cae3ad387a6f04b4ed360bd09965d
-MD5sum: cd68d914897df0c2226eace30a7720e7
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.5_all.deb
+Size: 933724
+SHA256: 59c2614567c98cd658c2f872bc1d252cce0ec2921e4d11ed390ef5e9eb329e9b
+SHA1: ad3e23bbb47227eff84c3f5b51eb704296c4f118
+MD5sum: 6e679efe81e8a32c8b77f05c4078d4a7
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -103,7 +103,7 @@ Description: SkillFishOS Control Center - every tool in one window
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.09.4
+Version: 26.09.5
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -112,11 +112,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.4_all.deb
-Size: 300740
-SHA256: 750abff17f0d0e318b9b50a97e95e877cefe019fee161e8caa91e4a8837db6bb
-SHA1: 4136e8eb4d853934a6cd7c8068e368aa5a527403
-MD5sum: de921ea72724a4fc5c9166e9e10f10ef
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.5_all.deb
+Size: 301300
+SHA256: dedf8bfc328c5896b9440bb91bd6b62efd6edb676e4738c20f6abaef1e2b5918
+SHA1: cdf495f85a17eea9c922da924469506904b5a911
+MD5sum: 0f38ac2dbad085391524f11b705b6d11
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -380,17 +380,17 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Part of SkillFishOS.
 
 Package: skillfish-vf-governor
-Version: 26.09.12
+Version: 26.09.13
 Architecture: all
 Depends: systemd, python3
 Maintainer: SkillFishOS <info@skillfishos.com>
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.09.12_all.deb
-Size: 36472
-SHA256: 9ce9d45826a359cdb8d64d603ef20ea8ddcd33f59d5934da2c2592f7b3df50e7
-SHA1: 409e01d54c915200d96f93ea8dd603254c6c76ed
-MD5sum: 5d767a3aea628c425a5d68ef85b6cfad
+Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.09.13_all.deb
+Size: 36588
+SHA256: 35e5fd073dde1dfa3dfb7ac69e26da33b76034f730154714c12a070e39a8463c
+SHA1: 3c2c0ccfeef5197d36281c943ec3b27ce14d8fc4
+MD5sum: b37bbfef58da4710a6b50687c9809b60
 Description: SkillFishOS V/F Governor - voltage and frequency control for the BC-250
  Drives the GPU clock and rail directly through the SMU instead of leaving them
  to the stock governor, holding a frequency ceiling that heat and package power
