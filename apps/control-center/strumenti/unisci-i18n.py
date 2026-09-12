@@ -23,7 +23,8 @@ SEGNAPOSTO = re.compile(r"%(?:\.\d+)?[sdf]")
 def carica(p):
     if not os.path.exists(p):
         return {}
-    d = json.load(open(p, encoding="utf-8"))
+    with open(p, encoding="utf-8") as fp:
+        d = json.load(fp)
     return d.get("voci", d) if isinstance(d, dict) else {}
 
 
@@ -36,7 +37,9 @@ def salva(p, d):
 errori = 0
 coppie = {}
 for f in glob.glob(os.path.join(cc, "sfcc", "**", "*.py"), recursive=True):
-    for n in ast.walk(ast.parse(open(f, encoding="utf-8").read())):
+    with open(f, encoding="utf-8") as fp:
+        albero = ast.parse(fp.read())
+    for n in ast.walk(albero):
         if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "L" and len(n.args) == 2:
             it, en = n.args
             if isinstance(it, ast.Constant) and isinstance(en, ast.Constant) and isinstance(en.value, str):

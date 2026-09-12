@@ -13,7 +13,8 @@ import os
 import sys
 
 p = os.path.join(sys.argv[1], "scripts", "build-debs-ci.sh")
-t = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    t = f.read()
 
 # ---- base postinst
 if "skillfish-coreunlock-efi installa" not in t:
@@ -68,5 +69,6 @@ installing."
     t = t.replace(a3, a3 + "check skillfish-audio-dolby_${VER}_all.deb ./usr/local/share/wireplumber/scripts/monitors/alsa.lua 'bc250'\n", 1)
     print("pacchetto skillfish-audio-dolby")
 
-open(p, "w", encoding="utf-8").write(t)
+with open(p, "w", encoding="utf-8") as f:
+    f.write(t)
 print("fatto")

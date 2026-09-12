@@ -23,7 +23,6 @@ import glob
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -100,6 +99,7 @@ def _log(msg):
         syslog.syslog(msg)
         syslog.closelog()
     except Exception:
+        # logging must never be the reason a privileged command fails
         pass
 
 
@@ -112,7 +112,8 @@ def temp(name):
         try:
             if _rd(h + "/name").strip() == name:
                 return int(_rd(h + "/temp1_input")) // 1000
-        except Exception:
+        except (OSError, ValueError):
+            # this hwmon node is not the one, or not readable: try the next one
             pass
     return 0
 
@@ -225,8 +226,9 @@ def gov_get():
     prova = None
     try:
         prova = json.loads(_rd(GOV_PROVA))
-    except Exception:
-        pass
+    except (OSError, json.JSONDecodeError):
+        # no trial in progress, or the file is mid-write: report none
+        prova = None
     return {"ok": True, "conf": gov_leggi(), "attivo": _unit("is-active", GOV_UNIT),
             "abilitato": _unit("is-enabled", GOV_UNIT),
             "stock_attivo": _unit("is-active", GOV_STOCK_UNIT),
@@ -330,7 +332,8 @@ def _cpu_conf():
             m = re.match(r'(\w+)\s*=\s*(-?\d+)', line.strip())
             if m:
                 cpu[m.group(1)] = int(m.group(2))
-    except Exception:
+    except (OSError, ValueError):
+        # no config yet, or a malformed line: keep the defaults set above
         pass
     return cpu
 
@@ -385,8 +388,9 @@ def cpu_cores_get():
     smt = None
     try:
         smt = _rd("/sys/devices/system/cpu/smt/control").strip()
-    except Exception:
-        pass
+    except OSError:
+        # no SMT control on this CPU: report unknown
+        smt = None
     out = [cores[k] for k in sorted(cores)]
     for e in out:
         e["cpus"].sort(key=lambda c: c["cpu"])
@@ -398,7 +402,8 @@ def cpu_cores_set(states):
     for s in states or []:
         try:
             want[int(s["core"])] = bool(s["online"])
-        except Exception:
+        except (KeyError, TypeError, ValueError):
+            # malformed entry: skip it, the rest of the request still applies
             pass
     if not want:
         return {"ok": False, "err": "nessun core specificato"}
@@ -694,7 +699,8 @@ def ventola(azione, dati):
         out = {"ok": p.returncode == 0, "err": (p.stderr or p.stdout or "").strip()}
         try:
             out["dati"] = json.loads(p.stdout)
-        except Exception:
+        except json.JSONDecodeError:
+            # not every action prints JSON: out["ok"]/out["err"] already say enough
             pass
         return out
     except Exception as e:
@@ -730,8 +736,10 @@ def unsloth_conf():
                 try:
                     out["parallel"] = int(line.split("=", 1)[1].strip().strip('"'))
                 except ValueError:
-                    pass
+                    # malformed value: fall back to the default set above
+                    out["parallel"] = 4
     except OSError:
+        # no environment file yet: report the defaults set above
         pass
     out["attivo"] = _unit("is-active", "skillfish-unsloth.service")
     out["abilitato"] = _unit("is-enabled", "skillfish-unsloth.service")
@@ -793,6 +801,7 @@ def _govs_get():
         try:
             out[p] = _rd(p).strip()
         except OSError:
+            # this CPU went offline between the glob and the read: skip it
             pass
     return out
 
@@ -805,6 +814,7 @@ def bench_cpu(secs=60):
         try:
             _wr(p, "performance")
         except OSError:
+            # this CPU refused the governor change: benchmark it as-is
             pass
     samp = {"minf": 99999, "maxt": 0}
     stop = threading.Event()
@@ -830,6 +840,7 @@ def bench_cpu(secs=60):
         try:
             _wr(p, g)
         except OSError:
+            # this CPU went offline during the run: nothing left to restore
             pass
     m = re.search(r'events per second:\s*([\d.]+)', r.stdout)
     eps = float(m.group(1)) if m else 0
@@ -946,8 +957,9 @@ def get():
         s = json.loads(_rd("/run/skillfish/ventola.json"))
         fan = {"mode": "curve" if s.get("in_controllo") else "auto", "pct": int(s.get("duty") or 0),
                "rpm": next((int(x["value"]) for x in s.get("sensori", []) if x.get("type") == "fan" and x.get("value")), 0)}
-    except Exception:
-        pass
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        # skillfish-fand is not running yet, or the file is mid-write: report the default above
+        fan = {"mode": "auto", "pct": 0, "rpm": 0}
     out["fan"] = fan
     cu = {"active": 0, "max": 40, "floor": 7, "rows": {"0.0": 7, "0.1": 7, "1.0": 7, "1.1": 7}, "live": False}
     j = cu_get()

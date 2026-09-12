@@ -245,8 +245,11 @@ def hwmon(nome):
     for h in sorted(os.listdir("/sys/class/hwmon")):
         p = f"/sys/class/hwmon/{h}"
         try:
-            if open(f"{p}/name").read().strip() == "amdgpu":
-                return int(open(f"{p}/{nome}").read().strip())
+            with open(f"{p}/name") as f:
+                nome_chip = f.read().strip()
+            if nome_chip == "amdgpu":
+                with open(f"{p}/{nome}") as f:
+                    return int(f.read().strip())
         except OSError:
             continue
     return None
@@ -279,7 +282,9 @@ def frequenza_vera():
         for h in sorted(os.listdir("/sys/class/hwmon")):
             p = f"/sys/class/hwmon/{h}"
             try:
-                if open(f"{p}/name").read().strip() == "amdgpu":
+                with open(f"{p}/name") as fh:
+                    nome_chip = fh.read().strip()
+                if nome_chip == "amdgpu":
                     _SENSORE_HZ = f"{p}/freq1_input"
                     break
             except OSError:
@@ -289,7 +294,8 @@ def frequenza_vera():
     if not _SENSORE_HZ:
         return None
     try:
-        return int(open(_SENSORE_HZ).read().strip()) // 1000000
+        with open(_SENSORE_HZ) as fh:
+            return int(fh.read().strip()) // 1000000
     except (OSError, ValueError):
         return None
 
@@ -305,7 +311,9 @@ def millivolt():
         for h in sorted(os.listdir("/sys/class/hwmon")):
             p = f"/sys/class/hwmon/{h}"
             try:
-                if open(f"{p}/name").read().strip() == "amdgpu":
+                with open(f"{p}/name") as fh:
+                    nome_chip = fh.read().strip()
+                if nome_chip == "amdgpu":
                     _SENSORE_MV = f"{p}/in0_input"
                     break
             except OSError:
@@ -564,6 +572,7 @@ class Grbm:
             try:
                 os.close(self.fd)
             except OSError:
+                # already closed: nothing left to do
                 pass
 
 
@@ -583,6 +592,7 @@ class Grafica:
                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
             threading.Thread(target=self._leggi, daemon=True).start()
         except FileNotFoundError:
+            # radeontop is not installed: self.valore stays at the 0.0 set above
             pass
 
     def _leggi(self):
@@ -591,6 +601,7 @@ class Grafica:
                 try:
                     self.valore = float(riga.split("gpu ")[1].split("%")[0])
                 except (IndexError, ValueError):
+                    # a line we cannot parse: keep the last good reading
                     pass
 
     def chiudi(self):
@@ -727,6 +738,7 @@ class Traccia:
             os.replace(self.percorso,
                        self.percorso + (".1" if nuovo_giro else ".2"))
         except OSError:
+            # no previous trail to rotate: this is the first run
             pass
         self.f = open(self.percorso, "w")
         self.righe = 0
@@ -1131,6 +1143,7 @@ class Governor:
         try:
             os.unlink(BATTITO)
         except OSError:
+            # already gone: nothing left to remove
             pass
 
     def muovi_tetto(self, ora, t, w):
@@ -1364,7 +1377,8 @@ def main():
 
     c = dict(PREDEFINITA)
     if os.path.exists(a.config):
-        c.update(json.load(open(a.config)))
+        with open(a.config) as f:
+            c.update(json.load(f))
 
     if not a.dry_run and os.geteuid() != 0:
         sys.exit("serve root per parlare col firmware")

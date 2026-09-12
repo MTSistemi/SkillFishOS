@@ -14,18 +14,16 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import tarfile
 import tempfile
 import urllib.request
 
 from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QLabel, QListWidget,
-                             QListWidgetItem, QMessageBox, QProgressBar, QPushButton, QVBoxLayout,
-                             QWidget)
+from PyQt6.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QListWidget,
+                             QListWidgetItem, QMessageBox, QProgressBar)
 
 from .. import stile
-from ..comune import L, Aiuto, sh
+from ..comune import L, sh
 from ..demone import in_sfondo
 from ..finestra import PaginaBase
 from ..stile import Scheda, Stato, griglia_schede, intestazione
@@ -119,6 +117,7 @@ def nome_interno(cartella, n):
         if m:
             return m.group(1)
     except OSError:
+        # no compatibilitytool.vdf, or unreadable: fall back to the folder name
         pass
     return n
 
@@ -151,7 +150,8 @@ def steam_default():
             z = re.search(r'"0"\s*\{[^}]*?"name"\s*"([^"]*)"', m.group(1), re.S)
             if z:
                 return z.group(1)
-    except Exception:
+    except OSError:
+        # no config.vdf, or unreadable: no default tool to report
         pass
     return ""
 
@@ -194,7 +194,11 @@ class Scarica(QThread):
                     for m in tf.getmembers():
                         if m.name.startswith("/") or ".." in m.name.split("/"):
                             raise ValueError("archivio sospetto: %s" % m.name)
-                    tf.extractall(cartella)
+                    try:
+                        tf.extractall(cartella, filter="data")
+                    except TypeError:
+                        # Python < 3.12: extraction filters do not exist yet
+                        tf.extractall(cartella)
             self.finito.emit(True, self.nome)
         except Exception as e:
             self.finito.emit(False, str(e))
@@ -203,6 +207,7 @@ class Scarica(QThread):
                 try:
                     os.unlink(tmp.name)
                 except OSError:
+                    # already gone, or the download never got that far
                     pass
 
 
@@ -395,18 +400,24 @@ class Pagina(PaginaBase):
         rc, en, _ = sh("systemctl is-enabled skillfish-scx.path 2>/dev/null", 5)
         conta = ""
         try:
-            conta = open("/var/lib/skillfish/scx-espulsioni").read().strip()
+            with open("/var/lib/skillfish/scx-espulsioni") as f:
+                conta = f.read().strip()
         except OSError:
+            # counter file missing (kernel without sched_ext): keep the "" above
             pass
         ops = ""
         try:
-            ops = open("/sys/kernel/sched_ext/root/ops").read().strip()
+            with open("/sys/kernel/sched_ext/root/ops") as f:
+                ops = f.read().strip()
         except OSError:
+            # nothing loaded, or no sched_ext support: keep the "" above
             pass
         stato = ""
         try:
-            stato = open("/sys/kernel/sched_ext/state").read().strip()
+            with open("/sys/kernel/sched_ext/state") as f:
+                stato = f.read().strip()
         except OSError:
+            # no sched_ext support: keep the "" above
             pass
         return {"kernel": os.path.isdir("/sys/kernel/sched_ext"), "installato": os.path.exists("/usr/lib/skillfish-scx/scx_bpfland"),
                 "abilitato": en == "enabled", "caricato": stato == "enabled", "nome": ops,

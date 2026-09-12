@@ -48,7 +48,8 @@ def smu(msg, param=0):
 def main():
     if "--stato" in sys.argv:
         try:
-            print("livello:", open(LIVELLO).read().strip())
+            with open(LIVELLO) as f:
+                print("livello:", f.read().strip())
         except OSError as e:
             print("livello: non leggibile (%s)" % e)
         print("canale SMU:", "c'e'" if os.path.exists(NODO) else "assente")

@@ -21,7 +21,8 @@ import sys
 
 repo = sys.argv[1]
 p = os.path.join(repo, "scripts", "build-debs-ci.sh")
-t = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    t = f.read()
 orig = t
 if "P=skillfish-control-center" in t:
     print("gia' applicato")
@@ -170,5 +171,6 @@ check skillfish-snapshots_${VER}_all.deb ./usr/local/bin/skillfish-snapshots 'pa
 check skillfish-ai-panel_${VER}_all.deb ./usr/local/bin/skillfish-ai-panel 'pagina ai'
 '''
 t = t.replace('\necho "\nALL DEBS VERIFIED"', nuovi + '\necho "\nALL DEBS VERIFIED"', 1)
-open(p, "w", encoding="utf-8").write(t)
+with open(p, "w", encoding="utf-8") as f:
+    f.write(t)
 print("patch applicata: %+d righe" % (t.count("\n") - orig.count("\n")))

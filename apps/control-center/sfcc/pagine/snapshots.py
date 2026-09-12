@@ -14,9 +14,7 @@ from PyQt6.QtWidgets import (QButtonGroup, QComboBox, QFrame, QHBoxLayout, QInpu
                              QLineEdit, QMessageBox, QPushButton, QRadioButton, QTabWidget,
                              QTimeEdit, QVBoxLayout, QWidget)
 
-from .. import stile
-from ..comune import L, Aiuto
-from ..demone import in_sfondo
+from ..comune import L
 from ..finestra import PaginaBase
 from ..stile import Scheda, intestazione
 
@@ -42,7 +40,8 @@ class Snapshot:
         try:
             self.quando = datetime.strptime((data_utc or "").strip(), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).astimezone()
         except ValueError:
-            pass
+            # unparsable timestamp: leave self.quando at the None set above
+            self.quando = None
 
     def data_scritta(self):
         if self.quando is None:

@@ -151,6 +151,7 @@ def hwmon_valore(nome_chip, voce):
                 v = leggi_testo(os.path.join(p, voce))
                 return int(v) if v.lstrip("-").isdigit() else None
     except OSError:
+        # chip gone or unreadable: fall through to the None below
         pass
     return None
 

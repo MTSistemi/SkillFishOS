@@ -21,12 +21,14 @@ R = sys.argv[1] if len(sys.argv) > 1 else "/root/sfx-src"
 
 def patch(rel, coppie, tutto=False):
     p = os.path.join(R, rel)
-    s = open(p, encoding="utf-8").read()
+    with open(p, encoding="utf-8") as f:
+        s = f.read()
     for old, new in coppie:
         if old not in s:
             raise SystemExit("%s: blocco non trovato:\n%s" % (rel, old[:120]))
         s = s.replace(old, new) if tutto else s.replace(old, new, 1)
-    open(p, "w", encoding="utf-8").write(s)
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(s)
     print("ok", rel)
 
 

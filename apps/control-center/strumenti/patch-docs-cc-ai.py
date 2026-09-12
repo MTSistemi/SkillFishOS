@@ -121,42 +121,41 @@ AI = {
 with open(GEN, encoding="utf-8") as f:
     s = f.read()
 
-if True:
-    # one language block at a time. Two shapes in this file: the first two
-    # languages live inside the T = { ... } literal, the other seven are
-    # assigned afterwards as T["de"] = dict(...).
-    INIZIO = r'(?:"[a-z]{2}": dict\(|T\["[a-z]{2}"\] = dict\()'
-    blocchi = re.split(r'(?m)^(?=%s)' % INIZIO, s)
-    fuori = []
-    for b in blocchi:
-        m = re.match(r'(?:"([a-z]{2})": dict\(|T\["([a-z]{2})"\] = dict\()', b)
-        lingua = (m.group(1) or m.group(2)) if m else None
-        if not lingua or lingua not in AI or "\n    ai_t=" in b:
-            fuori.append(b)
-            continue
-        titolo, corpo, voce, vram = AI[lingua]
-        # the AI line of the section list
-        nome = titolo[3:]
-        b2, n = re.subn(r'\(\s*"%s",\s*"[^"]*"\)' % re.escape(nome), '("%s", "%s")' % (nome, voce), b, count=1)
-        if not n:
-            raise SystemExit("%s: voce AI non trovata nell'elenco" % lingua)
-        # the VRAM bullet gains the presets
-        b2, n = re.subn(r'(?m)^(- \*\*VRAM\*\*\s?:.*?)$', lambda mm: mm.group(1) + vram, b2, count=1)
-        if not n:
-            raise SystemExit("%s: riga VRAM non trovata" % lingua)
-        # the section itself, before the closing one
-        b2, n = re.subn(r'(?m)^(    fine_t=)', '    ai_t=%r,\n    ai="""%s""",\n\\1' % (titolo, corpo), b2, count=1)
-        if not n:
-            raise SystemExit("%s: fine_t non trovato" % lingua)
-        fuori.append(b2)
-    s = "".join(fuori)
-    # and into the page, between Games and the closing section
-    s = s.replace('d["giochi_t"], d["giochi"], d["fine_t"], d["fine"]))',
-                  'd["giochi_t"], d["giochi"], d["ai_t"], d["ai"], d["fine_t"], d["fine"]))')
-    s = s.replace('%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n"',
-                  '%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n"')
-    with open(GEN, "w", encoding="utf-8", newline="\n") as f:
-        f.write(s)
-    print("generatore aggiornato")
+# one language block at a time. Two shapes in this file: the first two
+# languages live inside the T = { ... } literal, the other seven are
+# assigned afterwards as T["de"] = dict(...).
+INIZIO = r'(?:"[a-z]{2}": dict\(|T\["[a-z]{2}"\] = dict\()'
+blocchi = re.split(r'(?m)^(?=%s)' % INIZIO, s)
+fuori = []
+for b in blocchi:
+    m = re.match(r'(?:"([a-z]{2})": dict\(|T\["([a-z]{2})"\] = dict\()', b)
+    lingua = (m.group(1) or m.group(2)) if m else None
+    if not lingua or lingua not in AI or "\n    ai_t=" in b:
+        fuori.append(b)
+        continue
+    titolo, corpo, voce, vram = AI[lingua]
+    # the AI line of the section list
+    nome = titolo[3:]
+    b2, n = re.subn(r'\(\s*"%s",\s*"[^"]*"\)' % re.escape(nome), '("%s", "%s")' % (nome, voce), b, count=1)
+    if not n:
+        raise SystemExit("%s: voce AI non trovata nell'elenco" % lingua)
+    # the VRAM bullet gains the presets
+    b2, n = re.subn(r'(?m)^(- \*\*VRAM\*\*\s?:.*?)$', lambda mm: mm.group(1) + vram, b2, count=1)
+    if not n:
+        raise SystemExit("%s: riga VRAM non trovata" % lingua)
+    # the section itself, before the closing one
+    b2, n = re.subn(r'(?m)^(    fine_t=)', '    ai_t=%r,\n    ai="""%s""",\n\\1' % (titolo, corpo), b2, count=1)
+    if not n:
+        raise SystemExit("%s: fine_t non trovato" % lingua)
+    fuori.append(b2)
+s = "".join(fuori)
+# and into the page, between Games and the closing section
+s = s.replace('d["giochi_t"], d["giochi"], d["fine_t"], d["fine"]))',
+              'd["giochi_t"], d["giochi"], d["ai_t"], d["ai"], d["fine_t"], d["fine"]))')
+s = s.replace('%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n"',
+              '%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n\\n%s\\n"')
+with open(GEN, "w", encoding="utf-8", newline="\n") as f:
+    f.write(s)
+print("generatore aggiornato")
 
 subprocess.run([sys.executable, GEN, repo], check=True)

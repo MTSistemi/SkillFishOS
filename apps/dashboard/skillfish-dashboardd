@@ -1034,6 +1034,7 @@ def _cc_override_scrivi(app, c):
             os.chown(percorso, uid, gid)
             os.chown(cartella, uid, gid)
         except OSError:
+            # not running as root, or the user is gone: the file is still written
             pass
 
 
@@ -1107,6 +1108,10 @@ def _cc_proton_nome_interno(dove, n):
     and a name Steam does not know means the game starts with no Proton at all.
     """
     import re as _re
+    # il nome arriva anche dalla rete: qui si pretende che sia un nome di
+    # cartella e nient'altro, cosi' nessun ".." puo' uscire da tools.d
+    if not _re.match(r"^[A-Za-z0-9._-]+$", n or "") or n in (".", ".."):
+        return n
     try:
         with open(os.path.join(_cc_proton_dir(dove), n, "compatibilitytool.vdf"),
                   encoding="utf-8", errors="replace") as f:
@@ -1114,6 +1119,7 @@ def _cc_proton_nome_interno(dove, n):
         if m:
             return m.group(1)
     except OSError:
+        # no compatibilitytool.vdf, or unreadable: fall back to the folder name
         pass
     return n
 
@@ -1130,8 +1136,9 @@ def cc_proton():
     try:
         with open(os.path.join(user_home(), ".var/app/com.heroicgameslauncher.hgl/config/heroic/config.json")) as f:
             out["default_heroic"] = (json.load(f).get("defaultSettings", {}).get("wineVersion") or {}).get("name", "")
-    except Exception:
-        pass
+    except (OSError, json.JSONDecodeError):
+        # Heroic not installed, or its config is mid-write: report the "" above
+        out["default_heroic"] = ""
     out["default_steam"] = ""
     out["nomi_interni"] = {d: _cc_proton_nome_interno("steam", d) for d in out.get("steam", [])}
     try:
@@ -1141,8 +1148,9 @@ def cc_proton():
             z = _re.search(r'"0"\s*\{[^}]*?"name"\s*"([^"]*)"', m.group(1), _re.S)
             if z:
                 out["default_steam"] = z.group(1)
-    except Exception:
-        pass
+    except OSError:
+        # Steam not installed, or no config.vdf yet: report the "" above
+        out["default_steam"] = ""
     return out
 
 
@@ -1265,6 +1273,7 @@ class ProvaCpuWeb:
             try:
                 p.terminate()
             except OSError:
+                # already exited: nothing left to stop
                 pass
         return {"ok": True}
 
@@ -1318,6 +1327,7 @@ class ProvaCpuWeb:
             tuner_cmd([{"cmd": "apply-cpu", "mhz": int(cfg.get("frequency", 3500)),
                         "scale": int(cfg.get("scale", 0)), "temp": int(cfg.get("max_temperature", 85))}])
         except Exception:
+            # best-effort restore after the trial: a failure here should not crash the run
             pass
         with self.lock:
             self.fermata = self.stop
@@ -1363,10 +1373,14 @@ def cc_gov():
     try:
         for h in os.listdir("/sys/class/hwmon"):
             p = "/sys/class/hwmon/" + h
-            if open(p + "/name").read().strip() == "amdgpu":
-                r["mv"] = int(open(p + "/in0_input").read().strip())
+            with open(p + "/name") as f:
+                nome_chip = f.read().strip()
+            if nome_chip == "amdgpu":
+                with open(p + "/in0_input") as f:
+                    r["mv"] = int(f.read().strip())
                 break
-    except Exception:
+    except (OSError, ValueError):
+        # no amdgpu hwmon node, or it went away mid-read: report without "mv"
         pass
     try:
         with open(CC_CURVA_PREDEFINITA) as f:
@@ -1404,15 +1418,18 @@ def cc_profili():
                 d = json.load(f)
             if isinstance(d, dict):
                 profili.update(d)
-        except Exception:
+        except (OSError, json.JSONDecodeError):
+            # this profiles file is missing or malformed: skip it, keep the rest
             pass
     g = _cc_conf_governor()
     fan = ventola_conf() or {}
     m = None
     try:
-        m = _re.search(r"frequency\s*=\s*(\d+)", open("/etc/bc250-smu-oc.conf").read())
-    except Exception:
-        pass
+        with open("/etc/bc250-smu-oc.conf") as f:
+            m = _re.search(r"frequency\s*=\s*(\d+)", f.read())
+    except OSError:
+        # no CPU overclock config yet: report no frequency below
+        m = None
     scx_on = subprocess.run(["systemctl", "is-enabled", "skillfish-scx.path"], capture_output=True, text=True).stdout.strip() == "enabled"
     stato = {"tetto": int(g.get("freq_max", 0) or 0), "cpu": int(m.group(1)) if m else 0,
              "ventola": fan.get("preset", ""), "scx": scx_on}
@@ -1439,8 +1456,9 @@ def cc_profilo_applica(chiave):
             errori.append("GPU: " + str(r.get("err", "?")))
     if p.get("cpu"):
         try:
-            t = open("/etc/bc250-smu-oc.conf").read()
-        except Exception:
+            with open("/etc/bc250-smu-oc.conf") as f:
+                t = f.read()
+        except OSError:
             t = ""
         sc = _re.search(r"scale\s*=\s*(-?\d+)", t)
         tp = _re.search(r"max_temperature\s*=\s*(\d+)", t)
@@ -1967,7 +1985,8 @@ def _unsloth_home():
         out = subprocess.run(["loginctl", "list-sessions", "--no-legend"], capture_output=True,
                              text=True, timeout=5).stdout
         candidati += [ln.split()[2] for ln in out.splitlines() if len(ln.split()) > 2]
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
+        # no logind session to ask: fall back to the other candidates below
         pass
     candidati += [p.pw_name for p in pwd.getpwall() if 1000 <= p.pw_uid < 65534]
     for u in candidati:
@@ -2044,8 +2063,10 @@ def _unsloth_conf_read():
                     try:
                         out["parallel"] = int(line.split("=", 1)[1].strip().strip('"'))
                     except ValueError:
-                        pass
+                        # malformed value: fall back to the default set above
+                        out["parallel"] = 4
     except OSError:
+        # no environment file yet: report the defaults set above
         pass
     out["lan"] = out["bind"] not in ("127.0.0.1", "localhost", "::1")
     r = subprocess.run(["systemctl", "is-enabled", UNSLOTH_SVC], capture_output=True, text=True)
@@ -2161,6 +2182,11 @@ def ai_variants(repo):
     key = _unsloth_key()
     if not key or not repo or "/" not in repo:
         return {"ok": False, "error": "key or repository missing"}
+    # un repository di Hugging Face e' utente/nome: due pezzi, niente altro.
+    # Il valore arriva dal browser e finisce dentro un indirizzo: si controlla
+    # la forma prima, non ci si affida a quote()
+    if not re.match(r"^[A-Za-z0-9._-]{1,80}/[A-Za-z0-9._-]{1,120}$", repo):
+        return {"ok": False, "error": "nome del repository non valido"}
     r = _studio("/api/hub/gguf-variants?repo_id=" + urllib.parse.quote(repo, safe=""), key=key, t=40)
     if not r or r.get("_error"):
         return {"ok": False, "error": (r or {}).get("detail") or "no answer"}
@@ -2173,6 +2199,10 @@ def ai_download(repo, variant):
     key = _unsloth_key()
     if not key or not repo:
         return {"ok": False, "error": "key or repository missing"}
+    if not re.match(r"^[A-Za-z0-9._-]{1,80}/[A-Za-z0-9._-]{1,120}$", repo):
+        return {"ok": False, "error": "nome del repository non valido"}
+    if variant is not None and not re.match(r"^[A-Za-z0-9._-]{1,60}$", str(variant)):
+        return {"ok": False, "error": "variante non valida"}
     r = _studio("/api/hub/download", {"repo_id": repo, "gguf_variant": variant}, key=key, t=40)
     if not r or r.get("_error") or not (r.get("accepted") or r.get("state") == "running"):
         return {"ok": False, "error": (r or {}).get("detail") or "Studio did not accept the download"}
@@ -2187,6 +2217,8 @@ def ai_downloads():
     out = []
     for d in att:
         repo = d.get("repo_id") or ""
+        if not re.match(r"^[A-Za-z0-9._-]{1,80}/[A-Za-z0-9._-]{1,120}$", repo or ""):
+            continue
         prog = _studio("/api/hub/download-progress?repo_id=" + urllib.parse.quote(repo, safe=""), key=key, t=6) or {}
         tot = prog.get("expected_bytes") or prog.get("total_bytes") or 0
         done = prog.get("downloaded_bytes") or 0

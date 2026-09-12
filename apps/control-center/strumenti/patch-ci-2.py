@@ -13,7 +13,8 @@ import os
 import sys
 
 p = os.path.join(sys.argv[1], "scripts", "build-debs-ci.sh")
-t = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    t = f.read()
 
 # ---- skillfish-base: after the existing ACPI puts
 a = "put $P 0644 system/usr/share/skillfish/acpi/SSDT-CST.dsl              usr/share/skillfish/acpi/SSDT-CST.dsl\n"
@@ -49,5 +50,6 @@ sed -i 's/^Recommends: .*/&, python3-evdev/' "$OUT/$P/DEBIAN/control"
 """ + t[j:]
     print("control-center: python3-evdev")
 
-open(p, "w", encoding="utf-8").write(t)
+with open(p, "w", encoding="utf-8") as f:
+    f.write(t)
 print("fatto")

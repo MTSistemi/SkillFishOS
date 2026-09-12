@@ -18,7 +18,7 @@ import time
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPen
 from PyQt6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
-                             QMessageBox, QPushButton, QScrollArea, QSlider, QVBoxLayout, QWidget)
+                             QMessageBox, QPushButton, QScrollArea, QSlider, QWidget)
 
 from .. import stile
 from ..comune import L, battito, hwmon_valore, leggi_json, VENTOLA_STATO
@@ -102,7 +102,8 @@ def cpu_threads():
                     cur = int(ln.split(":")[1])
                 elif ln.lower().startswith("cpu mhz") and cur is not None:
                     mhz[cur] = float(ln.split(":")[1])
-    except Exception:
+    except (OSError, ValueError, IndexError):
+        # per-thread MHz is a nicety: without it the bars just stay at zero
         pass
     out = []
     for c in cpus:
@@ -514,6 +515,7 @@ class Pagina(PaginaBase):
                         try:
                             d[k] = float(val)
                         except ValueError:
+                            # not a number: leave this reading out of the row instead of a fake zero
                             pass
                     righe.append((t, d))
         except Exception as e:

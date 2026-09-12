@@ -111,6 +111,7 @@ class Traccia:
             os.replace(self.percorso,
                        self.percorso + (".1" if nuovo_giro else ".2"))
         except OSError:
+            # no previous trail to rotate: this is the first run
             pass
         self.f = open(self.percorso, "w")
         self.righe = 0
@@ -226,8 +227,11 @@ def gradi():
     for h in sorted(os.listdir("/sys/class/hwmon")):
         p = f"/sys/class/hwmon/{h}"
         try:
-            if open(f"{p}/name").read().strip() == "amdgpu":
-                return int(open(f"{p}/temp1_input").read().strip()) // 1000
+            with open(f"{p}/name") as f:
+                nome_chip = f.read().strip()
+            if nome_chip == "amdgpu":
+                with open(f"{p}/temp1_input") as f:
+                    return int(f.read().strip()) // 1000
         except OSError:
             continue
     return 0
@@ -341,7 +345,8 @@ def main():
             continue
 
         try:
-            eta = time.time() - float(open(BATTITO).read().split()[0])
+            with open(BATTITO) as f:
+                eta = time.time() - float(f.read().split()[0])
         except (OSError, ValueError, IndexError):
             # No heartbeat at all: either it never started, or it is gone. Only
             # act if we had seen one, so this can be left running harmlessly

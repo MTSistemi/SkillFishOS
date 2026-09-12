@@ -15,14 +15,14 @@ compatibilitytool.vdf now, and both accept either name when they say which one
 is the default, so a configuration written before this still reads right.
 """
 import os
-import re
 import sys
 
 repo = sys.argv[1] if len(sys.argv) > 1 else "."
 
 # ---------------------------------------------------------------- the window
 p = os.path.join(repo, "apps", "control-center", "sfcc", "pagine", "giochi.py")
-s = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    s = f.read()
 
 if "def nome_interno" not in s:
     NUOVA = '''def nome_interno(cartella, n):
@@ -55,12 +55,14 @@ s = s.replace('''            if not self._steam_default(n):''',
 s = s.replace('''                dove.append("Steam" + (" ★" if n == ds else ""))''',
               '''                dove.append("Steam" + (" ★" if ds in (n, nome_interno(STEAM_TOOLS, n)) else ""))''', 1)
 
-open(p, "w", encoding="utf-8", newline="\n").write(s)
+with open(p, "w", encoding="utf-8", newline="\n") as f:
+    f.write(s)
 print("ok apps/control-center/sfcc/pagine/giochi.py")
 
 # ------------------------------------------------------- the Remote Manager
 p = os.path.join(repo, "apps", "dashboard", "skillfish-dashboardd")
-s = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    s = f.read()
 
 if "def _cc_proton_nome_interno" not in s:
     NUOVA = '''def _cc_proton_nome_interno(dove, n):
@@ -88,19 +90,22 @@ def cc_proton():'''
                   '''    out["default_steam"] = ""
     out["nomi_interni"] = {d: _cc_proton_nome_interno("steam", d) for d in out.get("steam", [])}''', 1)
 
-open(p, "w", encoding="utf-8", newline="\n").write(s)
+with open(p, "w", encoding="utf-8", newline="\n") as f:
+    f.write(s)
 print("ok apps/dashboard/skillfish-dashboardd")
 
 # the writer of the default, in the dashboard: the Steam branch is what comes
 # after the Heroic one returns, so the name is translated right before it
-s = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    s = f.read()
 ANCORA = '''    try:
         aperto = "com.valvesoftware.Steam" in subprocess.run(["flatpak", "ps", "--columns=application"], capture_output=True, text=True, timeout=10).stdout'''
 if ANCORA in s and "_cc_proton_nome_interno(\"steam\", nome)" not in s:
     s = s.replace(ANCORA,
                   '    # from here down it is Steam, which wants the name declared inside the tool\n'
                   '    nome = _cc_proton_nome_interno("steam", nome)\n' + ANCORA, 1)
-    open(p, "w", encoding="utf-8", newline="\n").write(s)
+    with open(p, "w", encoding="utf-8", newline="\n") as f:
+        f.write(s)
     print("ok cc_proton_default")
 else:
     print("cc_proton_default: gia' a posto o ancora non trovata")

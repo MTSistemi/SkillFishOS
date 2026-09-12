@@ -244,6 +244,7 @@ class Finestra(QMainWindow):
                 if hasattr(p, "chiudi"):
                     p.chiudi()
             except Exception:
+                # closing time: one misbehaving page must not stop the others from cleaning up
                 pass
         self.demone.chiudi()
         super().closeEvent(ev)

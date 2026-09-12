@@ -6,10 +6,6 @@ publishes what it reads in /run/skillfish/ventola.json; this page draws that
 and writes the curve through the helper. The split is deliberate: cooling
 must not depend on a window being open.
 """
-import json
-import os
-import sys
-
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
                              QHBoxLayout, QInputDialog, QLabel, QMessageBox, QPushButton,

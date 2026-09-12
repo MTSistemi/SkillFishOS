@@ -9,7 +9,8 @@ import os
 import sys
 
 p = os.path.join(sys.argv[1], "website", "src", "news.ts")
-t = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    t = f.read()
 if "control-center-2026-09" in t:
     print("gia' presente")
     sys.exit(0)
@@ -45,5 +46,6 @@ voce = r'''  {
 a = "export const news: Post[] = [\n"
 assert a in t
 t = t.replace(a, a + voce, 1)
-open(p, "w", encoding="utf-8").write(t)
+with open(p, "w", encoding="utf-8") as f:
+    f.write(t)
 print("novita' aggiunta")

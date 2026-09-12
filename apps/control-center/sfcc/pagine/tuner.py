@@ -147,6 +147,7 @@ class ProvaCpu(QThread):
             try:
                 p.terminate()
             except OSError:
+                # already exited: nothing left to stop
                 pass
 
     def run(self):

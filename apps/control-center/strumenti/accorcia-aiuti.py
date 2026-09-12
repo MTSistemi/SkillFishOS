@@ -85,13 +85,15 @@ def sostituisci(testo, pezzo, it, en):
 tot = 0
 for f, pezzo, it, en in CAMBI:
     p = os.path.join(base, f)
-    t = open(p, encoding="utf-8").read()
+    with open(p, encoding="utf-8") as fp:
+        t = fp.read()
     if it in t:
         continue
     t, ok = sostituisci(t, pezzo, it, en)
     if not ok:
         print("NON TROVATO:", f, pezzo)
         continue
-    open(p, "w", encoding="utf-8").write(t)
+    with open(p, "w", encoding="utf-8") as fp:
+        fp.write(t)
     tot += 1
 print("accorciati:", tot)

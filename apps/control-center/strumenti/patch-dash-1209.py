@@ -16,12 +16,14 @@ R = sys.argv[1] if len(sys.argv) > 1 else "/root/sfx-src"
 
 def patch(rel, coppie):
     p = os.path.join(R, rel)
-    s = open(p, encoding="utf-8").read()
+    with open(p, encoding="utf-8") as f:
+        s = f.read()
     for old, new in coppie:
         if old not in s:
             raise SystemExit("%s: blocco non trovato:\n%s" % (rel, old[:160]))
         s = s.replace(old, new, 1)
-    open(p, "w", encoding="utf-8").write(s)
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(s)
     print("ok", rel)
 
 
@@ -349,7 +351,8 @@ patch(D, [
 
 # ---- app.js: the card ---------------------------------------------------------------
 J = os.path.join(R, "apps/dashboard/web/app.js")
-s = open(J, encoding="utf-8").read()
+with open(J, encoding="utf-8") as f:
+    s = f.read()
 i = s.index("  ai(card) {\n")
 j = s.index("\n  },\n", i) + len("\n  },\n")
 
@@ -516,5 +519,6 @@ STR_NUOVE = r'''const STR = {
 '''
 assert "const STR = {\n" in s
 s = s.replace("const STR = {\n", STR_NUOVE, 1)
-open(J, "w", encoding="utf-8").write(s)
+with open(J, "w", encoding="utf-8") as f:
+    f.write(s)
 print("ok apps/dashboard/web/app.js")

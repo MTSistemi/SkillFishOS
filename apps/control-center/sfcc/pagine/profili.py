@@ -6,12 +6,8 @@ A profile is a small dictionary; the shipped three live in
 Applying a profile does not touch the curve itself: it moves the ceiling
 within the curve that is already there, which is why it needs no trial.
 """
-import os
+from PyQt6.QtWidgets import QHBoxLayout, QInputDialog, QMessageBox, QPushButton, QWidget
 
-from PyQt6.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QInputDialog,
-                             QLabel, QMessageBox, QPushButton, QSpinBox, QVBoxLayout, QWidget)
-
-from .. import stile
 from ..comune import (GOV_CONF, PROFILI_SISTEMA, PROFILI_UTENTE, VENTOLA_CONF, L, Aiuto,
                       leggi_json, leggi_testo, scrivi_json, sh)
 from ..finestra import PaginaBase

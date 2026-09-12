@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QWidget
+from PyQt6.QtWidgets import QLabel, QMessageBox
 
 from .. import stile
 from ..comune import (CU_STATO, FREEZE_FLAG, FREEZE_LOG, GOV_CONF, L, VENTOLA_STATO, battito,
@@ -153,8 +153,9 @@ class Pagina(PaginaBase):
             if m:
                 info = m.group(1).strip()
                 out["sistema"] = (L("nostra", "ours") + " (%s)" % info) if "git-" in info else info
-        except Exception:
-            pass
+        except (OSError, subprocess.SubprocessError):
+            # vulkaninfo missing or timed out: leave the "?" placeholder set above
+            out["sistema"] = "?"
         try:
             r = subprocess.run(["/usr/bin/skillfish-mesa", "stato"], capture_output=True, text=True, timeout=10)
             nomi = {"com.valvesoftware.Steam": "Steam", "com.heroicgameslauncher.hgl": "Heroic"}

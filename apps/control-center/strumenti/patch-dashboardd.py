@@ -16,7 +16,8 @@ D = os.path.join(repo, "apps", "dashboard", "skillfish-dashboardd")
 A = os.path.join(repo, "apps", "dashboard", "web", "app.js")
 CI = os.path.join(repo, "scripts", "build-debs-ci.sh")
 
-t = open(D, encoding="utf-8").read()
+with open(D, encoding="utf-8") as f:
+    t = f.read()
 if "def cc_giochi" in t:
     print("dashboardd: gia' applicato")
 else:
@@ -403,11 +404,13 @@ def cc_profilo_applica(chiave):
     a = '        if path == "/api/hub/op":'
     assert a in t
     t = t.replace(a, post_routes + a, 1)
-    open(D, "w", encoding="utf-8").write(t)
+    with open(D, "w", encoding="utf-8") as f:
+        f.write(t)
     print("dashboardd: patch applicata")
 
 # ---- app.js: the two cards ----------------------------------------------------
-j = open(A, encoding="utf-8").read()
+with open(A, encoding="utf-8") as f:
+    j = f.read()
 if "async giochi(card)" in j:
     print("app.js: gia' applicato")
 else:
@@ -444,16 +447,19 @@ else:
     a = "  async ventola(card) {"
     assert a in j
     j = j.replace(a, cards + a, 1)
-    open(A, "w", encoding="utf-8").write(j)
+    with open(A, "w", encoding="utf-8") as f:
+        f.write(j)
     print("app.js: patch applicata")
 
 # ---- the CI script: the two pages ------------------------------------------------
-c = open(CI, encoding="utf-8").read()
+with open(CI, encoding="utf-8") as f:
+    c = f.read()
 if "web/giochi.html" in c:
     print("ci: gia' applicato")
 else:
     a = "put $P 0644 apps/dashboard/web/tuner.html  usr/share/skillfish/dashboard/tuner.html\n"
     assert a in c
     c = c.replace(a, a + "# the Control Center sections, mirrored on the web\nput $P 0644 apps/dashboard/web/giochi.html usr/share/skillfish/dashboard/giochi.html\nput $P 0644 apps/dashboard/web/profili.html usr/share/skillfish/dashboard/profili.html\n", 1)
-    open(CI, "w", encoding="utf-8").write(c)
+    with open(CI, "w", encoding="utf-8") as f:
+        f.write(c)
     print("ci: patch applicata")

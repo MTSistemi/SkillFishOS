@@ -73,6 +73,7 @@ class Demone:
                 try:
                     self.p.kill()
                 except Exception:
+                    # already dead: nothing left to kill
                     pass
         self.p = None
 

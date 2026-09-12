@@ -8,7 +8,7 @@ desktop" inside it, brings the desktop back with every window where it was.
 import os
 import subprocess
 
-from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel
 
 from ..comune import IMPOSTAZIONI, L, leggi_json, scrivi_json, sh
 from ..finestra import PaginaBase

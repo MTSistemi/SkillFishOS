@@ -460,5 +460,6 @@ for lingua, d in T.items():
              % (q(d["title"]), q(d["desc"]), GRUPPO[lingua])
              + "\n\n".join(pezzi) + "\n")
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    open(p, "w", encoding="utf-8").write(testo)
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(testo)
     print(lingua, len(testo))

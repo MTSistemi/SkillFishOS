@@ -11,13 +11,15 @@ repo = sys.argv[1]
 
 def patch(rel, coppie):
     p = os.path.join(repo, rel)
-    t = open(p, encoding="utf-8").read()
+    with open(p, encoding="utf-8") as f:
+        t = f.read()
     for vecchio, nuovo in coppie:
         if nuovo in t:
             continue
         assert vecchio in t, (rel, vecchio[:60])
         t = t.replace(vecchio, nuovo, 1)
-    open(p, "w", encoding="utf-8").write(t)
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(t)
     print("ok", rel)
 
 

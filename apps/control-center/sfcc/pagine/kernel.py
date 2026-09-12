@@ -4,7 +4,7 @@ import glob
 import os
 
 from PyQt6.QtWidgets import (QButtonGroup, QFrame, QHBoxLayout, QLabel, QMessageBox, QRadioButton,
-                             QVBoxLayout, QWidget)
+                             QVBoxLayout)
 
 from .. import stile
 from ..comune import L, leggi_testo, sh
@@ -34,6 +34,7 @@ def dimensione_mb(kv):
         try:
             tot += os.path.getsize(p)
         except OSError:
+            # this piece is missing on this kernel: just skip it
             pass
     md = "/usr/lib/modules/%s" % kv
     if not os.path.isdir(md):
@@ -42,6 +43,7 @@ def dimensione_mb(kv):
     try:
         tot += int(out.split()[0])
     except (ValueError, IndexError):
+        # du failed or gave no output: modules size stays out of the total
         pass
     return tot / 1e6
 

@@ -10,10 +10,8 @@ import os
 import subprocess
 
 from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
-                             QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton
 
-from .. import stile
 from ..comune import L, leggi_testo, sh
 from ..finestra import PaginaBase
 from ..stile import Scheda, Stato, griglia_schede, intestazione

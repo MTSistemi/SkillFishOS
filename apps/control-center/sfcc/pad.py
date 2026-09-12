@@ -9,7 +9,6 @@ Reads /dev/input through python3-evdev; when the module or the device is
 missing the window simply works without it. Hot-plug: the scan is repeated
 every few seconds while no pad is attached.
 """
-import os
 import threading
 import time
 
@@ -78,11 +77,13 @@ class Pad(QObject):
             try:
                 self._leggi(dev)
             except OSError:
+                # the pad was unplugged mid-read: the outer loop scans for another one
                 pass
             finally:
                 try:
                     dev.close()
                 except OSError:
+                    # already gone: nothing left to close
                     pass
             self.nome = ""
             self.collegato.emit(False)

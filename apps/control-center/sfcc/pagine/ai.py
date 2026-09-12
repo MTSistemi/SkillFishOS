@@ -28,11 +28,10 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QLabel, QLineEdi
                              QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView,
                              QAbstractItemView)
 
-from .. import stile
-from ..comune import L, Aiuto, leggi_testo, sh
+from ..comune import L, leggi_testo, sh
 from ..demone import in_sfondo
 from ..finestra import PaginaBase
-from ..stile import Numerone, Scheda, Stato, griglia_schede, intestazione
+from ..stile import Scheda, Stato, griglia_schede, intestazione
 
 UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
 UNSLOTH_UPDATE = "/usr/local/bin/skillfish-unsloth-update"
@@ -105,6 +104,7 @@ def salva_chiave(valore):
         try:
             os.remove(CHIAVE_F)
         except OSError:
+            # already gone, or not readable: either way there is nothing left to remove
             pass
         return
     fd = os.open(CHIAVE_F, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -183,7 +183,8 @@ def leggi_default():
             try:
                 out["parallel"] = int(line.split("=", 1)[1].strip().strip('"'))
             except ValueError:
-                pass
+                # malformed value: fall back to the default set above
+                out["parallel"] = 4
     return out
 
 

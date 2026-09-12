@@ -14,7 +14,8 @@ import os
 import sys
 
 p = os.path.join(sys.argv[1], "apps", "dashboard", "skillfish-dashboardd")
-t = open(p, encoding="utf-8").read()
+with open(p, encoding="utf-8") as f:
+    t = f.read()
 
 if "class ProvaCpuWeb" not in t:
     a = "\ndef cc_gov():\n"
@@ -204,5 +205,6 @@ if '"/api/tuner/cpu-prova"' not in t:
 ''' + b, 1)
     print("rotte cpu-prova e coreunlock")
 
-open(p, "w", encoding="utf-8").write(t)
+with open(p, "w", encoding="utf-8") as f:
+    f.write(t)
 print("fatto")
