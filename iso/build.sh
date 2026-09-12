@@ -2,9 +2,35 @@
 set -e
 cd "$(dirname "$0")"
 
+# ⚠️ QUALE EDIZIONE. Ne pubblichiamo due e finora questo file ne costruiva una
+# sola, con dentro anche i pacchetti dell'altra. L'edizione decide tre cose
+# INSIEME, e sbagliarne una sola da' un'immagine che sembra giusta e non parte:
+#
+#   EDIZIONE=generic  kernel 7.2.5-skillfishos-x64  lista BC-250 esclusa
+#   EDIZIONE=bc250    kernel 7.2.5-skillfishos      lista BC-250 inclusa
+#
+EDIZIONE="${EDIZIONE:-generic}"
+case "$EDIZIONE" in
+    bc250)   SAPORE="7.2.5-skillfishos";     VARIANTE="bc250"; DESCR="BC-250 (znver2)" ;;
+    generic) SAPORE="7.2.5-skillfishos-x64"; VARIANTE="x64";   DESCR="generic x86-64" ;;
+    *) echo "EDIZIONE sconosciuta: $EDIZIONE (bc250 o generic)" >&2; exit 2 ;;
+esac
+export SKILLFISH_KERNEL_VARIANT="$VARIANTE"
+export SKILLFISH_LINUX_FLAVOUR="$SAPORE"
+
 echo "=== SkillFish OS Build ==="
-echo "Distribution: Debian sid | Desktop: KDE Plasma 6 | Kernel: linux-tkg 7.1.7 (BORE/znver2/BC-250)"
+echo "Edizione: $EDIZIONE | Kernel: linux-tkg $SAPORE ($DESCR)"
+echo "Distribution: Debian sid | Desktop: KDE Plasma 6"
 echo ""
+
+# La lista dell'hardware BC-250 entra solo nell'edizione della scheda: la
+# nostra Mesa e' il driver della gfx1013, su un PC normale non ha senso.
+LISTA_BC=config/package-lists/30-hardware-bc250.list.chroot
+if [ "$EDIZIONE" = "bc250" ]; then
+    [ -f "$LISTA_BC.esclusa" ] && mv "$LISTA_BC.esclusa" "$LISTA_BC"
+else
+    [ -f "$LISTA_BC" ] && mv "$LISTA_BC" "$LISTA_BC.esclusa"
+fi
 
 # Prerequisites check
 for cmd in lb debootstrap git curl gpg; do
@@ -17,16 +43,6 @@ done
 # Run lb config (fetches keys, configures live-build)
 echo ">>> Running auto/config ..."
 bash auto/config
-
-# Copy governor binaries into includes.chroot if they exist on the build host
-GOV_SRC="/usr/local/bin/cyan-skillfish-governor-smu"
-GOV_DEST="config/includes.chroot/usr/local/bin/cyan-skillfish-governor-smu"
-if [ -x "$GOV_SRC" ] && [ ! -f "$GOV_DEST" ]; then
-    mkdir -p "$(dirname "$GOV_DEST")"
-    cp "$GOV_SRC" "$GOV_DEST"
-    cp "/usr/local/bin/cyan-skillfish-performance-mode"        "config/includes.chroot/usr/local/bin/cyan-skillfish-performance-mode" 2>/dev/null || true
-    echo "Governor binaries copied from build host."
-fi
 
 # Build
 # --- WORKAROUND (custom kernel) -------------------------------------------

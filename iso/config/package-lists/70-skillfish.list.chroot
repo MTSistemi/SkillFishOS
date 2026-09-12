@@ -4,8 +4,10 @@
 # Da dove viene l'elenco: sono i pacchetti che risultano installati a mano
 # sulla BC-250 di sviluppo (192.168.5.40), la macchina che cloniamo per fare
 # la release, incrociati con quelli davvero pubblicati nell'archivio
-# (dists/aetherium/main/binary-amd64/Packages.gz). Verificati il 15/08/2026:
-# sono tutti alla versione 26.08.23. Arrivano da config/archives/aetherium.*.
+# (dists/aetherium/main/binary-amd64/Packages.gz). Elenco verificato il
+# 12/09/2026 con "reprepro -b /srv/apt list aetherium": ogni pacchetto qui
+# sotto esiste davvero nell'archivio (versioni singole, non piu' un unico
+# numero comune come una volta). Arrivano da config/archives/aetherium.*.
 
 # --- Sistema e hardware BC-250 ---
 # skillfish-base e' il cuore: sblocco 8 core via SMU, watchdog hardware,
@@ -33,22 +35,30 @@ skillfish-ai-panel
 skillfish-kernel-manager
 skillfish-iso-mount
 # Gli snapshot in una finestra: senza questo, l'unica strada
-# per tornare indietro resta il terminale (skillfish-rollback).
+# per tornare indietro resta il terminale (snapper rollback).
 skillfish-snapshots
 
 # --- Sessione di gioco ---
-# Fornisce /usr/share/wayland-sessions/skillfish-gaming.desktop,
-# skillfish-gaming-mode e steamos-session-select.
+# Fornisce la sessione di gioco Gamescope (wayland-sessions) e
+# steamos-session-select.
 skillfish-console
 # Installatore degli emulatori (post-installazione, via flatpak).
 skillfish-emulators
 
+# --- Governor GPU ---
+# skillfish-vf-governor sostituisce il vecchio cyan-skillfish-governor-smu:
+# e' un pacchetto normale del repository aetherium, porta gia' con se' il
+# proprio systemd unit e la propria ExecCondition per la BC-250. Non serve
+# piu' nessun hook per installarlo o abilitarlo (era
+# 0030-bc250-governor.hook.chroot, rimosso).
+skillfish-vf-governor
+
 # --- NOTA: skillfishos-kernel NON va qui ---
 # E' un metapacchetto il cui postinst scarica da GitHub e installa
-# linux-image-7.1.7-skillfishos (la variante BC-250, senza suffisso). Il
+# linux-image-7.2.5-skillfishos (la variante BC-250, senza suffisso). Il
 # kernel dell'immagine lo mette gia' l'hook 0005, che sceglie la variante
-# -generic dichiarata in auto/config (--linux-flavours
-# "7.1.7-skillfishos-generic"). Metterlo in elenco vorrebbe dire due kernel
+# -x64 dichiarata in auto/config (--linux-flavours
+# "7.2.5-skillfishos-x64"). Metterlo in elenco vorrebbe dire due kernel
 # diversi nella stessa ISO e un apt-mark hold su quello sbagliato.
 
 # --- Dipendenze consigliate che apt qui NON tira dentro da solo ---
@@ -73,3 +83,12 @@ snapd
 # risulta installato a mano e nessun altro pacchetto lo tira dentro: se manca,
 # ogni nuovo utente si ritrova un autostart che punta a un binario assente.
 conky-all
+
+# La chiave del nostro archivio come pacchetto, non solo come file
+# copiato da live-build: e' cosi' che l'aggiornamento continua a
+# funzionare quando la chiave cambia.
+skillfishos-archive-keyring
+
+# Lo schedulatore dei giochi (scx_bpfland via GameMode). Il pacchetto
+# non lo accende: l'interruttore sta nel Control Center.
+skillfish-scx

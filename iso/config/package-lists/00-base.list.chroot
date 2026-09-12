@@ -3,8 +3,8 @@
 # "--linux-packages none" e il nostro linux-tkg (BORE + znver2 + patch BC-250)
 # arriva come .deb dalla release GitHub MTSistemi/SkillFishOS, installato
 # dall'hook 0005-install-tkg-kernel.hook.chroot.
-# La versione la decide quell'hook (oggi il tag kernel-7.1.7-skillfishos,
-# variante -generic): non va scritta qui, o le due indicazioni divergono come
+# La versione la decide quell'hook (oggi il tag kernel-7.2.5-skillfishos,
+# variante -x64): non va scritta qui, o le due indicazioni divergono come
 # e' gia' successo quando questo commento diceva ancora 7.0.10.
 
 # --- Firmware ---

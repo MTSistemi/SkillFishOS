@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
-# Install the custom linux-tkg 7.0.10 (BORE/znver2/BC-250) kernel named
-# 7.0.10-skillfishos, from the GitHub release on MTSistemi/SkillFishOS.
+# Install the custom linux-tkg 7.2.5 (BORE/znver2/BC-250) kernel named
+# 7.2.5-skillfishos, from the GitHub release on MTSistemi/SkillFishOS.
 # Il tag va tenuto allineato al kernel che pubblichiamo: con quello vecchio
 # la build NON fallisce, sforna in silenzio una ISO col kernel di giugno
 # senza le patch BC-250 della serie 7.1 e senza i P-state ACPI.
-KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.2.0-skillfishos}"
-# La release ha sei .deb (default, -generic, -slim): senza filtro se ne
-# installerebbero tre kernel insieme. VARIANTE sceglie quale prendere.
-VARIANTE="${SKILLFISH_KERNEL_VARIANT:-generic}"
+KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.2.5-skillfishos}"
+# La release ha quattro .deb (default, -x64): senza filtro se ne
+# installerebbero due kernel insieme. VARIANTE sceglie quale prendere.
+VARIANTE="${SKILLFISH_KERNEL_VARIANT:-x64}"
 REPO="MTSistemi/SkillFishOS"
 log(){ echo "[tkg-kernel] $*"; }
 log "Fetching kernel .deb assets for tag ${KERNEL_TAG}"
@@ -19,21 +19,20 @@ if [ -z "$ASSETS" ]; then
     log "ERROR: no .deb assets at release ${KERNEL_TAG}. Publish the kernel first."
     cd /; rm -rf "$WORK"; exit 1
 fi
-# Si prende SOLO la variante scelta. La release ne pubblica tre (la predefinita
-# per la BC-250, -generic per i PC normali, -slim) e installarle tutte insieme
-# significherebbe tre kernel nella stessa immagine: tre initrd da rigenerare,
-# GRUB con voci doppie e un'immagine piu' pesante di un giga per niente.
+# Si prende SOLO la variante scelta. La release ne pubblica due (la predefinita
+# per la BC-250, -x64 per i PC normali) e installarle tutte insieme
+# significherebbe due kernel nella stessa immagine: due initrd da rigenerare,
+# GRUB con voci doppie e un'immagine piu' pesante per niente.
 case "$VARIANTE" in
-    generic)  FILTRO='-generic_' ;;
-    slim)     FILTRO='-slim_' ;;
+    x64)      FILTRO='-x64_' ;;
     bc250|*)  FILTRO='' ;;        # la variante predefinita non ha suffisso
 esac
 
 for url in $ASSETS; do
     nome=$(basename "$url")
     case "$nome" in
-        *-generic_*|*-slim_*) variante_del_file="si" ;;
-        *)                    variante_del_file="no" ;;
+        *-x64_*) variante_del_file="si" ;;
+        *)       variante_del_file="no" ;;
     esac
     if [ -n "$FILTRO" ]; then
         case "$nome" in *"$FILTRO"*) ;; *) log "salto $nome (altra variante)"; continue ;; esac

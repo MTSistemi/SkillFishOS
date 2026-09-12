@@ -4,6 +4,10 @@ libgl1-mesa-dri
 vainfo
 radeontop
 libvulkan1
+# skillfish-mesa-gfx1013 is our own tuned RADV Vulkan driver for the BC-250's
+# GFX1013 silicon (repository aetherium). It is amd64-only, so it belongs
+# here and not in 70-skillfish.list.chroot (which also ships on other arches).
+skillfish-mesa-gfx1013
 
 # --- Vulkan tools ---
 vulkan-tools
@@ -17,3 +21,7 @@ lm-sensors
 # 00-base perche' non servono solo a nct6687: servono a ricompilare qualunque
 # modulo esterno contro il kernel tkg, che e' una scelta di base, non hardware
 # specifica della BC-250.
+
+# Il controllo della ventola: senza, la scheda resta con la curva del
+# firmware. ⚠️ Vuole il modulo nct6687 (hook 0050), non nct6683.
+skillfish-fan
