@@ -92,3 +92,8 @@ skillfishos-archive-keyring
 # Lo schedulatore dei giochi (scx_bpfland via GameMode). Il pacchetto
 # non lo accende: l'interruttore sta nel Control Center.
 skillfish-scx
+
+# Il menu di avvio e la riga di comando del kernel. ⚠️ Si tira dietro
+# shim-signed e grub-efi-amd64-signed, che nell'immagine non c'erano: senza
+# quelli un'installazione su una macchina con Secure Boot acceso non parte.
+skillfish-boot

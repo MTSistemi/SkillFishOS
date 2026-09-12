@@ -1020,6 +1020,45 @@ printf '#!/bin/sh\nset -e\nmkdir -p /etc/skillfish\n[ -f /etc/skillfish/dashboar
 printf '#!/bin/sh\nset -e\nif [ "$1" = remove ] || [ "$1" = purge ]; then systemctl disable --now skillfish-dashboard.service 2>/dev/null || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/prerm"
 chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
 
+P=skillfish-boot
+# Come si presenta e come parte la macchina: il tema del menu di avvio e il
+# frammento di configurazione.
+#
+# ⚠️ NON c'e' dentro nessun GRUB. Quello che usiamo e' il binario di Debian
+# firmato dalla loro CA (stesso md5 di grubx64.efi.signed), e LUKS ce l'ha gia'
+# dentro: cryptodisk, luks, luks2, argon2. Compilarne uno nostro vorrebbe dire
+# perdere quella firma e doverlo firmare con la nostra MOK.
+putdir $P theme/grub/skillfish boot/grub/themes/skillfish
+put $P 0644 system/etc/default/grub.d/80-skillfish-boot.cfg etc/default/grub.d/80-skillfish-boot.cfg
+# ⚠️ shim-signed E grub-efi-amd64-signed SONO LA PARTE CHE CONTA.
+# Nel chroot dell'immagine c'era solo grub-efi-amd64-unsigned: firmavamo i
+# kernel e non spedivamo la catena che li verifica, quindi su una scheda col
+# BIOS di serie e Secure Boot acceso l'installazione non avviava.
+ctrl $P "grub2-common, grub-efi-amd64-signed, shim-signed, mokutil" \
+  "SkillFishOS boot look and kernel command line" \
+  "The GRUB theme, the boot-time kernel parameters for the BC-250 and the
+signed shim chain, so an installed system boots with Secure Boot on."
+cat > "$OUT/$P/DEBIAN/postinst" <<'POSTBOOT'
+#!/bin/sh
+set -e
+# ⚠️ Solo su un sistema vivo. Dentro un chroot update-grub non trova il disco e
+# scriverebbe un menu che punta a niente, e skillfish-acpi-pstates non ha un
+# /boot vero su cui lavorare.
+if [ -d /run/systemd/system ]; then
+  # La tabella ACPI delle frequenze: "auto" la mette su una BC-250 e la TOGLIE
+  # altrove, che e' il caso che conta davvero (su una Generic la tabella
+  # dichiarerebbe frequenze di un'altra CPU).
+  if command -v skillfish-acpi-pstates >/dev/null 2>&1; then
+    skillfish-acpi-pstates auto >/dev/null 2>&1 || true
+  fi
+  if command -v update-grub >/dev/null 2>&1; then
+    update-grub >/dev/null 2>&1 || true
+  fi
+fi
+exit 0
+POSTBOOT
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
 P=skillfish-theme
 # La scheda AppStream: senza, la descrizione esiste solo in inglese,
 # perche' apt la tiene nel control e li' la lingua e' una sola.
@@ -1328,7 +1367,7 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
+for P in skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.

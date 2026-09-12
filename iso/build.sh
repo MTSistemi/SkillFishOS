@@ -9,6 +9,13 @@ cd "$(dirname "$0")"
 #   EDIZIONE=generic  kernel 7.2.5-skillfishos-x64  lista BC-250 esclusa
 #   EDIZIONE=bc250    kernel 7.2.5-skillfishos      lista BC-250 inclusa
 #
+# ⚠️ live-build vive in /usr/sbin (debootstrap, mksquashfs, xorriso). Una shell
+# non interattiva, per esempio quella di una connessione ssh con un comando
+# solo, quel percorso non ce l'ha: la costruzione si fermava dicendo che manca
+# debootstrap, che invece e' installato da sempre.
+case ":$PATH:" in *:/usr/sbin:*) ;; *) PATH="$PATH:/usr/sbin:/sbin" ;; esac
+export PATH
+
 EDIZIONE="${EDIZIONE:-generic}"
 case "$EDIZIONE" in
     bc250)   SAPORE="7.2.5-skillfishos";     VARIANTE="bc250"; DESCR="BC-250 (znver2)" ;;
@@ -21,7 +28,12 @@ export SKILLFISH_LINUX_FLAVOUR="$SAPORE"
 # col kernel x64 proprio cosi'. L'edizione si scrive in un file che entra
 # nell'immagine, e l'hook 0005 legge quello.
 install -d config/includes.chroot/etc
-printf '%s\n' "$VARIANTE" > config/includes.chroot/etc/skillfish-kernel-variant
+# ⚠️ live-build gira da root e lascia i suoi file dentro includes.chroot con
+# quel proprietario: alla seconda costruzione questo file non e' piu' nostro e
+# il `>` si ferma con "Permesso negato". Si toglie prima di riscriverlo.
+VAR_FILE=config/includes.chroot/etc/skillfish-kernel-variant
+[ -e "$VAR_FILE" ] && [ ! -w "$VAR_FILE" ] && sudo rm -f "$VAR_FILE"
+printf '%s\n' "$VARIANTE" > "$VAR_FILE"
 echo "    variante del kernel per gli hook: $VARIANTE"
 
 # ⚠️ IL NUMERO DI VERSIONE STA IN iso/VERSIONE, E VALE LA REGOLA DEL +1
@@ -77,6 +89,54 @@ for cmd in lb debootstrap git curl gpg; do
 done
 
 # Run lb config (fetches keys, configures live-build)
+# ⚠️ I CINQUE FILE CHE lb config RIGENERA RESTANO DI ROOT.
+# live-build gira i suoi passi da root e questi cinque (bootstrap, binary,
+# chroot, common, source) rimangono con quel proprietario: alla costruzione
+# dopo `lb config` non riesce piu' a riscriverli e si ferma con "Permission
+# denied". Sono generati da lb config a ogni giro e stanno nel .gitignore:
+# toglierli non perde niente. ⚠️ Solo questi cinque nomi, mai config/ intero:
+# li' dentro ci sono le nostre liste, gli hook e includes.chroot.
+for f in bootstrap binary chroot common source; do
+    if [ -e "config/$f" ] && [ ! -w "config/$f" ]; then sudo rm -f "config/$f"; fi
+done
+# Stessa storia per .build, il quaderno dove live-build segna i passi gia'
+# fatti: lo scrive da root e `lb clean` non lo tocca.
+if [ -d .build ] && [ ! -w .build ]; then sudo rm -rf .build; fi
+
+# ⚠️ IL CONTROLLO DELL'ARCHIVIO VA FATTO ADESSO, NON DOPO.
+# I nostri pacchetti si scaricano da GitHub Pages, che dopo un push ci mette
+# qualche minuto a mostrare i file nuovi. Se non ci sono, live-build se ne
+# accorge DOPO il bootstrap, con "Unable to locate package", e a quel punto il
+# chroot e' gia' da rifare da capo. Un HEAD adesso costa un secondo.
+ARCHIVIO=https://mtsistemi.github.io/SkillFishOS
+INDICE="$ARCHIVIO/dists/aetherium/main/binary-amd64/Packages"
+if command -v curl >/dev/null 2>&1; then
+    echo ">>> controllo dell'archivio ..."
+    PKGS=$(curl -fsS --max-time 30 "$INDICE" 2>/dev/null) || {
+        echo "L'archivio non risponde: $INDICE" >&2
+        echo "Senza quello esce un Debian sid con KDE, non SkillFishOS." >&2
+        exit 3
+    }
+    # L'ultimo pacchetto della lista e' quello che si e' pubblicato per ultimo:
+    # se c'e' quello, ci sono anche gli altri.
+    for ATTESO in skillfish-boot skillfish-theme skillfish-base; do
+        FILE=$(printf '%s' "$PKGS" | awk -v p="Package: $ATTESO" \
+               '$0 == p { f = 1 } f && /^Filename:/ { print $2; exit }')
+        if [ -z "$FILE" ]; then
+            echo "L'indice dell'archivio non elenca $ATTESO." >&2
+            echo "Hai pubblicato? scripts/pubblica-apt.sh e poi sincronizza-ghpages.py" >&2
+            exit 3
+        fi
+        if ! curl -fsI --max-time 30 "$ARCHIVIO/$FILE" >/dev/null 2>&1; then
+            echo "$ATTESO e' nell'indice ma il file non si scarica ancora:" >&2
+            echo "   $ARCHIVIO/$FILE" >&2
+            echo "GitHub Pages sta ancora pubblicando: aspetta un paio di minuti." >&2
+            exit 3
+        fi
+    done
+    echo "    archivio a posto"
+fi
+
 echo ">>> Running auto/config ..."
 bash auto/config
 

@@ -1,0 +1,88 @@
+#!/bin/sh
+set -e
+# Il menu di avvio dell'immagine: il nostro tema al posto di quello di
+# live-build.
+#
+# ⚠️ COSA C'ERA PRIMA, E PERCHE' ERA SBAGLIATO
+# live-build disegna il suo splash.png partendo da config/bootloaders/splash.svg
+# e ci stampa sopra tre segnaposto. Uno, @LINUX_VERSIONS@, resta VUOTO da
+# sempre: il kernel non lo installa apt ma il nostro hook 0005, quindi
+# live-build non sa che versione ci sia e la riga esce come
+#     amd64 - sid - kernel
+# cioe' la parola "kernel" e poi il nulla. Sulla scheda il menu di avvio e'
+# tutta un'altra cosa: il pesce ottone su verde scuro, lo stesso dello splash
+# di Plymouth, e nessuna scritta.
+#
+# ⚠️ GIRA COME .binary, NON .chroot: qui la cartella di lavoro e' binary/, e
+# binary_grub_cfg ha gia' scritto il tema di live-build. Prima e' inutile,
+# dopo binary_iso e' troppo tardi.
+#
+# ⚠️ E il tema arriva dal chroot, non dal repository: e' skillfish-theme che lo
+# porta, cosi' l'immagine e il sistema installato hanno lo stesso file e non
+# due copie da tenere allineate a mano.
+# ⚠️ ../chroot, NON chroot. Un hook .binary gira DENTRO binary/, quindi il
+# chroot sta un livello sopra. Con il percorso sbagliato l'hook non trovava
+# niente, lo diceva nel registro e l'immagine usciva col tema di live-build:
+# un messaggio di avviso in mezzo a diecimila righe non lo legge nessuno.
+TEMA_SRC=../chroot/boot/grub/themes/skillfish
+DEST=boot/grub
+
+if [ ! -f "$TEMA_SRC/background.png" ]; then
+    echo "[menu di avvio] ERRORE: manca $TEMA_SRC" >&2
+    echo "[menu di avvio] skillfish-boot non e' entrato nel chroot: senza di" >&2
+    echo "[menu di avvio] lui l'immagine esce con la schermata di live-build," >&2
+    echo "[menu di avvio] segnaposto compresi. Meglio fermarsi." >&2
+    exit 1
+fi
+
+# Lo sfondo. Si scrive sopra splash.png perche' e' quello che theme.cfg
+# controlla per decidere se usare il tema grafico.
+cp "$TEMA_SRC/background.png" "$DEST/splash.png"
+cp "$TEMA_SRC/font.pf2"  "$DEST/skillfish.pf2"
+cp "$TEMA_SRC/title.pf2" "$DEST/skillfish-title.pf2"
+
+# La disposizione: quella della scheda, piu' la riga di aiuto in basso che in
+# una live serve (chi la prova non sa che si puo' premere "e").
+cat > "$DEST/live-theme/theme.txt" <<THEME
+desktop-image: "../splash.png"
+desktop-color: "#0b100b"
+title-text: ""
+terminal-font: "DejaVu Sans Regular 18"
+
++ boot_menu {
+    left = 25%
+    width = 50%
+    top = 58%
+    height = 32%
+    item_font = "DejaVu Sans Regular 18"
+    item_color = "#cbb98f"
+    selected_item_font = "DejaVu Sans Bold 24"
+    selected_item_color = "#f6e2a0"
+    item_height = 40
+    item_padding = 8
+    item_spacing = 6
+    icon_width = 0
+    icon_heigh = 0
+    item_icon_space = 0
+}
+
++ label {
+    top = 100%-40
+    left = 0
+    width = 100%
+    height = 24
+    text = "@KEYMAP_SHORT@"
+    align = "center"
+    color = "#8a7a55"
+    font = "DejaVu Sans Regular 18"
+}
+THEME
+
+# I font e la risoluzione. ⚠️ 800x600 era il valore copiato dall'immagine
+# netinst di Debian: lo sfondo e' 1920x1080 e veniva schiacciato.
+sed -i -e "s|^    set gfxmode=800x600|    set gfxmode=1920x1080,auto|" "$DEST/config.cfg"
+if ! grep -q skillfish.pf2 "$DEST/config.cfg"; then
+    sed -i -e "s|^source /boot/grub/theme.cfg|loadfont \$prefix/skillfish.pf2\nloadfont \$prefix/skillfish-title.pf2\nsource /boot/grub/theme.cfg|" "$DEST/config.cfg"
+fi
+
+echo "[menu di avvio] tema SkillFishOS: sfondo, font ottone e 1920x1080"
