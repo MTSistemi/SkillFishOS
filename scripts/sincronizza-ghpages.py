@@ -165,7 +165,32 @@ print("   scaricati dal container: %d file" % tot)
 
 # --- 2. il ramo gh-pages ----------------------------------------------------
 butta(CLONE)
-tok = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True).stdout.strip()
+def _token():
+    """Il token, da dove c'e'.
+
+    ⚠️ Prima lo chiedeva solo a `gh`, che sta sul portatile: su una macchina
+    che pubblica da sola lo script moriva con "niente token". L'ordine e'
+    quello della fiducia: l'ambiente per un giro solo, il file 600 accanto alle
+    altre credenziali, e gh per ultimo.
+    """
+    t = os.environ.get("GITHUB_TOKEN", "").strip()
+    if t:
+        return t
+    f = os.path.join(os.path.expanduser("~"), ".skillfishos", "github.env")
+    try:
+        with open(f, encoding="utf-8") as fh:
+            for riga in fh:
+                if riga.startswith("GITHUB_TOKEN="):
+                    return riga.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    try:
+        return subprocess.run(["gh", "auth", "token"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return ""
+
+
+tok = _token()
 if not tok:
     sys.exit("   niente token: non posso pubblicare")
 url = REPO.replace("https://", "https://MTSistemi:%s@" % tok)
