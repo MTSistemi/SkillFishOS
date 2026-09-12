@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.11" date="2026-09-13">
+      <description>
+        <p>AI-Mode On and AI-Mode Off from the AI card: the board goes into AI mode from another computer and comes back to the desktop, without ssh. Turning it on asks first, because it shuts down the desktop of whoever is sitting at the board. The cluster graph marks stale numbers instead of showing the last snapshot as if it were current.</p>
+        <p xml:lang="it">AI-Mode On e AI-Mode Off dal riquadro AI: la scheda si mette in modalita' AI da un altro computer e torna al desktop, senza ssh. Accenderla chiede prima, perche' spegne il desktop di chi e' davanti alla scheda. Il grafico del cluster segnala i numeri fermi invece di mostrare l'ultima fotografia come se fosse adesso.</p>
+        <p xml:lang="fr">AI-Mode On et AI-Mode Off depuis la carte IA : la carte passe en mode IA depuis un autre ordinateur et revient au bureau, sans ssh. L'allumer demande d'abord, car cela éteint le bureau de qui est devant la carte. Le graphique du cluster signale les chiffres figés au lieu de montrer la dernière image comme si elle était actuelle.</p>
+        <p xml:lang="es">AI-Mode On y AI-Mode Off desde la ficha IA: la placa entra en modo IA desde otro ordenador y vuelve al escritorio, sin ssh. Encenderlo pregunta antes, porque apaga el escritorio de quien está delante de la placa. El gráfico del clúster señala los números parados en vez de mostrar la última foto como si fuera de ahora.</p>
+        <p xml:lang="pt">AI-Mode On e AI-Mode Off a partir do cartão IA: a placa entra em modo IA a partir de outro computador e volta ao ambiente de trabalho, sem ssh. Ligá-lo pergunta primeiro, porque desliga o ambiente de trabalho de quem está à frente da placa. O gráfico do cluster assinala os números parados em vez de mostrar a última fotografia como se fosse de agora.</p>
+        <p xml:lang="de">AI-Mode On und AI-Mode Off aus der KI-Karte: die Karte geht von einem anderen Rechner aus in den KI-Modus und kommt zurück auf den Desktop, ohne ssh. Das Einschalten fragt vorher, denn es fährt den Desktop dessen herunter, der vor der Karte sitzt. Die Cluster-Grafik kennzeichnet veraltete Zahlen, statt die letzte Aufnahme als aktuell zu zeigen.</p>
+        <p xml:lang="pl">AI-Mode On i AI-Mode Off z karty AI: płytę można przełączyć w tryb AI z innego komputera i przywrócić do pulpitu, bez ssh. Włączenie najpierw pyta, bo wyłącza pulpit tego, kto siedzi przy płycie. Wykres klastra oznacza nieaktualne liczby zamiast pokazywać ostatnie zdjęcie jak bieżące.</p>
+        <p xml:lang="ru">AI-Mode On и AI-Mode Off из карточки ИИ: плату можно перевести в режим ИИ с другого компьютера и вернуть на рабочий стол, без ssh. Включение сначала спрашивает, потому что гасит рабочий стол того, кто сидит за платой. График кластера помечает устаревшие числа вместо того, чтобы показывать последний снимок как текущий.</p>
+        <p xml:lang="uk">AI-Mode On і AI-Mode Off з картки ШІ: плату можна перевести в режим ШІ з іншого комп'ютера і повернути на стільницю, без ssh. Увімкнення спершу запитує, бо гасить стільницю того, хто сидить за платою. Графік кластера позначає застарілі числа замість того, щоб показувати останній знімок як поточний.</p>
+      </description>
+    </release>
     <release version="26.08.51" date="2026-08-23">
       <description>
           <p>The screenshots on this page now show up. They were declared with a file:// address, which AppStream refuses, so the gallery was empty for every one of our applications — in the Hub, in Discover and in GNOME Software alike. They are served from skillfishos.com now, and a copy still travels inside the package for machines with no network. Today's earlier release also fixed the fan card, which used to clear the «Control» tick a moment after you set it.</p>
