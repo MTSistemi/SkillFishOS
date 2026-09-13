@@ -42,6 +42,25 @@ echo "    variante del kernel per gli hook: $VARIANTE"
 # piu' quale sta girando su una macchina.
 VERSIONE=$(tr -d ' \n' < VERSIONE 2>/dev/null)
 [ -n "$VERSIONE" ] || { echo "manca iso/VERSIONE" >&2; exit 2; }
+
+# ⚠️ E QUI SI CONTROLLA DAVVERO. Il commento qui sopra c'e' dal primo giorno e
+# non ha impedito due immagini 26.06.6 mentre su SourceForge c'era la 26.06.4.
+ATTESA=$(bash "$(dirname "$0")/../scripts/versione-iso-attesa.sh" 2>/dev/null)
+if [ -z "$ATTESA" ]; then
+    echo "FERMO: non riesco a chiedere a SourceForge qual e' l'ultima" >&2
+    echo "       immagine pubblicata, quindi non so se $VERSIONE e' giusta." >&2
+    echo "       Guarda https://sourceforge.net/projects/skillfishos/files/ e," >&2
+    echo "       se il numero e' quello, rilancia con SALTA_CONTROLLO_VERSIONE=1" >&2
+    [ "${SALTA_CONTROLLO_VERSIONE:-0}" = 1 ] || exit 2
+elif [ "$VERSIONE" != "$ATTESA" ]; then
+    echo "FERMO: iso/VERSIONE dice $VERSIONE, ma l'ultima pubblicata su" >&2
+    echo "       SourceForge chiede la $ATTESA." >&2
+    echo "       Il numero e' +1 sull'ULTIMA PUBBLICATA, non sull'ultima" >&2
+    echo "       costruita: i file di prova sul disco non contano. Se il nome" >&2
+    echo "       e' gia' occupato si sposta il vecchio." >&2
+    exit 2
+fi
+echo "    versione: $VERSIONE (ultima pubblicata + 1)"
 NOME_EDIZIONE=$([ "${EDIZIONE:-generic}" = bc250 ] && echo BC250 || echo Generic)
 ISO_FINALE="SkillFishOS-${VERSIONE}-Aetherium-${NOME_EDIZIONE}-amd64.iso"
 
