@@ -83,7 +83,10 @@ fi
 # /etc/os-release, cosi' il sistema installato sa dire cos'e'.
 BRAND=config/includes.chroot/etc/calamares/branding/skillfish/branding.desc
 if [ -f "$BRAND" ]; then
-    sed -i -E "s/^( *shortVersionedName:).*/\\1 SkillFishOS ${VERSIONE} Aetherium/;
+    # ⚠️ shortVersion c'e' perche' mancava: era rimasta a 26.06.3 dentro
+    # un'immagine 26.06.5, e si vede nel titolo della finestra.
+    sed -i -E "s/^( *shortVersion:).*/\\1 '${VERSIONE}'/;
+               s/^( *shortVersionedName:).*/\\1 SkillFishOS ${VERSIONE} Aetherium/;
                s/^( *versionedName:).*/\\1 SkillFishOS ${VERSIONE} Aetherium/;
                s/^( *version:).*/\\1 '${VERSIONE}'/" "$BRAND"
 fi
