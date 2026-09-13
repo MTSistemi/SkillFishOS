@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.12" date="2026-09-13">
+      <description>
+        <p>The bare engine: at the engine levels of AI mode, llama-server serves the model by itself on port 8888 and the system holds 115 MB instead of 567. The screen no longer goes black either: it shows the name, the addresses the board answers on, how much memory the model has and the way back, above an ordinary login prompt.</p>
+        <p xml:lang="it">Il motore nudo: ai livelli motore della modalita' AI, llama-server serve il modello da solo sulla porta 8888 e il sistema tiene 115 MB invece di 567. E lo schermo non resta piu' nero: mostra il nome, gli indirizzi a cui risponde la scheda, quanta memoria ha il modello e la strada per tornare indietro, sopra un normale prompt di accesso.</p>
+        <p xml:lang="fr">Le moteur seul : aux niveaux moteur du mode IA, llama-server sert le modèle tout seul sur le port 8888 et le système ne tient plus que 115 Mo au lieu de 567. Et l'écran ne reste plus noir : il montre le nom, les adresses auxquelles la carte répond, la mémoire dont dispose le modèle et le chemin du retour, au-dessus d'une invite de connexion ordinaire.</p>
+        <p xml:lang="es">El motor desnudo: en los niveles de motor del modo IA, llama-server sirve el modelo él solo en el puerto 8888 y el sistema ocupa 115 MB en vez de 567. Y la pantalla ya no se queda negra: muestra el nombre, las direcciones en las que responde la placa, cuánta memoria tiene el modelo y el camino de vuelta, sobre un indicador de acceso normal.</p>
+        <p xml:lang="pt">O motor nu: nos níveis de motor do modo IA, o llama-server serve o modelo sozinho na porta 8888 e o sistema ocupa 115 MB em vez de 567. E o ecrã já não fica preto: mostra o nome, os endereços em que a placa responde, quanta memória tem o modelo e o caminho de volta, por cima de um prompt de acesso normal.</p>
+        <p xml:lang="de">Die nackte Maschine: in den Maschinen-Stufen des KI-Modus bedient llama-server das Modell allein auf Port 8888, und das System hält 115 MB statt 567. Und der Bildschirm bleibt nicht mehr schwarz: er zeigt den Namen, die Adressen, unter denen die Karte antwortet, wie viel Speicher das Modell hat und den Weg zurück, über einer gewöhnlichen Anmeldeaufforderung.</p>
+        <p xml:lang="pl">Goły silnik: na poziomach silnika trybu AI llama-server obsługuje model sam na porcie 8888, a system trzyma 115 MB zamiast 567. I ekran nie zostaje już czarny: pokazuje nazwę, adresy, pod którymi płyta odpowiada, ile pamięci ma model i drogę powrotną, nad zwykłym znakiem zachęty logowania.</p>
+        <p xml:lang="ru">Голый движок: на уровнях движка режима ИИ llama-server обслуживает модель сам на порту 8888, а система держит 115 МБ вместо 567. И экран больше не остаётся чёрным: он показывает имя, адреса, по которым отвечает плата, сколько памяти у модели и путь назад, над обычным приглашением входа.</p>
+        <p xml:lang="uk">Голий рушій: на рівнях рушія режиму ШІ llama-server обслуговує модель сам на порту 8888, а система тримає 115 МБ замість 567. І екран більше не залишається чорним: він показує ім'я, адреси, за якими відповідає плата, скільки пам'яті має модель і шлях назад, над звичайним запрошенням входу.</p>
+      </description>
+    </release>
     <release version="26.09.11" date="2026-09-13">
       <description>
         <p>AI mode moves its work into a transient unit, so shutting the desktop down cannot kill the job halfway. The unclean-shutdown notice now appears once per boot for real: its marker used to be written where the desktop user cannot write, so the warning came back at every single login.</p>

@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.12" date="2026-09-13">
+      <description>
+        <p>AI mode gains a level, chosen here: shut down the desktop alone, or the desktop and Unsloth Studio together and leave llama-server by itself on port 8888, with the same API and the same key. Measured on a board with a model loaded: 567 MB of system memory becomes 115. The model for the bare engine is picked here too.</p>
+        <p xml:lang="it">La modalita' AI guadagna un livello, che si sceglie da qui: spegnere solo il desktop, oppure il desktop e Unsloth Studio insieme e lasciare llama-server da solo sulla porta 8888, con la stessa API e la stessa chiave. Misurato su una scheda con il modello caricato: 567 MB di memoria di sistema diventano 115. Da qui si sceglie anche il modello del motore nudo.</p>
+        <p xml:lang="fr">Le mode IA gagne un niveau, choisi ici : éteindre le bureau seul, ou le bureau et Unsloth Studio ensemble en laissant llama-server tout seul sur le port 8888, avec la même API et la même clé. Mesuré sur une carte avec un modèle chargé : 567 Mo de mémoire système deviennent 115. Le modèle du moteur seul se choisit ici aussi.</p>
+        <p xml:lang="es">El modo IA gana un nivel, que se elige aquí: apagar solo el escritorio, o el escritorio y Unsloth Studio juntos y dejar llama-server solo en el puerto 8888, con la misma API y la misma clave. Medido en una placa con un modelo cargado: 567 MB de memoria de sistema pasan a 115. El modelo del motor desnudo también se elige aquí.</p>
+        <p xml:lang="pt">O modo IA ganha um nível, escolhido aqui: desligar só a área de trabalho, ou a área de trabalho e o Unsloth Studio juntos e deixar o llama-server sozinho na porta 8888, com a mesma API e a mesma chave. Medido numa placa com um modelo carregado: 567 MB de memória de sistema passam a 115. O modelo do motor nu também se escolhe aqui.</p>
+        <p xml:lang="de">Der KI-Modus bekommt eine Stufe, hier gewählt: nur den Desktop herunterfahren, oder den Desktop und Unsloth Studio zusammen und llama-server allein auf Port 8888 lassen, mit derselben API und demselben Schlüssel. Auf einer Karte mit geladenem Modell gemessen: aus 567 MB Systemspeicher werden 115. Auch das Modell für die nackte Maschine wird hier gewählt.</p>
+        <p xml:lang="pl">Tryb AI zyskuje poziom, wybierany tutaj: wyłączyć sam pulpit albo pulpit razem z Unsloth Studio i zostawić llama-server samego na porcie 8888, z tym samym API i tym samym kluczem. Zmierzone na płycie z załadowanym modelem: 567 MB pamięci systemu staje się 115. Model dla gołego silnika też wybiera się tutaj.</p>
+        <p xml:lang="ru">Режим ИИ получает уровень, который выбирается здесь: выключить только рабочий стол или рабочий стол вместе с Unsloth Studio, оставив llama-server одного на порту 8888, с тем же API и тем же ключом. Измерено на плате с загруженной моделью: 567 МБ системной памяти превращаются в 115. Модель для голого движка тоже выбирается здесь.</p>
+        <p xml:lang="uk">Режим ШІ отримує рівень, який обирається тут: вимкнути лише стільницю або стільницю разом з Unsloth Studio, залишивши llama-server самого на порту 8888, з тим самим API і тим самим ключем. Виміряно на платі із завантаженою моделлю: 567 МБ системної пам'яті стають 115. Модель для голого рушія теж обирається тут.</p>
+      </description>
+    </release>
     <release version="26.09.11" date="2026-09-13">
       <description>
         <p>Resetting the Studio password no longer locks the AI page out of its own engine: the API key is minted again and saved where the window reads it, and a key that stops working is recognised and reported instead of leaving empty cards. A cancelled password prompt no longer makes every button in the window silently inert. The model table fills its quantisation and size columns. The cluster panel marks its numbers as stale when the service that collects them is not running.</p>

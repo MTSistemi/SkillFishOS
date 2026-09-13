@@ -47,6 +47,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.12" date="2026-09-13">
+      <description>
+        <p>The user avatar and the lock screen background were in the tree but never in the package, so a fresh install showed Debian's wallpaper and a placeholder face. Both ship now, and the lock screen reads its own configuration file, which nobody had been writing.</p>
+        <p xml:lang="it">L'avatar dell'utente e lo sfondo della schermata di blocco erano nel repository ma non sono mai finiti nel pacchetto, quindi un'installazione nuova mostrava lo sfondo di Debian e un viso segnaposto. Adesso ci sono tutti e due, e la schermata di blocco legge il suo file di configurazione, in cui non scriveva nessuno.</p>
+        <p xml:lang="fr">L'avatar de l'utilisateur et le fond de l'écran de verrouillage étaient dans le dépôt mais ne sont jamais entrés dans le paquet : une installation neuve affichait le fond d'écran de Debian et un visage générique. Les deux sont là désormais, et l'écran de verrouillage lit son propre fichier de configuration, dans lequel personne n'écrivait.</p>
+        <p xml:lang="es">El avatar del usuario y el fondo de la pantalla de bloqueo estaban en el repositorio pero nunca entraron en el paquete, así que una instalación nueva mostraba el fondo de Debian y una cara de relleno. Ahora están los dos, y la pantalla de bloqueo lee su propio archivo de configuración, en el que no escribía nadie.</p>
+        <p xml:lang="pt">O avatar do utilizador e o fundo do ecrã de bloqueio estavam no repositório mas nunca entraram no pacote, por isso uma instalação nova mostrava o fundo do Debian e um rosto genérico. Agora estão os dois, e o ecrã de bloqueio lê o seu próprio ficheiro de configuração, no qual ninguém escrevia.</p>
+        <p xml:lang="de">Das Benutzerbild und der Hintergrund des Sperrbildschirms lagen im Repository, kamen aber nie ins Paket: eine frische Installation zeigte Debians Hintergrundbild und ein Platzhaltergesicht. Beides wird jetzt mitgeliefert, und der Sperrbildschirm liest seine eigene Konfigurationsdatei, in die niemand geschrieben hatte.</p>
+        <p xml:lang="pl">Awatar użytkownika i tło ekranu blokady były w repozytorium, ale nigdy nie trafiły do pakietu, więc świeża instalacja pokazywała tapetę Debiana i zastępczą twarz. Teraz są oba, a ekran blokady czyta swój własny plik konfiguracyjny, do którego nikt nie pisał.</p>
+        <p xml:lang="ru">Аватар пользователя и фон экрана блокировки лежали в репозитории, но в пакет так и не попали, поэтому свежая установка показывала обои Debian и лицо-заглушку. Теперь есть и то и другое, а экран блокировки читает свой файл настроек, в который никто не писал.</p>
+        <p xml:lang="uk">Аватар користувача і тло екрана блокування лежали в репозиторії, але до пакета так і не потрапили, тож свіже встановлення показувало шпалери Debian і обличчя-заглушку. Тепер є і те, і те, а екран блокування читає свій файл налаштувань, у який ніхто не писав.</p>
+      </description>
+    </release>
     <release version="26.08.60" date="2026-08-26">
       <description>
           <p>The SkillFishOS wallpaper now waits for Plasma to answer before it is applied, and afterwards checks that it really is there. It used to try for thirty seconds and then give up without a word, so on a slow start you reached the desktop with the default Plasma wallpaper and it stayed. It is the first thing anyone sees of the system.</p>
