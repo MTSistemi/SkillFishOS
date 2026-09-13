@@ -21,20 +21,20 @@
 #   install-emulators.sh retroarch dolphin ...   solo quelli nominati
 set -uo pipefail
 
-# chiave|id flatpak|nome|descrizione|consigliato-su-bc250
+# chiave|id flatpak|nome|descrizione it|descrizione en|consigliato-su-bc250
 EMU="
-retroarch|org.libretro.RetroArch|RetroArch|Frontend multi-core: NES, SNES, Mega Drive, PS1, GBA e decine di altri|si
-dolphin|org.DolphinEmu.dolphin-emu|Dolphin|GameCube e Wii|si
-pcsx2|net.pcsx2.PCSX2|PCSX2|PlayStation 2|si
-duckstation|org.duckstation.DuckStation|DuckStation|PlayStation 1, molto accurato|si
-ppsspp|org.ppsspp.PPSSPP|PPSSPP|PlayStation Portable|si
-melonds|net.kuribo64.melonDS|melonDS|Nintendo DS|si
-mgba|io.mgba.mGBA|mGBA|Game Boy, Game Boy Color e Advance|si
-flycast|org.flycast.Flycast|Flycast|Dreamcast e Naomi|si
-lime3ds|io.github.lime3ds.Lime3DS|Lime3DS|Nintendo 3DS|si
-xemu|app.xemu.xemu|xemu|Xbox originale|no
-rpcs3|net.rpcs3.RPCS3|RPCS3|PlayStation 3 - pesante, su questo hardware aspettati poco|no
-vita3k|org.vita3k.Vita3K|Vita3K|PlayStation Vita - ancora sperimentale|no
+retroarch|org.libretro.RetroArch|RetroArch|Frontend multi-core: NES, SNES, Mega Drive, PS1, GBA e decine di altri|Multi-core frontend: NES, SNES, Mega Drive, PS1, GBA and dozens more|si
+dolphin|org.DolphinEmu.dolphin-emu|Dolphin|GameCube e Wii|GameCube and Wii|si
+pcsx2|net.pcsx2.PCSX2|PCSX2|PlayStation 2|PlayStation 2|si
+duckstation|org.duckstation.DuckStation|DuckStation|PlayStation 1, molto accurato|PlayStation 1, very accurate|si
+ppsspp|org.ppsspp.PPSSPP|PPSSPP|PlayStation Portable|PlayStation Portable|si
+melonds|net.kuribo64.melonDS|melonDS|Nintendo DS|Nintendo DS|si
+mgba|io.mgba.mGBA|mGBA|Game Boy, Game Boy Color e Advance|Game Boy, Game Boy Color and Advance|si
+flycast|org.flycast.Flycast|Flycast|Dreamcast e Naomi|Dreamcast and Naomi|si
+lime3ds|io.github.lime3ds.Lime3DS|Lime3DS|Nintendo 3DS|Nintendo 3DS|si
+xemu|app.xemu.xemu|xemu|Xbox originale|Original Xbox|no
+rpcs3|net.rpcs3.RPCS3|RPCS3|PlayStation 3 - pesante, su questo hardware aspettati poco|PlayStation 3 - heavy, expect little on this hardware|no
+vita3k|org.vita3k.Vita3K|Vita3K|PlayStation Vita - ancora sperimentale|PlayStation Vita - still experimental|no
 "
 
 ok()   { printf '  \033[32m%s\033[0m %s\n' "OK" "$1"; }
@@ -62,12 +62,14 @@ riga_di() { echo "$EMU" | awk -F'|' -v k="$1" '$1==k {print; exit}'; }
 elenco() {
     printf '\n%-13s %-12s %s\n' "CHIAVE" "CONSIGLIATO" "EMULATORE"
     printf '%s\n' "-------------------------------------------------------------------"
-    echo "$EMU" | while IFS='|' read -r k id nome desc cons; do
+    echo "$EMU" | while IFS='|' read -r k id nome desc desc_en cons; do
         [ -z "$k" ] && continue
+        # the list speaks the terminal's language, English everywhere but it_*
+        case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in it*) d="$desc" ;; *) d="$desc_en" ;; esac
         stato="no"
         flatpak info "$id" >/dev/null 2>&1 && stato="GIA' INSTALLATO"
         printf '%-13s %-12s %s\n' "$k" "$cons" "$nome"
-        printf '%-13s %-12s   %s\n' "" "" "$desc"
+        printf '%-13s %-12s   %s\n' "" "" "$d"
         [ "$stato" = "GIA' INSTALLATO" ] && printf '%-13s %-12s   -> %s\n' "" "" "$stato"
     done
     echo
@@ -85,14 +87,14 @@ installa() {
 
 case "${1:-}" in
     --tutti)       need_flatpak; SEL=$(echo "$EMU" | awk -F'|' 'NF>1 {print $1}') ;;
-    --consigliati) need_flatpak; SEL=$(echo "$EMU" | awk -F'|' '$5=="si" {print $1}') ;;
+    --consigliati) need_flatpak; SEL=$(echo "$EMU" | awk -F'|' '$6=="si" {print $1}') ;;
     "")
         elenco
         info "Scrivi le chiavi separate da spazio, oppure 'consigliati' o 'tutti'."
         read -r -p "> " risposta
         case "$risposta" in
             tutti)       SEL=$(echo "$EMU" | awk -F'|' 'NF>1 {print $1}') ;;
-            consigliati) SEL=$(echo "$EMU" | awk -F'|' '$5=="si" {print $1}') ;;
+            consigliati) SEL=$(echo "$EMU" | awk -F'|' '$6=="si" {print $1}') ;;
             "")          info "Niente da fare."; exit 0 ;;
             *)           SEL="$risposta" ;;
         esac

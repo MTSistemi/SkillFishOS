@@ -22,7 +22,14 @@ EMUDECK_APP = os.path.expanduser("~/Applications/EmuDeck.AppImage")
 
 
 def elenco_emulatori():
-    """key|flatpak id|name|description|recommended, parsed from the script itself."""
+    """key|id|name|description it|description en|recommended, from the script itself.
+
+    ⚠️ The description goes through L() like any other string, but it is DATA,
+    not a constant in the code: for a language that is neither Italian nor
+    English the shared dictionary is looked up by the English text, and when it
+    has no entry the English is what shows. That is the project fallback, and
+    it is the reason the English column exists at all.
+    """
     out = []
     dentro = False
     for riga in leggi_testo(EMU_SH).splitlines():
@@ -33,8 +40,9 @@ def elenco_emulatori():
             if riga.strip() == '"':
                 break
             p = riga.strip().split("|")
-            if len(p) >= 5 and p[0]:
-                out.append({"chiave": p[0], "id": p[1], "nome": p[2], "desc": p[3], "consigliato": p[4] == "si"})
+            if len(p) >= 6 and p[0]:
+                out.append({"chiave": p[0], "id": p[1], "nome": p[2],
+                            "desc": L(p[3], p[4]), "consigliato": p[5] == "si"})
     return out
 
 

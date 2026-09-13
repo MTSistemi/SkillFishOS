@@ -50,6 +50,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.24" date="2026-09-13">
+      <description>
+        <p>Every emulator in the list now describes itself in your language, not only in Italian.</p>
+        <p xml:lang="it">Ogni emulatore dell'elenco si descrive nella tua lingua, non piu' solo in italiano.</p>
+        <p xml:lang="fr">Chaque émulateur de la liste se décrit dans votre langue, et plus seulement en italien.</p>
+        <p xml:lang="es">Cada emulador de la lista se describe en tu idioma, ya no solo en italiano.</p>
+        <p xml:lang="pt">Cada emulador da lista descreve-se na tua língua, já não apenas em italiano.</p>
+        <p xml:lang="de">Jeder Emulator in der Liste beschreibt sich in deiner Sprache, nicht mehr nur auf Italienisch.</p>
+        <p xml:lang="pl">Każdy emulator na liście opisuje się w twoim języku, a nie tylko po włosku.</p>
+        <p xml:lang="ru">Каждый эмулятор в списке описывает себя на вашем языке, а не только по-итальянски.</p>
+        <p xml:lang="uk">Кожен емулятор у списку описує себе вашою мовою, а не лише італійською.</p>
+      </description>
+    </release>
     <release version="26.08.51" date="2026-08-23">
       <description>
           <p>The screenshots on this page now show up. They were declared with a file:// address, which AppStream refuses, so the gallery was empty for every one of our applications — in the Hub, in Discover and in GNOME Software alike. They are served from skillfishos.com now, and a copy still travels inside the package for machines with no network.</p>

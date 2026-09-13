@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.24" date="2026-09-13">
+      <description>
+        <p>The cluster card and the emulator list speak your language: both were drawn in Italian whatever the interface was set to.</p>
+        <p xml:lang="it">La scheda del cluster e l'elenco degli emulatori parlano la tua lingua: erano scritti in italiano qualunque lingua avesse l'interfaccia.</p>
+        <p xml:lang="fr">La carte du cluster et la liste des émulateurs parlent votre langue : toutes deux s'affichaient en italien quelle que soit la langue de l'interface.</p>
+        <p xml:lang="es">La tarjeta del clúster y la lista de emuladores hablan tu idioma: ambas se mostraban en italiano fuera cual fuera el idioma de la interfaz.</p>
+        <p xml:lang="pt">O cartão do cluster e a lista de emuladores falam a tua língua: ambos apareciam em italiano fosse qual fosse a língua da interface.</p>
+        <p xml:lang="de">Die Cluster-Karte und die Emulatorliste sprechen deine Sprache: beide wurden auf Italienisch gezeichnet, egal welche Sprache eingestellt war.</p>
+        <p xml:lang="pl">Karta klastra i lista emulatorów mówią w twoim języku: obie były wyświetlane po włosku niezależnie od języka interfejsu.</p>
+        <p xml:lang="ru">Карточка кластера и список эмуляторов говорят на вашем языке: обе отображались по-итальянски при любом языке интерфейса.</p>
+        <p xml:lang="uk">Картка кластера та список емуляторів говорять вашою мовою: обидві показувалися італійською за будь-якої мови інтерфейсу.</p>
+      </description>
+    </release>
     <release version="26.09.18" date="2026-09-13">
       <description>
         <p>The AI page only passes on levels and models that actually exist, and the part that runs as root checks again before starting anything.</p>
