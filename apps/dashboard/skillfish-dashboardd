@@ -2151,25 +2151,40 @@ def ai_llama():
             "modelli": m.get("modelli") or []}
 
 
+# I tre livelli della modalita' AI, scritti una volta sola: chi arriva da fuori
+# non aggiunge niente a questo elenco, al massimo ne indica uno.
+LIVELLI_AI = ("studio", "motore", "motore-api")
+
+
 def ai_livello(livello="", modello=""):
     """Cambia la scelta. ⚠️ Non accende e non spegne niente: accendere e'
     un'altra rotta, con la sua domanda."""
-    # ⚠️ I DUE VALORI ARRIVANO DAL BROWSER. Non si ripuliscono: si confrontano
-    # con quello che esiste. Il livello e' uno dei tre che conosciamo, e il
-    # modello dev'essere uno di quelli che skillfish-llama ha trovato sul
-    # disco. Senza questo controllo bastava una richiesta per far aprire a
-    # llama-server un file qualsiasi del sistema.
-    if livello and livello not in ("studio", "motore", "motore-api"):
-        return {"ok": False, "errore": "livello sconosciuto"}
-    if modello:
-        sul_disco = {m.get("file") for m in (ai_llama().get("modelli") or [])}
-        if modello not in sul_disco:
-            return {"ok": False, "errore": "modello sconosciuto"}
+    # ⚠️ I DUE VALORI ARRIVANO DAL BROWSER E NON ENTRANO NELLA RIGA DI COMANDO.
+    # Servono soltanto a scegliere: il livello fra i tre che conosciamo, il
+    # modello fra i file che skillfish-llama ha trovato sul disco. Quello che
+    # passiamo e' sempre l'elemento preso da quegli elenchi, cioe' roba nostra.
+    # Confrontare e poi passare comunque la stringa di chi chiama sembrava
+    # equivalente: non lo e', perche' basta allentare il confronto un giorno e
+    # il percorso torna ad arrivare da fuori.
     cmd = [LLAMA, "imposta"]
     if livello:
-        cmd.append("livello=%s" % livello)
+        scelto = ""
+        for noto in LIVELLI_AI:
+            if noto == livello:
+                scelto = noto
+                break
+        if not scelto:
+            return {"ok": False, "errore": "livello sconosciuto"}
+        cmd.append("livello=" + scelto)
     if modello:
-        cmd.append("modello=%s" % modello)
+        scelto = ""
+        for m in (ai_llama().get("modelli") or []):
+            if m.get("file") == modello:
+                scelto = m.get("file") or ""
+                break
+        if not scelto:
+            return {"ok": False, "errore": "modello sconosciuto"}
+        cmd.append("modello=" + scelto)
     if len(cmd) == 2:
         return {"ok": False, "errore": "niente da cambiare"}
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

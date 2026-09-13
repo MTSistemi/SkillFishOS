@@ -810,13 +810,18 @@ def ai_livello(livello="", modello=""):
     # ⚠️ Stesso controllo del Remote Manager: l'elenco chiuso vale anche qui,
     # anche se qui dall'altra parte c'e' la nostra finestra. Un helper che gira
     # da root non si fida di chi lo chiama.
-    if livello and livello not in ("studio", "motore", "motore-api"):
+    scelto = ""
+    for noto in ("studio", "motore", "motore-api"):
+        if noto == livello:
+            scelto = noto
+            break
+    if livello and not scelto:
         return {"ok": False, "errore": "livello sconosciuto"}
     if modello and not os.path.isfile(modello):
         return {"ok": False, "errore": "modello inesistente"}
     cmd = ["/usr/local/bin/skillfish-llama", "imposta"]
     if livello:
-        cmd.append("livello=%s" % livello)
+        cmd.append("livello=" + scelto)
     if modello:
         cmd.append("modello=%s" % modello)
     if len(cmd) == 2:
