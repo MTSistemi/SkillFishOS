@@ -99,7 +99,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.24
+Version: 26.09.25
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -109,11 +109,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.24_all.deb
-Size: 949252
-SHA256: ce006ff31ebc393d3eeec8cbd37fe367a183b7ef3b7db285ac83ccf4d69e71af
-SHA1: c73aca3fa28b8275379b37bbe2cb8c006f761a00
-MD5sum: cf609d0561e5b201a678f08267686a9a
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.25_all.deb
+Size: 949980
+SHA256: 8cbab075c57a2b70c66a9e208e88d05a8efc7c22d905778639e9c92f75ea6780
+SHA1: e64d80b7f7d8f58c9824ab4b98ec21f58b6f6833
+MD5sum: 50e5380ec531548d85c5cb774f2dfdf3
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -363,18 +363,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.09.23
+Version: 26.09.25
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.23_all.deb
-Size: 1697348
-SHA256: 4d6fbe7554f2fc2be36b8fd373408a735ef106f8dbcf31fe79bea51eb3dbb2be
-SHA1: d959f2e1197a19dd308f0fff5ad63a62fca94339
-MD5sum: 8916e204578044615a6422b61b45fd61
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.25_all.deb
+Size: 1698936
+SHA256: ccd2cedd816f0b8c754cf05acddfd021564aa9b428ad4bfbf8dae320c0485ffb
+SHA1: 57a91ba727af9ad8d21350f38a188cc9b5c9ee55
+MD5sum: 41bf9f3355bb9c1bdd5761722b87ab09
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
