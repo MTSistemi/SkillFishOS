@@ -28,7 +28,7 @@ Ce qui change en pratique :
 
 - **Un service au lieu d'un assemblage Docker.** Il fallait avant trois conteneurs (Ollama, OpenWebUI, Dockge) plus une image sur mesure d'environ 6,5 Go ; maintenant c'est juste `skillfish-unsloth.service`.
 - **Les modèles viennent de Hugging Face.** Unsloth récupère les fichiers **GGUF** directement dans tout le catalogue Hugging Face plutôt que dans un registre restreint, si bien que le choix de modèles et de quantifications est bien plus large — y compris les versions que l'équipe Unsloth publie elle-même.
-- **Il n'écoute que sur l'interface locale.** De l'extérieur on l'atteint par le tableau de bord, qui vérifie les comptes par PAM : aucun port d'IA n'est ouvert sur le réseau.
+- **De lui-même il ne répond qu'à la machine.** De l'extérieur on l'atteint par le Remote Manager, qui vérifie les comptes par PAM. Si vous voulez que les autres appareils de la maison s'en servent aussi, la section IA a un interrupteur qui l'ouvre au réseau local, avec son propre compte et son propre mot de passe.
 
 
 ## Les modèles
@@ -47,6 +47,18 @@ Garde en tête que :
 
 - **IA et jeux ne vont pas ensemble** : ils partagent le même GPU et la même mémoire ;
 - moteur éteint, le GPU et la RAM redeviennent entièrement disponibles pour le jeu.
+
+## Donner plus de mémoire au modèle
+
+Le bureau occupe de la mémoire dont le modèle pourrait se servir. La section IA l'éteint, et permet aussi de choisir jusqu'où : **Studio allumé**, c'est-à-dire le bureau seul ; **le moteur seul, avec la page web** ; **le moteur seul, l'interface seule**, ce qui laisse llama-server tout seul sur le port 8888, avec la même interface et la même clé qu'avant. Mesuré sur une carte avec un modèle chargé : 567 Mo de mémoire système deviennent 115.
+
+À partir de là on pilote la machine depuis le Remote Manager d'un autre ordinateur, ou par ssh. Le modèle du moteur nu se choisit avant, dans la même carte.
+
+## Plus d'une carte
+
+Plusieurs cartes BC-250 se partagent un modèle trop grand pour une seule. La carte **Cluster** énumère les cartes, la mémoire dont elles disposent ensemble et ce qu'elles consomment, et allume et éteint les nœuds. Un **27B de 22 Go** ne se charge même pas sur une seule carte ; sur deux, il tourne à **7,57 jetons par seconde**.
+
+C'est à cela qu'il sert, et autant le dire clairement : **ce n'est pas plus rapide**. Un modèle qui tenait sur une carte perd environ un tiers de sa vitesse une fois réparti, car chaque frontière entre couches passe par le réseau. La grappe est faite pour les modèles qui, seuls, ne tournent pas du tout.
 
 ## Sources
 

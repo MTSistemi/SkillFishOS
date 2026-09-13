@@ -11,6 +11,8 @@ Na zwykłym APU taktowanie stroi się przez `amdgpu` w sysfs. Na BC-250 **to nie
 
 ## Krzywa napięcie/częstotliwość i trzy profile
 
+![krzywa napięcia i częstotliwości w Tunerze, z tabelą punktów i trzema profilami](/img/control-center-tuner.png)
+
 [Tuner](/pl/docs/control-center) steruje grafiką **krzywą napięcie/częstotliwość**: MHz w poziomie, miliwolty w pionie, punkty przeciągane na wykresie albo wpisywane w tabeli obok. Trzy profile przesuwają **sufit** krzywej:
 
 | Profil | Sufit GPU | Uwagi |

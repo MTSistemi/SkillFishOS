@@ -28,7 +28,7 @@ O que muda na prática:
 
 - **Um serviço em vez de um conjunto de Docker.** Antes eram três contêineres (Ollama, OpenWebUI, Dockge) mais uma imagem própria de uns 6,5 GB; agora é só o `skillfish-unsloth.service`.
 - **Os modelos vêm do Hugging Face.** O Unsloth baixa arquivos **GGUF** direto do catálogo completo do Hugging Face, e não de um registro selecionado, então a variedade de modelos e quantizações é muito maior — incluindo as compilações que a própria equipe do Unsloth publica.
-- **Ele escuta só em loopback.** De fora chega-se a ele pelo painel de controle, que autentica por PAM: nenhuma porta de IA fica exposta à rede.
+- **Por si só responde apenas à própria máquina.** De fora chega-se a ele pelo Remote Manager, que autentica por PAM. Se quiseres que responda também aos outros dispositivos de casa, a secção IA tem um interruptor que o abre à rede local, com o seu próprio utilizador e palavra-passe.
 
 
 ## Os modelos
@@ -47,6 +47,18 @@ Tem em conta que:
 
 - **IA e jogos não se usam juntos**: partilham a mesma GPU e a mesma memória;
 - com o motor desligado, GPU e RAM voltam a estar totalmente disponíveis para jogar.
+
+## Dar mais memória ao modelo
+
+O ambiente de trabalho ocupa memória que o modelo poderia usar. Na secção IA desliga-se, e escolhe-se também quanto desligar: **Studio ligado**, ou seja só o ambiente de trabalho; **só o motor, com página web**; **só o motor, só API**, que deixa o llama-server sozinho na porta 8888, com a mesma API e a mesma chave de antes. Medido numa placa com um modelo carregado: 567 MB de memória de sistema passam a 115.
+
+Daí em diante a máquina comanda-se pelo Remote Manager de outro computador, ou por ssh. O modelo do motor nu escolhe-se antes, no mesmo cartão.
+
+## Mais do que uma placa
+
+Várias placas BC-250 repartem um modelo grande demais para uma só. O cartão **Cluster** lista as placas, quanta memória têm juntas e quanto estão a consumir, e liga e desliga os nós. Um **27B de 22 GB** numa só placa nem sequer carrega; em duas corre a **7,57 tokens por segundo**.
+
+É para isso que serve, e convém dizê-lo com clareza: **não fica mais rápido**. Um modelo que cabia numa placa perde cerca de um terço da velocidade quando é repartido, porque cada fronteira entre camadas viaja pela rede. O cluster é para os modelos que sozinhos não correm de todo.
 
 ## Fontes
 

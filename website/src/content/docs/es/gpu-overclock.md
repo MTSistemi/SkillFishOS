@@ -11,6 +11,8 @@ En una APU normal las frecuencias se ajustan por el sysfs de `amdgpu`. En la BC-
 
 ## La curva voltaje/frecuencia y los tres perfiles
 
+![la curva de tensión y frecuencia en el Tuner, con la tabla de puntos y los tres perfiles](/img/control-center-tuner.png)
+
 El [Tuner](/es/docs/control-center) gobierna la GPU con una **curva voltaje/frecuencia**: MHz en horizontal, milivoltios en vertical, puntos que arrastras en la gráfica o escribes en la tabla de al lado. Tres perfiles mueven el **tope** de la curva:
 
 | Perfil | Tope de GPU | Notas |

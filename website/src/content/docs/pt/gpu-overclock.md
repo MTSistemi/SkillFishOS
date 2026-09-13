@@ -11,6 +11,8 @@ Numa APU comum as frequências se ajustam pelo sysfs do `amdgpu`. Na BC-250 **is
 
 ## A curva tensão/frequência e os três perfis
 
+![a curva de tensão e frequência no Tuner, com a tabela de pontos e os três perfis](/img/control-center-tuner.png)
+
 O [Tuner](/pt/docs/control-center) governa a GPU com uma **curva tensão/frequência**: MHz na horizontal, milivolts na vertical, pontos que você arrasta no gráfico ou escreve na tabela ao lado. Três perfis movem o **teto** da curva:
 
 | Perfil | Teto da GPU | Observações |

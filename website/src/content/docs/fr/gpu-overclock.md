@@ -11,6 +11,8 @@ Sur un APU ordinaire on règle les fréquences par le sysfs d'`amdgpu`. Sur la B
 
 ## La courbe tension/fréquence et les trois profils
 
+![la courbe tension/fréquence dans le Tuner, avec le tableau des points et les trois profils](/img/control-center-tuner.png)
+
 Le [Tuner](/fr/docs/control-center) pilote le GPU avec une **courbe tension/fréquence** : MHz à l'horizontale, millivolts à la verticale, des points qu'on tire sur le graphique ou qu'on saisit dans le tableau à côté. Trois profils déplacent le **plafond** de la courbe :
 
 | Profil | Plafond GPU | Notes |

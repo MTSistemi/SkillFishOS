@@ -11,6 +11,8 @@ Su una APU normale le frequenze si regolano via sysfs `amdgpu`. Sulla BC-250 **n
 
 ## La curva tensione/frequenza e i tre preset
 
+![la curva tensione/frequenza nel Tuner, con la tabella dei punti e i tre preset](/img/control-center-tuner.png)
+
 Il [Tuner](/docs/control-center) governa la GPU con una **curva tensione/frequenza**: MHz in orizzontale, millivolt in verticale, punti che si trascinano nel grafico o si scrivono a mano nella tabella accanto. Tre preset spostano il **tetto** della curva:
 
 | Preset | Tetto GPU | Note |

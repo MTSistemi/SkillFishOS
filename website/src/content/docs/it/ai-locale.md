@@ -28,7 +28,7 @@ Cosa cambia in pratica:
 
 - **Un servizio invece di uno stack Docker.** Prima servivano tre container (Ollama, OpenWebUI, Dockge) e un’immagine custom da ~6,5 GB; ora c’è `skillfish-unsloth.service` e basta.
 - **I modelli sono quelli di Hugging Face.** Unsloth scarica direttamente i **GGUF** dal catalogo completo di Hugging Face, invece di un registro curato: la scelta di modelli e di quantizzazioni disponibili è enormemente più ampia, comprese le build che il team Unsloth pubblica per conto proprio.
-- **Ascolta solo su localhost.** Da fuori ci si arriva attraverso la dashboard, che autentica via PAM: nessuna porta AI esposta sulla rete.
+- **Di suo ascolta solo la macchina stessa.** Da fuori ci si arriva attraverso il Remote Manager, che autentica via PAM. Se vuoi che risponda anche agli altri dispositivi di casa, nella sezione AI c'è un interruttore che lo apre alla rete locale, con il suo utente e la sua password.
 
 
 ## I modelli
@@ -47,6 +47,18 @@ Tieni presente che:
 
 - **AI e giochi non vanno usati insieme**: condividono la stessa GPU e la stessa memoria;
 - a motore spento, GPU e RAM tornano completamente disponibili per il gaming.
+
+## Dare più memoria al modello
+
+Il desktop occupa memoria che il modello potrebbe usare. Dalla sezione AI lo si spegne, e si sceglie anche quanto spegnere: **Studio acceso**, cioè solo il desktop; **solo il motore, con pagina web**; **solo il motore, solo API**, che lascia llama-server da solo sulla porta 8888, con la stessa API e la stessa chiave di prima. Misurato su una scheda con il modello caricato: 567 MB di memoria di sistema diventano 115.
+
+Da lì in poi la macchina si comanda dal Remote Manager di un altro computer, o da ssh. Il modello del motore nudo si sceglie prima, nella stessa scheda.
+
+## Più di una scheda
+
+Più BC-250 si dividono un modello troppo grande per una sola. La scheda **Cluster** elenca le schede, quanta memoria hanno insieme e quanto stanno assorbendo, e accende e spegne i nodi. Un **27B da 22 GB** su una scheda non si carica nemmeno; su due gira a **7,57 token al secondo**.
+
+Serve a questo, e conviene dirlo chiaro: **non va più veloce**. Un modello che su una scheda ci stava perde circa un terzo della sua velocità quando lo si divide, perché ogni confine fra strati viaggia sulla rete. Il cluster è per i modelli che da soli non girano.
 
 ## Fonti
 

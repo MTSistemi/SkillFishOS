@@ -28,7 +28,7 @@ Was sich in der Praxis ändert:
 
 - **Ein Dienst statt eines Docker-Gespanns.** Früher brauchte es drei Container (Ollama, OpenWebUI, Dockge) und ein eigenes Abbild von rund 6,5 GB; jetzt ist es nur noch `skillfish-unsloth.service`.
 - **Die Modelle kommen von Hugging Face.** Unsloth holt **GGUF**-Dateien unmittelbar aus dem vollständigen Katalog von Hugging Face statt aus einer ausgewählten Liste, die Auswahl an Modellen und Quantisierungen ist damit ungleich größer — samt der Fassungen, die das Unsloth-Team selbst veröffentlicht.
-- **Er lauscht nur auf dem Loopback.** Von außen erreicht man ihn über die Fernsteuerung, die sich über PAM anmeldet: kein KI-Port ist zum Netz hin offen.
+- **Von sich aus antwortet er nur dem eigenen Rechner.** Von außen erreicht man ihn über den Remote Manager, der sich über PAM anmeldet. Sollen auch die anderen Geräte im Haus ihn nutzen, gibt es im KI-Bereich einen Schalter, der ihn für das lokale Netz öffnet, mit eigenem Benutzer und eigenem Passwort.
 
 
 ## Die Modelle
@@ -47,6 +47,18 @@ Denk daran:
 
 - **KI und Spiele gehören nicht gleichzeitig benutzt**: sie teilen sich dieselbe GPU und denselben Speicher;
 - mit ausgeschaltetem Motor stehen GPU und RAM wieder ganz zum Spielen bereit.
+
+## Dem Modell mehr Speicher geben
+
+Der Schreibtisch belegt Speicher, den das Modell gebrauchen könnte. Im KI-Bereich fährt man ihn herunter und wählt dabei auch, wie viel heruntergeht: **Studio an**, also nur der Schreibtisch; **nur der Motor, mit Webseite**; **nur der Motor, nur Schnittstelle**, was llama-server allein auf Port 8888 zurücklässt, mit derselben Schnittstelle und demselben Schlüssel wie zuvor. Auf einer Karte mit geladenem Modell gemessen: aus 567 MB Systemspeicher werden 115.
+
+Von da an steuert man die Maschine über den Remote Manager von einem anderen Rechner aus oder über ssh. Das Modell für den nackten Motor wählt man vorher, in derselben Karte.
+
+## Mehr als eine Karte
+
+Mehrere BC-250 teilen sich ein Modell, das für eine allein zu groß ist. Die Karte **Cluster** führt die Karten auf, wie viel Speicher sie zusammen haben und wie viel sie gerade ziehen, und schaltet die Knoten ein und aus. Ein **27B mit 22 GB** lädt auf einer einzelnen Karte gar nicht erst; auf zweien läuft es mit **7,57 Token pro Sekunde**.
+
+Dafür ist es da, und das gehört klar gesagt: **schneller wird es nicht**. Ein Modell, das auf eine Karte passte, verliert beim Aufteilen rund ein Drittel seiner Geschwindigkeit, denn jede Grenze zwischen Schichten geht über das Netz. Der Verbund ist für die Modelle, die allein überhaupt nicht laufen.
 
 ## Quellen
 

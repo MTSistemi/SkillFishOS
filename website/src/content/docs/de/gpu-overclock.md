@@ -11,6 +11,8 @@ Auf einer gewöhnlichen APU stellt man die Takte über das sysfs von `amdgpu` ei
 
 ## Die Spannungs-/Frequenzkurve und die drei Vorgaben
 
+![die Spannungs-Frequenz-Kurve im Tuner, mit der Punkttabelle und den drei Profilen](/img/control-center-tuner.png)
+
 Der [Tuner](/de/docs/control-center) steuert die GPU über eine **Spannungs-/Frequenzkurve**: MHz waagerecht, Millivolt senkrecht, Punkte, die du im Diagramm ziehst oder in die Tabelle daneben einträgst. Drei Vorgaben verschieben den **Deckel** der Kurve:
 
 | Vorgabe | GPU-Deckel | Anmerkungen |

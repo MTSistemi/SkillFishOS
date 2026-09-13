@@ -7,6 +7,8 @@ order: 4
 
 Tous les outils SkillFishOS tiennent dans une fenêtre. Elle s'ouvre depuis le menu (SkillFishOS → Control Center) ou avec `skillfish-control-center`. Une manette la pilote aussi : croix ou stick pour se déplacer, A confirme, B revient, LB et RB changent de section.
 
+![la section État du Control Center de SkillFishOS](/img/control-center-stato.png)
+
 ## Les sections
 
 - **État**: un chiffre par carte : fréquence et plafond du GPU, CPU, unités de calcul, ventilateur, noyau, governor, pilote Vulkan, si le dernier démarrage a suivi un arrêt propre. Rien ne se règle ici.
@@ -24,6 +26,8 @@ Tous les outils SkillFishOS tiennent dans une fenêtre. Elle s'ouvre depuis le m
 
 ## Tuner
 
+![la section Tuner du Control Center de SkillFishOS](/img/control-center-tuner.png)
+
 La courbe est le graphique : MHz en abscisse, millivolts en ordonnée. Glissez un point, double-clic pour en ajouter un, clic droit pour le retirer, ou tapez les nombres dans le tableau à côté du graphique (+ et − ajoutent et retirent des points). La ligne verticale en pointillés est le plafond, le point bleu est le GPU à l'instant. Trois presets : **Cautious 1850** (le point idéal avec le dissipateur d'origine, presque les mêmes images et dix degrés de moins), **Balanced 2000**, **Performance 2100** (la courbe à quinze points mesurée sur la carte de développement, celle que nous livrons).
 
 **Appliquer est un essai.** Une courbe qui demande trop peu de tension bloque la carte, et sur la BC-250 un blocage se règle en débranchant. Appliquer lance donc la candidate en gardant l'ancienne courbe sur le disque et compte 25 secondes : appuyez sur Garder et la candidate est écrite pour de bon ; ne faites rien, ou la carte meurt et revient, et c'est l'ancienne courbe qui démarre.
@@ -39,9 +43,13 @@ Les panneaux s'ouvrent à la demande :
 
 ## Moniteur
 
+![la section Moniteur du Control Center de SkillFishOS](/img/control-center-monitor.png)
+
 Un graphique par grandeur, chacun avec sa vraie échelle : températures (CPU, GPU, VRM, système, NVMe), fréquences (CPU moyenne, min, max, GPU et son plafond), charge, puissance, tensions, ventilateur et mémoire (RAM, VRAM, GTT), plus une barre par thread. Cliquez sur une entrée de la légende pour masquer une ligne ; survolez pour lire tous les graphiques au même instant. REC écrit un fichier `.sfmon` (CSV) qu'Ouvrir recharge avec un curseur ; CSV l'exporte pour un tableur.
 
 ## Jeux
+
+![la section Jeux du Control Center de SkillFishOS](/img/control-center-giochi.png)
 
 - **Pilote Vulkan** : notre Mesa ouvre les files de calcul que le pilote d'origine garde fermées sur ce GPU : +4 % dans Cyberpunk 2077, +12 % avec FSR 4. Par lanceur (Steam, Heroic) via un override flatpak, ou pour tout le système. Il faut le noyau SkillFishOS : sur un autre noyau ces files bloquent le GPU, et l'interrupteur système refuse d'y démarrer. La carte affiche le noyau en cours.
 - **Ordonnanceur** : scx_bpfland, chargé seulement pendant qu'un jeu tourne (GameMode le lance et l'arrête) : +1,5-2 % dans Cyberpunk et des images plus régulières. Si le noyau l'éjecte deux fois, le service s'arrête jusqu'à la remise à zéro du compteur : c'est la ligne « Éjecté par le noyau ».
@@ -49,6 +57,8 @@ Un graphique par grandeur, chacun avec sa vraie échelle : températures (CPU, G
 - **Proton** : les versions GE-Proton 11 ; Installer en télécharge une (environ 500 Mo) dans les dossiers de Steam et Heroic, Par défaut la choisit. Steam doit être fermé pour que son défaut soit écrit.
 
 ## IA
+
+![la section IA du Control Center de SkillFishOS](/img/control-center-ai.png)
 
 Le moteur est **Unsloth Studio** : il fait tourner les modèles GGUF avec llama.cpp sur le backend **Vulkan**, qui sur le gfx1013 de la BC-250 est la seule voie accélérée, car ROCm ne le prend pas en charge. Mesuré sur la carte avec Qwen3-1.7B Q4_K_M : 210 tokens par seconde contre 41 sur le seul CPU.
 
@@ -62,3 +72,19 @@ Le moteur est **Unsloth Studio** : il fait tourner les modèles GGUF avec llama.
 ## Ventilateur, profils et le reste
 
 La page **Ventilateur** dessine la courbe dans le graphique des capteurs : à cette température le ventilateur tourne ainsi, avec une avance pour que la vitesse monte avant la température. Les **Profils** déplacent le plafond dans la courbe déjà en place et règlent ensemble CPU, preset du ventilateur et ordonnanceur. Les **Instantanés** sont des photos du système, vos fichiers ne sont pas touchés. **IA** garde la mémoire du GPU tant qu'elle est allumée : éteignez-la avant de jouer. **Console** lance Steam Big Picture dans gamescope par-dessus le bureau, ou comme session depuis l'écran de connexion. Le **Remote Manager** reprend les pages Tuner, Jeux et Profils dans un navigateur.
+
+## Les autres sections, en un coup d'œil
+
+Voici à quoi elles ressemblent une fois ouvertes.
+
+![la section Ventilateur du Control Center de SkillFishOS](/img/control-center-ventola.png)
+
+![la section Profils du Control Center de SkillFishOS](/img/control-center-profili.png)
+
+![la section Noyau du Control Center de SkillFishOS](/img/control-center-kernel.png)
+
+![la section Émulateurs du Control Center de SkillFishOS](/img/control-center-emulatori.png)
+
+![la section Console du Control Center de SkillFishOS](/img/control-center-console.png)
+
+![la section ISO du Control Center de SkillFishOS](/img/control-center-iso.png)

@@ -28,7 +28,7 @@ Lo que cambia en la práctica:
 
 - **Un servicio en lugar de un montaje de Docker.** Antes hacían falta tres contenedores (Ollama, OpenWebUI, Dockge) más una imagen propia de unos 6,5 GB; ahora es solo `skillfish-unsloth.service`.
 - **Los modelos vienen de Hugging Face.** Unsloth descarga archivos **GGUF** directamente del catálogo completo de Hugging Face y no de un registro seleccionado, así que la variedad de modelos y de cuantizaciones es muchísimo mayor — incluidas las compilaciones que publica el propio equipo de Unsloth.
-- **Escucha solo en loopback.** Desde fuera se llega a él por el panel de control, que autentica con PAM: no hay ningún puerto de IA expuesto a la red.
+- **Por su cuenta responde solo a la propia máquina.** Desde fuera se llega a él por el Remote Manager, que autentica con PAM. Si quieres que responda también a los demás dispositivos de casa, la sección IA tiene un interruptor que lo abre a la red local, con su propio usuario y contraseña.
 
 
 ## Los modelos
@@ -47,6 +47,18 @@ Ten en cuenta que:
 
 - **IA y juegos no se usan a la vez**: comparten la misma GPU y la misma memoria;
 - con el motor apagado, GPU y RAM vuelven a estar del todo disponibles para jugar.
+
+## Darle más memoria al modelo
+
+El escritorio ocupa memoria que el modelo podría usar. Desde la sección IA se apaga, y también se elige cuánto apagar: **Studio encendido**, es decir solo el escritorio; **solo el motor, con página web**; **solo el motor, solo API**, que deja llama-server a solas en el puerto 8888, con la misma API y la misma clave de antes. Medido en una placa con un modelo cargado: 567 MB de memoria de sistema pasan a 115.
+
+A partir de ahí la máquina se maneja desde el Remote Manager de otro ordenador, o por ssh. El modelo del motor desnudo se elige antes, en la misma tarjeta.
+
+## Más de una placa
+
+Varias placas BC-250 se reparten un modelo demasiado grande para una sola. La tarjeta **Cluster** enumera las placas, cuánta memoria tienen juntas y cuánto están consumiendo, y enciende y apaga los nodos. Un **27B de 22 GB** en una sola placa ni siquiera se carga; en dos funciona a **7,57 tokens por segundo**.
+
+Para eso sirve, y conviene decirlo claro: **no va más rápido**. Un modelo que sí cabía en una placa pierde alrededor de un tercio de su velocidad al repartirlo, porque cada frontera entre capas viaja por la red. El clúster es para los modelos que por sí solos no arrancan.
 
 ## Fuentes
 

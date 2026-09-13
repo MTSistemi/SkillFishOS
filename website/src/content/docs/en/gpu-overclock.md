@@ -11,6 +11,8 @@ On a normal APU you tune clocks through the `amdgpu` sysfs. On the BC-250 **that
 
 ## The voltage/frequency curve and the three presets
 
+![the voltage/frequency curve in the Tuner, with the knot table and the three presets](/img/control-center-tuner.png)
+
 The [Tuner](/en/docs/control-center) drives the GPU with a **voltage/frequency curve**: MHz on the horizontal axis, millivolts on the vertical one, points you drag on the chart or type into the table next to it. Three presets move the curve's **ceiling**:
 
 | Preset | GPU ceiling | Notes |

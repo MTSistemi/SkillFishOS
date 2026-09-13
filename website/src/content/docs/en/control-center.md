@@ -7,6 +7,8 @@ order: 4
 
 Every SkillFishOS tool lives in one window. Open it from the menu (SkillFishOS → Control Center) or with `skillfish-control-center`. A controller drives it too: D-pad or stick to move, A confirms, B goes back, LB and RB switch section.
 
+![the Status section of the SkillFishOS Control Center](/img/control-center-stato.png)
+
 ## The sections
 
 - **Status**: one number per card: GPU clock and ceiling, CPU, compute units, fan, kernel, governor, Vulkan driver, whether the last boot followed a clean shutdown. Nothing to set.
@@ -24,6 +26,8 @@ Every SkillFishOS tool lives in one window. Open it from the menu (SkillFishOS �
 
 ## Tuner
 
+![the Tuner section of the SkillFishOS Control Center](/img/control-center-tuner.png)
+
 The curve is the chart: MHz across, millivolts up. Drag a knot, double-click to add one, right-click to remove it, or type the numbers in the table beside the chart (+ and − add and remove knots). The dashed vertical line is the ceiling, the blue dot is the GPU right now. Three presets: **Cautious 1850** (the sweet spot with the stock heatsink, nearly the same frames and ten degrees less), **Balanced 2000**, **Performance 2100** (the fifteen-point curve measured on the development board, the one we ship).
 
 **Apply is a trial.** A curve that asks too little voltage hangs the board, and on the BC-250 a hang means pulling the plug. So Apply starts the candidate with the previous curve still on disk and counts down 25 seconds: press Keep and the candidate is written for good; do nothing, or let the board die and come back, and the previous curve is what boots.
@@ -39,9 +43,13 @@ The panels open on demand:
 
 ## Monitor
 
+![the Monitor section of the SkillFishOS Control Center](/img/control-center-monitor.png)
+
 One chart per quantity, each with its own true scale: temperatures (CPU, GPU, VRM, system, NVMe), clocks (CPU average, min, max, GPU and its ceiling), load, power, voltages, fan and memory (RAM, VRAM, GTT), plus one bar per thread. Click a legend entry to hide a line; hover to read every chart at the same instant. REC writes a `.sfmon` file (CSV) that Open reloads with a scrubber; CSV exports it for a spreadsheet.
 
 ## Games
+
+![the Games section of the SkillFishOS Control Center](/img/control-center-giochi.png)
 
 - **Vulkan driver**: our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in Cyberpunk 2077, +12% with FSR 4 on. Per launcher (Steam, Heroic) through a flatpak override, or for the whole system. It needs the SkillFishOS kernel: on another kernel those queues wedge the GPU, and the system-wide switch refuses to start there. The card shows the kernel that is running.
 - **Scheduler**: scx_bpfland, loaded only while a game runs (GameMode raises it at launch and drops it at exit): +1.5-2% in Cyberpunk and steadier frames. If the kernel ejects it twice the service stops until you reset the counter: that is the "Ejected by the kernel" row.
@@ -49,6 +57,8 @@ One chart per quantity, each with its own true scale: temperatures (CPU, GPU, VR
 - **Proton**: the GE-Proton 11 releases; Install downloads one (about 500 MB) into the Steam and Heroic folders, Default picks it. Steam must be closed for its default to be written.
 
 ## AI
+
+![the AI section of the SkillFishOS Control Center](/img/control-center-ai.png)
 
 The engine is **Unsloth Studio**: it runs GGUF models through llama.cpp on the **Vulkan** backend, which on the BC-250's gfx1013 is the only accelerated path, because ROCm does not support it. Measured on the board with Qwen3-1.7B Q4_K_M: 210 tokens per second against 41 on the CPU alone.
 
@@ -62,3 +72,19 @@ The engine is **Unsloth Studio**: it runs GGUF models through llama.cpp on the *
 ## Fan, profiles and the rest
 
 The **Fan** page draws the curve inside the chart of the sensors: at this temperature the fan turns like this, with a lead so the speed rises before the temperature does. **Profiles** move the ceiling within the curve that is already there and set CPU, fan preset and scheduler together. **Snapshots** are pictures of the system, your files are not touched. **AI** holds GPU memory while on: turn it off before gaming. **Console** starts Steam Big Picture inside gamescope on top of the desktop, or as a session from the login screen. The **Remote Manager** mirrors the Tuner, Games and Profiles pages in a browser.
+
+## The other sections, at a glance
+
+What they look like when you open them.
+
+![the Fan section of the SkillFishOS Control Center](/img/control-center-ventola.png)
+
+![the Profiles section of the SkillFishOS Control Center](/img/control-center-profili.png)
+
+![the Kernel section of the SkillFishOS Control Center](/img/control-center-kernel.png)
+
+![the Emulators section of the SkillFishOS Control Center](/img/control-center-emulatori.png)
+
+![the Console section of the SkillFishOS Control Center](/img/control-center-console.png)
+
+![the ISO section of the SkillFishOS Control Center](/img/control-center-iso.png)

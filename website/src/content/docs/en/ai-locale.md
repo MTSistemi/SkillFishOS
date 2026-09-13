@@ -28,7 +28,7 @@ What changes in practice:
 
 - **One service instead of a Docker stack.** It used to take three containers (Ollama, OpenWebUI, Dockge) plus a ~6.5 GB custom image; now it is just `skillfish-unsloth.service`.
 - **Models come from Hugging Face.** Unsloth pulls **GGUF** files straight from the full Hugging Face catalogue rather than a curated registry, so the range of available models and quantisations is vastly wider — including the builds the Unsloth team publishes themselves.
-- **It listens on loopback only.** From outside you reach it through the dashboard, which authenticates over PAM: no AI port is exposed to the network.
+- **On its own it answers the machine and nothing else.** From outside you reach it through the Remote Manager, which authenticates over PAM. If you want the other devices at home to use it too, the AI section has a switch that opens it to the local network, with its own user and password.
 
 
 ## Models
@@ -47,6 +47,18 @@ Bear in mind:
 
 - **AI and games should not run together**: they share the same GPU and the same memory;
 - with the engine off, GPU and RAM are fully available for gaming again.
+
+## Giving the model more memory
+
+The desktop holds memory the model could use. The AI section shuts it down, and you also choose how much goes down: **Studio on**, which is the desktop alone; **engine only, with web page**; **engine only, API only**, which leaves llama-server by itself on port 8888, with the same API and the same key as before. Measured on a board with a model loaded: 567 MB of system memory becomes 115.
+
+From then on you drive the machine from the Remote Manager on another computer, or over ssh. The model for the bare engine is chosen beforehand, in the same card.
+
+## More than one board
+
+Several BC-250 boards share a model too large for one of them. The **Cluster** card lists the boards, how much memory they hold together and what they are drawing, and starts and stops the nodes. A **22 GB 27B** will not even load on a single board; on two it runs at **7.57 tokens per second**.
+
+That is what it is for, and it is worth saying plainly: **it is not faster**. A model that did fit on one board loses about a third of its speed when it is split, because every boundary between layers travels over the network. The cluster is for the models that do not run at all on their own.
 
 ## Sources
 

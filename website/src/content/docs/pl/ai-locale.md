@@ -28,7 +28,7 @@ Co się przez to zmienia:
 
 - **Jedna usługa zamiast zestawu kontenerów.** Wcześniej potrzeba było trzech kontenerów (Ollama, OpenWebUI, Dockge) plus własnego obrazu na ~6,5 GB; teraz jest to po prostu `skillfish-unsloth.service`.
 - **Modele przychodzą z Hugging Face.** Unsloth pobiera pliki **GGUF** wprost z pełnego katalogu Hugging Face, a nie z wybranego rejestru, więc wachlarz dostępnych modeli i kwantyzacji jest nieporównanie szerszy — łącznie z tym, co publikuje sam zespół Unsloth.
-- **Nasłuchuje tylko lokalnie.** Z zewnątrz dociera się przez panel sterowania, który uwierzytelnia przez PAM: żaden port AI nie jest wystawiony do sieci.
+- **Sam z siebie odpowiada tylko tej maszynie.** Z zewnątrz dociera się do niego przez Remote Manager, który uwierzytelnia przez PAM. Jeśli chcesz, by odpowiadał też innym urządzeniom w domu, w sekcji AI jest przełącznik otwierający go na sieć lokalną, z własnym użytkownikiem i hasłem.
 
 
 ## Modele
@@ -47,6 +47,18 @@ Pamiętaj, że:
 
 - **SI i gry nie chodzą razem**: dzielą to samo GPU i tę samą pamięć;
 - przy wyłączonym silniku GPU i RAM wracają w całości do grania.
+
+## Więcej pamięci dla modelu
+
+Pulpit zajmuje pamięć, której mógłby użyć model. W sekcji AI się go wyłącza, a także wybiera, ile ma zejść: **Studio włączone**, czyli sam pulpit; **tylko silnik, ze stroną**; **tylko silnik, samo API**, co zostawia llama-server sam na porcie 8888, z tym samym API i tym samym kluczem. Zmierzone na płycie z wczytanym modelem: 567 MB pamięci systemu zamienia się w 115.
+
+Od tej chwili maszyną steruje się z Remote Managera na innym komputerze albo przez ssh. Model dla samego silnika wybiera się wcześniej, w tej samej karcie.
+
+## Więcej niż jedna płyta
+
+Kilka płyt BC-250 dzieli między siebie model zbyt duży dla jednej. Karta **Cluster** wypisuje płyty, ile pamięci mają razem i ile pobierają, oraz włącza i wyłącza węzły. **27B o rozmiarze 22 GB** na jednej płycie nawet się nie wczyta; na dwóch działa z prędkością **7,57 tokena na sekundę**.
+
+Do tego właśnie służy i warto powiedzieć wprost: **nie działa szybciej**. Model, który mieścił się na jednej płycie, traci około jednej trzeciej prędkości po podzieleniu, bo każda granica między warstwami idzie przez sieć. Klaster jest dla modeli, które same w ogóle nie ruszają.
 
 ## Źródła
 
