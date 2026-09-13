@@ -710,6 +710,31 @@ MEDIA=$(tr -d ' \n' < iso/VERSIONE 2>/dev/null)
 # `git log` su ognuna: dandogli un file di /tmp, git usciva 128 e la
 # costruzione moriva in silenzio.
 put $P 0644 system/usr/lib/os-release usr/lib/os-release
+
+# ⚠️ LA FINESTRA «INFORMAZIONI SUL SISTEMA» NON LEGGE os-release. Legge
+# /etc/xdg/kcm-about-distrorc, che diceva «26.06» su tutte e tre le macchine
+# mentre os-release diceva gia' 26.06.5. Il file e' di desktop-base, quindi
+# viaggia con un divert come gli altri.
+install -d "$OUT/$P/etc/xdg"
+cat > "$OUT/$P/etc/xdg/kcm-about-distrorc" <<KCM
+[General]
+LogoPath=skillfishos
+Version=${MEDIA} "Aetherium"
+KCM
+note_src $P system/usr/lib/os-release
+
+# /etc/lsb-release non appartiene a nessun pacchetto: lo scriviamo noi.
+cat > "$OUT/$P/etc/lsb-release" <<LSB
+DISTRIB_ID=SkillFishOS
+DISTRIB_RELEASE=${MEDIA}
+DISTRIB_CODENAME=aetherium
+DISTRIB_DESCRIPTION="SkillFishOS ${MEDIA} (Aetherium)"
+LSB
+
+# /etc/issue e issue.net sono di base-files: divert anche loro.
+printf 'SkillFishOS %s "Aetherium" \\n \\l\n\n' "$MEDIA" > "$OUT/$P/etc/issue"
+printf 'SkillFishOS %s "Aetherium"\n' "$MEDIA" > "$OUT/$P/etc/issue.net"
+echo "    versione anche in kcm-about-distrorc, lsb-release, issue: $MEDIA"
 sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${MEDIA} (Aetherium)\"|" \
        -e "s|^VERSION=.*|VERSION=\"${MEDIA} (Aetherium)\"|" \
        -e "s|^VERSION_ID=.*|VERSION_ID=\"${MEDIA}\"|" \
@@ -950,6 +975,27 @@ set -e
 # fallisce, dpkg annulla l'aggiornamento, e chi aggiorna non capisce perche'.
 # Provato sulla scheda di sviluppo il 13/09/2026, ed e' andata esattamente
 # cosi'.
+# ⚠️ TRE FILE IN PIU', STESSA STORIA. kcm-about-distrorc e' di desktop-base,
+# issue e issue.net di base-files: senza deviarli dpkg rifiuta di scompattare e
+# lascia il sistema a meta'. lsb-release non e' di nessuno e non si devia.
+for F in /etc/xdg/kcm-about-distrorc /etc/issue /etc/issue.net; do
+    Q=$(dpkg-divert --listpackage "$F" 2>/dev/null || true)
+    if [ "$Q" != "skillfish-base" ]; then
+        if [ "$Q" = LOCAL ]; then
+            dpkg-divert --local --no-rename --remove "$F"
+        elif [ -n "$Q" ]; then
+            dpkg-divert --package "$Q" --no-rename --remove "$F"
+        fi
+        if [ -e "$F.debian" ]; then
+            dpkg-divert --package skillfish-base --divert "$F.debian" \
+                --no-rename --add "$F"
+        else
+            dpkg-divert --package skillfish-base --divert "$F.debian" \
+                --rename --add "$F"
+        fi
+    fi
+done
+
 CHI=$(dpkg-divert --listpackage /usr/lib/os-release 2>/dev/null || true)
 
 if [ "$CHI" != "skillfish-base" ]; then
@@ -995,6 +1041,10 @@ set -e
 if [ "$1" = remove ] || [ "$1" = purge ]; then
     dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
         --rename --remove /usr/lib/os-release || true
+    for F in /etc/xdg/kcm-about-distrorc /etc/issue /etc/issue.net; do
+        dpkg-divert --package skillfish-base --divert "$F.debian" \
+            --rename --remove "$F" || true
+    done
 fi
 exit 0
 POSTRM
