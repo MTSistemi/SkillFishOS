@@ -2154,6 +2154,17 @@ def ai_llama():
 def ai_livello(livello="", modello=""):
     """Cambia la scelta. ⚠️ Non accende e non spegne niente: accendere e'
     un'altra rotta, con la sua domanda."""
+    # ⚠️ I DUE VALORI ARRIVANO DAL BROWSER. Non si ripuliscono: si confrontano
+    # con quello che esiste. Il livello e' uno dei tre che conosciamo, e il
+    # modello dev'essere uno di quelli che skillfish-llama ha trovato sul
+    # disco. Senza questo controllo bastava una richiesta per far aprire a
+    # llama-server un file qualsiasi del sistema.
+    if livello and livello not in ("studio", "motore", "motore-api"):
+        return {"ok": False, "errore": "livello sconosciuto"}
+    if modello:
+        sul_disco = {m.get("file") for m in (ai_llama().get("modelli") or [])}
+        if modello not in sul_disco:
+            return {"ok": False, "errore": "modello sconosciuto"}
     cmd = [LLAMA, "imposta"]
     if livello:
         cmd.append("livello=%s" % livello)

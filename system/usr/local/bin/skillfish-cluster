@@ -27,6 +27,7 @@ port can run whatever they like on that GPU. It binds to the LAN only when
 somebody asks for it, and it is not started at boot.
 """
 import base64
+import io
 import json
 import os
 import shlex
@@ -59,7 +60,10 @@ def scrivi(d):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(d, f, indent=1)
     os.replace(tmp, CONF)
-    os.chmod(CONF, 0o644)
+    # ⚠️ 0600: qui dentro ci sono gli indirizzi e gli utenti delle altre
+    # schede, e lo leggono soltanto skillfish-cluster e l'helper, che girano
+    # da root. Il file che leggono tutti e' un altro, quello in /run.
+    os.chmod(CONF, 0o600)
 
 
 # ------------------------------------------------------------- la telemetria --
@@ -385,7 +389,8 @@ def aggiungi(ip, utente, password):
                         "-C", "skillfish-cluster", "-f", CHIAVE],
                        capture_output=True, timeout=60)
         os.chmod(CHIAVE, 0o600)
-    pub = open(CHIAVE + ".pub", encoding="utf-8").read().strip()
+    with io.open(CHIAVE + ".pub", encoding="utf-8") as f:
+        pub = f.read().strip()
     rc, _, err = ssh(ip, utente,
                      "mkdir -p ~/.ssh && chmod 700 ~/.ssh && "
                      "grep -qxF %s ~/.ssh/authorized_keys 2>/dev/null || "
@@ -481,6 +486,9 @@ def demone(ogni=5):
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(d, f)
             os.replace(tmp, STATO_PUB)
+            # ⚠️ 0644 VOLUTO: questo file lo legge il Control Center come
+            # utente normale, ed e' tutto il punto di averlo (vedi il commento
+            # in cima). Dentro non c'e' niente di segreto: nomi, gradi, watt.
             os.chmod(STATO_PUB, 0o644)
         except OSError:
             pass

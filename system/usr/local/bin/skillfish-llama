@@ -28,7 +28,6 @@ import json
 import os
 import pwd
 import socket
-import subprocess
 import sys
 
 CONF = "/etc/skillfish/ai-mode.json"

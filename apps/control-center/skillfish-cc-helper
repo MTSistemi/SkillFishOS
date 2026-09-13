@@ -807,6 +807,13 @@ def ai_livello(livello="", modello=""):
     giro, ed e' giusto cosi': spegnere il motore sotto i piedi di chi sta
     chiedendo qualcosa al modello sarebbe peggio.
     """
+    # ⚠️ Stesso controllo del Remote Manager: l'elenco chiuso vale anche qui,
+    # anche se qui dall'altra parte c'e' la nostra finestra. Un helper che gira
+    # da root non si fida di chi lo chiama.
+    if livello and livello not in ("studio", "motore", "motore-api"):
+        return {"ok": False, "errore": "livello sconosciuto"}
+    if modello and not os.path.isfile(modello):
+        return {"ok": False, "errore": "modello inesistente"}
     cmd = ["/usr/local/bin/skillfish-llama", "imposta"]
     if livello:
         cmd.append("livello=%s" % livello)

@@ -28,10 +28,10 @@ import subprocess
 import sys
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QApplication, QCheckBox, QFrame, QHBoxLayout,
                              QLabel, QMessageBox, QProgressBar, QPushButton,
-                             QScrollArea, QSizePolicy, QStackedWidget,
+                             QScrollArea, QStackedWidget,
                              QVBoxLayout, QWidget)
 
 sys.path.insert(0, "/usr/share/skillfish")
