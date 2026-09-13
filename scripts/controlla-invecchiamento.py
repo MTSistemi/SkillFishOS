@@ -45,7 +45,7 @@ TESTI = ["README.md", "SECURITY.md", "CONTRIBUTING.md",
          "docs/GAMING.md", "docs/OPTIMIZATIONS.md"]
 
 PAGINE_WIKI = ["Home", "Installation", "Kernel", "Apps", "APT-Repository",
-               "On-device-AI", "SkillFishOS-Tuner", "SkillFishOS-Hub",
+               "On-device-AI", "SkillFishOS-Control-Center", "SkillFishOS-Hub",
                "Building-from-Source", "Troubleshooting"]
 
 # ⚠️ NON basta cercare parole-scusa riga per riga: al primo giro questo
