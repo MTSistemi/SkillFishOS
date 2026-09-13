@@ -1247,8 +1247,11 @@ putdir $P system/usr/share/plymouth/themes/skillfish-brass usr/share/plymouth/th
 # predefinito di Debian, come e' successo sull'installazione di prova del
 # 13/09/2026.
 put $P 0644 system/usr/share/skillfish/avatar-fish.png usr/share/skillfish/avatar-fish.png
-put $P 0644 system/etc/skel/.face.icon                 etc/skel/.face.icon
-put $P 0644 system/etc/skel/.face.icon                 etc/skel/.face
+# ⚠️ NON si spedisce /etc/skel/.face ne' .face.icon: sono di desktop-base, e
+# dpkg rifiuta l'aggiornamento con "trying to overwrite ... which is also in
+# package desktop-base" lasciando mezzo sistema scompattato e non configurato
+# (successo davvero con la 26.09.12). L'avatar lo mette skillfish-first-login-
+# wallpaper al primo accesso, copiandolo da /usr/share/skillfish.
 put $P 0644 system/etc/skel/.config/kscreenlockerrc    etc/skel/.config/kscreenlockerrc
 
 for a in theme/avatars/steampunk-*.png; do

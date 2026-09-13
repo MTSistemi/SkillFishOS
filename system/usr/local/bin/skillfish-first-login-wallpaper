@@ -76,11 +76,18 @@ AVATAR=/usr/share/skillfish/avatar-fish.png
 SFONDO=/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
 BLOCCO="$CONF/kscreenlockerrc"
 
-if [ -f "$AVATAR" ]; then
-    # .face.icon lo legge KDE, .face accountsservice. Nessuno dei due si
-    # sovrascrive se c'e' gia': chi si e' messo la sua foto se la tiene.
-    [ -e "$HOME/.face.icon" ] || cp "$AVATAR" "$HOME/.face.icon" 2>/dev/null || true
-    [ -e "$HOME/.face" ]      || cp "$AVATAR" "$HOME/.face" 2>/dev/null || true
+# ⚠️ NON "se non c'e'": il file arriva SEMPRE, e' /etc/skel/.face di
+# desktop-base, quindi quella condizione non sarebbe mai vera e il nostro pesce
+# non comparirebbe mai. Si scrive una volta sola e si segna: chi dopo si mette
+# la sua foto non viene piu' toccato.
+# .face.icon lo legge KDE (KUser::faceIconPath), .face accountsservice.
+SEGNO_AVATAR="$CONF/skillfish-avatar-applied"
+if [ -f "$AVATAR" ] && [ ! -f "$SEGNO_AVATAR" ]; then
+    mkdir -p "$CONF" 2>/dev/null || true
+    cp "$AVATAR" "$HOME/.face.icon" 2>/dev/null || true
+    cp "$AVATAR" "$HOME/.face" 2>/dev/null || true
+    date -Is > "$SEGNO_AVATAR" 2>/dev/null || true
+    nota "avatar messo"
 fi
 
 if [ -f "$SFONDO" ] && ! grep -q "SkillFishOS" "$BLOCCO" 2>/dev/null; then
