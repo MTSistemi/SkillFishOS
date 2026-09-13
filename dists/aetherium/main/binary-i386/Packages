@@ -99,7 +99,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.23
+Version: 26.09.24
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -109,11 +109,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.23_all.deb
-Size: 948548
-SHA256: ff847b397b2fb0a0e7749920f14e2932c613fb597246543c39b07fdf4720152f
-SHA1: 7ee261ee11914145b7dbfbe506082ea6d15264c3
-MD5sum: 901e2d4a6ceed30d49a11113c888219e
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.24_all.deb
+Size: 949252
+SHA256: ce006ff31ebc393d3eeec8cbd37fe367a183b7ef3b7db285ac83ccf4d69e71af
+SHA1: c73aca3fa28b8275379b37bbe2cb8c006f761a00
+MD5sum: cf609d0561e5b201a678f08267686a9a
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -144,18 +144,18 @@ Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  native Remote Manager toggle app.
 
 Package: skillfish-emulators
-Version: 26.09.23
+Version: 26.09.24
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: flatpak, curl
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.09.23_all.deb
-Size: 186828
-SHA256: c726ecb5fa13fdfc813e32b53c5672f00d20afdeb069b1cbe1eb56bce9122b5f
-SHA1: 450491dae0aeaf33a56ee17ba6ee9b0ed8fde817
-MD5sum: c932b174bc4a817dc193aaddbf6e6e95
+Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.09.24_all.deb
+Size: 187428
+SHA256: fa379a56477fc45066bc16ebda018567ec13a0982b4fba5aa1ec59227ef8bfef
+SHA1: eabb18474ce1363a17a7f40aa080b4a9c1c796af
+MD5sum: 42048168b707219c3b56d545e4d64df1
 Description: SkillFishOS Emulators - install emulators after the installation
  Installs console emulators after the system is in place: the whole EmuDeck set
  or one at a time. Upstream installers, nothing repackaged.
