@@ -93,3 +93,11 @@ sudo
 # Serve a update-initramfs: senza, ripiega su gzip e lo dice
 # ("W: No zstd in /usr/bin:/sbin:/bin, using gzip").
 zstd
+keyboard-configuration
+# ⚠️ SERVE PER LA PASSPHRASE DEL DISCO CIFRATO. keyboard-configuration da solo
+# sistema la tastiera del desktop; la mappa che finisce DENTRO l'initramfs la
+# genera console-setup. Senza, `KEYMAP=y` in initramfs-tools non produce
+# niente, l'avvio chiede la password con la disposizione us e chi ha una
+# tastiera diversa scrive alla cieca su tasti che non sono dove crede
+# (issue #61).
+console-setup

@@ -698,6 +698,21 @@ put $P 0644 system/usr/share/skillfish/coreunlock/LICENSE             usr/share/
 put $P 0644 system/usr/share/skillfish/coreunlock/main.c              usr/share/skillfish/coreunlock/main.c
 put $P 0644 system/usr/share/skillfish/coreunlock/Makefile            usr/share/skillfish/coreunlock/Makefile
 put $P 0755 system/usr/local/bin/skillfish-coreunlock-efi             usr/local/bin/skillfish-coreunlock-efi
+# La versione del SISTEMA (26.06.x), che non e' quella dei pacchetti (26.09.x).
+# Sta in iso/VERSIONE, cioe' nello stesso posto da cui la prende la ISO: un
+# numero solo, un posto solo. Cosi' chi aggiorna i pacchetti vede salire anche
+# la versione del sistema, invece di restare per sempre a quella dell'immagine
+# da cui aveva installato.
+MEDIA=$(tr -d ' \n' < iso/VERSIONE 2>/dev/null)
+[ -n "$MEDIA" ] || { echo "manca iso/VERSIONE: non so che versione timbrare" >&2; exit 2; }
+OSREL="$OUT/.os-release-timbrato"
+sed -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${MEDIA} (Aetherium)\"|" \
+    -e "s|^VERSION=.*|VERSION=\"${MEDIA} (Aetherium)\"|" \
+    -e "s|^VERSION_ID=.*|VERSION_ID=\"${MEDIA}\"|" \
+    system/usr/lib/os-release > "$OSREL"
+put $P 0644 "$OSREL" usr/lib/os-release
+echo "    os-release timbrato: $MEDIA"
+
 ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -916,7 +931,34 @@ if [ "$1" = remove ] || [ "$1" = purge ]; then
 fi
 exit 0
 PRERM
-chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm"
+# ⚠️ IL DIVERT VA MESSO PRIMA CHE IL FILE ARRIVI. /usr/lib/os-release e' di
+# base-files: senza deviarlo, dpkg si rifiuta di scompattare skillfish-base e
+# lascia il sistema a meta' (e' successo il 13/09 con /etc/skel/.face). Il
+# divert serve anche dopo: senza, il primo aggiornamento di base-files si
+# riprende il file e la versione torna quella di Debian.
+cat > "$OUT/$P/DEBIAN/preinst" <<'PREINST'
+#!/bin/sh
+set -e
+if ! dpkg-divert --list /usr/lib/os-release | grep -q 'skillfish'; then
+    dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
+        --rename --add /usr/lib/os-release
+fi
+exit 0
+PREINST
+
+# E quando il pacchetto se ne va, il file di Debian torna al suo posto.
+cat > "$OUT/$P/DEBIAN/postrm" <<'POSTRM'
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+    dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
+        --rename --remove /usr/lib/os-release || true
+fi
+exit 0
+POSTRM
+
+chmod 0755 "$OUT/$P/DEBIAN/postinst" "$OUT/$P/DEBIAN/prerm" \
+           "$OUT/$P/DEBIAN/preinst" "$OUT/$P/DEBIAN/postrm"
 
 P=skillfish-console
 # La scheda AppStream: senza, la descrizione esiste solo in inglese,
