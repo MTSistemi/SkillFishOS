@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // primo-avvio-parte-2026-09-13
+    data: '2026-09-13',
+    quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "I programmi scelti al primo avvio adesso partono",
+      en: "The programs picked at first boot now start",
+      pl: "Programy wybrane przy pierwszym uruchomieniu wreszcie działają",
+      uk: "Програми, обрані під час першого запуску, тепер запускаються",
+      ru: "Программы, выбранные при первом запуске, теперь запускаются",
+      es: "Los programas elegidos en el primer arranque ya se abren",
+      pt: "Os programas escolhidos no primeiro arranque já arrancam",
+      de: "Die beim ersten Start gewählten Programme starten jetzt",
+      fr: "Les programmes choisis au premier démarrage se lancent",
+    },
+    testo: {
+      it: "Su un'installazione nuova i programmi scelti al primo avvio si installavano ma non partivano: una cartella nella home finiva di proprietà di <b>root</b> e li bloccava tutti. È corretto, e le macchine già installate si riparano da sole al primo aggiornamento. Nel menu ogni programma mostra adesso la propria icona, anche quelli per cui non abbiamo un'icona nostra.",
+      en: "On a fresh install the programs picked at first boot were installed but would not start: a folder in your home ended up owned by <b>root</b> and blocked every one of them. It is fixed, and machines already installed repair themselves at the first update. In the menu every program now shows its own icon, including the ones we have no icon of our own for.",
+      pl: "Na świeżej instalacji programy wybrane przy pierwszym uruchomieniu instalowały się, ale nie startowały: folder w katalogu domowym stawał się własnością <b>roota</b> i blokował je wszystkie. Poprawione, a już zainstalowane maszyny naprawiają się same przy pierwszej aktualizacji. W menu każdy program pokazuje teraz własną ikonę, także te, dla których nie mamy własnej.",
+      uk: "На новому встановленні програми, обрані під час першого запуску, встановлювалися, але не запускалися: тека в домашньому каталозі опинялася у власності <b>root</b> і блокувала їх усі. Виправлено, а вже встановлені машини лагодяться самі під час першого оновлення. У меню кожна програма тепер показує власну піктограму, зокрема й ті, для яких у нас своєї немає.",
+      ru: "На новой установке программы, выбранные при первом запуске, устанавливались, но не запускались: папка в домашнем каталоге оказывалась во владении <b>root</b> и блокировала их все. Исправлено, а уже установленные машины чинятся сами при первом обновлении. В меню каждая программа теперь показывает собственный значок, включая те, для которых своего у нас нет.",
+      es: "En una instalación nueva los programas elegidos en el primer arranque se instalaban pero no se abrían: una carpeta de la carpeta personal acababa siendo de <b>root</b> y los bloqueaba todos. Está corregido, y las máquinas ya instaladas se reparan solas en la primera actualización. En el menú cada programa muestra ahora su propio icono, también aquellos de los que no tenemos icono propio.",
+      pt: "Numa instalação nova os programas escolhidos no primeiro arranque instalavam-se mas não arrancavam: uma pasta na pasta pessoal acabava a pertencer ao <b>root</b> e bloqueava-os a todos. Está corrigido, e as máquinas já instaladas reparam-se sozinhas na primeira atualização. No menu cada programa mostra agora o seu próprio ícone, mesmo aqueles de que não temos ícone nosso.",
+      de: "Bei einer neuen Installation wurden die beim ersten Start gewählten Programme zwar installiert, starteten aber nicht: ein Ordner im Persönlichen Ordner gehörte am Ende <b>root</b> und blockierte sie alle. Das ist behoben, und bereits installierte Rechner reparieren sich bei der ersten Aktualisierung von selbst. Im Menü zeigt jedes Programm jetzt sein eigenes Symbol, auch die, für die wir kein eigenes haben.",
+      fr: "Sur une installation neuve, les programmes choisis au premier démarrage s'installaient mais ne se lançaient pas : un dossier du dossier personnel finissait par appartenir à <b>root</b> et les bloquait tous. C'est corrigé, et les machines déjà installées se réparent seules à la première mise à jour. Dans le menu, chaque programme affiche désormais sa propre icône, y compris ceux dont nous n'avons pas d'icône.",
+    },
+  },
+  {
     // ai-level-allowlist-2026-09-13
     data: '2026-09-13',
     quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },

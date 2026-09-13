@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.21" date="2026-09-13">
+      <description>
+        <p>The applications chosen at first boot now really start: a folder in your home was ending up owned by root and stopped every one of them. Machines already installed repair themselves.</p>
+        <p xml:lang="it">Le applicazioni scelte al primo avvio adesso partono davvero: una cartella nella tua home finiva di proprieta' di root e le bloccava tutte. Le macchine gia' installate si riparano da sole.</p>
+        <p xml:lang="fr">Les applications choisies au premier démarrage se lancent enfin : un dossier de votre dossier personnel finissait appartenir à root et les bloquait toutes. Les machines déjà installées se réparent toutes seules.</p>
+        <p xml:lang="es">Las aplicaciones elegidas en el primer arranque ahora sí se abren: una carpeta de tu carpeta personal acababa siendo de root y las bloqueaba todas. Las máquinas ya instaladas se reparan solas.</p>
+        <p xml:lang="pt">As aplicações escolhidas no primeiro arranque agora arrancam mesmo: uma pasta na tua pasta pessoal acabava a pertencer ao root e bloqueava-as todas. As máquinas já instaladas reparam-se sozinhas.</p>
+        <p xml:lang="de">Die beim ersten Start gewählten Anwendungen starten jetzt wirklich: ein Ordner in Ihrem Persönlichen Ordner gehörte am Ende root und blockierte alle. Bereits installierte Rechner reparieren sich von selbst.</p>
+        <p xml:lang="pl">Aplikacje wybrane przy pierwszym uruchomieniu wreszcie się uruchamiają: folder w katalogu domowym stawał się własnością roota i blokował je wszystkie. Już zainstalowane maszyny naprawiają się same.</p>
+        <p xml:lang="ru">Приложения, выбранные при первом запуске, теперь действительно запускаются: папка в вашем домашнем каталоге оказывалась во владении root и блокировала их все. Уже установленные машины чинятся сами.</p>
+        <p xml:lang="uk">Програми, обрані під час першого запуску, тепер справді запускаються: тека у вашому домашньому каталозі опинялася у власності root і блокувала їх усі. Уже встановлені машини лагодяться самі.</p>
+      </description>
+    </release>
     <release version="26.09.18" date="2026-09-13">
       <description>
         <p>The AI engine turns down a level or a model it does not know instead of trying to start it.</p>

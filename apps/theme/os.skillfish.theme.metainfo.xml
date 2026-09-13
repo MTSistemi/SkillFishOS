@@ -47,6 +47,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.21" date="2026-09-13">
+      <description>
+        <p>Icons in two more sizes are visible again, so a program we have no icon of our own for shows its own instead of a generic one.</p>
+        <p xml:lang="it">Le icone in due misure in piu' tornano visibili, cosi' un programma per cui non abbiamo un'icona nostra mostra la sua invece di una generica.</p>
+        <p xml:lang="fr">Les icônes de deux tailles supplémentaires redeviennent visibles : un programme dont nous n'avons pas d'icône affiche donc la sienne au lieu d'une icône générique.</p>
+        <p xml:lang="es">Los iconos de dos tamaños más vuelven a verse, así un programa del que no tenemos icono propio muestra el suyo en vez de uno genérico.</p>
+        <p xml:lang="pt">Os ícones de mais dois tamanhos voltam a ver-se, por isso um programa de que não temos ícone próprio mostra o seu em vez de um genérico.</p>
+        <p xml:lang="de">Symbole in zwei weiteren Größen sind wieder sichtbar, damit ein Programm, für das wir kein eigenes Symbol haben, sein eigenes zeigt statt eines allgemeinen.</p>
+        <p xml:lang="pl">Ikony w dwóch dodatkowych rozmiarach znów są widoczne, więc program, dla którego nie mamy własnej ikony, pokazuje swoją zamiast ogólnej.</p>
+        <p xml:lang="ru">Значки ещё в двух размерах снова видны, поэтому программа, для которой у нас нет своего значка, показывает собственный, а не общий.</p>
+        <p xml:lang="uk">Піктограми ще у двох розмірах знову видно, тож програма, для якої в нас немає власної піктограми, показує свою, а не загальну.</p>
+      </description>
+    </release>
     <release version="26.09.16" date="2026-09-13">
       <description>
         <p>On an encrypted disk the splash asks for the password in plain sight, with a dot for each character you type.</p>
