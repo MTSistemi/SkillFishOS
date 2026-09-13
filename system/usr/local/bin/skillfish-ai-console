@@ -1,0 +1,97 @@
+#!/bin/bash
+# The screen while AI mode is on: the name, the addresses, and a login prompt.
+#
+# WHY THIS EXISTS
+# Shutting the desktop down used to leave a black screen with nothing on it.
+# Anybody walking past the board would read that as "it crashed": no sign that
+# the machine is alive, no address to reach it at, no way back. A console that
+# says what is going on costs nothing in memory, which is the whole point of AI
+# mode.
+#
+# ⚠️ WHY NOT /etc/issue. agetty eats the escape sequences in the issue file:
+# a backslash followed by an unknown letter is swallowed, and ASCII art is made
+# of backslashes. Here the art is `cat`ed by a shell, so what is in the file is
+# what appears on the screen, and agetty is started afterwards with --noclear
+# and an empty issue so it only adds the login prompt.
+#
+# ⚠️ AND NOT A MINIMAL WINDOW MANAGER. JWM or similar would be prettier and
+# would cost ten to twenty megabytes plus an X server, in the one mode whose
+# entire purpose is to give those megabytes to the model.
+set -u
+
+ARTE=/usr/share/skillfish/ai-mode-art.txt
+LC=$(sed -n 's/^LANG=//p' /etc/default/locale 2>/dev/null | tr -d '"' | cut -c1-2)
+case "$LC" in it|pl|uk|ru|es|pt|de|fr) L="$LC" ;; *) L=en ;; esac
+
+# L'indirizzo con cui si raggiunge la scheda: quello della rotta di default,
+# non il primo che capita, o su una macchina con piu' schede di rete si
+# stamperebbe un indirizzo da cui nessuno arriva.
+IP=$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -1)
+[ -n "$IP" ] || IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+[ -n "$IP" ] || IP="127.0.0.1"
+
+LIBERI=$(awk '/^MemAvailable:/ {printf "%.1f", $2/1048576}' /proc/meminfo)
+TOTALE=$(awk '/^MemTotal:/ {printf "%.1f", $2/1048576}' /proc/meminfo)
+
+case "$L" in
+it) T1="il desktop e' spento, la memoria e' del modello"
+    T2="API del modello"; T3="Remote Manager"; T4="Per tornare al desktop"
+    T5="oppure il pulsante AI-Mode Off nel Remote Manager"
+    T6="liberi per il modello" ;;
+pl) T1="pulpit jest wyłączony, pamięć należy do modelu"
+    T2="API modelu"; T3="Remote Manager"; T4="Aby wrócić do pulpitu"
+    T5="albo przycisk AI-Mode Off w Remote Managerze"
+    T6="wolne dla modelu" ;;
+uk) T1="стільницю вимкнено, пам'ять належить моделі"
+    T2="API моделі"; T3="Remote Manager"; T4="Щоб повернутися до стільниці"
+    T5="або кнопка AI-Mode Off у Remote Manager"
+    T6="вільно для моделі" ;;
+ru) T1="рабочий стол выключен, память принадлежит модели"
+    T2="API модели"; T3="Remote Manager"; T4="Чтобы вернуться к рабочему столу"
+    T5="или кнопка AI-Mode Off в Remote Manager"
+    T6="свободно для модели" ;;
+es) T1="el escritorio está apagado, la memoria es del modelo"
+    T2="API del modelo"; T3="Remote Manager"; T4="Para volver al escritorio"
+    T5="o el botón AI-Mode Off en el Remote Manager"
+    T6="libre para el modelo" ;;
+pt) T1="a área de trabalho está desligada, a memória é do modelo"
+    T2="API do modelo"; T3="Remote Manager"; T4="Para voltar à área de trabalho"
+    T5="ou o botão AI-Mode Off no Remote Manager"
+    T6="livre para o modelo" ;;
+de) T1="der Desktop ist aus, der Speicher gehört dem Modell"
+    T2="API des Modells"; T3="Remote Manager"; T4="Zurück zum Desktop"
+    T5="oder die Schaltfläche AI-Mode Off im Remote Manager"
+    T6="frei für das Modell" ;;
+fr) T1="le bureau est éteint, la mémoire est au modèle"
+    T2="API du modèle"; T3="Remote Manager"; T4="Pour revenir au bureau"
+    T5="ou le bouton AI-Mode Off dans le Remote Manager"
+    T6="libre pour le modèle" ;;
+*)  T1="the desktop is off, the memory belongs to the model"
+    T2="model API"; T3="Remote Manager"; T4="Back to the desktop"
+    T5="or the AI-Mode Off button in the Remote Manager"
+    T6="free for the model" ;;
+esac
+
+# ⚠️ Niente `clear`: senza TERM impostato stampa "TERM environment variable not
+# set" sopra al disegno, e systemd a un servizio TERM non lo passa. Le due
+# sequenze fanno la stessa cosa e non dipendono da niente.
+PULISCI=$'\e[H\e[2J'
+O=$'\e[38;5;179m'   # ottone
+C=$'\e[38;5;223m'   # crema
+S=$'\e[38;5;101m'   # spento
+Z=$'\e[0m'
+
+printf '%s\n%s' "$PULISCI" "$O"
+[ -r "$ARTE" ] && cat "$ARTE"
+printf '%s\n' "$Z"
+printf '  %sSkillFishOS%s  %s%s%s\n\n' "$C" "$Z" "$S" "$T1" "$Z"
+printf '  %s%-18s%s %shttp://%s:8888/v1%s\n' "$S" "$T2" "$Z" "$C" "$IP" "$Z"
+printf '  %s%-18s%s %shttps://%s:8443%s\n\n' "$S" "$T3" "$Z" "$C" "$IP" "$Z"
+printf '  %s%s:%s  %sskillfish-ai-mode off%s\n' "$S" "$T4" "$Z" "$O" "$Z"
+printf '  %s%-20s %s%s\n\n' "$S" "" "$T5" "$Z"
+printf '  %s%s GB / %s GB %s%s\n\n' "$O" "$LIBERI" "$TOTALE" "$T6" "$Z"
+
+# ⚠️ --noclear, o agetty cancella tutto quello che abbiamo appena scritto.
+# --issue-file vuoto: la scritta l'abbiamo gia' fatta noi, e /etc/issue
+# ripeterebbe il nome della distribuzione sotto al disegno.
+exec /sbin/agetty --noclear --issue-file /dev/null tty1 linux

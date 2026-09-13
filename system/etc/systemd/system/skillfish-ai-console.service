@@ -1,0 +1,27 @@
+[Unit]
+Description=SkillFishOS AI mode console on tty1
+Documentation=https://skillfishos.com/docs/control-center
+# ⚠️ Solo quando la modalita' AI e' davvero accesa: il segno lo scrive
+# skillfish-ai-mode. Senza questa condizione l'unita' si prenderebbe la tty1
+# anche a desktop acceso e ruberebbe il posto a sddm.
+ConditionPathExists=/var/lib/skillfish/ai-mode
+Conflicts=getty@tty1.service
+After=skillfish-dashboard.service
+
+[Service]
+Type=idle
+ExecStart=/usr/local/bin/skillfish-ai-console
+# La console e' la tty1: si prende in mano tutta, come fa un getty.
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=no
+KillMode=process
+IgnoreSIGPIPE=no
+SendSIGHUP=yes
+Restart=always
+RestartSec=2
+UtmpIdentifier=tty1
+UtmpMode=user

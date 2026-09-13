@@ -550,6 +550,13 @@ put $P 0755 system/usr/local/bin/skillfish-hud-gpu usr/local/bin/skillfish-hud-g
 # la finestra per accenderla e il Remote Manager per SPEGNERLA. Il secondo e'
 # quello che conta: con il desktop fermo il Control Center non esiste piu'.
 put $P 0755 system/usr/local/bin/skillfish-ai-mode usr/local/bin/skillfish-ai-mode
+# Lo schermo della modalita' AI: il disegno, lo script e l'unita' che lo
+# tiene sulla tty1. ⚠️ L'unita' NON si abilita: parte solo quando
+# skillfish-ai-mode la chiama, e ha una ConditionPathExists che la ferma se
+# il segno della modalita' non c'e'.
+put $P 0755 system/usr/local/bin/skillfish-ai-console usr/local/bin/skillfish-ai-console
+put $P 0644 system/usr/share/skillfish/ai-mode-art.txt usr/share/skillfish/ai-mode-art.txt
+put $P 0644 system/etc/systemd/system/skillfish-ai-console.service etc/systemd/system/skillfish-ai-console.service
 # Il cluster AI: elenco delle schede, telemetria via ssh, aggiunta di una
 # scheda nuova. ⚠️ Vuole sshpass, e SOLO per il primo collegamento: serve a
 # posare la chiave, dopo di che la password non si usa e non si salva.

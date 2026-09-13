@@ -32,7 +32,22 @@ log() { echo "$(date -Is) $*" >> "$LOG" 2>/dev/null; }
 # niente ssh, niente dashboard, niente rete.
 SPEGNIBILI="bluetooth.service cups.service cups-browsed.service avahi-daemon.service
             ModemManager.service packagekit.service upower.service colord.service
-            skillfish-conky.service switcheroo-control.service"
+            skillfish-conky.service switcheroo-control.service
+            accounts-daemon.service fwupd.service power-profiles-daemon.service
+            rtkit-daemon.service udisks2.service skillfish-dp-hotswap.service"
+
+# ⚠️ COSA NON SI TOCCA, E PERCHE'.
+# ssh e skillfish-dashboard: sono le due strade per tornare indietro.
+# skillfish-fand e skillfish-thermal-guard: senza, la scheda cuoce.
+# skillfish-vf-governor e skillfish-vf-watchdog: tengono in piedi la GPU.
+# skillfish-gpu-util e skillfish-gpu-freq: sono i numeri del cluster.
+# NetworkManager, wpa_supplicant, zerotier-one: e' la rete, cioe' la via di
+#   ritorno per chi arriva da fuori casa.
+# rpcbind e rpc-statd: se ci sono dischi NFS montati, fermarli li pianta.
+# smartmontools: guarda il disco, e costa due megabyte.
+# systemd-journald: la sua memoria e' quasi tutta file mappati, riprendibili
+#   dal kernel quando servono. Fermarlo non regalerebbe niente e ci lascerebbe
+#   senza registro proprio mentre gira il carico piu' pesante.
 
 stato_json() {
     local attiva=false
@@ -105,6 +120,15 @@ on)
         systemctl stop display-manager.service 2>/dev/null
     fi
 
+    # E adesso lo schermo dice cosa sta succedendo. Prima restava nero: chi
+    # passava davanti alla scheda leggeva "si e' piantata", senza un indirizzo
+    # per raggiungerla ne' un modo per tornare indietro.
+    # ⚠️ Dopo il display manager, non prima: sddm tiene la sua tty e la
+    # console nuova non si vedrebbe.
+    systemctl start skillfish-ai-console.service 2>/dev/null
+    # Lo schermo puo' essere rimasto su un'altra tty: ce lo si porta sopra.
+    chvt 1 2>/dev/null || true
+
     # Le cache: non e' memoria "liberata" (Linux la restituirebbe da solo), ma
     # fa si' che il modello trovi pagine contigue subito invece di aspettare
     # che il kernel gliele recuperi durante il primo caricamento.
@@ -118,6 +142,10 @@ on)
 off)
     [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }
     if [ ! -f "$SEGNA" ]; then stato_json; exit 0; fi
+
+    # ⚠️ La console per prima: tiene la tty1, e sddm che parte trovandola
+    # occupata si arrende in silenzio.
+    systemctl stop skillfish-ai-console.service 2>/dev/null
 
     # Si riaccende SOLO quello che era acceso prima, e il desktop per primo
     # cosi' chi guarda lo schermo vede subito che si sta tornando indietro.
