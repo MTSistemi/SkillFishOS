@@ -1,0 +1,127 @@
+#!/bin/bash
+# Carica una versione di SkillFishOS su Internet Archive.
+#
+#     skillfish-archivia 26.06.5            carica
+#     skillfish-archivia 26.06.5 --prova    dice cosa farebbe e si ferma
+#
+# ⚠️ LA VERSIONE SI PASSA, NON SI SCRIVE QUI DENTRO. I due script che questo
+# sostituisce l'avevano cablata: skillfish-archivia era fermo alla 26.06.3 e
+# carica_archive.sh era scritto tutto per la 26.06.4. Ogni rilascio voleva un
+# file nuovo o una modifica a mano, ed e' il modo piu' veloce per caricare la
+# versione sbagliata.
+#
+# Perche' si carica da qui e non dalla scheda: sono quasi sei gigabyte dalla
+# linea di casa, e la BC-250 e' la console con cui giocano i bambini. Questo
+# container e' sempre acceso e non serve a nessun altro.
+#
+# Il motivo vero del caricamento non e' avere un posto in piu': l'indirizzo
+# diretto di archive.org diventa il webseed dei nostri torrent, cioe' una
+# seconda fonte sempre viva accanto al seeder di casa, che da solo non basta.
+# Misurato il 14/08/2026: archive.org 5,04 MB/s contro 0,35-0,45 di
+# SourceForge, che per il nostro progetto ha un mirror solo, San Diego.
+set -u
+export LC_ALL=C
+
+VER="${1:-}"
+PROVA=0
+[ "${2:-}" = "--prova" ] && PROVA=1
+if [ -z "$VER" ]; then
+    echo "uso: $0 <versione> [--prova]   esempio: $0 26.06.5" >&2
+    exit 2
+fi
+
+ISO=/srv/iso
+NOME="skillfishos-${VER}-aetherium"
+BC="SkillFishOS-${VER}-Aetherium-BC250-amd64.iso"
+GEN="SkillFishOS-${VER}-Aetherium-Generic-amd64.iso"
+NOTE="RELEASE-NOTES-${VER}.md"
+
+cd "$ISO" || { echo "non trovo $ISO" >&2; exit 1; }
+
+# --- 1. c'e' tutto quello che serve? ----------------------------------------
+# ⚠️ Si controlla PRIMA. Il vecchio script tirava dritto e se ne accorgeva a
+# meta' caricamento, lasciando un elemento monco su archive.org.
+manca=0
+for f in "$BC" "$GEN"; do
+    [ -f "$f" ] || { echo "MANCA: $f" >&2; manca=1; }
+done
+[ "$manca" = 0 ] || exit 1
+
+# ⚠️ Le note si leggono QUI, non si scaricano da SourceForge. Il vecchio script
+# le prendeva da li' con un `|| echo "non scaricate, pazienza"`: al primo
+# rilascio l'immagine non e' ancora su SourceForge, quindi non le trovava mai e
+# l'elemento usciva senza. Il file lo copiamo noi dal repository.
+if [ ! -f "$NOTE" ]; then
+    echo "MANCA: $NOTE" >&2
+    echo "  copialo dal repository: RELEASE-NOTES-${VER}.md" >&2
+    exit 1
+fi
+
+# --- 2. le impronte ---------------------------------------------------------
+# Si calcolano se non ci sono: servono a chi scarica, e intanto dicono a noi
+# che il file e' arrivato intero.
+echo "== impronte"
+for f in "$BC" "$GEN"; do
+    [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
+    echo "   $(cat "$f.sha256")"
+done
+
+# --- 3. i torrent, se esistono ----------------------------------------------
+# Non sono obbligatori: al primo giro l'elemento non c'e' ancora, quindi non
+# c'e' nemmeno il webseed da metterci dentro. Si caricano al secondo passaggio.
+FILE=("$BC" "$BC.sha256" "$GEN" "$GEN.sha256" "$NOTE")
+for t in "$BC.torrent" "$GEN.torrent"; do
+    [ -f "$t" ] && FILE+=("$t")
+done
+
+DESCR="SkillFishOS is a Debian sid based Linux distribution built for the AMD BC-250, the ex-mining board with a Zen 2 CPU and an RDNA 2 GPU. It ships a custom TKG kernel with BC-250 patches, unlocks all 40 compute units and the 8 CPU cores, and includes purpose built tools for monitoring, tuning, kernel management, local AI, snapshots and remote control.
+
+TWO IMAGES, NOT INTERCHANGEABLE:
+
+${BC} runs on AMD BC-250 boards only. Its kernel is built for that board and will not boot anywhere else: you get the boot menu and then a black screen. That is expected, not a fault of the download.
+
+${GEN} runs on ordinary Intel/AMD PCs and in virtual machines.
+
+Check the .sha256 file before writing the image to a USB stick. Home page: https://skillfishos.com - source: https://github.com/MTSistemi/SkillFishOS - GPL-3.0-or-later."
+
+echo
+echo "== caricherei su archive.org come $NOME"
+printf '   %s\n' "${FILE[@]}"
+
+if [ "$PROVA" = 1 ]; then
+    echo
+    echo "(--prova: non ho caricato niente)"
+    exit 0
+fi
+
+# --- 4. le chiavi -----------------------------------------------------------
+. /root/.skillfishos/archive.env
+export IA_ACCESS_KEY IA_SECRET_KEY
+mkdir -p /root/.config/internetarchive
+cat > /root/.config/internetarchive/ia.ini <<FINE
+[s3]
+access = $IA_ACCESS_KEY
+secret = $IA_SECRET_KEY
+FINE
+chmod 600 /root/.config/internetarchive/ia.ini
+
+echo
+echo "== carico"
+ia upload "$NOME" "${FILE[@]}" \
+  --metadata="mediatype:software" \
+  --metadata="collection:opensource" \
+  --metadata="title:SkillFishOS ${VER} Aetherium - Linux for the AMD BC-250" \
+  --metadata="creator:SkillFishOS Project" \
+  --metadata="date:$(date +%Y)" \
+  --metadata="language:eng" \
+  --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
+  --metadata="subject:linux;debian;bc250;amd;gaming;distribution;steampunk;skillfishos" \
+  --metadata="originalurl:https://skillfishos.com" \
+  --metadata="description:${DESCR}" \
+  --retries=10 \
+  2>&1 | sed 's/^/   /'
+
+echo
+echo "== fatto: https://archive.org/details/$NOME"
+echo "   ⚠️ i torrent col webseed si rifanno adesso, con questo indirizzo,"
+echo "      e si ricarica l'elemento per metterceli dentro."
