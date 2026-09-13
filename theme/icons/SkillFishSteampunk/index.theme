@@ -2,7 +2,7 @@
 Name=SkillFish Steampunk
 Comment=Brass & copper steampunk icon theme matching the SkillFishOS wallpaper
 Inherits=breeze-dark,Adwaita,hicolor
-Directories=48x48/apps,64x64/apps,256x256/apps,scalable/emblems,scalable/status,scalable/places,scalable/apps,scalable/categories,scalable/mimetypes,scalable/actions
+Directories=48x48/apps,64x64/apps,128x128/apps,256x256/apps,512x512/apps,scalable/emblems,scalable/status,scalable/places,scalable/apps,scalable/categories,scalable/mimetypes,scalable/actions
 
 [scalable/places]
 Size=128
@@ -86,9 +86,27 @@ Size=64
 Type=Fixed
 Context=Applications
 
+[128x128/apps]
+# ⚠️ C'ERA GIA' LA CARTELLA, MANCAVA LA RIGA. Senza questa sezione le icone in
+# 128x128 non esistono per nessuno, comprese quelle che i flatpak esportano
+# solo in questa misura (Heroic e' una di quelle).
+Size=128
+MinSize=64
+MaxSize=256
+Type=Threshold
+Context=Applications
+
 [256x256/apps]
 Size=256
 MinSize=64
+MaxSize=512
+Type=Threshold
+Context=Applications
+
+[512x512/apps]
+# Stessa storia: la cartella c'e' da sempre, la dichiarazione no.
+Size=512
+MinSize=256
 MaxSize=512
 Type=Threshold
 Context=Applications

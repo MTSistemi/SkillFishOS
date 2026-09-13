@@ -173,6 +173,33 @@ if [ -x /usr/local/bin/skillfish-giochi-cartella ]; then
         || log "ATTENZIONE: la cartella dei giochi non si e' configurata"
 fi
 
+# --- il menu si accorge delle applicazioni nuove ----------------------------
+# ⚠️ SENZA QUESTO ESCONO CON L'ICONA SBAGLIATA. I flatpak arrivano mentre la
+# sessione e' gia' aperta, e KDE tiene in cache elenco e icone: le voci nuove
+# restano con un'icona generica finche' la cache non si ricostruisce.
+#
+# ⚠️ E kbuildsycoca6 va lanciato DENTRO la sessione, con il suo ambiente. Da
+# root, senza quelle variabili, ricostruisce una cache che non e' quella
+# dell'utente e sullo schermo non cambia niente. Le variabili si prendono da
+# plasmashell, che nella sessione c'e' per definizione.
+UT=$(awk -F: '$3 >= 1000 && $3 < 65000 { print $1; exit }' /etc/passwd)
+PL=""
+[ -n "$UT" ] && PL=$(pgrep -u "$UT" -x plasmashell 2>/dev/null | head -1)
+if [ -n "$PL" ] && [ -r "/proc/$PL/environ" ]; then
+    # una variabile alla volta, non una riga sola da spezzare: un valore con
+    # uno spazio dentro rompe tutto in silenzio.
+    var_di() { tr '\0' '\n' < "/proc/$PL/environ" | sed -n "s/^$1=//p" | head -1; }
+    runuser -u "$UT" -- env \
+        DISPLAY="$(var_di DISPLAY)" \
+        WAYLAND_DISPLAY="$(var_di WAYLAND_DISPLAY)" \
+        XDG_RUNTIME_DIR="$(var_di XDG_RUNTIME_DIR)" \
+        XDG_DATA_DIRS="$(var_di XDG_DATA_DIRS)" \
+        DBUS_SESSION_BUS_ADDRESS="$(var_di DBUS_SESSION_BUS_ADDRESS)" \
+        kbuildsycoca6 --noincremental >/dev/null 2>&1 \
+        && log "menu aggiornato: le applicazioni nuove hanno la loro icona" \
+        || log "menu non aggiornato: si sistema al prossimo accesso"
+fi
+
 # Il segnaposto lo scrive lo script, non systemd con un ExecStartPost.
 # Prima veniva scritto SEMPRE, anche quando tutti gli scaricamenti erano
 # falliti: il registro prometteva "riprovo al prossimo avvio" e invece il

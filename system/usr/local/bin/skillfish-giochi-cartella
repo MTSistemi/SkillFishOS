@@ -100,7 +100,12 @@ override global \
 # Heroic e scelto un'altra cartella, quella e' sua.
 CONF_H="$CASA/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json"
 if [ ! -e "$CONF_H" ]; then
-    install -d -o "$UTENTE" -g "$GRUPPO" -m 755 "$(dirname "$CONF_H")"
+    # ⚠️ LA CREA L'UTENTE, NON NOI. `install -d -o utente` mette il
+    # proprietario solo sull'ULTIMA cartella: i genitori che deve creare per
+    # arrivarci restano di root, e ~/.var di root vuol dire che nessun flatpak
+    # riesce piu' ad aprire la propria cartella. Visto sul ferro: sette
+    # applicazioni su sette morivano con "mkdirat(...): Permission denied".
+    runuser -u "$UTENTE" -- mkdir -p "$(dirname "$CONF_H")"
     cat > "$CONF_H" <<CONF
 {
   "defaultSettings": {
@@ -124,6 +129,18 @@ fi
 # quando l'utente aggiunge la libreria dall'interfaccia la trova gia' pronta.
 mkdir -p "$GIOCHI/SteamLibrary/steamapps"
 chown -R "$UTENTE:$GRUPPO" "$GIOCHI/SteamLibrary"
+
+# --- la riparazione ---------------------------------------------------------
+# ⚠️ CI SONO MACCHINE GIA' ROTTE. Chi ha installato la 26.06.5 si ritrova
+# ~/.var di root e nessun flatpak che parte. Non possiamo chiedergli un chown a
+# mano: lo facciamo noi, a ogni giro, che e' anche la rete di sicurezza se un
+# domani qualcun altro scrive li' dentro da root.
+if [ -d "$CASA/.var" ]; then
+    if [ "$(stat -c %U "$CASA/.var")" != "$UTENTE" ]; then
+        log "~/.var era di $(stat -c %U "$CASA/.var"): la rendo di $UTENTE"
+    fi
+    chown -R "$UTENTE:$GRUPPO" "$CASA/.var"
+fi
 
 log "fatto."
 exit 0
