@@ -7,7 +7,7 @@ order: 1
 
 SkillFishOS se instala desde una **ISO en vivo** que trae el instalador gráfico [Calamares](https://calamares.io/). Todo el proceso se hace con el ratón, sin terminal.
 
-> La ISO **26.06.4 «Aetherium»** está disponible — descárgala desde la página de [Descarga](/es/download). Arranca en **inglés** para ser universal y te deja elegir idioma y teclado durante la instalación.
+> La ISO **26.06.5 «Aetherium»** está disponible — descárgala desde la página de [Descarga](/es/download). Arranca en **inglés** para ser universal y te deja elegir idioma y teclado durante la instalación.
 
 ## Requisitos
 

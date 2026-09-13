@@ -102,9 +102,9 @@ export const de: Record<string, string> = {
   "dl.h2": "SkillFish<span class=\"gold-text\">OS</span> herunterladen",
   "dl.sub":
     "Die installierbaren, gebrandeten und sofort nutzbaren ISOs — für die AMD BC-250 und für jeden x86-64-PC.",
-  "dl.badge": "26.06.4 „Aetherium“",
+  "dl.badge": "26.06.5 „Aetherium“",
   "dl.notice":
-    "Die Version <strong>26.06.4 „Aetherium“</strong> von SkillFishOS gibt es in <strong>zwei Ausgaben</strong>: <strong>BC-250</strong> (die AMD-Platine) und <strong>Generic</strong> (jeder x86-64-PC oder jede virtuelle Maschine). Vollständig und sofort nutzbar. Ein <strong>quelloffenes</strong> Projekt.",
+    "Die Version <strong>26.06.5 „Aetherium“</strong> von SkillFishOS gibt es in <strong>zwei Ausgaben</strong>: <strong>BC-250</strong> (die AMD-Platine) und <strong>Generic</strong> (jeder x86-64-PC oder jede virtuelle Maschine). Vollständig und sofort nutzbar. Ein <strong>quelloffenes</strong> Projekt.",
   "dl.btnsoon": "ISO folgt in Kürze",
   "dl.btn": "ISO herunterladen",
   "dl.ed.bc250": "BC-250",
@@ -113,7 +113,7 @@ export const de: Record<string, string> = {
   "dl.ed.all": "Alle Dateien auf SourceForge →",
   "dl.size": "amd64 · ~{size} GB · btrfs + KDE Plasma · 2 Ausgaben auf SourceForge",
   "dl.ver":
-    "Version <strong>26.06.4 „Aetherium“</strong> · <strong>2 Ausgaben</strong> (BC-250 · Generic) · startet auf Englisch, die Sprache wird bei der Installation gewählt",
+    "Version <strong>26.06.5 „Aetherium“</strong> · <strong>2 Ausgaben</strong> (BC-250 · Generic) · startet auf Englisch, die Sprache wird bei der Installation gewählt",
   "dl.fast.h": "Der schnellste Weg, aus Europa",
   "dl.fast.sub":
     "Das Internet Archive bewahrt unsere ISOs auf und liefert sie von seinen eigenen Servern aus. Von einer italienischen Leitung gemessen: <strong>etwa 5 MB/s</strong> gegenüber 0,4 von SourceForge, das alles aus San Diego ausliefert. Dieselbe Datei, dieselbe Prüfsumme.",

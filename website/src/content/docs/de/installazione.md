@@ -7,7 +7,7 @@ order: 1
 
 SkillFishOS wird von einer **Live-ISO** installiert, die das grafische Installationsprogramm [Calamares](https://calamares.io/) enthält. Der ganze Ablauf geht mit der Maus, ein Terminal ist nicht nötig.
 
-> Die ISO **26.06.4 „Aetherium“** ist verfügbar — lade sie von der Seite [Herunterladen](/de/download). Sie startet auf **Englisch**, um überall zu passen, und lässt dich Sprache und Tastaturbelegung während der Installation wählen.
+> Die ISO **26.06.5 „Aetherium“** ist verfügbar — lade sie von der Seite [Herunterladen](/de/download). Sie startet auf **Englisch**, um überall zu passen, und lässt dich Sprache und Tastaturbelegung während der Installation wählen.
 
 ## Voraussetzungen
 

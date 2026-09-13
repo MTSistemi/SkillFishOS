@@ -7,7 +7,7 @@ order: 1
 
 SkillFishOS s'installe depuis une **image live** qui contient l'installateur graphique [Calamares](https://calamares.io/). Tout se fait à la souris, sans terminal.
 
-> L'image **26.06.4 « Aetherium »** est disponible — téléchargez-la depuis la page [Téléchargement](/fr/download). Elle démarre en **anglais** pour rester universelle et vous laisse choisir votre langue et votre clavier pendant l'installation.
+> L'image **26.06.5 « Aetherium »** est disponible — téléchargez-la depuis la page [Téléchargement](/fr/download). Elle démarre en **anglais** pour rester universelle et vous laisse choisir votre langue et votre clavier pendant l'installation.
 
 ## Ce qu'il faut
 

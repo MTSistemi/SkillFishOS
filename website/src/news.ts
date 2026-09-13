@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // release-2606-5-2026-09-13
+    data: '2026-09-13',
+    quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },
+    etichetta: { it: "rilascio", en: "release", pl: "wydanie", uk: "випуск", ru: "выпуск", es: "lanzamiento", pt: "lançamento", de: "Veröffentlichung", fr: "sortie" },
+    titolo: {
+      it: "È uscita la 26.06.5 «Aetherium»",
+      en: "26.06.5 “Aetherium” is out",
+      pl: "Wyszła wersja 26.06.5 „Aetherium”",
+      uk: "Вийшла 26.06.5 «Aetherium»",
+      ru: "Вышла 26.06.5 «Aetherium»",
+      es: "Ya está disponible la 26.06.5 «Aetherium»",
+      pt: "Saiu a 26.06.5 «Aetherium»",
+      de: "26.06.5 „Aetherium“ ist da",
+      fr: "La 26.06.5 « Aetherium » est sortie",
+    },
+    testo: {
+      it: "Due edizioni, <b>BC-250</b> e <b>Generic</b>, con kernel <b>7.2.5</b>. Al primo accesso scegli tu cosa installare, browser compreso: niente è preinstallato, e ogni programma scende con la sua barra. Con il disco cifrato la password di avvio adesso si vede e si scrive con la tua tastiera, e la versione del sistema sale con gli aggiornamenti invece di restare ferma a quella dell'immagine.",
+      en: "Two editions, <b>BC-250</b> and <b>Generic</b>, on kernel <b>7.2.5</b>. At the first login you choose what to install, the browser included: nothing is preinstalled, and each program comes down with its own progress bar. On an encrypted disk the boot password is now visible and typed with your own keyboard, and the system version rises with your updates instead of staying at whatever the image said.",
+      pl: "Dwie edycje, <b>BC-250</b> i <b>Generic</b>, z jądrem <b>7.2.5</b>. Przy pierwszym logowaniu sam wybierasz, co zainstalować, łącznie z przeglądarką: nic nie jest preinstalowane, a każdy program pobiera się z własnym paskiem. Przy zaszyfrowanym dysku hasło startowe jest teraz widoczne i wpisuje się własną klawiaturą, a wersja systemu rośnie wraz z aktualizacjami.",
+      uk: "Дві редакції, <b>BC-250</b> і <b>Generic</b>, з ядром <b>7.2.5</b>. Під час першого входу ви самі обираєте, що встановити, зокрема браузер: нічого не встановлено заздалегідь, і кожна програма завантажується зі своєю смужкою. На зашифрованому диску пароль завантаження тепер видно і набирається вашою клавіатурою, а версія системи зростає разом з оновленнями.",
+      ru: "Две редакции, <b>BC-250</b> и <b>Generic</b>, с ядром <b>7.2.5</b>. При первом входе вы сами выбираете, что установить, включая браузер: ничего не предустановлено, и каждая программа скачивается со своей полосой. На зашифрованном диске пароль при загрузке теперь виден и набирается вашей клавиатурой, а версия системы растёт вместе с обновлениями.",
+      es: "Dos ediciones, <b>BC-250</b> y <b>Generic</b>, con núcleo <b>7.2.5</b>. En el primer acceso eliges tú qué instalar, navegador incluido: no hay nada preinstalado, y cada programa se descarga con su propia barra. Con el disco cifrado la contraseña de arranque ahora se ve y se escribe con tu teclado, y la versión del sistema sube con las actualizaciones.",
+      pt: "Duas edições, <b>BC-250</b> e <b>Generic</b>, com kernel <b>7.2.5</b>. No primeiro acesso escolhes tu o que instalar, navegador incluído: nada vem preinstalado, e cada programa desce com a sua própria barra. Com o disco cifrado a palavra-passe de arranque agora vê-se e escreve-se com o teu teclado, e a versão do sistema sobe com as atualizações.",
+      de: "Zwei Ausgaben, <b>BC-250</b> und <b>Generic</b>, mit Kernel <b>7.2.5</b>. Bei der ersten Anmeldung wählen Sie selbst, was installiert wird, den Browser eingeschlossen: nichts ist vorinstalliert, und jedes Programm lädt mit einem eigenen Balken. Bei verschlüsselter Platte ist das Startpasswort jetzt sichtbar und wird mit Ihrer Tastatur getippt, und die Systemversion steigt mit den Aktualisierungen.",
+      fr: "Deux éditions, <b>BC-250</b> et <b>Generic</b>, avec le noyau <b>7.2.5</b>. À la première connexion, c'est vous qui choisissez quoi installer, navigateur compris : rien n'est préinstallé, et chaque programme se télécharge avec sa propre barre. Sur un disque chiffré, le mot de passe de démarrage est désormais visible et se tape avec votre clavier, et la version du système monte avec les mises à jour.",
+    },
+  },
+  {
     // versione-sale-con-apt-2026-09-13
     data: '2026-09-13',
     quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },

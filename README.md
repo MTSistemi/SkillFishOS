@@ -6,7 +6,7 @@
 
 [**skillfishos.com**](https://skillfishos.com) · Based on Debian · KDE Plasma · GPL-3.0
 
-**Release 26.06.4 "Aetherium"** — two editions: **BC-250** and **Generic x86-64** (PCs & VMs) · boots in English, language chosen at install
+**Release 26.06.5 "Aetherium"** — two editions: **BC-250** and **Generic x86-64** (PCs & VMs) · boots in English, language chosen at install
 
 ![SkillFishOS desktop](https://raw.githubusercontent.com/MTSistemi/SkillFishOS/main/screenshots/desktop.jpg)
 
@@ -119,18 +119,18 @@ sudo dpkg -i linux-image-7.2.5-skillfishos_7.2.5-1_amd64.deb
 
 Or, from the signed APT repo, simply `sudo apt install skillfishos-kernel` (a thin wrapper that fetches the full kernel `.deb` from the GitHub Release). To build it yourself, see [docs/BUILD.md](docs/BUILD.md) and [`kernel-build/`](kernel-build/).
 
-### Installable ISOs — **26.06.4 "Aetherium"** (two editions)
+### Installable ISOs — **26.06.5 "Aetherium"** (two editions)
 
 Each live ISO (~4.6 GB) is captured from the real system with [penguins-eggs](https://github.com/pieroproietti/penguins-eggs): KDE Plasma steampunk desktop, Btrfs + Snapper + grub-btrfs, the native PyQt6 app suite, the signed `aetherium` APT repo, and the **Calamares** installer. They **boot in English** and let you pick your **language and keyboard** at install; the bilingual apps and HUD follow the chosen locale.
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download) | `7.1.7-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download) | `7.1.7-skillfishos-generic` | any x86-64 PC / VM |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download) | `7.2.5-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download) | `7.2.5-skillfishos-x64` | any x86-64 PC / VM |
 
 The **Slim** edition of 26.06 is not part of this release: no Slim image has been rebuilt since, and the slim kernel flavour itself was dropped after `7.2.0` — the current kernel (`7.2.5-skillfishos`) ships only the **main** and **x64** flavours.
 
-Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
+Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 
 > The signed **APT repo is live on two mirrors**: <https://mtsistemi.github.io/SkillFishOS/> and <https://deb.skillfishos.com> (ours, at home). The installed system does not name one of them — it carries a mirror list, and apt walks it in order, so a mirror going down does not stop updates. New mirrors reach existing machines on their own, through a signed list refreshed weekly. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
 
@@ -201,7 +201,7 @@ People who made this better without being asked:
   CPU were fixed in 26.06.3; **the btrfs/GRUB install failure was not**, although we said
   it was. The repair we shipped ran, logged success and left the defect byte for byte
   identical. The real cause — `rsync -aHAXS`, where that `S` is `--sparse` — was only
-  found for 26.06.4.
+  found for 26.06.5.
 - **Cyryl Sochacki** ([cyryllo](https://github.com/cyryllo)) — the Polish translation and a
   polonisation script that carried earlier releases, plus [PR #26](../../pull/26), which
   pointed out that our own boot fix had gone stale without anyone noticing. He was right

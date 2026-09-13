@@ -104,9 +104,9 @@ export const fr: Record<string, string> = {
   "dl.h2": "Télécharger SkillFish<span class=\"gold-text\">OS</span>",
   "dl.sub":
     "Les images ISO installables, à nos couleurs et prêtes à l'emploi — pour l'AMD BC-250 et pour n'importe quel PC x86-64.",
-  "dl.badge": "26.06.4 « Aetherium »",
+  "dl.badge": "26.06.5 « Aetherium »",
   "dl.notice":
-    "La version <strong>26.06.4 « Aetherium »</strong> de SkillFishOS existe en <strong>deux éditions</strong> : <strong>BC-250</strong> (la carte AMD) et <strong>Générique</strong> (n'importe quel PC ou machine virtuelle x86-64). Complètes et prêtes à l'emploi. Projet <strong>libre</strong>.",
+    "La version <strong>26.06.5 « Aetherium »</strong> de SkillFishOS existe en <strong>deux éditions</strong> : <strong>BC-250</strong> (la carte AMD) et <strong>Générique</strong> (n'importe quel PC ou machine virtuelle x86-64). Complètes et prêtes à l'emploi. Projet <strong>libre</strong>.",
   "dl.btnsoon": "ISO bientôt disponible",
   "dl.btn": "Télécharger l'ISO",
   "dl.ed.bc250": "BC-250",
@@ -116,7 +116,7 @@ export const fr: Record<string, string> = {
   "dl.size":
     "amd64 · ~{size} Go · btrfs + KDE Plasma · 2 éditions sur SourceForge",
   "dl.ver":
-    "Version <strong>26.06.4 « Aetherium »</strong> · <strong>2 éditions</strong> (BC-250 · Générique) · démarre en anglais, la langue se choisit à l'installation",
+    "Version <strong>26.06.5 « Aetherium »</strong> · <strong>2 éditions</strong> (BC-250 · Générique) · démarre en anglais, la langue se choisit à l'installation",
   "dl.fast.h": "Le plus rapide, depuis l'Europe",
   "dl.fast.sub":
     "Internet Archive conserve nos images et les sert depuis ses propres serveurs. Mesuré sur une ligne italienne : <strong>environ 5 Mo/s</strong> contre 0,4 depuis SourceForge, qui sert tout depuis San Diego. Même fichier, même empreinte.",
