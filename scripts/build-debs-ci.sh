@@ -705,12 +705,15 @@ put $P 0755 system/usr/local/bin/skillfish-coreunlock-efi             usr/local/
 # da cui aveva installato.
 MEDIA=$(tr -d ' \n' < iso/VERSIONE 2>/dev/null)
 [ -n "$MEDIA" ] || { echo "manca iso/VERSIONE: non so che versione timbrare" >&2; exit 2; }
-OSREL="$OUT/.os-release-timbrato"
-sed -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${MEDIA} (Aetherium)\"|" \
-    -e "s|^VERSION=.*|VERSION=\"${MEDIA} (Aetherium)\"|" \
-    -e "s|^VERSION_ID=.*|VERSION_ID=\"${MEDIA}\"|" \
-    system/usr/lib/os-release > "$OSREL"
-put $P 0644 "$OSREL" usr/lib/os-release
+# ⚠️ SI METTE IL FILE DEL REPOSITORY, POI SI TIMBRA LA COPIA. Ogni `put`
+# annota la sorgente, e `ctrl` piu' avanti costruisce il changelog facendo
+# `git log` su ognuna: dandogli un file di /tmp, git usciva 128 e la
+# costruzione moriva in silenzio.
+put $P 0644 system/usr/lib/os-release usr/lib/os-release
+sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${MEDIA} (Aetherium)\"|" \
+       -e "s|^VERSION=.*|VERSION=\"${MEDIA} (Aetherium)\"|" \
+       -e "s|^VERSION_ID=.*|VERSION_ID=\"${MEDIA}\"|" \
+       "$OUT/$P/usr/lib/os-release"
 echo "    os-release timbrato: $MEDIA"
 
 ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
@@ -939,10 +942,49 @@ PRERM
 cat > "$OUT/$P/DEBIAN/preinst" <<'PREINST'
 #!/bin/sh
 set -e
-if ! dpkg-divert --list /usr/lib/os-release | grep -q 'skillfish'; then
-    dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
-        --rename --add /usr/lib/os-release
+
+# ⚠️ NON SI DECIDE SUL CASO PULITO, SI DECIDE SU QUELLO CHE SI TROVA.
+# Su una macchina dove qualcuno ha lanciato a mano fix-osrelease-branding.sh
+# esiste gia' una deviazione LOCALE, che non appartiene a nessun pacchetto.
+# Aggiungerne una nostra sopra fa uscire dpkg-divert con 2: il preinst
+# fallisce, dpkg annulla l'aggiornamento, e chi aggiorna non capisce perche'.
+# Provato sulla scheda di sviluppo il 13/09/2026, ed e' andata esattamente
+# cosi'.
+CHI=$(dpkg-divert --listpackage /usr/lib/os-release 2>/dev/null || true)
+
+if [ "$CHI" != "skillfish-base" ]; then
+    # ⚠️ SI TOGLIE SENZA RINOMINARE. Rinominare vuol dire rimettere
+    # /usr/lib/os-release.debian al posto di /usr/lib/os-release, dove un file
+    # c'e' gia': il comando fallisce, e se l'errore si ingoia l'aggiunta dopo
+    # sbatte contro la deviazione ancora presente (uscita 2, aggiornamento
+    # annullato). Misurato sulla scheda di sviluppo il 13/09/2026.
+    # ⚠️ DI CHI E' LA DEVIAZIONE VA DETTO PER ESTESO. Dentro un maintainer
+    # script dpkg esporta DPKG_MAINTSCRIPT_PACKAGE e dpkg-divert lo assume come
+    # --package: un --remove nudo chiede di togliere la deviazione DI
+    # skillfish-base, e se quella presente e' locale le due non combaciano
+    # («corrispondenza errata sul pacchetto», uscita 2, aggiornamento
+    # annullato). A mano, in una shell, le stesse righe riuscivano: li' quella
+    # variabile non c'e'.
+    if [ "$CHI" = LOCAL ]; then
+        dpkg-divert --local --no-rename --remove /usr/lib/os-release
+    elif [ -n "$CHI" ]; then
+        dpkg-divert --package "$CHI" --no-rename --remove /usr/lib/os-release
+    fi
+
+    # ⚠️ E QUI --rename SERVE, ma solo se il file di Debian non e' gia' da
+    # parte: sul caso pulito sposta quello di base-files in .debian invece di
+    # lasciarlo sotto il nostro. Se .debian c'e' gia', rinominare lo
+    # sovrascriverebbe.
+    if [ -e /usr/lib/os-release.debian ]; then
+        dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
+            --no-rename --add /usr/lib/os-release
+    else
+        dpkg-divert --package skillfish-base --divert /usr/lib/os-release.debian \
+            --rename --add /usr/lib/os-release
+    fi
 fi
+# se era gia' nostra non si tocca niente
+
 exit 0
 PREINST
 
