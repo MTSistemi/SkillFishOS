@@ -10,8 +10,8 @@ report those to their respective projects.
 
 | Component | Version | Supported |
 |---|---|---|
-| SkillFishOS release | **26.06.4 "Aetherium"** | security fixes |
-| SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 / 26.06.3 | superseded — upgrade to 26.06.4 |
+| SkillFishOS release | **26.06.5 "Aetherium"** | security fixes |
+| SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 / 26.06.3 / 26.06.4 | superseded — upgrade to 26.06.5 |
 | SkillFishOS release | < 26.06 (pre-release) | no |
 | Kernel | `7.2.5-skillfishos` (+ `-x64`) | yes |
 | Kernel | `7.2.0-skillfishos`, `7.1.7-skillfishos` | previous series, best effort |
