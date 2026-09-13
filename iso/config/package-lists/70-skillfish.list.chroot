@@ -93,6 +93,13 @@ skillfishos-archive-keyring
 # non lo accende: l'interruttore sta nel Control Center.
 skillfish-scx
 
+# La finestra del primo accesso: chiede cosa installare (browser compreso,
+# nessuno e' di serie), scarica i flatpak con una barra per ognuno, prepara
+# /games e i permessi che servono a Steam e Heroic per arrivarci. Senza questa
+# riga il pacchetto esiste su apt ma non e' nell'immagine, e su un sistema
+# appena installato non si apre niente: e' cosi' fino alla 26.06.5.
+skillfish-primo-avvio
+
 # Il menu di avvio e la riga di comando del kernel. ⚠️ Si tira dietro
 # shim-signed e grub-efi-amd64-signed, che nell'immagine non c'erano: senza
 # quelli un'installazione su una macchina con Secure Boot acceso non parte.

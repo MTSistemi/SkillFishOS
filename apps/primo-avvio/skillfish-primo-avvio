@@ -23,6 +23,7 @@ service writes. A window that a user can close must never be the thing that
 decides whether the system finishes setting itself up.
 """
 import json
+import io
 import os
 import subprocess
 import sys
@@ -463,7 +464,27 @@ class Finestra(QWidget):
         self.close()
 
 
+def in_live():
+    """Stiamo provando il sistema da chiavetta, non usandolo installato?"""
+    try:
+        with io.open("/proc/cmdline", encoding="utf-8") as f:
+            return "boot=live" in f.read().split()
+    except OSError:
+        # se non si riesce a leggere si risponde "no": una finestra in piu'
+        # nella live e' un fastidio, una domanda mai fatta sul sistema
+        # installato vuol dire una macchina senza niente sopra.
+        return False
+
+
 def main():
+    # ⚠️ NON NELLA LIVE. L'avvio automatico sta in /etc/skel e l'utente della
+    # live ne esce come tutti gli altri, quindi senza questo la domanda
+    # arriverebbe anche a chi sta solo provando il sistema. E li' non si puo'
+    # rispondere: skillfish-install-flatpaks in live non scarica niente,
+    # perche' i flatpak finirebbero nella memoria.
+    if in_live():
+        return 0
+
     # Niente finestra se non c'e' niente da chiedere ne' da raccontare.
     if os.path.exists(SEGNA) or os.path.exists(ZITTO):
         return 0
