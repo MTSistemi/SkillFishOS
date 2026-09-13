@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 u"""Pubblica il sito costruito su OVH, via SFTP.
 
-⚠️ PRIMA di questo va lanciato C:\\sfweb\\build.ps1, non "npm run build" a mano:
+⚠️ PRIMA di questo va costruito il sito: sulla macchina di costruzione con
+`scripts/costruisci-sito.sh`, da Windows con C:\\sfweb\\build.ps1 e non con
+"npm run build" a mano:
 dentro Dropbox il filtro dei file mangia parte della cartella prodotta e il sito
 finisce online senza CSS. build.ps1 costruisce fuori da Dropbox
 (%TEMP%\\skillfishos-website-dist) proprio per questo.
@@ -22,11 +24,16 @@ import urllib.request
 
 import paramiko
 
-DIST = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "skillfishos-website-dist"
+# ⚠️ TMPDIR per primo: su Linux TEMP non c'e', e la cartella costruita sta dove
+# la mette costruisci-sito.sh (la home, non /tmp). TEMP resta per Windows.
+_TMP = os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp"
+DIST = pathlib.Path(_TMP) / "skillfishos-website-dist"
 CRED = pathlib.Path(os.path.expanduser("~")) / ".skillfishos" / "deploy.env"
 
 if not DIST.is_dir():
-    sys.exit("non trovo la cartella costruita: %s\nlancia prima C:\\sfweb\\build.ps1" % DIST)
+    sys.exit("non trovo la cartella costruita: %s\n"
+             "lancia prima scripts/costruisci-sito.sh (o C:\\sfweb\\build.ps1 da Windows)"
+             % DIST)
 
 # controllo di sanita': se il CSS non c'e', la costruzione e' monca e caricarla
 # vorrebbe dire mettere online un sito senza grafica.
