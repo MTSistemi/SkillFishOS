@@ -1121,5 +1121,6 @@
  "🎰 Find my max": "🎰 Finde mein Maximum",
  "🎰 My silicon": "🎰 Mein Silizium",
  "📂 Open": "📂 Öffnen",
- "📊 ANALYSIS  ·  ": "📊 AUSWERTUNG  ·  "
+ "📊 ANALYSIS  ·  ": "📊 AUSWERTUNG  ·  ",
+ "Per core/thread frequency": "Takt je Kern/Thread"
 }

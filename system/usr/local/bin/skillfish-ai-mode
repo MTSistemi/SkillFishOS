@@ -1,7 +1,9 @@
 #!/bin/bash
 # Modalita' AI: la scheda smette di fare il desktop e si dedica al modello.
 #
-#     skillfish-ai-mode on       spegne il desktop e quello che non serve
+#     skillfish-ai-mode on            spegne il desktop e quello che non serve
+#     skillfish-ai-mode on motore    e spegne anche Unsloth Studio, lasciando
+#                                    llama-server da solo sulla 8888
 #     skillfish-ai-mode off      rimette tutto com'era
 #     skillfish-ai-mode stato    dice com'e' adesso, in JSON
 #
@@ -49,6 +51,19 @@ SPEGNIBILI="bluetooth.service cups.service cups-browsed.service avahi-daemon.ser
 #   dal kernel quando servono. Fermarlo non regalerebbe niente e ci lascerebbe
 #   senza registro proprio mentre gira il carico piu' pesante.
 
+# Il livello scelto: `studio` (Studio resta acceso), `motore` (solo
+# llama-server, con la sua pagina web), `motore-api` (solo l'API).
+# ⚠️ Lo tiene skillfish-llama in /etc/skillfish/ai-mode.json, non questo script:
+# lo devono leggere anche il Control Center e il Remote Manager, e due posti in
+# cui scrivere la stessa cosa diventano due posti che si contraddicono.
+livello_scelto() {
+    local l=""
+    [ -x /usr/local/bin/skillfish-llama ] &&
+        l=$(/usr/local/bin/skillfish-llama conf 2>/dev/null |
+            sed -n 's/.*"livello": *"\([a-z-]*\)".*/\1/p' | head -1)
+    echo "${l:-studio}"
+}
+
 stato_json() {
     local attiva=false
     [ -f "$SEGNA" ] && attiva=true
@@ -60,8 +75,11 @@ stato_json() {
     local disp tot
     disp=$(awk '/^MemAvailable:/ {printf "%d", $2 / 1024}' /proc/meminfo)
     tot=$(awk '/^MemTotal:/ {printf "%d", $2 / 1024}' /proc/meminfo)
-    printf '{"attiva": %s, "desktop": "%s", "ram_disponibile_mb": %d, "ram_totale_mb": %d}\n' \
-           "$attiva" "${dm:-sconosciuto}" "${disp:-0}" "${tot:-0}"
+    local liv motore
+    liv=$(livello_scelto)
+    motore=$(systemctl is-active skillfish-llama.service 2>/dev/null)
+    printf '{"attiva": %s, "desktop": "%s", "livello": "%s", "motore": "%s", "ram_disponibile_mb": %d, "ram_totale_mb": %d}\n' \
+           "$attiva" "${dm:-sconosciuto}" "$liv" "${motore:-inactive}" "${disp:-0}" "${tot:-0}"
 }
 
 case "${1:-stato}" in
@@ -72,6 +90,15 @@ stato)
 on)
     [ "$(id -u)" = 0 ] || { echo "serve root" >&2; exit 1; }
     if [ -f "$SEGNA" ]; then stato_json; exit 0; fi
+
+    # `skillfish-ai-mode on motore` cambia anche la scelta salvata: chi lo
+    # lancia a mano da ssh non deve prima andare a configurare da un'altra
+    # parte. Senza argomento vale quello che e' scritto.
+    if [ -n "${2:-}" ] && [ -x /usr/local/bin/skillfish-llama ]; then
+        /usr/local/bin/skillfish-llama imposta "livello=$2" >/dev/null || {
+            echo "livello sconosciuto: $2" >&2; exit 2; }
+    fi
+    LIVELLO=$(livello_scelto)
 
     # ⚠️ DA QUI IN POI QUESTO PROCESSO PUO' MORIRE.
     # Fermare il display manager chiude la sessione grafica, e logind termina
@@ -120,6 +147,28 @@ on)
         systemctl stop display-manager.service 2>/dev/null
     fi
 
+    # ⚠️ IL PEZZO GROSSO. Studio da fermo tiene 458 MB dei 567 di tutto il
+    # sistema (misurato sulla .32 il 13/09/2026), e mentre il modello gira non
+    # fa altro che passare le richieste a llama-server, che lancia lui su una
+    # porta a caso. Nei livelli `motore` si toglie l'intermediario: stessa
+    # porta 8888, stessa chiave, stessa API, 458 MB in piu' al modello.
+    if [ "$LIVELLO" != studio ] && [ -x /usr/local/bin/skillfish-llama ]; then
+        if [ "$(systemctl is-active skillfish-unsloth.service 2>/dev/null)" = active ]; then
+            # nel segno, cosi' tornando al desktop Studio riparte da solo
+            echo "skillfish-unsloth.service" >> "$SEGNA"
+            systemctl stop skillfish-unsloth.service 2>/dev/null
+        fi
+        # Si aspetta che la porta si liberi: llama-server sulla 8888 con Studio
+        # ancora aggrappato non parte, e il messaggio parla di "address already
+        # in use" senza dire di chi.
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            ss -lnt 2>/dev/null | grep -q ":8888 " || break
+            sleep 1
+        done
+        systemctl start skillfish-llama.service 2>/dev/null
+        log "modalita' AI livello $LIVELLO: Studio spento, motore nudo acceso"
+    fi
+
     # E adesso lo schermo dice cosa sta succedendo. Prima restava nero: chi
     # passava davanti alla scheda leggeva "si e' piantata", senza un indirizzo
     # per raggiungerla ne' un modo per tornare indietro.
@@ -147,6 +196,9 @@ off)
     # occupata si arrende in silenzio.
     systemctl stop skillfish-ai-console.service 2>/dev/null
 
+    # E il motore nudo prima di Studio, o si litigano la porta 8888.
+    systemctl stop skillfish-llama.service 2>/dev/null
+
     # Si riaccende SOLO quello che era acceso prima, e il desktop per primo
     # cosi' chi guarda lo schermo vede subito che si sta tornando indietro.
     if grep -q '^display-manager.service$' "$SEGNA"; then
@@ -164,7 +216,7 @@ off)
     ;;
 
 *)
-    echo "uso: $0 [on|off|stato]" >&2
+    echo "uso: $0 [on [studio|motore|motore-api]|off|stato]" >&2
     exit 2
     ;;
 esac

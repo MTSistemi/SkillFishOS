@@ -798,6 +798,31 @@ def cluster(azione, ip="", utente="", password=""):
     return d
 
 
+def ai_livello(livello="", modello=""):
+    """Scrive il livello scelto e il modello del motore nudo.
+
+    ⚠️ Passa da root perche' il file sta in /etc/skillfish, ma NON accende
+    niente: accendere e' un'altra azione, con la sua domanda. Cambiare la
+    scelta mentre la modalita' e' gia' accesa non ha effetto fino al prossimo
+    giro, ed e' giusto cosi': spegnere il motore sotto i piedi di chi sta
+    chiedendo qualcosa al modello sarebbe peggio.
+    """
+    cmd = ["/usr/local/bin/skillfish-llama", "imposta"]
+    if livello:
+        cmd.append("livello=%s" % livello)
+    if modello:
+        cmd.append("modello=%s" % modello)
+    if len(cmd) == 2:
+        return {"ok": False, "errore": "niente da cambiare"}
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    try:
+        d = json.loads(r.stdout or "{}")
+    except ValueError:
+        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-200:]}
+    _log("ai: livello %s" % (livello or "(invariato)"))
+    return d
+
+
 def ai_mode(azione):
     """Accende o spegne la modalita' AI: il desktop si ferma, il modello resta.
 
@@ -1297,6 +1322,8 @@ def handle(req):
     if c == "cluster":
         return cluster(req.get("azione", "stato"), req.get("ip", ""),
                        req.get("utente", ""), req.get("password", ""))
+    if c == "ai-livello":
+        return ai_livello(req.get("livello", ""), req.get("modello", ""))
     if c == "ai-mode":
         return ai_mode(req.get("azione", "stato"))
     if c == "unsloth-password-reset":

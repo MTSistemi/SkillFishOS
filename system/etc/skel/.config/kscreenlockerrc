@@ -1,0 +1,10 @@
+[Daemon]
+Autolock=false
+LockOnResume=false
+Timeout=0
+
+[Greeter]
+WallpaperPlugin=org.kde.image
+
+[Greeter][Wallpaper][org.kde.image][General]
+Image=/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png

@@ -55,6 +55,47 @@ for c in qdbus6 qdbus-qt6 qdbus; do
 done
 
 
+messo() {
+    [ -f "$CFG" ] || return 1
+    awk '
+        /^\[Containments\]\[[0-9]+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$/ { dentro = 1; next }
+        /^\[/                                                          { dentro = 0 }
+        dentro && /^Image=/ && /SkillFishOS/                            { img = 1 }
+        dentro && /^DynamicMode=/ && !/^DynamicMode=0$/                 { modo = 1 }
+        dentro && /^SlidePaths=./                                       { slide = 1 }
+        END { exit (img && !modo && !slide) ? 0 : 1 }
+    ' "$CFG"
+}
+
+# --- 0. la schermata di blocco e l'avatar -----------------------------------
+# ⚠️ Queste due non aspettano Plasma e non c'entrano con lo sfondo della
+# scrivania: si fanno subito, una volta, e non toccano niente che l'utente
+# abbia gia' scelto. Servono a chi ha installato PRIMA che i file entrassero
+# nel pacchetto: per chi installa adesso ci pensa /etc/skel.
+AVATAR=/usr/share/skillfish/avatar-fish.png
+SFONDO=/usr/share/wallpapers/SkillFishOS/contents/images/3840x2160.png
+BLOCCO="$CONF/kscreenlockerrc"
+
+if [ -f "$AVATAR" ]; then
+    # .face.icon lo legge KDE, .face accountsservice. Nessuno dei due si
+    # sovrascrive se c'e' gia': chi si e' messo la sua foto se la tiene.
+    [ -e "$HOME/.face.icon" ] || cp "$AVATAR" "$HOME/.face.icon" 2>/dev/null || true
+    [ -e "$HOME/.face" ]      || cp "$AVATAR" "$HOME/.face" 2>/dev/null || true
+fi
+
+if [ -f "$SFONDO" ] && ! grep -q "SkillFishOS" "$BLOCCO" 2>/dev/null; then
+    if command -v kwriteconfig6 >/dev/null 2>&1; then
+        kwriteconfig6 --file kscreenlockerrc --group Greeter \
+                      --key WallpaperPlugin org.kde.image 2>/dev/null || true
+        kwriteconfig6 --file kscreenlockerrc --group Greeter --group Wallpaper \
+                      --group org.kde.image --group General \
+                      --key Image "$SFONDO" 2>/dev/null || true
+        nota "sfondo della schermata di blocco impostato"
+    else
+        nota "kwriteconfig6 non c'e': schermata di blocco lasciata com'era"
+    fi
+fi
+
 # ⚠️ IL SEGNAPOSTO NON BASTA PIU'.
 # Prima bastava, e infatti sulla VM di build ha tenuto in piedi una settimana di
 # sfondo sbagliato: c'era il segnaposto, quindi lo script usciva subito, quindi
@@ -99,17 +140,6 @@ done
 # rotazione da SlidePaths, dove c'e' anche lo sfondo di Debian. Sulla VM di
 # build e' rimasto cosi' per una settimana: il file diceva SkillFishOS, lo
 # schermo mostrava Debian, e lo script aveva scritto il segnaposto.
-messo() {
-    [ -f "$CFG" ] || return 1
-    awk '
-        /^\[Containments\]\[[0-9]+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$/ { dentro = 1; next }
-        /^\[/                                                          { dentro = 0 }
-        dentro && /^Image=/ && /SkillFishOS/                            { img = 1 }
-        dentro && /^DynamicMode=/ && !/^DynamicMode=0$/                 { modo = 1 }
-        dentro && /^SlidePaths=./                                       { slide = 1 }
-        END { exit (img && !modo && !slide) ? 0 : 1 }
-    ' "$CFG"
-}
 
 # La modalita' immagine fissa, scritta con lo scripting di Plasma: e' l'unico
 # modo di toccare la configurazione mentre la sessione gira senza che Plasma la

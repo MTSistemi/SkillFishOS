@@ -120,6 +120,10 @@ const STR = {
               ru: "скачать модель (напр. qwen3:14b)", es: "descargar modelo (p. ej. qwen3:14b)", pt: "baixar modelo (ex.: qwen3:14b)", de: "Modell holen (z. B. qwen3:14b)",
               fr: "télécharger un modèle (p. ex. qwen3:14b)" },
   x_pull: { it: "Scarica", en: "Pull", pl: "Pobierz", uk: "Завантажити", ru: "Скачать", es: "Descargar", pt: "Baixar", de: "Holen", fr: "Télécharger" },
+  x_ailevel: { it: "Livello", en: "Level", pl: "Poziom", uk: "Рівень", ru: "Уровень", es: "Nivel", pt: "Nível", de: "Stufe", fr: "Niveau" },
+  x_ailv_studio: { it: "Studio acceso (tutto)", en: "Studio on (everything)", pl: "Studio włączone (wszystko)", uk: "Studio увімкнено (усе)", ru: "Studio включён (всё)", es: "Studio encendido (todo)", pt: "Studio ligado (tudo)", de: "Studio an (alles)", fr: "Studio allumé (tout)" },
+  x_ailv_motore: { it: "Solo il motore, con pagina web", en: "Engine only, with web page", pl: "Tylko silnik, ze stroną", uk: "Лише рушій, зі сторінкою", ru: "Только движок, со страницей", es: "Solo el motor, con página web", pt: "Só o motor, com página web", de: "Nur die Maschine, mit Webseite", fr: "Le moteur seul, avec page web" },
+  x_ailv_api: { it: "Solo il motore, solo API", en: "Engine only, API only", pl: "Tylko silnik, tylko API", uk: "Лише рушій, лише API", ru: "Только движок, только API", es: "Solo el motor, solo API", pt: "Só o motor, só API", de: "Nur die Maschine, nur API", fr: "Le moteur seul, API seule" },
   x_aimode_on: { it: "AI-Mode On", en: "AI-Mode On", pl: "AI-Mode On", uk: "AI-Mode On", ru: "AI-Mode On", es: "AI-Mode On", pt: "AI-Mode On", de: "AI-Mode On", fr: "AI-Mode On" },
   x_aimode_off: { it: "AI-Mode Off", en: "AI-Mode Off", pl: "AI-Mode Off", uk: "AI-Mode Off", ru: "AI-Mode Off", es: "AI-Mode Off", pt: "AI-Mode Off", de: "AI-Mode Off", fr: "AI-Mode Off" },
   x_aimode_ask: { it: "Spengo il desktop della scheda? Si chiude tutto quello che c'e' aperto, senza salvare, e la memoria va al modello.",
@@ -799,7 +803,22 @@ const RENDER = {
         // Un solo pulsante che cambia scritta: acceso dice come spegnerlo,
         // spento dice come accenderlo. Due pulsanti sarebbero uno sempre
         // inutile.
-        '<button class="dbtn" id="aimode" style="border-color:var(--gold)">🖥️ ' + T(s.ai_mode ? "x_aimode_off" : "x_aimode_on") + '</button></div><div id="aitune"></div>' +
+        '<button class="dbtn" id="aimode" style="border-color:var(--gold)">🖥️ ' + T(s.ai_mode ? "x_aimode_off" : "x_aimode_on") + '</button></div>' +
+        // ⚠️ Il livello dice QUANTO si spegne. Misurato su una BC-250 col
+        // modello caricato: con Studio acceso il sistema tiene 567 MB, senza
+        // ne tiene 115. Quei 450 MB sul BC-250 sono contesto in piu'.
+        '<div class="brow" style="margin-top:6px;align-items:center;gap:8px"><span class="stub">' + T("x_ailevel") + '</span>' +
+        '<select id="ailiv" class="dsel" style="flex:1">' +
+        ["studio", "motore", "motore-api"].map(v =>
+          '<option value="' + v + '"' + ((s.livello || "studio") === v ? " selected" : "") + '>' +
+          T(v === "studio" ? "x_ailv_studio" : v === "motore" ? "x_ailv_motore" : "x_ailv_api") +
+          "</option>").join("") + "</select>" +
+        ((s.livello && s.livello !== "studio" && (s.modelli || []).length)
+          ? '<select id="ailmod" class="dsel" style="flex:1">' + s.modelli.map(m =>
+              '<option value="' + m.file + '"' + (m.file === s.modello ? " selected" : "") + '>' +
+              m.nome + "</option>").join("") + "</select>"
+          : "") +
+        '</div><div id="aitune"></div>' +
         '<div class="stub" style="margin-top:8px">' + (it ? "Gira sulla GPU: spegnilo quando giochi. La chat completa, con file e ricerca, e' dentro Studio."
                                                           : "It runs on the GPU: turn it off when gaming. The full chat, with files and search, is inside Studio.") + "</div>";
       const studioUrl = "http://" + location.hostname + ":" + (s.port || 8888);
@@ -821,6 +840,15 @@ const RENDER = {
         const v = $("#aikey", card).value.trim(); if (!v) return;
         await action("/api/ai/key", { key: v }, T("x_keysaved")); setTimeout(refresh, 800);
       };
+      const livelloCambia = async () => {
+        await action("/api/ai/livello", {
+          livello: $("#ailiv", card).value,
+          modello: $("#ailmod", card) ? $("#ailmod", card).value : ""
+        }, T("x_ailevel"));
+        setTimeout(refresh, 600);
+      };
+      if ($("#ailiv", card)) $("#ailiv", card).onchange = livelloCambia;
+      if ($("#ailmod", card)) $("#ailmod", card).onchange = livelloCambia;
       if ($("#aimode", card)) $("#aimode", card).onclick = async () => {
         // ⚠️ Accendendola si spegne il desktop di chi e' davanti alla scheda e
         // si chiude quello che ha aperto, senza salvare. Da remoto non si vede

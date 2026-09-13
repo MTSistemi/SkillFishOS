@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""The bare engine: llama-server on port 8888, without Unsloth Studio.
+
+    skillfish-llama avvia       run it in the foreground (this is what the unit does)
+    skillfish-llama modelli     list the .gguf files on the disk, as JSON
+    skillfish-llama conf        show the current settings, as JSON
+    skillfish-llama imposta <chiave=valore> ...   change them
+
+WHY THIS EXISTS
+Misurato sulla .32 il 13/09/2026 con la modalita' AI accesa: tutto il sistema
+tiene 567 MB di memoria anonima, e **458 di quei 567 sono Unsloth Studio da
+fermo**. Tutto il resto messo insieme fa 109 MB. Studio e' Python con torch
+importato, e mentre il modello gira non fa altro che passare le richieste a
+llama-server, che lancia lui su una porta a caso.
+
+Quindi per chi vuole tutta la memoria per il modello si toglie l'intermediario:
+llama-server sulla 8888, stessa API OpenAI, stessa chiave, e 458 MB in piu' al
+modello. Si perde quello che Studio fa in piu' (Hub, RAG, addestramento), ed e'
+per questo che e' una scelta e non il comportamento normale.
+
+⚠️ STESSA PORTA E STESSA CHIAVE DI STUDIO, di proposito: chi ha gia' collegato
+opencode o un editor non deve cambiare niente quando passa da un livello
+all'altro.
+"""
+import glob
+import json
+import os
+import pwd
+import socket
+import subprocess
+import sys
+
+CONF = "/etc/skillfish/ai-mode.json"
+CHIAVE_DASH = "/etc/skillfish/unsloth.key"
+CLUSTER = "/run/skillfish/cluster.json"
+PORTA = 8888
+PORTA_RPC = 50052
+
+PREDEFINITI = {
+    "livello": "studio",     # studio | motore | motore-api
+    "modello": "",           # percorso del .gguf, vuoto = il piu' grande che c'e'
+    "contesto": 8192,
+    "parallelo": 1,
+}
+
+
+def utente():
+    """Chi ha Unsloth in casa: e' li' che stanno llama-server e i modelli."""
+    for u in pwd.getpwall():
+        if 1000 <= u.pw_uid < 65534 and os.path.isdir(os.path.join(u.pw_dir, ".unsloth")):
+            return u.pw_name
+    return ""
+
+
+def conf():
+    d = dict(PREDEFINITI)
+    try:
+        with open(CONF, encoding="utf-8") as f:
+            d.update(json.load(f))
+    except (OSError, ValueError):
+        # non c'e' ancora, o e' illeggibile: si parte dai predefiniti invece di
+        # fermarsi, cosi' una configurazione rotta non impedisce di accendere
+        pass
+    return d
+
+
+def salva(d):
+    os.makedirs(os.path.dirname(CONF), exist_ok=True)
+    tmp = CONF + ".nuovo"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1, sort_keys=True)
+    os.replace(tmp, CONF)
+
+
+def binario(u):
+    casa = pwd.getpwnam(u).pw_dir
+    for p in (os.path.join(casa, ".unsloth/llama.cpp/build/bin/llama-server"),
+              os.path.join(casa, ".unsloth/llama.cpp/llama-server")):
+        if os.access(p, os.X_OK):
+            return p
+    return ""
+
+
+def modelli(u=""):
+    """I .gguf sul disco, dal piu' grande al piu' piccolo.
+
+    ⚠️ Si guarda il disco e non l'Hub di Studio: /api/hub/cached-gguf conosce
+    solo i modelli scaricati da li', e chi si copia un file a mano - il caso
+    normale su una scheda - non comparirebbe mai.
+    """
+    u = u or utente()
+    if not u:
+        return []
+    casa = pwd.getpwnam(u).pw_dir
+    visti = {}
+    for base in ("modelli", "models", ".unsloth/models", ".cache/unsloth/models"):
+        radice = os.path.join(casa, base)
+        if not os.path.isdir(radice):
+            continue
+        for p in glob.glob(os.path.join(radice, "**", "*.gguf"), recursive=True):
+            try:
+                visti[p] = os.path.getsize(p)
+            except OSError:
+                continue
+    return [{"file": p, "nome": os.path.basename(p)[:-5], "byte": n}
+            for p, n in sorted(visti.items(), key=lambda kv: -kv[1])]
+
+
+def chiave():
+    try:
+        with open(CHIAVE_DASH, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def nodi_rpc():
+    """Le altre schede del cluster, se i loro nodi rispondono davvero.
+
+    ⚠️ Si prova la porta prima di scriverla nella riga di comando: llama-server
+    con un --rpc che non risponde non parte affatto, e il messaggio non dice
+    quale indirizzo sia il problema.
+    """
+    try:
+        with open(CLUSTER, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return []
+    fuori = []
+    for s in d.get("schede") or []:
+        if s.get("locale") or not s.get("ip"):
+            continue
+        try:
+            c = socket.create_connection((s["ip"], PORTA_RPC), timeout=2)
+            c.close()
+            fuori.append("%s:%d" % (s["ip"], PORTA_RPC))
+        except OSError:
+            continue
+    return fuori
+
+
+def riga_comando():
+    c = conf()
+    u = utente()
+    if not u:
+        sys.exit("non trovo l'installazione di Unsloth")
+    b = binario(u)
+    if not b:
+        sys.exit("non trovo llama-server in casa di %s" % u)
+
+    m = c.get("modello") or ""
+    if not m or not os.path.exists(m):
+        elenco = modelli(u)
+        if not elenco:
+            sys.exit("nessun modello .gguf sul disco")
+        m = elenco[0]["file"]
+
+    cmd = [b, "--host", "0.0.0.0", "--port", str(PORTA), "-m", m,
+           # ⚠️ Tutti gli strati sulla GPU: su BC-250 VRAM e RAM sono lo stesso
+           # chip, quindi lasciarne qualcuno alla CPU non risparmia niente e
+           # costa un viaggio in piu' per ogni token.
+           "-ngl", "99",
+           "-c", str(int(c.get("contesto") or 8192)),
+           "--parallel", str(int(c.get("parallelo") or 1)),
+           "-fa", "auto",
+           "--alias", os.path.basename(m)[:-5]]
+    k = chiave()
+    if k:
+        cmd += ["--api-key", k]
+    if c.get("livello") == "motore-api":
+        cmd.append("--no-webui")
+    r = nodi_rpc()
+    if r:
+        cmd += ["--rpc", ",".join(r)]
+    return u, cmd
+
+
+def main():
+    azione = sys.argv[1] if len(sys.argv) > 1 else "conf"
+
+    if azione == "modelli":
+        print(json.dumps({"ok": True, "modelli": modelli()}, indent=1))
+        return 0
+
+    if azione == "conf":
+        c = conf()
+        c["ok"] = True
+        c["binario"] = bool(binario(utente())) if utente() else False
+        print(json.dumps(c, indent=1, sort_keys=True))
+        return 0
+
+    if azione == "imposta":
+        c = conf()
+        for coppia in sys.argv[2:]:
+            k, _, v = coppia.partition("=")
+            if k not in PREDEFINITI:
+                return print(json.dumps({"ok": False, "errore": "chiave sconosciuta: %s" % k})) or 2
+            if k in ("contesto", "parallelo"):
+                try:
+                    v = int(v)
+                except ValueError:
+                    return print(json.dumps({"ok": False, "errore": "%s vuole un numero" % k})) or 2
+            if k == "livello" and v not in ("studio", "motore", "motore-api"):
+                return print(json.dumps({"ok": False, "errore": "livello sconosciuto"})) or 2
+            c[k] = v
+        salva(c)
+        c["ok"] = True
+        print(json.dumps(c, indent=1, sort_keys=True))
+        return 0
+
+    if azione in ("avvia", "riga"):
+        u, cmd = riga_comando()
+        if azione == "riga":
+            print(" ".join(cmd))
+            return 0
+        # ⚠️ Come l'utente di Unsloth, non come root: i modelli e la GPU sono
+        # suoi, e un llama-server di root lascerebbe in giro file che poi Studio
+        # non riesce piu' a leggere.
+        os.execvp("runuser", ["runuser", "-u", u, "--"] + cmd)
+
+    sys.exit("uso: %s [avvia|riga|modelli|conf|imposta chiave=valore]" % sys.argv[0])
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)

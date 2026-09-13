@@ -36,15 +36,30 @@
   .lab{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px;gap:10px}
   .lab b{color:var(--cream)}
   .cores{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
-  .cwrap{display:flex;gap:8px;align-items:stretch;height:190px;margin-top:4px}
-  .cax{display:flex;flex-direction:column;justify-content:space-between;font-size:.68rem;color:var(--muted)}
-  .cgrid{display:none}
-  .cbars{display:flex;gap:4px;align-items:flex-end;flex:1}
-  .cbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
-  .cbar .v{font-size:.62rem;color:var(--muted)}
-  .cbar .t{width:100%;flex:1;display:flex;align-items:flex-end;background:rgba(216,168,73,.07);border-radius:3px}
-  .cbar .t .b{display:block;width:100%;border-radius:3px}
-  .cbar .n{font-size:.6rem;color:var(--muted);white-space:nowrap}
+  /* ⚠️ Queste regole sono le stesse di index.html, e devono restarlo: il
+     disegno lo fa renderCores() in telem.js per tutte e due le pagine. La
+     versione che stava qui prima era scritta a mano e diversa, e le barre non
+     si vedevano affatto: le etichette dell'asse si accavallavano tutte nello
+     stesso punto (senza `.cat{position:relative}`) e le barre venivano alte
+     zero, perche' una percentuale dentro un flex senza altezza non ha di cosa
+     essere percentuale. */
+  .cwrap{position:relative;display:flex;gap:6px;height:190px;margin-top:4px}
+  .cgrid{position:absolute;left:40px;right:0;top:14px;bottom:14px;pointer-events:none;
+    border-bottom:1px solid rgba(216,168,73,.18);
+    background:repeating-linear-gradient(to bottom,rgba(216,168,73,.10) 0 1px,transparent 1px 25%)}
+  .cax{width:34px;display:grid;grid-template-rows:14px 1fr 14px}
+  .cat{position:relative}
+  .cat span{position:absolute;right:0;transform:translateY(-50%);font:.58rem 'DejaVu Sans Mono',monospace;color:rgba(185,160,122,.8)}
+  .cbars{flex:1;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;min-width:0}
+  .cbar{display:grid;grid-template-rows:14px 1fr 14px;min-width:0}
+  .cbar .v{font:700 .58rem 'DejaVu Sans Mono',monospace;color:var(--gold-lt);text-align:center;line-height:14px;
+    overflow:hidden;white-space:nowrap}
+  .cbar .t{position:relative}
+  .cbar .b{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0;min-height:2px;transition:height .25s linear}
+  .cbar .n{font:.56rem 'DejaVu Sans Mono',monospace;color:var(--muted);text-align:center;line-height:14px;
+    overflow:hidden;white-space:nowrap}
+  .cbar.off .b{background:none!important;border:1px dashed rgba(216,168,73,.35);height:12px!important}
+  .cbar.off .v{color:rgba(185,160,122,.45)}
   .vuoto{color:var(--muted);padding:18px;text-align:center}
 </style></head>
 <body>
@@ -79,7 +94,21 @@
   // ⚠️ Se il dizionario non risponde si resta in inglese, non in italiano:
   // e' la regola del progetto per ogni ripiego.
   let VOCI = {};
-  const T = (k, rip) => (VOCI[k] || rip || k);
+
+  // ⚠️ Il dizionario condiviso e' indicizzato per stringa INGLESE, non per
+  // chiave simbolica: chiedergli "t_temp" non poteva funzionare, e infatti la
+  // pagina mostrava t_temp, t_load, t_freq. Le chiavi che usa telem.js si
+  // traducono qui nella stringa inglese corrispondente, e quella si cerca.
+  const INGLESE = {
+    t_temp: "Temperature", t_load: "Load", t_freq: "Frequency",
+    t_pow: "Power", t_volt: "Voltage", t_fan: "Fan",
+    t_percore: "Per core/thread frequency", m_telem: "Telemetry",
+    c_off: "off", c_avg: "avg", c_online: "online",
+  };
+  const T = (k, rip) => {
+    const en = INGLESE[k] || rip || k;
+    return VOCI[en] || en;
+  };
 
   const box = $("#grafici"), grafici = [];
   function costruisci() {

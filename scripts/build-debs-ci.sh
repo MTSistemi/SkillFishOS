@@ -555,6 +555,10 @@ put $P 0755 system/usr/local/bin/skillfish-ai-mode usr/local/bin/skillfish-ai-mo
 # skillfish-ai-mode la chiama, e ha una ConditionPathExists che la ferma se
 # il segno della modalita' non c'e'.
 put $P 0755 system/usr/local/bin/skillfish-ai-console usr/local/bin/skillfish-ai-console
+# Il motore nudo: llama-server senza Unsloth Studio, per i livelli in cui la
+# memoria conta piu' di quello che Studio sa fare in piu'.
+put $P 0755 system/usr/local/bin/skillfish-llama usr/local/bin/skillfish-llama
+put $P 0644 system/etc/systemd/system/skillfish-llama.service etc/systemd/system/skillfish-llama.service
 put $P 0644 system/usr/share/skillfish/ai-mode-art.txt usr/share/skillfish/ai-mode-art.txt
 put $P 0644 system/etc/systemd/system/skillfish-ai-console.service etc/systemd/system/skillfish-ai-console.service
 # Il cluster AI: elenco delle schede, telemetria via ssh, aggiunta di una
@@ -1233,6 +1237,20 @@ chmod 0644 "$OUT/$P/etc/skel/.config/kdeglobals"
 # messo a mano. Fuori da quelle due schede non esisteva, quindi l'avvio di chi
 # installa era la parete di testo di systemd. Adesso viaggia nel pacchetto.
 putdir $P system/usr/share/plymouth/themes/skillfish-brass usr/share/plymouth/themes/skillfish-brass
+# L'avatar dell'utente e lo sfondo della schermata di blocco.
+# ⚠️ .face.icon lo legge KDE (KUser::faceIconPath), .face lo legge
+# accountsservice: sono due strade diverse per la stessa immagine e conviene
+# coprirle tutte e due, perche' quale delle due venga usata dipende da chi
+# disegna la schermata.
+# ⚠️ E kscreenlockerrc NON e' lo stesso file dello sfondo della scrivania: senza
+# la sua sezione [Greeter][Wallpaper] il blocco schermo mostra lo sfondo
+# predefinito di Debian, come e' successo sull'installazione di prova del
+# 13/09/2026.
+put $P 0644 system/usr/share/skillfish/avatar-fish.png usr/share/skillfish/avatar-fish.png
+put $P 0644 system/etc/skel/.face.icon                 etc/skel/.face.icon
+put $P 0644 system/etc/skel/.face.icon                 etc/skel/.face
+put $P 0644 system/etc/skel/.config/kscreenlockerrc    etc/skel/.config/kscreenlockerrc
+
 for a in theme/avatars/steampunk-*.png; do
   put $P 0644 "$a" "usr/share/plasma/avatars/$(basename "$a")"
 done

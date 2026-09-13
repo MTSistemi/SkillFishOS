@@ -1,0 +1,24 @@
+[Unit]
+Description=SkillFishOS bare llama.cpp engine (AI mode without Unsloth Studio)
+Documentation=https://skillfishos.com/docs/control-center
+# ⚠️ I due non possono stare accesi insieme: vogliono la stessa porta 8888.
+# Chi accende questo spegne Studio, e viceversa. Lo fa skillfish-ai-mode.
+Conflicts=skillfish-unsloth.service
+After=network-online.target skillfish-cluster.service
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/skillfish-llama avvia
+# Un modello da ventidue giga ci mette il suo a entrare in memoria: se systemd
+# lo dichiarasse fallito dopo novanta secondi lo ammazzerebbe a meta' del
+# caricamento, ogni volta, e sembrerebbe un guasto del modello.
+TimeoutStartSec=900
+Restart=on-failure
+RestartSec=5
+# ⚠️ Niente limiti di memoria: il senso di questa modalita' e' dare al modello
+# tutto quello che c'e'. Un MemoryMax qui lo farebbe uccidere dall'OOM proprio
+# quando ha finito di caricare.
+OOMPolicy=continue
+
+[Install]
+WantedBy=multi-user.target

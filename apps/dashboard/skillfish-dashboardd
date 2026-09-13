@@ -2132,6 +2132,42 @@ def cluster_stato():
     return d
 
 
+LLAMA = "/usr/local/bin/skillfish-llama"
+
+
+def ai_llama():
+    """Il livello scelto e i modelli sul disco, per la tendina della pagina."""
+    if not os.path.exists(LLAMA):
+        return {}
+    try:
+        c = json.loads(subprocess.run([LLAMA, "conf"], capture_output=True,
+                                      text=True, timeout=15).stdout or "{}")
+        m = json.loads(subprocess.run([LLAMA, "modelli"], capture_output=True,
+                                      text=True, timeout=30).stdout or "{}")
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return {}
+    return {"livello": c.get("livello") or "studio",
+            "modello": c.get("modello") or "",
+            "modelli": m.get("modelli") or []}
+
+
+def ai_livello(livello="", modello=""):
+    """Cambia la scelta. ⚠️ Non accende e non spegne niente: accendere e'
+    un'altra rotta, con la sua domanda."""
+    cmd = [LLAMA, "imposta"]
+    if livello:
+        cmd.append("livello=%s" % livello)
+    if modello:
+        cmd.append("modello=%s" % modello)
+    if len(cmd) == 2:
+        return {"ok": False, "errore": "niente da cambiare"}
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    try:
+        return json.loads(r.stdout or "{}")
+    except ValueError:
+        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-200:]}
+
+
 def ai_mode(azione):
     """La modalita' AI, vista da remoto.
 
@@ -2334,6 +2370,7 @@ def ai_status():
             # ⚠️ Il segno lo scrive skillfish-ai-mode: si guarda quello e non
             # si lancia un comando a ogni giro del riquadro.
             "ai_mode": os.path.exists("/var/lib/skillfish/ai-mode"),
+            **ai_llama(),
             **(_unsloth_version() if running else {})}
 
 
@@ -3757,6 +3794,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("ai"):
                 return
             return self._json(200, ai_update_start())
+        if path == "/api/ai/livello":
+            if not self._guard("ai"):
+                return
+            return self._json(200, ai_livello(data.get("livello", ""),
+                                              data.get("modello", "")))
         if path == "/api/ai/mode":
             if not self._guard("ai"):
                 return

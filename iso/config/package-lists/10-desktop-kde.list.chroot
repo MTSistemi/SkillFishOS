@@ -55,6 +55,10 @@ kinfocenter
 kmenuedit
 kwrited
 kde-config-screenlocker
+# La tastiera virtuale della schermata di blocco. Il pulsante c'e' comunque:
+# senza questo modulo non apre niente e non spiega perche' (visto
+# sull'installazione di prova del 13/09/2026).
+qml6-module-qtquick-virtualkeyboard
 kde-config-sddm
 
 # --- KIO: senza questi Dolphin perde meta' dei protocolli ---

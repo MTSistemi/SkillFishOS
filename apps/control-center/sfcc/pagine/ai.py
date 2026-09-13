@@ -37,6 +37,7 @@ from ..stile import Scheda, Stato, griglia_schede, intestazione, TESTO_3
 
 UNSLOTH_BIN = "/usr/local/bin/skillfish-unsloth"
 UNSLOTH_UPDATE = "/usr/local/bin/skillfish-unsloth-update"
+LLAMA = "/usr/local/bin/skillfish-llama"
 UNSLOTH_SVC = "skillfish-unsloth.service"
 PORTA = 8888
 UNSLOTH_URL = "http://127.0.0.1:%d" % PORTA
@@ -433,6 +434,36 @@ class Pagina(PaginaBase):
         # computer, oppure ssh. Il testo lo dice prima di farlo.
         self.r_ai_mode = self.c_mem.riga(
             L("Modalita' AI", "AI mode"), L("desktop acceso", "desktop running"))
+        # --- il livello: quanto si spegne quando si spegne ----------------
+        # ⚠️ Misurato sulla .32 il 13/09/2026: con Studio acceso il sistema
+        # tiene 567 MB, senza ne tiene 115. La differenza e' tutta Unsloth
+        # Studio da fermo, che mentre il modello gira non fa altro che passare
+        # le richieste a llama-server. Chi vuole quei 450 MB per il modello se
+        # li prende, sapendo cosa perde.
+        w = QWidget()
+        rl = QHBoxLayout(w)
+        rl.setContentsMargins(0, 4, 0, 0)
+        rl.setSpacing(6)
+        rl.addWidget(QLabel(L("Livello", "Level")))
+        self.livello = QComboBox()
+        self.livello.addItem(L("Studio acceso (tutto)", "Studio on (everything)"), "studio")
+        self.livello.addItem(L("Solo il motore, con pagina web", "Engine only, with web page"), "motore")
+        self.livello.addItem(L("Solo il motore, solo API", "Engine only, API only"), "motore-api")
+        self.livello.currentIndexChanged.connect(self._livello_scelto)
+        rl.addWidget(self.livello, 1)
+        self.c_mem.aggiungi(w)
+
+        w = QWidget()
+        rl = QHBoxLayout(w)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(6)
+        rl.addWidget(QLabel(L("Modello", "Model")))
+        self.modello_motore = QComboBox()
+        self.modello_motore.currentIndexChanged.connect(self._livello_scelto)
+        rl.addWidget(self.modello_motore, 1)
+        self.w_modello_motore = w
+        self.c_mem.aggiungi(w)
+
         self.b_ai_mode = self.c_mem.bottoni(
             (L("Spegni il desktop per l'AI", "Shut the desktop down for AI"),
              self._ai_mode, False))[0]
@@ -700,6 +731,7 @@ class Pagina(PaginaBase):
         # costa otto secondi di attesa, che non si vogliono ogni secondo.
         if self._giro % 5 == 0:
             self._cluster_leggi()
+            self._llama_leggi()
         self._giro += 1
 
     def _accesso(self, on):
@@ -899,6 +931,53 @@ class Pagina(PaginaBase):
         self.demone.cmd(cmd="unsloth-key-set", key=k)
         self._giro = 0
         self.aggiorna()
+
+    def _llama_leggi(self):
+        """Il livello scelto e i modelli sul disco.
+
+        ⚠️ Si legge senza root: skillfish-llama guarda un file in /etc e la
+        cartella dei modelli, e tutte e due si leggono. Passare dall'helper
+        vorrebbe dire una richiesta di password per mostrare una tendina.
+        """
+        import json as _json
+        if not os.path.exists(LLAMA):
+            return
+        rc, out, _ = sh("%s conf" % LLAMA, 10)
+        try:
+            c = _json.loads(out or "{}")
+        except ValueError:
+            return
+        rc, out, _ = sh("%s modelli" % LLAMA, 20)
+        try:
+            elenco = (_json.loads(out or "{}") or {}).get("modelli") or []
+        except ValueError:
+            elenco = []
+
+        self.livello.blockSignals(True)
+        i = self.livello.findData(c.get("livello") or "studio")
+        self.livello.setCurrentIndex(max(0, i))
+        self.livello.blockSignals(False)
+
+        self.modello_motore.blockSignals(True)
+        if [self.modello_motore.itemData(i) for i in range(self.modello_motore.count())] != \
+                [m["file"] for m in elenco]:
+            self.modello_motore.clear()
+            for m in elenco:
+                self.modello_motore.addItem("%s  (%s)" % (m["nome"], dim(m["byte"])), m["file"])
+        scelto = c.get("modello") or ""
+        i = self.modello_motore.findData(scelto)
+        if i >= 0:
+            self.modello_motore.setCurrentIndex(i)
+        self.modello_motore.blockSignals(False)
+        self.w_modello_motore.setVisible((c.get("livello") or "studio") != "studio")
+
+    def _livello_scelto(self):
+        liv = self.livello.currentData() or "studio"
+        mod = self.modello_motore.currentData() or ""
+        self.w_modello_motore.setVisible(liv != "studio")
+        r = self.demone.cmd(cmd="ai-livello", livello=liv, modello=mod, insisti=True)
+        if not r.get("ok"):
+            self.toast(r.get("errore") or r.get("err") or L("non riuscito", "failed"))
 
     def _ai_mode(self):
         """Spegne il desktop per lasciare la memoria al modello.
