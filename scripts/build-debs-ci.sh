@@ -1059,7 +1059,7 @@ put $P 0644 system/usr/share/skillfish/primo-avvio-catalogo.json usr/share/skill
 put $P 0644 apps/primo-avvio/os.skillfish.primo-avvio.policy usr/share/polkit-1/actions/os.skillfish.primo-avvio.policy
 put $P 0644 system/etc/systemd/system/skillfish-firstboot-flatpaks.service etc/systemd/system/skillfish-firstboot-flatpaks.service
 put $P 0644 system/etc/skel/.config/autostart/skillfish-primo-avvio.desktop etc/skel/.config/autostart/skillfish-primo-avvio.desktop
-ctrl $P "flatpak, policykit-1, python3-pyqt6" \
+ctrl $P "flatpak, polkitd | policykit-1, python3-pyqt6" \
   "SkillFishOS first boot - choose what to install" \
   "Asks which applications to install on a freshly installed system, then shows
 them being downloaded with a bar each. Nothing is preinstalled and nothing is
@@ -1389,7 +1389,7 @@ put $P 0644 system/usr/share/icons/hicolor/64x64/apps/skillfish-snapshots.png us
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png usr/share/icons/hicolor/128x128/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png usr/share/icons/hicolor/256x256/apps/skillfish-snapshots.png
 put $P 0644 system/usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png usr/share/icons/hicolor/512x512/apps/skillfish-snapshots.png
-ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, policykit-1 | polkitd, skillfish-base, skillfish-control-center" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
+ctrl $P "python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, polkitd | policykit-1, skillfish-base, skillfish-control-center" "SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance" \
   "Snapshots before and after every apt operation, restored in seconds because
 btrfs swaps the subvolume. The second tab keeps btrfs in shape on a schedule."
 
