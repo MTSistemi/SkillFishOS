@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.18" date="2026-09-13">
+      <description>
+        <p>The AI engine turns down a level or a model it does not know instead of trying to start it.</p>
+        <p xml:lang="it">Il motore AI rifiuta un livello o un modello che non conosce, invece di provare ad avviarlo.</p>
+        <p xml:lang="fr">Le moteur IA refuse un niveau ou un modèle qu'il ne connaît pas au lieu d'essayer de le lancer.</p>
+        <p xml:lang="es">El motor IA rechaza un nivel o un modelo que no conoce en vez de intentar arrancarlo.</p>
+        <p xml:lang="pt">O motor IA recusa um nível ou um modelo que não conhece em vez de tentar arrancá-lo.</p>
+        <p xml:lang="de">Die KI-Maschine lehnt eine Stufe oder ein Modell ab, das sie nicht kennt, statt zu versuchen, es zu starten.</p>
+        <p xml:lang="pl">Silnik AI odrzuca poziom lub model, którego nie zna, zamiast próbować go uruchomić.</p>
+        <p xml:lang="ru">Движок ИИ отклоняет неизвестный ему уровень или модель, вместо того чтобы пытаться его запустить.</p>
+        <p xml:lang="uk">Рушій ШІ відхиляє невідомий йому рівень або модель, замість того щоб намагатися його запустити.</p>
+      </description>
+    </release>
     <release version="26.09.12" date="2026-09-13">
       <description>
         <p>The bare engine: at the engine levels of AI mode, llama-server serves the model by itself on port 8888 and the system holds 115 MB instead of 567. The screen no longer goes black either: it shows the name, the addresses the board answers on, how much memory the model has and the way back, above an ordinary login prompt.</p>

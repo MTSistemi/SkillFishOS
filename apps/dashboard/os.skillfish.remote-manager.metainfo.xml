@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.18" date="2026-09-13">
+      <description>
+        <p>The AI card only accepts levels and models that actually exist: a request built by hand can no longer point llama-server at any file on the disk.</p>
+        <p xml:lang="it">Il riquadro AI accetta solo livelli e modelli che esistono davvero: una richiesta costruita a mano non puo' piu' puntare llama-server su un file qualsiasi del disco.</p>
+        <p xml:lang="fr">La carte IA n'accepte que des niveaux et des modèles qui existent vraiment : une requête fabriquée à la main ne peut plus pointer llama-server vers n'importe quel fichier du disque.</p>
+        <p xml:lang="es">La ficha IA solo acepta niveles y modelos que existen de verdad: una petición hecha a mano ya no puede apuntar llama-server a cualquier archivo del disco.</p>
+        <p xml:lang="pt">O cartão IA só aceita níveis e modelos que existem mesmo: um pedido feito à mão já não pode apontar o llama-server para um ficheiro qualquer do disco.</p>
+        <p xml:lang="de">Die KI-Karte nimmt nur Stufen und Modelle an, die es wirklich gibt: eine von Hand gebaute Anfrage kann llama-server nicht mehr auf eine beliebige Datei der Platte richten.</p>
+        <p xml:lang="pl">Karta AI przyjmuje tylko poziomy i modele, które naprawdę istnieją: ręcznie spreparowane żądanie nie skieruje już llama-server na dowolny plik na dysku.</p>
+        <p xml:lang="ru">Карточка ИИ принимает только те уровни и модели, которые действительно существуют: запрос, составленный вручную, больше не направит llama-server на произвольный файл на диске.</p>
+        <p xml:lang="uk">Картка ШІ приймає лише ті рівні та моделі, які справді існують: запит, складений вручну, більше не спрямує llama-server на довільний файл на диску.</p>
+      </description>
+    </release>
     <release version="26.09.12" date="2026-09-13">
       <description>
         <p>The AI-mode level is chosen from the AI card as well, and the per-core bars on the telemetry page are drawn properly again, with their titles in your language.</p>

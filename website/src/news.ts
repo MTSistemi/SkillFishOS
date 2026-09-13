@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // ai-level-allowlist-2026-09-13
+    data: '2026-09-13',
+    quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "Il pannello AI accetta solo quello che esiste",
+      en: "The AI panel only accepts what exists",
+      pl: "Panel AI przyjmuje tylko to, co istnieje",
+      uk: "Панель ШІ приймає лише те, що існує",
+      ru: "Панель ИИ принимает только то, что существует",
+      es: "El panel IA solo acepta lo que existe",
+      pt: "O painel IA só aceita o que existe",
+      de: "Die KI-Seite nimmt nur an, was es gibt",
+      fr: "Le panneau IA n'accepte que ce qui existe",
+    },
+    testo: {
+      it: "Il livello e il modello della modalità AI si scelgono da un elenco chiuso: il Remote Manager e il Control Center passano al motore solo quello che esiste davvero sulla scheda. Una richiesta costruita a mano non può più far aprire a <b>llama-server</b> un file qualsiasi del disco. È nei pacchetti <b>26.09.18</b>, si prende con il normale aggiornamento.",
+      en: "The AI-mode level and model are picked from a closed list: the Remote Manager and the Control Center only hand the engine what really exists on the board. A request built by hand can no longer make <b>llama-server</b> open any file on the disk. It is in the <b>26.09.18</b> packages, and comes with the usual update.",
+      pl: "Poziom i model trybu AI wybiera się z zamkniętej listy: Remote Manager i Control Center przekazują silnikowi tylko to, co naprawdę jest na płycie. Ręcznie spreparowane żądanie nie każe już <b>llama-server</b> otworzyć dowolnego pliku na dysku. Jest w pakietach <b>26.09.18</b>, przychodzi ze zwykłą aktualizacją.",
+      uk: "Рівень і модель режиму ШІ обираються із закритого переліку: Remote Manager і Control Center передають рушію лише те, що справді є на платі. Запит, складений вручну, більше не змусить <b>llama-server</b> відкрити довільний файл на диску. Це в пакунках <b>26.09.18</b>, приходить зі звичайним оновленням.",
+      ru: "Уровень и модель режима ИИ выбираются из закрытого списка: Remote Manager и Control Center передают движку только то, что действительно есть на плате. Запрос, составленный вручную, больше не заставит <b>llama-server</b> открыть произвольный файл на диске. Это в пакетах <b>26.09.18</b>, приходит с обычным обновлением.",
+      es: "El nivel y el modelo del modo IA se eligen de una lista cerrada: el Remote Manager y el Control Center sólo pasan al motor lo que existe de verdad en la placa. Una petición hecha a mano ya no puede hacer que <b>llama-server</b> abra cualquier archivo del disco. Está en los paquetes <b>26.09.18</b>, llega con la actualización normal.",
+      pt: "O nível e o modelo do modo IA escolhem-se de uma lista fechada: o Remote Manager e o Control Center só passam ao motor o que existe mesmo na placa. Um pedido feito à mão já não faz o <b>llama-server</b> abrir um ficheiro qualquer do disco. Está nos pacotes <b>26.09.18</b>, chega com a atualização normal.",
+      de: "Stufe und Modell des KI-Modus werden aus einer geschlossenen Liste gewählt: Remote Manager und Control Center geben der Maschine nur weiter, was auf der Karte wirklich vorhanden ist. Eine von Hand gebaute Anfrage kann <b>llama-server</b> keine beliebige Datei der Platte mehr öffnen lassen. Es steckt in den Paketen <b>26.09.18</b> und kommt mit der gewöhnlichen Aktualisierung.",
+      fr: "Le niveau et le modèle du mode IA se choisissent dans une liste fermée : le Remote Manager et le Control Center ne transmettent au moteur que ce qui existe vraiment sur la carte. Une requête fabriquée à la main ne peut plus faire ouvrir à <b>llama-server</b> n'importe quel fichier du disque. C'est dans les paquets <b>26.09.18</b>, et cela arrive avec la mise à jour habituelle.",
+    },
+  },
+  {
     // ai-mode-levels-2026-09-13
     data: '2026-09-13',
     quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },

@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.18" date="2026-09-13">
+      <description>
+        <p>The AI page only passes on levels and models that actually exist, and the part that runs as root checks again before starting anything.</p>
+        <p xml:lang="it">La pagina AI passa solo livelli e modelli che esistono davvero, e la parte che gira da root ricontrolla prima di avviare qualsiasi cosa.</p>
+        <p xml:lang="fr">La page IA ne transmet que des niveaux et des modèles qui existent vraiment, et la partie qui tourne en root revérifie avant de lancer quoi que ce soit.</p>
+        <p xml:lang="es">La página IA solo pasa niveles y modelos que existen de verdad, y la parte que corre como root vuelve a comprobarlo antes de arrancar nada.</p>
+        <p xml:lang="pt">A página IA só passa níveis e modelos que existem mesmo, e a parte que corre como root volta a verificar antes de arrancar seja o que for.</p>
+        <p xml:lang="de">Die KI-Seite reicht nur Stufen und Modelle weiter, die es wirklich gibt, und der Teil, der als root läuft, prüft noch einmal nach, bevor er irgendetwas startet.</p>
+        <p xml:lang="pl">Strona AI przekazuje tylko poziomy i modele, które naprawdę istnieją, a część działająca jako root sprawdza jeszcze raz, zanim cokolwiek uruchomi.</p>
+        <p xml:lang="ru">Страница ИИ передаёт только те уровни и модели, которые действительно существуют, а часть, работающая от root, проверяет ещё раз, прежде чем что-то запускать.</p>
+        <p xml:lang="uk">Сторінка ШІ передає лише ті рівні та моделі, які справді існують, а частина, що працює від root, перевіряє ще раз, перш ніж щось запускати.</p>
+      </description>
+    </release>
     <release version="26.09.12" date="2026-09-13">
       <description>
         <p>AI mode gains a level, chosen here: shut down the desktop alone, or the desktop and Unsloth Studio together and leave llama-server by itself on port 8888, with the same API and the same key. Measured on a board with a model loaded: 567 MB of system memory becomes 115. The model for the bare engine is picked here too.</p>
