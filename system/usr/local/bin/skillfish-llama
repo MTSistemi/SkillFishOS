@@ -222,7 +222,9 @@ def main():
         os.execvp("runuser", ["runuser", "-u", u, "--"] + cmd)
         return 0  # ⚠️ non ci si arriva: execvp sostituisce il processo.
 
-    sys.exit("uso: %s [avvia|riga|modelli|conf|imposta chiave=valore]" % sys.argv[0])
+    print("uso: %s [avvia|riga|modelli|conf|imposta chiave=valore]" % sys.argv[0],
+          file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":
