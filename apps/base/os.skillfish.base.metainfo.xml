@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.22" date="2026-09-13">
+      <description>
+        <p>The system version now rises when you update: a machine installed from an older image no longer keeps reporting the number it started from. And on an encrypted disk the boot password is typed with your own keyboard layout.</p>
+        <p xml:lang="it">La versione del sistema adesso sale con gli aggiornamenti: una macchina installata da un'immagine vecchia non resta piu' ferma al numero da cui era partita. E con il disco cifrato la password di avvio si scrive con la tua disposizione di tastiera.</p>
+        <p xml:lang="fr">La version du système monte désormais avec les mises à jour : une machine installée depuis une image ancienne ne reste plus bloquée sur le numéro de départ. Et sur un disque chiffré, le mot de passe de démarrage se tape avec votre propre disposition de clavier.</p>
+        <p xml:lang="es">La versión del sistema ahora sube con las actualizaciones: una máquina instalada desde una imagen antigua ya no se queda con el número de partida. Y con el disco cifrado la contraseña de arranque se escribe con tu propia distribución de teclado.</p>
+        <p xml:lang="pt">A versão do sistema agora sobe com as atualizações: uma máquina instalada a partir de uma imagem antiga já não fica presa ao número de partida. E com o disco cifrado a palavra-passe de arranque escreve-se com a tua própria disposição de teclado.</p>
+        <p xml:lang="de">Die Systemversion steigt jetzt mit den Aktualisierungen: ein von einem älteren Abbild installierter Rechner meldet nicht mehr ewig die Nummer, mit der er gestartet ist. Und bei verschlüsselter Platte wird das Startpasswort mit Ihrer eigenen Tastaturbelegung getippt.</p>
+        <p xml:lang="pl">Wersja systemu rośnie teraz wraz z aktualizacjami: maszyna zainstalowana ze starszego obrazu nie zostaje już przy numerze, od którego zaczęła. A przy zaszyfrowanym dysku hasło startowe wpisuje się własnym układem klawiatury.</p>
+        <p xml:lang="ru">Версия системы теперь растёт вместе с обновлениями: машина, установленная со старого образа, больше не остаётся с тем номером, с которого начала. А на зашифрованном диске пароль при загрузке набирается вашей собственной раскладкой.</p>
+        <p xml:lang="uk">Версія системи тепер зростає разом з оновленнями: машина, встановлена зі старішого образу, більше не лишається з номером, з якого почала. А на зашифрованому диску пароль під час завантаження набирається вашою власною розкладкою.</p>
+      </description>
+    </release>
     <release version="26.09.21" date="2026-09-13">
       <description>
         <p>The applications chosen at first boot now really start: a folder in your home was ending up owned by root and stopped every one of them. Machines already installed repair themselves.</p>

@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // versione-sale-con-apt-2026-09-13
+    data: '2026-09-13',
+    quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "La versione del sistema sale con gli aggiornamenti",
+      en: "The system version rises with the updates",
+      pl: "Wersja systemu rośnie wraz z aktualizacjami",
+      uk: "Версія системи зростає разом з оновленнями",
+      ru: "Версия системы растёт вместе с обновлениями",
+      es: "La versión del sistema sube con las actualizaciones",
+      pt: "A versão do sistema sobe com as atualizações",
+      de: "Die Systemversion steigt mit den Aktualisierungen",
+      fr: "La version du système monte avec les mises à jour",
+    },
+    testo: {
+      it: "Finora la versione la scriveva solo l'immagine di installazione: chi aveva installato dalla 26.06.4 restava 26.06.4 per sempre, anche dopo aver scaricato tutti gli aggiornamenti. Adesso il numero viaggia dentro i pacchetti, quindi sale da solo. Con il disco cifrato, inoltre, la password di avvio si scrive con la tua disposizione di tastiera e non più in qwerty.",
+      en: "Until now the version was written only by the install image: whoever installed from 26.06.4 stayed 26.06.4 for ever, however many updates they downloaded. The number now travels inside the packages, so it rises by itself. On an encrypted disk the boot password is also typed with your own keyboard layout instead of qwerty.",
+      pl: "Dotąd wersję zapisywał tylko obraz instalacyjny: kto zainstalował z 26.06.4, zostawał przy 26.06.4 na zawsze, choćby pobrał wszystkie aktualizacje. Teraz numer jedzie w pakietach, więc rośnie sam. Przy zaszyfrowanym dysku hasło startowe wpisuje się własnym układem klawiatury, a nie qwerty.",
+      uk: "Досі версію записував лише інсталяційний образ: хто встановив із 26.06.4, лишався на 26.06.4 назавжди, хоч би скільки оновлень завантажив. Тепер номер їде всередині пакунків, тож зростає сам. На зашифрованому диску пароль завантаження також набирається вашою розкладкою, а не qwerty.",
+      ru: "До сих пор версию записывал только установочный образ: кто установил с 26.06.4, оставался на 26.06.4 навсегда, сколько бы обновлений ни скачал. Теперь номер едет внутри пакетов, поэтому растёт сам. На зашифрованном диске пароль загрузки набирается вашей раскладкой, а не qwerty.",
+      es: "Hasta ahora la versión la escribía sólo la imagen de instalación: quien instaló desde la 26.06.4 se quedaba en 26.06.4 para siempre, por muchas actualizaciones que descargara. Ahora el número viaja dentro de los paquetes, así que sube solo. Con el disco cifrado la contraseña de arranque se escribe además con tu distribución de teclado y no en qwerty.",
+      pt: "Até agora a versão era escrita só pela imagem de instalação: quem instalou a partir da 26.06.4 ficava em 26.06.4 para sempre, por mais atualizações que descarregasse. Agora o número viaja dentro dos pacotes, por isso sobe sozinho. Com o disco cifrado a palavra-passe de arranque escreve-se também com a tua disposição de teclado e não em qwerty.",
+      de: "Bisher schrieb nur das Installationsabbild die Version: wer von 26.06.4 installiert hatte, blieb für immer 26.06.4, wie viele Aktualisierungen er auch lud. Die Nummer reist jetzt in den Paketen mit und steigt daher von selbst. Bei verschlüsselter Platte wird das Startpasswort außerdem mit Ihrer Tastaturbelegung getippt statt in qwerty.",
+      fr: "Jusqu'ici la version n'était écrite que par l'image d'installation : qui avait installé depuis la 26.06.4 restait en 26.06.4 pour toujours, quel que soit le nombre de mises à jour téléchargées. Le numéro voyage désormais dans les paquets, donc il monte tout seul. Sur un disque chiffré, le mot de passe de démarrage se tape en outre avec votre disposition de clavier et non en qwerty.",
+    },
+  },
+  {
     // primo-avvio-parte-2026-09-13
     data: '2026-09-13',
     quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },
