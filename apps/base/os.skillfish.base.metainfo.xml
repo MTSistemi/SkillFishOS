@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.23" date="2026-09-13">
+      <description>
+        <p>The version shown in About this System is the real one again, and so are the ones on the login banner and in lsb-release: they were all telling different numbers, some never released.</p>
+        <p xml:lang="it">La versione mostrata in Informazioni sul sistema torna a essere quella vera, e con lei quelle del messaggio di accesso e di lsb-release: dicevano numeri diversi fra loro, alcuni mai usciti.</p>
+        <p xml:lang="fr">La version affichée dans Informations sur le système redevient la vraie, ainsi que celles de la bannière de connexion et de lsb-release : elles annonçaient des numéros différents, dont certains jamais publiés.</p>
+        <p xml:lang="es">La versión que muestra Información del sistema vuelve a ser la de verdad, y con ella las del mensaje de acceso y de lsb-release: decían números distintos entre sí, algunos nunca publicados.</p>
+        <p xml:lang="pt">A versão mostrada em Informações do sistema volta a ser a verdadeira, e com ela as da mensagem de acesso e do lsb-release: diziam números diferentes entre si, alguns nunca lançados.</p>
+        <p xml:lang="de">Die in Über dieses System angezeigte Version ist wieder die richtige, und mit ihr die im Anmeldebanner und in lsb-release: sie nannten unterschiedliche Nummern, einige davon nie veröffentlicht.</p>
+        <p xml:lang="pl">Wersja pokazywana w Informacjach o systemie znów jest tą prawdziwą, a wraz z nią te z powitania przy logowaniu i z lsb-release: podawały różne numery, część nigdy niewydanych.</p>
+        <p xml:lang="ru">Версия в окне «О системе» снова настоящая, вместе с той, что в приглашении входа и в lsb-release: они называли разные номера, часть из которых никогда не выходила.</p>
+        <p xml:lang="uk">Версія у вікні «Про систему» знову справжня, разом із тією, що в запрошенні входу та в lsb-release: вони називали різні номери, частина з яких ніколи не виходила.</p>
+      </description>
+    </release>
     <release version="26.09.22" date="2026-09-13">
       <description>
         <p>The system version now rises when you update: a machine installed from an older image no longer keeps reporting the number it started from. And on an encrypted disk the boot password is typed with your own keyboard layout.</p>
