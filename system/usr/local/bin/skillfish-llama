@@ -194,14 +194,17 @@ def main():
         for coppia in sys.argv[2:]:
             k, _, v = coppia.partition("=")
             if k not in PREDEFINITI:
-                return print(json.dumps({"ok": False, "errore": "chiave sconosciuta: %s" % k})) or 2
+                print(json.dumps({"ok": False, "errore": "chiave sconosciuta: %s" % k}))
+                return 2
             if k in ("contesto", "parallelo"):
                 try:
                     v = int(v)
                 except ValueError:
-                    return print(json.dumps({"ok": False, "errore": "%s vuole un numero" % k})) or 2
+                    print(json.dumps({"ok": False, "errore": "%s vuole un numero" % k}))
+                    return 2
             if k == "livello" and v not in ("studio", "motore", "motore-api"):
-                return print(json.dumps({"ok": False, "errore": "livello sconosciuto"})) or 2
+                print(json.dumps({"ok": False, "errore": "livello sconosciuto"}))
+                return 2
             c[k] = v
         salva(c)
         c["ok"] = True
@@ -217,6 +220,7 @@ def main():
         # suoi, e un llama-server di root lascerebbe in giro file che poi Studio
         # non riesce piu' a leggere.
         os.execvp("runuser", ["runuser", "-u", u, "--"] + cmd)
+        return 0  # ⚠️ non ci si arriva: execvp sostituisce il processo.
 
     sys.exit("uso: %s [avvia|riga|modelli|conf|imposta chiave=valore]" % sys.argv[0])
 

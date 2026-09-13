@@ -965,6 +965,10 @@ def _studio_nuova_chiave(password):
                 if tok:
                     break
             except Exception:
+                # ⚠️ Qui si ingoia di proposito: e' il giro dei tentativi, e
+                # Studio appena riavviato risponde in tutti i modi sbagliati
+                # prima di rispondere bene. Quello che conta e' l'ultimo giro,
+                # e se falliscono tutti lo dice `ultimo` piu' sotto.
                 pass
             time.sleep(5)
         if not tok:
@@ -1024,6 +1028,8 @@ def _studio_cambia_password(vecchia, nuova):
         try:
             corpo = e.read().decode("utf-8", "replace")[:200]
         except Exception:
+            # il corpo della risposta e' un di piu': se non si legge resta il
+            # codice HTTP, che e' gia' la meta' del messaggio d'errore.
             pass
         return "Studio ha rifiutato la password scelta: %s %s" % (e.code, corpo)
     except Exception as e:

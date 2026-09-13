@@ -90,6 +90,8 @@ def locale():
                     clock = int("".join(c for c in r.split()[1] if c.isdigit()))
                     break
     except (OSError, ValueError, IndexError):
+        # il nodo non c'e' o non dice quello che ci aspettiamo: clock resta 0,
+        # e uno zero nella telemetria si vede benissimo.
         pass
     temp = 0
     for p in glob.glob(D + "/hwmon/hwmon*/temp1_input"):
@@ -491,6 +493,8 @@ def demone(ogni=5):
             # in cima). Dentro non c'e' niente di segreto: nomi, gradi, watt.
             os.chmod(STATO_PUB, 0o644)
         except OSError:
+            # un giro perso non si recupera e non si segnala: fra un secondo
+            # ce n'e' un altro, e i dati vecchi li marca gia' chi legge.
             pass
         time.sleep(ogni)
 

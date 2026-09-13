@@ -184,6 +184,8 @@ def _token():
                 if riga.startswith("GITHUB_TOKEN="):
                     return riga.split("=", 1)[1].strip()
     except OSError:
+        # il file del token non c'e' su tutte le macchine: si prova la strada
+        # dopo, e se non ce n'e' nessuna lo dice chi chiama.
         pass
     try:
         return subprocess.run(["gh", "auth", "token"], capture_output=True, text=True).stdout.strip()

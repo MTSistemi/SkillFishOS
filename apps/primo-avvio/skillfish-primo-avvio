@@ -235,6 +235,8 @@ class PaginaScelta(QWidget):
                     if len(c) > 1 and c[1] == "00000000":
                         return True
         except OSError:
+            # niente /proc/net/route, o illeggibile: rispondiamo "rete no".
+            # E' la risposta prudente, e chi chiama sa gia' cosa farne.
             pass
         return False
 
@@ -454,6 +456,9 @@ class Finestra(QWidget):
                 os.makedirs(os.path.dirname(ZITTO), exist_ok=True)
                 open(ZITTO, "w").close()
             except OSError:
+                # se il segno non si riesce a scrivere la finestra torna al
+                # prossimo accesso: seccante, non grave, e non e' un motivo
+                # per non chiudere quella che l'utente sta chiudendo adesso.
                 pass
         self.close()
 
