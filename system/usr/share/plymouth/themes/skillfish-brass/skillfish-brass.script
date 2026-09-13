@@ -40,12 +40,52 @@ fun progress_cb(duration, progress) {
 }
 Plymouth.SetBootProgressFunction(progress_cb);
 
-// password prompt only (no status text) in case of encrypted disk
+// LA RICHIESTA DELLA PASSWORD, quando il disco e' cifrato.
+//
+// ⚠️ DEVE VEDERSI. La versione precedente disegnava soltanto i pallini, e con
+// zero caratteri digitati i pallini non esistono: fra la richiesta e il primo
+// tasto lo schermo restava fermo sullo splash, e chi ha installato con LUKS
+// credeva che l'avvio si fosse piantato. Provato in macchina virtuale il
+// 13/09/2026: scrivendo la password alla cieca l'avvio proseguiva.
+//
+// ⚠️ Image.Text vuole il modulo label di Plymouth. Sta nell'initramfs
+// (label-pango.so): se un giorno non ci fosse piu', queste due immagini
+// tornerebbero vuote e si tornerebbe allo schermo muto.
+pw.y = bar.y + 40;
+
 fun display_password_cb(prompt, bullets) {
-    pw.image = Image.Text(bullets, 0.85, 0.66, 0.29);
-    pw.sprite = Sprite(pw.image);
-    pw.sprite.SetPosition(screen_w / 2 - pw.image.GetWidth() / 2, bar.y + 20, 7);
+    // Il testo lo manda cryptsetup ed e' in inglese: va bene, e' quello che
+    // dice anche il resto del mondo. Se arriva vuoto ne mettiamo uno nostro,
+    // perche' uno schermo senza parole e' il problema che stiamo togliendo.
+    testo = prompt;
+    if (testo == "")
+        testo = "Encrypted disk: type the password and press Enter";
+    pw.testo.image = Image.Text(testo, 0.93, 0.80, 0.55);
+    pw.testo.sprite = Sprite(pw.testo.image);
+    pw.testo.sprite.SetPosition(screen_w / 2 - pw.testo.image.GetWidth() / 2,
+                                pw.y, 7);
+
+    // Un pallino per carattere. ⚠️ Si parte da uno spazio: con la stringa
+    // vuota Image.Text non restituisce un'immagine e GetWidth() fallisce,
+    // e un errore qui dentro lascia di nuovo lo schermo muto.
+    punti = " ";
+    i = 0;
+    while (i < bullets) {
+        punti = punti + "*";
+        i = i + 1;
+    }
+    pw.punti.image = Image.Text(punti, 0.85, 0.66, 0.29);
+    pw.punti.sprite = Sprite(pw.punti.image);
+    pw.punti.sprite.SetPosition(screen_w / 2 - pw.punti.image.GetWidth() / 2,
+                                pw.y + 34, 7);
 }
 Plymouth.SetDisplayPasswordFunction(display_password_cb);
+
+// Password accettata: la richiesta sparisce e resta lo splash.
+fun display_normal_cb() {
+    pw.testo.sprite = NULL;
+    pw.punti.sprite = NULL;
+}
+Plymouth.SetDisplayNormalFunction(display_normal_cb);
 
 // intentionally NO message function -> boot/fsck text is NOT shown
