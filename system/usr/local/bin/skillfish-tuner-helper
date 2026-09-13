@@ -93,10 +93,18 @@ def cpu_min_freq():
     return int(min(fs)) if fs else 0
 
 def active_cu():
-    try:
-        v=_rd("/run/skillfish-cu").strip()
-        if v.isdigit(): return int(v)
-    except Exception: pass  # best-effort: runtime CU file may not exist yet
+    # ⚠️ THE FILE IS /run/skillfish/cu_active AND IT SAYS "N/40", NOT "N".
+    # This used to read /run/skillfish-cu, a path nobody writes, and then
+    # demanded isdigit(), which "40/40" is not. Both wrong, so the panel showed
+    # "Active CUs: 0" next to a grid reading 40/40. Reported by Aviv Becker,
+    # 23/08/2026, from a live BC-250.
+    for percorso in ("/run/skillfish/cu_active", "/run/skillfish-cu"):
+        try:
+            v=_rd(percorso).strip()
+            if not v: continue
+            n=v.split("/")[0].strip()
+            if n.isdigit(): return int(n)
+        except Exception: pass  # best-effort: runtime CU file may not exist yet
     m=re.search(r'active_cu_number\s+(\d+)', sh("dmesg | grep active_cu_number | tail -1").stdout)
     return int(m.group(1)) if m else 0
 

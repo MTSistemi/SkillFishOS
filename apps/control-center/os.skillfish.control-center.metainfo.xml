@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.25" date="2026-09-14">
+      <description>
+        <p>The silicon panel counts the compute units that are really on. It read the wrong file and showed zero next to a grid reading forty.</p>
+        <p xml:lang="it">Il pannello del silicio conta le unita' di calcolo davvero accese. Leggeva il file sbagliato e mostrava zero accanto a una griglia che diceva quaranta.</p>
+        <p xml:lang="fr">Le panneau du silicium compte les unites de calcul reellement actives. Il lisait le mauvais fichier et affichait zero a cote d'une grille qui indiquait quarante.</p>
+        <p xml:lang="es">El panel del silicio cuenta las unidades de calculo realmente encendidas. Leia el archivo equivocado y mostraba cero junto a una rejilla que decia cuarenta.</p>
+        <p xml:lang="pt">O painel do silicio conta as unidades de calculo realmente ligadas. Lia o ficheiro errado e mostrava zero ao lado de uma grelha que dizia quarenta.</p>
+        <p xml:lang="de">Die Silizium-Karte zaehlt die wirklich aktiven Recheneinheiten. Sie las die falsche Datei und zeigte null neben einem Raster, das vierzig anzeigte.</p>
+        <p xml:lang="pl">Panel krzemu liczy naprawde wlaczone jednostki obliczeniowe. Czytal zly plik i pokazywal zero obok siatki, ktora mowila czterdziesci.</p>
+        <p xml:lang="ru">Панель кремния считает действительно включённые вычислительные блоки. Она читала не тот файл и показывала ноль рядом с сеткой, где стояло сорок.</p>
+        <p xml:lang="uk">Панель кремнію рахує справді увімкнені обчислювальні блоки. Вона читала не той файл і показувала нуль поруч із сіткою, де стояло сорок.</p>
+      </description>
+    </release>
     <release version="26.09.24" date="2026-09-13">
       <description>
         <p>The cluster card and the emulator list speak your language: both were drawn in Italian whatever the interface was set to.</p>
