@@ -24,9 +24,13 @@
 # settimana, cosi' i mirror nuovi arrivano senza aspettare un aggiornamento del
 # pacchetto. Modificarlo a mano funziona, ma al prossimo giro viene riscritto.
 
-https://skillfishos.com/apt
+# ⚠️ https://skillfishos.com/apt NON C'E' PIU', dal 13/09/2026. Lo spazio web
+# di OVH e' piccolo, l'archivio ne occupava 80 MB su 91, e quando si e' riempito
+# ha smesso di accettare scritture: il sito e' finito online senza foglio di
+# stile, perche' una put su spazio pieno crea il file a zero byte invece di
+# fallire. OVH adesso fa solo il sito.
 https://mtsistemi.github.io/SkillFishOS
-# Il terzo, in casa: ci arriva una copia gia' firmata da Rilasci-SkillFishOS.
+# Il secondo, in casa: ci arriva una copia gia' firmata da Rilasci-SkillFishOS.
 # Ultimo di proposito: la banda in salita di una linea di casa non regge il
 # traffico normale, ma come riserva vale quanto gli altri.
 https://deb.skillfishos.com

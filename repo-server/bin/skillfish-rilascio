@@ -117,7 +117,12 @@ reprepro -b "$ARCHIVIO" list "$SUITE" | sed 's/^/   /'
 if [ "$PUBBLICA" = si ]; then
   echo
   echo "== mando fuori"
-  /usr/local/bin/skillfish-carica-ovh || exit 1
+  # ⚠️ NIENTE OVH, dal 13/09/2026. Lo spazio web e' piccolo e l'archivio lo
+  # riempiva: a spazio pieno le scritture non falliscono, creano file a zero
+  # byte, e cosi' e' finito online un sito senza foglio di stile e un InRelease
+  # vuoto che apt rifiutava. OVH fa solo il sito.
+  # skillfish-carica-ovh resta nel repository per storia, non lo chiama nessuno.
+  /usr/local/bin/skillfish-sincronizza-mirror || exit 1
 else
   echo
   echo "Resta solo qui: http://$(hostname -I | awk '{print $1}')/apt"

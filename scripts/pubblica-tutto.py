@@ -33,8 +33,10 @@ PW = "47yk2d8r6c"
 QUI = os.path.dirname(os.path.abspath(__file__))
 
 # ⚠️ L'ORDINE E' QUELLO CHE VEDONO I CLIENT: OVH per primo, che e' nostro.
+# ⚠️ OVH non e' piu' un mirror apt (13/09/2026): lo spazio web e' piccolo e
+# l'archivio lo riempiva, con il bel risultato che a spazio pieno le scritture
+# non falliscono, creano file vuoti - e il primo a rompersi e' stato il sito.
 MIRROR = [
-    ("OVH", "https://skillfishos.com/apt"),
     ("GitHub Pages", "https://mtsistemi.github.io/SkillFishOS"),
     ("casa", "https://deb.skillfishos.com"),
 ]
@@ -61,7 +63,7 @@ def main():
         sys.exit("uso: pubblica-tutto.py <versione>   (esempio: 26.08.55)")
     versione = sys.argv[1]
 
-    print("=== 1. OVH, dal container ===")
+    print("=== 1. archivio e mirror di casa, dal container ===")
     r = sul_container("skillfish-rilascio --pubblica")
     coda = (r.stdout or r.stderr).strip().split("\n")
     for riga in coda[-6:]:

@@ -37,7 +37,7 @@ The packages come from the signed APT repository:
 deb https://mtsistemi.github.io/SkillFishOS aetherium main
 ```
 
-(mirrored at [skillfishos.com/apt](https://skillfishos.com/apt) too). They
+(mirrored at [deb.skillfishos.com](https://deb.skillfishos.com) too). They
 are already preinstalled on the SkillFishOS ISO; on an existing Debian-based
 system, once the repository and its key are added:
 

@@ -6,7 +6,7 @@ public mirrors:
 | Mirror | URL | Who uses it |
 |---|---|---|
 | GitHub Pages | `https://mtsistemi.github.io/SkillFishOS` | **installed systems** — this is the source in `sources.list.d` |
-| OVH | `https://skillfishos.com/apt` | manual use, and a fallback |
+| ~~OVH~~ | ~~`https://skillfishos.com/apt`~~ | dropped on 13/09/2026: the web space is small, the archive took 80 MB of the 91 in use, and a full disk there does not fail a write, it writes an empty file. The site went online without its stylesheet. OVH serves the website and nothing else now. |
 
 ## Where it runs
 

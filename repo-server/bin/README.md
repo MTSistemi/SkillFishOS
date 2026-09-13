@@ -7,7 +7,7 @@ freshly built `.deb` to something a user's machine can install.
 | Script | What it does |
 |---|---|
 | `skillfish-rilascio` | Puts `.deb` files into the `aetherium` suite with reprepro and regenerates the signed indexes. `--prova` targets `aetherium-proposed` instead, so a release can be rehearsed without the world seeing it. Without `--pubblica` nothing leaves the house. |
-| `skillfish-carica-ovh` | Uploads the signed archive to `skillfishos.com/apt` over SFTP. |
+| `skillfish-carica-ovh` | Uploaded the signed archive to `skillfishos.com/apt` over SFTP. **Nothing calls it since 13/09/2026**: OVH is no longer a mirror, its space is for the website. Kept for the record. |
 | `skillfish-archivia` | Uploads release images to the Internet Archive over its S3 API. |
 | `skillfish-stat-sourceforge` | Pulls download counts from the SourceForge API for the statistics page. |
 

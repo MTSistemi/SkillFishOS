@@ -20,7 +20,7 @@ report those to their respective projects.
 
 Fixes are delivered through the signed APT repository — `sudo apt update && sudo apt upgrade`.
 The installed system does not point at a single address: it carries a mirror list
-(<https://skillfishos.com/apt>, <https://mtsistemi.github.io/SkillFishOS>,
+(<https://mtsistemi.github.io/SkillFishOS>,
 <https://deb.skillfishos.com>) and apt walks it in order, so one mirror going down
 does not stop a security update from reaching you.
 

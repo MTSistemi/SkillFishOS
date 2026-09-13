@@ -59,7 +59,7 @@ publish unsigned kernels, so this is not a reminder, it is a wall.
 
 ## Publishing
 
-**apt** (skillfishos.com/apt and the mirror):
+**apt** (GitHub Pages and the mirror at home):
 
     bash scripts/pubblica-apt.sh /tmp/sfx-debs/out/skillfish-*_26.09.7_all.deb
 

@@ -33,7 +33,8 @@ import re
 import sys
 import urllib.request
 
-ARCHIVIO = "https://skillfishos.com/apt"
+# ⚠️ OVH non serve piu' l'archivio dal 13/09/2026: si guarda Pages.
+ARCHIVIO = "https://mtsistemi.github.io/SkillFishOS"
 WIKI = "https://raw.githubusercontent.com/wiki/MTSistemi/SkillFishOS"
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

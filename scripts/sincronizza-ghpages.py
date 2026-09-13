@@ -2,7 +2,8 @@
 """Porta l'archivio apt del container sul ramo gh-pages di GitHub.
 
 PERCHE' SERVE
-skillfish-rilascio pubblica su skillfishos.com/apt, ma NON su GitHub Pages, e
+skillfish-rilascio riempie l.archivio sul container e il mirror di casa, ma NON
+GitHub Pages, e
 la sorgente apt dentro le ISO punta proprio a mtsistemi.github.io. Senza questo
 passaggio si costruirebbero immagini che scaricano ancora i pacchetti vecchi:
 verificato oggi, skillfishos.com era a 26.08.24 e Pages fermo a 26.08.23.

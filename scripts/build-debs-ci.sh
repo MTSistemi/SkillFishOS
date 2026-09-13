@@ -1514,7 +1514,7 @@ check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillf
 # ⚠️ Se questi due non ci sono, la sorgente punta a un elenco che non
 # viene spedito e la macchina resta senza archivio: si controlla.
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'URIs: mirror+file:/etc/apt/mirrors/skillfishos.list'
-check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/mirrors/skillfishos.list 'https://skillfishos.com/apt'
+check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/mirrors/skillfishos.list 'https://mtsistemi.github.io/SkillFishOS'
 deve_esserci "$OUT/skillfishos-archive-keyring/usr/local/bin/skillfish-aggiorna-mirror" "keyring: lo script che aggiorna i mirror"
 check skillfishos-archive-keyring_${VER}_all.deb ./etc/apt/sources.list.d/skillfishos.sources 'Suites: aetherium'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswap.sh compositore

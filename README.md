@@ -132,7 +132,7 @@ The **Slim** edition of 26.06 is not part of this release: no Slim image has bee
 
 Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 
-> The signed **APT repo is live on three mirrors**: <https://skillfishos.com/apt> (ours), <https://mtsistemi.github.io/SkillFishOS/> and <https://deb.skillfishos.com>. The installed system does not name one of them — it carries a mirror list, and apt walks it in order, so a mirror going down does not stop updates. New mirrors reach existing machines on their own, through a signed list refreshed weekly. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
+> The signed **APT repo is live on two mirrors**: <https://mtsistemi.github.io/SkillFishOS/> and <https://deb.skillfishos.com> (ours, at home). The installed system does not name one of them — it carries a mirror list, and apt walks it in order, so a mirror going down does not stop updates. New mirrors reach existing machines on their own, through a signed list refreshed weekly. After install, the **Hub** app (or `apt`) keeps the kernel and every native app up to date from it.
 
 ---
 
