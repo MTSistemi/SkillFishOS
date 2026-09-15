@@ -15,7 +15,15 @@ Non tutti i numeri: solo quelli che, se sbagliati, dicono una bugia a chi legge.
   3. la tabella delle versioni supportate in SECURITY.md contro l'archivio;
   4. i nomi di pezzi che non spediamo piu' (Ollama, OpenWebUI, Docker), fuori
      dai punti dove sono scritti apposta come «superato»;
-  5. l'elenco delle applicazioni nella wiki contro quello che l'archivio serve.
+  5. l'elenco delle applicazioni nella wiki contro quello che l'archivio serve;
+  6. dove portano davvero i pulsanti di download del sito, contro l'ultima
+     immagine pubblicata su SourceForge.
+
+⚠️ Il punto 6 e' nato il 15/09/2026, quando il sito ha annunciato la 26.06.5 e
+consegnato la 26.06.4 per tre giorni. I testi erano stati aggiornati tutti; il
+passaggio dei download no. Cercare il numero nei sorgenti risponde a «lo
+diciamo?», non a «lo consegniamo?»: quel giorno le due risposte erano diverse,
+e solo la seconda si prova con una richiesta.
 
 ⚠️ NON FALLISCE PER RUMORE. Un CHANGELOG deve nominare le versioni vecchie, e
 una sezione «superseded» deve nominare Ollama: quei posti sono esclusi apposta.
@@ -31,11 +39,20 @@ import io
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 
 # ⚠️ OVH non serve piu' l'archivio dal 13/09/2026: si guarda Pages.
 ARCHIVIO = "https://mtsistemi.github.io/SkillFishOS"
 WIKI = "https://raw.githubusercontent.com/wiki/MTSistemi/SkillFishOS"
+SITO = "https://skillfishos.com"
+SORGENTE_IMMAGINI = "https://sourceforge.net/projects/skillfishos/rss?path=/"
+
+# I pulsanti della pagina di download. Sono scritti per esteso perche' sono
+# esattamente quelli che go.php conosce: se un giorno ne aggiungiamo uno e qui
+# non compare, il controllo lo ignora invece di sbagliare da solo.
+PULSANTI = ["bc250", "generic", "sha-bc250", "sha-generic",
+            "note", "tutti", "tor-bc250", "tor-generic"]
 RADICE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # I file dove un numero sbagliato inganna chi legge. Il CHANGELOG NO: la' le
@@ -115,6 +132,44 @@ def versioni_pubblicate():
     return fuori
 
 
+def immagine_pubblicata():
+    u"""L'ultima release che su SourceForge ha davvero una immagine BC-250.
+
+    ⚠️ Non basta guardare l'ultima cartella: 26.06.1, .2 e .3 esistono ancora
+    con dentro le sole note di rilascio. Una cartella non e' una release
+    scaricabile, e il confronto va fatto con quello che uno puo' scaricare.
+    """
+    t = scarica(SORGENTE_IMMAGINI)
+    if t is None:
+        return None
+    viste = re.findall(
+        r"/files/(\d+\.\d+\.\d+)-Aetherium/"
+        r"SkillFishOS-\1-Aetherium-BC250-amd64\.iso", t)
+    if not viste:
+        return None
+    return max(viste, key=lambda v: [int(x) for x in v.split(".")])
+
+
+def dove_porta(percorso):
+    u"""Dove manda il sito, senza seguire il rimando.
+
+    Il Location e' la risposta: seguirlo vorrebbe dire scaricare tre gigabyte
+    per sapere una cosa che sta in una intestazione.
+    """
+    class NonSeguire(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+
+    try:
+        r = urllib.request.build_opener(NonSeguire).open(SITO + percorso, timeout=40)
+        return r.status, r.headers.get("Location", "")
+    except urllib.error.HTTPError as e:
+        return e.code, e.headers.get("Location", "")
+    except Exception as e:
+        sys.stderr.write("non riesco a chiedere a %s%s: %s\n" % (SITO, percorso, e))
+        return None, None
+
+
 def testi_locali():
     for rel in TESTI:
         p = os.path.join(RADICE, rel)
@@ -184,6 +239,32 @@ def controlla():
                 continue          # infrastruttura, non hanno una voce loro
             if pacchetto not in apps_wiki:
                 guai.append("**wiki/Apps** does not mention `%s`, which we publish." % pacchetto)
+
+    # 6: i pulsanti consegnano davvero l'ultima immagine?
+    # ⚠️ Se il sito o SourceForge non rispondono si SALTA. Un controllo che
+    # grida per un problema di rete viene spento, e allora non protegge piu'
+    # niente: e' la stessa ragione per cui le regole qui sopra hanno le loro
+    # eccezioni.
+    iso = immagine_pubblicata()
+    if iso:
+        sbagliati, muti = [], False
+        for chiave in PULSANTI:
+            codice, dove = dove_porta("/go.php?f=" + chiave)
+            if codice is None:
+                muti = True
+                break
+            if codice not in (301, 302) or not dove:
+                sbagliati.append("`%s` answers %s instead of a redirect" % (chiave, codice))
+            elif iso not in dove:
+                sbagliati.append("`%s` -> %s" % (chiave, dove))
+        # Una sola segnalazione, non otto: e' un guasto solo, e otto righe
+        # identiche in una issue si leggono come rumore.
+        if not muti and sbagliati:
+            guai.append("**The download buttons do not hand over `%s`**, which is "
+                        "the newest image on SourceForge. The page can say the new "
+                        "number and still serve the old file: every button goes "
+                        "through `go.php`. %s"
+                        % (iso, "; ".join(sbagliati[:4])))
 
     return guai
 

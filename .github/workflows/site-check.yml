@@ -5,6 +5,12 @@
 # something you check by hand. And a broken Astro build is only discovered at
 # deploy time, because the deploy is a manual SFTP push.
 #
+# ⚠️ E dal 15/09/2026 guarda anche DOVE PORTANO i pulsanti. Quel giorno la
+# pagina annunciava la 26.06.5 e go.php consegnava la 26.06.4, da tre giorni:
+# i testi erano stati spostati tutti, il passaggio dei download no. La build
+# passava, i collegamenti interni pure, perche' nessuno dei due chiedeva cosa
+# ti arriva quando clicchi.
+#
 # This runs on every change that touches the site.
 name: Site — build and links
 
@@ -88,6 +94,10 @@ jobs:
             exit 1
           fi
           echo "Nessun riferimento alle immagini ritirate."
+
+      - name: The buttons must serve the release the page announces
+        working-directory: .
+        run: python3 scripts/controlla-pulsanti.py
 
       - name: A document must not link out of its own language
         run: |

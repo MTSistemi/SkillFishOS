@@ -28,6 +28,9 @@ on:
       - "SECURITY.md"
       - "docs/**"
       - "scripts/controlla-invecchiamento.py"
+      # Il passaggio dei download: se qualcuno cambia go.php si ricontrolla
+      # subito dove portano i pulsanti, invece di aspettare il lunedi'.
+      - "website/public/**"
 
 permissions:
   contents: read
