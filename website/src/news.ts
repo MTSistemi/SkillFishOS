@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // hub-73-2026-09-15
+    data: '2026-09-15',
+    quando: { it: "15 settembre 2026", en: "15 September 2026", pl: "15 września 2026", uk: "15 вересня 2026", ru: "15 сентября 2026", es: "15 de septiembre de 2026", pt: "15 de setembro de 2026", de: "15. September 2026", fr: "15 septembre 2026" },
+    etichetta: { it: "correzione", en: "fix", pl: "poprawka", uk: "виправлення", ru: "исправление", es: "corrección", pt: "correção", de: "Korrektur", fr: "correction" },
+    titolo: {
+      it: "L'Hub non si chiude più se clicchi mentre carica",
+      en: "The Hub no longer closes if you click while it loads",
+      pl: "Hub nie zamyka się już, gdy klikniesz podczas wczytywania",
+      uk: "Hub більше не закривається, якщо клацнути під час завантаження",
+      ru: "Hub больше не закрывается, если нажать во время загрузки",
+      es: "El Hub ya no se cierra si haces clic mientras carga",
+      pt: "O Hub já não se fecha se clicares enquanto carrega",
+      de: "Der Hub schließt sich nicht mehr, wenn man beim Laden klickt",
+      fr: "Le Hub ne se ferme plus si vous cliquez pendant le chargement",
+    },
+    testo: {
+      it: "All'apertura l'Hub riempie l'elenco dei programmi in sottofondo. Cliccando una voce del menù in quei primi secondi la finestra spariva. Adesso il menù aspetta, e le voci restano spente finché non è pronto, così si vede perché. Segnalata da un utente: <strong>grazie</strong>.",
+      en: "When it opens, the Hub fills its list of programs in the background. Clicking a menu entry during those first seconds made the window disappear. Now the menu waits, and the entries stay off until it is ready, so you can see why. Reported by a user: <strong>thank you</strong>.",
+      pl: "Po otwarciu Hub wypełnia listę programów w tle. Kliknięcie pozycji menu w tych pierwszych sekundach powodowało zniknięcie okna. Teraz menu czeka, a pozycje pozostają wyłączone, dopóki nie będzie gotowe, więc widać dlaczego. Zgłoszone przez użytkownika: <strong>dziękujemy</strong>.",
+      uk: "Після відкриття Hub заповнює список програм у фоні. Натискання пункту меню в ті перші секунди призводило до зникнення вікна. Тепер меню чекає, а пункти лишаються вимкненими, доки воно не готове, тож видно чому. Повідомив користувач: <strong>дякуємо</strong>.",
+      ru: "При открытии Hub заполняет список программ в фоне. Нажатие пункта меню в эти первые секунды приводило к исчезновению окна. Теперь меню ждёт, а пункты остаются выключенными, пока оно не готово, так что видно почему. Сообщил пользователь: <strong>спасибо</strong>.",
+      es: "Al abrirse, el Hub llena su lista de programas en segundo plano. Hacer clic en una entrada del menú en esos primeros segundos hacía desaparecer la ventana. Ahora el menú espera, y las entradas siguen apagadas hasta que está listo, así se ve por qué. Avisado por un usuario: <strong>gracias</strong>.",
+      pt: "Ao abrir, o Hub enche a lista de programas em segundo plano. Clicar numa entrada do menu nesses primeiros segundos fazia a janela desaparecer. Agora o menu espera, e as entradas ficam apagadas até estar pronto, para se ver porquê. Comunicado por um utilizador: <strong>obrigado</strong>.",
+      de: "Beim Öffnen füllt der Hub seine Programmliste im Hintergrund. Ein Klick auf einen Menüeintrag in diesen ersten Sekunden ließ das Fenster verschwinden. Jetzt wartet das Menü, und die Einträge bleiben aus, bis es bereit ist, damit man sieht warum. Von einem Benutzer gemeldet: <strong>danke</strong>.",
+      fr: "À l'ouverture, le Hub remplit sa liste de programmes en arrière-plan. Cliquer une entrée du menu pendant ces premières secondes faisait disparaître la fenêtre. Maintenant le menu attend, et les entrées restent éteintes jusqu'à ce qu'il soit prêt, pour qu'on voie pourquoi. Signalé par un utilisateur : <strong>merci</strong>.",
+    },
+  },
+  {
     // cluster-ai-2026-09-13
     data: '2026-09-13',
     quando: { it: "13 settembre 2026", en: "13 September 2026", pl: "13 września 2026", uk: "13 вересня 2026", ru: "13 сентября 2026", es: "13 de septiembre de 2026", pt: "13 de setembro de 2026", de: "13. September 2026", fr: "13 septembre 2026" },

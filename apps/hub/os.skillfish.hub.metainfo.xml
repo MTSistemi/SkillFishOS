@@ -66,6 +66,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.26" date="2026-09-15">
+      <description>
+        <p>Clicking the menu while the Hub is still loading no longer closes the window. The catalogue arrives in the background, and until it is there the menu waits instead of giving up. Reported by a user on 26.06.4.</p>
+        <p xml:lang="it">Cliccare il menu' mentre l'Hub sta ancora caricando non chiude piu' la finestra. Il catalogo arriva in sottofondo, e finche' non c'e' il menu' aspetta invece di rinunciare. Segnalato da un utente sulla 26.06.4.</p>
+        <p xml:lang="fr">Cliquer le menu pendant que le Hub charge encore ne ferme plus la fenetre. Le catalogue arrive en arriere-plan, et tant qu'il n'est pas la le menu attend au lieu d'abandonner. Signale par un utilisateur sur la 26.06.4.</p>
+        <p xml:lang="es">Hacer clic en el menu mientras el Hub todavia carga ya no cierra la ventana. El catalogo llega en segundo plano, y hasta que no esta el menu espera en vez de rendirse. Avisado por un usuario en la 26.06.4.</p>
+        <p xml:lang="pt">Clicar no menu enquanto o Hub ainda carrega ja nao fecha a janela. O catalogo chega em segundo plano, e ate estar la o menu espera em vez de desistir. Comunicado por um utilizador na 26.06.4.</p>
+        <p xml:lang="de">Ein Klick auf das Menue, waehrend der Hub noch laedt, schliesst das Fenster nicht mehr. Der Katalog kommt im Hintergrund, und bis er da ist wartet das Menue, statt aufzugeben. Von einem Benutzer auf 26.06.4 gemeldet.</p>
+        <p xml:lang="pl">Klikniecie menu, gdy Hub jeszcze sie wczytuje, nie zamyka juz okna. Katalog przychodzi w tle, a dopoki go nie ma, menu czeka zamiast sie poddawac. Zglosil uzytkownik na 26.06.4.</p>
+        <p xml:lang="ru">Нажатие на меню, пока Hub ещё загружается, больше не закрывает окно. Каталог приходит в фоне, и пока его нет, меню ждёт, а не сдаётся. Сообщил пользователь на 26.06.4.</p>
+        <p xml:lang="uk">Натискання на меню, поки Hub ще завантажується, більше не закриває вікно. Каталог надходить у фоні, і поки його немає, меню чекає, а не здається. Повідомив користувач на 26.06.4.</p>
+      </description>
+    </release>
     <release version="26.08.51" date="2026-08-23">
       <description>
         <p>The screenshots on this page show up, for every one of our applications. They are served from skillfishos.com, and the Hub falls back to the copy installed on disk when there is no network.</p>
