@@ -11,7 +11,7 @@
 // sito qualsiasi, e ci ritroveremmo a fare da trampolino a chi manda spam.
 require __DIR__ . '/_sfstats.php';
 
-$SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/';
+$SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/';
 
 // La versione si ricava dall'indirizzo invece di scriverla una seconda volta:
 // al prossimo rilascio si cambia $SF e basta, e non puo' succedere che i clic
@@ -19,24 +19,25 @@ $SF = 'https://sourceforge.net/projects/skillfishos/files/26.06.4-Aetherium/';
 // un posto solo.
 $VERSIONE = preg_match('#/files/([0-9]+\.[0-9]+\.[0-9]+)-#', $SF, $mv) ? $mv[1] : '';
 
-// ⚠️ Internet Archive e i torrent sono stati RITIRATI il 16/08/2026 insieme alle
-// immagini 26.06.x: quelle immagini contenevano file privati della macchina di
-// costruzione. Le voci sono state tolte da questa mappa, non lasciate a puntare
-// al vuoto: un contatore che conta clic verso un 404 e' peggio di uno che non
-// conta.
+// ⚠️ Internet Archive e' stato ritirato il 16/08/2026 insieme alle immagini
+// 26.06.x, che contenevano file privati della macchina di costruzione: le sue
+// voci sono state tolte da questa mappa, non lasciate a puntare al vuoto. Un
+// contatore che conta clic verso un 404 e' peggio di uno che non conta.
+// I torrent invece sono tornati, rifatti dalle immagini pulite: quelli qui
+// sotto sono i .torrent della 26.06.5 e li serviamo noi.
 
 $DEST = array(
-    'bc250'      => $SF . 'SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso/download',
-    'generic'    => $SF . 'SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso/download',
-    'sha-bc250'  => $SF . 'SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso.sha256/download',
-    'sha-generic'=> $SF . 'SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.sha256/download',
-    'note'       => $SF . 'RELEASE-NOTES-26.06.4.md/download',
+    'bc250'      => $SF . 'SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download',
+    'generic'    => $SF . 'SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download',
+    'sha-bc250'  => $SF . 'SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso.sha256/download',
+    'sha-generic'=> $SF . 'SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso.sha256/download',
+    'note'       => $SF . 'RELEASE-NOTES-26.06.5.md/download',
     'tutti'      => $SF,
     // I .torrent li serviamo noi: 25 KB, cosi' partono anche se SourceForge
     // e' lento, e dentro hanno i suoi mirror come web seed. Li semina il
     // container dei servizi, non la scheda.
-    'tor-bc250'  => '/torrent/SkillFishOS-26.06.4-Aetherium-BC250-amd64.iso.torrent',
-    'tor-generic'=> '/torrent/SkillFishOS-26.06.4-Aetherium-Generic-amd64.iso.torrent',
+    'tor-bc250'  => '/torrent/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso.torrent',
+    'tor-generic'=> '/torrent/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso.torrent',
 );
 
 // I magnet erano contati qui con una segnalazione (go.php?f=...&b=1), perche' il
