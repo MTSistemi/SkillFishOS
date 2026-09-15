@@ -41,18 +41,18 @@ Description: SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/Displa
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.09.23
+Version: 26.09.27
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.09.23_all.deb
-Size: 381892
-SHA256: 5b2f92f41621079f1e1e71390463ea3c1ada61cf0afac66fe3b554f042e5248a
-SHA1: 5ac5ad97e2a9ac5739b1632556d2978cdf520026
-MD5sum: 67ab907c0abbe92b2d6212dfe62a1c98
+Filename: pool/main/s/skillfish-base/skillfish-base_26.09.27_all.deb
+Size: 383260
+SHA256: d6668ae884b6d290972845edd9a74d83cd83fee20b3aedb4605ad6bd41970be4
+SHA1: 55b3eb48d0c69b2a9eb3a290e11087b45165b899
+MD5sum: 0f571954416015fa754d1b896ba5db6a
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
