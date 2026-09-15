@@ -1543,6 +1543,10 @@ class Hub(QMainWindow):
         for key, label, emoji in [("home", L("Esplora", "Explore"), "✦"), ("installed", L("Installati", "Installed"), "✓"),
                                   ("updates", L("Aggiornamenti", "Updates"), "⟳"), ("sources", L("Sorgenti", "Sources"), "⚙")]:
             self.nav[key] = navbtn("  %s   %s" % (emoji, label), lambda _c, k=key: self.go(k))
+        # Spenti finche' il catalogo non c'e'. Un pulsante che si puo'
+        # premere e non fa niente e' quello che ha invitato il clic di #73.
+        for _b in self.nav.values():
+            _b.setEnabled(False)
         sep = QLabel(L("CATEGORIE", "CATEGORIES")); sep.setStyleSheet("color:#8a7a55;font-size:11px;font-weight:700;letter-spacing:1px;padding:12px 12px 4px;"); nv.addWidget(sep)
         self.catbox = QWidget(); self.catbox.setStyleSheet("background:transparent;")
         self.catlay = QVBoxLayout(self.catbox); self.catlay.setContentsMargins(0, 0, 0, 0); self.catlay.setSpacing(2)
@@ -1563,6 +1567,7 @@ class Hub(QMainWindow):
         self.refresh.setCursor(Qt.CursorShape.PointingHandCursor)
         self.refresh.setStyleSheet("QToolButton{color:#e8c878;font-size:18px;border:1px solid rgba(216,168,73,0.25);border-radius:9px;padding:3px 9px;}QToolButton:hover{background:rgba(216,168,73,0.12);}")
         self.refresh.clicked.connect(self.manual_refresh); top.addWidget(self.refresh)
+        self.refresh.setEnabled(False)   # acceso in on_loaded, vedi #73
         top.addStretch(1)
         self.title = QLabel(""); self.title.setStyleSheet("color:#e8c878;font-weight:700;font-size:15px;"); top.addWidget(self.title)
         right.addLayout(top)
@@ -1646,7 +1651,12 @@ class Hub(QMainWindow):
 
     def on_loaded(self, cat):
         self._snap_fatte = set()
-        self.cat = cat; self.statusBar().clearMessage(); self.refresh_updates_badge(); self.go("home")
+        self.cat = cat; self.statusBar().clearMessage()
+        # Il catalogo c'e': adesso il menu' puo' rispondere.
+        for _b in self.nav.values():
+            _b.setEnabled(True)
+        self.refresh.setEnabled(True)
+        self.refresh_updates_badge(); self.go("home")
         chiesta = getattr(self, "_app_da_aprire", None)
         if chiesta:
             self._app_da_aprire = None
@@ -1755,6 +1765,15 @@ class Hub(QMainWindow):
 
     # navigation
     def go(self, key, push=True):
+        # ⚠️ Il catalogo arriva da un thread e fino ad allora self.cat e' None.
+        # I pulsanti del menu' pero' esistono e si cliccano da subito: senza
+        # questa riga, un clic durante il caricamento diventava None.apps o
+        # None.updates, e PyQt6 un'eccezione dentro uno slot la trasforma in
+        # qFatal, cioe' in un core dump. Segnalato come issue #73.
+        if self.cat is None:
+            self.statusBar().showMessage(
+                L("Sto ancora caricando il catalogo…", "Still loading the catalogue…"), 2000)
+            return
         fr = getattr(self, "_fr_app", None)
         if fr is not None and fr.isVisible(): fr.hide()
         if push and (not self._hist or self._hist[-1] != (key,)): self._hist.append((key,))
@@ -1929,6 +1948,12 @@ class Hub(QMainWindow):
         self.show_category(CATEGORIES[0][0])
 
     def show_category(self, key, push=True):
+        # Stessa ragione di go(): i pulsanti delle categorie nella barra
+        # laterale arrivano qui senza passare di la'.
+        if self.cat is None:
+            self.statusBar().showMessage(
+                L("Sto ancora caricando il catalogo…", "Still loading the catalogue…"), 2000)
+            return
         fr = getattr(self, "_fr_app", None)
         if fr is not None and fr.isVisible(): fr.hide()
         if push: self._hist.append(("cat", key))
@@ -2707,7 +2732,41 @@ class Hub(QMainWindow):
         self.statusBar().showMessage(L("Repository aggiornato. Ricarico…", "Repository updated. Reloading…")); self.reload_catalog()
 
 
+def _non_morire(tipo, valore, traccia):
+    u"""Un errore imprevisto si vede, non ammazza il programma.
+
+    ⚠️ PyQt6 chiama qFatal() quando una eccezione Python esce da uno slot, e
+    qFatal abortisce: e' il motivo per cui la issue #73 arrivava come core dump
+    da 9,8 MB invece che come messaggio. Con questo gancio la traccia va
+    comunque su stderr - quindi nel journal resta quello che restava prima - e
+    chi sta davanti allo schermo legge una frase invece di veder sparire la
+    finestra.
+    """
+    import traceback
+    # La traccia va SEMPRE nel log: e' da li' che questa segnalazione e'
+    # arrivata, dal journal di chi l'ha vista.
+    traceback.print_exception(tipo, valore, traccia)
+    if issubclass(tipo, (KeyboardInterrupt, SystemExit)):
+        return
+    # ⚠️ UNA finestra sola. Se l'errore nasce in qualcosa che si ripete (un
+    # ridisegno, un timer, un segnale che riparte) le modali si impilano e
+    # l'utente preme OK venti volte per riprendere in mano il programma: il
+    # crash sarebbe stato piu' gentile. Dalla seconda in poi resta il log.
+    if getattr(_non_morire, "_gia_detto", False):
+        return
+    _non_morire._gia_detto = True
+    try:
+        if QApplication.instance():
+            QMessageBox.warning(None, "SkillFishOS Hub",
+                                L("Qualcosa e' andato storto:\n\n%s\n\nLa finestra resta aperta.",
+                                  "Something went wrong:\n\n%s\n\nThe window stays open.")
+                                % ("%s: %s" % (tipo.__name__, valore)))
+    except Exception:
+        pass
+
+
 def main():
+    sys.excepthook = _non_morire
     app = QApplication(sys.argv); app.setApplicationName("SkillFishOS Hub"); app.setDesktopFileName("os.skillfish.hub"); app.setWindowIcon(QIcon(ICON_APP))
     # Kvantum draws a frame around bare QLabels; keep our text boxes flat.
     app.setStyleSheet("QLabel{background:transparent;border:none;}")
