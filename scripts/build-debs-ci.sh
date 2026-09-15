@@ -947,6 +947,15 @@ if [ ! -f /etc/skillfish/thermal-guard.conf ]; then
   } > /etc/skillfish/thermal-guard.conf
 fi
 
+# The 8-core unlock done BEFORE the bootloader (Hexxeh's EFI program, MIT):
+# only on a BC-250, only where the user opted into the unlock, only with an
+# ESP. Verified with a cold boot on the dev board (BIOS P3.00): one OS boot
+# instead of two. The in-OS service stays as the fallback and does nothing
+# when it finds the mask already at 0xFF.
+if [ "$1" = configure ] && [ -x /usr/local/bin/skillfish-is-bc250 ] && /usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1 \
+   && [ -e /etc/skillfish/core-unlock.abilitato ] && [ -d /boot/efi/EFI ]; then
+  /usr/local/bin/skillfish-coreunlock-efi installa >/dev/null 2>&1 || true
+fi
 exit 0
 POSTINST
 # On removal the SSDT would vanish while GRUB still referenced it, so undo the

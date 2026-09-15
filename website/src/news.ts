@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // coreunlock-efi-2026-09-15
+    data: '2026-09-15',
+    quando: { it: "15 settembre 2026", en: "15 September 2026", pl: "15 września 2026", uk: "15 вересня 2026", ru: "15 сентября 2026", es: "15 de septiembre de 2026", pt: "15 de setembro de 2026", de: "15. September 2026", fr: "15 septembre 2026" },
+    etichetta: { it: "novità", en: "new", pl: "nowość", uk: "новинка", ru: "новинка", es: "novedad", pt: "novidade", de: "Neu", fr: "nouveauté" },
+    titolo: {
+      it: "Gli 8 core senza il riavvio in più",
+      en: "The 8 cores without the extra reboot",
+      pl: "Osiem rdzeni bez dodatkowego restartu",
+      uk: "Вісім ядер без зайвого перезавантаження",
+      ru: "Восемь ядер без лишней перезагрузки",
+      es: "Los 8 núcleos sin el reinicio de más",
+      pt: "Os 8 núcleos sem o reinício a mais",
+      de: "Die 8 Kerne ohne den zusätzlichen Neustart",
+      fr: "Les 8 cœurs sans le redémarrage en plus",
+    },
+    testo: {
+      it: "Chi ha acceso lo sblocco degli 8 core sulla BC-250 si prendeva un riavvio in più a ogni accensione da spenta. Adesso lo sblocco avviene <strong>prima del caricatore di avvio</strong>, quindi la scheda parte in un avvio solo. Arriva con l'aggiornamento, non c'è niente da fare. Chi lo sblocco non l'ha acceso non vede nessuna differenza.",
+      en: "If you had turned on the 8-core unlock on the BC-250, the board took one extra reboot on every cold start. Now the unlock happens <strong>before the boot loader</strong>, so the board comes up in a single boot. It arrives with the update, there is nothing to do. If you never turned the unlock on, nothing changes for you.",
+      pl: "Kto włączył odblokowanie ośmiu rdzeni na BC-250, dostawał dodatkowy restart przy każdym zimnym starcie. Teraz odblokowanie dzieje się <strong>przed programem rozruchowym</strong>, więc płyta wstaje za jednym razem. Przychodzi z aktualizacją, nie trzeba nic robić. Kto nie włączył odblokowania, nie zobaczy różnicy.",
+      uk: "Хто увімкнув розблокування восьми ядер на BC-250, отримував зайве перезавантаження за кожного холодного старту. Тепер розблокування відбувається <strong>перед завантажувачем</strong>, тож плата стартує за один раз. Надходить з оновленням, робити нічого не треба. Хто розблокування не вмикав, різниці не побачить.",
+      ru: "Кто включил разблокировку восьми ядер на BC-250, получал лишнюю перезагрузку при каждом холодном старте. Теперь разблокировка происходит <strong>до загрузчика</strong>, поэтому плата стартует за один раз. Приходит с обновлением, делать ничего не нужно. Кто разблокировку не включал, разницы не увидит.",
+      es: "Quien había encendido el desbloqueo de los 8 núcleos en la BC-250 se llevaba un reinicio de más en cada arranque en frío. Ahora el desbloqueo ocurre <strong>antes del cargador de arranque</strong>, así que la placa arranca de una sola vez. Llega con la actualización, no hay nada que hacer. Quien no lo encendió no nota ninguna diferencia.",
+      pt: "Quem tinha ligado o desbloqueio dos 8 núcleos na BC-250 levava um reinício a mais em cada arranque a frio. Agora o desbloqueio acontece <strong>antes do carregador de arranque</strong>, por isso a placa arranca de uma só vez. Chega com a atualização, não há nada a fazer. Quem não o ligou não nota diferença.",
+      de: "Wer die Freischaltung der 8 Kerne auf der BC-250 eingeschaltet hatte, bekam bei jedem Kaltstart einen zusätzlichen Neustart. Jetzt geschieht die Freischaltung <strong>vor dem Bootloader</strong>, also startet die Karte in einem Durchgang. Es kommt mit dem Update, zu tun ist nichts. Wer sie nie eingeschaltet hat, merkt keinen Unterschied.",
+      fr: "Qui avait activé le déverrouillage des 8 cœurs sur la BC-250 subissait un redémarrage en plus à chaque démarrage à froid. Maintenant le déverrouillage se fait <strong>avant le chargeur d'amorçage</strong>, donc la carte démarre en une seule fois. Cela arrive avec la mise à jour, il n'y a rien à faire. Qui ne l'a jamais activé ne voit aucune différence.",
+    },
+  },
+  {
     // hub-73-2026-09-15
     data: '2026-09-15',
     quando: { it: "15 settembre 2026", en: "15 September 2026", pl: "15 września 2026", uk: "15 вересня 2026", ru: "15 сентября 2026", es: "15 de septiembre de 2026", pt: "15 de setembro de 2026", de: "15. September 2026", fr: "15 septembre 2026" },

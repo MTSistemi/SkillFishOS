@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.27" date="2026-09-15">
+      <description>
+        <p>With the 8-core unlock switched on, the board no longer reboots once before starting: the unlock now happens before the boot loader, so a cold start is a single boot. It needs a BC-250 with an EFI partition, and it arrives on its own with this update. Nothing changes for anyone who never switched the unlock on.</p>
+        <p xml:lang="it">Con lo sblocco degli 8 core acceso, la scheda non si riavvia piu' una volta prima di partire: adesso lo sblocco avviene prima del caricatore di avvio, quindi un'accensione da spenta e' un avvio solo. Serve una BC-250 con una partizione EFI, e arriva da solo con questo aggiornamento. Per chi lo sblocco non l'ha mai acceso non cambia niente.</p>
+        <p xml:lang="fr">Avec le deverrouillage des 8 coeurs active, la carte ne redemarre plus une fois avant de partir : le deverrouillage se fait maintenant avant le chargeur d'amorcage, donc un demarrage a froid est un seul demarrage. Il faut une BC-250 avec une partition EFI, et cela arrive tout seul avec cette mise a jour. Rien ne change pour qui ne l'a jamais active.</p>
+        <p xml:lang="es">Con el desbloqueo de los 8 nucleos encendido, la placa ya no se reinicia una vez antes de arrancar: ahora el desbloqueo ocurre antes del cargador de arranque, asi que un arranque en frio es uno solo. Hace falta una BC-250 con una particion EFI, y llega solo con esta actualizacion. Para quien nunca lo encendio no cambia nada.</p>
+        <p xml:lang="pt">Com o desbloqueio dos 8 nucleos ligado, a placa ja nao reinicia uma vez antes de arrancar: agora o desbloqueio acontece antes do carregador de arranque, por isso um arranque a frio e um so. E preciso uma BC-250 com uma particao EFI, e chega sozinho com esta atualizacao. Para quem nunca o ligou nao muda nada.</p>
+        <p xml:lang="de">Mit eingeschalteter 8-Kern-Freischaltung startet die Karte nicht mehr einmal neu, bevor sie hochfaehrt: die Freischaltung geschieht jetzt vor dem Bootloader, ein Kaltstart ist also ein einziger Start. Noetig sind eine BC-250 und eine EFI-Partition, und es kommt von selbst mit diesem Update. Wer die Freischaltung nie eingeschaltet hat, merkt keinen Unterschied.</p>
+        <p xml:lang="pl">Przy wlaczonym odblokowaniu osmiu rdzeni plyta nie restartuje sie juz raz przed startem: odblokowanie dzieje sie teraz przed programem rozruchowym, wiec zimny start to jeden start. Potrzebna jest BC-250 z partycja EFI, a zmiana przychodzi sama z ta aktualizacja. Dla kogos, kto nigdy nie wlaczyl odblokowania, nic sie nie zmienia.</p>
+        <p xml:lang="ru">При включённой разблокировке восьми ядер плата больше не перезагружается один раз перед стартом: разблокировка теперь происходит до загрузчика, поэтому холодный старт — это один старт. Нужна BC-250 с разделом EFI, и всё приходит само с этим обновлением. Для тех, кто разблокировку не включал, ничего не меняется.</p>
+        <p xml:lang="uk">З увімкненим розблокуванням восьми ядер плата більше не перезавантажується один раз перед стартом: розблокування тепер відбувається до завантажувача, тож холодний старт — це один старт. Потрібна BC-250 з розділом EFI, і все надходить саме з цим оновленням. Для тих, хто розблокування не вмикав, нічого не змінюється.</p>
+      </description>
+    </release>
     <release version="26.09.23" date="2026-09-13">
       <description>
         <p>The version shown in About this System is the real one again, and so are the ones on the login banner and in lsb-release: they were all telling different numbers, some never released.</p>
