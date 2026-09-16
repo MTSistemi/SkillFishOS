@@ -90,6 +90,7 @@ export const uk: Record<string, string> = {
   "dl.h2": 'Завантажте SkillFish<span class="gold-text">OS</span>',
   "dl.sub":
     "Готові до встановлення образи ISO — для AMD BC-250 і будь-якого ПК x86-64.",
+  "sf.award": "Нагорода SourceForge Favorite, вересень 2026",
   "dl.badge": "26.06.5 «Aetherium»",
   "dl.notice":
     "Реліз <strong>26.06.5 «Aetherium»</strong> системи SkillFishOS доступний у <strong>двох редакціях</strong>: <strong>BC-250</strong> (плата AMD) і <strong>Generic</strong> (будь-який ПК або ВМ x86-64). Повні й готові до використання. Проєкт із <strong>відкритим кодом</strong>.",

@@ -70,6 +70,7 @@ export const ru: Record<string, string> = {
 
   "dl.title": "Скачать — SkillFishOS",
   "dl.eye": "Скачать",
+  "sf.award": "Награда SourceForge Favorite, сентябрь 2026",
   "dl.badge": "26.06.5 «Aetherium»",
   "road.dinews": "Ищете, что изменилось? Это в <a href=\"/ru/news\">новостях</a>.",
   "news.diroad": "Хотите знать, что будет дальше? Есть <a href=\"/ru/roadmap\">планы</a>.",

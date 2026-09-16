@@ -309,6 +309,10 @@ export const strings: Record<string, Entry> = {
     pl: 'Chcesz wiedzieć, co dalej? Jest <a href="/pl/roadmap">roadmapa</a>.',
     uk: 'Хочете знати, що далі? Є <a href="/uk/roadmap">плани розвитку</a>.',
   },
+  "sf.award": {
+    it: "Premio SourceForge Favorite, settembre 2026",
+    en: "SourceForge Favorite award, September 2026",
+  },
   "dl.badge": { it: "26.06.5 «Aetherium»", en: "26.06.5 “Aetherium”" },
   "dl.notice": {
     it: "La release <strong>26.06.5 «Aetherium»</strong> di SkillFishOS è disponibile in <strong>due edizioni</strong>: <strong>BC-250</strong> (la scheda AMD) e <strong>Generic</strong> (qualsiasi PC o VM x86-64). Complete e pronte all'uso. Progetto <strong>open-source</strong>.",

@@ -99,6 +99,7 @@ export const es: Record<string, string> = {
   "dl.h2": "Descargar SkillFish<span class=\"gold-text\">OS</span>",
   "dl.sub":
     "Las ISO instalables, con la marca y listas para usar — para la AMD BC-250 y para cualquier PC x86-64.",
+  "sf.award": "Premio SourceForge Favorite, septiembre de 2026",
   "dl.badge": "26.06.5 «Aetherium»",
   "dl.notice":
     "La versión <strong>26.06.5 «Aetherium»</strong> de SkillFishOS llega en <strong>dos ediciones</strong>: <strong>BC-250</strong> (la placa de AMD) y <strong>Generic</strong> (cualquier PC o máquina virtual x86-64). Completa y lista para usar. Proyecto de <strong>código abierto</strong>.",
