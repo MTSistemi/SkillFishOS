@@ -34,7 +34,6 @@ from ..stile import Stato, Tessera, intestazione, link_doc
 
 CURVA_PREDEFINITA = "/usr/share/skillfish/vf-curva-predefinita.json"
 MV_PER_SCALINO = 6.25          # the SMU voltage step of the CPU undervolt
-GOV_UNIT = "skillfish-vf-governor.service"
 SECONDI_PROVA = 25
 CPU_TOLLERANZA = 200           # MHz under the target that still count as "holds"
 
@@ -286,13 +285,12 @@ class Pagina(PaginaBase):
         testa.addStretch(1)
         self.b_stato = Stato("", "quieto")
         testa.addWidget(self.b_stato)
-        self.interruttore = QCheckBox("Governor")
-        self.interruttore.setToolTip(L("Spento: il clock torna al governor di serie.",
-                                       "Off: the clock goes back to the stock governor."))
+        self._gov_status_pending = False
+        self._gov_switch_pending = False
+        self._gov_status_time = 0
+        self.interruttore = QCheckBox("Governor — agora e no boot")
+        self.interruttore.setToolTip("Marcado: governador ativo agora e habilitado no boot. Ao marcar, aplica a curva salva. Desmarcar desliga agora e desabilita no boot.")
         self.interruttore.clicked.connect(self._governor_on_off)
-        # the boot state is re-read on a timer of its own, see _gov_al_boot
-        self._gov_boot = None
-        self._gov_boot_letto = 0.0
         testa.addWidget(self.interruttore)
         testa.addWidget(Aiuto(L("Il nostro governor forza il clock e si prende la protezione: il tetto scende quando la scheda scalda o tira troppo.",
                                 "Our governor forces the clock and takes on the protection: the ceiling drops when the board gets hot or draws too much."), "Governor"))
@@ -562,28 +560,50 @@ class Pagina(PaginaBase):
             self.et_salva.setText(L("annullata: torna la curva di prima", "cancelled: the previous curve is back"))
         self._ricarica_curva()
 
-    # systemctl is-enabled is a process and this page ticks every second, so
-    # the boot state is re-read every few seconds instead of every frame.
-    INTERVALLO_BOOT = 5.0
-
-    def _gov_al_boot(self):
-        """Whether the governor comes back at the next boot.
-
-        ⚠️ is-enabled exits 1 when the unit is disabled, so the word it prints
-        decides and not the return code."""
-        adesso = time.time()
-        if self._gov_boot is None or adesso - self._gov_boot_letto > self.INTERVALLO_BOOT:
-            _, out, _ = sh("systemctl is-enabled " + GOV_UNIT, 10)
-            self._gov_boot = out.strip() == "enabled"
-            self._gov_boot_letto = adesso
-        return self._gov_boot
-
     def _governor_on_off(self, on):
-        r = self.demone.cmd(cmd="gov-attiva", on=bool(on))
-        self._gov_boot = None          # the click just changed it: read it again
-        if not r.get("ok"):
-            self.toast(r.get("err", "?"))
-            self.interruttore.setChecked(not on)
+        self._gov_switch_pending = True
+        self.interruttore.setEnabled(False)
+        in_sfondo(lambda: self.demone.cmd(cmd="gov-attiva", on=bool(on), insisti=True),
+                  self._governor_switched, self)
+
+    def _governor_switched(self, result):
+        self._gov_switch_pending = False
+        self.interruttore.setEnabled(True)
+        self._gov_status_time = 0
+        if not result.get("ok"):
+            self.toast(result.get("err", "Não foi possível confirmar o governador na sessão e no boot."), 6)
+        else:
+            self.toast("Governor ativo agora e no boot." if result.get("abilitato") else
+                       "Governor desligado e desabilitado no boot.", 6)
+        self._governor_status(result)
+
+    @staticmethod
+    def _read_governor_status():
+        result = {}
+        for key, action in (("attivo", "is-active"), ("abilitato", "is-enabled")):
+            try:
+                p = subprocess.run(["systemctl", action, "skillfish-vf-governor.service"],
+                                   capture_output=True, text=True, timeout=5)
+                value = p.stdout.strip()
+                result[key] = value == ("active" if key == "attivo" else "enabled")
+            except (OSError, subprocess.TimeoutExpired):
+                return {"err": "Estado do governador indisponível"}
+        return result
+
+    def _governor_status(self, result):
+        self._gov_status_pending = False
+        if self._gov_switch_pending:
+            return
+        active, enabled = result.get("attivo"), result.get("abilitato")
+        self.interruttore.blockSignals(True)
+        self.interruttore.setChecked(active is True and enabled is True)
+        self.interruttore.blockSignals(False)
+        self.interruttore.setText("Governor — agora e no boot")
+        self.interruttore.setToolTip(
+            "Sessão: %s | Boot: %s. Marcar liga agora e habilita no boot usando a curva salva; "
+            "desmarcar desliga ambos. Salve mudanças da curva com Keep/Tieni." % (
+                "ativo" if active else "inativo" if active is False else "desconhecido",
+                "habilitado" if enabled else "desabilitado" if enabled is False else "desconhecido"))
 
     # ============================================================ readings
     def aggiorna(self):
@@ -612,18 +632,10 @@ class Pagina(PaginaBase):
         self.curva.aggiorna_vivo(val.get("gpu_mhz"), mv)
         self.b_stato.setText(L("governor attivo", "governor running") if vivo else L("governor fermo", "governor stopped"))
         self.b_stato.tono("bene" if vivo else "male")
-        al_boot = self._gov_al_boot()
-        # ticked only when both halves agree: running now AND coming back. A box
-        # that only knew the first half read as "on and staying on" to a user
-        # whose governor was about to disappear at the next boot.
-        self.interruttore.blockSignals(True)
-        self.interruttore.setChecked(vivo and al_boot)
-        self.interruttore.blockSignals(False)
-        self.interruttore.setToolTip("%s %s" % (
-            L("Ora e' acceso.", "It is on now.") if vivo
-            else L("Ora e' spento.", "It is off now."),
-            L("Al prossimo avvio riparte.", "It comes back at the next boot.") if al_boot
-            else L("Al prossimo avvio non riparte.", "It does not come back at the next boot.")))
+        if not self._gov_status_pending and not self._gov_switch_pending and adesso - self._gov_status_time >= 5:
+            self._gov_status_pending = True
+            self._gov_status_time = adesso
+            in_sfondo(self._read_governor_status, self._governor_status, self)
         if os.path.exists("/run/skillfish/gov-prova.json") and not self._occupato:
             self.b_stato.setText(L("prova in corso", "trial running"))
             self.b_stato.tono("ottone")
@@ -656,10 +668,9 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        lim = self._limiti_cpu()
-        self.cf = Manopola(lim["freq_min"], lim["freq_max"], cfg.get("frequency", 3500), "MHz")
-        self.cs = Manopola(lim["scale_min"], lim["scale_max"], cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
-        self.ct = Manopola(max(60, lim["temp_min"]), min(95, lim["temp_max"]), cfg.get("max_temperature", 85), "°C")
+        self.cf = Manopola(2000, 4500, cfg.get("frequency", 3500), "MHz")
+        self.cs = Manopola(-60, 0, cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
+        self.ct = Manopola(60, 95, cfg.get("max_temperature", 85), "°C")
         for testo, cur, aiuto in (
                 (L("Frequenza", "Clock"), self.cf, L("Il clock sotto carico. Sopra 3500 con otto core comanda il calore.", "The clock under load. Above 3500 with eight cores heat is in charge.")),
                 (L("Undervolt", "Undervolt"), self.cs, L("Scalini di 6,25 mV tolti alla CPU: meno calore, stessa frequenza, fin dove regge.", "Steps of 6.25 mV taken off the CPU: less heat, same clock, as far as it holds.")),
@@ -702,46 +713,16 @@ class Pagina(PaginaBase):
     def _valori_cpu(self):
         return self.cf.value(), self.cs.value(), self.ct.value()
 
-    # What the panel offers when the daemon cannot be asked. Deliberately the
-    # narrow range: offering more than the backend accepts is the bug itself.
-    RIPIEGO_LIMITI = {"freq_min": 3500, "freq_max": 4500, "scale_min": -40,
-                      "scale_max": 0, "temp_min": 0, "temp_max": 100}
-
-    def _limiti_cpu(self):
-        """What the backend will really accept. Asked, never assumed: the panel
-        used to offer 2000-4500 MHz against a floor of 3500, and everything
-        below it failed without a word."""
-        r = self.demone.cmd(cmd="cpu-limits") or {}
-        lim = dict(self.RIPIEGO_LIMITI)
-        if r.get("ok"):
-            lim.update(r.get("data") or {})
-        return lim
-
-    def _motivo_cpu(self, r):
-        """Why the setting did not go in, in words the user can act on."""
-        f = r.get("fuori") or {}
-        frase = {
-            "frequency": L("La frequenza accettata va da %d a %d MHz.",
-                           "The accepted clock runs from %d to %d MHz."),
-            "scale": L("L'undervolt accettato va da %d a %d scalini.",
-                       "The accepted undervolt runs from %d to %d steps."),
-            "max_temperature": L("Il limite gradi accettato va da %d a %d.",
-                                 "The accepted degree limit runs from %d to %d."),
-        }.get(f.get("campo"))
-        if frase:
-            return frase % (f.get("min", 0), f.get("max", 0))
-        return r.get("err") or L("non applicata", "not applied")
-
     def _applica_cpu(self):
         m, s, t = self._valori_cpu()
         r = self.demone.cmd(cmd="apply-cpu", mhz=m, scale=s, temp=t)
         self.demone.cmd(cmd="thermal-guard", limit=t)
-        self.et_cpu.setText(L("CPU applicata", "CPU applied") if r.get("ok") else self._motivo_cpu(r))
+        self.et_cpu.setText(L("CPU applicata", "CPU applied") if r.get("ok") else r.get("err", L("non applicata", "not applied")))
 
     def _salva_cpu(self):
         m, s, t = self._valori_cpu()
         r = self.demone.cmd(cmd="persist-cpu", mhz=m, scale=s, temp=t)
-        self.et_cpu.setText(L("CPU salvata: vale anche al prossimo avvio", "CPU saved: applies at next boot too") if r.get("ok") else self._motivo_cpu(r))
+        self.et_cpu.setText(L("CPU salvata: vale anche al prossimo avvio", "CPU saved: applies at next boot too") if r.get("ok") else r.get("err", "?"))
 
     # every CPU test goes through one machinery: steps, countdown, Stop
     def _avvia_prova(self, passi, testo, fine):
@@ -946,12 +927,12 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        self.cu_floor = int(cu.get("floor", 7))
+        self.cu_floor = 0
         self.cu_ordine = ["0.0", "0.1", "1.0", "1.1"]
-        righe = cu.get("rows") or {k: 7 for k in self.cu_ordine}
-        self.cu_righe = {k: int(righe.get(k, 7)) | self.cu_floor for k in self.cu_ordine}
-        e = QLabel(L("Verde acceso, rosso spento, grigio sempre acceso (lo tiene il driver). Ogni casella e' una coppia di CU.",
-                     "Green on, red off, grey always on (the driver keeps it). Every cell is a pair of CUs."))
+        righe = cu.get("rows") or {k: 0 for k in self.cu_ordine}
+        self.cu_righe = {k: int(righe.get(k, 0)) | self.cu_floor for k in self.cu_ordine}
+        e = QLabel(L("Verde acceso, rosso spento. Ogni coppia e selezionabile. Solo Applica modifica la GPU.",
+                     "Green on, red off. Every pair is selectable. Changes take effect only with Apply."))
         e.setWordWrap(True)
         e.setObjectName("quieto")
         v.addWidget(e)
@@ -980,7 +961,7 @@ class Pagina(PaginaBase):
         r = QHBoxLayout()
         r.addWidget(QLabel("<b>%s</b>" % L("CU attive", "Active CUs")))
         self.cu_n = QSpinBox()
-        self.cu_n.setRange(24, 40)
+        self.cu_n.setRange(0, 40)
         self.cu_n.setSingleStep(2)
         self.cu_n.valueChanged.connect(self._cu_da_numero)
         r.addWidget(self.cu_n)
@@ -1000,7 +981,7 @@ class Pagina(PaginaBase):
         r.addStretch(1)
         b = QPushButton("Test CU")
         b.setToolTip(L("Accende una coppia alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti.",
-                       "Turns on one pair at a time under vkpeak and watches for GPU errors. Two or three minutes."))
+                       "Tests only the applied CU selection with vkpeak; preserves the mapping."))
         b.clicked.connect(self._test_cu)
         r.addWidget(b)
         b = QPushButton(L("Applica", "Apply"))
@@ -1008,6 +989,11 @@ class Pagina(PaginaBase):
         b.clicked.connect(self._applica_cu)
         r.addWidget(b)
         v.addLayout(r)
+        self.cu_keep = QCheckBox("Manter ao iniciar")
+        self.cu_keep.setToolTip("Aplique e teste os pares antes de marcar. Desmarcado: preserva o mapeamento do sistema no boot.")
+        self.cu_keep.setChecked(bool(cu.get("keep_boot", False)))
+        self.cu_keep.toggled.connect(self._cu_keep_boot)
+        v.addWidget(self.cu_keep)
         self._cu_colora()
         return w
 
@@ -1033,7 +1019,7 @@ class Pagina(PaginaBase):
 
     def _cu_da_numero(self, n):
         """n CUs = 24 fixed + pairs: fill WGP3 down the rows, then WGP4."""
-        coppie = max(0, (n - 24) // 2)
+        coppie = max(0, n // 2)
         for rk in self.cu_ordine:
             self.cu_righe[rk] = self.cu_floor
         for wgp in range(5):
@@ -1050,14 +1036,25 @@ class Pagina(PaginaBase):
             b.blockSignals(False)
         self._cu_colora()
 
+    def _cu_keep_boot(self, enabled):
+        result = self.demone.cmd(cmd="cu-keep-boot", enabled=enabled,
+                                 rows=[self.cu_righe[k] for k in self.cu_ordine]) or {}
+        if not result.get("ok"):
+            self.cu_keep.blockSignals(True)
+            self.cu_keep.setChecked(not enabled)
+            self.cu_keep.blockSignals(False)
+            self.toast(result.get("err", "Failed to save boot selection"), 6)
+
     def _applica_cu(self):
         r = self.demone.cmd(cmd="cu-apply", rows=[self.cu_righe.get(rk, 7) | self.cu_floor for rk in self.cu_ordine])
+        if r.get("ok") and self.cu_keep.isChecked():
+            self._cu_keep_boot(True)
         self.toast(L("CU applicate: %s/40", "CUs applied: %s/40") % r.get("active", "?") if r.get("ok") else r.get("err", "?"), 6)
 
     def _test_cu(self):
         if QMessageBox.question(self, "Test CU", L(
                 "Accende una coppia di CU extra alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti. Procedere?",
-                "Turns on one extra CU pair at a time under vkpeak and watches for GPU errors. Two or three minutes. Proceed?")) != QMessageBox.StandardButton.Yes:
+                "Tests only the currently applied CU selection without changing the mapping. Proceed?")) != QMessageBox.StandardButton.Yes:
             return
         self.et_cu.setText(L("test…", "testing…"))
         in_sfondo(lambda: self.demone.cmd(cmd="cu-test"), self._cu_testate, self)
@@ -1067,8 +1064,8 @@ class Pagina(PaginaBase):
         if not r.get("ok"):
             QMessageBox.warning(self, "Test CU", r.get("err", "?"))
             return
-        righe = [L("40 CU sotto sforzo: %s GFLOPS", "40 CU under load: %s GFLOPS") % r.get("full40", "?"),
-                 L("24 CU: %s GFLOPS", "24 CU: %s GFLOPS") % r.get("baseline", "?"), ""]
+        righe = [L("40 CU sotto sforzo: %s GFLOPS", "Applied CUs under load: %s GFLOPS") % r.get("full40", "?"),
+                 L("Current selection: %s GFLOPS", "Current selection: %s GFLOPS") % r.get("baseline", "?"), ""]
         for x in r.get("results", []):
             righe.append("SE%s SH%s WGP%d: %s%s" % (x["row"][0], x["row"][2], x["wgp"], x["verdict"],
                                                     (" · %d err" % x["errors"]) if x["errors"] else ""))

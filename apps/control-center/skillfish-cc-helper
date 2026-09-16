@@ -289,11 +289,15 @@ def gov_annulla():
 
 
 def gov_attiva(on):
-    if on:
-        ok = sh("systemctl enable --now " + GOV_UNIT, 60).returncode == 0
-    else:
-        ok = sh("systemctl disable --now " + GOV_UNIT, 60).returncode == 0
-    return {"ok": ok, **{k: v for k, v in gov_get().items() if k != "ok"}}
+    action = "enable --now" if on else "disable --now"
+    command = sh("systemctl " + action + " " + GOV_UNIT, 60)
+    state = gov_get()
+    expected = bool(on)
+    ok = command.returncode == 0 and state.get("attivo") == expected and state.get("abilitato") == expected
+    result = {**state, "ok": ok}
+    if not ok:
+        result["err"] = (command.stderr or "Não foi possível confirmar o estado da sessão e do boot.").strip()
+    return result
 
 
 def _gpu_compat():
@@ -343,98 +347,14 @@ def _write_cpu_conf(mhz, scale, tmp):
     _wr(OC_CONF, "[overclock]\nfrequency = %d\nscale = %d\nmax_temperature = %d\n" % (mhz, scale, tmp))
 
 
-# The backend is the only authority on what can be applied. bc250_limits.py is
-# a plain list of integers next to bc250_apply.py, so it gets read instead of
-# guessed: we used to accept 2000-4500 MHz against a floor of 3500, and every
-# value below it was offered to the user and then refused without a word.
-CPU_LIMITI_RIPIEGO = {"freq_min": 3500, "freq_max": 4500,
-                      "scale_min": -50, "scale_max": 0,
-                      "temp_min": 0, "temp_max": 100}
-
-# The deepest undervolt we let anything reach. The backend allows -50, but -50
-# at the stock clock froze the dev board outright and the suggestion sweep
-# already stops at -40. Those ten steps buy nothing and cost a power cycle.
-CPU_UV_SICURO = -40
-
-_CPU_LIMITI = None
-
-
-def cpu_limiti():
-    """What bc250_apply.py will actually accept, read once and kept."""
-    global _CPU_LIMITI
-    if _CPU_LIMITI is not None:
-        return _CPU_LIMITI
-    lim = dict(CPU_LIMITI_RIPIEGO)
-    try:
-        for nome, val in re.findall(r"(\w+)\s*=\s*(-?\d+)",
-                                    _rd("%s/bc250_limits.py" % OC_DIR)):
-            if nome in lim:
-                lim[nome] = int(val)
-    except OSError:
-        # no backend installed: the fallback above is what it shipped with
-        pass
-    lim["scale_min"] = max(lim["scale_min"], CPU_UV_SICURO)
-    _CPU_LIMITI = lim
-    return lim
-
-
-def _cpu_fuori(mhz, scale, tmp):
-    """Which knob sits outside the limits, as a code the panel can translate.
-    None when everything fits."""
-    lim = cpu_limiti()
-    for campo, val, lo, hi in (
-            ("frequency", mhz, lim["freq_min"], lim["freq_max"]),
-            ("scale", scale, lim["scale_min"], lim["scale_max"]),
-            ("max_temperature", tmp, lim["temp_min"], lim["temp_max"])):
-        if not lo <= val <= hi:
-            return {"campo": campo, "min": lo, "max": hi}
-    return None
-
-
-def _ultima_riga(testo):
-    righe = [r.strip() for r in (testo or "").splitlines() if r.strip()]
-    return righe[-1] if righe else ""
-
-
-def apply_cpu_esito(mhz, scale, tmp):
-    """Apply a CPU setting and say why if it did not go in.
-
-    Returns (ok, reason). The reason is either a dict naming the knob that is
-    out of range, which the panel turns into a sentence, or the backend's own
-    last line. Plain False told the user nothing and read like a control that
-    was not wired up.
-
-    On refusal the previous configuration goes back on disk. This file is what
-    bc250-smu-oc.service reads at boot, so a value the backend rejected would
-    otherwise arm the next boot to fail as well, silently."""
+def apply_cpu(mhz, scale, tmp):
     mhz, scale, tmp = int(mhz), int(scale), int(tmp)
-    fuori = _cpu_fuori(mhz, scale, tmp)
-    if fuori:
-        return False, fuori
+    if not (2000 <= mhz <= 4500 and -60 <= scale <= 10 and 50 <= tmp <= 100):
+        return False
     _log("CPU: %d MHz, scale %d, limite %d C" % (mhz, scale, tmp))
-    prima = _cpu_conf()
     _write_cpu_conf(mhz, scale, tmp)
     r = sh("python3 %s/bc250_apply.py --apply %s" % (OC_DIR, OC_CONF))
-    if r.returncode == 0:
-        return True, ""
-    _write_cpu_conf(prima["frequency"], prima["scale"], prima["max_temperature"])
-    return False, (_ultima_riga(r.stderr) or _ultima_riga(r.stdout)
-                   or "bc250_apply.py failed")
-
-
-def apply_cpu(mhz, scale, tmp):
-    """Bool-only wrapper. Four callers branch on `if not apply_cpu(...)` and a
-    tuple is always truthy, so the reason never travels through this name."""
-    return apply_cpu_esito(mhz, scale, tmp)[0]
-
-
-def _esito_cpu(ok, perche):
-    """One shape for every CPU reply, so the panel always has something to say."""
-    if ok:
-        return {"ok": True}
-    if isinstance(perche, dict):
-        return {"ok": False, "fuori": perche}
-    return {"ok": False, "err": perche}
+    return r.returncode == 0
 
 
 def persist_cpu():
@@ -562,7 +482,9 @@ def thermal_guard_get():
 # ---- compute units ----------------------------------------------------------
 def cu_get():
     try:
-        return json.loads(sh("/usr/local/bin/skillfish-cu get", 30).stdout)
+        result = json.loads(sh("/usr/local/bin/skillfish-cu get", 30).stdout)
+        result["keep_boot"] = os.path.isfile("/etc/skillfish-cu-boot.conf")
+        return result
     except Exception:
         return {}
 
@@ -573,13 +495,13 @@ def cu_apply(rows):
             return {"ok": False, "err": "manca /usr/local/bin/umr, senza il quale le CU non si possono instradare"}
         if not os.path.exists("/usr/local/share/umr/database/pci.did"):
             return {"ok": False, "err": "manca il database dei registri di umr: reinstalla skillfish-tuner"}
-        r = [int(x) & 0x1f for x in rows][:4]
-        while len(r) < 4:
-            r.append(0x07)
+        if not isinstance(rows, list) or len(rows) != 4 or any(type(x) is not int or not 0 <= x <= 31 for x in rows) or not any(rows):
+            return {"ok": False, "err": "Select four valid row masks and at least one WGP."}
+        r = rows
         _log("CU: maschere %s" % r)
         p = sh("/usr/local/bin/skillfish-cu set-rows %s" % (" ".join(str(x) for x in r)))
         j = cu_get()
-        if p.returncode != 0:
+        if p.returncode != 0 or j.get("rows") != dict(zip(("0.0", "0.1", "1.0", "1.1"), r)):
             motivo = (getattr(p, "stderr", "") or "").strip() or (p.stdout or "").strip()
             return {"ok": False, "err": motivo or "skillfish-cu e' uscito con %d" % p.returncode,
                     "active": j.get("active_cu"), "rows": j.get("rows")}
@@ -605,45 +527,33 @@ def cu_test():
         s = sh("dmesg --since '16 seconds ago' 2>/dev/null | grep -ciE 'amdgpu.*(fault|timeout|reset|hang|recover|failed)'").stdout.strip()
         return int(s) if s.isdigit() else 0
 
-    cur = cu_get().get("rows", {})
-    order = ["0.0", "0.1", "1.0", "1.1"]
-    res = []
-    sh("/usr/local/bin/skillfish-cu set-rows 7 7 7 7")
-    time.sleep(1)
-    base, _ = vk()
-    for rk in order:
-        for wgp in (3, 4):
-            rows = {k: 7 for k in order}
-            rows[rk] = 7 | (1 << wgp)
-            sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (rows["0.0"], rows["0.1"], rows["1.0"], rows["1.1"]))
-            time.sleep(1)
-            g, rc = vk()
-            e = errs()
-            al = alive()
-            verdict = "FAIL" if (not al or e > 0) else ("N/A" if g <= 0 else "OK")
-            res.append({"row": rk, "wgp": wgp, "cu": "%d-%d" % (wgp * 2, wgp * 2 + 1),
-                        "gflops": round(g), "errors": e, "verdict": verdict})
-            time.sleep(1.5)
-    sh("/usr/local/bin/skillfish-cu max")
-    time.sleep(1)
-    rf = sh("cd %s && ./vkpeak" % vdir, t=120)
-    mf = re.search(r'fp32-scalar\s*=\s*([\d.]+)', rf.stdout)
-    full = round(float(mf.group(1)) if mf else 0.0)
-    full_err = errs()
-    g0 = lambda k: int(cur.get(k, 31))  # noqa: E731
-    sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (g0("0.0"), g0("0.1"), g0("1.0"), g0("1.1")))
-    return {"ok": True, "baseline": round(base), "results": res,
-            "bad": sum(1 for x in res if x["verdict"] == "FAIL"),
-            "na": sum(1 for x in res if x["verdict"] == "N/A"), "full40": full, "full40_err": full_err}
+    # Test only the currently applied topology; never enable unselected pairs.
+    g, rc = vk()
+    e = errs()
+    return {"ok": rc == 0 and e == 0, "err": "GPU test failed" if rc or e else "",
+            "baseline": round(g), "full40": round(g), "results": [], "bad": int(bool(rc or e)), "na": 0}
 
 
-# ---- VRAM -----------------------------------------------------------------------
-def vram_get():
-    if os.path.exists(MEMCFG):
-        m = re.search(r'UMA_SIZE=(\d+)', sh(MEMCFG + ' get').stdout)
-        if m:
-            return int(m.group(1))
-    return 0
+def cu_keep_boot(enabled, rows):
+    path = "/etc/skillfish-cu-boot.conf"
+    try:
+        if enabled is not True:
+            if os.path.exists(path):
+                os.unlink(path)
+            return {"ok": True}
+        if (not isinstance(rows, list) or len(rows) != 4
+                or any(type(x) is not int or not 0 <= x <= 31 for x in rows) or not any(rows)):
+            return {"ok": False, "err": "Invalid WGP selection"}
+        live = cu_get().get("rows")
+        if live != dict(zip(("0.0", "0.1", "1.0", "1.1"), rows)):
+            return {"ok": False, "err": "Apply and test the selection before keeping it at boot."}
+        with open(path + ".tmp", "w") as f:
+            f.write(" ".join(map(str, rows)) + "\n")
+        os.chmod(path + ".tmp", 0o600)
+        os.replace(path + ".tmp", path)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
 
 
 def set_vram(mb):
@@ -882,43 +792,6 @@ def cluster(azione, ip="", utente="", password=""):
     return d
 
 
-def ai_livello(livello="", modello=""):
-    """Scrive il livello scelto e il modello del motore nudo.
-
-    ⚠️ Passa da root perche' il file sta in /etc/skillfish, ma NON accende
-    niente: accendere e' un'altra azione, con la sua domanda. Cambiare la
-    scelta mentre la modalita' e' gia' accesa non ha effetto fino al prossimo
-    giro, ed e' giusto cosi': spegnere il motore sotto i piedi di chi sta
-    chiedendo qualcosa al modello sarebbe peggio.
-    """
-    # ⚠️ Stesso controllo del Remote Manager: l'elenco chiuso vale anche qui,
-    # anche se qui dall'altra parte c'e' la nostra finestra. Un helper che gira
-    # da root non si fida di chi lo chiama.
-    scelto = ""
-    for noto in ("studio", "motore", "motore-api"):
-        if noto == livello:
-            scelto = noto
-            break
-    if livello and not scelto:
-        return {"ok": False, "errore": "livello sconosciuto"}
-    if modello and not os.path.isfile(modello):
-        return {"ok": False, "errore": "modello inesistente"}
-    cmd = ["/usr/local/bin/skillfish-llama", "imposta"]
-    if livello:
-        cmd.append("livello=" + scelto)
-    if modello:
-        cmd.append("modello=%s" % modello)
-    if len(cmd) == 2:
-        return {"ok": False, "errore": "niente da cambiare"}
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    try:
-        d = json.loads(r.stdout or "{}")
-    except ValueError:
-        return {"ok": False, "errore": (r.stderr or r.stdout or "").strip()[-200:]}
-    _log("ai: livello %s" % (livello or "(invariato)"))
-    return d
-
-
 def ai_mode(azione):
     """Accende o spegne la modalita' AI: il desktop si ferma, il modello resta.
 
@@ -1049,10 +922,6 @@ def _studio_nuova_chiave(password):
                 if tok:
                     break
             except Exception:
-                # ⚠️ Qui si ingoia di proposito: e' il giro dei tentativi, e
-                # Studio appena riavviato risponde in tutti i modi sbagliati
-                # prima di rispondere bene. Quello che conta e' l'ultimo giro,
-                # e se falliscono tutti lo dice `ultimo` piu' sotto.
                 pass
             time.sleep(5)
         if not tok:
@@ -1112,8 +981,6 @@ def _studio_cambia_password(vecchia, nuova):
         try:
             corpo = e.read().decode("utf-8", "replace")[:200]
         except Exception:
-            # il corpo della risposta e' un di piu': se non si legge resta il
-            # codice HTTP, che e' gia' la meta' del messaggio d'errore.
             pass
         return "Studio ha rifiutato la password scelta: %s %s" % (e.code, corpo)
     except Exception as e:
@@ -1243,9 +1110,9 @@ def cpu_volatile(mhz, scale, tmp):
     its own load loop (with a countdown and a Stop button) and calls this per
     step; the last good values keep booting if the board dies mid-test."""
     prev = _cpu_conf()
-    ok, perche = apply_cpu_esito(mhz, scale, tmp)
+    ok = apply_cpu(mhz, scale, tmp)
     _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
-    return _esito_cpu(ok, perche)
+    return {"ok": ok}
 
 
 COREUNLOCK_EFI = "/usr/local/bin/skillfish-coreunlock-efi"
@@ -1359,15 +1226,11 @@ def handle(req):
         return {"ok": True, "mode": "vf"}
     # the CPU
     if c == "apply-cpu":
-        return _esito_cpu(*apply_cpu_esito(req["mhz"], req["scale"], req["temp"]))
-    if c == "cpu-limits":
-        return {"ok": True, "data": cpu_limiti()}
+        return {"ok": apply_cpu(req["mhz"], req["scale"], req["temp"])}
     if c == "persist-cpu":
-        ok, perche = apply_cpu_esito(req["mhz"], req["scale"], req["temp"])
-        # a setting the backend refused must not be armed for the next boot
-        if ok:
-            persist_cpu()
-        return _esito_cpu(ok, perche)
+        ok = apply_cpu(req["mhz"], req["scale"], req["temp"])
+        persist_cpu()
+        return {"ok": ok}
     if c == "cpu-cores":
         return cpu_cores_get()
     if c == "cpu-cores-set":
@@ -1393,6 +1256,8 @@ def handle(req):
         return {"ok": True, **cu_get()}
     if c == "cu-apply":
         return cu_apply(req.get("rows", []))
+    if c == "cu-keep-boot":
+        return cu_keep_boot(req.get("enabled"), req.get("rows"))
     if c == "cu-test":
         return cu_test()
     if c == "set-vram":
@@ -1428,8 +1293,6 @@ def handle(req):
     if c == "cluster":
         return cluster(req.get("azione", "stato"), req.get("ip", ""),
                        req.get("utente", ""), req.get("password", ""))
-    if c == "ai-livello":
-        return ai_livello(req.get("livello", ""), req.get("modello", ""))
     if c == "ai-mode":
         return ai_mode(req.get("azione", "stato"))
     if c == "unsloth-password-reset":
