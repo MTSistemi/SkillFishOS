@@ -8,6 +8,9 @@ language (existing entries are kept as they are). it.json is fed from the
 (it, en) pairs found in the code: Italian never goes through the dictionary
 in the window, but the web pages of the Remote Manager read it from there.
 Every placeholder (%s, %d, %.0f, %.1f) is checked to match the English key.
+An entry equal to its English key is merged too: HUD, Hub, "Maximum" in German
+or "Actions" in French are the translation, and skipping them left those keys
+reported as missing forever.
 """
 import ast
 import glob
@@ -50,8 +53,6 @@ for lingua in ("de", "es", "fr", "pl", "pt", "ru", "uk", "it"):
     condiviso = carica(percorso)
     aggiunte = 0
     for k, v in nuovo.items():
-        if k == v and lingua != "it":
-            continue                       # untranslated placeholder, skip
         if SEGNAPOSTO.findall(k) != SEGNAPOSTO.findall(v):
             print("SEGNAPOSTO %s: %r -> %r" % (lingua, k[:50], v[:50]), file=sys.stderr)
             errori += 1
