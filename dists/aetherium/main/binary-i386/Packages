@@ -41,18 +41,18 @@ Description: SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/Displa
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.09.27
+Version: 26.09.28
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.09.27_all.deb
-Size: 383260
-SHA256: d6668ae884b6d290972845edd9a74d83cd83fee20b3aedb4605ad6bd41970be4
-SHA1: 55b3eb48d0c69b2a9eb3a290e11087b45165b899
-MD5sum: 0f571954416015fa754d1b896ba5db6a
+Filename: pool/main/s/skillfish-base/skillfish-base_26.09.28_all.deb
+Size: 390712
+SHA256: aabb1b68214649cd326d4e89c574a0646a26cb1b8d77123461d9827bad67c64b
+SHA1: 358c82e70815ec8b64c15bc562b319d1350d269b
+MD5sum: 147ccbc1afbafee8874e24a0d5d77301
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
@@ -99,7 +99,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.25
+Version: 26.09.28
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -109,11 +109,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.25_all.deb
-Size: 949980
-SHA256: 8cbab075c57a2b70c66a9e208e88d05a8efc7c22d905778639e9c92f75ea6780
-SHA1: e64d80b7f7d8f58c9824ab4b98ec21f58b6f6833
-MD5sum: 50e5380ec531548d85c5cb774f2dfdf3
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.28_all.deb
+Size: 953152
+SHA256: 090b26af5a138e9112d5da5ecb391f7eab495c8f2994a192e2d97cc52dd0745d
+SHA1: b25366765a73c6cc0539ee46f93007e688d6565c
+MD5sum: 8ab9d68da9a499a946740ced54e43c13
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
