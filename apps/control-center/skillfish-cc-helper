@@ -562,9 +562,38 @@ def thermal_guard_get():
 # ---- compute units ----------------------------------------------------------
 def cu_get():
     try:
-        return json.loads(sh("/usr/local/bin/skillfish-cu get", 30).stdout)
+        j = json.loads(sh("/usr/local/bin/skillfish-cu get", 30).stdout)
     except Exception:
         return {}
+    # Whether a mapping is kept for the next boot is asked of the tool, which
+    # owns the file, rather than by looking for the file from here.
+    try:
+        b = json.loads(sh("/usr/local/bin/skillfish-cu boot-get", 30).stdout)
+        j["keep_boot"] = bool(b.get("keep"))
+        j["boot_rows"] = b.get("rows") or []
+    except Exception:
+        j["keep_boot"] = False
+        j["boot_rows"] = []
+    return j
+
+
+ORDINE_CU = ("0.0", "0.1", "1.0", "1.1")
+
+
+def _cu_righe_valide(rows):
+    """Four masks, each one a real one and none of them empty.
+
+    A row with no WGP has nothing to run on, and the tool would quietly raise
+    it to one pair. Saying no here means the window can explain it instead of
+    showing a number the user did not choose."""
+    if not isinstance(rows, list) or len(rows) != 4:
+        return "maschere-storte"
+    for x in rows:
+        if not isinstance(x, int) or isinstance(x, bool) or not 0 <= x <= 31:
+            return "maschere-storte"
+    if any(x == 0 for x in rows):
+        return "riga-vuota"
+    return None
 
 
 def cu_apply(rows):
@@ -573,13 +602,20 @@ def cu_apply(rows):
             return {"ok": False, "err": "manca /usr/local/bin/umr, senza il quale le CU non si possono instradare"}
         if not os.path.exists("/usr/local/share/umr/database/pci.did"):
             return {"ok": False, "err": "manca il database dei registri di umr: reinstalla skillfish-tuner"}
-        r = [int(x) & 0x1f for x in rows][:4]
-        while len(r) < 4:
-            r.append(0x07)
+        storto = _cu_righe_valide(rows)
+        if storto:
+            # a missing fourth row used to be filled in with 0x07, which is the
+            # floor that turned out not to exist: better to refuse than to
+            # invent a mapping nobody asked for
+            return {"ok": False, "motivo": storto}
+        r = list(rows)
         _log("CU: maschere %s" % r)
         p = sh("/usr/local/bin/skillfish-cu set-rows %s" % (" ".join(str(x) for x in r)))
         j = cu_get()
-        if p.returncode != 0:
+        atteso = dict(zip(ORDINE_CU, r))
+        if p.returncode != 0 or j.get("rows") != atteso:
+            # the card is the authority, not the exit code: a write that went
+            # nowhere used to come back as success. From PR #80.
             motivo = (getattr(p, "stderr", "") or "").strip() or (p.stdout or "").strip()
             return {"ok": False, "err": motivo or "skillfish-cu e' uscito con %d" % p.returncode,
                     "active": j.get("active_cu"), "rows": j.get("rows")}
@@ -588,13 +624,35 @@ def cu_apply(rows):
         return {"ok": False, "err": str(e)}
 
 
+def cu_keep_boot(on, rows):
+    """Keep this mapping at the next boot, or stop keeping one.
+
+    Only a mapping that is actually on the card can be kept: saving something
+    that was never applied would arm the next boot with a routing nobody has
+    seen work. The idea, and the check, are from tom lima's PR #80."""
+    if not on:
+        p = sh("/usr/local/bin/skillfish-cu boot-clear", 30)
+        return {"ok": p.returncode == 0, **{k: v for k, v in cu_get().items() if k != "ok"}}
+    storto = _cu_righe_valide(rows)
+    if storto:
+        return {"ok": False, "motivo": storto}
+    viva = cu_get().get("rows")
+    if viva != dict(zip(ORDINE_CU, rows)):
+        return {"ok": False, "motivo": "non-applicata"}
+    p = sh("/usr/local/bin/skillfish-cu boot-save %s" % " ".join(str(x) for x in rows), 30)
+    _log("CU: tenute al boot %s" % rows)
+    return {"ok": p.returncode == 0, **{k: v for k, v in cu_get().items() if k != "ok"}}
+
+
 def cu_test():
     if not VKPEAK:
         return {"ok": False, "err": "vkpeak assente"}
     vdir = os.path.dirname(VKPEAK)
 
     def vk():
-        r = sh("cd %s && stdbuf -oL -eL timeout 22 ./vkpeak" % vdir, t=35)
+        # 12 and not 22: fp32-scalar is on screen within 8 seconds, measured on
+        # the dev board, and the sweep now has twenty steps to get through.
+        r = sh("cd %s && stdbuf -oL -eL timeout 12 ./vkpeak" % vdir, t=25)
         m = re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
         return (float(m.group(1)) if m else 0.0), r.returncode
 
@@ -605,33 +663,52 @@ def cu_test():
         s = sh("dmesg --since '16 seconds ago' 2>/dev/null | grep -ciE 'amdgpu.*(fault|timeout|reset|hang|recover|failed)'").stdout.strip()
         return int(s) if s.isdigit() else 0
 
-    cur = cu_get().get("rows", {})
-    order = ["0.0", "0.1", "1.0", "1.1"]
+    stato = cu_get()
+    cur = stato.get("rows", {})
+    order = list(ORDINE_CU)
+    # The lowest pair is what the other rows run on while one row is under
+    # test. It used to be 0x07, three pairs, which is exactly the range the
+    # test could never examine.
+    fondo = 1 << 0
     res = []
-    sh("/usr/local/bin/skillfish-cu set-rows 7 7 7 7")
-    time.sleep(1)
-    base, _ = vk()
-    for rk in order:
-        for wgp in (3, 4):
-            rows = {k: 7 for k in order}
-            rows[rk] = 7 | (1 << wgp)
-            sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (rows["0.0"], rows["0.1"], rows["1.0"], rows["1.1"]))
-            time.sleep(1)
-            g, rc = vk()
-            e = errs()
-            al = alive()
-            verdict = "FAIL" if (not al or e > 0) else ("N/A" if g <= 0 else "OK")
-            res.append({"row": rk, "wgp": wgp, "cu": "%d-%d" % (wgp * 2, wgp * 2 + 1),
-                        "gflops": round(g), "errors": e, "verdict": verdict})
-            time.sleep(1.5)
-    sh("/usr/local/bin/skillfish-cu max")
-    time.sleep(1)
-    rf = sh("cd %s && ./vkpeak" % vdir, t=120)
-    mf = re.search(r'fp32-scalar\s*=\s*([\d.]+)', rf.stdout)
-    full = round(float(mf.group(1)) if mf else 0.0)
-    full_err = errs()
-    g0 = lambda k: int(cur.get(k, 31))  # noqa: E731
-    sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (g0("0.0"), g0("0.1"), g0("1.0"), g0("1.1")))
+
+    def rimetti():
+        """The mapping the user had before any of this started.
+
+        ⚠️ In a finally, because it used to be the last statement of the
+        function: anything that raised part way through twenty steps left the
+        board on one pair per row, eight CU out of forty, and said nothing."""
+        g0 = int  # keeps the lambda-free shape readable
+        sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d"
+           % tuple(g0(cur.get(k, 31)) for k in order))
+
+    try:
+        sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (fondo, fondo, fondo, fondo))
+        time.sleep(0.5)
+        base, _ = vk()
+        for rk in order:
+            for wgp in range(5):
+                rows = {k: fondo for k in order}
+                rows[rk] = (1 << wgp)
+                sh("/usr/local/bin/skillfish-cu set-rows %d %d %d %d" % (rows["0.0"], rows["0.1"], rows["1.0"], rows["1.1"]))
+                time.sleep(0.5)
+                g, rc = vk()
+                e = errs()
+                al = alive()
+                verdict = "FAIL" if (not al or e > 0) else ("N/A" if g <= 0 else "OK")
+                res.append({"row": rk, "wgp": wgp, "cu": "%d-%d" % (wgp * 2, wgp * 2 + 1),
+                            "gflops": round(g), "errors": e, "verdict": verdict})
+                time.sleep(1)
+        sh("/usr/local/bin/skillfish-cu max")
+        time.sleep(0.5)
+        # ⚠️ timeout, like every other bench here. Without one, a subprocess
+        # deadline kills the shell and leaves ./vkpeak orphaned on the GPU.
+        rf = sh("cd %s && stdbuf -oL -eL timeout 20 ./vkpeak" % vdir, t=35)
+        mf = re.search(r'fp32-scalar\s*=\s*([\d.]+)', rf.stdout)
+        full = round(float(mf.group(1)) if mf else 0.0)
+        full_err = errs()
+    finally:
+        rimetti()
     return {"ok": True, "baseline": round(base), "results": res,
             "bad": sum(1 for x in res if x["verdict"] == "FAIL"),
             "na": sum(1 for x in res if x["verdict"] == "N/A"), "full40": full, "full40_err": full_err}
@@ -1393,6 +1470,8 @@ def handle(req):
         return {"ok": True, **cu_get()}
     if c == "cu-apply":
         return cu_apply(req.get("rows", []))
+    if c == "cu-keep-boot":
+        return cu_keep_boot(req.get("on"), req.get("rows"))
     if c == "cu-test":
         return cu_test()
     if c == "set-vram":

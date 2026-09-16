@@ -938,7 +938,6 @@ class Pagina(PaginaBase):
     # ---- compute units
     CU_VERDE = "QPushButton{background:#2e5a2a;border:1px solid #8fbf6a;color:#d4f0a0;font-weight:700;}"
     CU_ROSSO = "QPushButton{background:#5a2a2a;border:1px solid #d85a5a;color:#f0b0b0;}"
-    CU_GRIGIO = "QPushButton{background:#2a2622;border:1px solid #4a4036;color:#8a7c68;}"
 
     def _pan_cu(self):
         cu = (self.demone.cmd(cmd="cu-get") or {})
@@ -946,12 +945,15 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        self.cu_floor = int(cu.get("floor", 7))
+        # One pair per row, and the daemon says so rather than this file
+        # guessing. There used to be a floor of three here, greyed out and
+        # OR-ed into everything, and it was not real.
+        self.cu_min = int(cu.get("min_wgp", 1)) or 1
         self.cu_ordine = ["0.0", "0.1", "1.0", "1.1"]
-        righe = cu.get("rows") or {k: 7 for k in self.cu_ordine}
-        self.cu_righe = {k: int(righe.get(k, 7)) | self.cu_floor for k in self.cu_ordine}
-        e = QLabel(L("Verde acceso, rosso spento, grigio sempre acceso (lo tiene il driver). Ogni casella e' una coppia di CU.",
-                     "Green on, red off, grey always on (the driver keeps it). Every cell is a pair of CUs."))
+        righe = cu.get("rows") or {k: 31 for k in self.cu_ordine}
+        self.cu_righe = {k: int(righe.get(k, 31)) or self.cu_min for k in self.cu_ordine}
+        e = QLabel(L("Verde acceso, rosso spento. Ogni casella e' una coppia di CU. Almeno una per riga deve restare accesa.",
+                     "Green on, red off. Every cell is a pair of CUs. At least one per row has to stay on."))
         e.setWordWrap(True)
         e.setObjectName("quieto")
         v.addWidget(e)
@@ -972,7 +974,6 @@ class Pagina(PaginaBase):
                 b.setCheckable(True)
                 b.setFixedSize(80, 30)
                 b.setChecked(bool(self.cu_righe[rk] & (1 << wgp)))
-                b.setEnabled(not bool(self.cu_floor & (1 << wgp)))
                 b.toggled.connect(lambda on, rk=rk, wgp=wgp: self._cu_toggle(rk, wgp, on))
                 self.cu_celle[(rk, wgp)] = b
                 g.addWidget(b, r + 1, wgp + 1)
@@ -980,7 +981,7 @@ class Pagina(PaginaBase):
         r = QHBoxLayout()
         r.addWidget(QLabel("<b>%s</b>" % L("CU attive", "Active CUs")))
         self.cu_n = QSpinBox()
-        self.cu_n.setRange(24, 40)
+        self.cu_n.setRange(len(self.cu_ordine) * 2, 40)
         self.cu_n.setSingleStep(2)
         self.cu_n.valueChanged.connect(self._cu_da_numero)
         r.addWidget(self.cu_n)
@@ -999,8 +1000,8 @@ class Pagina(PaginaBase):
         r = QHBoxLayout()
         r.addStretch(1)
         b = QPushButton("Test CU")
-        b.setToolTip(L("Accende una coppia alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti.",
-                       "Turns on one pair at a time under vkpeak and watches for GPU errors. Two or three minutes."))
+        b.setToolTip(L("Prova una coppia alla volta sotto vkpeak, tutte e cinque le posizioni, e guarda se la GPU fa errori. Cinque minuti circa.",
+                       "Tries one pair at a time under vkpeak, all five positions, and watches for GPU errors. About five minutes."))
         b.clicked.connect(self._test_cu)
         r.addWidget(b)
         b = QPushButton(L("Applica", "Apply"))
@@ -1008,23 +1009,70 @@ class Pagina(PaginaBase):
         b.clicked.connect(self._applica_cu)
         r.addWidget(b)
         v.addLayout(r)
+        r = QHBoxLayout()
+        self.cu_al_boot = QCheckBox(L("Mantieni all'avvio", "Keep at boot"))
+        self.cu_al_boot.setToolTip(L(
+            "La scheda riparte con questa mappatura invece che con tutte le CU accese. Applica prima, poi spunta.",
+            "The board comes back with this mapping instead of every CU on. Apply first, then tick."))
+        self.cu_al_boot.setChecked(bool(cu.get("keep_boot")))
+        self.cu_al_boot.clicked.connect(self._cu_boot_switch)
+        r.addWidget(self.cu_al_boot)
+        r.addWidget(Aiuto(L(
+            "Senza la spunta la scheda accende tutte le CU a ogni avvio, che e' quello che serve quasi sempre. "
+            "Con la spunta riparte con le coppie scelte qui: serve quando una coppia e' guasta e va lasciata spenta.",
+            "Unticked, the board turns every CU on at each boot, which is what almost everyone wants. Ticked, it "
+            "comes back with the pairs chosen here: that is what you need when a pair is faulty and has to stay off."),
+            L("Mantieni all'avvio", "Keep at boot")))
+        r.addStretch(1)
+        v.addLayout(r)
         self._cu_colora()
         return w
 
+    def _cu_motivo(self, r):
+        """Why a CU change did not go through, in words the user can act on."""
+        return {
+            "riga-vuota": L("Ogni riga deve avere almeno una coppia accesa.",
+                            "Every row needs at least one pair on."),
+            "maschere-storte": L("Le quattro righe non sono valide.",
+                                 "The four rows are not valid."),
+            "non-applicata": L("Applica la scelta prima di tenerla all'avvio.",
+                               "Apply the selection before keeping it at boot."),
+        }.get(r.get("motivo")) or r.get("err") or "?"
+
+    def _cu_boot_switch(self, on):
+        r = self.demone.cmd(cmd="cu-keep-boot", on=bool(on),
+                            rows=[self.cu_righe[rk] for rk in self.cu_ordine]) or {}
+        if not r.get("ok"):
+            self.toast(self._cu_motivo(r), 6)
+            self.cu_al_boot.blockSignals(True)
+            self.cu_al_boot.setChecked(not on)
+            self.cu_al_boot.blockSignals(False)
+            return
+        self.toast(L("La scheda ripartira' con questa mappatura", "The board will come back with this mapping")
+                   if on else L("Al prossimo avvio tornano tutte accese", "Every CU comes back on at the next boot"), 5)
+
     def _cu_toggle(self, rk, wgp, on):
-        m = self.cu_righe.get(rk, 7)
-        m = (m | (1 << wgp)) if on else (m & ~(1 << wgp))
-        self.cu_righe[rk] = m | self.cu_floor
+        m = self.cu_righe.get(rk, 31)
+        nuova = (m | (1 << wgp)) if on else (m & ~(1 << wgp))
+        if nuova == 0:
+            # the last pair of a row: refused, and said out loud. Disabling the
+            # button instead is what the old floor did, and it left the user
+            # with no idea why the cell would not move.
+            self.cu_celle[(rk, wgp)].blockSignals(True)
+            self.cu_celle[(rk, wgp)].setChecked(True)
+            self.cu_celle[(rk, wgp)].blockSignals(False)
+            self.et_cu.setText(L("Almeno una coppia per riga", "At least one pair per row"))
+            return
+        self.cu_righe[rk] = nuova
         self._cu_colora()
 
     def _cu_conta(self):
-        return sum(bin(self.cu_righe.get(rk, 7) | self.cu_floor).count("1") * 2 for rk in self.cu_ordine)
+        return sum(bin(self.cu_righe.get(rk, 31)).count("1") * 2 for rk in self.cu_ordine)
 
     def _cu_colora(self):
         for (rk, wgp), b in self.cu_celle.items():
-            fisso = bool(self.cu_floor & (1 << wgp))
-            acceso = bool(self.cu_righe.get(rk, 7) & (1 << wgp))
-            b.setStyleSheet(self.CU_GRIGIO if fisso else (self.CU_VERDE if acceso else self.CU_ROSSO))
+            acceso = bool(self.cu_righe.get(rk, 31) & (1 << wgp))
+            b.setStyleSheet(self.CU_VERDE if acceso else self.CU_ROSSO)
         n = self._cu_conta()
         self.et_cu.setText("%d / 40" % n)
         self.cu_n.blockSignals(True)
@@ -1032,13 +1080,12 @@ class Pagina(PaginaBase):
         self.cu_n.blockSignals(False)
 
     def _cu_da_numero(self, n):
-        """n CUs = 24 fixed + pairs: fill WGP3 down the rows, then WGP4."""
-        coppie = max(0, (n - 24) // 2)
+        """n CUs into pairs: one per row first, then a column at a time."""
+        coppie = max(len(self.cu_ordine), n // 2)
         for rk in self.cu_ordine:
-            self.cu_righe[rk] = self.cu_floor
-        for wgp in range(5):
-            if self.cu_floor & (1 << wgp):
-                continue
+            self.cu_righe[rk] = 1 << 0
+        coppie -= len(self.cu_ordine)
+        for wgp in range(1, 5):
             for rk in self.cu_ordine:
                 if coppie <= 0:
                     break
@@ -1051,13 +1098,22 @@ class Pagina(PaginaBase):
         self._cu_colora()
 
     def _applica_cu(self):
-        r = self.demone.cmd(cmd="cu-apply", rows=[self.cu_righe.get(rk, 7) | self.cu_floor for rk in self.cu_ordine])
-        self.toast(L("CU applicate: %s/40", "CUs applied: %s/40") % r.get("active", "?") if r.get("ok") else r.get("err", "?"), 6)
+        r = self.demone.cmd(cmd="cu-apply",
+                            rows=[self.cu_righe.get(rk, 31) for rk in self.cu_ordine]) or {}
+        if not r.get("ok"):
+            self.toast(self._cu_motivo(r), 6)
+            return
+        self.toast(L("CU applicate: %s/40", "CUs applied: %s/40") % r.get("active", "?"), 6)
+        # a mapping kept for boot and then changed is no longer what was kept
+        if self.cu_al_boot.isChecked():
+            self._cu_boot_switch(True)
 
     def _test_cu(self):
         if QMessageBox.question(self, "Test CU", L(
-                "Accende una coppia di CU extra alla volta sotto vkpeak e guarda se la GPU fa errori. Due o tre minuti. Procedere?",
-                "Turns on one extra CU pair at a time under vkpeak and watches for GPU errors. Two or three minutes. Proceed?")) != QMessageBox.StandardButton.Yes:
+                "Prova una coppia di CU alla volta sotto vkpeak, in tutte e cinque le posizioni, e guarda se la GPU fa errori. "
+                "Circa cinque minuti, e alla fine rimette la scelta di adesso. Procedere?",
+                "Tries one CU pair at a time under vkpeak, in all five positions, and watches for GPU errors. "
+                "About five minutes, and it puts the current selection back at the end. Proceed?")) != QMessageBox.StandardButton.Yes:
             return
         self.et_cu.setText(L("test…", "testing…"))
         in_sfondo(lambda: self.demone.cmd(cmd="cu-test"), self._cu_testate, self)
