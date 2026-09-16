@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.28" date="2026-09-16">
+      <description>
+        <p>The CPU panel offers only what the board accepts, 3500 to 4500 MHz and down to -40 undervolt steps, and when a value is refused it says which one. The Governor box is ticked when the governor is running and also starts at boot; the tooltip tells the two apart. The AI page and the cluster card are translated into all nine languages.</p>
+        <p xml:lang="it">Il pannello CPU propone solo quello che la scheda accetta, da 3500 a 4500 MHz e fino a -40 passi di undervolt, e quando un valore viene rifiutato dice quale. La casella del Governor è spuntata quando il governor gira e parte anche all'avvio; il suggerimento dice quale delle due manca. La pagina AI e la scheda del cluster sono tradotte in tutte e nove le lingue.</p>
+        <p xml:lang="fr">Le panneau CPU ne propose que ce que la carte accepte, de 3500 à 4500 MHz et jusqu'à -40 pas d'undervolt, et quand une valeur est refusée il dit laquelle. La case du Governor est cochée quand le governor tourne et démarre aussi au lancement ; l'infobulle distingue les deux. La page IA et la carte du cluster sont traduites dans les neuf langues.</p>
+        <p xml:lang="es">El panel de CPU ofrece solo lo que la placa acepta, de 3500 a 4500 MHz y hasta -40 pasos de undervolt, y cuando rechaza un valor dice cuál. La casilla del Governor queda marcada cuando el governor está en marcha y además arranca con el sistema; la descripción emergente distingue las dos cosas. La página de IA y la tarjeta del clúster están traducidas a los nueve idiomas.</p>
+        <p xml:lang="pt">O painel da CPU oferece só o que a placa aceita, de 3500 a 4500 MHz e até -40 passos de undervolt, e quando recusa um valor diz qual. A caixa do Governor fica marcada quando o governor está a correr e também arranca com o sistema; a dica distingue as duas coisas. A página de IA e o cartão do cluster estão traduzidos nas nove línguas.</p>
+        <p xml:lang="de">Die CPU-Karte bietet nur an, was die Karte annimmt, 3500 bis 4500 MHz und bis zu -40 Undervolt-Stufen, und bei einem abgelehnten Wert sagt sie, welcher es ist. Das Governor-Kästchen ist angehakt, wenn der Governor läuft und auch beim Start mitkommt; der Tooltip unterscheidet beides. Die KI-Seite und die Cluster-Karte sind in alle neun Sprachen übersetzt.</p>
+        <p xml:lang="pl">Panel CPU proponuje tylko to, co płyta przyjmuje, od 3500 do 4500 MHz i do -40 kroków undervoltu, a gdy wartość zostanie odrzucona, mówi która. Pole Governora jest zaznaczone, gdy governor działa i uruchamia się też przy starcie; podpowiedź rozróżnia te dwie rzeczy. Strona AI i karta klastra są przetłumaczone na wszystkie dziewięć języków.</p>
+        <p xml:lang="ru">Панель CPU предлагает только то, что принимает плата: от 3500 до 4500 МГц и до -40 шагов андервольта, а если значение отклонено, говорит какое. Флажок Governor отмечен, когда регулятор работает и запускается при загрузке; подсказка различает эти два условия. Страница ИИ и карточка кластера переведены на все девять языков.</p>
+        <p xml:lang="uk">Панель CPU пропонує лише те, що приймає плата: від 3500 до 4500 МГц і до -40 кроків андервольту, а якщо значення відхилено, каже яке. Прапорець Governor позначено, коли регулятор працює і запускається під час завантаження; підказка розрізняє ці дві умови. Сторінку ШІ та картку кластера перекладено всіма дев'ятьма мовами.</p>
+      </description>
+    </release>
     <release version="26.09.25" date="2026-09-14">
       <description>
         <p>The silicon panel counts the compute units that are really on. It read the wrong file and showed zero next to a grid reading forty.</p>
