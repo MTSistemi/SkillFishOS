@@ -2,10 +2,27 @@
 # SkillFishOS — live Compute Unit (WGP) manager for the AMD BC-250.
 # Routes GPU Compute Units at runtime by writing the SPI/CC/RLC WGP masks via umr.
 # 1 WGP = 2 CU; 5 WGP per shader array x 4 arrays (2 SE x 2 SH) = 40 CU.
-# Driver floor = WGP0-2 (24 CU) are locked on at boot and always kept.
-# Implementazione nostra. I fatti su cui si regge — nomi e campi dei registri,
-# la regola che 1 WGP vale 2 CU, il pavimento di WGP0-2 imposto dal driver —
-# stanno negli header AMD (licenza MIT) e in gfx_v10_0.c del kernel Linux.
+# No WGP is forced on. Any pair can be switched off, down to one per row.
+# Our own implementation. The facts it rests on, the register names and fields
+# and the rule that 1 WGP is 2 CU, come from the AMD headers (MIT licence) and
+# from gfx_v10_0.c in the Linux kernel.
+#
+# There used to be a third "fact" here: that the driver locks WGP0-2 on and
+# they can never be disabled. It is not true, and it cost a user with a
+# defective CU in that range any way of switching it off. Measured on the dev
+# board on 16/09/2026 by writing the masks through umr directly:
+#
+#   a row set to 0x1b keeps WGP2 off with WGP3 on, through a GPU load and
+#   fifteen seconds, with nothing putting the bit back, and with
+#   RLC_PG_ALWAYS_ON_WGP_MASK still at 0x1f
+#
+#   0x18 leaves only WGP3 and WGP4, so WGP0, WGP1 and WGP2 go off together
+#
+#   the silicon honours it rather than just reading it back: vkpeak fp32 gives
+#   10156 GFLOPS at 40 CU, 8145 at 32, 4091 at 16, linear within a fifth of a
+#   percent, and returns to 10158 when everything is switched back on
+#
+# See issue #77. Reported by tom lima.
 set -u
 UMR=/usr/local/bin/umr
 
@@ -36,10 +53,12 @@ CC=mmCC_GC_SHADER_ARRAY_CONFIG
 SPI=mmSPI_PG_ENABLE_STATIC_WGP_MASK
 RLC=mmRLC_PG_ALWAYS_ON_WGP_MASK
 ROWS=(0:0 0:1 1:0 1:1)
-FLOOR=0x07            # WGP0,1,2 — driver-locked, never disabled
+MIN_WGP=0x01          # a row with no WGP has nothing to run on: keep one
 FULL=0x1f            # all 5 WGP
+STOCK=0x07           # WGP0-2: the mapping the driver comes up with on its own
 RUN=/run/skillfish
 STATE=$RUN/cu_active
+BOOTCONF=/etc/skillfish/cu-boot.conf
 
 popcount2(){ local m=$1 c=0 i; for i in 0 1 2 3 4; do (( (m>>i)&1 )) && c=$((c+2)); done; echo "$c"; }
 
@@ -54,23 +73,43 @@ read_total(){ local t=0 r se sh; for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:
 cmd_get(){ # JSON: per-row masks + active CU total
   local r se sh m parts=()
   for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}; m=$(read_row "$se" "$sh"); parts+=("\"$se.$sh\":$m"); done
-  printf '{"active_cu":%s,"max_cu":40,"floor":%d,"rows":{%s}}\n' "$(read_total)" $((FLOOR)) "$(IFS=,; echo "${parts[*]}")"
+  # "floor" stays in the JSON because the Control Center reads it, and it is
+  # now what it always should have been: nothing is forced on.
+  printf '{"active_cu":%s,"max_cu":40,"floor":0,"min_wgp":%d,"rows":{%s}}\n' "$(read_total)" $((MIN_WGP)) "$(IFS=,; echo "${parts[*]}")"
 }
 
 write_row(){ # se sh mask(decimal)
-  local m=$(( ($3 | FLOOR) & 0x1f ))
-  $UMR -i $INST -w "$ASIC.$CC" 0x0 -b "$1" "$2" 0xffffffff >/dev/null 2>&1
-  $UMR -i $INST -w "$ASIC.$SPI" "$(printf '0x%x' $m)" -b "$1" "$2" 0xffffffff >/dev/null 2>&1
+  local m=$(( $3 & 0x1f ))
+  (( m == 0 )) && m=$MIN_WGP
+  # A write that fails must say so. These calls used to go to /dev/null with
+  # nobody looking, so a routing that never happened still reported success.
+  # Spotted by tom lima in PR #80.
+  $UMR -i $INST -w "$ASIC.$CC" 0x0 -b "$1" "$2" 0xffffffff >/dev/null 2>&1 || return 1
+  $UMR -i $INST -w "$ASIC.$SPI" "$(printf '0x%x' $m)" -b "$1" "$2" 0xffffffff >/dev/null 2>&1 || return 1
 }
 
 apply_rows(){ # m00 m01 m10 m11 (decimal/hex)
-  local maxbits=0 r se sh idx=1
-  $UMR -i $INST -w "$ASIC.$CC" 0x0 >/dev/null 2>&1
-  for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}
-    local m=$(( (${!idx} | FLOOR) & 0x1f )); write_row "$se" "$sh" "$m"
-    (( m > maxbits )) && maxbits=$m; idx=$((idx+1))
+  # Four masks, each one a real one, checked before anything reaches a
+  # register. Also from PR #80.
+  [ "$#" -eq 4 ] || return 2
+  local arg
+  for arg in "$@"; do
+    [[ "$arg" =~ ^(0x[0-9a-fA-F]{1,2}|[0-9]{1,2})$ ]] || return 2
+    (( arg >= 0 && arg <= 31 )) || return 2
   done
-  $UMR -i $INST -w "$ASIC.$RLC" "$(printf '0x%x' $maxbits)" >/dev/null 2>&1
+  local unione=0 r se sh idx=1
+  $UMR -i $INST -w "$ASIC.$CC" 0x0 >/dev/null 2>&1 || return 1
+  for r in "${ROWS[@]}"; do se=${r%:*}; sh=${r#*:}
+    local m=$(( ${!idx} & 0x1f )); (( m == 0 )) && m=$MIN_WGP
+    write_row "$se" "$sh" "$m" || return 1
+    # ⚠️ The union of the rows, not the largest number among them. This was
+    # `(( m > maxbits )) && maxbits=$m`, which is wrong whenever a row has
+    # fewer pairs on but higher ones: 0x18 beats 0x07 as a number while
+    # carrying half the WGPs, so the low pairs fell out of the always-on mask.
+    # Found by tom lima in PR #80.
+    unione=$(( unione | m )); idx=$((idx+1))
+  done
+  $UMR -i $INST -w "$ASIC.$RLC" "$(printf '0x%x' $unione)" >/dev/null 2>&1 || return 1
   update_state
 }
 
@@ -84,6 +123,41 @@ update_state(){
 }
 
 need_root(){ [ "$(id -u)" = 0 ] || { echo "skillfish-cu: needs root" >&2; exit 1; }; }
+
+righe_salvate(){ # the saved mapping, or nothing
+  [ -r "$BOOTCONF" ] || return 0
+  sed -n 's/^rows=//p' "$BOOTCONF" | head -1
+}
+
+cmd_boot_get(){
+  local rows; rows=$(righe_salvate)
+  if [ -n "$rows" ] && [ "$(echo $rows | wc -w)" = 4 ]; then
+    printf '{"keep":true,"rows":[%s]}\n' "$(echo $rows | tr ' ' ',')"
+  else
+    printf '{"keep":false,"rows":[]}\n'
+  fi
+}
+
+cmd_boot_save(){ # m00 m01 m10 m11
+  mkdir -p "$(dirname "$BOOTCONF")" 2>/dev/null
+  printf '# scritto da skillfish-cu: la mappatura da rimettere all%s avvio\nrows=%d %d %d %d\n' \
+    "'" $(( $1 & 0x1f )) $(( $2 & 0x1f )) $(( $3 & 0x1f )) $(( $4 & 0x1f )) > "$BOOTCONF"
+  chmod 644 "$BOOTCONF" 2>/dev/null
+  echo "tenuta per il prossimo avvio: $1 $2 $3 $4"
+}
+
+cmd_boot(){ # what the unit runs
+  # ⚠️ All 40 CU stay the default. A saved mapping is used only when somebody
+  # asked for one, and only when it is four fields: a truncated or hand-edited
+  # file must not leave the board with fewer CU than its owner expects.
+  local rows; rows=$(righe_salvate)
+  if [ -n "$rows" ] && [ "$(echo $rows | wc -w)" = 4 ]; then
+    apply_rows $rows && riporta
+  else
+    apply_uniform $FULL
+    riporta 40
+  fi
+}
 
 # Secondo presidio: umr puo' esserci ed essere comunque inutile — driver diverso,
 # scheda che non e' una BC-250, registri non accessibili. Anche in quel caso
@@ -105,10 +179,14 @@ riporta(){ # riporta <cu_attese>
 
 case "${1:-}" in
   get)              cmd_get ;;
-  max|enable-all)   need_root; apply_uniform $FULL;  riporta 40 ;;
-  stock|disable-extra) need_root; apply_uniform $FLOOR; riporta 24 ;;
-  set)              need_root; apply_uniform "${2:?mask}"; riporta ;;     # 0x07..0x1f, all rows
-  set-rows)         need_root; apply_rows "${2:?}" "${3:?}" "${4:?}" "${5:?}"; riporta ;;
+  max|enable-all)   need_root; apply_uniform $FULL  && riporta 40 ;;
+  stock|disable-extra) need_root; apply_uniform $STOCK && riporta 24 ;;
+  boot)             need_root; cmd_boot ;;
+  boot-save)        need_root; cmd_boot_save "${2:?}" "${3:?}" "${4:?}" "${5:?}" ;;
+  boot-clear)       need_root; rm -f "$BOOTCONF"; echo "all'avvio tornano tutte accese" ;;
+  boot-get)         cmd_boot_get ;;
+  set)              need_root; apply_uniform "${2:?mask}" && riporta ;;   # 0x01..0x1f, all rows
+  set-rows)         need_root; apply_rows "${2:?}" "${3:?}" "${4:?}" "${5:?}" && riporta ;;
   state)            need_root; update_state; cat "$STATE" ;;
-  *) echo "usage: skillfish-cu {get|max|stock|set <0x07..0x1f>|set-rows m00 m01 m10 m11|state}"; exit 1 ;;
+  *) echo "usage: skillfish-cu {get|max|stock|set <0x01..0x1f>|set-rows m00 m01 m10 m11|state|boot|boot-save m00 m01 m10 m11|boot-clear|boot-get}"; exit 1 ;;
 esac

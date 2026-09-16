@@ -1,5 +1,5 @@
 [Unit]
-Description=SkillFishOS — route all BC-250 Compute Units (40 CU) at boot
+Description=SkillFishOS — route the BC-250 Compute Units at boot
 Documentation=https://skillfishos.com
 After=display-manager.service multi-user.target
 Wants=display-manager.service
@@ -12,7 +12,10 @@ Type=oneshot
 # file dopo e la macchina resta scoperta. Su un PC che non e' una
 # BC-250 il servizio parte, non trova le CU e fallisce a ogni avvio.
 ExecCondition=/usr/local/bin/skillfish-is-bc250
-ExecStart=/usr/local/bin/skillfish-cu max
+# `boot` and not `max`: all 40 CU are still what happens unless somebody has
+# saved a mapping with "keep at boot", which is how a defective CU gets to stay
+# switched off. See issue #77.
+ExecStart=/usr/local/bin/skillfish-cu boot
 RemainAfterExit=yes
 
 [Install]
