@@ -34,6 +34,7 @@ from ..stile import Stato, Tessera, intestazione, link_doc
 
 CURVA_PREDEFINITA = "/usr/share/skillfish/vf-curva-predefinita.json"
 MV_PER_SCALINO = 6.25          # the SMU voltage step of the CPU undervolt
+GOV_UNIT = "skillfish-vf-governor.service"
 SECONDI_PROVA = 25
 CPU_TOLLERANZA = 200           # MHz under the target that still count as "holds"
 
@@ -289,6 +290,9 @@ class Pagina(PaginaBase):
         self.interruttore.setToolTip(L("Spento: il clock torna al governor di serie.",
                                        "Off: the clock goes back to the stock governor."))
         self.interruttore.clicked.connect(self._governor_on_off)
+        # the boot state is re-read on a timer of its own, see _gov_al_boot
+        self._gov_boot = None
+        self._gov_boot_letto = 0.0
         testa.addWidget(self.interruttore)
         testa.addWidget(Aiuto(L("Il nostro governor forza il clock e si prende la protezione: il tetto scende quando la scheda scalda o tira troppo.",
                                 "Our governor forces the clock and takes on the protection: the ceiling drops when the board gets hot or draws too much."), "Governor"))
@@ -558,8 +562,25 @@ class Pagina(PaginaBase):
             self.et_salva.setText(L("annullata: torna la curva di prima", "cancelled: the previous curve is back"))
         self._ricarica_curva()
 
+    # systemctl is-enabled is a process and this page ticks every second, so
+    # the boot state is re-read every few seconds instead of every frame.
+    INTERVALLO_BOOT = 5.0
+
+    def _gov_al_boot(self):
+        """Whether the governor comes back at the next boot.
+
+        ⚠️ is-enabled exits 1 when the unit is disabled, so the word it prints
+        decides and not the return code."""
+        adesso = time.time()
+        if self._gov_boot is None or adesso - self._gov_boot_letto > self.INTERVALLO_BOOT:
+            _, out, _ = sh("systemctl is-enabled " + GOV_UNIT, 10)
+            self._gov_boot = out.strip() == "enabled"
+            self._gov_boot_letto = adesso
+        return self._gov_boot
+
     def _governor_on_off(self, on):
         r = self.demone.cmd(cmd="gov-attiva", on=bool(on))
+        self._gov_boot = None          # the click just changed it: read it again
         if not r.get("ok"):
             self.toast(r.get("err", "?"))
             self.interruttore.setChecked(not on)
@@ -591,9 +612,18 @@ class Pagina(PaginaBase):
         self.curva.aggiorna_vivo(val.get("gpu_mhz"), mv)
         self.b_stato.setText(L("governor attivo", "governor running") if vivo else L("governor fermo", "governor stopped"))
         self.b_stato.tono("bene" if vivo else "male")
+        al_boot = self._gov_al_boot()
+        # ticked only when both halves agree: running now AND coming back. A box
+        # that only knew the first half read as "on and staying on" to a user
+        # whose governor was about to disappear at the next boot.
         self.interruttore.blockSignals(True)
-        self.interruttore.setChecked(vivo)
+        self.interruttore.setChecked(vivo and al_boot)
         self.interruttore.blockSignals(False)
+        self.interruttore.setToolTip("%s %s" % (
+            L("Ora e' acceso.", "It is on now.") if vivo
+            else L("Ora e' spento.", "It is off now."),
+            L("Al prossimo avvio riparte.", "It comes back at the next boot.") if al_boot
+            else L("Al prossimo avvio non riparte.", "It does not come back at the next boot.")))
         if os.path.exists("/run/skillfish/gov-prova.json") and not self._occupato:
             self.b_stato.setText(L("prova in corso", "trial running"))
             self.b_stato.tono("ottone")
