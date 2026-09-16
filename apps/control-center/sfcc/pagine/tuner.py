@@ -626,9 +626,10 @@ class Pagina(PaginaBase):
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(8)
-        self.cf = Manopola(2000, 4500, cfg.get("frequency", 3500), "MHz")
-        self.cs = Manopola(-60, 0, cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
-        self.ct = Manopola(60, 95, cfg.get("max_temperature", 85), "°C")
+        lim = self._limiti_cpu()
+        self.cf = Manopola(lim["freq_min"], lim["freq_max"], cfg.get("frequency", 3500), "MHz")
+        self.cs = Manopola(lim["scale_min"], lim["scale_max"], cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
+        self.ct = Manopola(max(60, lim["temp_min"]), min(95, lim["temp_max"]), cfg.get("max_temperature", 85), "°C")
         for testo, cur, aiuto in (
                 (L("Frequenza", "Clock"), self.cf, L("Il clock sotto carico. Sopra 3500 con otto core comanda il calore.", "The clock under load. Above 3500 with eight cores heat is in charge.")),
                 (L("Undervolt", "Undervolt"), self.cs, L("Scalini di 6,25 mV tolti alla CPU: meno calore, stessa frequenza, fin dove regge.", "Steps of 6.25 mV taken off the CPU: less heat, same clock, as far as it holds.")),
@@ -671,16 +672,46 @@ class Pagina(PaginaBase):
     def _valori_cpu(self):
         return self.cf.value(), self.cs.value(), self.ct.value()
 
+    # What the panel offers when the daemon cannot be asked. Deliberately the
+    # narrow range: offering more than the backend accepts is the bug itself.
+    RIPIEGO_LIMITI = {"freq_min": 3500, "freq_max": 4500, "scale_min": -40,
+                      "scale_max": 0, "temp_min": 0, "temp_max": 100}
+
+    def _limiti_cpu(self):
+        """What the backend will really accept. Asked, never assumed: the panel
+        used to offer 2000-4500 MHz against a floor of 3500, and everything
+        below it failed without a word."""
+        r = self.demone.cmd(cmd="cpu-limits") or {}
+        lim = dict(self.RIPIEGO_LIMITI)
+        if r.get("ok"):
+            lim.update(r.get("data") or {})
+        return lim
+
+    def _motivo_cpu(self, r):
+        """Why the setting did not go in, in words the user can act on."""
+        f = r.get("fuori") or {}
+        frase = {
+            "frequency": L("La frequenza accettata va da %d a %d MHz.",
+                           "The accepted clock runs from %d to %d MHz."),
+            "scale": L("L'undervolt accettato va da %d a %d scalini.",
+                       "The accepted undervolt runs from %d to %d steps."),
+            "max_temperature": L("Il limite gradi accettato va da %d a %d.",
+                                 "The accepted degree limit runs from %d to %d."),
+        }.get(f.get("campo"))
+        if frase:
+            return frase % (f.get("min", 0), f.get("max", 0))
+        return r.get("err") or L("non applicata", "not applied")
+
     def _applica_cpu(self):
         m, s, t = self._valori_cpu()
         r = self.demone.cmd(cmd="apply-cpu", mhz=m, scale=s, temp=t)
         self.demone.cmd(cmd="thermal-guard", limit=t)
-        self.et_cpu.setText(L("CPU applicata", "CPU applied") if r.get("ok") else r.get("err", L("non applicata", "not applied")))
+        self.et_cpu.setText(L("CPU applicata", "CPU applied") if r.get("ok") else self._motivo_cpu(r))
 
     def _salva_cpu(self):
         m, s, t = self._valori_cpu()
         r = self.demone.cmd(cmd="persist-cpu", mhz=m, scale=s, temp=t)
-        self.et_cpu.setText(L("CPU salvata: vale anche al prossimo avvio", "CPU saved: applies at next boot too") if r.get("ok") else r.get("err", "?"))
+        self.et_cpu.setText(L("CPU salvata: vale anche al prossimo avvio", "CPU saved: applies at next boot too") if r.get("ok") else self._motivo_cpu(r))
 
     # every CPU test goes through one machinery: steps, countdown, Stop
     def _avvia_prova(self, passi, testo, fine):

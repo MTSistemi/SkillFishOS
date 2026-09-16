@@ -672,6 +672,7 @@
  "Panels:": "Панели:",
  "Parallel chats": "Параллельные чаты",
  "password change refused": "смена пароля отклонена",
+ "Per core/thread frequency": "Частота на ядро/поток",
  "Per core/thread frequency (MHz)": "Частота по ядрам и потокам (МГц)",
  "Per extra-CU-pair stability:": "Стабильность каждой дополнительной пары CU:",
  "Per-thread clock  (MHz)": "Частота на поток  (МГц)",
@@ -911,6 +912,9 @@
  "Text editors": "Текстовые редакторы",
  "That is not a snapshot number.": "Это не номер снимка.",
  "That snapshot no longer exists.": "Этого снимка больше нет.",
+ "The accepted clock runs from %d to %d MHz.": "Допустимая частота: от %d до %d МГц.",
+ "The accepted degree limit runs from %d to %d.": "Допустимый предел градусов: от %d до %d.",
+ "The accepted undervolt runs from %d to %d steps.": "Допустимое снижение: от %d до %d ступеней.",
  "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.": "Движок ИИ готов. Менять модели и настраивать память GPU (GTT) можно в панели в любой момент.",
  "The BC-250 ships with 24 of its 40 units on: we switch the other 16 on at boot. The number here comes from the service that routes them, not from the driver, which counts once and stays at 24.": "BC-250 поставляется с 24 из 40 блоков включёнными: остальные 16 включаем мы при загрузке. Число здесь берётся из службы, которая их распределяет, а не из драйвера, который считает один раз и остаётся на 24.",
  "The brakes": "Тормоза",
@@ -1124,6 +1128,5 @@
  "🎰 Find my max": "🎰 Найти мой максимум",
  "🎰 My silicon": "🎰 Мой кремний",
  "📂 Open": "📂 Открыть",
- "📊 ANALYSIS  ·  ": "📊 АНАЛИЗ  ·",
- "Per core/thread frequency": "Частота на ядро/поток"
+ "📊 ANALYSIS  ·  ": "📊 АНАЛИЗ  ·"
 }

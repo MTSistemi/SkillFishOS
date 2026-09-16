@@ -343,14 +343,98 @@ def _write_cpu_conf(mhz, scale, tmp):
     _wr(OC_CONF, "[overclock]\nfrequency = %d\nscale = %d\nmax_temperature = %d\n" % (mhz, scale, tmp))
 
 
-def apply_cpu(mhz, scale, tmp):
+# The backend is the only authority on what can be applied. bc250_limits.py is
+# a plain list of integers next to bc250_apply.py, so it gets read instead of
+# guessed: we used to accept 2000-4500 MHz against a floor of 3500, and every
+# value below it was offered to the user and then refused without a word.
+CPU_LIMITI_RIPIEGO = {"freq_min": 3500, "freq_max": 4500,
+                      "scale_min": -50, "scale_max": 0,
+                      "temp_min": 0, "temp_max": 100}
+
+# The deepest undervolt we let anything reach. The backend allows -50, but -50
+# at the stock clock froze the dev board outright and the suggestion sweep
+# already stops at -40. Those ten steps buy nothing and cost a power cycle.
+CPU_UV_SICURO = -40
+
+_CPU_LIMITI = None
+
+
+def cpu_limiti():
+    """What bc250_apply.py will actually accept, read once and kept."""
+    global _CPU_LIMITI
+    if _CPU_LIMITI is not None:
+        return _CPU_LIMITI
+    lim = dict(CPU_LIMITI_RIPIEGO)
+    try:
+        for nome, val in re.findall(r"(\w+)\s*=\s*(-?\d+)",
+                                    _rd("%s/bc250_limits.py" % OC_DIR)):
+            if nome in lim:
+                lim[nome] = int(val)
+    except OSError:
+        # no backend installed: the fallback above is what it shipped with
+        pass
+    lim["scale_min"] = max(lim["scale_min"], CPU_UV_SICURO)
+    _CPU_LIMITI = lim
+    return lim
+
+
+def _cpu_fuori(mhz, scale, tmp):
+    """Which knob sits outside the limits, as a code the panel can translate.
+    None when everything fits."""
+    lim = cpu_limiti()
+    for campo, val, lo, hi in (
+            ("frequency", mhz, lim["freq_min"], lim["freq_max"]),
+            ("scale", scale, lim["scale_min"], lim["scale_max"]),
+            ("max_temperature", tmp, lim["temp_min"], lim["temp_max"])):
+        if not lo <= val <= hi:
+            return {"campo": campo, "min": lo, "max": hi}
+    return None
+
+
+def _ultima_riga(testo):
+    righe = [r.strip() for r in (testo or "").splitlines() if r.strip()]
+    return righe[-1] if righe else ""
+
+
+def apply_cpu_esito(mhz, scale, tmp):
+    """Apply a CPU setting and say why if it did not go in.
+
+    Returns (ok, reason). The reason is either a dict naming the knob that is
+    out of range, which the panel turns into a sentence, or the backend's own
+    last line. Plain False told the user nothing and read like a control that
+    was not wired up.
+
+    On refusal the previous configuration goes back on disk. This file is what
+    bc250-smu-oc.service reads at boot, so a value the backend rejected would
+    otherwise arm the next boot to fail as well, silently."""
     mhz, scale, tmp = int(mhz), int(scale), int(tmp)
-    if not (2000 <= mhz <= 4500 and -60 <= scale <= 10 and 50 <= tmp <= 100):
-        return False
+    fuori = _cpu_fuori(mhz, scale, tmp)
+    if fuori:
+        return False, fuori
     _log("CPU: %d MHz, scale %d, limite %d C" % (mhz, scale, tmp))
+    prima = _cpu_conf()
     _write_cpu_conf(mhz, scale, tmp)
     r = sh("python3 %s/bc250_apply.py --apply %s" % (OC_DIR, OC_CONF))
-    return r.returncode == 0
+    if r.returncode == 0:
+        return True, ""
+    _write_cpu_conf(prima["frequency"], prima["scale"], prima["max_temperature"])
+    return False, (_ultima_riga(r.stderr) or _ultima_riga(r.stdout)
+                   or "bc250_apply.py failed")
+
+
+def apply_cpu(mhz, scale, tmp):
+    """Bool-only wrapper. Four callers branch on `if not apply_cpu(...)` and a
+    tuple is always truthy, so the reason never travels through this name."""
+    return apply_cpu_esito(mhz, scale, tmp)[0]
+
+
+def _esito_cpu(ok, perche):
+    """One shape for every CPU reply, so the panel always has something to say."""
+    if ok:
+        return {"ok": True}
+    if isinstance(perche, dict):
+        return {"ok": False, "fuori": perche}
+    return {"ok": False, "err": perche}
 
 
 def persist_cpu():
@@ -1159,9 +1243,9 @@ def cpu_volatile(mhz, scale, tmp):
     its own load loop (with a countdown and a Stop button) and calls this per
     step; the last good values keep booting if the board dies mid-test."""
     prev = _cpu_conf()
-    ok = apply_cpu(mhz, scale, tmp)
+    ok, perche = apply_cpu_esito(mhz, scale, tmp)
     _write_cpu_conf(prev["frequency"], prev["scale"], prev["max_temperature"])
-    return {"ok": ok}
+    return _esito_cpu(ok, perche)
 
 
 COREUNLOCK_EFI = "/usr/local/bin/skillfish-coreunlock-efi"
@@ -1275,11 +1359,15 @@ def handle(req):
         return {"ok": True, "mode": "vf"}
     # the CPU
     if c == "apply-cpu":
-        return {"ok": apply_cpu(req["mhz"], req["scale"], req["temp"])}
+        return _esito_cpu(*apply_cpu_esito(req["mhz"], req["scale"], req["temp"]))
+    if c == "cpu-limits":
+        return {"ok": True, "data": cpu_limiti()}
     if c == "persist-cpu":
-        ok = apply_cpu(req["mhz"], req["scale"], req["temp"])
-        persist_cpu()
-        return {"ok": ok}
+        ok, perche = apply_cpu_esito(req["mhz"], req["scale"], req["temp"])
+        # a setting the backend refused must not be armed for the next boot
+        if ok:
+            persist_cpu()
+        return _esito_cpu(ok, perche)
     if c == "cpu-cores":
         return cpu_cores_get()
     if c == "cpu-cores-set":

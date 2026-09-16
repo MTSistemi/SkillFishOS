@@ -670,6 +670,7 @@
  "Panels:": "Панелі:",
  "Parallel chats": "Паралельні чати",
  "password change refused": "зміну пароля відхилено",
+ "Per core/thread frequency": "Частота на ядро/потік",
  "Per core/thread frequency (MHz)": "Частота на ядро/потік (МГц)",
  "Per extra-CU-pair stability:": "Стабільність кожної додаткової пари CU:",
  "Per-thread clock  (MHz)": "Частота на потік  (МГц)",
@@ -909,6 +910,9 @@
  "Text editors": "Текстові редактори",
  "That is not a snapshot number.": "Це не номер знімка.",
  "That snapshot no longer exists.": "Цього знімка вже немає.",
+ "The accepted clock runs from %d to %d MHz.": "Допустима частота: від %d до %d МГц.",
+ "The accepted degree limit runs from %d to %d.": "Допустима межа градусів: від %d до %d.",
+ "The accepted undervolt runs from %d to %d steps.": "Допустиме зниження: від %d до %d кроків.",
  "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.": "Рушій ШІ готовий. Змінювати моделі й налаштовувати пам’ять ГП (GTT) можна в панелі будь-коли.",
  "The BC-250 ships with 24 of its 40 units on: we switch the other 16 on at boot. The number here comes from the service that routes them, not from the driver, which counts once and stays at 24.": "BC-250 постачається з 24 із 40 блоків увімкненими: решту 16 вмикаємо ми при завантаженні. Число тут береться зі служби, яка їх розподіляє, а не з драйвера, який рахує один раз і лишається на 24.",
  "The brakes": "Гальма",
@@ -1121,6 +1125,5 @@
  "🎰 Find my max": "🎰 Знайти мій максимум",
  "🎰 My silicon": "🎰 Мій кремній",
  "📂 Open": "📂 Відкрити",
- "📊 ANALYSIS  ·  ": "📊 АНАЛІЗ  ·  ",
- "Per core/thread frequency": "Частота на ядро/потік"
+ "📊 ANALYSIS  ·  ": "📊 АНАЛІЗ  ·  "
 }

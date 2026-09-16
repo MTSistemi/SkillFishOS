@@ -671,6 +671,7 @@
  "Panels:": "Bereiche:",
  "Parallel chats": "Parallele Chats",
  "password change refused": "Passwortänderung abgelehnt",
+ "Per core/thread frequency": "Takt je Kern/Thread",
  "Per core/thread frequency (MHz)": "Takt je Kern/Thread (MHz)",
  "Per extra-CU-pair stability:": "Stabilität je zusätzlichem CU-Paar:",
  "Per-thread clock  (MHz)": "Takt pro Thread  (MHz)",
@@ -908,6 +909,9 @@
  "Text editors": "Texteditoren",
  "That is not a snapshot number.": "Das ist keine Schnappschuss-Nummer.",
  "That snapshot no longer exists.": "Diesen Schnappschuss gibt es nicht mehr.",
+ "The accepted clock runs from %d to %d MHz.": "Der akzeptierte Takt reicht von %d bis %d MHz.",
+ "The accepted degree limit runs from %d to %d.": "Die akzeptierte Gradgrenze reicht von %d bis %d.",
+ "The accepted undervolt runs from %d to %d steps.": "Das akzeptierte UV reicht von %d bis %d Stufen.",
  "The AI engine is ready. You can switch models and tune the GPU memory (GTT) from the panel anytime.": "Der KI-Motor ist bereit. Modelle und den Grafikspeicher (GTT) kannst du jederzeit über die Leiste ändern.",
  "The BC-250 ships with 24 of its 40 units on: we switch the other 16 on at boot. The number here comes from the service that routes them, not from the driver, which counts once and stays at 24.": "Die BC-250 kommt mit 24 ihrer 40 Einheiten aktiv: die anderen 16 schalten wir beim Start ein. Die Zahl hier stammt vom Dienst, der sie zuweist, nicht vom Treiber, der einmal zählt und bei 24 bleibt.",
  "The brakes": "Die Bremsen",
@@ -1121,6 +1125,5 @@
  "🎰 Find my max": "🎰 Finde mein Maximum",
  "🎰 My silicon": "🎰 Mein Silizium",
  "📂 Open": "📂 Öffnen",
- "📊 ANALYSIS  ·  ": "📊 AUSWERTUNG  ·  ",
- "Per core/thread frequency": "Takt je Kern/Thread"
+ "📊 ANALYSIS  ·  ": "📊 AUSWERTUNG  ·  "
 }
