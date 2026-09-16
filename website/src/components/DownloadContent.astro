@@ -58,7 +58,14 @@ const comm = [
     {hasIso && (
       <p class="sub" style="margin-top:14px;font-size:.92rem"><a href="/go.php?f=tutti" target="_blank" rel="noopener" set:html={t('dl.ed.all', lang)} /></p>
     )}
-    <div class="pill" style="margin-top:24px">{sizeLine}</div>
+    <div class="hero-cred">
+      <div class="pill" style="margin:0">{sizeLine}</div>
+      <a class="sf-award" href="https://sourceforge.net/projects/skillfishos/"
+         target="_blank" rel="noopener" title={t('sf.award', lang)}>
+        <img src="/img/sourceforge-favorite.svg" alt={t('sf.award', lang)}
+             width="72" height="72" loading="lazy" />
+      </a>
+    </div>
     <p class="sub" style="margin-top:14px;font-size:.95rem" set:html={t('dl.ver', lang)} />
     <p class="sub" style="margin-top:24px;color:var(--gold-lt)" set:html={t('dl.notice', lang)} />
   </div>
@@ -197,4 +204,18 @@ const comm = [
   .torrow .btn{padding:9px 16px;font-size:.9rem}
   .magnet{font-size:.82rem;color:var(--muted);border-bottom:1px dotted rgba(216,168,73,.5);padding-bottom:1px}
   .magnet:hover{color:var(--gold-lt)}
+</style>
+
+<style>
+  /* Pillola e premio SourceForge sulla stessa riga, allineati sulla loro
+     meta'. Prima erano due inline-block affiancati per caso: il badge, piu'
+     alto, sporgeva in su. Lo spazio lo tiene il contenitore, non i due pezzi,
+     se no si spingono a vicenda. */
+  .hero-cred{display:flex;align-items:center;justify-content:center;
+    gap:18px;flex-wrap:wrap;margin-top:24px}
+  .sf-award{display:inline-block;line-height:0;opacity:.92;
+    transition:opacity .2s,transform .2s}
+  .sf-award:hover{opacity:1;transform:translateY(-2px)}
+  .sf-award img{width:72px;height:72px;display:block}
+  @media(max-width:600px){.sf-award img{width:60px;height:60px}}
 </style>
