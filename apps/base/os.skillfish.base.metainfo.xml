@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.29" date="2026-09-16">
+      <description>
+        <p>The shared translations cover the new Compute Unit messages in all nine languages. Maintenance release, nothing else changes.</p>
+        <p xml:lang="it">Le traduzioni condivise coprono i nuovi messaggi sulle Compute Unit in tutte e nove le lingue. Versione di manutenzione, per il resto non cambia niente.</p>
+        <p xml:lang="fr">Les traductions partagées couvrent les nouveaux messages sur les Compute Units dans les neuf langues. Version de maintenance, rien d'autre ne change.</p>
+        <p xml:lang="es">Las traducciones compartidas cubren los nuevos mensajes sobre las Compute Units en los nueve idiomas. Versión de mantenimiento, no cambia nada más.</p>
+        <p xml:lang="pt">As traduções partilhadas cobrem as novas mensagens sobre as Compute Units nas nove línguas. Versão de manutenção, não muda mais nada.</p>
+        <p xml:lang="de">Die gemeinsamen Übersetzungen decken die neuen Meldungen zu den Compute Units in allen neun Sprachen ab. Wartungsversion, sonst ändert sich nichts.</p>
+        <p xml:lang="pl">Wspólne tłumaczenia obejmują nowe komunikaty o Compute Unitach we wszystkich dziewięciu językach. Wersja serwisowa, poza tym nic się nie zmienia.</p>
+        <p xml:lang="ru">Общие переводы охватывают новые сообщения о Compute Unit на всех девяти языках. Служебная версия, больше ничего не меняется.</p>
+        <p xml:lang="uk">Спільні переклади охоплюють нові повідомлення про Compute Unit усіма дев'ятьма мовами. Службова версія, більше нічого не змінюється.</p>
+      </description>
+    </release>
     <release version="26.09.28" date="2026-09-16">
       <description>
         <p>The shared translations cover the whole AI page of the Control Center in all nine languages. Maintenance release, nothing else changes.</p>
