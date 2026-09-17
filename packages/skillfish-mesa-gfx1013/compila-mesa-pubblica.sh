@@ -1,26 +1,39 @@
 #!/bin/bash
-# Build the RADV we ship: Mesa 26.2.2 + FSR4 v3 (dmorazasanchez, MIT since
+# Build the RADV we ship: Mesa (versione a scelta) + FSR4 v3 (dmorazasanchez, MIT since
 # 2026-09-11) + the GFX1013 compute-queue fix (DryhoppedIPA, MIT).
 #
-#     compila-mesa-pubblica.sh      log ~/mesa-2622.log, esito ~/mesa-2622.fatto
+#     compila-mesa-pubblica.sh [versione]     esempio: 26.2.3
+#
+# Senza argomento usa la predefinita qui sotto. Log, cartella di lavoro e
+# uscita seguono la versione, cosi' due build diverse non si pestano i piedi.
+#
+# ⚠️ LA VERSIONE ERA UNA COSTANTE, e i nomi dei file pure: a ogni giro si
+# modificava lo script a mano e i commenti in cima descrivevano la versione di
+# prima. Stessa correzione fatta allo script dei kernel lo stesso giorno.
 #
 # The v3 patch carries the compute-queue hunks in ac_gpu_info.c itself, but
-# they are written against Mesa main and do not apply to 26.2.2: that file is
+# they are written against Mesa main and do not apply to the release tags: that file is
 # excluded from the patch and edited here with the same three changes
 # (expose the compute queues, GFX1013 in the threadgroup-bug list, GFX1013 in
 # the ver_minor = 1 list that marks the chip as GFX10.1).
 # ⚠️ THIS LIBRARY WANTS OUR KERNEL: on a stock kernel the compute queues hang.
 set -u
+VER="${1:-26.2.3}"
+CORTO=$(echo "$VER" | tr -d .)
 REPO=~/bc250-fsr4
 SORG=~/mesa-fsr4-src
-BUILD=~/mesa-2622-build
-USCITA=~/mesa-2622
-TAG=mesa-26.2.2
-exec > >(tee ~/mesa-2622.log) 2>&1
-rm -f ~/mesa-2622.fatto
+BUILD=~/mesa-$CORTO-build
+USCITA=~/mesa-$CORTO
+TAG=mesa-$VER
+exec > >(tee ~/mesa-$CORTO.log) 2>&1
+rm -f ~/mesa-$CORTO.fatto
 
 cd "$SORG" || exit 1
 git checkout -q -- .
+# ⚠️ L'albero si porta sul tag chiesto PRIMA di applicare qualunque cosa. Un
+# albero rimasto alla versione di prima applica tutto senza lamentarsi e produce
+# una libreria della versione sbagliata con il nome giusto.
+git checkout -q "$TAG" || { echo "non ho il tag $TAG: serve git fetch --tags"; exit 1; }
 echo "=== $(date +%H:%M:%S) sorgente $(git describe --tags 2>/dev/null || echo $TAG), patch FSR4 $(cd $REPO && git log -1 --format=%h)"
 git apply --check --exclude=src/amd/common/ac_gpu_info.c "$REPO/bc250-fsr4-v3.patch" || { echo "la patch FSR4 non si applica: mi fermo"; exit 1; }
 git apply --exclude=src/amd/common/ac_gpu_info.c "$REPO/bc250-fsr4-v3.patch" && echo "    FSR4 v3 applicata (senza ac_gpu_info.c)"
@@ -72,4 +85,4 @@ SO=$(find "$BUILD" -name libvulkan_radeon.so | head -1)
 mkdir -p "$USCITA"
 cp "$SO" "$USCITA/libvulkan_radeon.so"
 echo "=== $(date +%H:%M:%S) fatto: $(stat -c%s "$USCITA/libvulkan_radeon.so") byte, $(strings "$USCITA/libvulkan_radeon.so" | grep -oE "Mesa 26[^\"]*" | head -1)"
-date > ~/mesa-2622.fatto
+date > ~/mesa-$CORTO.fatto
