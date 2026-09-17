@@ -1,16 +1,16 @@
 Package: skillfish-ai-panel
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.09.23_all.deb
-Size: 58040
-SHA256: 454464948a7d99328a73c263157a1d4952b97c6284d1b917401fe5b60ef77bf2
-SHA1: ec970a3061b78be2228e52a5c5000dbafc88c882
-MD5sum: 257419949cfcf7388a3a898cf6f29e27
+Filename: pool/main/s/skillfish-ai-panel/skillfish-ai-panel_26.09.32_all.deb
+Size: 58052
+SHA256: 57c799f82daf02fcbbc6e017ce1c5a4a680d46b29d0f9c360c05040bba490b5f
+SHA1: 423620587f9bd503e56aac5db04dfa43fb54b956
+MD5sum: e2ec4e26330eb1ddc27e0bd7a847bfa5
 Description: SkillFish AI - on-device LLM control panel
  Downloads a language model and runs it on the integrated GPU, about five times
  faster than on the processor. Questions and answers stay on this machine.
@@ -18,18 +18,18 @@ Description: SkillFish AI - on-device LLM control panel
  Part of SkillFishOS.
 
 Package: skillfish-audio-dolby
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: wireplumber (>= 0.5.17), wireplumber (<< 0.5.18), pipewire-audio, libasound2-plugins
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-audio-dolby/skillfish-audio-dolby_26.09.23_all.deb
-Size: 23580
-SHA256: 2b92f21a9d1a0f46da623e45b95512983cbcfaf727e38b0e89dcf9ed624e3626
-SHA1: d558006cbe3780b67e160dc2b6783c4dd4c03a3f
-MD5sum: 80db361af75b392defa66dda2ef390cd
+Filename: pool/main/s/skillfish-audio-dolby/skillfish-audio-dolby_26.09.32_all.deb
+Size: 23596
+SHA256: 7f49fdc1c4cd7a2b82b9afdc7da6995c28fbcd897f06d1d7b86eafb0177a6c41
+SHA1: 5e0873f11bcc0060f787ed0003eee3e115392d07
+MD5sum: 448b71037a951504ab7f429b2b8e1c4f
 Description: SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/DisplayPort
  Adds a second audio output, Dolby Digital 5.1 (AC3), that encodes the six
  channels live at 640 kbps for AV receivers, soundbars and TVs that do not take
@@ -41,38 +41,39 @@ Description: SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/Displa
  Part of SkillFishOS.
 
 Package: skillfish-base
-Version: 26.09.29
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
-Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client
+Depends: systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-base/skillfish-base_26.09.29_all.deb
-Size: 393476
-SHA256: 968b940fa3bf813813d7cbedc883aa593cc42293a65214da0bba1136f2c5c127
-SHA1: 056fc0c83f59e28d6b4a9d1a2fd08c4dbda7a153
-MD5sum: 3adbb8f5b33654689893d0487cab3653
+Filename: pool/main/s/skillfish-base/skillfish-base_26.09.32_all.deb
+Size: 395416
+SHA256: caed0df7456e767d98d5113070bff622e74fab9b7b3d281804eda53ea2740b9d
+SHA1: 0f798c631542d66623339da1d9fadaacf90edbc8
+MD5sum: 76acb697d0c79b90a6ca3a087dd2fd2c
 Description: SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock
  The watchdog that reboots the board if it stops answering, the freeze detector,
  the 8-core unlock, the shared translation dictionary and the sensor tables the
- applications read.
+ applications read. It also pulls in skillfish-boot, which keeps the kernel command
+ line honest: the board's parameters on a board, and off everything else.
  .
  Part of SkillFishOS.
 
 Package: skillfish-boot
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: grub2-common, grub-efi-amd64-signed, shim-signed, mokutil
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-boot/skillfish-boot_26.09.23_all.deb
-Size: 1767572
-SHA256: 4fede68076a6a3ae0356f8b16978da8b215126f05aae1c877c92515d6552f3d6
-SHA1: f39ba8c3e18e1203b9068315ca0238d884ba3dce
-MD5sum: 4185cb38551b05c741ee86dae9e309a0
+Filename: pool/main/s/skillfish-boot/skillfish-boot_26.09.32_all.deb
+Size: 1769560
+SHA256: c4cb17a01285db8952abeef6b304723038239256e5a5679dbb4f04f4aa1c5aaa
+SHA1: cf1536d20134d1fdef27efdb0398f1fb58297cca
+MD5sum: 5ed552dcd3c4879a99b76cc0ad07fe68
 Description: SkillFishOS boot look and kernel command line
  The GRUB theme, the boot-time kernel parameters for the BC-250 and the
  signed shim chain, so an installed system boots with Secure Boot on.
@@ -80,18 +81,18 @@ Description: SkillFishOS boot look and kernel command line
  Part of SkillFishOS.
 
 Package: skillfish-console
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gamescope, flatpak
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-console/skillfish-console_26.09.23_all.deb
-Size: 55580
-SHA256: 977e8ad0233f5f8625e58226ec01780f7983eee1c643f2cefc0f5db69091a74d
-SHA1: bdcf20066cbfcae109c29d3495046b43feabdf6b
-MD5sum: 29433a4b5aa57d856a23a9892928d20a
+Filename: pool/main/s/skillfish-console/skillfish-console_26.09.32_all.deb
+Size: 55584
+SHA256: 820776128ba7aca819306d54ad4f179f0b5710fa0ed1fe7acddde37167775b96
+SHA1: 51c7ba853219bf9b9af18087882901e4bde15efd
+MD5sum: ed949d4423cae495f85e73a8b34cdc24
 Description: SkillFishOS Console - SteamOS-style Big Picture session
  A session that opens straight into a full-screen interface driven with a
  controller. Separate from the desktop session, chosen at login.
@@ -99,7 +100,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.30
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -109,11 +110,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.30_all.deb
-Size: 957572
-SHA256: 90cd9a8e2e9109bb31dde065e7ae9cbe881881b2e5393590b354141e51067503
-SHA1: afb2e1d5461386d074471b9099ca4f74fe8003bf
-MD5sum: ad81825d7d3d618d6c96e2bfd7905fc1
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.32_all.deb
+Size: 957516
+SHA256: 8e8b90e905ed0e78cbb5914796cdc901e0069d978eb4020f1186a4feeb40a604
+SHA1: 83d73759c77e6732d570b9182856168afb1db8b2
+MD5sum: 662a41baf48c8c1b3fadd52d9eb6c7be
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -122,7 +123,7 @@ Description: SkillFishOS Control Center - every tool in one window
  Part of SkillFishOS.
 
 Package: skillfish-dashboard
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, openssl, polkitd | policykit-1, skillfish-base
@@ -131,11 +132,11 @@ Suggests: zerotier-one, docker.io
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.23_all.deb
-Size: 308960
-SHA256: b27a1986011c9093c9d9818611133b3f5f364e77e23f6d4c69a1f1f3d4cb872e
-SHA1: f8e7bd92153b2ec7d7c270c4e4c9016ab5f9b179
-MD5sum: f6bcb07b357c528a15b70b74154fba22
+Filename: pool/main/s/skillfish-dashboard/skillfish-dashboard_26.09.32_all.deb
+Size: 308964
+SHA256: 5fcf0551fc6393047fb6d9a3866029d6be732e2026a20c429b7970eb03109966
+SHA1: 89d95aca2049a7429d5ddd719dfc4d00660b5c39
+MD5sum: ff84740157594e494ccd7a876a87f0e4
 Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  A modular, self-hosted web dashboard (PAM login over HTTPS) to control the
  board remotely: live telemetry, software KVM (noVNC), web terminal (ttyd),
@@ -144,18 +145,18 @@ Description: SkillFishOS Remote Manager - web control dashboard for the BC-250
  native Remote Manager toggle app.
 
 Package: skillfish-emulators
-Version: 26.09.24
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: flatpak, curl
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.09.24_all.deb
-Size: 187428
-SHA256: fa379a56477fc45066bc16ebda018567ec13a0982b4fba5aa1ec59227ef8bfef
-SHA1: eabb18474ce1363a17a7f40aa080b4a9c1c796af
-MD5sum: 42048168b707219c3b56d545e4d64df1
+Filename: pool/main/s/skillfish-emulators/skillfish-emulators_26.09.32_all.deb
+Size: 187444
+SHA256: 4ba11c1b3f7f8f06bb46a51b308d793b030d7e7a550b6c9a062828fd1cf64d4f
+SHA1: f8abb18a7d905c306beabdfb6df5f70e761f3149
+MD5sum: 18311d95d709dbb31e62320097ae2f89
 Description: SkillFishOS Emulators - install emulators after the installation
  Installs console emulators after the system is in place: the whole EmuDeck set
  or one at a time. Upstream installers, nothing repackaged.
@@ -163,18 +164,18 @@ Description: SkillFishOS Emulators - install emulators after the installation
  Part of SkillFishOS.
 
 Package: skillfish-fan
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, skillfish-base, polkitd | policykit-1, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-fan/skillfish-fan_26.09.23_all.deb
+Filename: pool/main/s/skillfish-fan/skillfish-fan_26.09.32_all.deb
 Size: 66688
-SHA256: 3a34d52ec851a56789d6d3de937908695feba7e7027592334793a6a7982dd266
-SHA1: 2257bdf175816c3beeaa60c56f21c680c97eed35
-MD5sum: 5837639967530894bfc7c25a5151b4be
+SHA256: 8ddfb91fccfddd345e381d7e29bbf15586a06808abe0a8685e43fb43b0dc98b6
+SHA1: 89c36d8c2bea22e2b3da7c8342e3a1da88ae6bd1
+MD5sum: 37ffcbb20034fbfc72bdfeb7a4efae03
 Description: SkillFishOS Fan Control - fan curve with anticipation
  The fan curve, applied every second by a controller that runs with or without
  the window. It watches how fast the temperature climbs, and the watts on the
@@ -183,18 +184,18 @@ Description: SkillFishOS Fan Control - fan curve with anticipation
  Part of SkillFishOS.
 
 Package: skillfish-hub
-Version: 26.09.30
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.09.30_all.deb
-Size: 329388
-SHA256: a2c9e6efe44497b1bf3b83b5a580a70ae8a5b6aafc0fe73e2cfc68c4af13d11b
-SHA1: 5906aca8e429aebd7cfae7c4466de879445f14aa
-MD5sum: 1ec5907c4aa6bed79d2942766c3a9b53
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.09.32_all.deb
+Size: 329420
+SHA256: 1a12fa91ea59c5432c70a1ce723e238d9d0f508e7fe8c3f7eb2d85d4c0791511
+SHA1: 3b6423e8cb3a213acf39a4f573853070366502a2
+MD5sum: a82576d4ae0c81b3e10d94e19eddfe58
 Description: SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware
  One place for apt, Flatpak, Snap and device firmware: search, categories, app
  pages, sources. Updates keep running if the window closes, because the work is
@@ -204,18 +205,18 @@ Description: SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmwa
  Part of SkillFishOS.
 
 Package: skillfish-iso-mount
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: udisks2, polkitd | policykit-1
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-iso-mount/skillfish-iso-mount_26.09.23_all.deb
+Filename: pool/main/s/skillfish-iso-mount/skillfish-iso-mount_26.09.32_all.deb
 Size: 54276
-SHA256: 49b9695e72f6026e957b055f3c89209904a61fbef25794e78de63724c2afba4f
-SHA1: 8acd0e2a32f46bcced3a821a7265873b466b3cc9
-MD5sum: 9d1f48d4d79826060d447d3eb61a0b81
+SHA256: 710fa309e0ab1a6153e0e1b2c004cf2117ea8d7b8863233731497a384250cc12
+SHA1: 67bba7439e1b037ebdd632532a50386092a630d6
+MD5sum: 48fc5f8f5391178af1ee8f47d79e18ab
 Description: SkillFishOS native ISO mounting for KDE
  Mounts an ISO from the file manager and releases it from the same menu,
  through udisks. No terminal, no root.
@@ -223,18 +224,18 @@ Description: SkillFishOS native ISO mounting for KDE
  Part of SkillFishOS.
 
 Package: skillfish-kernel-manager
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-kernel-manager/skillfish-kernel-manager_26.09.23_all.deb
-Size: 48752
-SHA256: ac69371ac9203130871a7ce1c033bf57804e8dcaf9a7fc310c8dcbc5704196d4
-SHA1: a584494c2d56c469d344c29a4dec4734f1809ce2
-MD5sum: 8eb99ec1845946434e9b9589b3896a0e
+Filename: pool/main/s/skillfish-kernel-manager/skillfish-kernel-manager_26.09.32_all.deb
+Size: 48748
+SHA256: 917481ddf9666946033d2aa540e844f0be2f764f0ec0d59b06ccfd5adb71efc9
+SHA1: 98fadaef427310435561831f0cc8cbcbd0bd4dd2
+MD5sum: 413203e54e6a5bbbec0f430c01f56743
 Description: SkillFishOS Kernel Manager
  Shows the kernels installed, which one is running and which one GRUB will pick
  next. Choose the next boot, remove the ones you no longer want.
@@ -242,18 +243,18 @@ Description: SkillFishOS Kernel Manager
  Part of SkillFishOS.
 
 Package: skillfish-menu
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: 
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-menu/skillfish-menu_26.09.23_all.deb
-Size: 49344
-SHA256: 5978c750ea2ecba15a003ea52b3c2121972f74e30b8a4395a4e0ea8ba892baf4
-SHA1: b86b64f2f53420136c0a8d9cd1afc379cfd82139
-MD5sum: 01c552adb12d42893fe6d49418af8705
+Filename: pool/main/s/skillfish-menu/skillfish-menu_26.09.32_all.deb
+Size: 49360
+SHA256: 50ce5078f743f0935fe73cc166b8b03a2220427bbe18040267ba945a2259cb1b
+SHA1: 36308ab3d28a9514bb71dccd7ac9dd274d4160d7
+MD5sum: 6bd244d0d06fc719829134992554f6cb
 Description: SkillFishOS application menu group
  One group in the application menu holding the SkillFishOS tools, instead of
  leaving them among the system entries.
@@ -261,18 +262,18 @@ Description: SkillFishOS application menu group
  Part of SkillFishOS.
 
 Package: skillfish-monitor
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.09.23_all.deb
-Size: 49816
-SHA256: f7810096f89d74416cb02f0d8c34333ba5ebff01db83e4f76ef9b8d65c1b7742
-SHA1: ccba8de72bf305636f9db0785d47d6db2b5fa1c8
-MD5sum: d9a52d484d6f22eda0ccd69ff7cb4bb7
+Filename: pool/main/s/skillfish-monitor/skillfish-monitor_26.09.32_all.deb
+Size: 49812
+SHA256: 3aedcfd3a3d0a1a32f02412db4047de0d91349a585e21bfdae74ae41cc80651f
+SHA1: b52aa7d0f5255e0779e86cc9df984c1202dfea8b
+MD5sum: 69d049c30eb00494ed009c901673c870
 Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer
  Live charts of temperatures, clocks, voltage, watts, load and fan speed. Press
  record and the session goes to a .sfmon file you can reopen and walk through
@@ -281,18 +282,18 @@ Description: SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyze
  Part of SkillFishOS.
 
 Package: skillfish-primo-avvio
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: flatpak, polkitd | policykit-1, python3-pyqt6
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-primo-avvio/skillfish-primo-avvio_26.09.23_all.deb
+Filename: pool/main/s/skillfish-primo-avvio/skillfish-primo-avvio_26.09.32_all.deb
 Size: 17028
-SHA256: 54fc8b9016dc012cd327c0cc16c989530881acf2e7093d25c06a51235928d52d
-SHA1: 01313fc9d9cfeb75d7d7d24d8ff3024576e7b8ec
-MD5sum: 74e2d6aa9df362291af9f590c3d934ae
+SHA256: 7d5e767fa97ec3746f431c9ee3c187823d990184a29210f730795007b596b224
+SHA1: f52cf29e78a585f45a38498c27074647a7f86c0c
+MD5sum: 6c6409db3096530b37c30d34023c6257
 Description: SkillFishOS first boot - choose what to install
  Asks which applications to install on a freshly installed system, then shows
  them being downloaded with a bar each. Nothing is preinstalled and nothing is
@@ -301,18 +302,18 @@ Description: SkillFishOS first boot - choose what to install
  Part of SkillFishOS.
 
 Package: skillfish-scx
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: systemd, gamemode
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-scx/skillfish-scx_26.09.23_all.deb
-Size: 1858212
-SHA256: 4368b2e81460ff302055d900e00f9d3e0da213c58f8b917736b8d41ad6e4881e
-SHA1: 23be3f29fe434355cc1e41454ee39c49a7213f54
-MD5sum: 669870395fc416ea902c9e609eca6fc8
+Filename: pool/main/s/skillfish-scx/skillfish-scx_26.09.32_all.deb
+Size: 1857752
+SHA256: 21e20537879e8b39a4c48458cdab42d123209fad8fd7cf67ed721af11276f2c2
+SHA1: 0dcd7f58a7a4eea2a8a129c55ff507e04db33a9b
+MD5sum: 487ae85821f23013566980341b59ea9d
 Description: SkillFishOS scheduler - scx_bpfland while a game runs
  A CPU scheduler loaded into the kernel through sched_ext, the one CachyOS
  uses. It runs ONLY while a game runs: GameMode raises a flag when the game
@@ -325,18 +326,18 @@ Description: SkillFishOS scheduler - scx_bpfland while a game runs
  Part of SkillFishOS.
 
 Package: skillfish-snapshots
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3-pyqt6, snapper, btrfs-progs, btrfsmaintenance, polkitd | policykit-1, skillfish-base, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-snapshots/skillfish-snapshots_26.09.23_all.deb
-Size: 138812
-SHA256: 9b6d6974483b2294d328b7daacfa937f83af961b0114d42468b1bf25ee02dad2
-SHA1: 3d32707466a31f1abff1e7c0a8c349047f2c437e
-MD5sum: 4bd8235efc625527e1bc6898eb62b1c7
+Filename: pool/main/s/skillfish-snapshots/skillfish-snapshots_26.09.32_all.deb
+Size: 138808
+SHA256: 0519ee383374688fb26e1f10b8f8f2db97ee2c7c781f1aaea7009fd535eb4fa8
+SHA1: e1645a75a40b8760a69e453ab387fb48199a13f3
+MD5sum: ec9dcdc82afd27a397825e800f223921
 Description: SkillFishOS Snapshots - system snapshots and scheduled btrfs maintenance
  Snapshots before and after every apt operation, restored in seconds because
  btrfs swaps the subvolume. The second tab keeps btrfs in shape on a schedule.
@@ -344,18 +345,18 @@ Description: SkillFishOS Snapshots - system snapshots and scheduled btrfs mainte
  Part of SkillFishOS.
 
 Package: skillfish-theme
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: hicolor-icon-theme, plymouth, plymouth-label
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-theme/skillfish-theme_26.09.23_all.deb
-Size: 31890432
-SHA256: 0d3213c4d311ed089283b3a1a2ecd47d0badc9e0caf704f58f5a57c836e003bc
-SHA1: acd61c8d7c064be7a9c417053e07ff23d8467eb6
-MD5sum: c01c6d6ef5133d11256f4b75c6e81e97
+Filename: pool/main/s/skillfish-theme/skillfish-theme_26.09.32_all.deb
+Size: 31889144
+SHA256: 54aa7fdc3893763e3095ee7594b69ec0137dcbe6d24f2c660a45e2dff5b813ea
+SHA1: 5af96bf7a41086761469ba119b19585261fc33a9
+MD5sum: 1b6daa2767ad03cf82b2ce3fc345d7d4
 Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colours
  Icons, cursors, Plasma theme, colours and panel layout. Also puts the menu
  button back if an update changed it.
@@ -363,18 +364,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.09.31
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.31_all.deb
-Size: 1701996
-SHA256: 3d828fff93c3de7a8b2edf8c3b09374ee884a119157bdc9c39d4e11ba2e3bc43
-SHA1: 3ea4623c1e9fdafbfe194b4e835e8c6e5b2f0f40
-MD5sum: b8de0cb454e914adf63ed4811ea8fecb
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.32_all.deb
+Size: 1702024
+SHA256: 8826d32002253e689d6b206a463a5718e590b49d2ccff9843dfcf859553af030
+SHA1: 44eb2886aa803173d5b66c5fd19e96c2fd1848b4
+MD5sum: 734c7c190a3675df43ccb9ef72964de9
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
@@ -425,18 +426,18 @@ Description: SkillFishOS V/F Governor - voltage and frequency control for the BC
  Part of SkillFishOS.
 
 Package: skillfishos-archive-keyring
-Version: 26.09.23
+Version: 26.09.32
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: gnupg | gpgv
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.09.23_all.deb
-Size: 57580
-SHA256: 8c6b57217765ec284b5c94a2ca87e85df74fe974109d05f7217d70f934123daa
-SHA1: c4ab5b7d97bee40fa9a341126b2bfbaed85e263f
-MD5sum: c4596733a646a09d6e277f2b7ae45ebe
+Filename: pool/main/s/skillfishos-archive-keyring/skillfishos-archive-keyring_26.09.32_all.deb
+Size: 57576
+SHA256: 956c588c12e0c70e00111441faa57badac1d8e107e3b14e5949874c36ad3b6e4
+SHA1: eab3b705ab2048504b1e39de01be9b83a318fa9b
+MD5sum: 7de122aabf431f14f61816359c5e63fb
 Description: SkillFishOS archive keyring and APT source
  The signing key of our archive and the apt source that uses it. Without it apt
  cannot check where a SkillFishOS package came from.
