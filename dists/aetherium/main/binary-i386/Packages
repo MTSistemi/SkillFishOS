@@ -363,18 +363,18 @@ Description: SkillFishOS Steampunk theme - icons, cursors, Plasma theme and colo
  Part of SkillFishOS.
 
 Package: skillfish-tuner
-Version: 26.09.29
+Version: 26.09.31
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, libncurses6, libtinfo6, libpciaccess0, zlib1g, skillfish-control-center
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.29_all.deb
-Size: 1700772
-SHA256: c3dafbbeebd315e1639446c39006f606e6b725004c26be82fe71adff6fd8d9ec
-SHA1: 2ac460734954c74ed9d30bef4664a695bfe065e0
-MD5sum: f7c3c2be9242262f19ddd29d8f476136
+Filename: pool/main/s/skillfish-tuner/skillfish-tuner_26.09.31_all.deb
+Size: 1701996
+SHA256: 3d828fff93c3de7a8b2edf8c3b09374ee884a119157bdc9c39d4e11ba2e3bc43
+SHA1: 3ea4623c1e9fdafbfe194b4e835e8c6e5b2f0f40
+MD5sum: b8de0cb454e914adf63ed4811ea8fecb
 Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Sets the CPU and GPU clocks, the voltage offset, how many compute units are
  in use and how much memory the graphics take. Presets from quiet to full, and
