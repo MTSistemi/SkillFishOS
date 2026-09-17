@@ -66,6 +66,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.30" date="2026-09-17">
+      <description>
+        <p>Housekeeping. When even the last-resort error message cannot be shown, the code now says in writing why it gives up rather than staying silent. Nothing changes on screen.</p>
+        <p xml:lang="it">Manutenzione. Quando nemmeno il messaggio d'errore di ultima istanza riesce ad aprirsi, adesso il codice scrive perché rinuncia invece di tacere. Sullo schermo non cambia niente.</p>
+        <p xml:lang="fr">Entretien. Quand même le message d'erreur de dernier recours ne peut pas s'afficher, le code écrit désormais pourquoi il renonce au lieu de se taire. Rien ne change à l'écran.</p>
+        <p xml:lang="es">Mantenimiento. Cuando ni siquiera el mensaje de error de último recurso puede mostrarse, ahora el código deja escrito por qué se rinde en vez de callar. En pantalla no cambia nada.</p>
+        <p xml:lang="pt">Manutenção. Quando nem a mensagem de erro de último recurso consegue aparecer, agora o código deixa escrito porque desiste em vez de ficar calado. No ecrã não muda nada.</p>
+        <p xml:lang="de">Wartung. Wenn nicht einmal die allerletzte Fehlermeldung angezeigt werden kann, schreibt der Code jetzt hin, warum er aufgibt, statt zu schweigen. Auf dem Bildschirm ändert sich nichts.</p>
+        <p xml:lang="pl">Konserwacja. Gdy nawet komunikat o błędzie ostatniej szansy nie może się pokazać, kod zapisuje teraz, dlaczego rezygnuje, zamiast milczeć. Na ekranie nic się nie zmienia.</p>
+        <p xml:lang="ru">Обслуживание. Когда даже последнее сообщение об ошибке не удаётся показать, код теперь пишет, почему он сдаётся, вместо того чтобы промолчать. На экране ничего не меняется.</p>
+        <p xml:lang="uk">Обслуговування. Коли навіть останнє повідомлення про помилку не вдається показати, код тепер пише, чому здається, замість того щоб змовчати. На екрані нічого не змінюється.</p>
+      </description>
+    </release>
     <release version="26.09.26" date="2026-09-15">
       <description>
         <p>Clicking the menu while the Hub is still loading no longer closes the window. The catalogue arrives in the background, and until it is there the menu waits instead of giving up. Reported by a user on 26.06.4.</p>
