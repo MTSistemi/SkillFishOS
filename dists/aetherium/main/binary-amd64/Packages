@@ -99,7 +99,7 @@ Description: SkillFishOS Console - SteamOS-style Big Picture session
  Part of SkillFishOS.
 
 Package: skillfish-control-center
-Version: 26.09.29
+Version: 26.09.30
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor
@@ -109,11 +109,11 @@ Recommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.29_all.deb
-Size: 956552
-SHA256: 9be291b1c15aeebfeb598a2b42f4d84ccda78820249a916950b0d72db8942a2e
-SHA1: e1ce33e7f6cb4c222a0ec83929e859bf82595168
-MD5sum: d07c8289e9729c857d65c71b7e93a4de
+Filename: pool/main/s/skillfish-control-center/skillfish-control-center_26.09.30_all.deb
+Size: 957572
+SHA256: 90cd9a8e2e9109bb31dde065e7ae9cbe881881b2e5393590b354141e51067503
+SHA1: afb2e1d5461386d074471b9099ca4f74fe8003bf
+MD5sum: ad81825d7d3d618d6c96e2bfd7905fc1
 Description: SkillFishOS Control Center - every tool in one window
  Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
  Console and ISO in one window. The Tuner is built around the V/F governor
@@ -183,18 +183,18 @@ Description: SkillFishOS Fan Control - fan curve with anticipation
  Part of SkillFishOS.
 
 Package: skillfish-hub
-Version: 26.09.26
+Version: 26.09.30
 Architecture: all
 Maintainer: SkillFishOS <info@skillfishos.com>
 Depends: python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, curl, polkitd | policykit-1, fwupd, libnotify-bin, systemd
 Homepage: https://skillfishos.com
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-hub/skillfish-hub_26.09.26_all.deb
-Size: 328456
-SHA256: 41615a0e09dad4541f0966720c953dcf1b17f2a7255fc8f0923a04494cb7df12
-SHA1: 44bf7cf763534dee0f3f4d28c922a2205f9f83d7
-MD5sum: a791aed5e9a51b53f550bc5a9b24650e
+Filename: pool/main/s/skillfish-hub/skillfish-hub_26.09.30_all.deb
+Size: 329388
+SHA256: a2c9e6efe44497b1bf3b83b5a580a70ae8a5b6aafc0fe73e2cfc68c4af13d11b
+SHA1: 5906aca8e429aebd7cfae7c4466de879445f14aa
+MD5sum: 1ec5907c4aa6bed79d2942766c3a9b53
 Description: SkillFishOS Hub - software centre for APT, Flatpak, Snap and firmware
  One place for apt, Flatpak, Snap and device firmware: search, categories, app
  pages, sources. Updates keep running if the window closes, because the work is
