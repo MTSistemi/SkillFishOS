@@ -741,10 +741,20 @@ sed -i -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"SkillFishOS ${MEDIA} (Aetherium)\"|" 
        "$OUT/$P/usr/lib/os-release"
 echo "    os-release timbrato: $MEDIA"
 
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+# ⚠️ skillfish-boot E' UNA DIPENDENZA, e la direzione e' voluta.
+# Quel pacchetto porta il frammento di /etc/default/grub.d che mette i
+# parametri della scheda solo su una BC-250, e skillfish-clean-cmdline che
+# li toglie dalle macchine che BC-250 non sono. Fino al 17/09/2026 non
+# dipendeva da lui NESSUNO (`apt-cache rdepends skillfish-boot` era vuoto):
+# arrivava solo installando da una ISO costruita dopo il 12/09, cioe' da
+# nessuna di quelle pubblicate. Al contrario non servirebbe a niente:
+# skillfish-boot non se lo installa nessuno per nome, mentre skillfish-base
+# ce l'hanno tutti.
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
-applications read."
+applications read. It also pulls in skillfish-boot, which keeps the kernel command
+line honest: the board's parameters on a board, and off everything else."
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.

@@ -469,25 +469,32 @@ def cpu_smt_set(on):
 
 
 def set_cu(unlock):
-    """Abilita/disabilita lo sblocco 40 CU via parametro di boot GRUB. Richiede riavvio."""
-    grub="/etc/default/grub"; param="amdgpu.bc250_cc_write_mode=3"
-    try: lines=_rd(grub).splitlines(True)
-    except Exception: return False
-    out=[]; done=False
-    for ln in lines:
-        if ln.startswith("GRUB_CMDLINE_LINUX_DEFAULT="):
-            has=param in ln
-            if unlock and not has:
-                ln=ln.rstrip("\n").rstrip('"')
-                if not ln.endswith(" "): ln+=" "
-                ln=ln+param+'"\n'
-            elif (not unlock) and has:
-                ln=ln.replace(" "+param,"").replace(param+" ","").replace(param,"")
-            done=True
-        out.append(ln)
-    if not done: return False
-    _wr(grub,"".join(out))
-    return sh("update-grub", t=120).returncode==0
+    """Gone. The compute units are routed live now, not by a boot parameter.
+
+    This used to add or remove amdgpu.bc250_cc_write_mode=3 in /etc/default/grub
+    and then ask for a reboot. Two separate reasons it had to go.
+
+    It is obsolete. skillfish-cu.service writes the same WGP masks at boot, and
+    "cu-apply" below changes them while the machine is running. Measured on the
+    dev board on 2026-09-17: with the parameter removed and the board rebooted,
+    still 40/40 CU and 10169 GFLOPS against 10166 with it.
+
+    ⚠️ And it was broken on exactly the machines that matter. It appended the
+    parameter with rstrip of a double quote followed by a literal double quote,
+    which assumes the value is double-quoted. Calamares writes it single-quoted,
+    so on an installed system the result was
+
+        GRUB_CMDLINE_LINUX_DEFAULT='... 'amdgpu.bc250_cc_write_mode=3"
+
+    with mismatched quotes, in the one file that decides whether the machine
+    boots. Nothing in the tree calls this any more, so nobody has hit it, which
+    is luck rather than design.
+
+    The command is answered rather than dropped, so an old caller is told what
+    to use instead of getting a bare "unknown command".
+    """
+    return {"ok": False, "reboot": False,
+            "err": "le compute unit si cambiano a caldo: usa cu-apply, senza riavvio"}
 
 # ---------- BENCHMARK / TEST ----------
 def _govs_get():
@@ -725,7 +732,7 @@ def handle(req):
     if c=="apply-fan":
         ok,rpm=fan_set(req["mode"],req.get("pct",50)); return {"ok":ok,"rpm":rpm}
     if c=="set-vram": return {"ok":set_vram(req["mb"]),"reboot":True}
-    if c=="set-cu": return {"ok":set_cu(req["unlock"]),"reboot":True}
+    if c=="set-cu": return set_cu(req.get("unlock"))
     if c=="cu-apply": return cu_apply(req.get("rows",[]))
     if c=="cpu-cores": return cpu_cores_get()
     if c=="cpu-cores-set": return cpu_cores_set(req.get("cores",[]))
