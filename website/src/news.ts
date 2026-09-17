@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // cmdline-pulita-2026-09-17
+    data: '2026-09-17',
+    quando: { it: "17 settembre 2026", en: "17 September 2026", pl: "17 września 2026", uk: "17 вересня 2026", ru: "17 сентября 2026", es: "17 de septiembre de 2026", pt: "17 de setembro de 2026", de: "17. September 2026", fr: "17 septembre 2026" },
+    etichetta: { it: "correzione", en: "fix", pl: "poprawka", uk: "виправлення", ru: "исправление", es: "corrección", pt: "correção", de: "Korrektur", fr: "correctif" },
+    titolo: {
+      it: "Su un PC normale sparisce la memoria bloccata a 6 GB",
+      en: "On an ordinary PC the 6 GB memory cap goes away",
+      pl: "Na zwykłym pececie znika pamięć zablokowana na 6 GB",
+      uk: "На звичайному ПК зникає пам'ять, замкнена на 6 ГБ",
+      ru: "На обычном ПК исчезает память, зажатая на 6 ГБ",
+      es: "En un PC normal desaparece la memoria limitada a 6 GB",
+      pt: "Num PC normal desaparece a memória travada em 6 GB",
+      de: "Auf einem normalen PC verschwindet die 6-GB-Speichergrenze",
+      fr: "Sur un PC ordinaire, la mémoire bloquée à 6 Go disparaît"
+    },
+    testo: {
+      it: "Chi ha installato SkillFishOS su un PC che non è una BC-250 partiva con impostazioni pensate per la scheda. La più fastidiosa limitava a <strong>6 GB fissi</strong> la memoria utilizzabile dalla parte grafica, mentre il valore giusto è <strong>metà della RAM</strong>: troppo su un PC da 8 GB, troppo poco su uno da 32. Arrivava dall'immagine di installazione, che porta con sé una copia della configurazione di una scheda, quindi ce l'avevano tutti. Adesso il sistema se ne accorge da solo e le toglie, tenendo una copia del file prima di cambiarlo; su una BC-250 vera non cambia niente.",
+      en: "Anyone who installed SkillFishOS on a PC that is not a BC-250 was booting with settings meant for the board. The awkward one capped the memory the graphics part may use at a fixed <strong>6 GB</strong>, where the right figure is <strong>half of the RAM</strong>: too much on an 8 GB PC, too little on a 32 GB one. It came from the installation image, which carries a copy of a board's configuration, so every such PC had it. The system now notices by itself and removes them, keeping a copy of the file first; on a real BC-250 nothing changes.",
+      pl: "Kto zainstalował SkillFishOS na pececie, który nie jest BC-250, startował z ustawieniami przeznaczonymi dla płyty. Najbardziej dokuczliwe ograniczało pamięć dostępną dla części graficznej do sztywnych <strong>6 GB</strong>, podczas gdy właściwa wartość to <strong>połowa pamięci</strong>: za dużo na pececie z 8 GB, za mało na tym z 32. Brało się to z obrazu instalacyjnego, który niesie kopię konfiguracji płyty, więc miały je wszystkie. Teraz system sam to zauważa i usuwa, zachowując wcześniej kopię pliku; na prawdziwej BC-250 nic się nie zmienia.",
+      uk: "Ті, хто встановив SkillFishOS на ПК, який не є BC-250, запускалися з налаштуваннями, призначеними для плати. Найприкріше обмежувало пам'ять для графічної частини жорсткими <strong>6 ГБ</strong>, тоді як правильне значення — <strong>половина оперативної пам'яті</strong>: забагато для ПК з 8 ГБ і замало для ПК із 32. Це приходило зі встановлювального образу, який несе копію налаштувань плати, тож воно було в усіх. Тепер система помічає це сама й прибирає, попередньо зберігши копію файлу; на справжній BC-250 нічого не змінюється.",
+      ru: "Те, кто установил SkillFishOS на ПК, который не является BC-250, запускались с настройками, предназначенными для платы. Самая досадная ограничивала память для графической части жёсткими <strong>6 ГБ</strong>, тогда как правильное значение — <strong>половина оперативной памяти</strong>: много для ПК с 8 ГБ и мало для ПК с 32. Это приходило из установочного образа, который несёт копию настроек платы, так что она была у всех. Теперь система замечает это сама и убирает их, предварительно сохранив копию файла; на настоящей BC-250 ничего не меняется.",
+      es: "Quien instaló SkillFishOS en un PC que no es una BC-250 arrancaba con ajustes pensados para la placa. El más molesto limitaba a <strong>6 GB fijos</strong> la memoria que puede usar la parte gráfica, cuando el valor correcto es <strong>la mitad de la RAM</strong>: demasiado en un PC de 8 GB, demasiado poco en uno de 32. Venía de la imagen de instalación, que lleva consigo una copia de la configuración de una placa, así que lo tenían todos. Ahora el sistema se da cuenta solo y los quita, guardando antes una copia del archivo; en una BC-250 de verdad no cambia nada.",
+      pt: "Quem instalou o SkillFishOS num PC que não é uma BC-250 arrancava com definições pensadas para a placa. A mais incómoda limitava a <strong>6 GB fixos</strong> a memória utilizável pela parte gráfica, quando o valor certo é <strong>metade da RAM</strong>: demasiado num PC de 8 GB, pouco num de 32. Vinha da imagem de instalação, que leva consigo uma cópia da configuração de uma placa, por isso toda a gente a tinha. Agora o sistema dá por isso sozinho e retira-as, guardando antes uma cópia do ficheiro; numa BC-250 a sério não muda nada.",
+      de: "Wer SkillFishOS auf einem PC installiert hat, der keine BC-250 ist, startete mit Einstellungen für die Platine. Die unangenehmste begrenzte den Speicher, den der Grafikteil nutzen darf, auf feste <strong>6 GB</strong>, während der richtige Wert <strong>die Hälfte des Arbeitsspeichers</strong> ist: zu viel auf einem 8-GB-PC, zu wenig auf einem mit 32. Sie kam aus dem Installationsabbild, das eine Kopie der Konfiguration einer Platine mitbringt, also hatte sie jeder. Jetzt merkt das System es selbst und nimmt sie heraus, wobei vorher eine Kopie der Datei aufbewahrt wird; auf einer echten BC-250 ändert sich nichts.",
+      fr: "Ceux qui ont installé SkillFishOS sur un PC qui n'est pas une BC-250 démarraient avec des réglages prévus pour la carte. Le plus gênant plafonnait à <strong>6 Go fixes</strong> la mémoire utilisable par la partie graphique, alors que la bonne valeur est <strong>la moitié de la RAM</strong> : trop sur un PC de 8 Go, trop peu sur un de 32. Cela venait de l'image d'installation, qui emporte une copie de la configuration d'une carte, donc tout le monde l'avait. Le système s'en aperçoit désormais tout seul et les retire, en conservant d'abord une copie du fichier ; sur une vraie BC-250, rien ne change."
+    },
+  },
+  {
     // kernel-726-2026-09-17
     data: '2026-09-17',
     quando: { it: "17 settembre 2026", en: "17 September 2026", pl: "17 września 2026", uk: "17 вересня 2026", ru: "17 сентября 2026", es: "17 de septiembre de 2026", pt: "17 de setembro de 2026", de: "17. September 2026", fr: "17 septembre 2026" },
