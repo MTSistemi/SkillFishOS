@@ -41,7 +41,7 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 ## Highlights
 
 - **All 8 CPU cores, unlocked** — the BC-250 is sold as 6 cores / 12 threads, but the two missing ones are switched off by product configuration, not by defect: the presence mask reads a symmetric `0x77` on virtually every board. SkillFishOS writes that mask through the SMU at boot and comes up as **8 cores / 16 threads**, **+20% measured** on multi-threaded work. No modified BIOS, no soldering. It refuses any mask that is not `0x77` — a different pattern would suggest genuinely harvested cores — and only reboots after confirming the write, so it cannot loop.
-- **Custom `linux-tkg` kernel** `7.2.5-skillfishos` — BORE scheduler, GCC `-O3`, 1000 Hz, NTsync + fsync, with BC-250 patches: GPU clock range unlocked **350–2230 MHz**, **40-CU unlock** (opt-in), and the cosmetic *"RDSEED is not reliable…"* boot spam silenced. Built in **two flavours**: **main** (`-march=znver2`, BC-250) and **x64** (`-march=x86-64`, any other PC/VM). Prebuilt `.deb` in [**Releases**](../../releases/tag/kernel-7.2.5-skillfishos) or `apt install skillfishos-kernel` — see [docs/BUILD.md](docs/BUILD.md).
+- **Custom `linux-tkg` kernel** `7.2.6-skillfishos` — BORE scheduler, GCC `-O3`, 1000 Hz, NTsync + fsync, with BC-250 patches: GPU clock range unlocked **350–2230 MHz**, **40-CU unlock** (opt-in), and the cosmetic *"RDSEED is not reliable…"* boot spam silenced. Built in **two flavours**: **main** (`-march=znver2`, BC-250) and **x64** (`-march=x86-64`, any other PC/VM). Prebuilt `.deb` in [**Releases**](../../releases/tag/kernel-7.2.6-skillfishos) or `apt install skillfishos-kernel` — see [docs/BUILD.md](docs/BUILD.md).
 - **Real clock control** — SkillFishOS's own **V/F governor** (`skillfish-vf-governor`) drives the GPU along a voltage/frequency curve and idles it at 350 MHz; an SMU **CPU overclock & undervolt** reaches **4.0 GHz** (validated) under an 85 °C thermal guard. **~11,330 GFLOPS** fp32 with the 40-CU unlock (≈1.8× a stock build). The ISO ships a safe default curve; users pick Cautious, Balanced or Performance, or draw their own, from the Control Center's Tuner section.
 - **SkillFishOS Control Center** — one native **PyQt6** window for every tool (see [docs/CONTROL-CENTER.md](docs/CONTROL-CENTER.md)): **Status** shows the GPU clock and ceiling, CPU, compute units and fan at a glance; the **Tuner** section draws the V/F governor curve inside the chart, with a ceiling and three presets (Cautious 1850 · Balanced 2000 · Performance 2100) and applies changes *on trial* for 25 seconds — the old curve stays on disk until you press Keep; **Games** switches our Mesa per launcher or system-wide, arms the scx scheduler, FSR 4, and installs GE-Proton; **Profiles** sets ceiling, CPU, fan and scheduler in one click. It also overclocks & undervolts the CPU, resizes the UMA VRAM split, and manages **Compute Units live** — 20 CU pairs (green = on, red = off, grey = kept on by the driver; type 24 to 40 or click the cells, **no reboot**) with a CU test under vkpeak. **Fan**, **Monitor**, **Kernel**, **Snapshots**, **AI**, **Emulators**, **Console** and **ISO** are sections of the same window; the old per-tool commands (`skillfish-tuner`, `skillfish-monitor`, `skillfish-fan`, `skillfish-kernel-manager`, `skillfish-snapshots`, `skillfish-ai-panel`) still work and open the matching section. No terminal needed.
 - **Live Compute Units** — boots at the 24-CU driver baseline and routes up to **40 CUs at runtime** (via `umr`, no kernel param), restored at boot by a systemd service. Toggle/test from the Tuner or `skillfish-cu`.
@@ -70,7 +70,7 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 ## Performance
 
-> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.1.7-skillfishos, Mesa 26.0.8 — 7.0.11 and 7.1.7 measure within ±2% of each other; we ship 7.2.5 today and have not re-measured these frame rates against it). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
+> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.1.7-skillfishos, Mesa 26.0.8 — 7.0.11 and 7.1.7 measure within ±2% of each other; we ship 7.2.6 today and have not re-measured these frame rates against it). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
 
 ### Real benchmarks
 
@@ -109,12 +109,12 @@ CPU OC validated up to **4.0 GHz** (~1224 mV, 120 s stress, 83 °C peak) on the 
 
 ### Prebuilt kernel
 
-Prebuilt kernel `.deb`s (two flavours) are published under [**Releases**](../../releases/tag/kernel-7.2.5-skillfishos):
+Prebuilt kernel `.deb`s (two flavours) are published under [**Releases**](../../releases/tag/kernel-7.2.6-skillfishos):
 
 ```sh
 # main BC-250 kernel (znver2)
-sudo dpkg -i linux-image-7.2.5-skillfishos_7.2.5-1_amd64.deb
-# …or x64 (any other PC/VM): linux-image-7.2.5-skillfishos-x64_7.2.5-1_amd64.deb
+sudo dpkg -i linux-image-7.2.6-skillfishos_7.2.6-1_amd64.deb
+# …or x64 (any other PC/VM): linux-image-7.2.6-skillfishos-x64_7.2.6-1_amd64.deb
 ```
 
 Or, from the signed APT repo, simply `sudo apt install skillfishos-kernel` (a thin wrapper that fetches the full kernel `.deb` from the GitHub Release). To build it yourself, see [docs/BUILD.md](docs/BUILD.md) and [`kernel-build/`](kernel-build/).
@@ -125,10 +125,10 @@ Each live ISO (~4.6 GB) is captured from the real system with [penguins-eggs](ht
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download) | `7.2.5-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download) | `7.2.5-skillfishos-x64` | any x86-64 PC / VM |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download) | `7.2.6-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download) | `7.2.6-skillfishos-x64` | any x86-64 PC / VM |
 
-The **Slim** edition of 26.06 is not part of this release: no Slim image has been rebuilt since, and the slim kernel flavour itself was dropped after `7.2.0` — the current kernel (`7.2.5-skillfishos`) ships only the **main** and **x64** flavours.
+The **Slim** edition of 26.06 is not part of this release: no Slim image has been rebuilt since, and the slim kernel flavour itself was dropped after `7.2.0` — the current kernel (`7.2.6-skillfishos`) ships only the **main** and **x64** flavours.
 
 Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 

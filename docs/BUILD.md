@@ -45,12 +45,12 @@ The three userpatches:
 Output `.deb`s land in `DEBS/`. Install:
 
 ```sh
-sudo dpkg -i linux-image-7.2.5-skillfishos_*.deb linux-headers-7.2.5-skillfishos_*.deb
-sudo apt-mark hold linux-image-7.2.5-skillfishos linux-headers-7.2.5-skillfishos
+sudo dpkg -i linux-image-7.2.6-skillfishos_*.deb linux-headers-7.2.6-skillfishos_*.deb
+sudo apt-mark hold linux-image-7.2.6-skillfishos linux-headers-7.2.6-skillfishos
 sudo update-grub
 ```
 
-A prebuilt build is also published under [Releases](../../../releases/tag/kernel-7.2.5-skillfishos).
+A prebuilt build is also published under [Releases](../../../releases/tag/kernel-7.2.6-skillfishos).
 
 ### Publishing a release
 

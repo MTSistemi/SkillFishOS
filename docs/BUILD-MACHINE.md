@@ -26,7 +26,7 @@ something different from what the repository said.
 
     bash ~/costruisci-725.sh          # copy it for the next version
 
-It comes out in `~/DEBS-7.2.5/bc250/` and `~/DEBS-7.2.5/x64/`. The two differ in
+It comes out in `~/DEBS-7.2.6/bc250/` and `~/DEBS-7.2.6/x64/`. The two differ in
 `_processor_opt` (znver2 against x86-64) and `_kernel_localversion`: get one
 wrong and the package looks right and does not boot on the target machine.
 
@@ -71,7 +71,7 @@ their packages, is a separate step and is easy to forget:
 **A kernel release** on GitHub, with the .deb files as assets:
 
     GITHUB_TOKEN=$(sed -n s/^GITHUB_TOKEN=//p ~/.skillfishos/github.env) \
-    DEBS_DIR=~/DEBS-7.2.5/bc250 bash scripts/publish-kernel.sh kernel-7.2.5-skillfishos
+    DEBS_DIR=~/DEBS-7.2.6/bc250 bash scripts/publish-kernel.sh kernel-7.2.6-skillfishos
 
 **The site**:
 

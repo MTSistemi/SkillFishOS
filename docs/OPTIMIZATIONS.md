@@ -6,7 +6,7 @@ The BC‑250 is a semi‑custom APU from the **AMD Zen 2 + RDNA 2** family: CPU 
 
 ---
 
-## 1. Custom kernel — `linux-tkg` 7.2.5‑skillfishos
+## 1. Custom kernel — `linux-tkg` 7.2.6‑skillfishos
 
 Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/linux-tkg) with:
 
@@ -18,7 +18,7 @@ Built from [Frogging‑Family/linux‑tkg](https://github.com/Frogging-Family/li
 
 > **Warning:** **Never enable IOMMU on the BC‑250** — it's broken on this hardware. Avoid kernels 6.15.0–6.15.6 and 6.17.8–6.17.10.
 
-Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.2.5-skillfishos). Two flavours ship: **main** (`-march=znver2`, BC‑250) and **x64** (`-march=x86-64`, any other x64 box). Measured against 7.0.11 and 7.1.7 the kernels are **identical within ±2%** — the update is for maintenance and security, not speed.
+Recipe and patches: [`kernel-build/`](../kernel-build/). Build instructions: [BUILD.md](BUILD.md). Prebuilt `.deb`: [Releases](../../../releases/tag/kernel-7.2.6-skillfishos). Two flavours ship: **main** (`-march=znver2`, BC‑250) and **x64** (`-march=x86-64`, any other x64 box). Measured against 7.0.11 and 7.1.7 the kernels are **identical within ±2%** — the update is for maintenance and security, not speed.
 
 ---
 

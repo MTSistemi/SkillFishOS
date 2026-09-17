@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // kernel-726-2026-09-17
+    data: '2026-09-17',
+    quando: { it: "17 settembre 2026", en: "17 September 2026", pl: "17 września 2026", uk: "17 вересня 2026", ru: "17 сентября 2026", es: "17 de septiembre de 2026", pt: "17 de setembro de 2026", de: "17. September 2026", fr: "17 septembre 2026" },
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "Il kernel passa alla 7.2.6",
+      en: "The kernel moves up to 7.2.6",
+      pl: "Jądro przechodzi na 7.2.6",
+      uk: "Ядро переходить на 7.2.6",
+      ru: "Ядро переходит на 7.2.6",
+      es: "El núcleo pasa a la 7.2.6",
+      pt: "O núcleo passa para a 7.2.6",
+      de: "Der Kernel geht auf 7.2.6",
+      fr: "Le noyau passe à la 7.2.6"
+    },
+    testo: {
+      it: "Il kernel di SkillFishOS passa alla <strong>7.2.6</strong>, l'ultima stabile. Porta <strong>1816 correzioni</strong> da monte rispetto alla 7.2.5, diciassette delle quali nel driver grafico AMD, e nessuna delle quarantatré patch che teniamo per la BC-250 è cambiata. Non c'è niente di nuovo da provare: è manutenzione, e serve perché una scheda lasciata in pace continui a ricevere le correzioni di sicurezza come tutti gli altri. Si aggiorna con <code>apt</code>, e il pacchetto sceglie da sé fra la versione per la BC-250 e quella per qualunque altro PC x86-64.",
+      en: "The SkillFishOS kernel moves up to <strong>7.2.6</strong>, the current stable release. It brings <strong>1816 fixes</strong> from upstream over 7.2.5, seventeen of them in the AMD graphics driver, and none of the forty-three patches we carry for the BC-250 has changed. There is nothing new to try: this is maintenance, and it is what keeps a board left alone receiving the same security fixes as everybody else. Update with <code>apt</code>; the package picks by itself between the BC-250 build and the one for any other x86-64 PC.",
+      pl: "Jądro SkillFishOS przechodzi na <strong>7.2.6</strong>, obecne stabilne wydanie. Przynosi <strong>1816 poprawek</strong> z góry względem 7.2.5, siedemnaście z nich w sterowniku graficznym AMD, i żadna z czterdziestu trzech łat, które utrzymujemy dla BC-250, się nie zmieniła. Nie ma tu nic nowego do wypróbowania: to konserwacja i dzięki niej płyta, której się nie rusza, wciąż dostaje te same poprawki bezpieczeństwa co wszyscy. Aktualizuje się przez <code>apt</code>, a pakiet sam wybiera między wersją dla BC-250 a tą dla dowolnego innego peceta x86-64.",
+      uk: "Ядро SkillFishOS переходить на <strong>7.2.6</strong>, поточний стабільний випуск. Воно приносить <strong>1816 виправлень</strong> згори порівняно з 7.2.5, сімнадцять із них у графічному драйвері AMD, і жодна з сорока трьох латок, які ми тримаємо для BC-250, не змінилася. Тут немає нічого нового, що можна спробувати: це обслуговування, і саме воно дає змогу платі, яку не чіпають, і далі отримувати ті самі виправлення безпеки, що й усі. Оновлюється через <code>apt</code>, а пакунок сам обирає між збіркою для BC-250 і тією, що для будь-якого іншого ПК x86-64.",
+      ru: "Ядро SkillFishOS переходит на <strong>7.2.6</strong>, текущий стабильный выпуск. Оно приносит <strong>1816 исправлений</strong> сверху по сравнению с 7.2.5, семнадцать из них в графическом драйвере AMD, и ни одна из сорока трёх заплаток, которые мы держим для BC-250, не изменилась. Пробовать тут нечего: это обслуживание, и именно оно позволяет плате, которую не трогают, и дальше получать те же исправления безопасности, что и все. Обновляется через <code>apt</code>, а пакет сам выбирает между сборкой для BC-250 и той, что для любого другого ПК x86-64.",
+      es: "El núcleo de SkillFishOS pasa a la <strong>7.2.6</strong>, la estable actual. Trae <strong>1816 correcciones</strong> de aguas arriba respecto a la 7.2.5, diecisiete de ellas en el controlador gráfico de AMD, y ninguno de los cuarenta y tres parches que mantenemos para la BC-250 ha cambiado. No hay nada nuevo que probar: es mantenimiento, y es lo que hace que una placa a la que no se toca siga recibiendo las mismas correcciones de seguridad que todos. Se actualiza con <code>apt</code>, y el paquete elige solo entre la versión para la BC-250 y la de cualquier otro PC x86-64.",
+      pt: "O núcleo do SkillFishOS passa para a <strong>7.2.6</strong>, a estável atual. Traz <strong>1816 correções</strong> de montante em relação à 7.2.5, dezassete delas no controlador gráfico da AMD, e nenhum dos quarenta e três patches que mantemos para a BC-250 mudou. Não há nada de novo para experimentar: é manutenção, e é o que faz com que uma placa deixada em paz continue a receber as mesmas correções de segurança que toda a gente. Atualiza-se com <code>apt</code>, e o pacote escolhe sozinho entre a versão para a BC-250 e a de qualquer outro PC x86-64.",
+      de: "Der SkillFishOS-Kernel geht auf <strong>7.2.6</strong>, die aktuelle stabile Ausgabe. Er bringt <strong>1816 Korrekturen</strong> von oben gegenüber 7.2.5, siebzehn davon im AMD-Grafiktreiber, und keiner der dreiundvierzig Patches, die wir für die BC-250 pflegen, hat sich geändert. Es gibt nichts Neues auszuprobieren: das ist Wartung, und sie sorgt dafür, dass eine Platine, die man in Ruhe lässt, weiterhin dieselben Sicherheitskorrekturen bekommt wie alle anderen. Aktualisiert wird mit <code>apt</code>, und das Paket wählt selbst zwischen dem Build für die BC-250 und dem für jeden anderen x86-64-PC.",
+      fr: "Le noyau de SkillFishOS passe à la <strong>7.2.6</strong>, la version stable actuelle. Il apporte <strong>1816 corrections</strong> venues de l'amont par rapport à la 7.2.5, dont dix-sept dans le pilote graphique AMD, et aucun des quarante-trois correctifs que nous gardons pour la BC-250 n'a changé. Il n'y a rien de nouveau à essayer : c'est de l'entretien, et c'est ce qui permet à une carte qu'on laisse tranquille de continuer à recevoir les mêmes corrections de sécurité que tout le monde. La mise à jour se fait avec <code>apt</code>, et le paquet choisit tout seul entre la version pour la BC-250 et celle pour n'importe quel autre PC x86-64."
+    },
+  },
+  {
     // cu-pavimento-2026-09-17
     data: '2026-09-17',
     quando: { it: "17 settembre 2026", en: "17 September 2026", pl: "17 września 2026", uk: "17 вересня 2026", ru: "17 сентября 2026", es: "17 de septiembre de 2026", pt: "17 de setembro de 2026", de: "17. September 2026", fr: "17 septembre 2026" },

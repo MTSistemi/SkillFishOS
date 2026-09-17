@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 # sola, con dentro anche i pacchetti dell'altra. L'edizione decide tre cose
 # INSIEME, e sbagliarne una sola da' un'immagine che sembra giusta e non parte:
 #
-#   EDIZIONE=generic  kernel 7.2.5-skillfishos-x64  lista BC-250 esclusa
-#   EDIZIONE=bc250    kernel 7.2.5-skillfishos      lista BC-250 inclusa
+#   EDIZIONE=generic  kernel 7.2.6-skillfishos-x64  lista BC-250 esclusa
+#   EDIZIONE=bc250    kernel 7.2.6-skillfishos      lista BC-250 inclusa
 #
 # ⚠️ live-build vive in /usr/sbin (debootstrap, mksquashfs, xorriso). Una shell
 # non interattiva, per esempio quella di una connessione ssh con un comando
@@ -18,8 +18,8 @@ export PATH
 
 EDIZIONE="${EDIZIONE:-generic}"
 case "$EDIZIONE" in
-    bc250)   SAPORE="7.2.5-skillfishos";     VARIANTE="bc250"; DESCR="BC-250 (znver2)" ;;
-    generic) SAPORE="7.2.5-skillfishos-x64"; VARIANTE="x64";   DESCR="generic x86-64" ;;
+    bc250)   SAPORE="7.2.6-skillfishos";     VARIANTE="bc250"; DESCR="BC-250 (znver2)" ;;
+    generic) SAPORE="7.2.6-skillfishos-x64"; VARIANTE="x64";   DESCR="generic x86-64" ;;
     *) echo "EDIZIONE sconosciuta: $EDIZIONE (bc250 o generic)" >&2; exit 2 ;;
 esac
 export SKILLFISH_LINUX_FLAVOUR="$SAPORE"
