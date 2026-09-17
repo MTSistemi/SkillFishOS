@@ -262,20 +262,20 @@ Description: SkillFishOS application menu group
  Part of SkillFishOS.
 
 Package: skillfish-mesa-gfx1013
-Version: 26.09.2
+Version: 26.09.3
 Architecture: amd64
 Depends: python3
 Recommends: skillfishos-kernel
 Maintainer: SkillFishOS <info@skillfishos.com>
 Priority: optional
 Section: libs
-Filename: pool/main/s/skillfish-mesa-gfx1013/skillfish-mesa-gfx1013_26.09.2_amd64.deb
-Size: 4128540
-SHA256: 1badd6f769d5ddb680c8fee0168388463410446edc370e33b3785edf6992172e
-SHA1: 38399f10835fc55ab45b0b0ad78941573f402e14
-MD5sum: 7807e4d7d50e5ca3b65b3505ed72243f
+Filename: pool/main/s/skillfish-mesa-gfx1013/skillfish-mesa-gfx1013_26.09.3_amd64.deb
+Size: 4134660
+SHA256: 4982ebb1e7b6133c34e3362a390f9033c3415e671c6022793d09fd47f8a04658
+SHA1: b9dd4218257391224cb80ac561d0004dfceff529
+MD5sum: ca5250363fdfdec4dbc4e80038f2132c
 Description: SkillFishOS - RADV for the BC-250 with the compute queues open
- A build of Mesa 26.2.2's Vulkan driver carrying one change the stock driver
+ A build of Mesa 26.2.3's Vulkan driver carrying one change the stock driver
  does not: on GFX1013 it exposes the dedicated compute queues, and adds the chip
  to the async-compute threadgroup workaround list that has covered Iceland and
  Tonga since 2015. Measured on a BC-250: 4.2 per cent on Cyberpunk 2077.
