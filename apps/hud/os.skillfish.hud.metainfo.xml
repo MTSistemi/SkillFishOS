@@ -71,6 +71,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.31" date="2026-09-17">
+      <description>
+        <p>Nothing changes in the HUD. This package also carries the tool that routes the Compute Units, and that tool has stopped forcing a power register the graphics driver is meant to manage on its own. Measured on the board: the same compute, to within a fifth of a percent, and one less obstacle in the way of ROCm.</p>
+        <p xml:lang="it">Nell'HUD non cambia niente. Questo pacchetto porta anche lo strumento che instrada le Compute Unit, e quello strumento ha smesso di forzare un registro di alimentazione che deve gestire il driver grafico da sé. Misurato sulla scheda: stesso calcolo, entro un quinto di percento, e un ostacolo in meno sulla strada di ROCm.</p>
+        <p xml:lang="fr">Rien ne change dans le HUD. Ce paquet contient aussi l'outil qui route les Compute Units, et cet outil a cessé de forcer un registre d'alimentation que le pilote graphique doit gérer lui-même. Mesuré sur la carte : le même calcul, à un cinquième de pour cent près, et un obstacle en moins sur la route de ROCm.</p>
+        <p xml:lang="es">En el HUD no cambia nada. Este paquete lleva también la herramienta que enruta las Compute Units, y esa herramienta ha dejado de forzar un registro de alimentación que debe gestionar el propio controlador gráfico. Medido en la placa: el mismo cálculo, dentro de un quinto de por ciento, y un obstáculo menos en el camino de ROCm.</p>
+        <p xml:lang="pt">No HUD não muda nada. Este pacote leva também a ferramenta que encaminha as Compute Units, e essa ferramenta deixou de forçar um registo de alimentação que deve ser gerido pelo próprio controlador gráfico. Medido na placa: o mesmo cálculo, dentro de um quinto de por cento, e um obstáculo a menos no caminho do ROCm.</p>
+        <p xml:lang="de">Am HUD ändert sich nichts. Dieses Paket enthält auch das Werkzeug, das die Compute Units verteilt, und dieses Werkzeug erzwingt kein Energieregister mehr, das der Grafiktreiber selbst verwalten soll. Auf der Karte gemessen: dieselbe Rechenleistung, auf ein Fünftel Prozent genau, und ein Hindernis weniger auf dem Weg zu ROCm.</p>
+        <p xml:lang="pl">W HUD nic się nie zmienia. Ten pakiet zawiera też narzędzie, które rozdziela Compute Unity, i to narzędzie przestało wymuszać rejestr zasilania, którym ma zarządzać sam sterownik graficzny. Zmierzone na płycie: te same obliczenia, z dokładnością do jednej piątej procenta, i o jedną przeszkodę mniej na drodze do ROCm.</p>
+        <p xml:lang="ru">В HUD ничего не меняется. В этом пакете есть и средство, распределяющее Compute Unit, и оно перестало принудительно задавать регистр питания, которым должен управлять сам графический драйвер. Измерено на плате: те же вычисления, с точностью до пятой доли процента, и на одно препятствие меньше на пути к ROCm.</p>
+        <p xml:lang="uk">У HUD нічого не змінюється. У цьому пакунку є й засіб, що розподіляє Compute Unit, і він перестав примусово задавати регістр живлення, яким має керувати сам графічний драйвер. Виміряно на платі: ті самі обчислення, з точністю до п'ятої частки відсотка, і на одну перешкоду менше на шляху до ROCm.</p>
+      </description>
+    </release>
     <release version="26.08.51" date="2026-08-23">
       <description>
           <p>The screenshots on this page now show up. They were declared with a file:// address, which AppStream refuses, so the gallery was empty for every one of our applications — in the Hub, in Discover and in GNOME Software alike. They are served from skillfishos.com now, and a copy still travels inside the package for machines with no network.</p>
