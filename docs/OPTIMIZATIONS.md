@@ -61,7 +61,9 @@ Measured gain (same boot, extra cores toggled off via `/sys/.../cpuN/online`): *
 
 ## 4. 40‑CU unlock
 
-Adds `amdgpu.bc250_cc_write_mode=3` to the kernel cmdline → `active_cu_number` goes from **24 → 40** at GPU init. Result: fp32 jumps from ~6.9 to **~11.3 TFLOPS** (vkpeak `11329` GFLOPS). It's a boot‑time setting (no runtime toggle); the **Tuner** flips it for you and reboots.
+`active_cu_number` goes from **24 → 40**, and fp32 from ~6.9 to **~11.3 TFLOPS** (vkpeak `11329` GFLOPS).
+
+This used to be the kernel parameter `amdgpu.bc250_cc_write_mode=3`, applied at GPU init and needing a reboot to change. It is now `skillfish-cu.service`, which writes the same WGP masks at boot through `umr` and can change them **live**, so the Control Center moves compute units without restarting anything. Measured on the dev board on 2026-09-17: with the kernel parameter removed and the board rebooted, still 40/40 CU and **10169** GFLOPS against **10166** with it. The parameter is now dead weight wherever it is still written.
 
 | Configuration | vkpeak fp32 (GFLOPS) |
 |---|---:|

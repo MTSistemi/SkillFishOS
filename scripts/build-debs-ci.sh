@@ -1229,6 +1229,12 @@ P=skillfish-boot
 putdir $P theme/grub/skillfish boot/grub/themes/skillfish
 put $P 0644 system/etc/default/grub.d/80-skillfish-boot.cfg etc/default/grub.d/80-skillfish-boot.cfg
 put $P 0755 system/usr/local/bin/skillfish-sessione-x11 usr/local/bin/skillfish-sessione-x11
+# ⚠️ La pulizia della riga di comando. Il frammento qui sopra AGGIUNGE i
+# parametri della scheda solo su una BC-250, ed e' giusto, ma non toglie
+# quelli che le immagini pubblicate hanno gia' scritto in /etc/default/grub
+# clonandolo da una scheda. Provato il 17/09/2026: su un'installazione
+# Generic il solo frammento lasciava la riga identica.
+put $P 0755 system/usr/local/bin/skillfish-clean-cmdline usr/local/bin/skillfish-clean-cmdline
 # ⚠️ shim-signed E grub-efi-amd64-signed SONO LA PARTE CHE CONTA.
 # Nel chroot dell'immagine c'era solo grub-efi-amd64-unsigned: firmavamo i
 # kernel e non spedivamo la catena che li verifica, quindi su una scheda col
@@ -1249,6 +1255,12 @@ if [ -d /run/systemd/system ]; then
   # dichiarerebbe frequenze di un'altra CPU).
   if command -v skillfish-acpi-pstates >/dev/null 2>&1; then
     skillfish-acpi-pstates auto >/dev/null 2>&1 || true
+  fi
+  # ⚠️ PRIMA di update-grub, non dopo: cosi' il menu si rigenera una volta
+  # sola, dal file gia' ripulito. Su una BC-250 vera lo script esce subito
+  # senza toccare niente.
+  if [ -x /usr/local/bin/skillfish-clean-cmdline ]; then
+    /usr/local/bin/skillfish-clean-cmdline || true
   fi
   if command -v update-grub >/dev/null 2>&1; then
     update-grub >/dev/null 2>&1 || true

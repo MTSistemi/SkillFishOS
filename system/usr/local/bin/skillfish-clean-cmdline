@@ -1,0 +1,109 @@
+#!/bin/sh
+# Remove BC-250-only kernel parameters from the boot command line of a machine
+# that is not a BC-250.
+#
+#   skillfish-clean-cmdline            clean /etc/default/grub (needs root)
+#   skillfish-clean-cmdline --prova    say what it would remove, write nothing
+#
+# WHY THIS EXISTS, and why the DMI check in 80-skillfish-boot.cfg is not enough.
+# That fragment is correct: it adds the board's parameters only when the DMI
+# says "AMD BC-250". But the published images carry a /etc/default/grub cloned
+# from a board, with the parameters already written into
+# GRUB_CMDLINE_LINUX_DEFAULT, and Calamares copies that file to the installed
+# system. The fragment ADDS, it never removes, so on those machines it cannot
+# help. Measured on 2026-09-17: installing skillfish-boot on a generic x86-64
+# install left the line byte for byte the same.
+#
+# WHAT IT ACTUALLY COSTS on a normal PC:
+#   ttm.pages_limit / ttm.page_pool_size  the one that matters. The kernel's own
+#     default is HALF of system RAM (drivers/gpu/drm/ttm/ttm_device.c: num_pages
+#     = totalram >> PAGE_SHIFT; num_pages /= 2). 1572864 pages is a fixed 6 GiB,
+#     so above 12 GB of RAM we shrink the GPU's budget and below 12 GB we raise
+#     it. On an 8 GB PC that is 75% of RAM the GPU may pin.
+#   amdgpu.bc250_cc_write_mode  inert elsewhere, verified in the patch itself:
+#     the whole block is behind `adev->pdev->device == BC250_PCI_DEVICE_ID`
+#     (0x13FE). Removed anyway, because a parameter that means nothing on the
+#     machine it is written on is a question somebody will waste an hour on.
+#   tsc=directsync  the board's clock workaround. Nothing to do elsewhere.
+#
+# ⚠️ IT ONLY REMOVES VALUES WE ARE KNOWN TO HAVE SHIPPED. A ttm.pages_limit with
+# any other number was chosen by whoever runs the machine and is none of our
+# business. Same reason split_lock_detect=off is NOT in the list: it is a
+# defensible setting on any gaming PC, and taking it away would be us deciding
+# something for somebody without being asked.
+#
+# ⚠️ AND IT NEVER FAILS AN INSTALL. Every path exits 0: a package that refuses
+# to configure because it could not tidy a comment line is worse than the
+# untidy line.
+set -u
+G=/etc/default/grub
+SALVA=/etc/default/grub.prima-di-skillfish-boot
+
+PROVA=0
+[ "${1:-}" = "--prova" ] && PROVA=1
+
+# Only the exact values our own images have shipped.
+TOGLI="amdgpu.bc250_cc_write_mode=3 amdgpu.bc250_cc_write_mode=1 amdgpu.bc250_cc_write_mode=2 amdgpu.bc250_cc_write_mode=4 ttm.pages_limit=1572864 ttm.page_pool_size=1572864 ttm.pages_limit=3538944 ttm.page_pool_size=3538944 tsc=directsync"
+
+prodotto=$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || echo "")
+if [ "$prodotto" = "AMD BC-250" ]; then
+    [ "$PROVA" = 1 ] && echo "questa E' una BC-250: non tolgo niente"
+    exit 0
+fi
+[ -f "$G" ] || exit 0
+
+TMP=$(mktemp) || exit 0
+# ⚠️ The log of what was removed goes to a second mktemp file, not to a fixed
+# name under /tmp. A predictable path written by root in a world-writable
+# directory is a symlink waiting to happen: anyone on the machine could point
+# it at a file they do not own and have root truncate it.
+RIGHE=$(mktemp) || { rm -f "$TMP"; exit 0; }
+# awk and not sed: the parameters contain dots, and escaping them by hand into a
+# regular expression is exactly the kind of thing that works until one day it
+# matches something else.
+awk -v togli="$TOGLI" '
+BEGIN { n = split(togli, t, " "); for (i = 1; i <= n; i++) brutti[t[i]] = 1; tolti = 0 }
+/^GRUB_CMDLINE_LINUX(_DEFAULT)?=/ {
+    eq = index($0, "=")
+    chiave = substr($0, 1, eq)
+    val = substr($0, eq + 1)
+    virg = substr(val, 1, 1)
+    if (virg == "\"" || virg == "\047") val = substr(val, 2, length(val) - 2)
+    else virg = ""
+    m = split(val, p, " ")
+    fuori = ""
+    for (i = 1; i <= m; i++) {
+        if (p[i] == "") continue
+        if (p[i] in brutti) { tolti++; print "  tolgo " p[i] > "/dev/stderr"; continue }
+        fuori = (fuori == "" ? p[i] : fuori " " p[i])
+    }
+    print chiave virg fuori virg
+    next
+}
+{ print }
+END { exit (tolti > 0 ? 0 : 1) }
+' "$G" > "$TMP" 2>"$RIGHE"
+CAMBIATO=$?
+
+if [ "$CAMBIATO" != 0 ]; then
+    rm -f "$TMP" "$RIGHE"
+    [ "$PROVA" = 1 ] && echo "niente da togliere"
+    exit 0
+fi
+
+cat "$RIGHE" 2>/dev/null
+if [ "$PROVA" = 1 ]; then
+    echo "--- come resterebbe ---"
+    grep -E '^GRUB_CMDLINE_LINUX' "$TMP"
+    rm -f "$TMP" "$RIGHE"
+    exit 0
+fi
+
+# The copy is taken once and never overwritten: the interesting one is the file
+# as it was before we ever touched it, not as it was last time.
+[ -f "$SALVA" ] || cp -a "$G" "$SALVA" 2>/dev/null || true
+cat "$TMP" > "$G" 2>/dev/null || { rm -f "$TMP" "$RIGHE"; exit 0; }
+rm -f "$TMP" "$RIGHE"
+echo "questa macchina non e' una BC-250: parametri della scheda tolti da $G"
+echo "copia di prima in $SALVA"
+exit 0
