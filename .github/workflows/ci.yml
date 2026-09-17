@@ -28,7 +28,7 @@ jobs:
       - name: Syntax check every app script
         run: |
           set -e
-          for f in apps/tuner/skillfish-tuner apps/tuner/skillfish-tuner-helper \
+          for f in apps/tuner/skillfish-tuner-helper \
                    apps/hub/skillfish-hub apps/hub/skillfish-hub-helper \
                    apps/monitor/skillfish-monitor \
                    apps/kernel-manager/skillfish-kernel-manager \
@@ -42,7 +42,7 @@ jobs:
       - name: Lint (ruff — pyflakes blocking, bugbear informational)
         run: |
           pip install -q ruff
-          PYAPPS="apps/tuner/skillfish-tuner apps/tuner/skillfish-tuner-helper \
+          PYAPPS="apps/tuner/skillfish-tuner-helper \
                   apps/hub/skillfish-hub apps/monitor/skillfish-monitor \
                   apps/kernel-manager/skillfish-kernel-manager apps/ai-panel/skillfish-ai-panel"
           ruff check --select F,E9 --no-cache $PYAPPS

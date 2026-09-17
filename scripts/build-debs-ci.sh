@@ -1985,7 +1985,6 @@ avvia apps/hud/skillfish-hud-editor
 # delle applicazioni scrive «python3» e perde anche l'icona. Sette app su otto
 # lo facevano gia': la ottava se n'e' accorta solo passandoci sopra col mouse.
 for _app in apps/fan/skillfish-fan apps/hud/skillfish-hud-editor \
-            apps/tuner/skillfish-tuner \
             apps/monitor/skillfish-monitor apps/hub/skillfish-hub \
             apps/snapshots/skillfish-snapshots apps/ai-panel/skillfish-ai-panel \
             apps/kernel-manager/skillfish-kernel-manager \

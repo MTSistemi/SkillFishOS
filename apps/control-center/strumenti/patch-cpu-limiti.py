@@ -27,7 +27,6 @@ found, so a half-applied patch is not possible.
 """
 import io
 import os
-import re
 import sys
 
 PROVA = "--prova" in sys.argv

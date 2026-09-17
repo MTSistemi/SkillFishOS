@@ -2762,6 +2762,10 @@ def _non_morire(tipo, valore, traccia):
                                   "Something went wrong:\n\n%s\n\nThe window stays open.")
                                 % ("%s: %s" % (tipo.__name__, valore)))
     except Exception:
+        # The dialog itself failed. This is the excepthook, the last place an
+        # error can be reported from, so there is nowhere left to report to and
+        # raising here would swap one lost error for another. The window stays
+        # open, which was the whole point of catching it.
         pass
 
 

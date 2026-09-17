@@ -356,13 +356,16 @@ CPU_LIMITI_RIPIEGO = {"freq_min": 3500, "freq_max": 4500,
 # already stops at -40. Those ten steps buy nothing and cost a power cycle.
 CPU_UV_SICURO = -40
 
-_CPU_LIMITI = None
+# ⚠️ A dict, not a global that gets rebound. The cache used to be None and
+# reassigned inside the function, and a scanner reads that as a global whose
+# value nobody uses: it cannot follow a value that is only read on a later
+# call. Filling a dict in place is the same cache and says so in the code.
+_CPU_LIMITI = {}
 
 
 def cpu_limiti():
     """What bc250_apply.py will actually accept, read once and kept."""
-    global _CPU_LIMITI
-    if _CPU_LIMITI is not None:
+    if _CPU_LIMITI:
         return _CPU_LIMITI
     lim = dict(CPU_LIMITI_RIPIEGO)
     try:
@@ -374,8 +377,8 @@ def cpu_limiti():
         # no backend installed: the fallback above is what it shipped with
         pass
     lim["scale_min"] = max(lim["scale_min"], CPU_UV_SICURO)
-    _CPU_LIMITI = lim
-    return lim
+    _CPU_LIMITI.update(lim)
+    return _CPU_LIMITI
 
 
 def _cpu_fuori(mhz, scale, tmp):
