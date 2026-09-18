@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.33" date="2026-09-18">
+      <description>
+        <p>The games page follows the driver switch instead of reading one override file of its own. With the system driver on, the Steam and Heroic boxes are ticked and locked: before this they came up empty while the games were in fact running on our driver.</p>
+        <p xml:lang="it">La pagina dei giochi segue l'interruttore del driver invece di leggersi un file di override per conto suo. Con il driver di sistema acceso, le caselle di Steam e Heroic si vedono spuntate e bloccate: prima uscivano vuote mentre i giochi giravano sulla nostra Mesa.</p>
+        <p xml:lang="fr">La page des jeux suit l'interrupteur du pilote au lieu de lire un fichier de redéfinition de son côté. Quand le pilote système est activé, les cases de Steam et Heroic sont cochées et verrouillées : avant, elles apparaissaient vides alors que les jeux tournaient bel et bien sur notre pilote.</p>
+        <p xml:lang="es">La página de juegos sigue el interruptor del controlador en vez de leer por su cuenta un archivo de anulación. Con el controlador del sistema activado, las casillas de Steam y Heroic aparecen marcadas y bloqueadas: antes salían vacías mientras los juegos ya corrían con el nuestro.</p>
+        <p xml:lang="pt">A página dos jogos segue o interruptor do driver em vez de ler por sua conta um ficheiro de substituição. Com o driver do sistema ligado, as caixas do Steam e do Heroic aparecem marcadas e bloqueadas: antes apareciam vazias enquanto os jogos já corriam com o nosso.</p>
+        <p xml:lang="de">Die Spieleseite folgt dem Treiberschalter, statt sich eine eigene Override-Datei zu lesen. Bei eingeschaltetem Systemtreiber sind die Kästchen von Steam und Heroic angehakt und gesperrt: vorher waren sie leer, während die Spiele längst auf unserem Treiber liefen.</p>
+        <p xml:lang="pl">Strona gier idzie za przełącznikiem sterownika zamiast czytać własny plik nadpisania. Przy włączonym sterowniku systemowym pola Steam i Heroic są zaznaczone i zablokowane: wcześniej były puste, choć gry działały już na naszym.</p>
+        <p xml:lang="ru">Страница игр следует за переключателем драйвера, а не читает собственный файл переопределения. При включённом системном драйвере поля Steam и Heroic отмечены и заблокированы: раньше они были пустыми, хотя игры уже шли на нашем.</p>
+        <p xml:lang="uk">Сторінка ігор іде за перемикачем драйвера, а не читає власний файл перевизначення. З увімкненим системним драйвером поля Steam і Heroic позначені та заблоковані: раніше вони були порожні, хоча ігри вже працювали на нашому.</p>
+      </description>
+    </release>
     <release version="26.09.18" date="2026-09-13">
       <description>
         <p>The AI card only accepts levels and models that actually exist: a request built by hand can no longer point llama-server at any file on the disk.</p>

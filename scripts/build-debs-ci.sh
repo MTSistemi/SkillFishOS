@@ -2133,13 +2133,15 @@ check skillfish-hub_${VER}_all.deb ./usr/local/lib/skillfish/hub-comune.sh 'syst
 
 # THE CONTROL CENTER. The helper must ask for the password like the Tuner did,
 # the trial must exist (a curve applied without one hangs boards), and the
-# divert of the system Mesa must go somewhere ldconfig does not look.
+# system Mesa must be switched through skillfish-mesa and not by the helper
+# itself: two implementations of that would sooner or later disagree about what
+# is installed.
 check skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_active>auth_admin_keep</allow_active>'
 check skillfish-audio-dolby_${VER}_all.deb ./usr/local/share/wireplumber/scripts/monitors/alsa.lua 'bc250'
 notcheck skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_any>yes</allow_any>'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'gov-prova'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'reset-failed'
-check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper '/var/lib/skillfish/mesa-distrib'
+check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper '/usr/bin/skillfish-mesa'
 check skillfish-control-center_${VER}_all.deb ./usr/share/skillfish/control-center/sfcc/pagine/tuner.py 'ProvaCurva'
 check skillfish-control-center_${VER}_all.deb ./usr/share/applications/os.skillfish.control-center.desktop 'StartupWMClass=os.skillfish.control-center'
 check skillfish-control-center_${VER}_all.deb ./usr/share/icons/hicolor/scalable/apps/skillfish-control-center.svg '<svg'

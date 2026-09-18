@@ -247,7 +247,7 @@ if not con_versione:
              % VERSIONE)
 
 git("add", "-A")
-git("-c", "user.name=SkillFishOS", "-c", "user.email=tadini@poloinformatico.it",
+git("-c", "user.name=SkillFishOS", "-c", "user.email=info@mtsistemi.it",
     "commit", "-m",
     "apt archive %s\n\n"
         "Brings GitHub Pages level with skillfishos.com/apt. Installed images\n"
