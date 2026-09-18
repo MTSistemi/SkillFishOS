@@ -1,33 +1,57 @@
 #!/bin/bash
-# Package our RADV for the BC-250 without touching the system Mesa.
+# Package our Mesa: the whole driver, not only the Vulkan half.
 #
 #     pacchetto-mesa.sh [versione-pacchetto] [versione-mesa]
-#         esempio: pacchetto-mesa.sh 26.09.3 26.2.3
+#         esempio: pacchetto-mesa.sh 26.09.4 26.2.3
 #
-# ⚠️ LE DUE VERSIONI ERANO COSTANTI, e non erano nemmeno le stesse cose: una
-# e' il numero del nostro pacchetto, l'altra la Mesa che ci mettiamo dentro.
-# Il numero del pacchetto usciva da `date`, quindi due rilasci nello stesso
-# mese avevano lo stesso numero e il secondo non arrivava a nessuno; e la Mesa
-# era scritta a mano in tre punti (la cartella, la descrizione, il copyright),
-# quindi bastava dimenticarne uno per spedire un pacchetto che dichiarava una
-# versione e ne conteneva un'altra.
+# ⚠️ FROM 26.09.4 THIS SHIPS THE WHOLE STACK. Until 26.09.3 the package held one
+# file, libvulkan_radeon.so, and the machine kept Debian's Mesa for everything
+# else: the desktop, the browsers, every native OpenGL program. Now the tree
+# built by compila-mesa-pubblica.sh goes in whole, and /etc/ld.so.conf.d points
+# the 64-bit side of the machine at it.
+#
+# ⚠️ LE DUE VERSIONI SONO DUE COSE DIVERSE: la prima e' il numero del nostro
+# pacchetto, la seconda la Mesa che ci mettiamo dentro.
 set -u
-VER="${1:-$(date +%y.%m).3}"
+VER="${1:-$(date +%y.%m).4}"
 MESA="${2:-26.2.3}"
-SORG=~/mesa-$(echo "$MESA" | tr -d .)/libvulkan_radeon.so
-[ -f "$SORG" ] || { echo "non trovo $SORG: prima compila-mesa-pubblica.sh $MESA" >&2; exit 1; }
-# ⚠️ E si controlla che la libreria dica davvero quella versione, invece di
+CORTO=$(echo "$MESA" | tr -d .)
+ALBERO=~/mesa-completa-$CORTO/opt/skillfish-gfx1013
+QUI=$(dirname "$0")
+
+[ -d "$ALBERO/lib/x86_64-linux-gnu" ] || {
+    echo "non trovo $ALBERO: prima compila-mesa-pubblica.sh $MESA" >&2; exit 1; }
+
+# ⚠️ Si controlla che le librerie dicano davvero quella versione, invece di
 # fidarsi del nome della cartella.
-DENTRO=$(strings "$SORG" | grep -oE 'Mesa [0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d' ' -f2)
-[ "$DENTRO" = "$MESA" ] || { echo "la libreria dice Mesa $DENTRO, non $MESA" >&2; exit 1; }
-echo "pacchetto $VER, Mesa $MESA (verificata dentro la libreria)"
+for f in libvulkan_radeon.so libgallium-$MESA.so; do
+    [ -f "$ALBERO/lib/x86_64-linux-gnu/$f" ] || { echo "manca $f" >&2; exit 1; }
+    DENTRO=$(strings "$ALBERO/lib/x86_64-linux-gnu/$f" | grep -oE 'Mesa [0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d' ' -f2)
+    [ "$DENTRO" = "$MESA" ] || { echo "$f dice Mesa $DENTRO, non $MESA" >&2; exit 1; }
+done
+
+# ⚠️ E CHE RADV NON SI SIA PORTATO DIETRO LLVM. Con -Dllvm=enabled per radeonsi,
+# anche libvulkan_radeon.so finisce legata a libLLVM.so.21.1, che dentro il
+# sandbox flatpak dei giochi non esiste: il caricatore Vulkan scarta il nostro
+# ICD in silenzio e il gioco parte con il driver del runtime. Si vede solo
+# misurando, quindi si controlla qui.
+if objdump -p "$ALBERO/lib/x86_64-linux-gnu/libvulkan_radeon.so" | grep -q LLVM; then
+    echo "RADV e' legata a libLLVM: ricompila con -Damd-use-llvm=false" >&2; exit 1
+fi
+echo "pacchetto $VER, Mesa $MESA (verificata dentro le librerie, RADV senza LLVM)"
+
 P=~/pkg-mesa
 rm -rf "$P"
-install -d "$P/DEBIAN" "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu" \
-           "$P/opt/skillfish-gfx1013/share/vulkan/icd.d" "$P/usr/bin" \
+install -d "$P/DEBIAN" "$P/opt" "$P/usr/bin" "$P/usr/lib/systemd/system" \
            "$P/usr/share/doc/skillfish-mesa-gfx1013"
+cp -a "$ALBERO" "$P/opt/skillfish-gfx1013"
+# the headers and pkgconfig files are for building against Mesa: not our job
+rm -rf "$P/opt/skillfish-gfx1013/include" "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/pkgconfig"
 
-cp "$SORG" "$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/"
+# ⚠️ L'ICD DEL SANDBOX HA IL PERCORSO ASSOLUTO, e serve solo ai flatpak: sul
+# sistema il file di Debian (percorso relativo) risolve gia' alla nostra
+# libreria attraverso la cache di ldconfig, e mettere un secondo file negli
+# elenchi del caricatore farebbe comparire la stessa GPU due volte.
 cat > "$P/opt/skillfish-gfx1013/share/vulkan/icd.d/radeon_icd.x86_64.json" <<'JSON'
 {
     "ICD": {
@@ -38,8 +62,8 @@ cat > "$P/opt/skillfish-gfx1013/share/vulkan/icd.d/radeon_icd.x86_64.json" <<'JS
 }
 JSON
 
-# the switch: the copy kept in the repository next to this script
-install -m 0755 "$(dirname "$0")/skillfish-mesa" "$P/usr/bin/skillfish-mesa" || exit 1
+install -m 0755 "$QUI/skillfish-mesa" "$P/usr/bin/skillfish-mesa" || exit 1
+install -m 0644 "$QUI/skillfish-mesa.service" "$P/usr/lib/systemd/system/skillfish-mesa.service" || exit 1
 
 cat > "$P/DEBIAN/control" <<CTRL
 Package: skillfish-mesa-gfx1013
@@ -50,29 +74,31 @@ Architecture: amd64
 Depends: python3
 Recommends: skillfishos-kernel
 Maintainer: SkillFishOS <info@skillfishos.com>
-Description: SkillFishOS - RADV for the BC-250 with the compute queues open
- A build of Mesa ${MESA}'s Vulkan driver carrying one change the stock driver
- does not: on GFX1013 it exposes the dedicated compute queues, and adds the chip
- to the async-compute threadgroup workaround list that has covered Iceland and
- Tonga since 2015. Measured on a BC-250: 4.2 per cent on Cyberpunk 2077.
+Description: SkillFishOS - our Mesa for the BC-250, the whole driver
+ Mesa ${MESA} built for the BC-250 with two changes the stock driver does not
+ carry: on GFX1013 it exposes the dedicated compute queues, and it lowers FSR 4
+ to INT8 so the upscaler runs on a chip AMD never shipped it for. Measured on a
+ board: about 4 per cent in Cyberpunk 2077 from the queues, about 12 per cent
+ more with FSR 4 on through OptiScaler.
  .
- It does not replace the system Mesa and does not touch it. The driver is
- installed under /opt/skillfish-gfx1013 and is switched on per application with
- "skillfish-mesa on", which writes the flatpak overrides for Steam and Heroic;
- "skillfish-mesa off" puts them back. Anything not switched on keeps using the
- distribution driver.
+ From 26.09.4 this is the whole driver and not only the Vulkan half: OpenGL,
+ EGL, GBM and Vulkan. On a BC-250 running our kernel it becomes the driver of
+ the machine at boot, desktop included, through one line in /etc/ld.so.conf.d,
+ and the flatpak overrides for Steam and Heroic point the games at it. On
+ anything else the boot service leaves Debian's Mesa exactly where it is: the
+ machine is recognised by its DMI, and the running kernel is checked at every
+ boot rather than once at installation.
+ .
+ Debian's Mesa stays installed and untouched. The 32-bit side keeps using it on
+ purpose, which is what lets 32-bit Proton games keep working.
  .
  WARNING: this driver needs a kernel carrying the BC-250 compute-queue lifecycle
  repair, which ours does. On a stock kernel those queues wedge the GPU, which is
- exactly why the stock driver keeps them closed. Do not point a stock-kernel
- machine at it.
+ exactly why the stock driver keeps them closed. That is what the gate is for.
  .
- Since 26.09.2 it also carries the FSR 4 INT8 lowering for GFX1013 (V3) by
- dmorazasanchez (bc250-fsr4, MIT): with FSR 4 on through OptiScaler it is worth
- about +12% in Cyberpunk 2077, and it changes nothing when FSR 4 is off.
- .
- The compute-queue fix is the work of DryhoppedIPA (bc250-gfx1013-fix), MIT
- licensed; Mesa is MIT. See /usr/share/doc/skillfish-mesa-gfx1013/copyright.
+ The compute-queue fix is the work of DryhoppedIPA (bc250-gfx1013-fix) and the
+ FSR 4 lowering of dmorazasanchez (bc250-fsr4), both MIT; Mesa is MIT. See
+ /usr/share/doc/skillfish-mesa-gfx1013/copyright.
  .
  Part of SkillFishOS.
 CTRL
@@ -80,18 +106,42 @@ CTRL
 cat > "$P/DEBIAN/postinst" <<'POST'
 #!/bin/sh
 set -e
-# ⚠️ libdisplay-info: la .so e' compilata su sid e la chiede, ma il runtime
-# flatpak dei giochi non ce l'ha. Si copia quella del sistema accanto alla
-# nostra invece di spedirne una copia nostra: cosi' resta allineata agli
+# ⚠️ libdisplay-info: la nostra .so e' compilata su sid e la chiede, ma il
+# runtime flatpak dei giochi non ce l'ha. Si copia quella del sistema accanto
+# alla nostra invece di spedirne una copia nostra: cosi' resta allineata agli
 # aggiornamenti e non ridistribuiamo il binario di qualcun altro.
 for f in /usr/lib/x86_64-linux-gnu/libdisplay-info.so.*; do
     [ -e "$f" ] || continue
     cp -a "$f" /opt/skillfish-gfx1013/lib/x86_64-linux-gnu/ 2>/dev/null || true
 done
-echo "skillfish-mesa: installato. Si accende con 'skillfish-mesa on' (per gioco, non di sistema)."
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+deb-systemd-helper enable skillfish-mesa.service >/dev/null 2>&1 || true
+
+# The switch decides for itself whether this machine may have our driver: a
+# BC-250 on our kernel gets it now, anything else is left alone.
+/usr/bin/skillfish-mesa avvio >/dev/null 2>&1 || true
+/usr/bin/skillfish-mesa stato || true
 exit 0
 POST
 chmod 755 "$P/DEBIAN/postinst"
+
+cat > "$P/DEBIAN/prerm" <<'PRE'
+#!/bin/sh
+set -e
+# Going away means giving the machine back to Debian's Mesa: the line in
+# ld.so.conf.d and the flatpak overrides point at files that are about to
+# disappear, and a Vulkan loader with a dangling ICD starts nothing at all.
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    /usr/bin/skillfish-mesa off >/dev/null 2>&1 || true
+    deb-systemd-invoke stop skillfish-mesa.service >/dev/null 2>&1 || true
+    deb-systemd-helper disable skillfish-mesa.service >/dev/null 2>&1 || true
+fi
+exit 0
+PRE
+chmod 755 "$P/DEBIAN/prerm"
 
 cat > "$P/usr/share/doc/skillfish-mesa-gfx1013/copyright" <<'COPY'
 Upstream: Mesa (https://gitlab.freedesktop.org/mesa/mesa), tag mesa-@MESA@

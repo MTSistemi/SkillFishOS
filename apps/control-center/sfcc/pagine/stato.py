@@ -6,6 +6,7 @@ system card (kernel, governor, Mesa, scheduler) and the card that says whether
 the last boot was clean. Everything here is read from files anyone can read:
 opening this page never asks for a password.
 """
+import json
 import os
 import re
 import subprocess
@@ -87,7 +88,7 @@ class Pagina(PaginaBase):
         self.r_versione = self.c_sys.riga("SkillFishOS")
         self.r_kernel = self.c_sys.riga("Kernel")
         self.r_governor = self.c_sys.riga("Governor")
-        self.r_mesa_sys = self.c_sys.riga(L("Driver Vulkan di sistema", "System Vulkan driver"))
+        self.r_mesa_sys = self.c_sys.riga(L("Driver grafico di sistema", "System graphics driver"))
         self.r_mesa_giochi = self.c_sys.riga(L("Driver nei giochi", "Driver in games"))
         self.r_scx = self.c_sys.riga(L("Schedulatore", "Scheduler"))
         self.r_cc = self.c_sys.riga("Control Center")
@@ -157,9 +158,15 @@ class Pagina(PaginaBase):
             # vulkaninfo missing or timed out: leave the "?" placeholder set above
             out["sistema"] = "?"
         try:
-            r = subprocess.run(["/usr/bin/skillfish-mesa", "stato"], capture_output=True, text=True, timeout=10)
+            # ⚠️ "json" AND NOT "stato". The readable output gained a line for
+            # the system half in 26.09.4, and reading it by eye turned that line
+            # into a launcher called "sistema": the row then said "ours in
+            # sistema, Steam, Heroic". The machine-readable answer has the two
+            # apart and cannot drift like that.
+            r = subprocess.run(["/usr/bin/skillfish-mesa", "json"], capture_output=True, text=True, timeout=10)
+            d = json.loads(r.stdout)
             nomi = {"com.valvesoftware.Steam": "Steam", "com.heroicgameslauncher.hgl": "Heroic"}
-            nostro = [nomi.get(ln.split()[0], ln.split()[0]) for ln in r.stdout.splitlines() if "NOSTRO" in ln]
+            nostro = [nomi.get(a, a) for a, on in sorted(d.get("app", {}).items()) if on]
             out["giochi"] = (L("nostra in %s", "ours in %s") % ", ".join(nostro)) if nostro else L("di serie", "stock")
         except Exception:
             out["giochi"] = L("di serie", "stock")

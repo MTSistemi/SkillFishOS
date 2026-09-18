@@ -1047,10 +1047,28 @@ def _cc_pulisci_unset(c, nomi):
         c.remove_option("Context", "unset-environment")
 
 
+def _cc_override_sistema(app):
+    """The system-wide override, which is where the package writes from 26.09.4."""
+    import configparser
+    c = configparser.RawConfigParser()
+    c.optionxform = str
+    c.read(os.path.join("/var/lib/flatpak/overrides", CC_APP[app]))
+    for s in ("Context", "Environment"):
+        if not c.has_section(s):
+            c.add_section(s)
+    return c
+
+
 def cc_mesa_stato(app):
-    c = _cc_override(app)
-    return (c.get("Environment", "VK_DRIVER_FILES", fallback=None) == CC_MESA_ICD
-            and "VK_DRIVER_FILES" not in c.get("Context", "unset-environment", fallback=""))
+    # ⚠️ TWO FILES, IN THIS ORDER. flatpak lets a user override beat the system
+    # one, so the user's file decides when it sets the variable at all; when it
+    # does not, the answer is in /var/lib/flatpak/overrides, and reading only
+    # the first one made the page say "stock" while the games ran on ours.
+    for c in (_cc_override(app), _cc_override_sistema(app)):
+        icd = c.get("Environment", "VK_DRIVER_FILES", fallback=None)
+        if icd and "VK_DRIVER_FILES" not in c.get("Context", "unset-environment", fallback=""):
+            return icd == CC_MESA_ICD
+    return False
 
 
 def cc_mesa_set(app, on):

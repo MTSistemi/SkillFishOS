@@ -1,38 +1,43 @@
 #!/bin/bash
-# Build the RADV we ship: Mesa (versione a scelta) + FSR4 v3 (dmorazasanchez, MIT since
-# 2026-09-11) + the GFX1013 compute-queue fix (DryhoppedIPA, MIT).
+# Build the Mesa we ship: the WHOLE driver with our patches, not only RADV.
 #
 #     compila-mesa-pubblica.sh [versione]     esempio: 26.2.3
 #
-# Senza argomento usa la predefinita qui sotto. Log, cartella di lavoro e
-# uscita seguono la versione, cosi' due build diverse non si pestano i piedi.
+# Why: until now we shipped one file, libvulkan_radeon.so, and the rest of the
+# machine kept Debian's Mesa. Two drivers on one board, and the desktop never
+# saw our work. This builds the full stack (OpenGL, EGL, GBM, Vulkan, VA) into
+# /opt/skillfish-gfx1013 so the whole 64-bit system can be pointed at it with a
+# single ld.so.conf.d line.
 #
-# ⚠️ LA VERSIONE ERA UNA COSTANTE, e i nomi dei file pure: a ogni giro si
-# modificava lo script a mano e i commenti in cima descrivevano la versione di
-# prima. Stessa correzione fatta allo script dei kernel lo stesso giorno.
+# ⚠️ THE PREFIX IS PART OF THE BUILD. The DRI search path is compiled in, so
+# our libEGL/libGLX/libgbm look for radeonsi_dri.so under our prefix. Moving the
+# tree after the build breaks OpenGL in a way that looks like a driver bug.
 #
-# The v3 patch carries the compute-queue hunks in ac_gpu_info.c itself, but
-# they are written against Mesa main and do not apply to the release tags: that file is
-# excluded from the patch and edited here with the same three changes
-# (expose the compute queues, GFX1013 in the threadgroup-bug list, GFX1013 in
-# the ver_minor = 1 list that marks the chip as GFX10.1).
-# ⚠️ THIS LIBRARY WANTS OUR KERNEL: on a stock kernel the compute queues hang.
+# ⚠️ -Damd-use-llvm=false IS NOT OPTIONAL. Turning LLVM on for radeonsi also
+# links RADV against libLLVM.so.21.1, which does not exist inside the flatpak
+# sandbox the games run in: the Vulkan loader then drops our ICD IN SILENCE and
+# the game starts on the runtime's driver. Same trap as libdisplay-info, and it
+# only shows up in a measurement. RADV compiles shaders with ACO; LLVM there is
+# dead weight.
+#
+# ⚠️ libdir MUST stay lib/x86_64-linux-gnu. That directory goes into
+# /etc/ld.so.conf.d, and ldconfig tags every entry with its architecture: a
+# 32-bit process looking for libvulkan_radeon.so skips ours and keeps finding
+# Debian's i386 one. That is what lets 32-bit Proton games keep working.
 set -u
 VER="${1:-26.2.3}"
 CORTO=$(echo "$VER" | tr -d .)
 REPO=~/bc250-fsr4
 SORG=~/mesa-fsr4-src
-BUILD=~/mesa-$CORTO-build
-USCITA=~/mesa-$CORTO
+BUILD=~/mesa-completa-$CORTO-build
+STAGE=~/mesa-completa-$CORTO
+PREFISSO=/opt/skillfish-gfx1013
 TAG=mesa-$VER
-exec > >(tee ~/mesa-$CORTO.log) 2>&1
-rm -f ~/mesa-$CORTO.fatto
+exec > >(tee ~/mesa-completa-$CORTO.log) 2>&1
+rm -f ~/mesa-completa-$CORTO.fatto
 
 cd "$SORG" || exit 1
 git checkout -q -- .
-# ⚠️ L'albero si porta sul tag chiesto PRIMA di applicare qualunque cosa. Un
-# albero rimasto alla versione di prima applica tutto senza lamentarsi e produce
-# una libreria della versione sbagliata con il nome giusto.
 git checkout -q "$TAG" || { echo "non ho il tag $TAG: serve git fetch --tags"; exit 1; }
 echo "=== $(date +%H:%M:%S) sorgente $(git describe --tags 2>/dev/null || echo $TAG), patch FSR4 $(cd $REPO && git log -1 --format=%h)"
 git apply --check --exclude=src/amd/common/ac_gpu_info.c "$REPO/bc250-fsr4-v3.patch" || { echo "la patch FSR4 non si applica: mi fermo"; exit 1; }
@@ -74,15 +79,33 @@ open(f, "w").write(t)
 PY
 [ $? -eq 0 ] || exit 1
 
-echo "=== $(date +%H:%M:%S) compilo (solo RADV)"
-rm -rf "$BUILD"
-meson setup "$BUILD" "$SORG" -Dbuildtype=release -Dwrap_mode=nodownload \
-    -Dvulkan-drivers=amd -Dgallium-drivers= -Dllvm=disabled \
-    -Dplatforms=x11,wayland -Dvideo-codecs= 2>&1 | tail -3
-ninja -C "$BUILD" -j 16 2>&1 | tail -3
-SO=$(find "$BUILD" -name libvulkan_radeon.so | head -1)
-[ -n "$SO" ] || { echo "niente libreria"; exit 1; }
-mkdir -p "$USCITA"
-cp "$SO" "$USCITA/libvulkan_radeon.so"
-echo "=== $(date +%H:%M:%S) fatto: $(stat -c%s "$USCITA/libvulkan_radeon.so") byte, $(strings "$USCITA/libvulkan_radeon.so" | grep -oE "Mesa 26[^\"]*" | head -1)"
-date > ~/mesa-$CORTO.fatto
+echo "=== $(date +%H:%M:%S) meson setup"
+rm -rf "$BUILD" "$STAGE"
+meson setup "$BUILD" "$SORG" \
+    -Dprefix=$PREFISSO \
+    -Dlibdir=lib/x86_64-linux-gnu \
+    -Dbuildtype=release \
+    -Dwrap_mode=nodownload \
+    -Dplatforms=x11,wayland \
+    -Dvulkan-drivers=amd \
+    -Dgallium-drivers=radeonsi,zink,softpipe,llvmpipe \
+    -Dllvm=enabled -Dshared-llvm=enabled -Damd-use-llvm=false \
+    -Dglvnd=enabled \
+    -Degl=enabled -Dgbm=enabled -Dglx=dri -Dopengl=true -Dgles2=enabled \
+    -Dvideo-codecs=all \
+    -Dgallium-va=enabled \
+    -Db_ndebug=true || { echo "meson setup fallito"; exit 1; }
+
+echo "=== $(date +%H:%M:%S) compilo"
+ninja -C "$BUILD" -j 20 || { echo "compilazione fallita"; exit 1; }
+
+echo "=== $(date +%H:%M:%S) installo nello stage"
+DESTDIR="$STAGE" ninja -C "$BUILD" install || exit 1
+
+echo "=== $(date +%H:%M:%S) fatto"
+find "$STAGE" -name '*.so*' -printf '%s\t%P\n' | sort -k2 | head -40
+echo "--- versione dentro le librerie:"
+strings "$STAGE$PREFISSO/lib/x86_64-linux-gnu/libvulkan_radeon.so" | grep -oE 'Mesa 26[^"]*' | head -1
+strings "$STAGE$PREFISSO/lib/x86_64-linux-gnu/dri/radeonsi_dri.so" 2>/dev/null | grep -oE 'Mesa 26[^"]*' | head -1
+echo "--- totale: $(du -sh "$STAGE" | cut -f1)"
+date > ~/mesa-completa-$CORTO.fatto

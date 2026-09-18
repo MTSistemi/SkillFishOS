@@ -510,5 +510,10 @@
  "XeSS, where a game has it built in (Cyberpunk does), costs the same as FSR 3 here: 97.7 against 97.8 fps at 1080p Balanced. The community sees it ahead only with ray tracing.": "XeSS, quand un jeu l'intègre (Cyberpunk oui), coûte ici autant que FSR 3 : 97,7 contre 97,8 fps en 1080p Équilibré. La communauté ne le voit devant qu'avec le ray tracing.",
  "yes": "oui",
  "You cannot remove the running kernel.": "Tu ne peux pas retirer le noyau en cours.",
- "You have just restored. The snapshots are in the system that boots on the next restart.": "Tu viens de restaurer. Les instantanés sont dans le système qui démarre au prochain redémarrage."
+ "You have just restored. The snapshots are in the system that boots on the next restart.": "Tu viens de restaurer. Les instantanés sont dans le système qui démarre au prochain redémarrage.",
+ "Graphics driver": "Pilote graphique",
+ "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "Notre Mesa ouvre les files de calcul : +4 % dans Cyberpunk, +12 % avec FSR 4. Sur une BC-250 avec notre noyau, c'est le pilote de toute la machine, bureau compris.",
+ "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "Dès maintenant TOUT ce qui dessine passe par notre Mesa, bureau compris : Vulkan et OpenGL. Le 32 bits reste sur le pilote d'origine. Continuer ?",
+ "With the system driver on, the launchers take it from there.": "Quand le pilote système est activé, les lanceurs le prennent de là.",
+ "System graphics driver": "Pilote graphique du système"
 }

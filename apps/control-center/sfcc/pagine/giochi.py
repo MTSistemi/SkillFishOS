@@ -72,9 +72,18 @@ def _scrivi_override(app, c):
 
 
 def _mesa_stato(app):
+    """⚠️ ASK THE SWITCH, not this user's override file. From 26.09.4 the driver
+    is turned on for everybody through a system-wide flatpak override, and a
+    window that only reads ~/.local/share/flatpak/overrides shows two empty
+    boxes while the games are in fact running on our driver."""
     m = _mesa_modulo()
     if m is None:
         return None
+    if hasattr(m, "app_attiva"):
+        try:
+            return bool(m.app_attiva(app))
+        except Exception:
+            pass
     c = _override(app)
     icd = c.get("Environment", "VK_DRIVER_FILES", fallback=None)
     unset = c.get("Context", "unset-environment", fallback="")
@@ -225,8 +234,8 @@ class Pagina(PaginaBase):
             "way to the screen.")))
 
         # --- Mesa
-        self.c_mesa = Scheda(L("Driver Vulkan", "Vulkan driver"), L("La nostra Mesa apre le code compute: +4% in Cyberpunk, +12% con FSR 4. Serve il nostro kernel.",
-            "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. It needs our kernel."))
+        self.c_mesa = Scheda(L("Driver grafico", "Graphics driver"), L("La nostra Mesa apre le code compute: +4% in Cyberpunk, +12% con FSR 4. Su una BC-250 col nostro kernel e' il driver di tutta la macchina, desktop compreso.",
+            "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included."))
         self.b_mesa = Stato("", "quieto")
         self.c_mesa.testa.insertWidget(self.c_mesa.testa.count() - 1, self.b_mesa)
         self.m_steam = QCheckBox("Steam")
@@ -327,6 +336,15 @@ class Pagina(PaginaBase):
             self.m_sistema.blockSignals(True)
             self.m_sistema.setChecked(bool(st.get("attivo")))
             self.m_sistema.blockSignals(False)
+            # With the system half on, the launchers get the driver from there
+            # and the two boxes have nothing left to decide: they are shown
+            # ticked and locked, rather than pretending to be a choice.
+            sistema_on = bool(st.get("attivo"))
+            for cb in (self.m_steam, self.m_heroic):
+                cb.setEnabled(not sistema_on)
+            if sistema_on:
+                self.e_mesa.setText(L("Con il driver di sistema acceso, i lanciatori lo prendono da li'.",
+                                      "With the system driver on, the launchers take it from there."))
             self.r_mesa_ver.setText(st.get("versione") or "?")
             self.r_mesa_kernel.setText(os.uname().release)
             self.r_mesa_kernel.setStyleSheet("font-weight:600;color:%s;" % (stile.VERDE if st.get("kernel_nostro") else stile.ARANCIO))
@@ -340,10 +358,13 @@ class Pagina(PaginaBase):
         self._scx_aggiorna()
 
     def _mesa_sistema_senza_root(self):
-        """What can be known without the helper: is the divert there?"""
-        rc, out, _ = sh("dpkg-divert --list /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so 2>/dev/null", 10)
-        return {"attivo": bool(out), "kernel_nostro": "skillfishos" in os.uname().release,
-                "versione": sh("dpkg-query -W -f='${Version}' skillfish-mesa-gfx1013 2>/dev/null", 5)[1]}
+        """What can be known without the helper: reading the state needs no root."""
+        rc, out, _ = sh("%s json 2>/dev/null" % MESA_CLI, 15)
+        try:
+            return json.loads(out)
+        except ValueError:
+            return {"attivo": False, "kernel_nostro": "skillfishos" in os.uname().release,
+                    "versione": sh("dpkg-query -W -f='${Version}' skillfish-mesa-gfx1013 2>/dev/null", 5)[1]}
 
     def _mesa_lanciatore(self):
         m = _mesa_modulo()
@@ -359,10 +380,10 @@ class Pagina(PaginaBase):
 
     def _mesa_sistema(self, on):
         if on and QMessageBox.question(self, L("Driver di sistema", "System driver"), L(
-                "Da adesso TUTTO quello che usa Vulkan passa dalla nostra Mesa, desktop compreso. "
-                "Il 32 bit resta al driver di serie. Procedere?",
-                "From now on EVERYTHING that uses Vulkan goes through our Mesa, desktop included. "
-                "32-bit stays on the stock driver. Proceed?")) != QMessageBox.StandardButton.Yes:
+                "Da adesso TUTTO quello che disegna passa dalla nostra Mesa, desktop compreso: "
+                "Vulkan e OpenGL. Il 32 bit resta al driver di serie. Procedere?",
+                "From now on EVERYTHING that draws goes through our Mesa, desktop included: "
+                "Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?")) != QMessageBox.StandardButton.Yes:
             self.m_sistema.setChecked(False)
             return
         r = self.demone.cmd(cmd="mesa-sistema-set", on=bool(on))

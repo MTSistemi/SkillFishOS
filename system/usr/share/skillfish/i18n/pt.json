@@ -1198,5 +1198,11 @@
  "🎰 Find my max": "🎰 Ache o meu máximo",
  "🎰 My silicon": "🎰 O meu silício",
  "📂 Open": "📂 Abrir",
- "📊 ANALYSIS  ·  ": "📊 ANÁLISE  ·  "
+ "📊 ANALYSIS  ·  ": "📊 ANÁLISE  ·  ",
+ "Graphics driver": "Driver gráfico",
+ "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "A nossa Mesa abre as filas de cálculo: +4 % no Cyberpunk, +12 % com FSR 4. Numa BC-250 com o nosso kernel é o driver de toda a máquina, ambiente de trabalho incluído.",
+ "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "A partir de agora TUDO o que desenha passa pela nossa Mesa, ambiente de trabalho incluído: Vulkan e OpenGL. Os 32 bits ficam com o driver de série. Continuar?",
+ "Our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in Cyberpunk, and +12% with FSR 4 on. On a BC-250 running our kernel it is the driver of the whole machine, desktop included; the launchers reach it through a flatpak override.\n\nIT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those queues wedge the GPU, and on the BC-250 a wedge is fixed by pulling the plug. That is why the choice is made again at every boot: on another kernel, or on a machine that is not a BC-250, Debian's driver comes back on its own.": "A nossa Mesa abre as filas de cálculo que o driver de série mantém fechadas nesta GPU: +4 % no Cyberpunk e +12 % com o FSR 4 ligado. Numa BC-250 com o nosso kernel é o driver de toda a máquina, ambiente de trabalho incluído; os lançadores chegam lá por uma substituição do flatpak.\n\nPRECISA DO NOSSO KERNEL. Num kernel sem as duas correções das filas de cálculo, essas filas travam a GPU, e na BC-250 um travamento resolve-se a desligar a ficha. Por isso a escolha é refeita em cada arranque: noutro kernel, ou numa máquina que não é uma BC-250, o driver da Debian volta sozinho.",
+ "With the system driver on, the launchers take it from there.": "Com o driver do sistema ligado, os lançadores usam-no a partir daí.",
+ "System graphics driver": "Driver gráfico do sistema"
 }

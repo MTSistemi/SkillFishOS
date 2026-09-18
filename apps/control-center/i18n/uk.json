@@ -511,5 +511,10 @@
  "XeSS, where a game has it built in (Cyberpunk does), costs the same as FSR 3 here: 97.7 against 97.8 fps at 1080p Balanced. The community sees it ahead only with ray tracing.": "XeSS, де гра має його вбудованим (Cyberpunk так), тут коштує стільки ж, скільки FSR 3: 97,7 проти 97,8 fps у 1080p Збалансований. Спільнота бачить його попереду лише з трасуванням променів.",
  "yes": "так",
  "You cannot remove the running kernel.": "Запущене ядро вилучити не можна.",
- "You have just restored. The snapshots are in the system that boots on the next restart.": "Ви щойно відновилися. Знімки в тій системі, яка завантажиться при наступному перезавантаженні."
+ "You have just restored. The snapshots are in the system that boots on the next restart.": "Ви щойно відновилися. Знімки в тій системі, яка завантажиться при наступному перезавантаженні.",
+ "Graphics driver": "Графічний драйвер",
+ "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "Наша Mesa відкриває обчислювальні черги: +4 % у Cyberpunk, +12 % із FSR 4. На BC-250 з нашим ядром це драйвер усієї машини, разом зі стільницею.",
+ "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "Відтепер УСЕ, що малює, іде через нашу Mesa, разом зі стільницею: Vulkan і OpenGL. 32-бітне лишається на штатному драйвері. Продовжити?",
+ "With the system driver on, the launchers take it from there.": "Коли системний драйвер увімкнено, запускачі беруть його звідти.",
+ "System graphics driver": "Системний графічний драйвер"
 }

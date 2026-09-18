@@ -1198,5 +1198,11 @@
  "🎰 Find my max": "🎰 Trouver mon maximum",
  "🎰 My silicon": "🎰 Mon silicium",
  "📂 Open": "📂 Ouvrir",
- "📊 ANALYSIS  ·  ": "📊 ANALYSE  ·  "
+ "📊 ANALYSIS  ·  ": "📊 ANALYSE  ·  ",
+ "Graphics driver": "Pilote graphique",
+ "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "Notre Mesa ouvre les files de calcul : +4 % dans Cyberpunk, +12 % avec FSR 4. Sur une BC-250 avec notre noyau, c'est le pilote de toute la machine, bureau compris.",
+ "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "Dès maintenant TOUT ce qui dessine passe par notre Mesa, bureau compris : Vulkan et OpenGL. Le 32 bits reste sur le pilote d'origine. Continuer ?",
+ "Our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in Cyberpunk, and +12% with FSR 4 on. On a BC-250 running our kernel it is the driver of the whole machine, desktop included; the launchers reach it through a flatpak override.\n\nIT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those queues wedge the GPU, and on the BC-250 a wedge is fixed by pulling the plug. That is why the choice is made again at every boot: on another kernel, or on a machine that is not a BC-250, Debian's driver comes back on its own.": "Notre Mesa ouvre les files de calcul que le pilote d'origine garde fermées sur ce GPU : +4 % dans Cyberpunk, et +12 % avec FSR 4 activé. Sur une BC-250 avec notre noyau, c'est le pilote de toute la machine, bureau compris ; les lanceurs y accèdent par une redéfinition flatpak.\n\nIL FAUT NOTRE NOYAU. Sur un noyau sans les deux correctifs des files de calcul, ces files bloquent le GPU, et sur la BC-250 un blocage se règle en débranchant. C'est pourquoi le choix est refait à chaque démarrage : sur un autre noyau, ou sur une machine qui n'est pas une BC-250, le pilote de Debian revient tout seul.",
+ "With the system driver on, the launchers take it from there.": "Quand le pilote système est activé, les lanceurs le prennent de là.",
+ "System graphics driver": "Pilote graphique du système"
 }

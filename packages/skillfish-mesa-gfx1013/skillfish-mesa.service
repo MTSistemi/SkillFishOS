@@ -1,0 +1,20 @@
+[Unit]
+Description=SkillFishOS: our Mesa for the whole machine
+Documentation=man:skillfish-mesa
+# Before the display manager, because what it decides is which driver the
+# desktop itself will load. ldconfig takes a fraction of a second.
+After=local-fs.target
+Before=display-manager.service
+ConditionPathExists=/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/libvulkan_radeon.so
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The decision is taken at EVERY boot and not once at install time: the kernel
+# can change between two boots, and our driver opens compute queues that a
+# stock kernel cannot keep alive. Booting the stock kernel must put Debian's
+# driver back by itself, with nobody watching.
+ExecStart=/usr/bin/skillfish-mesa avvio
+
+[Install]
+WantedBy=multi-user.target

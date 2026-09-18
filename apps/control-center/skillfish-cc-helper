@@ -14,8 +14,9 @@ WHAT IS NEW AGAINST THE TUNER HELPER
   followed by a power cycle boots into the curve that worked.
 - the scheduler is scx_bpfland armed through GameMode (skillfish-scx.path),
   not scx_lavd running all the time.
-- our Mesa can be made the system Vulkan driver (mesa-sistema), by diverting
-  the 64-bit library only: the 32-bit games keep Debian's.
+- our Mesa is the driver of the whole machine on a BC-250 (mesa-sistema), which
+  skillfish-mesa switches for the host and the two launchers at once; the
+  32-bit side keeps Debian's on purpose.
 - kernel, snapshot and fan helpers are reached through here, so one password
   covers the whole window.
 """
@@ -50,13 +51,8 @@ SCX_BIN = "/usr/lib/skillfish-scx/scx_bpfland"
 SCX_STATO = "/sys/kernel/sched_ext/state"
 SCX_OPS = "/sys/kernel/sched_ext/root/ops"
 SCX_CONTA = "/var/lib/skillfish/scx-espulsioni"
-MESA_LIB = "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so"
 MESA_NOSTRA = "/opt/skillfish-gfx1013/lib/x86_64-linux-gnu/libvulkan_radeon.so"
-# ⚠️ The diverted copy goes into a directory ldconfig does not scan. Left next
-# to the original as libvulkan_radeon.so.distrib, ldconfig found a library
-# whose SONAME is libvulkan_radeon.so and rebuilt the symlink to point at IT --
-# our link lasted until the next apt run. Measured 11/09/2026.
-MESA_DISTRIB = "/var/lib/skillfish/mesa-distrib/libvulkan_radeon.so"
+MESA_CLI = "/usr/bin/skillfish-mesa"
 MESA_PKG = "skillfish-mesa-gfx1013"
 KERNEL_HELPER = "/usr/local/bin/skillfish-kernel-helper"
 SNAP_HELPER = "/usr/local/bin/skillfish-snapshots-helper"
@@ -780,43 +776,37 @@ def scx_azzera():
 
 
 # ---- our Mesa as the system driver -------------------------------------------
+# ⚠️ THE WORK IS NOT DONE HERE ANY MORE. Up to 26.09.3 this pair of functions
+# diverted one file, /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so, which covered
+# Vulkan and left the desktop on Debian's OpenGL. From 26.09.4 the package ships
+# the whole driver and skillfish-mesa owns the switching, host and launchers
+# together, so there is one implementation instead of two that can disagree.
+# These two stay because the window and the web page call them by name.
 def mesa_sistema_get():
-    div = sh("dpkg-divert --list %s" % MESA_LIB, 20).stdout.strip()
-    attivo = bool(div) and os.path.islink(MESA_LIB) and os.path.realpath(MESA_LIB) == os.path.realpath(MESA_NOSTRA)
-    return {"ok": True, "attivo": attivo, "installata": os.path.exists(MESA_NOSTRA),
-            "kernel_nostro": "skillfishos" in os.uname().release, "divert": div,
-            "versione": sh("dpkg-query -W -f='${Version}' %s 2>/dev/null" % MESA_PKG, 10).stdout.strip()}
+    r = sh("%s json" % MESA_CLI, 30)
+    if r.returncode == 0 and r.stdout.strip():
+        try:
+            return json.loads(r.stdout)
+        except ValueError:
+            pass
+    # the switch is missing or answered nonsense: say what can still be known
+    return {"ok": True, "attivo": False, "installata": os.path.exists(MESA_NOSTRA),
+            "kernel_nostro": "skillfishos" in os.uname().release,
+            "versione": sh("dpkg-query -W -f='${Version}' %s 2>/dev/null" % MESA_PKG, 10).stdout.strip(),
+            "motivo": "manca %s" % MESA_CLI}
 
 
 def mesa_sistema_set(on):
-    """Divert the 64-bit library only; the ICD file and the 32-bit driver stay Debian's."""
+    """Hand it to the switch: the host half and the two launchers move together."""
+    if not os.path.exists(MESA_CLI):
+        return {"ok": False, "err": "la nostra Mesa non e' installata (%s)" % MESA_PKG}
+    _log("Mesa di sistema: %s" % ("nostra" if on else "di serie"))
+    r = sh("%s %s" % (MESA_CLI, "on" if on else "off"), 120)
     st = mesa_sistema_get()
-    if on:
-        if not st["installata"]:
-            return {"ok": False, "err": "la nostra Mesa non e' installata (%s)" % MESA_PKG}
-        if not st["kernel_nostro"]:
-            return {"ok": False, "err": "serve il kernel SkillFishOS: su un altro kernel le code compute piantano la GPU"}
-        if st["attivo"]:
-            return st
-        _log("Mesa nostra come driver di sistema: divert di %s" % MESA_LIB)
-        os.makedirs(os.path.dirname(MESA_DISTRIB), exist_ok=True)
-        r = sh("dpkg-divert --package %s --add --rename --divert %s %s" % (MESA_PKG, MESA_DISTRIB, MESA_LIB), 30)
-        if r.returncode != 0:
-            return {"ok": False, "err": (r.stderr or r.stdout).strip()}
-        if os.path.lexists(MESA_LIB):
-            os.unlink(MESA_LIB)
-        os.symlink(MESA_NOSTRA, MESA_LIB)
-    else:
-        if not st["divert"]:
-            return st
-        _log("Mesa di serie come driver di sistema: tolgo il divert")
-        if os.path.islink(MESA_LIB):
-            os.unlink(MESA_LIB)
-        r = sh("dpkg-divert --package %s --remove --rename %s" % (MESA_PKG, MESA_LIB), 30)
-        if r.returncode != 0:
-            return {"ok": False, "err": (r.stderr or r.stdout).strip()}
-    sh("ldconfig", 30)
-    return mesa_sistema_get()
+    if r.returncode != 0:
+        st["ok"] = False
+        st["err"] = (r.stdout or r.stderr).strip() or st.get("motivo") or "non riuscito"
+    return st
 
 
 # ---- other helpers, reached through this one -----------------------------------

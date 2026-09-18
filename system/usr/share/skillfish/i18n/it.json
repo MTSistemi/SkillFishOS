@@ -1060,5 +1060,11 @@
  "🎰 Find my max": "🎰 Trova il massimo",
  "🎰 My silicon": "🎰 Il mio silicio",
  "📂 Open": "📂 Apri",
- "📊 ANALYSIS  ·  ": "📊 ANALISI  ·  "
+ "📊 ANALYSIS  ·  ": "📊 ANALISI  ·  ",
+ "Graphics driver": "Driver grafico",
+ "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "La nostra Mesa apre le code compute: +4% in Cyberpunk, +12% con FSR 4. Su una BC-250 col nostro kernel e' il driver di tutta la macchina, desktop compreso.",
+ "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "Da adesso TUTTO quello che disegna passa dalla nostra Mesa, desktop compreso: Vulkan e OpenGL. Il 32 bit resta al driver di serie. Procedere?",
+ "Our Mesa opens the compute queues the stock driver keeps closed on this GPU: +4% in Cyberpunk, and +12% with FSR 4 on. On a BC-250 running our kernel it is the driver of the whole machine, desktop included; the launchers reach it through a flatpak override.\n\nIT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those queues wedge the GPU, and on the BC-250 a wedge is fixed by pulling the plug. That is why the choice is made again at every boot: on another kernel, or on a machine that is not a BC-250, Debian's driver comes back on its own.": "La nostra Mesa apre le code compute che il driver di serie tiene chiuse su questa GPU: +4% in Cyberpunk, e +12% con FSR 4 acceso. Su una BC-250 col nostro kernel è il driver di tutta la macchina, desktop compreso; i lanciatori ci arrivano con un override flatpak.\n\nSERVE IL NOSTRO KERNEL. Su un kernel senza le due patch delle code compute quelle code piantano la GPU, e sulla BC-250 un aggancio si risolve staccando la corrente. Per questo la scelta si rifà a ogni avvio: su un altro kernel, o su una macchina che non è una BC-250, torna da sola quella di Debian.",
+ "With the system driver on, the launchers take it from there.": "Con il driver di sistema acceso, i lanciatori lo prendono da lì.",
+ "System graphics driver": "Driver grafico di sistema"
 }

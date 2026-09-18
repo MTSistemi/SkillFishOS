@@ -1,49 +1,182 @@
 #!/usr/bin/env python3
-"""Switch the flatpak games between the stock RADV and our patched one.
+"""Our Mesa for the whole BC-250, and for the two launchers.
 
-    mesa-v33.py on      the games take /opt/skillfish-gfx1013
-    mesa-v33.py off     back to the driver inside the flatpak runtime
-    mesa-v33.py stato   what is set right now, per application
+    skillfish-mesa on       our driver wherever it can go
+    skillfish-mesa off      Debian's driver back, everywhere
+    skillfish-mesa stato    what is set right now
+    skillfish-mesa avvio    what the boot service calls: apply the gate, quietly
+    skillfish-mesa json     the same state as JSON, for the Control Center helper
 
-⚠️ PRIMA IL KERNEL. Il driver con la coda compute aperta su un kernel senza le
-due patch v33 pianta la GPU, e sulla BC-250 un aggancio non si recupera da
-remoto: serve staccare la corrente.
+TWO HALVES, because a flatpak cannot see the host's ld.so.conf.
 
-⚠️ PERCHE' NON `flatpak override --unset-env`. Quel comando NON toglie la
-variabile: la aggiunge a `unset-environment` e le lascia il valore VUOTO dentro
-`[Environment]`. Con VK_DRIVER_FILES="" il caricatore Vulkan non trova nessun
-ICD e il gioco non parte affatto, che sembra un guasto della patch e invece e'
-il comando di ripristino. Quindi il file di override lo scriviamo noi.
+The host: one line in /etc/ld.so.conf.d listing our library directory. ldconfig
+puts our libraries first in the cache, so every 64-bit process that asks for
+libGLX_mesa.so.0, libEGL_mesa.so.0, libgbm.so.1 or libvulkan_radeon.so gets
+ours: the desktop, the browsers, native games, everything.
 
-⚠️ E NON BASTA SCRIVERE `[Environment]`. Se il nome resta anche in
-`unset-environment` la variabile viene tolta lo stesso: ogni volta che si
-accende bisogna ripulire l'altra riga.
+The launchers: flatpak overrides for Steam and Heroic, which point the Vulkan
+loader at our ICD.
 
-⚠️ PERCHE' SERVE LD_LIBRARY_PATH. La nostra libvulkan_radeon.so e' compilata
-contro sid e chiede libdisplay-info.so.3, che nel runtime
-org.freedesktop.Platform 25.08 non c'e'. Sta accanto alla .so e si fa trovare
-da li'. Senza, il caricatore scarta l'ICD IN SILENZIO e il gioco parte col
-driver di serie: sembra che la patch non serva a niente.
+⚠️ ONE LINE AND NOT A dpkg-divert. Until 26.09.4 the system switch diverted a
+single file, /usr/lib/x86_64-linux-gnu/libvulkan_radeon.so. That covered Vulkan
+and nothing else, so the desktop kept running on Debian's OpenGL. The directory
+in ld.so.conf covers the whole stack at once, and it is one file to remove to
+undo everything. Any leftover divert is taken out when this switch is turned on,
+otherwise the two mechanisms would disagree about what is installed.
+
+⚠️ THE 32-BIT SIDE STAYS DEBIAN'S, on purpose. ldconfig tags every entry in the
+cache with its architecture and our directory holds only 64-bit objects, so a
+32-bit process looking for libvulkan_radeon.so walks past ours and finds
+Debian's i386 one. That is what keeps 32-bit Proton games working, and it is why
+the answer is a directory in the cache rather than a symlink over Debian's file.
+
+⚠️ INSIDE THE FLATPAK IT IS VULKAN ONLY. Our OpenGL (radeonsi) needs
+libLLVM.so.21.1, which does not exist in the runtime the games use: pointing the
+sandbox at our OpenGL would break it. Games under Proton draw through Vulkan
+anyway, which is the half that is switched.
+
+⚠️ PRIMA IL KERNEL. Our driver exposes the GFX1013 compute queues. On a kernel
+without the two lifecycle patches those queues wedge the GPU, and on a BC-250 a
+wedged GPU does not come back over the network: somebody has to pull the power.
+So both halves are gated on the running kernel being ours, and the gate is
+re-applied at every boot by skillfish-mesa.service, which is what makes booting
+a stock kernel safe.
+
+⚠️ PERCHE' NON `flatpak override --unset-env`. That command does not remove the
+variable: it adds the name to unset-environment and leaves the value EMPTY in
+[Environment]. With VK_DRIVER_FILES="" the Vulkan loader finds no ICD at all and
+the game does not start, which looks like our driver is broken when it is the
+restore command that is. So we write the override file ourselves.
+
+⚠️ AND WRITING [Environment] IS NOT ENOUGH. If the name is left in
+unset-environment as well, the variable is dropped anyway: every time we switch
+on, the other line has to be cleaned too.
+
+⚠️ PERCHE' SERVE LD_LIBRARY_PATH. Our libvulkan_radeon.so is built on sid and
+wants libdisplay-info.so.3, which the org.freedesktop.Platform runtime does not
+carry. A copy sits next to the .so and is found from there. Without it the
+loader drops our ICD IN SILENCE and the game runs on the stock driver: it looks
+as if our work were worth nothing.
 """
 import configparser
+import glob
+import json
 import os
 import pwd
+import subprocess
 import sys
 
 PREFISSO = "/opt/skillfish-gfx1013"
-ICD = PREFISSO + "/share/vulkan/icd.d/radeon_icd.x86_64.json"
 LIBS = PREFISSO + "/lib/x86_64-linux-gnu"
+ICD = PREFISSO + "/share/vulkan/icd.d/radeon_icd.x86_64.json"
+RADV = LIBS + "/libvulkan_radeon.so"
+CONF = "/etc/ld.so.conf.d/00-skillfish-gfx1013.conf"
+CONF_TESTO = ("# SkillFishOS: our Mesa comes first for every 64-bit process.\n"
+              "# Written by skillfish-mesa; remove it and run ldconfig to go back.\n"
+              + LIBS + "\n")
+# the file the old system switch diverted, kept here only to undo it
+VECCHIA_LIB = "/usr/lib/x86_64-linux-gnu/libvulkan_radeon.so"
+PACCHETTO = "skillfish-mesa-gfx1013"
 NOSTRE = ("VK_DRIVER_FILES", "LD_LIBRARY_PATH")
 APP = ("com.valvesoftware.Steam", "com.heroicgameslauncher.hgl")
+SISTEMA_OVERRIDE = "/var/lib/flatpak/overrides"
+DMI = "/sys/devices/virtual/dmi/id/product_name"
 
 
-def percorso(app):
+def sh(cmd, t=60):
+    try:
+        return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
+    except Exception as e:
+        class R:
+            returncode = 1
+            stdout = ""
+            stderr = str(e)
+        return R()
+
+
+def radice():
+    return os.geteuid() == 0
+
+
+# ---- the gate ---------------------------------------------------------------
+def e_una_bc250():
+    try:
+        with open(DMI) as f:
+            return f.read().strip() == "AMD BC-250"
+    except OSError:
+        return False
+
+
+def kernel_nostro():
+    return "skillfishos" in os.uname().release
+
+
+def installata():
+    return os.path.exists(RADV)
+
+
+def perche_no():
+    """The reason our driver must not be switched on here, or None."""
+    if not installata():
+        return "la nostra Mesa non e' installata (%s)" % PACCHETTO
+    if not e_una_bc250():
+        return "questa macchina non e' una BC-250: la nostra Mesa e' compilata per quel chip"
+    if not kernel_nostro():
+        return "serve il kernel SkillFishOS: su un altro kernel le code compute piantano la GPU"
+    return None
+
+
+# ---- the host ---------------------------------------------------------------
+def host_attivo():
+    try:
+        with open(CONF) as f:
+            return LIBS in f.read()
+    except OSError:
+        return False
+
+
+def togli_vecchio_divert():
+    """Undo the 26.09.3 system switch, which diverted one library."""
+    if not sh("dpkg-divert --list %s" % VECCHIA_LIB, 20).stdout.strip():
+        return
+    if os.path.islink(VECCHIA_LIB):
+        os.unlink(VECCHIA_LIB)
+    sh("dpkg-divert --package %s --remove --rename %s" % (PACCHETTO, VECCHIA_LIB), 30)
+
+
+def host_accendi():
+    togli_vecchio_divert()
+    if not host_attivo():
+        with open(CONF, "w", encoding="utf-8", newline="\n") as f:
+            f.write(CONF_TESTO)
+    sh("ldconfig", 60)
+
+
+def host_spegni():
+    togli_vecchio_divert()
+    if os.path.exists(CONF):
+        os.unlink(CONF)
+    sh("ldconfig", 60)
+
+
+# ---- the launchers ----------------------------------------------------------
+def cartelle_override():
+    """Where the override files go: the system one as root, else this user's."""
+    if radice():
+        return [SISTEMA_OVERRIDE]
     casa = pwd.getpwuid(os.getuid()).pw_dir
-    return os.path.join(casa, ".local/share/flatpak/overrides", app)
+    return [os.path.join(casa, ".local/share/flatpak/overrides")]
+
+
+def cartelle_utenti():
+    """Every user's override directory, for turning things off everywhere."""
+    fuori = glob.glob("/home/*/.local/share/flatpak/overrides")
+    fuori.append("/root/.local/share/flatpak/overrides")
+    return [d for d in fuori if os.path.isdir(d)]
 
 
 def leggi(f):
-    """configparser with the key case preserved: env var names are case sensitive."""
+    """configparser with the key case kept: environment names are case sensitive."""
     c = configparser.RawConfigParser()
     c.optionxform = str
     c.read(f)
@@ -78,21 +211,23 @@ def aggiungi_fs(c):
     c.set("Context", "filesystems", ";".join(voci) + ";")
 
 
-def accendi(app):
-    f = percorso(app)
+def accendi(app, dove=None):
+    """⚠️ SIGNATURE KEPT FROM 26.09.3: the Control Center loads this file as a
+    module and calls accendi(app)/spegni(app) per launcher. Changing the shape of
+    these two would break the window on every machine that has not updated it
+    yet, so the whole-machine commands are accendi_tutto/spegni_tutto below."""
+    f = os.path.join(dove or cartelle_override()[0], app)
     c = leggi(f)
     aggiungi_fs(c)
     pulisci_unset(c)
     c.set("Environment", "VK_DRIVER_FILES", ICD)
     c.set("Environment", "LD_LIBRARY_PATH", LIBS)
     scrivi(c, f)
-    print("%s: driver NOSTRO" % app)
 
 
-def spegni(app):
-    f = percorso(app)
+def spegni(app, dove=None):
+    f = os.path.join(dove or cartelle_override()[0], app)
     if not os.path.exists(f):
-        print("%s: gia' di serie (nessun override)" % app)
         return
     c = leggi(f)
     pulisci_unset(c)
@@ -100,32 +235,98 @@ def spegni(app):
         if c.has_option("Environment", n):
             c.remove_option("Environment", n)
     scrivi(c, f)
-    print("%s: driver di serie" % app)
 
 
-def stato(app):
-    f = percorso(app)
-    c = leggi(f)
-    icd = c.get("Environment", "VK_DRIVER_FILES", fallback=None)
-    unset = c.get("Context", "unset-environment", fallback="")
-    if icd == ICD and "VK_DRIVER_FILES" not in unset:
-        q = "NOSTRO"
-    elif icd:
-        q = "?? valore inatteso: %r" % icd
-    elif "VK_DRIVER_FILES" in unset:
-        q = "?? nome in unset-environment senza valore"
+def app_attiva(app):
+    """What the launcher will actually see: a user override wins over the system one."""
+    for dove in cartelle_override() + [SISTEMA_OVERRIDE]:
+        f = os.path.join(dove, app)
+        if not os.path.exists(f):
+            continue
+        c = leggi(f)
+        icd = c.get("Environment", "VK_DRIVER_FILES", fallback=None)
+        unset = c.get("Context", "unset-environment", fallback="")
+        if icd and "VK_DRIVER_FILES" not in unset:
+            return icd == ICD
+    return False
+
+
+# ---- the two halves together ------------------------------------------------
+def accendi_tutto(zitto=False):
+    motivo = perche_no()
+    if motivo and "--forza" not in sys.argv:
+        if not zitto:
+            print("non accendo: %s" % motivo)
+        return 1
+    if radice():
+        host_accendi()
+    elif not zitto:
+        print("il mezzo di sistema vuole i permessi di root: faccio solo i lanciatori")
+    for a in APP:
+        for dove in cartelle_override():
+            accendi(a, dove)
+    if not zitto:
+        stato()
+    return 0
+
+
+def spegni_tutto(zitto=False):
+    if radice():
+        host_spegni()
+        # off means off: the launchers of every user, not just this one
+        for dove in set(cartelle_utenti() + [SISTEMA_OVERRIDE]):
+            for a in APP:
+                spegni(a, dove)
     else:
-        q = "di serie"
-    print("%-32s %s" % (app, q))
+        for dove in cartelle_override():
+            for a in APP:
+                spegni(a, dove)
+    if not zitto:
+        stato()
+    return 0
+
+
+def avvio():
+    """The boot service: our driver if this machine may have it, Debian's if not.
+
+    The point is the negative case. A BC-250 booted on a stock kernel must not
+    come up with a driver that opens the compute queues, and the decision cannot
+    be taken once at install time because the kernel can change at any boot.
+    """
+    if perche_no():
+        if host_attivo():
+            spegni_tutto(zitto=True)
+        return 0
+    accendi_tutto(zitto=True)
+    return 0
+
+
+def dati():
+    return {"ok": True, "attivo": host_attivo(), "host": host_attivo(),
+            "installata": installata(), "scheda_bc250": e_una_bc250(),
+            "kernel_nostro": kernel_nostro(), "kernel": os.uname().release,
+            "motivo": perche_no(),
+            "app": dict((a, app_attiva(a)) for a in APP),
+            "versione": sh("dpkg-query -W -f='${Version}' %s 2>/dev/null" % PACCHETTO, 10).stdout.strip()}
+
+
+def stato():
+    d = dati()
+    print("%-32s %s" % ("sistema (desktop e non solo)", "NOSTRO" if d["host"] else "di serie"))
+    for a in APP:
+        print("%-32s %s" % (a, "NOSTRO" if d["app"][a] else "di serie"))
+    if d["motivo"]:
+        print("nota: %s" % d["motivo"])
+    return 0
 
 
 def main():
     azione = sys.argv[1] if len(sys.argv) > 1 else "stato"
-    fai = {"on": accendi, "off": spegni, "stato": stato}.get(azione)
+    fai = {"on": accendi_tutto, "off": spegni_tutto, "stato": stato, "avvio": avvio,
+           "json": lambda: (print(json.dumps(dati())), 0)[1]}.get(azione)
     if not fai:
-        sys.exit("uso: mesa-v33.py {on|off|stato}")
-    for a in APP:
-        fai(a)
+        sys.exit("uso: skillfish-mesa {on|off|stato|avvio|json}")
+    sys.exit(fai())
 
 
 if __name__ == "__main__":
