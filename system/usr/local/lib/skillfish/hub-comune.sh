@@ -96,6 +96,25 @@ tx_start() {   # tx_start <azione> [argomenti...]
   echo "avviata: $*"
 }
 
+# ⚠️ LE INSTALLAZIONI FLATPAK SONO DUE, e questa transazione gira da root.
+# Quella di sistema sta in /var/lib/flatpak; ogni utente puo' averne una sua in
+# ~/.local/share/flatpak, ed e' li' che finiscono gli emulatori installati dai
+# nostri script. Da root quella non si vede: `flatpak update` dice «Nothing to
+# update» e le stesse righe restano nell'elenco per sempre. Quindi si fa il giro
+# degli utenti che ne hanno una e si aggiorna la loro, come loro.
+per_ogni_flatpak_utente() {   # per_ogni_flatpak_utente <comando flatpak...>
+  local d u h
+  for d in /home/*/.local/share/flatpak; do
+    [ -d "$d/app" ] || continue
+    h=${d%/.local/share/flatpak}
+    u=$(stat -c %U "$d" 2>/dev/null) || continue
+    id "$u" >/dev/null 2>&1 || continue
+    # ⚠️ XDG_RUNTIME_DIR via: da root punta a /run/user/0, che l'utente non
+    # puo' scrivere, e dconf riempie il registro di CRITICAL a ogni giro.
+    runuser -u "$u" -- env -u XDG_RUNTIME_DIR HOME="$h" "$@" || true
+  done
+}
+
 # Il lavoro vero. Lo chiama systemd (o il ripiego qui sopra), mai l'utente.
 esegui_azione() {
   local AZIONE="${1:-}"; shift || true
@@ -103,7 +122,10 @@ esegui_azione() {
   case "$AZIONE" in
     elenchi)
       apt-get "${ATTESA[@]}" update || RC=$?
-      command -v flatpak >/dev/null 2>&1 && flatpak update --appstream -y || true
+      if command -v flatpak >/dev/null 2>&1; then
+        flatpak update --appstream -y || true
+        per_ogni_flatpak_utente flatpak --user update --appstream -y
+      fi
       ;;
     aggiorna)
       apt-get "${ATTESA[@]}" update || RC=$?
@@ -116,6 +138,8 @@ esegui_azione() {
         # pacchetto che non riesce ad aggiornarsi. flatpak toglie solo cio' da
         # cui non dipende piu' niente, quindi qui non si perde nulla di vivo.
         flatpak uninstall --unused -y --noninteractive || true
+        per_ogni_flatpak_utente flatpak --user update -y --noninteractive
+        per_ogni_flatpak_utente flatpak --user uninstall --unused -y --noninteractive
       fi
       if command -v snap >/dev/null 2>&1; then
         snap refresh || true   # snap dice "no updates" con uscita diversa da 0
@@ -199,7 +223,16 @@ conta_aggiornamenti() {   # conta_aggiornamenti [dentro]
     # esistono piu', `flatpak update` giustamente non li tocca, e l'utente vede
     # righe che non se ne vanno mai.
     flatpak update --appstream -y >/dev/null 2>&1 || true
-    FLAT=$(flatpak remote-ls --updates --columns=application 2>/dev/null | grep -cv '^Application ID$')
+    FLAT=$(flatpak --system remote-ls --updates --columns=application 2>/dev/null | grep -cv '^Application ID$')
+    # ⚠️ e quelle dell'utente, che da root non si contano da sole
+    for _d in /home/*/.local/share/flatpak; do
+      [ -d "$_d/app" ] || continue
+      _h=${_d%/.local/share/flatpak}
+      _u=$(stat -c %U "$_d" 2>/dev/null) || continue
+      id "$_u" >/dev/null 2>&1 || continue
+      _n=$(runuser -u "$_u" -- env -u XDG_RUNTIME_DIR HOME="$_h" flatpak --user remote-ls --updates --columns=application 2>/dev/null | grep -cv '^Application ID$')
+      FLAT=$((FLAT + _n))
+    done
   fi
   if command -v snap >/dev/null 2>&1; then
     SNAP=$(snap refresh --list 2>/dev/null | tail -n +2 | grep -c .)
