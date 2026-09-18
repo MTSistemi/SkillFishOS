@@ -110,6 +110,12 @@ esegui_azione() {
       apt-get "${APTOPT[@]}" full-upgrade || RC=$?
       if command -v flatpak >/dev/null 2>&1; then
         flatpak update -y --noninteractive || RC=$?
+        # ⚠️ E POI SI TOGLIE QUELLO CHE NON SERVE PIU' A NESSUNO. Un runtime
+        # abbandonato da chi lo usava non si aggiorna e non se ne va: resta
+        # nell'elenco degli aggiornamenti a ogni giro, e da fuori sembra un
+        # pacchetto che non riesce ad aggiornarsi. flatpak toglie solo cio' da
+        # cui non dipende piu' niente, quindi qui non si perde nulla di vivo.
+        flatpak uninstall --unused -y --noninteractive || true
       fi
       if command -v snap >/dev/null 2>&1; then
         snap refresh || true   # snap dice "no updates" con uscita diversa da 0
@@ -188,6 +194,11 @@ conta_aggiornamenti() {   # conta_aggiornamenti [dentro]
   APT=$(apt-get -s full-upgrade 2>/dev/null | grep -c '^Inst ')
   FLAT=0; SNAP=0; FW=0
   if command -v flatpak >/dev/null 2>&1; then
+    # ⚠️ PRIMA SI RINFRESCA LA COPIA LOCALE. `remote-ls --updates` risponde
+    # dalla cache appstream: se e' vecchia elenca aggiornamenti che non
+    # esistono piu', `flatpak update` giustamente non li tocca, e l'utente vede
+    # righe che non se ne vanno mai.
+    flatpak update --appstream -y >/dev/null 2>&1 || true
     FLAT=$(flatpak remote-ls --updates --columns=application 2>/dev/null | grep -cv '^Application ID$')
   fi
   if command -v snap >/dev/null 2>&1; then

@@ -826,11 +826,19 @@ class Catalog:
                 m = re.match(r'Inst (\S+) \[([^\]]*)\] \(([^ ]+)', ln)
                 if m: ups.append(("apt", m.group(1), m.group(2), m.group(3), ""))
         if have("flatpak"):
-            rc, out, _ = run(["flatpak", "remote-ls", "--updates", "--columns=application,version"], 40)
+            # ⚠️ ANCHE IL RAMO, non solo l'identificativo. Senza, GL.default
+            # 24.08 e 25.08 sono due righe identiche, e org.kde.Platform 6.9 e
+            # 6.10 pure: sembrano la stessa cosa elencata due volte che non si
+            # aggiorna mai. Un runtime spesso non ha una versione da mostrare,
+            # e allora il ramo e' l'unica cosa che distingue le due righe.
+            rc, out, _ = run(["flatpak", "remote-ls", "--updates",
+                              "--columns=application,version,branch"], 40)
             for ln in out.splitlines():
                 f = ln.split("\t")
                 if f and f[0] and f[0] != "Application ID":
-                    ups.append(("flatpak", f[0], "", f[1] if len(f) > 1 else "", ""))
+                    ramo = f[2].strip() if len(f) > 2 else ""
+                    nome = "%s (%s)" % (f[0], ramo) if ramo else f[0]
+                    ups.append(("flatpak", nome, "", f[1] if len(f) > 1 else "", ""))
         if have("snap"):
             rc, out, _ = run(["snap", "refresh", "--list"], 40)
             for ln in out.splitlines()[1:]:
