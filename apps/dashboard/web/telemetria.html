@@ -72,6 +72,8 @@
     font:700 .68rem 'DejaVu Sans Mono',monospace;background:rgba(216,168,73,.12);
     border:1px solid currentColor}
   .tess button.off{color:#6b5a34!important;background:rgba(216,168,73,.03)}
+  .memboard{margin-bottom:10px}
+  .memboard canvas{width:100%;display:block;border-radius:8px}
   .memchart{flex:1;min-width:280px}
   .memchart canvas{width:100%;height:210px;display:block}
   .memfoot{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap}
@@ -105,6 +107,7 @@
   </div>
   <div class="card" id="mem" style="display:none">
     <h3 id="mem-tit">Memoria GDDR6</h3>
+    <div class="memboard"><canvas id="mem-board"></canvas></div>
     <div class="memrow">
       <div class="tess" id="mem-tess"></div>
       <div class="memchart"><canvas id="mem-cv"></canvas><div class="riass" id="mem-riass"></div></div>
@@ -233,6 +236,182 @@
     ["anti_rollback_status", "Older firmware",  "blocked",                        "allowed"],
     ["rpmc_spirom_available","Rollback counter","present on the flash",           "absent"],
   ];
+  // ---------------- il disegno della scheda ----------------
+  // Le posizioni sono misurate, non disegnate a occhio: vengono da
+  // ASRock_AMD_BC-250_ISL_X5R_r1.00.cad, il boardview GenCAD 1.4 della scheda
+  // vera pubblicato su bc-250.com, 2163 componenti su un PCB di 304,66 x 139,98
+  // mm. E' la stessa pianta della classe DisegnoScheda nel Control Center: chi
+  // guarda la finestra e chi guarda il browser deve vedere la stessa scheda.
+  //
+  // âš ï¸ GenCAD ha l'origine in basso a sinistra con la y che sale, il canvas ha
+  // la y che scende. Ogni y qui sotto e' gia' 139,98 - y. Usare il valore grezzo
+  // disegnerebbe la scheda specchiata: un'immagine pulitissima di un pezzo che
+  // non esiste.
+  //
+  // âš ï¸ U27, U33, U37 e U43 stanno montati a 45 gradi ai quattro angoli
+  // diagonali del die; gli altri quattro dritti sopra e sotto. Nel CAD si vede
+  // dal campo pin, quadrato da 15,9 mm contro 9,8 x 12,7 dei dritti, e
+  // (9,8 + 12,7) / radice(2) fa 15,9 preciso.
+  //
+  // âš ï¸ QUALE SENSORE SIA QUALE CHIP RESTA IGNOTO. Le otto posizioni sono vere,
+  // l'ordine in cui la SMU risponde non lo documenta nessuno. Il chip 0 e' il
+  // primo sensore che risponde e niente dimostra che sia il pezzo serigrafato
+  // U27. Percio' ogni chip porta il suo numero e il bordo del colore della sua
+  // linea nel grafico: il disegno dice QUALE chip scalda, non dove sta.
+  const MEMPIANTA = {
+    w: 304.66, h: 139.98,
+    // x, y, larghezza, altezza, girato di 45 gradi
+    mem: [[135.24, 90.33, 8.78, 11.25, 1], [159.89, 105.83, 9.75, 12.75, 0],
+          [184.59, 105.83, 9.75, 12.75, 0], [209.24, 90.33, 8.78, 11.25, 1],
+          [135.24, 29.33, 8.78, 11.25, 1], [159.89, 13.83, 9.75, 12.75, 0],
+          [184.59, 13.83, 9.75, 12.75, 0], [209.24, 29.33, 8.78, 11.25, 1]],
+    apu: [172.20, 59.80, 42.4, 42.4],       // U25, 2197 sfere
+    fch: [60.50, 82.20, 23.1, 23.1],        // SU1, 656 sfere
+    sio: [96.50, 104.20, 15.7, 15.7],       // UIO1
+    buchi: [[7.5, 11.1, 2.5], [7.5, 111.1, 2.5],
+            [298.8, 17.3, 2.9], [298.8, 27.3, 2.9]],
+    // x, y, larghezza, altezza, si affaccia fuori, etichetta
+    conn: [[7.8, 56.1, 10.3, 16.5, 1, "DP"], [12.0, 96.1, 13.5, 15.6, 1, "LAN"],
+           [12.0, 75.1, 6.7, 13.1, 1, ""], [11.5, 37.1, 5.7, 13.1, 1, ""],
+           [9.4, 21.1, 8.1, 8.0, 0, ""], [31.2, 8.1, 20.7, 7.5, 0, "M.2"],
+           [233.8, 130.6, 12.6, 11.5, 1, ""], [255.8, 131.0, 9.0, 11.5, 1, ""],
+           [275.8, 131.0, 9.0, 11.5, 1, ""]],
+    // il VRM che alimenta l'APU: sei stadi in colonna, piu' tre sparsi
+    stadi: [[257, 33.4], [257, 43.1], [257, 52.8], [257, 62.6], [257, 72.4],
+            [257, 82.2], [288.2, 69.5], [273.2, 99.8], [246.6, 13.3]],
+    minuteria: [[11.5, 75.1, 5.7, 13.1], [54.7, 6.2, 11.4, 4.1], [299.1, 128.6, 2.5, 17.8],
+                [61.2, 32.7, 5.8, 5.8], [24.0, 114.8, 16.0, 2.0], [111.1, 106.7, 6.7, 4.6],
+                [50.1, 103.8, 6.7, 4.6], [44.2, 112.1, 8.0, 3.8], [38.3, 51.9, 6.3, 4.6],
+                [36.1, 24.0, 8.7, 3.2], [114.5, 114.0, 7.3, 3.8], [94.8, 86.0, 5.7, 3.8],
+                [299.0, 46.4, 3.8, 5.7], [24.9, 89.7, 3.8, 5.7], [37.1, 41.0, 5.7, 3.8],
+                [36.3, 80.0, 5.7, 3.8], [60.3, 114.1, 7.6, 2.5], [298.6, 83.2, 3.6, 5.1],
+                [71.6, 99.6, 5.7, 3.8], [89.4, 60.3, 5.8, 5.8], [31.6, 101.2, 3.8, 3.8],
+                [105.0, 60.0, 4.2, 4.2], [120.0, 72.0, 3.4, 3.4], [120.0, 98.0, 3.4, 3.4],
+                [228.0, 60.0, 4.6, 3.2], [228.0, 80.0, 4.6, 3.2], [240.0, 95.0, 3.6, 3.6],
+                [150.0, 5.5, 3.0, 3.0], [200.0, 5.5, 3.0, 3.0], [170.0, 134.0, 3.0, 3.0]]
+  };
+
+  // Da 25 a 85 gradi e non da 0 a 100: a riposo questi chip stanno sui 44 e
+  // sotto carico sui 50, quindi una scala che parte da zero dipingerebbe ogni
+  // lettura onesta della stessa tinta e il disegno non direbbe niente. Stessi
+  // colori e stesse fermate di colore_temp() nella finestra.
+  const MEMFERMATE = [[25, "#5a8fd8"], [40, "#7fd4ff"], [52, "#8fbf6a"],
+                      [64, "#d8a849"], [75, "#e8703a"], [85, "#d85a5a"]];
+
+  function memTinta(c) {
+    if (c == null) return "#3b4a3f";
+    const rgb = s => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16),
+                      parseInt(s.slice(5, 7), 16)];
+    if (c <= MEMFERMATE[0][0]) return MEMFERMATE[0][1];
+    for (let i = 0; i < MEMFERMATE.length - 1; i++) {
+      const [c0, s0] = MEMFERMATE[i], [c1, s1] = MEMFERMATE[i + 1];
+      if (c <= c1) {
+        const k = (c - c0) / (c1 - c0), a = rgb(s0), b = rgb(s1);
+        return "rgb(" + a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",") + ")";
+      }
+    }
+    return MEMFERMATE[MEMFERMATE.length - 1][1];
+  }
+
+  function memScheda(gradi) {
+    const cv = $("#mem-board");
+    if (!cv) return;
+    const P = MEMPIANTA, dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth;
+    if (!(w > 40)) return;
+    const h = Math.min(300, Math.round(w * P.h / P.w));
+    if (cv.height !== Math.round(h * dpr) || cv.width !== Math.round(w * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      cv.style.height = h + "px";
+    }
+    const x = cv.getContext("2d");
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, w, h);
+
+    const k = Math.min((w - 4) / P.w, (h - 4) / P.h);
+    const x0 = (w - P.w * k) / 2, y0 = (h - P.h * k) / 2;
+    // da millimetri a pixel: un pezzo e' dato per centro e misure
+    const px = (mx, mw) => x0 + (mx - mw / 2) * k;
+    const py = (my, mh) => y0 + (my - mh / 2) * k;
+
+    // roundRect non c'e' su tutti i browser: senza di lui si disegna squadrato,
+    // che e' brutto ma leggibile, invece di non disegnare niente.
+    function box(mx, my, mw, mh, r) {
+      x.beginPath();
+      if (x.roundRect) x.roundRect(px(mx, mw), py(my, mh), mw * k, mh * k, (r || 0.8) * k);
+      else x.rect(px(mx, mw), py(my, mh), mw * k, mh * k);
+    }
+
+    // il PCB
+    x.lineWidth = 1.4; x.strokeStyle = "#3a5740"; x.fillStyle = "#17241a";
+    box(P.w / 2, P.h / 2, P.w, P.h, 2.5); x.fill(); x.stroke();
+
+    // la campitura di massa sotto memoria e APU, appena una sfumatura piu' chiara
+    x.fillStyle = "#1a2a1d";
+    box(172, 60, 112, 112, 10); x.fill();
+
+    x.fillStyle = "#25352a";
+    P.minuteria.forEach(([mx, my, mw, mh]) => x.fillRect(px(mx, mw), py(my, mh), mw * k, mh * k));
+
+    x.lineWidth = 1; x.strokeStyle = "#3a5740"; x.fillStyle = "#0d140f";
+    P.buchi.forEach(([mx, my, r]) => {
+      x.beginPath();
+      x.arc(x0 + mx * k, y0 + my * k, r * k, 0, Math.PI * 2);
+      x.fill(); x.stroke();
+    });
+
+    x.strokeStyle = "#4a5158";
+    P.conn.forEach(([mx, my, mw, mh, fuori]) => {
+      x.fillStyle = fuori ? "#0a0d0b" : "#25332a";
+      box(mx, my, mw, mh, 1); x.fill(); x.stroke();
+    });
+    x.strokeStyle = "#3a5740"; x.fillStyle = "#1b2b20";
+    box(53, 8.1, 60, 11, 0.8); x.fill(); x.stroke();      // la scheda M.2 nel suo slot
+
+    x.strokeStyle = "#4a5158"; x.fillStyle = "#232c25";
+    P.stadi.forEach(([mx, my]) => { box(mx, my, 4.7, 4.7, 0.6); x.fill(); x.stroke(); });
+
+    x.strokeStyle = "#586a5d";
+    [[P.apu, "#2c3239"], [P.fch, "#242c26"], [P.sio, "#242c26"]].forEach(([g, tinta]) => {
+      x.fillStyle = tinta; box(g[0], g[1], g[2], g[3], 0.8); x.fill(); x.stroke();
+    });
+    x.strokeStyle = "#6d7883"; x.fillStyle = "#454d57";
+    box(P.apu[0], P.apu[1], P.apu[2] * 0.72, P.apu[3] * 0.72, 0.6); x.fill(); x.stroke();
+
+    x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = "700 " + Math.max(7, 3.4 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    x.fillStyle = "#c8d2c9";
+    x.fillText("APU", x0 + P.apu[0] * k, y0 + P.apu[1] * k);
+    x.font = Math.max(6, 2.6 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    x.fillStyle = "#6d8f74";
+    P.conn.forEach(([mx, my, , , , et]) => {
+      if (et) x.fillText(et, x0 + mx * k, y0 + my * k);
+    });
+    x.fillText("BC-250", x0 + 250 * k, y0 + 110 * k);
+
+    // la memoria: il pieno dice quanto scalda, il bordo dice quale chip e'
+    x.font = "700 " + Math.max(7, 3.0 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    P.mem.forEach(([mx, my, mw, mh, girato], i) => {
+      const c = (gradi && gradi.length > i) ? gradi[i] : null;
+      x.save();
+      x.translate(x0 + mx * k, y0 + my * k);
+      if (girato) x.rotate(Math.PI / 4);
+      x.beginPath();
+      if (x.roundRect) x.roundRect(-mw * k / 2, -mh * k / 2, mw * k, mh * k, 0.7 * k);
+      else x.rect(-mw * k / 2, -mh * k / 2, mw * k, mh * k);
+      x.fillStyle = memTinta(c);
+      x.globalAlpha = c == null ? 0.18 : 0.62;
+      x.fill();
+      x.globalAlpha = 1;
+      x.lineWidth = 1.6; x.strokeStyle = MEMCOL[i]; x.stroke();
+      x.restore();
+      // il numero resta dritto anche dove il chip e' girato
+      x.fillStyle = c == null ? "#6b5a34" : "#f0e6d2";
+      x.fillText(String(i), x0 + mx * k, y0 + my * k);
+    });
+  }
+
   let memGraf = null, memTess = [], memAttiva = false, memInCorso = false;
 
   function memCostruisci() {
@@ -286,6 +465,7 @@
           .replace("%s", d.minuti_max);
 
       const g = d.gradi || [];
+      memScheda(memAttiva && g.length === 8 ? g : null);
       if (memAttiva && g.length === 8) {
         memGraf.push(g);
         $("#mem-riass").textContent =
