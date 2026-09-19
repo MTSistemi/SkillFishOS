@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!--
+  Una sola autorizzazione, e con la password.
+
+  Come per la ventola, la finestra non ha bisogno di privilegi per MOSTRARE
+  niente: il collettore pubblica /run/bc250-memory/telemetry leggibile da
+  chiunque. Root serve solo per ACCENDERE la lettura, che ritocca la SMU.
+
+  E la password si chiede davvero, perche' questa non e' una lettura come le
+  altre. Interrogare i sensori nella memoria passa dalla SMU, e la SMU e' lo
+  stesso chip che regge frequenze e tensioni: misurato il 19/09/2026, a un
+  secondo si incastra in mezz'ora e a tre in un'ora, e da li' si esce solo
+  riavviando. L'helper impone un tetto di dieci minuti e una pausa fra una
+  sessione e l'altra, ma chi la accende deve sapere che sta accendendo qualcosa.
+
+  auth_admin_keep e non auth_admin: dieci minuti finiscono presto, e chi sta
+  guardando scaldare la memoria durante un banco non deve digitare la password
+  a ogni sessione.
+
+  ⚠️ polkit lega l'autorizzazione al PERCORSO del programma, non al nome: se un
+  giorno l'helper si sposta, va cambiato anche qui.
+-->
+<policyconfig>
+  <vendor>SkillFishOS</vendor>
+
+  <action id="os.skillfish.gddr6.helper">
+    <description>Read the GDDR6 memory chip temperatures</description>
+    <description xml:lang="it">Leggere la temperatura dei chip di memoria GDDR6</description>
+    <description xml:lang="pl">Odczyt temperatury układów pamięci GDDR6</description>
+    <description xml:lang="uk">Читання температури чипів пам'яті GDDR6</description>
+    <description xml:lang="ru">Чтение температуры чипов памяти GDDR6</description>
+    <description xml:lang="es">Leer la temperatura de los chips de memoria GDDR6</description>
+    <description xml:lang="pt">Ler a temperatura dos chips de memória GDDR6</description>
+    <description xml:lang="de">Temperatur der GDDR6-Speicherchips lesen</description>
+    <description xml:lang="fr">Lire la température des puces de mémoire GDDR6</description>
+    <message>Authentication is required to read the memory temperature: it goes through the SMU</message>
+    <message xml:lang="it">È richiesta l'autenticazione per leggere la temperatura della memoria: passa dalla SMU</message>
+    <message xml:lang="pl">Wymagane jest uwierzytelnienie, aby odczytać temperaturę pamięci: odbywa się to przez SMU</message>
+    <message xml:lang="uk">Для читання температури пам'яті потрібна автентифікація: це відбувається через SMU</message>
+    <message xml:lang="ru">Для чтения температуры памяти требуется аутентификация: запрос идёт через SMU</message>
+    <message xml:lang="es">Se requiere autenticación para leer la temperatura de la memoria: pasa por la SMU</message>
+    <message xml:lang="pt">É necessária autenticação para ler a temperatura da memória: passa pela SMU</message>
+    <message xml:lang="de">Zum Lesen der Speichertemperatur ist eine Authentifizierung erforderlich: sie läuft über die SMU</message>
+    <message xml:lang="fr">Une authentification est requise pour lire la température de la mémoire : elle passe par la SMU</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/skillfish-gddr6-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

@@ -35,13 +35,18 @@ function niceScale(lo, hi, ticks) {
 }
 
 class Mini {
-  constructor(canvas, series) { this.c = canvas; this.series = series; this.data = series.map(() => []); this.max = 90; }
+  constructor(canvas, series) { this.c = canvas; this.series = series; this.data = series.map(() => []); this.max = 90;
+    // Per-series switches, for a chart whose legend lives outside it in clickable
+    // tiles (the GDDR6 card). A hidden series leaves the y axis too, so isolating
+    // one line actually zooms it instead of keeping the others' scale. Same
+    // behaviour as the Chart class in skillfish-monitor: one card, two views.
+    this.visibili = series.map(() => true); }
   push(vals) { vals.forEach((v, i) => { const d = this.data[i]; d.push(v == null ? (d.length ? d[d.length - 1] : 0) : v); if (d.length > this.max) d.shift(); }); this.draw(); }
   draw() {
     const cv = this.c, dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
     if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
     const x = cv.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
-    let all = []; this.data.forEach(d => all = all.concat(d)); if (!all.length) return;
+    let all = []; this.data.forEach((d, i) => { if (this.visibili[i] !== false) all = all.concat(d); }); if (!all.length) return;
     const sc = niceScale(Math.min(...all), Math.max(...all), 4);   // padding included
     let lo = sc.lo, hi = sc.hi;
     // plot area: a left gutter carries the y-axis values, otherwise the scale is unreadable
@@ -55,7 +60,7 @@ class Mini {
       x.strokeStyle = "rgba(216,168,73,.10)"; x.beginPath(); x.moveTo(gx, yy); x.lineTo(gx + gw, yy); x.stroke();
       x.fillStyle = "rgba(185,160,122,.8)"; x.fillText(v.toFixed(dec), gx - 6, yy);
     }
-    this.data.forEach((d, i) => { if (d.length < 2) return; x.beginPath(); d.forEach((v, j) => { const px = gx + gw * j / (d.length - 1), py = gy + gh - gh * (v - lo) / span; j ? x.lineTo(px, py) : x.moveTo(px, py); }); x.strokeStyle = this.series[i].c; x.lineWidth = 1.6; x.lineJoin = "round"; x.stroke(); });
+    this.data.forEach((d, i) => { if (d.length < 2 || this.visibili[i] === false) return; x.beginPath(); d.forEach((v, j) => { const px = gx + gw * j / (d.length - 1), py = gy + gh - gh * (v - lo) / span; j ? x.lineTo(px, py) : x.moveTo(px, py); }); x.strokeStyle = this.series[i].c; x.lineWidth = 1.6; x.lineJoin = "round"; x.stroke(); });
   }
 }
 

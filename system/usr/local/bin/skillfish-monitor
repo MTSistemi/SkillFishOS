@@ -5,7 +5,7 @@
 # Viewer mode: `skillfish-monitor file.sfmon` loads a recording and shows the whole
 #   run with a time scrubber to analyze it second by second.
 # KDE-native PyQt6, brass/steampunk look. Trilingual (IT/EN/PL). Sensors via skillfish-hud-val.
-import sys, os, re, math, signal, subprocess, collections, csv, time, datetime, shutil
+import sys, os, re, math, json, signal, subprocess, collections, csv, time, datetime, shutil
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (QIcon, QPainter, QColor, QPen, QBrush, QLinearGradient, QPainterPath, QFont)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -360,7 +360,37 @@ class Chart(QWidget):
         self.times = []               # x axis (seconds) in static mode
         self.sdata = [[] for _ in series]
         self.cursor = 0               # current index in static mode
+        # Per-series switches, for the charts whose legend lives outside them in
+        # clickable tiles. A hidden series leaves the y axis too, so isolating one
+        # line actually zooms it instead of keeping the others' scale.
+        self.visibile = [True] * len(series)
+        # The six live charts carry their own legend at the top right. A chart
+        # with eight series cannot: its legend is the column of tiles beside it,
+        # and two lists of the same numbers is the overload to avoid.
+        self.legenda_dentro = True
         self.setMinimumSize(360, 170)
+
+    def _visibile(self, si):
+        try:
+            return bool(self.visibile[si])
+        except IndexError:
+            return True
+
+    def valore_corrente(self, si):
+        """Latest value (live) or the value under the cursor (viewer), or None.
+
+        Exposed so the tiles read exactly what the chart draws, instead of each
+        keeping its own idea of "current".
+        """
+        try:
+            d = (self.sdata if self.static else self.data)[si]
+        except IndexError:
+            return None
+        if not len(d):
+            return None
+        if self.static and 0 <= self.cursor < len(d):
+            return d[self.cursor]
+        return d[-1]
 
     def push(self, vals):
         for d, v in zip(self.data, vals, strict=False):
@@ -391,7 +421,10 @@ class Chart(QWidget):
             p.setPen(QColor(216, 168, 73)); p.drawText(14, 22, "%s (%s)" % (self.title, self.unit))
 
             cols = [self.sdata, self.data][not self.static]
-            allv = [v for d in cols for v in d if v is not None]
+            # Only the visible series set the scale: hiding the hottest chip has
+            # to rescale the axis, or isolating a line shows nothing new.
+            allv = [v for si, d in enumerate(cols) if self._visibile(si)
+                    for v in d if v is not None]
             if not allv:
                 return
             lo, hi, astep = _nice_scale(min(allv), max(allv), 4)   # padding included
@@ -418,6 +451,8 @@ class Chart(QWidget):
 
             lx = gx1
             for si, (label, col, _key) in enumerate(self.series):
+                if not self._visibile(si):
+                    continue
                 d = cols[si]; nn = len(d); color = QColor(col)
                 if nn >= 2:
                     line = QPainterPath(); fill = QPainterPath()
@@ -439,6 +474,8 @@ class Chart(QWidget):
                     cur = d[self.cursor] if 0 <= self.cursor < nn else (d[-1] if nn else None)
                 else:
                     cur = d[-1] if nn else 0.0
+                if not self.legenda_dentro:
+                    continue
                 if cur is None: cur = 0.0
                 txt = "%s %s" % (label, ("%d" % round(cur)) if abs(cur) >= 10 else ("%.2f" % cur))
                 p.setFont(fv); p.setPen(color)
@@ -521,6 +558,350 @@ class Sampler(QThread):
                 self.msleep(50); t += 0.05
 
 
+# ---------- GDDR6 memory temperature ----------
+# Eight on-die JEDEC sensors, one per memory chip, reached through the SMU. The
+# reading is a capped session started by skillfish-gddr6-helper: see that file for
+# why it must never be a service that simply runs.
+#
+# Here the window only ever READS /run/bc250-memory/telemetry, which the collector
+# publishes world-readable. Nothing on this side needs privileges.
+GDDR6_SNAPSHOT = "/run/bc250-memory/telemetry"
+GDDR6_HELPER = shutil.which("skillfish-gddr6-helper") or "/usr/local/bin/skillfish-gddr6-helper"
+GDDR6_CHIP = 8
+# Eight colours that stay apart on a dark ground, taken from the palette the six
+# live charts already use: a memory chip has to be recognisable next to them.
+GDDR6_COLORI = ["#e8c878", "#d8a849", "#c98a3a", "#e07b39",
+                "#e0d24f", "#9bd24f", "#5fd24f", "#49b6e0"]
+
+
+def gddr6_disponibile():
+    """True only where the reading can exist at all.
+
+    Checked before the button is created, so on any other machine the Monitor
+    stays exactly as it was instead of growing a control that cannot work.
+    """
+    if not os.path.exists(GDDR6_HELPER):
+        return False
+    try:
+        with open("/sys/class/dmi/id/product_name") as fh:
+            return "BC-250" in fh.read()
+    except OSError:
+        return False
+
+
+def leggi_gddr6():
+    """(status, [temperature per chip]) from the collector's snapshot.
+
+    The file is five lines: marker, boot time, status, eight raw words, error.
+    Degrees come out of the JEDEC code in the low byte: code * 2 - 40.
+    """
+    try:
+        with open(GDDR6_SNAPSHOT, encoding="utf-8", errors="replace") as fh:
+            righe = fh.read().splitlines()
+    except OSError:
+        return "assente", []
+    if len(righe) < 4 or righe[0] != "BC250_MEMORY_V1":
+        return "assente", []
+    if righe[2] != "ok":
+        return righe[2], []
+    gradi = [(int(w) & 0xFF) * 2 - 40 for w in righe[3].split() if w.isdigit()]
+    return ("ok", gradi) if len(gradi) == GDDR6_CHIP else (righe[2], [])
+
+
+def gddr6_helper(azione, *extra, con_password=True):
+    """Ask the helper to start or stop the reading. Returns its JSON, or a reason.
+
+    `stato` runs without pkexec: it asks nothing of the hardware and a password
+    prompt every few seconds to read a countdown would be absurd.
+    """
+    cmd = ([] if not con_password else ["pkexec"]) + [GDDR6_HELPER, azione] + [str(x) for x in extra]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+        return json.loads((p.stdout or "{}").strip().splitlines()[-1])
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "errore": L("l'helper non ha risposto", "the helper did not answer")}
+    except Exception:
+        return {"ok": False, "errore": L("helper non disponibile", "helper unavailable")}
+
+
+class Tessera(QPushButton):
+    """Legend and value in one, as in the Fan window: click to hide the line.
+
+    ⚠️ There is no second list of these numbers anywhere. A legend inside the
+    chart AND a column beside it was exactly the overload the Fan layout removed.
+    """
+    def __init__(self, etichetta, colore):
+        super().__init__()
+        self.etichetta = etichetta
+        self.colore = colore
+        self.setCheckable(True)
+        self.setChecked(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMinimumWidth(124)
+        self.aggiorna(None)
+
+    def aggiorna(self, valore):
+        testo = "—" if valore is None else "%d °C" % round(valore)
+        self.setText("%s\n%s" % (self.etichetta, testo))
+        acceso = self.isChecked()
+        self.setStyleSheet(
+            "QPushButton{text-align:left;padding:5px 9px;border-radius:9px;font-size:11px;"
+            "font-family:'DejaVu Sans Mono';font-weight:bold;"
+            "color:%s;background:rgba(216,168,73,%s);border:1px solid %s;}"
+            % (self.colore if acceso else "#6b5a34",
+               "0.12" if acceso else "0.03",
+               self.colore + ("" if acceso else "44")))
+
+
+class GddrPanel(QWidget):
+    """The GDDR6 card: tiles on the left, one chart, controls underneath.
+
+    One chart and not eight: with a single one the whole memory is watched at
+    once, and with more you have to keep switching.
+    """
+    def __init__(self):
+        super().__init__()
+        self.setStyleSheet("QWidget{background:#120f09;border:1px solid rgba(216,168,73,.31);"
+                           "border-radius:14px;} QLabel{border:none;}")
+        serie = [("chip %d" % i, GDDR6_COLORI[i], "chip%d" % i) for i in range(GDDR6_CHIP)]
+        self.chart = Chart(L("Memoria GDDR6", "GDDR6 memory"), "°C", serie)
+        self.chart.legenda_dentro = False          # the tiles are the legend
+        self.chart.setMinimumHeight(240)
+
+        fuori = QVBoxLayout(self)
+        fuori.setContentsMargins(14, 12, 14, 12)
+        fuori.setSpacing(10)
+
+        riga = QHBoxLayout()
+        riga.setSpacing(12)
+        colonna = QVBoxLayout()
+        colonna.setSpacing(5)
+        self.tessere = []
+        for i, (etichetta, colore, _k) in enumerate(serie):
+            t = Tessera(etichetta, colore)
+            t.toggled.connect(lambda _on, si=i: self._commuta(si))
+            colonna.addWidget(t)
+            self.tessere.append(t)
+        self.riassunto = QLabel("")
+        self.riassunto.setStyleSheet("color:#b9a07a;font-family:'DejaVu Sans Mono';font-size:11px;")
+        colonna.addWidget(self.riassunto)
+        colonna.addStretch(1)
+        riga.addLayout(colonna)
+        riga.addWidget(self.chart, 1)
+        fuori.addLayout(riga)
+
+        basso = QHBoxLayout()
+        self.btn = QPushButton("")
+        self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn.clicked.connect(self._premuto)
+        basso.addWidget(self.btn)
+        self.nota = QLabel("")
+        self.nota.setStyleSheet("color:#8d7b5c;font-size:11px;")
+        self.nota.setWordWrap(True)
+        basso.addWidget(self.nota, 1)
+        fuori.addLayout(basso)
+
+        self._attiva = False
+        self._chiedo = False
+        self.orologio = QTimer(self)
+        self.orologio.timeout.connect(self._giro)
+        # The collector publishes every three seconds; asking faster only repeats
+        # the same numbers, and the interval is not ours to shorten anyway.
+        self.orologio.start(3000)
+        self._giro()
+
+    def _commuta(self, si):
+        self.chart.visibile[si] = self.tessere[si].isChecked()
+        self.tessere[si].aggiorna(self.chart.valore_corrente(si))
+        self.chart.update()
+
+    def _premuto(self):
+        if self._chiedo:
+            return
+        self._chiedo = True
+        try:
+            r = gddr6_helper("ferma" if self._attiva else "avvia")
+            if not r.get("ok"):
+                self.nota.setText(str(r.get("errore") or L("non riuscito", "failed")))
+        finally:
+            self._chiedo = False
+        self._giro()
+
+    def _giro(self):
+        st = gddr6_helper("stato", con_password=False)
+        self._attiva = bool(st.get("attiva"))
+        rimasti = st.get("rimasti")
+        pausa = st.get("pausa") or 0
+        motivo = st.get("perche_no")
+
+        # The glyph stays out of the translated string: the web card shows the
+        # same two labels without it, and one key translated once serves both.
+        self.btn.setText("■ " + L("Ferma la lettura", "Stop reading") if self._attiva
+                         else "◉ " + L("Leggi la memoria", "Read the memory"))
+        self.btn.setEnabled(not motivo and (self._attiva or not pausa))
+        self.btn.setStyleSheet(
+            "QPushButton{color:%s;background:rgba(216,168,73,0.12);"
+            "border:1px solid rgba(216,168,73,0.35);border-radius:9px;"
+            "padding:5px 14px;font-weight:bold;}QPushButton:hover{color:#fff;}"
+            "QPushButton:disabled{color:#6b5a34;border-color:rgba(216,168,73,0.14);}"
+            % ("#e8c878" if self._attiva else "#b9a07a"))
+
+        if motivo:
+            self.nota.setText(str(motivo))
+        elif self._attiva and rimasti is not None:
+            # %s and not %d:%02d: the same key has to serve the web card, where
+            # the value arrives already formatted. One string, translated once.
+            self.nota.setText(L("si chiude da sola fra %s — tocca la SMU, non si tiene accesa",
+                                "closes itself in %s — it touches the SMU, do not leave it on")
+                              % ("%d:%02d" % (rimasti // 60, rimasti % 60)))
+        elif pausa:
+            self.nota.setText(L("pausa fra una lettura e l'altra: ancora %s s",
+                                "cooldown between readings: %s s left") % pausa)
+        else:
+            self.nota.setText(L("la lettura si accende quando serve e dura al massimo %s minuti",
+                                "the reading is started when needed and lasts at most %s minutes")
+                              % int(st.get("minuti_max") or 10))
+
+        stato, gradi = leggi_gddr6()
+        if self._attiva and stato == "ok" and gradi:
+            self.chart.push(gradi)
+            media = sum(gradi) / float(len(gradi))
+            caldo = max(gradi)
+            self.riassunto.setText(
+                L("media %s °C", "average %s °C") % round(media) + "\n" +
+                L("punto caldo %s °C (chip %s)", "hotspot %s °C (chip %s)")
+                % (caldo, gradi.index(caldo)))
+        elif not self._attiva:
+            self.riassunto.setText("")
+        for i, t in enumerate(self.tessere):
+            t.aggiorna(self.chart.valore_corrente(i) if self._attiva else None)
+
+
+# ---------- platform security state (AMD Secure Processor) ----------
+# The BC-250 carries a secure processor at PCI 1022:143e that no upstream kernel
+# binds, so these files only exist with our ccp patches in place. Everything here
+# is world-readable and needs no helper: the panel is a plain read.
+#
+# The device is found through the driver rather than hardcoded, because a bus
+# address is not a promise.
+CCP_DRIVER = "/sys/bus/pci/drivers/ccp"
+
+# key, label, and what a 1 and a 0 actually mean for the person reading.
+SECURITY_ROWS = [
+    ("fused_part",
+     L("Silicio", "Silicon"),
+     L("di produzione, fusibili bruciati", "production part, fuses blown"),
+     L("campione di pre-produzione", "pre-production sample")),
+    ("debug_lock_on",
+     L("Debug", "Debug"),
+     L("chiuso", "locked"),
+     L("aperto", "open")),
+    ("boot_integrity",
+     L("Integrità all'avvio", "Boot integrity"),
+     L("verificata", "verified"),
+     L("non verificata", "not verified")),
+    ("tsme_status",
+     L("Memoria", "Memory"),
+     L("cifrata dal firmware", "encrypted by firmware"),
+     L("in chiaro, nessun costo in prestazioni", "in the clear, no performance cost")),
+    ("hsp_tpm_available",
+     L("TPM firmware", "Firmware TPM"),
+     L("presente", "present"),
+     L("assente", "absent")),
+    ("rom_armor_enforced",
+     L("Flash del BIOS", "BIOS flash"),
+     L("protetta dal processore sicuro", "guarded by the secure processor"),
+     L("non protetta", "not guarded")),
+    ("anti_rollback_status",
+     L("Firmware più vecchi", "Older firmware"),
+     L("bloccati", "blocked"),
+     L("ammessi", "allowed")),
+    ("rpmc_spirom_available",
+     L("Contatore antiritorno", "Rollback counter"),
+     L("presente sulla flash", "present on the flash"),
+     L("assente", "absent")),
+]
+
+
+def psp_security():
+    """Read the secure processor's own account of the platform, or None.
+
+    Returns {"bootloader": str|None, "<key>": bool} for the keys above. None
+    when there is no secure processor bound, which is every machine that is not
+    a BC-250 running our kernel - the panel is simply not offered there.
+    """
+    try:
+        indirizzi = [n for n in os.listdir(CCP_DRIVER) if n.count(":") == 2]
+    except OSError:
+        return None
+    for indirizzo in sorted(indirizzi):
+        base = os.path.join(CCP_DRIVER, indirizzo)
+        fuori = {}
+        for chiave, _lab, _si, _no in SECURITY_ROWS:
+            try:
+                with open(os.path.join(base, chiave)) as fh:
+                    fuori[chiave] = fh.read().strip() == "1"
+            except OSError:
+                pass
+        if not fuori:
+            continue                      # bound, but without our sysfs group
+        try:
+            with open(os.path.join(base, "bootloader_version")) as fh:
+                fuori["bootloader"] = fh.read().strip() or None
+        except OSError:
+            fuori["bootloader"] = None
+        return fuori
+    return None
+
+
+class SecurityPanel(QWidget):
+    """What the secure processor says about this board. Read once, never polled.
+
+    None of it changes while the machine is running: it is fused, flashed or
+    configured before Linux starts. Polling it would be noise.
+    """
+    def __init__(self, stato):
+        super().__init__()
+        self.setStyleSheet("QWidget{background:#120f09;border:1px solid rgba(216,168,73,.31);"
+                           "border-radius:14px;} QLabel{border:none;}")
+        g = QGridLayout(self)
+        g.setContentsMargins(16, 12, 16, 14)
+        g.setHorizontalSpacing(14)
+        g.setVerticalSpacing(5)
+
+        titolo = QLabel(L("Stato di sicurezza della piattaforma",
+                          "Platform security state"))
+        titolo.setStyleSheet("color:#d8a849;font-weight:bold;font-size:13px;letter-spacing:1px;")
+        g.addWidget(titolo, 0, 0, 1, 2)
+
+        versione = stato.get("bootloader")
+        if versione:
+            v = QLabel(L("bootloader %s", "bootloader %s") % versione)
+            v.setStyleSheet("color:#b9a07a;font-family:'DejaVu Sans Mono';font-size:11px;")
+            v.setAlignment(Qt.AlignmentFlag.AlignRight)
+            g.addWidget(v, 0, 2)
+
+        riga = 1
+        for chiave, etichetta, se_si, se_no in SECURITY_ROWS:
+            if chiave not in stato:
+                continue
+            acceso = stato[chiave]
+            nome = QLabel(etichetta)
+            nome.setStyleSheet("color:#cbb98f;font-size:12px;")
+            segno = QLabel("●")
+            # Gold for a fact that holds, dim brass for one that does not. No red
+            # and no green: none of these rows is a fault, and colouring them as
+            # alarms would tell the reader something untrue about their board.
+            segno.setStyleSheet("color:%s;font-size:12px;" % ("#d8a849" if acceso else "#6b5a34"))
+            senso = QLabel(se_si if acceso else se_no)
+            senso.setStyleSheet("color:#8d7b5c;font-size:12px;")
+            g.addWidget(segno, riga, 0)
+            g.addWidget(nome, riga, 1)
+            g.addWidget(senso, riga, 2)
+            riga += 1
+        g.setColumnStretch(2, 1)
+
+
 class Monitor(QMainWindow):
     def __init__(self, recording=None):
         super().__init__()
@@ -565,6 +946,29 @@ class Monitor(QMainWindow):
             "QPushButton:checked{color:#fff;background:#a03020;border-color:#e05540;}")
         self.rec_btn.toggled.connect(self._rec_toggle)
         top.addWidget(self.rec_btn)
+        # Offered only where there is a secure processor to ask, so the button is
+        # absent rather than dead on every other machine.
+        self._sec_state = psp_security()
+        self.sec_panel = None
+        if self._sec_state:
+            self.sec_btn = QPushButton(L("Sicurezza", "Security"))
+            self.sec_btn.setCheckable(True)
+            self.sec_btn.setToolTip(L("Cosa dice il processore sicuro di questa scheda",
+                                      "What the secure processor says about this board"))
+            self.sec_btn.setStyleSheet(self._btn_css() +
+                "QPushButton:checked{color:#fff;background:rgba(216,168,73,0.28);}")
+            self.sec_btn.toggled.connect(self._sec_toggle)
+            top.addWidget(self.sec_btn)
+        self.gddr_panel = None
+        if gddr6_disponibile():
+            self.mem_btn = QPushButton(L("Memoria", "Memory"))
+            self.mem_btn.setCheckable(True)
+            self.mem_btn.setToolTip(L("Temperatura dei chip di memoria GDDR6, a richiesta",
+                                      "GDDR6 memory chip temperature, on demand"))
+            self.mem_btn.setStyleSheet(self._btn_css() +
+                "QPushButton:checked{color:#fff;background:rgba(216,168,73,0.28);}")
+            self.mem_btn.toggled.connect(self._mem_toggle)
+            top.addWidget(self.mem_btn)
         top.addWidget(QLabel(L("Aggiornamento:", "Refresh:")))
         self.iv = QComboBox()
         for ms, lab in [(300, "0.3 s"), (500, "0.5 s"), (750, "0.75 s"), (1000, "1 s"), (2000, "2 s")]:
@@ -577,10 +981,36 @@ class Monitor(QMainWindow):
         self.cores = CoreBars()
         self.v.addWidget(self.cores)
 
+        self._sec_slot = self.v.count()   # where the panel goes when asked for
+
         self.sampler = Sampler()
         self.sampler.setIntervalMs(self.iv.currentData())
         self.sampler.sample.connect(self._apply)
         self.sampler.start()
+
+    def _mem_toggle(self, aperto):
+        """Build the GDDR6 card the first time it is asked for, then show it.
+
+        The card is not built at startup: it polls a snapshot and drives a helper,
+        and neither should happen in a Monitor nobody opened it in.
+        """
+        if aperto and self.gddr_panel is None:
+            self.gddr_panel = GddrPanel()
+            self.v.insertWidget(self._sec_slot, self.gddr_panel)
+        if self.gddr_panel is not None:
+            self.gddr_panel.setVisible(aperto)
+
+    def _sec_toggle(self, aperto):
+        """Build the panel the first time it is asked for, then just show it.
+
+        Nothing in it changes at runtime, so it is read once at startup and the
+        widget is kept: reopening must not re-read sysfs for the same answer.
+        """
+        if aperto and self.sec_panel is None:
+            self.sec_panel = SecurityPanel(self._sec_state)
+            self.v.insertWidget(self._sec_slot, self.sec_panel)
+        if self.sec_panel is not None:
+            self.sec_panel.setVisible(aperto)
 
     def _btn_css(self):
         return ("QPushButton{color:#b9a07a;background:rgba(216,168,73,0.10);"

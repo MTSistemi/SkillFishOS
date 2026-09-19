@@ -1,0 +1,50 @@
+From: Mattia Tadini <info@mtsistemi.it>
+Date: Sat, 19 Sep 2026 16:07:32 +0200
+Subject: [PATCH 1/3] crypto: ccp - fix NULL dereference in
+ psp_firmware_is_visible()
+
+psp_firmware_is_visible() decides whether to publish tee_version by
+testing the TEE capability bit reported by the hardware, and then reads
+through the driver's own tee vdata pointer without checking it:
+
+	if (attr == &dev_attr_tee_version.attr && psp->capability.tee &&
+	    psp->vdata->tee->info_reg)
+
+The capability register describes the silicon. The vdata describes what
+this driver was given to drive it with. The two can disagree: any device
+whose firmware sets the TEE capability bit while its psp_vdata carries no
+tee data dereferences NULL here. The attribute group is registered from
+probe, so the result is an oops during module init:
+
+	RIP: 0010:psp_firmware_is_visible+0x6c/0x80 [ccp]
+	 ? __pfx_init_module+0x10/0x10 [ccp]
+	 sp_mod_init+0x1a/0xff0 [ccp]
+
+This was hit on an AMD BC-250, whose PSP capability register at 0x109fc
+reads 0x00000002 and so advertises a TEE that the board has no working
+ring for.
+
+Check the pointer before following it.
+
+Fixes: 2e424c33d8e7 ("crypto: ccp - Add support for displaying PSP firmware versions")
+Signed-off-by: Mattia Tadini <info@mtsistemi.it>
+---
+ drivers/crypto/ccp/sp-pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/crypto/ccp/sp-pci.c b/drivers/crypto/ccp/sp-pci.c
+index ede6ff9..f79df33 100644
+--- a/drivers/crypto/ccp/sp-pci.c
++++ b/drivers/crypto/ccp/sp-pci.c
+@@ -80,7 +80,7 @@ static umode_t psp_firmware_is_visible(struct kobject *kobj, struct attribute *a
+ 		val = ioread32(psp->io_regs + psp->vdata->bootloader_info_reg);
+ 
+ 	if (attr == &dev_attr_tee_version.attr && psp->capability.tee &&
+-	    psp->vdata->tee->info_reg)
++	    psp->vdata->tee && psp->vdata->tee->info_reg)
+ 		val = ioread32(psp->io_regs + psp->vdata->tee->info_reg);
+ 
+ 	/* If platform disallows accessing this register it will be all f's */
+-- 
+2.55.0
+

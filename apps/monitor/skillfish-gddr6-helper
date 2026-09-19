@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Start and stop the GDDR6 memory temperature reading, with a hard time cap.
+
+    skillfish-gddr6-helper avvia [minuti]   start it (default 10, never above 10)
+    skillfish-gddr6-helper ferma           stop it
+    skillfish-gddr6-helper stato           JSON: running, seconds left, why not
+
+Root only, reached through pkexec. The window never needs this to SHOW anything:
+the collector publishes /run/bc250-memory/telemetry world-readable, so reading
+is unprivileged. Root is needed only to START the reading, because it patches the
+SMU.
+
+⚠️ THE CAP IS THE WHOLE POINT, AND IT IS NOT NEGOTIABLE.
+Measured on a BC-250 on 19/09/2026: polling the memory sensors through the SMU
+wedges it. At one second it lasted 31 min 39 s, at three seconds 55 min 15 s, and
+it ends the same way every time:
+
+    bc250_smu.errors.SmuTimeout: queue 3 msg 0x05 timed out - SMU wedged
+
+A wedged SMU is not a lost sensor. It is the chip our V/F governor talks to
+several times a second, and the only way back is a reboot. Nine sessions of ten
+minutes, closed cleanly, gave 90 minutes of reading with zero errors, against 55
+for one continuous run: the clock restarts with each session. Hence sessions, and
+hence a ceiling well inside what we have seen survive.
+
+⚠️ AND THE CEILING IS ENFORCED BY systemd, NOT BY US. RuntimeMaxSec on a
+transient unit sends SIGTERM when the time is up whether or not this helper, the
+window, or the whole desktop session are still alive. A cap implemented as a
+sleep in a process that can be killed is not a cap.
+
+⚠️ THE STOP MUST BE A SIGTERM, NEVER A KILL. The collector handles SIGTERM, ends
+its loop and leaves its guard file at 'ready'. Killed instead, the guard stays at
+'failed' and nothing can read the memory again until the machine reboots - the
+"reboot before retrying" message is that guard, not dead silicon.
+
+The collector itself is BC250-Telemetry by onlinermm and fansteori, MIT licensed,
+shipped under /usr/lib/skillfish/gddr6 with its own LICENSE alongside.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+UNITA = "skillfish-gddr6"
+COLLETTORE = "/usr/lib/skillfish/gddr6/collector.py"
+SNAPSHOT = "/run/bc250-memory/telemetry"
+GUARDIA = "/run/bc250-memory/patch-state.json"
+INTERVALLO = "3"          # seconds; see the cap note above for why not 1
+MINUTI_MAX = 10.0
+# How much later than the session's own cap the systemd backstop fires. One
+# constant, used both when starting the unit and when reading the countdown back
+# out of it: two copies of this number would drift and the window would show the
+# wrong time left.
+MARGINE_BACKSTOP = 25
+# Minimum wait between one session and the next.
+#
+# ⚠️ THE SMU MINDS HOW OFTEN IT IS PATCHED, NOT ONLY FOR HOW LONG. Nine ten-minute
+# sessions a minute apart ran with zero errors on 19/09/2026. Three sessions
+# inside four minutes, started and stopped in a hurry the same evening, ended
+# differently and worse:
+#
+#     bc250_smu.errors.SmuRejected: queue 3 msg 0x05 rejected (status 0xFF)
+#
+# That is a rejection, not the timeout the long runs give, and it left the guard
+# at 'failed' - no more memory readings until the machine reboots. A button a
+# person can click twice in a row has to refuse the second click.
+PAUSA_FRA_SESSIONI = 60
+
+
+def esci(ok, **resto):
+    """One JSON object on stdout, always. The window parses nothing else."""
+    resto["ok"] = ok
+    print(json.dumps(resto))
+    raise SystemExit(0 if ok else 1)
+
+
+def systemctl(*args):
+    return subprocess.run(["systemctl"] + list(args),
+                          capture_output=True, text=True, timeout=25)
+
+
+def attiva():
+    return systemctl("is-active", "--quiet", UNITA).returncode == 0
+
+
+# seconds per unit in the durations systemd prints
+_UNITA_TEMPO = {"us": 1e-6, "ms": 1e-3, "s": 1.0, "sec": 1.0, "m": 60.0,
+                "min": 60.0, "h": 3600.0, "d": 86400.0, "w": 604800.0}
+
+
+def _durata_secondi(testo):
+    """Parse a systemd duration, in either of the two forms it uses.
+
+    ⚠️ RuntimeMaxUSec DOES NOT COME BACK IN MICROSECONDS. Despite the name,
+    `systemctl show` pretty-prints it for people: a ten minute cap reads "10min",
+    and "1min 30s" for anything that is not a round number. Parsing it as an int
+    silently gave no remaining time at all.
+    """
+    testo = (testo or "").strip()
+    if not testo or testo == "infinity":
+        return None
+    if testo.isdigit():                       # raw microseconds
+        return int(testo) / 1e6
+    totale = 0.0
+    trovato = False
+    for numero, unita in re.findall(r"(\d+(?:\.\d+)?)\s*([a-z]+)", testo):
+        fattore = _UNITA_TEMPO.get(unita)
+        if fattore is None:
+            return None
+        totale += float(numero) * fattore
+        trovato = True
+    return totale if trovato else None
+
+
+def _proprieta(*nomi):
+    """Unit properties as a dict.
+
+    ⚠️ ASKED BY NAME, NEVER BY POSITION. `systemctl show -p A -p B --value`
+    returns them in systemd's own order, not the order they were asked in, so
+    reading the first line as A was simply wrong.
+    """
+    p = systemctl("show", UNITA, *["-p" + n for n in nomi])
+    fuori = {}
+    for riga in p.stdout.splitlines():
+        if "=" in riga:
+            chiave, valore = riga.split("=", 1)
+            fuori[chiave.strip()] = valore.strip()
+    return fuori
+
+
+def secondi_rimasti():
+    """Seconds left in the running session, or None when none is running.
+
+    ⚠️ THE UNIT LINGERS AFTER IT STOPS, on purpose: dropping --collect is what
+    lets the cooldown read when the SMU was last released. So the start timestamp
+    is still there once the session is over, and counting from it reported time
+    left on a session that had already ended.
+    """
+    if not attiva():
+        return None
+    try:
+        prop = _proprieta("ExecMainStartTimestampMonotonic", "RuntimeMaxUSec")
+        inizio = int(prop.get("ExecMainStartTimestampMonotonic") or 0)
+        tetto = _durata_secondi(prop.get("RuntimeMaxUSec"))
+        if not inizio or tetto is None:
+            return None
+        adesso = time.clock_gettime(time.CLOCK_MONOTONIC)
+        # The property holds the backstop, which fires MARGINE_BACKSTOP seconds
+        # after the session's own cap. What the window must show is the session.
+        return max(0, int(inizio / 1e6 + tetto - MARGINE_BACKSTOP - adesso))
+    except Exception:
+        return None
+
+
+def secondi_di_pausa():
+    """How long before another session may start, from systemd's own record.
+
+    The unit is deliberately NOT started with --collect: a collected unit is
+    forgotten the moment it stops, and with it the one timestamp that says when
+    the SMU was last let go.
+    """
+    try:
+        prop = _proprieta("InactiveEnterTimestampMonotonic")
+        fine = int(prop.get("InactiveEnterTimestampMonotonic") or 0)
+        if not fine:
+            return 0
+        adesso = time.clock_gettime(time.CLOCK_MONOTONIC)
+        return max(0, int(fine / 1e6 + PAUSA_FRA_SESSIONI - adesso))
+    except Exception:
+        return 0
+
+
+def perche_no():
+    """The reason the reading cannot be offered, or None when it can.
+
+    Checked here and not only in the window: a helper that trusts its caller to
+    have checked is a helper that gets called by something else one day.
+    """
+    if not os.path.exists(COLLETTORE):
+        return "collettore non installato"
+    try:
+        with open("/sys/class/dmi/id/product_name") as fh:
+            if "BC-250" not in fh.read():
+                return "non e' una BC-250"
+    except OSError:
+        return "non e' una BC-250"
+    # The guard survives a crash and blocks every further attempt until reboot.
+    # Saying so plainly beats letting the collector fail with a message about
+    # rebooting that sounds like the silicon is broken.
+    try:
+        with open(GUARDIA) as fh:
+            stato = json.load(fh).get("state")
+        if stato and stato != "ready":
+            return "lettura precedente interrotta male: serve un riavvio"
+    except (OSError, ValueError):
+        pass
+    # ⚠️ THE PAYLOAD IS PINNED TO ONE BIOS. patcher.py refuses anything that is
+    # not P3.0/P3.00, and the SMU offsets it writes are only right for that build.
+    # Asking the collector's own --check is better than repeating its list here:
+    # it touches no hardware, and a copy of that list would drift the first time
+    # upstream adds a BIOS.
+    #
+    # Refusing before the click also matters: a button that fails after being
+    # pressed reads as a broken board, and a disabled button with a reason does
+    # not.
+    try:
+        p = subprocess.run([sys.executable, COLLETTORE, "--check"],
+                           capture_output=True, text=True, timeout=25,
+                           cwd=os.path.dirname(COLLETTORE))
+        if p.returncode != 0:
+            motivo = (p.stderr or p.stdout or "").strip().splitlines()
+            return motivo[-1][:200] if motivo else "il collettore rifiuta questa macchina"
+    except Exception:
+        pass
+    return None
+
+
+def avvia(minuti):
+    motivo = perche_no()
+    if motivo:
+        esci(False, errore=motivo)
+    if attiva():
+        esci(True, gia_attiva=True, rimasti=secondi_rimasti())
+    pausa = secondi_di_pausa()
+    if pausa:
+        esci(False, pausa=pausa,
+             errore="troppo presto: aspetta %d s prima di rileggere" % pausa)
+    minuti = max(1.0, min(MINUTI_MAX, minuti))
+    # A unit that ended, even well, stays in view until it is cleared. Without
+    # this the next start is refused as "unit already exists".
+    systemctl("reset-failed", UNITA)
+    secondi = int(minuti * 60)
+    # Two caps, and both are wanted.
+    #
+    # timeout(1) ends the normal session: it sends SIGTERM at the right second
+    # and exits 124, which SuccessExitStatus turns into a clean stop. Without it
+    # RuntimeMaxSec does the job but systemd files the result as
+    # "Failed with result 'timeout'", and a scheduled ending that reads as a
+    # failure in the journal is how future-us wastes an hour.
+    #
+    # RuntimeMaxSec stays as the backstop, a little later: if timeout(1) itself
+    # is killed, the ceiling still exists. That is the whole reason the cap does
+    # not live inside this helper.
+    p = subprocess.run([
+        "systemd-run", "--unit", UNITA,
+        "--description", "SkillFishOS - GDDR6 memory temperature (capped session)",
+        "--property", "RuntimeMaxSec=%d" % (secondi + MARGINE_BACKSTOP),
+        "--property", "SuccessExitStatus=124",
+        # SIGTERM and time to answer it: the clean exit is what keeps the guard
+        # at 'ready' so the next session can start without a reboot.
+        "--property", "KillSignal=SIGTERM",
+        "--property", "TimeoutStopSec=20",
+        "--property", "WorkingDirectory=%s" % os.path.dirname(COLLETTORE),
+        "/usr/bin/timeout", "--signal=TERM", "--kill-after=15", str(secondi),
+        sys.executable, COLLETTORE, "--interval", INTERVALLO,
+    ], capture_output=True, text=True, timeout=30)
+    if p.returncode != 0:
+        esci(False, errore=(p.stderr or p.stdout or "systemd-run rifiutato").strip()[:300])
+    esci(True, minuti=minuti, rimasti=int(minuti * 60))
+
+
+def ferma():
+    if not attiva():
+        esci(True, gia_ferma=True)
+    p = systemctl("stop", UNITA)
+    if p.returncode != 0:
+        esci(False, errore=(p.stderr or "stop rifiutato").strip()[:300])
+    esci(True)
+
+
+def stato():
+    esci(True, attiva=attiva(), rimasti=secondi_rimasti(),
+         perche_no=perche_no(), pausa=secondi_di_pausa(),
+         snapshot=os.path.exists(SNAPSHOT), minuti_max=MINUTI_MAX)
+
+
+def main():
+    azione = sys.argv[1] if len(sys.argv) > 1 else ""
+    # ⚠️ ONLY avvia AND ferma NEED root. `stato` reads systemctl properties and
+    # two files under /run, all of which any user may read, and the window polls
+    # it every three seconds without pkexec on purpose: a password prompt to look
+    # at a countdown would be absurd. Requiring root here meant the window never
+    # saw the time left or the cooldown, and silently fell back to the default
+    # message as if nothing were running.
+    if azione in ("avvia", "ferma") and os.geteuid() != 0:
+        esci(False, errore="serve root")
+    if azione == "avvia":
+        try:
+            minuti = float(sys.argv[2]) if len(sys.argv) > 2 else MINUTI_MAX
+        except ValueError:
+            esci(False, errore="minuti non validi")
+        avvia(minuti)
+    elif azione == "ferma":
+        ferma()
+    elif azione == "stato":
+        stato()
+    else:
+        esci(False, errore="azioni: avvia [minuti] | ferma | stato")
+
+
+if __name__ == "__main__":
+    main()

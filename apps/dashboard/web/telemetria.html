@@ -61,6 +61,33 @@
   .cbar.off .b{background:none!important;border:1px dashed rgba(216,168,73,.35);height:12px!important}
   .cbar.off .v{color:rgba(185,160,122,.45)}
   .vuoto{color:var(--muted);padding:18px;text-align:center}
+  /* La scheda memoria e il riquadro sicurezza: stessa disposizione della finestra
+     del Monitor, perche' chi impara una delle due sa gia' usare l'altra. Tessere
+     a sinistra come legenda e valore insieme, UN grafico solo a destra. */
+  .card{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  .card h3{font-size:.84rem;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-bottom:7px}
+  .memrow{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+  .tess{display:flex;flex-direction:column;gap:4px;min-width:132px}
+  .tess button{text-align:left;padding:4px 8px;border-radius:7px;cursor:pointer;
+    font:700 .68rem 'DejaVu Sans Mono',monospace;background:rgba(216,168,73,.12);
+    border:1px solid currentColor}
+  .tess button.off{color:#6b5a34!important;background:rgba(216,168,73,.03)}
+  .memchart{flex:1;min-width:280px}
+  .memchart canvas{width:100%;height:210px;display:block}
+  .memfoot{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .memfoot button{padding:4px 12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.76rem;
+    color:var(--muted);background:rgba(216,168,73,.12);border:1px solid var(--line)}
+  .memfoot button:disabled{color:#6b5a34;cursor:default;border-color:rgba(216,168,73,.1)}
+  .memnota{color:var(--muted);font-size:.72rem;flex:1}
+  .riass{color:var(--muted);font:.68rem 'DejaVu Sans Mono',monospace;white-space:pre-line;margin-top:5px}
+  /* Oro se il fatto vale, ottone spento se non vale. Niente rosso e niente verde:
+     nessuna di queste righe e' un guasto, e colorarle da allarme direbbe a chi
+     legge una cosa falsa sulla sua scheda. */
+  .sec{display:grid;grid-template-columns:auto auto 1fr;gap:3px 12px;align-items:center}
+  .sec .dot{font-size:.7rem}
+  .sec .on{color:var(--gold)} .sec .no{color:#6b5a34}
+  .sec .nome{font-size:.76rem;color:var(--cream)}
+  .sec .senso{font-size:.76rem;color:var(--muted)}
 </style></head>
 <body>
 <header>
@@ -75,6 +102,21 @@
     <div class="lab"><span id="lab-core">Frequenza per core (MHz)</span><span class="cstat"></span></div>
     <div class="cwrap"><div class="cax"><i></i><div class="cat"></div><i></i></div>
       <div class="cgrid"></div><div class="cbars"></div></div>
+  </div>
+  <div class="card" id="mem" style="display:none">
+    <h3 id="mem-tit">Memoria GDDR6</h3>
+    <div class="memrow">
+      <div class="tess" id="mem-tess"></div>
+      <div class="memchart"><canvas id="mem-cv"></canvas><div class="riass" id="mem-riass"></div></div>
+    </div>
+    <div class="memfoot">
+      <button id="mem-btn"></button><span class="memnota" id="mem-nota"></span>
+    </div>
+  </div>
+  <div class="card" id="sic" style="display:none">
+    <h3><span id="sic-tit">Stato di sicurezza della piattaforma</span>
+        <span id="sic-bl" style="float:right;color:var(--muted);font-weight:400"></span></h3>
+    <div class="sec" id="sic-righe"></div>
   </div>
   <div class="vuoto" id="vuoto" style="display:none"></div>
 </main>
@@ -104,6 +146,12 @@
     t_pow: "Power", t_volt: "Voltage", t_fan: "Fan",
     t_percore: "Per core/thread frequency", m_telem: "Telemetry",
     c_off: "off", c_avg: "avg", c_online: "online",
+    mem_tit: "GDDR6 memory", mem_go: "Read the memory", mem_stop: "Stop reading",
+    mem_left: "closes itself in %s — it touches the SMU, do not leave it on",
+    mem_wait: "cooldown between readings: %s s left",
+    mem_idle: "the reading is started when needed and lasts at most %s minutes",
+    mem_avg: "average %s °C", mem_hot: "hotspot %s °C (chip %s)",
+    sic_tit: "Platform security state", x_fail: "failed",
   };
   const T = (k, rip) => {
     const en = INGLESE[k] || rip || k;
@@ -158,7 +206,117 @@
       $("#lab-core").textContent = T("t_percore", "Per-core frequency") + " (MHz)";
       costruisci();
       collega();
+      $("#mem-tit").textContent = T("mem_tit", "GDDR6 memory") + " (°C)";
+      memCostruisci();
+      memGiro();
+      // Il collettore pubblica ogni tre secondi: chiedere piu' spesso ripete gli
+      // stessi numeri, e l'intervallo non e' nostro da accorciare.
+      setInterval(memGiro, 3000);
+      sicCarica();
     });
+
+  // ---- scheda memoria GDDR6 e stato di sicurezza -------------------------
+  // ⚠️ QUESTA PAGINA NON COMANDA NIENTE DA SOLA. Il tetto di dieci minuti e la
+  // pausa fra una lettura e l'altra li tiene skillfish-gddr6-helper, e il demone
+  // e' l'unico che lo chiama: leggere la memoria passa dalla SMU, che si incastra
+  // se interrogata troppo a lungo o troppo spesso, e da li' si esce solo
+  // riavviando. Qui si mostra cio' che il demone pubblica e si chiede a lui di
+  // accendere o spegnere.
+  const MEMCOL = ["#e8c878","#d8a849","#c98a3a","#e07b39","#e0d24f","#9bd24f","#5fd24f","#49b6e0"];
+  const SICRIGHE = [
+    ["fused_part",           "Silicon",         "production part, fuses blown",   "pre-production sample"],
+    ["debug_lock_on",        "Debug",           "locked",                         "open"],
+    ["boot_integrity",       "Boot integrity",  "verified",                       "not verified"],
+    ["tsme_status",          "Memory",          "encrypted by firmware",          "in the clear, no performance cost"],
+    ["hsp_tpm_available",    "Firmware TPM",    "present",                        "absent"],
+    ["rom_armor_enforced",   "BIOS flash",      "guarded by the secure processor","not guarded"],
+    ["anti_rollback_status", "Older firmware",  "blocked",                        "allowed"],
+    ["rpmc_spirom_available","Rollback counter","present on the flash",           "absent"],
+  ];
+  let memGraf = null, memTess = [], memAttiva = false, memInCorso = false;
+
+  function memCostruisci() {
+    const serie = MEMCOL.map((c, i) => ({ l: "chip " + i, c: c, k: "chip" + i }));
+    memGraf = new Mini($("#mem-cv"), serie);
+    const box = $("#mem-tess");
+    box.innerHTML = "";
+    memTess = serie.map((s, i) => {
+      const b = document.createElement("button");
+      b.style.color = s.c;
+      b.textContent = s.l + "  –";
+      b.onclick = () => {
+        memGraf.visibili[i] = !memGraf.visibili[i];
+        b.classList.toggle("off", !memGraf.visibili[i]);
+        memGraf.draw();
+      };
+      box.appendChild(b);
+      return b;
+    });
+    $("#mem-btn").onclick = () => {
+      if (memInCorso) return;
+      memInCorso = true;
+      fetch("/api/gddr6", { method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ azione: memAttiva ? "ferma" : "avvia" }) })
+        .then(r => r.json())
+        .then(r => { if (!r.ok) $("#mem-nota").textContent = r.errore || T("x_fail", "failed"); })
+        .catch(() => {})
+        .then(() => { memInCorso = false; memGiro(); });
+    };
+  }
+
+  function mmss(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+
+  function memGiro() {
+    fetch("/api/gddr6").then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      $("#mem").style.display = "";
+      memAttiva = !!d.attiva;
+      const pausa = d.pausa || 0, motivo = d.perche_no;
+      const btn = $("#mem-btn");
+      btn.textContent = memAttiva ? T("mem_stop", "Stop reading") : T("mem_go", "Read the memory");
+      btn.disabled = !!motivo || (!memAttiva && pausa > 0);
+      if (motivo) $("#mem-nota").textContent = motivo;
+      else if (memAttiva && d.rimasti != null)
+        $("#mem-nota").textContent = T("mem_left", "closes itself in %s — it touches the SMU, do not leave it on")
+          .replace("%s", mmss(d.rimasti));
+      else if (pausa)
+        $("#mem-nota").textContent = T("mem_wait", "cooldown between readings: %s s left").replace("%s", pausa);
+      else
+        $("#mem-nota").textContent = T("mem_idle", "the reading is started when needed and lasts at most %s minutes")
+          .replace("%s", d.minuti_max);
+
+      const g = d.gradi || [];
+      if (memAttiva && g.length === 8) {
+        memGraf.push(g);
+        $("#mem-riass").textContent =
+          T("mem_avg", "average %s °C").replace("%s", d.media) + "\n" +
+          T("mem_hot", "hotspot %s °C (chip %s)").replace("%s", d.caldo).replace("%s", d.caldo_chip);
+      } else if (!memAttiva) {
+        $("#mem-riass").textContent = "";
+      }
+      memTess.forEach((b, i) => {
+        const dd = memGraf.data[i];
+        const v = (memAttiva && dd.length) ? Math.round(dd[dd.length - 1]) + " C" : "-";
+        b.textContent = "chip " + i + "  " + v;
+      });
+    }).catch(() => {});
+  }
+
+  function sicCarica() {
+    fetch("/api/sicurezza").then(r => r.ok ? r.json() : null).then(d => {
+      const st = d && d.stato;
+      if (!st) return;                       // nessun processore sicuro: niente riquadro
+      $("#sic").style.display = "";
+      $("#sic-tit").textContent = T("sic_tit", "Platform security state");
+      $("#sic-bl").textContent = st.bootloader ? "bootloader " + st.bootloader : "";
+      $("#sic-righe").innerHTML = SICRIGHE.filter(r => r[0] in st).map(r => {
+        const on = !!st[r[0]];
+        return `<span class="dot ${on ? "on" : "no"}">&#9679;</span>` +
+               `<span class="nome">${T("sic_" + r[0], r[1])}</span>` +
+               `<span class="senso">${T("sicv_" + r[0] + (on ? "_1" : "_0"), on ? r[2] : r[3])}</span>`;
+      }).join("");
+    }).catch(() => {});
+  }
 
   fetch("/api/status").then(r => r.json())
     .then(s => { $("#host").textContent = (s && s.host) || ""; })

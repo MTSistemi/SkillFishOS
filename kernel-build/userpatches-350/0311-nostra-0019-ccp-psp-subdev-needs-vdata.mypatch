@@ -1,0 +1,55 @@
+From: Mattia Tadini <info@mtsistemi.it>
+Date: Sat, 19 Sep 2026 16:07:32 +0200
+Subject: [PATCH 2/3] crypto: ccp - do not start PSP sub-devices without their
+ vdata
+
+psp_init() decides whether to bring up SEV and TEE from the hardware
+capability register alone:
+
+	if (!psp_check_tee_support(psp)) {
+		ret = tee_dev_init(psp);
+		if (ret)
+			return ret;
+	}
+
+tee_dev_init() then needs psp->vdata->tee, and fails with "tee: missing
+driver data" when the vdata does not carry it. That failure is fatal to
+psp_init(), so platform access, DBC and HSTI are lost along with it even
+though none of them depends on the TEE.
+
+Require both the hardware capability and the driver data before starting
+a sub-device, so a psp_vdata that deliberately omits SEV or TEE gets the
+rest of the PSP rather than nothing at all.
+
+Signed-off-by: Mattia Tadini <info@mtsistemi.it>
+---
+ drivers/crypto/ccp/psp-dev.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/crypto/ccp/psp-dev.c b/drivers/crypto/ccp/psp-dev.c
+index b14ce51..c9ab47c 100644
+--- a/drivers/crypto/ccp/psp-dev.c
++++ b/drivers/crypto/ccp/psp-dev.c
+@@ -198,13 +198,17 @@ static int psp_init(struct psp_device *psp)
+ {
+ 	int ret;
+ 
+-	if (!psp_check_sev_support(psp)) {
++	/*
++	 * The capability register describes the silicon and the vdata describes
++	 * what this driver was given to drive it with. Require both.
++	 */
++	if (psp->vdata->sev && !psp_check_sev_support(psp)) {
+ 		ret = sev_dev_init(psp);
+ 		if (ret)
+ 			return ret;
+ 	}
+ 
+-	if (!psp_check_tee_support(psp)) {
++	if (psp->vdata->tee && !psp_check_tee_support(psp)) {
+ 		ret = tee_dev_init(psp);
+ 		if (ret)
+ 			return ret;
+-- 
+2.55.0
+

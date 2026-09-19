@@ -1,0 +1,99 @@
+From: Mattia Tadini <info@mtsistemi.it>
+Date: Sat, 19 Sep 2026 16:07:32 +0200
+Subject: [PATCH 3/3] crypto: ccp - add support for the AMD BC-250 secure
+ processor
+
+The AMD BC-250 (Cyan Skillfish, a Zen 2 APU) carries an AMD Secure
+Processor at PCI 1022:143e which no entry in sp_pci_table[] matches, so
+the device is left unbound with its memory windows disabled.
+
+The register layout was read off the device rather than assumed. With the
+memory decode enabled and BAR 2 mapped read-only:
+
+  CCP version  0x00100 = 0xFFFFFFFF   no CCP engine behind this function
+  cmdresp      0x10544 = 0x80000000   pspv3/pspv4 mailbox, and it is live
+  bootloader   0x109EC = 0x001C0102
+  feature_reg  0x109FC = 0x00000002
+  inten        0x10690 = 0x00000001
+  pspv1 offsets            all zero   wrong layout
+  pspv5-v7 offsets   all 0xFFFFFFFF   wrong layout
+
+That is the pspv3/pspv4 layout. SEV is a server feature and is absent
+here, and while the capability register advertises TEE, the ring never
+comes up on this firmware:
+
+	ccp 0000:01:00.2: tee: ring init command timed out, disabling TEE support
+
+so the board gets a psp_vdata with platform access only. Platform access
+uses its own mailbox (pa_v1, C2PMSG_28..30) and is unaffected by the
+missing ring.
+
+With this the PSP initialises and answers:
+
+	ccp 0000:01:00.2: platform access enabled
+	ccp 0000:01:00.2: psp enabled
+	# cat /sys/bus/pci/devices/0000:01:00.2/bootloader_version
+	00.1c.01.02
+
+Dynamic boost control is kept in platform_features and probed. This
+firmware rejects the command, which the driver already handles without
+failing the probe:
+
+	ccp 0000:01:00.2: msg 0x65 failed with PSP error: 0x4
+	ccp 0000:01:00.2: dynamic boost control is unavailable
+
+Signed-off-by: Mattia Tadini <info@mtsistemi.it>
+---
+ drivers/crypto/ccp/sp-pci.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/crypto/ccp/sp-pci.c b/drivers/crypto/ccp/sp-pci.c
+index f79df33..cf26b81 100644
+--- a/drivers/crypto/ccp/sp-pci.c
++++ b/drivers/crypto/ccp/sp-pci.c
+@@ -477,6 +477,21 @@ static const struct psp_vdata pspv7 = {
+ 	.intsts_reg		= 0x10514,	/* P2CMSG_INTSTS */
+ };
+ 
++/*
++ * The BC-250 uses the pspv3 register layout but has no usable TEE: the
++ * capability register advertises one and PSP_CMD_TEE_RING_INIT never
++ * completes. Platform access has its own mailbox and is unaffected.
++ */
++static const struct psp_vdata pspv_bc250 = {
++	.platform_access	= &pa_v1,
++	.bootloader_info_reg	= 0x109ec,	/* C2PMSG_59 */
++	.feature_reg		= 0x109fc,	/* C2PMSG_63 */
++	.inten_reg		= 0x10690,	/* P2CMSG_INTEN */
++	.intsts_reg		= 0x10694,	/* P2CMSG_INTSTS */
++	.platform_features	= PLATFORM_FEATURE_DBC |
++				  PLATFORM_FEATURE_HSTI,
++};
++
+ #endif
+ 
+ static const struct sp_dev_vdata dev_vdata[] = {
+@@ -547,6 +562,12 @@ static const struct sp_dev_vdata dev_vdata[] = {
+ 		.bar = 2,
+ #ifdef CONFIG_CRYPTO_DEV_SP_PSP
+ 		.psp_vdata = &pspv7,
++#endif
++	},
++	{	/* 10 */
++		.bar = 2,
++#ifdef CONFIG_CRYPTO_DEV_SP_PSP
++		.psp_vdata = &pspv_bc250,
+ #endif
+ 	},
+ 
+@@ -560,6 +581,7 @@ static const struct pci_device_id sp_pci_table[] = {
+ 	{ PCI_VDEVICE(AMD, 0x14CA), .driver_data = (kernel_ulong_t)&dev_vdata[5] },
+ 	{ PCI_VDEVICE(AMD, 0x15C7), .driver_data = (kernel_ulong_t)&dev_vdata[6] },
+ 	{ PCI_VDEVICE(AMD, 0x1649), .driver_data = (kernel_ulong_t)&dev_vdata[6] },
++	{ PCI_VDEVICE(AMD, 0x143e), .driver_data = (kernel_ulong_t)&dev_vdata[10] },
+ 	{ PCI_VDEVICE(AMD, 0x1134), .driver_data = (kernel_ulong_t)&dev_vdata[7] },
+ 	{ PCI_VDEVICE(AMD, 0x17E0), .driver_data = (kernel_ulong_t)&dev_vdata[7] },
+ 	{ PCI_VDEVICE(AMD, 0x156E), .driver_data = (kernel_ulong_t)&dev_vdata[8] },
+-- 
+2.55.0
+

@@ -335,6 +335,93 @@ def interfacce_utente():
     return fuori
 
 
+
+# ---------- GDDR6 memory temperature, and the secure processor ----------------
+# The window in the app and this page read the same two things. Neither is
+# reinvented here: the page shows what the daemon publishes and acts through the
+# helper, exactly as the fan page does.
+#
+# ⚠️ THE READING IS A CAPPED SESSION, NOT A SENSOR. Polling the memory through
+# the SMU wedges it - measured 19/09/2026: 31 min at one second, 55 at three, and
+# only a reboot comes back from it. skillfish-gddr6-helper owns the ceiling and
+# the cooldown; this file must never start the collector by itself.
+GDDR6_HELPER = "/usr/local/bin/skillfish-gddr6-helper"
+GDDR6_SNAPSHOT = "/run/bc250-memory/telemetry"
+CCP_DRIVER = "/sys/bus/pci/drivers/ccp"
+SICUREZZA_CHIAVI = ["fused_part", "boot_integrity", "debug_lock_on", "tsme_status",
+                    "anti_rollback_status", "rpmc_production_enabled",
+                    "rpmc_spirom_available", "hsp_tpm_available", "rom_armor_enforced"]
+
+
+def gddr6_helper(azione, *extra):
+    """Run the helper. The daemon is root, so no pkexec is involved."""
+    try:
+        p = subprocess.run([GDDR6_HELPER, azione] + [str(x) for x in extra],
+                           capture_output=True, text=True, timeout=40)
+        return json.loads((p.stdout or "{}").strip().splitlines()[-1])
+    except Exception:
+        return {"ok": False, "errore": "helper non disponibile"}
+
+
+def gddr6_gradi():
+    """(status, [temperature per chip]) from the collector's snapshot."""
+    try:
+        with open(GDDR6_SNAPSHOT, encoding="utf-8", errors="replace") as fh:
+            righe = fh.read().splitlines()
+    except OSError:
+        return "assente", []
+    if len(righe) < 4 or righe[0] != "BC250_MEMORY_V1":
+        return "assente", []
+    if righe[2] != "ok":
+        return righe[2], []
+    gradi = [(int(w) & 0xFF) * 2 - 40 for w in righe[3].split() if w.isdigit()]
+    return ("ok", gradi) if len(gradi) == 8 else (righe[2], [])
+
+
+def gddr6_stato():
+    st = gddr6_helper("stato")
+    stato, gradi = gddr6_gradi()
+    fuori = {"attiva": bool(st.get("attiva")), "rimasti": st.get("rimasti"),
+             "pausa": st.get("pausa") or 0, "perche_no": st.get("perche_no"),
+             "minuti_max": st.get("minuti_max") or 10, "lettura": stato,
+             "gradi": gradi}
+    if gradi:
+        fuori["media"] = round(sum(gradi) / float(len(gradi)), 1)
+        fuori["caldo"] = max(gradi)
+        fuori["caldo_chip"] = gradi.index(max(gradi))
+    return fuori
+
+
+def psp_sicurezza():
+    """What the secure processor says about this board, or None where there is none.
+
+    The device is found through the driver rather than by bus address: these files
+    only exist with our ccp patches, and an address is not a promise.
+    """
+    try:
+        indirizzi = [n for n in os.listdir(CCP_DRIVER) if n.count(":") == 2]
+    except OSError:
+        return None
+    for indirizzo in sorted(indirizzi):
+        base = os.path.join(CCP_DRIVER, indirizzo)
+        fuori = {}
+        for chiave in SICUREZZA_CHIAVI:
+            try:
+                with open(os.path.join(base, chiave)) as fh:
+                    fuori[chiave] = fh.read().strip() == "1"
+            except OSError:
+                pass
+        if not fuori:
+            continue
+        try:
+            with open(os.path.join(base, "bootloader_version")) as fh:
+                fuori["bootloader"] = fh.read().strip() or None
+        except OSError:
+            fuori["bootloader"] = None
+        return fuori
+    return None
+
+
 def sysinfo():
     def sh(c):
         try:
@@ -3334,6 +3421,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("telemetry"):
                 return
             return self._sse_telemetry()
+        if path == "/api/gddr6":
+            if not self._guard("telemetry"):
+                return
+            return self._json(200, gddr6_stato())
+        if path == "/api/sicurezza":
+            if not self._guard("telemetry"):
+                return
+            return self._json(200, {"stato": psp_sicurezza()})
         if path == "/api/tuner":
             if not self._guard("tuner"):
                 return
@@ -3533,6 +3628,13 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self._body() or b"{}")
         except Exception:
             data = {}
+        if path == "/api/gddr6":
+            if not self._guard("telemetry"):
+                return
+            azione = data.get("azione")
+            if azione not in ("avvia", "ferma"):
+                return self._json(400, {"ok": False, "errore": "azione: avvia | ferma"})
+            return self._json(200, gddr6_helper(azione))
         if path == "/api/tuner/preset":
             if not self._guard("tuner"):
                 return

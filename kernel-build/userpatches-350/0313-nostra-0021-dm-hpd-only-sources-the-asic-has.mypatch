@@ -1,0 +1,80 @@
+From: Mattia Tadini <info@mtsistemi.it>
+Date: Sat, 19 Sep 2026 21:44:14 +0200
+Subject: [PATCH] drm/amd/display: only clear the hotplug sources the ASIC has
+
+amdgpu_dm_hpd_init() clears every hotplug source in the enum before
+enabling the ones it needs:
+
+	for (i = DC_IRQ_SOURCE_HPD1; i <= DC_IRQ_SOURCE_HPD6RX; i++)
+
+DC fills the unused slots of its interrupt table with dummy handlers
+that assert when touched, so on an ASIC with fewer than six HPD lines
+that sweep warns and taints the kernel. DCN 2.0.1 has two:
+mmHPD0_DC_HPD_INT_CONTROL and mmHPD1_DC_HPD_INT_CONTROL are the only
+hotplug registers in dcn_2_0_1_offset.h, against five in
+dcn_2_1_0_offset.h, and irq_service_dcn201.c defines hpd_int_entry(0)
+and (1) accordingly.
+
+On an AMD BC-250, which appears to be the only GPU using DCN 201, every
+boot produces this for sources 3 to 6:
+
+  [drm] *ERROR* dal_irq_service_dummy_ack: called for
+      non-implemented irq source, src_id=0, ext_id=0
+  [drm] dal_irq_service_set: src: 3, st: 0
+  WARNING: .../display/dc/irq/irq_service.c:129
+      at dal_irq_service_set.cold+0x2d/0x76 [amdgpu]
+   dal_irq_service_set+0x4c/0x100 [amdgpu]
+   amdgpu_dm_hpd_init.cold+0x15/0x12e [amdgpu]
+   dm_hw_init+0x4c/0x170 [amdgpu]
+   amdgpu_device_init.cold+0x1727/0x1ec0 [amdgpu]
+
+and the machine comes up tainted W, which makes every unrelated bug
+report from it harder to read.
+
+Walk the links this ASIC has instead of the whole enum, and skip a link
+with no hotplug line of its own, which is the same guard the enable loop
+further down already applies. A source owned by a real link is
+implemented by definition, so the dummy handlers are no longer reached.
+Parts with six HPD lines are unaffected.
+
+Signed-off-by: Mattia Tadini <info@mtsistemi.it>
+---
+ .../drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c | 22 ++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c
+index e49803a..b0ede5d 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c
+@@ -903,11 +903,23 @@ void amdgpu_dm_hpd_init(struct amdgpu_device *adev)
+ 	int i;
+ 	bool use_polling = false;
+ 
+-	/* First, clear all hpd and hpdrx interrupts */
+-	for (i = DC_IRQ_SOURCE_HPD1; i <= DC_IRQ_SOURCE_HPD6RX; i++) {
+-		if (!dc_interrupt_set(adev->dm.dc, i, false))
+-			drm_err(dev, "Failed to clear hpd(rx) source=%d on init\n",
+-				i);
++	/*
++	 * First, clear all hpd and hpdrx interrupts, over the links this ASIC
++	 * has rather than over the whole enum: the unused slots of the DC
++	 * interrupt table hold dummy handlers that assert when touched.
++	 */
++	for (i = 0; i < adev->dm.dc->link_count; i++) {
++		const struct dc_link *link = adev->dm.dc->links[i];
++
++		if (link->irq_source_hpd != DC_IRQ_SOURCE_INVALID &&
++		    !dc_interrupt_set(adev->dm.dc, link->irq_source_hpd, false))
++			drm_err(dev, "Failed to clear hpd source=%d on init\n",
++				link->irq_source_hpd);
++
++		if (link->irq_source_hpd_rx != DC_IRQ_SOURCE_INVALID &&
++		    !dc_interrupt_set(adev->dm.dc, link->irq_source_hpd_rx, false))
++			drm_err(dev, "Failed to clear hpdrx source=%d on init\n",
++				link->irq_source_hpd_rx);
+ 	}
+ 
+ 	drm_connector_list_iter_begin(dev, &iter);
+-- 
+2.55.0
+
