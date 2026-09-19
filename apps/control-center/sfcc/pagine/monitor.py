@@ -18,7 +18,7 @@ import re
 import subprocess
 import time
 
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPen
 from PyQt6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
                              QMessageBox, QPushButton, QScrollArea, QSlider, QVBoxLayout,
@@ -423,22 +423,114 @@ class TesseraChip(QFrame):
 
 
 class DisegnoScheda(QWidget):
-    """The BC-250 seen from above, with each memory chip in its own heat colour.
+    """The BC-250 seen from above, drawn from the board's own CAD.
 
-    ⚠️ THE ARRANGEMENT IS SCHEMATIC, NOT THE SILK SCREEN. Nobody has published
-    which chip index sits where on this board: BC250-Telemetry, whose dashboard
-    this drawing follows, does not document it either, and its own board picture
-    is decoration. Four chips above the die and four below is the usual GDDR6
-    layout and it is what is drawn here, but until the index-to-position mapping
-    is verified on a real board this tells you WHICH chip is hot, not WHERE.
-    Saying that in the help text costs nothing; implying a heat map we have not
-    earned would be a lie drawn in colour.
+    Every position below is measured, not sketched. They come from
+    ASRock_AMD_BC-250_ISL_X5R_r1.00.cad, the GenCAD 1.4 boardview of the real
+    board published on bc-250.com, whose 2163 components are placed on a PCB of
+    304.66 x 139.98 mm. Millimetres here are that file's millimetres.
+
+    ⚠️ GenCAD puts its origin bottom left with y growing upwards and Qt grows y
+    downwards, so every y below is already 139.98 - y. Using the raw value would
+    draw a mirrored board: the same picture of a part that does not exist.
+
+    ⚠️ U27, U33, U37 and U43 sit at 45 degrees. The CAD gives that away by their
+    pin field coming out square at 15.9 mm while the four straight ones measure
+    9.8 x 12.7, and (9.8 + 12.7) / sqrt(2) is 15.9 exactly. They are drawn turned
+    because on this board they are turned.
+
+    ⚠️ WHICH SENSOR IS WHICH CHIP IS STILL UNKNOWN. The eight positions are real;
+    the order the SMU reports them in is not documented anywhere, here or
+    upstream. The chip numbered 0 in this drawing is the first sensor the SMU
+    answers with, and nothing yet proves it is the part silkscreened U27. Until
+    someone heats one chip and watches which number moves, this says WHICH chip
+    is hot and only guesses where. The help text says so.
     """
+
+    LARGO, ALTO = 304.66, 139.98
+
+    # the eight GDDR6, in the order the SMU reports them (see the caveat above)
+    MEMORIA = [
+        (135.24, 90.33, 8.78, 11.25, True),    # U27
+        (159.89, 105.83, 9.75, 12.75, False),  # U29
+        (184.59, 105.83, 9.75, 12.75, False),  # U31
+        (209.24, 90.33, 8.78, 11.25, True),    # U33
+        (135.24, 29.33, 8.78, 11.25, True),    # U37
+        (159.89, 13.83, 9.75, 12.75, False),   # U39
+        (184.59, 13.83, 9.75, 12.75, False),   # U41
+        (209.24, 29.33, 8.78, 11.25, True),    # U43
+    ]
+
+    APU = (172.20, 59.80, 42.4, 42.4)          # U25, BGA2197
+    FCH = (60.50, 82.20, 23.1, 23.1)           # SU1, 656 balls
+    SIO = (96.50, 104.20, 15.7, 15.7)          # UIO1
+
+    BUCHI = [(7.5, 11.1, 2.5), (7.5, 111.1, 2.5),
+             (298.8, 17.3, 2.9), (298.8, 27.3, 2.9)]
+
+    # connectors, with the ones that open onto the outside world marked dark
+    CONNETTORI = [
+        (7.8, 56.1, 10.3, 16.5, True, "DP"),       # J4002, DisplayPort
+        (12.0, 96.1, 13.5, 15.6, True, "LAN"),     # LAN1
+        (12.0, 75.1, 6.7, 13.1, True, ""),         # USB_3_4
+        (11.5, 37.1, 5.7, 13.1, True, ""),         # USB1
+        (9.4, 21.1, 8.1, 8.0, False, ""),          # PANEL1
+        (31.2, 8.1, 20.7, 7.5, False, "M.2"),      # M2_1
+        (233.8, 130.6, 12.6, 11.5, True, ""),      # J1000, 8 pin PCIe
+        (255.8, 131.0, 9.0, 11.5, True, ""),       # J2000, Micro-Fit
+        (275.8, 131.0, 9.0, 11.5, True, ""),       # J2001, Micro-Fit
+    ]
+
+    # the VRM that feeds the APU: six power stages in a column, plus two strays
+    STADI = [(257.0, y) for y in (33.4, 43.1, 52.8, 62.6, 72.4, 82.2)] + \
+            [(288.2, 69.5), (273.2, 99.8), (246.6, 13.3)]
+
+    # small parts, so the board reads as a board and not as a diagram
+    MINUTERIA = [
+        (11.5, 75.1, 5.7, 13.1), (54.7, 6.2, 11.4, 4.1), (299.1, 128.6, 2.5, 17.8),
+        (61.2, 32.7, 5.8, 5.8), (24.0, 114.8, 16.0, 2.0), (111.1, 106.7, 6.7, 4.6),
+        (50.1, 103.8, 6.7, 4.6), (44.2, 112.1, 8.0, 3.8), (38.3, 51.9, 6.3, 4.6),
+        (36.1, 24.0, 8.7, 3.2), (114.5, 114.0, 7.3, 3.8), (94.8, 86.0, 5.7, 3.8),
+        (299.0, 46.4, 3.8, 5.7), (24.9, 89.7, 3.8, 5.7), (37.1, 41.0, 5.7, 3.8),
+        (36.3, 80.0, 5.7, 3.8), (60.3, 114.1, 7.6, 2.5), (298.6, 83.2, 3.6, 5.1),
+        (71.6, 99.6, 5.7, 3.8), (89.4, 60.3, 5.8, 5.8), (31.6, 101.2, 3.8, 3.8),
+        (105.0, 60.0, 4.2, 4.2), (120.0, 72.0, 3.4, 3.4), (120.0, 98.0, 3.4, 3.4),
+        (228.0, 60.0, 4.6, 3.2), (228.0, 80.0, 4.6, 3.2), (240.0, 95.0, 3.6, 3.6),
+        (150.0, 5.5, 3.0, 3.0), (200.0, 5.5, 3.0, 3.0), (170.0, 134.0, 3.0, 3.0),
+    ]
+
+    PCB = "#17241a"
+    PCB_BORDO = "#3a5740"
+    SERIGRAFIA = "#6d8f74"
+    RAME = "#1a2a1d"
+    METALLO = "#4a5158"
+
+    # past this the board eats the page: it is 2.18 times wider than it is tall,
+    # so a card 800 wide would otherwise want 370 pixels of height for it alone.
+    ALTEZZA_MAX = 300
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.gradi = []
-        self.setMinimumHeight(132)
+        self.setMinimumHeight(150)
+
+    def heightForWidth(self, larghezza):
+        return min(self.ALTEZZA_MAX,
+                   int(max(0, larghezza - 8) * self.ALTO / self.LARGO) + 8)
+
+    def resizeEvent(self, e):
+        """Keep the widget the shape of the board it draws.
+
+        ⚠️ A QVBoxLayout only honours heightForWidth for a widget whose size
+        policy declares it, and setting that policy here made the card lay out at
+        the minimum height anyway: the board came out a third of the width it had
+        room for. Taking the height itself, from the width we were actually
+        given, is one line and always works.
+        """
+        super().resizeEvent(e)
+        voluta = self.heightForWidth(self.width())
+        if voluta > 0 and self.height() != voluta:
+            self.setFixedHeight(voluta)
 
     def aggiorna(self, gradi):
         self.gradi = gradi or []
@@ -446,77 +538,137 @@ class DisegnoScheda(QWidget):
 
     def paintEvent(self, _e):
         w, h = self.width(), self.height()
-        if w <= 8 or h <= 8:
+        if w <= 24 or h <= 16:
             return
         p = QPainter()
         if not p.begin(self):
             return
         try:
             p.setRenderHint(QPainter.RenderHint.Antialiasing)
-            # the board keeps the real proportions of a BC-250: 305 x 140 mm
-            larghezza = min(w - 8, int((h - 8) * 305.0 / 140.0))
-            altezza = int(larghezza * 140.0 / 305.0)
-            x0 = (w - larghezza) // 2
-            y0 = (h - altezza) // 2
+            k = min((w - 8) / self.LARGO, (h - 8) / self.ALTO)
+            x0 = (w - self.LARGO * k) / 2.0
+            y0 = (h - self.ALTO * k) / 2.0
 
-            p.setPen(QPen(QColor(stile.SCHEDA_BORDO), 1))
-            p.setBrush(QColor("#1b2536"))
-            p.drawRoundedRect(x0, y0, larghezza, altezza, 7, 7)
+            def rett(mx, my, mw, mh):
+                """A part's box, from its centre in millimetres to pixels."""
+                return QRectF(x0 + (mx - mw / 2.0) * k, y0 + (my - mh / 2.0) * k,
+                              mw * k, mh * k)
 
-            # PCIe edge, bottom left
-            p.setBrush(QColor("#2d3b52"))
-            p.setPen(Qt.PenStyle.NoPen)
-            p.drawRect(int(x0 + larghezza * 0.06), int(y0 + altezza * 0.86),
-                       int(larghezza * 0.26), int(altezza * 0.14))
+            def penna(colore, spessore=1.0):
+                q = QPen(QColor(colore), spessore)
+                q.setCosmetic(True)
+                return q
 
-            # blower, right hand side
-            cf = (x0 + larghezza * 0.80, y0 + altezza * 0.50)
-            rf = altezza * 0.36
-            p.setPen(QPen(QColor("#3c4a63"), 1))
-            p.setBrush(QColor("#232f42"))
-            p.drawEllipse(int(cf[0] - rf), int(cf[1] - rf), int(rf * 2), int(rf * 2))
-            p.setPen(QPen(QColor("#4a5a76"), 1))
-            for i in range(9):
-                a = math.radians(i * 40)
-                p.drawLine(int(cf[0] + math.cos(a) * rf * 0.30),
-                           int(cf[1] + math.sin(a) * rf * 0.30),
-                           int(cf[0] + math.cos(a + 0.7) * rf * 0.92),
-                           int(cf[1] + math.sin(a + 0.7) * rf * 0.92))
-
-            # the APU, and the eight chips in two rows around it
-            dw, dh = larghezza * 0.15, altezza * 0.28
-            dx, dy = x0 + larghezza * 0.40, y0 + altezza * 0.36
-            p.setPen(QPen(QColor("#4a5a76"), 1))
-            p.setBrush(QColor("#2a3548"))
-            p.drawRoundedRect(int(dx), int(dy), int(dw), int(dh), 3, 3)
-            f = QFont()
-            f.setPointSize(7)
-            f.setBold(True)
-            p.setFont(f)
-            p.setPen(QColor(stile.TESTO_2))
-            p.drawText(int(dx), int(dy), int(dw), int(dh),
-                       Qt.AlignmentFlag.AlignCenter, "APU")
-
-            cw, ch = larghezza * 0.088, altezza * 0.15
-            for i in range(GDDR6_CHIP):
-                riga, colonna = divmod(i, 4)
-                cx = x0 + larghezza * (0.26 + colonna * 0.115)
-                cy = y0 + altezza * (0.16 if riga == 0 else 0.70)
-                gradi = self.gradi[i] if i < len(self.gradi) else None
-                col = colore_temp(gradi)
-                p.setPen(QPen(col, 1))
-                riempi = QColor(col)
-                riempi.setAlpha(70 if gradi is not None else 25)
-                p.setBrush(riempi)
-                p.drawRoundedRect(int(cx), int(cy), int(cw), int(ch), 2, 2)
-                p.setPen(QColor(stile.TESTO) if gradi is not None else QColor(stile.TESTO_2))
-                p.drawText(int(cx), int(cy), int(cw), int(ch),
-                           Qt.AlignmentFlag.AlignCenter, str(i))
+            self._pcb(p, rett, penna, k, x0, y0)
+            self._minuteria(p, rett, penna, k)
+            self._chip_grossi(p, rett, penna, k)
+            self._memoria(p, rett, penna, k)
         except Exception:
             pass
         finally:
             if p.isActive():
                 p.end()
+
+    # ------------------------------------------------------------------ pieces
+
+    def _pcb(self, p, rett, penna, k, x0, y0):
+        p.setPen(penna(self.PCB_BORDO, 1.4))
+        p.setBrush(QColor(self.PCB))
+        p.drawRoundedRect(QRectF(x0, y0, self.LARGO * k, self.ALTO * k),
+                          2.5 * k, 2.5 * k)
+
+        # the ground pour under the memory and the APU, barely a shade lighter
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(self.RAME))
+        p.drawRoundedRect(rett(172.0, 60.0, 112.0, 112.0), 10 * k, 10 * k)
+
+        # the silkscreen name, where the board has room for it
+        f = QFont()
+        f.setPointSizeF(max(4.5, 2.8 * k))
+        f.setBold(True)
+        p.setFont(f)
+        p.setPen(QColor(self.SERIGRAFIA))
+        p.drawText(rett(250.0, 110.0, 40.0, 8.0),
+                   Qt.AlignmentFlag.AlignCenter, "BC-250")
+
+        p.setPen(penna(self.PCB_BORDO, 1.0))
+        p.setBrush(QColor("#0d140f"))
+        for mx, my, r in self.BUCHI:
+            p.drawEllipse(rett(mx, my, r * 2, r * 2))
+
+        for mx, my, mw, mh, fuori, etichetta in self.CONNETTORI:
+            p.setPen(penna(self.METALLO, 1.0))
+            p.setBrush(QColor("#0a0d0b") if fuori else QColor("#25332a"))
+            p.drawRoundedRect(rett(mx, my, mw, mh), 1.0 * k, 1.0 * k)
+
+        # the M.2 card itself, lying over its slot towards the board centre
+        p.setPen(penna(self.PCB_BORDO, 1.0))
+        p.setBrush(QColor("#1b2b20"))
+        p.drawRoundedRect(rett(53.0, 8.1, 60.0, 11.0), 0.8 * k, 0.8 * k)
+
+        # power stages
+        p.setPen(penna(self.METALLO, 1.0))
+        p.setBrush(QColor("#232c25"))
+        for mx, my in self.STADI:
+            p.drawRoundedRect(rett(mx, my, 4.7, 4.7), 0.6 * k, 0.6 * k)
+
+    def _minuteria(self, p, rett, penna, k):
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor("#25352a"))
+        for mx, my, mw, mh in self.MINUTERIA:
+            p.drawRect(rett(mx, my, mw, mh))
+
+    def _chip_grossi(self, p, rett, penna, k):
+        for (mx, my, mw, mh), corpo in ((self.APU, "#2c3239"),
+                                        (self.FCH, "#242c26"),
+                                        (self.SIO, "#242c26")):
+            p.setPen(penna("#586a5d", 1.0))
+            p.setBrush(QColor(corpo))
+            p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
+
+        # the APU's metal lid, and its name
+        mx, my, mw, mh = self.APU
+        p.setPen(penna("#6d7883", 1.0))
+        p.setBrush(QColor("#454d57"))
+        p.drawRoundedRect(rett(mx, my, mw * 0.72, mh * 0.72), 0.6 * k, 0.6 * k)
+        f = QFont()
+        f.setPointSizeF(max(5.5, 3.4 * k))
+        f.setBold(True)
+        p.setFont(f)
+        p.setPen(QColor("#c8d2c9"))
+        p.drawText(rett(mx, my, mw, mh), Qt.AlignmentFlag.AlignCenter, "APU")
+
+        f.setPointSizeF(max(4.5, 2.4 * k))
+        f.setBold(False)
+        p.setFont(f)
+        p.setPen(QColor(self.SERIGRAFIA))
+        for mx, my, mw, mh, _fuori, etichetta in self.CONNETTORI:
+            if etichetta:
+                p.drawText(rett(mx, my, max(mw, 16.0), mh),
+                           Qt.AlignmentFlag.AlignCenter, etichetta)
+
+    def _memoria(self, p, rett, penna, k):
+        f = QFont()
+        f.setPointSizeF(max(5.0, 3.0 * k))
+        f.setBold(True)
+        for i, (mx, my, mw, mh, girato) in enumerate(self.MEMORIA):
+            gradi = self.gradi[i] if i < len(self.gradi) else None
+            col = colore_temp(gradi)
+            riempi = QColor(col)
+            riempi.setAlpha(150 if gradi is not None else 40)
+            p.save()
+            p.translate(rett(mx, my, 0, 0).center())
+            if girato:
+                p.rotate(45)
+            corpo = QRectF(-mw * k / 2.0, -mh * k / 2.0, mw * k, mh * k)
+            p.setPen(penna(col.name(), 1.4))
+            p.setBrush(riempi)
+            p.drawRoundedRect(corpo, 0.7 * k, 0.7 * k)
+            p.restore()
+            # the number stays upright even where the chip is turned
+            p.setFont(f)
+            p.setPen(QColor(stile.TESTO if gradi is not None else stile.TESTO_2))
+            p.drawText(rett(mx, my, mw, mh), Qt.AlignmentFlag.AlignCenter, str(i))
 
 
 class SchedaGddr6(stile.Scheda):
