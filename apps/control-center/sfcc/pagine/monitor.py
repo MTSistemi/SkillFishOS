@@ -11,14 +11,18 @@ no root, nothing to install.
 """
 import csv
 import datetime
+import json
+import math
 import os
 import re
+import subprocess
 import time
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPen
 from PyQt6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
-                             QMessageBox, QPushButton, QScrollArea, QSlider, QWidget)
+                             QMessageBox, QPushButton, QScrollArea, QSlider, QVBoxLayout,
+                             QWidget)
 
 from .. import stile
 from ..comune import L, battito, hwmon_valore, leggi_json, VENTOLA_STATO
@@ -293,6 +297,333 @@ class Campionatore(QThread):
                 t += 0.05
 
 
+# ---- GDDR6 memory temperature ------------------------------------------------
+# Eight JEDEC sensors, one inside each memory chip, reached through the SMU.
+#
+# ⚠️ IT IS A CAPPED SESSION AND NOT A SENSOR. Polling those sensors wedges the
+# SMU, which is the chip the V/F governor talks to several times a second:
+# measured 31 min 39 s at one second and 55 min 15 s at three, and only a reboot
+# comes back from it. How often it is patched counts separately from how long it
+# runs - three sessions inside four minutes ended with "queue 3 msg 0x05 rejected
+# (status 0xFF)". skillfish-gddr6-helper owns the ten minute ceiling and the
+# sixty second cooldown; this page only asks it to start and stop.
+#
+# Reading needs nothing: the collector publishes its snapshot world-readable, so
+# the page never asks for a password to SHOW anything. Only the button goes
+# through the privileged helper, which is the rule the fan page already follows.
+GDDR6_HELPER = "/usr/local/bin/skillfish-gddr6-helper"
+GDDR6_SNAPSHOT = "/run/bc250-memory/telemetry"
+GDDR6_CHIP = 8
+
+
+def gddr6_disponibile():
+    """True only where the reading can exist, so the card is absent elsewhere."""
+    if not os.path.exists(GDDR6_HELPER):
+        return False
+    try:
+        with open("/sys/class/dmi/id/product_name") as fh:
+            return "BC-250" in fh.read()
+    except OSError:
+        return False
+
+
+def gddr6_gradi():
+    """(status, [temperature per chip]) from the collector's snapshot.
+
+    Five lines: marker, boot time, status, eight raw words, error. Degrees come
+    out of the JEDEC code in the low byte: code * 2 - 40.
+    """
+    try:
+        with open(GDDR6_SNAPSHOT, encoding="utf-8", errors="replace") as fh:
+            righe = fh.read().splitlines()
+    except OSError:
+        return "assente", []
+    if len(righe) < 4 or righe[0] != "BC250_MEMORY_V1":
+        return "assente", []
+    if righe[2] != "ok":
+        return righe[2], []
+    gradi = [(int(w) & 0xFF) * 2 - 40 for w in righe[3].split() if w.isdigit()]
+    return ("ok", gradi) if len(gradi) == GDDR6_CHIP else (righe[2], [])
+
+
+def gddr6_stato():
+    """The helper's own account of the session. No privileges: it is a read."""
+    try:
+        p = subprocess.run([GDDR6_HELPER, "stato"], capture_output=True,
+                           text=True, timeout=25)
+        return json.loads((p.stdout or "{}").strip().splitlines()[-1])
+    except Exception:
+        return {}
+
+
+def colore_temp(c):
+    """Cool blue to ember, over the range these chips actually live in.
+
+    25 to 85 °C and not 0 to 100: idle sits near 44 and a loaded board near 50,
+    so a scale starting at zero would paint every honest reading the same shade
+    and the card would tell nobody anything.
+    """
+    if c is None:
+        return QColor(stile.GRIGLIA)
+    fermate = [(25, "#5a8fd8"), (40, "#7fd4ff"), (52, "#8fbf6a"),
+               (64, stile.OTTONE), (75, stile.ARANCIO), (85, stile.ROSSO)]
+    if c <= fermate[0][0]:
+        return QColor(fermate[0][1])
+    for (c0, col0), (c1, col1) in zip(fermate, fermate[1:]):
+        if c <= c1:
+            k = (c - c0) / float(c1 - c0)
+            a, b = QColor(col0), QColor(col1)
+            return QColor(*[int(x + (y - x) * k) for x, y in
+                            ((a.red(), b.red()), (a.green(), b.green()), (a.blue(), b.blue()))])
+    return QColor(fermate[-1][1])
+
+
+class TesseraChip(QFrame):
+    """One memory chip: its number, its temperature, a bar in its own colour."""
+
+    def __init__(self, indice, parent=None):
+        super().__init__(parent)
+        self.indice = indice
+        self.gradi = None
+        self.caldo = False
+        self.setObjectName("tessera")
+        self.setMinimumWidth(78)
+        v = QVBoxLayout(self)
+        v.setContentsMargins(8, 4, 8, 5)
+        v.setSpacing(1)
+        r = QHBoxLayout()
+        r.setSpacing(5)
+        self.nome = QLabel("%d" % indice)
+        self.valore = QLabel("—")
+        r.addWidget(self.nome)
+        r.addStretch(1)
+        r.addWidget(self.valore)
+        v.addLayout(r)
+        self.barra = QFrame()
+        self.barra.setFixedHeight(3)
+        v.addWidget(self.barra)
+        self.aggiorna(None, False)
+
+    def aggiorna(self, gradi, caldo):
+        self.gradi, self.caldo = gradi, caldo
+        col = colore_temp(gradi)
+        self.nome.setText("%d" % self.indice)
+        self.nome.setStyleSheet("font-size:10px;color:%s;border:none;" % stile.TESTO_2)
+        self.valore.setText("—" if gradi is None else "%d °C" % gradi)
+        self.valore.setStyleSheet("font-size:14px;font-weight:bold;border:none;color:%s;"
+                                  % (col.name() if gradi is not None else stile.TESTO_2))
+        # The bar is the whole legend: no colour key anywhere, because the number
+        # and its colour sit in the same tile.
+        self.barra.setStyleSheet("background:%s;border:none;border-radius:2px;"
+                                 % (col.name() if gradi is not None else stile.GRIGLIA))
+        self.setStyleSheet(
+            "QFrame#tessera{border:1px solid %s;border-radius:6px;background:%s;}"
+            % (col.name() if caldo else stile.SCHEDA_BORDO,
+               stile.SCHEDA_ALTA if caldo else stile.SCHEDA))
+
+
+class DisegnoScheda(QWidget):
+    """The BC-250 seen from above, with each memory chip in its own heat colour.
+
+    ⚠️ THE ARRANGEMENT IS SCHEMATIC, NOT THE SILK SCREEN. Nobody has published
+    which chip index sits where on this board: BC250-Telemetry, whose dashboard
+    this drawing follows, does not document it either, and its own board picture
+    is decoration. Four chips above the die and four below is the usual GDDR6
+    layout and it is what is drawn here, but until the index-to-position mapping
+    is verified on a real board this tells you WHICH chip is hot, not WHERE.
+    Saying that in the help text costs nothing; implying a heat map we have not
+    earned would be a lie drawn in colour.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.gradi = []
+        self.setMinimumHeight(132)
+
+    def aggiorna(self, gradi):
+        self.gradi = gradi or []
+        self.update()
+
+    def paintEvent(self, _e):
+        w, h = self.width(), self.height()
+        if w <= 8 or h <= 8:
+            return
+        p = QPainter()
+        if not p.begin(self):
+            return
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            # the board keeps the real proportions of a BC-250: 305 x 140 mm
+            larghezza = min(w - 8, int((h - 8) * 305.0 / 140.0))
+            altezza = int(larghezza * 140.0 / 305.0)
+            x0 = (w - larghezza) // 2
+            y0 = (h - altezza) // 2
+
+            p.setPen(QPen(QColor(stile.SCHEDA_BORDO), 1))
+            p.setBrush(QColor("#1b2536"))
+            p.drawRoundedRect(x0, y0, larghezza, altezza, 7, 7)
+
+            # PCIe edge, bottom left
+            p.setBrush(QColor("#2d3b52"))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawRect(int(x0 + larghezza * 0.06), int(y0 + altezza * 0.86),
+                       int(larghezza * 0.26), int(altezza * 0.14))
+
+            # blower, right hand side
+            cf = (x0 + larghezza * 0.80, y0 + altezza * 0.50)
+            rf = altezza * 0.36
+            p.setPen(QPen(QColor("#3c4a63"), 1))
+            p.setBrush(QColor("#232f42"))
+            p.drawEllipse(int(cf[0] - rf), int(cf[1] - rf), int(rf * 2), int(rf * 2))
+            p.setPen(QPen(QColor("#4a5a76"), 1))
+            for i in range(9):
+                a = math.radians(i * 40)
+                p.drawLine(int(cf[0] + math.cos(a) * rf * 0.30),
+                           int(cf[1] + math.sin(a) * rf * 0.30),
+                           int(cf[0] + math.cos(a + 0.7) * rf * 0.92),
+                           int(cf[1] + math.sin(a + 0.7) * rf * 0.92))
+
+            # the APU, and the eight chips in two rows around it
+            dw, dh = larghezza * 0.15, altezza * 0.28
+            dx, dy = x0 + larghezza * 0.40, y0 + altezza * 0.36
+            p.setPen(QPen(QColor("#4a5a76"), 1))
+            p.setBrush(QColor("#2a3548"))
+            p.drawRoundedRect(int(dx), int(dy), int(dw), int(dh), 3, 3)
+            f = QFont()
+            f.setPointSize(7)
+            f.setBold(True)
+            p.setFont(f)
+            p.setPen(QColor(stile.TESTO_2))
+            p.drawText(int(dx), int(dy), int(dw), int(dh),
+                       Qt.AlignmentFlag.AlignCenter, "APU")
+
+            cw, ch = larghezza * 0.088, altezza * 0.15
+            for i in range(GDDR6_CHIP):
+                riga, colonna = divmod(i, 4)
+                cx = x0 + larghezza * (0.26 + colonna * 0.115)
+                cy = y0 + altezza * (0.16 if riga == 0 else 0.70)
+                gradi = self.gradi[i] if i < len(self.gradi) else None
+                col = colore_temp(gradi)
+                p.setPen(QPen(col, 1))
+                riempi = QColor(col)
+                riempi.setAlpha(70 if gradi is not None else 25)
+                p.setBrush(riempi)
+                p.drawRoundedRect(int(cx), int(cy), int(cw), int(ch), 2, 2)
+                p.setPen(QColor(stile.TESTO) if gradi is not None else QColor(stile.TESTO_2))
+                p.drawText(int(cx), int(cy), int(cw), int(ch),
+                           Qt.AlignmentFlag.AlignCenter, str(i))
+        except Exception:
+            pass
+        finally:
+            if p.isActive():
+                p.end()
+
+
+class SchedaGddr6(stile.Scheda):
+    """The memory card: the board, the two numbers that matter, the eight chips."""
+
+    def __init__(self, demone, parent=None):
+        super().__init__(L("GDDR6 · Memoria", "GDDR6 · Memory"), L(
+            "La temperatura la misurano otto sensori dentro i chip di memoria, e si "
+            "leggono passando dalla SMU. Per questo non è un sensore sempre acceso: "
+            "interrogarla a lungo la pianta, e la SMU è la stessa che regge frequenze "
+            "e tensioni. La lettura si accende quando serve, dura al massimo dieci "
+            "minuti e si chiude da sola. Il disegno della scheda è schematico: dice "
+            "QUALE chip è caldo, non dove si trova fisicamente.",
+            "Eight sensors inside the memory chips measure this, and they answer only "
+            "through the SMU. That is why it is not a sensor that stays on: polling it "
+            "for long wedges the SMU, which is also the chip that holds clocks and "
+            "voltages. The reading starts when needed, lasts ten minutes at most and "
+            "closes itself. The board drawing is schematic: it tells you WHICH chip is "
+            "hot, not where it sits."), parent)
+        self.demone = demone
+        self._attiva = False
+        self._in_corso = False
+
+        testa = QHBoxLayout()
+        testa.setSpacing(18)
+        self.n_caldo = stile.Numerone(L("Punto caldo", "Hotspot"), "°C")
+        self.n_media = stile.Numerone(L("Media", "Average"), "°C")
+        testa.addWidget(self.n_caldo)
+        testa.addWidget(self.n_media)
+        testa.addStretch(1)
+        self.badge = stile.Stato(L("spenta", "off"), "quieto")
+        testa.addWidget(self.badge)
+        self.aggiungi(testa)
+
+        self.disegno = DisegnoScheda()
+        self.aggiungi(self.disegno)
+
+        griglia = QGridLayout()
+        griglia.setSpacing(6)
+        self.tessere = []
+        for i in range(GDDR6_CHIP):
+            t = TesseraChip(i)
+            griglia.addWidget(t, i // 4, i % 4)
+            self.tessere.append(t)
+        self.aggiungi(griglia)
+
+        basso = QHBoxLayout()
+        self.b = QPushButton("")
+        self.b.clicked.connect(self._premuto)
+        basso.addWidget(self.b)
+        self.nota = QLabel("")
+        self.nota.setWordWrap(True)
+        self.nota.setStyleSheet("color:%s;font-size:11px;" % stile.TESTO_2)
+        basso.addWidget(self.nota, 1)
+        self.aggiungi(basso)
+        self.aggiorna()
+
+    def _premuto(self):
+        if self._in_corso:
+            return
+        self._in_corso = True
+        try:
+            r = self.demone.cmd(cmd="gddr6",
+                                azione="ferma" if self._attiva else "avvia") or {}
+            if not r.get("ok"):
+                self.nota.setText(str(r.get("errore") or L("non riuscito", "failed")))
+        finally:
+            self._in_corso = False
+        self.aggiorna()
+
+    def aggiorna(self):
+        st = gddr6_stato()
+        self._attiva = bool(st.get("attiva"))
+        rimasti, pausa = st.get("rimasti"), st.get("pausa") or 0
+        motivo = st.get("perche_no")
+
+        self.b.setText("■ " + L("Ferma la lettura", "Stop reading") if self._attiva
+                       else "◉ " + L("Leggi la memoria", "Read the memory"))
+        self.b.setEnabled(not motivo and (self._attiva or not pausa))
+        self.badge.setText(L("in lettura", "reading") if self._attiva else L("spenta", "off"))
+        self.badge.tono("bene" if self._attiva else "quieto")
+
+        if motivo:
+            self.nota.setText(str(motivo))
+        elif self._attiva and rimasti is not None:
+            self.nota.setText(L("si chiude da sola fra %s", "closes itself in %s")
+                              % ("%d:%02d" % (rimasti // 60, rimasti % 60)))
+        elif pausa:
+            self.nota.setText(L("pausa fra una lettura e l'altra: ancora %s s",
+                                "cooldown between readings: %s s left") % pausa)
+        else:
+            self.nota.setText(L("si accende quando serve, al massimo %s minuti",
+                                "started when needed, %s minutes at most")
+                              % int(st.get("minuti_max") or 10))
+
+        stato, gradi = gddr6_gradi()
+        if not (self._attiva and stato == "ok" and gradi):
+            gradi = []
+        caldo = max(gradi) if gradi else None
+        self.n_caldo.imposta(caldo, colore=colore_temp(caldo).name() if gradi else None)
+        self.n_media.imposta(round(sum(gradi) / float(len(gradi)), 1) if gradi else None)
+        self.disegno.aggiorna(gradi)
+        for i, t in enumerate(self.tessere):
+            v = gradi[i] if i < len(gradi) else None
+            t.aggiorna(v, bool(gradi) and v == caldo)
+
+
 class Pagina(PaginaBase):
     def __init__(self, finestra):
         super().__init__(finestra)
@@ -301,6 +632,7 @@ class Pagina(PaginaBase):
         self._rec = None
         self._rec_path = None
         self._vista = None          # (times, rows) when a recording is open
+        self.scheda_mem = None      # the GDDR6 card, only where there is one
         self._vista_path = None
 
     # ---- build -------------------------------------------------------------------
@@ -363,6 +695,13 @@ class Pagina(PaginaBase):
             gr = GraficoUnita(L(*titolo), unita, ser, lo, hi)
             gr.cursore_mosso.connect(self._cursore)
             self.grafici[chiave] = gr
+        if gddr6_disponibile():
+            self.scheda_mem = SchedaGddr6(self.demone)
+            # three seconds: the collector publishes no faster, and every tick
+            # of this timer costs a subprocess.
+            self._giro_mem = QTimer(self)
+            self._giro_mem.timeout.connect(self.scheda_mem.aggiorna)
+            self._giro_mem.start(3000)
         self.barre = BarreCore()
         self.colonne = 0
         self._disponi(2)
@@ -374,13 +713,19 @@ class Pagina(PaginaBase):
         if n == self.colonne:
             return
         grafici = [self.grafici[k] for k, *_r in GRAFICI]
-        for w in grafici + [self.barre]:
+        for w in grafici + [self.barre] + ([self.scheda_mem] if self.scheda_mem else []):
             self.g.removeWidget(w)
         for c in range(2):
             self.g.setColumnStretch(c, 0)
+        riga0 = 0
+        if self.scheda_mem is not None:
+            # first and full width: it is the only card here that is not a chart,
+            # and tucking it between two charts would read as one.
+            self.g.addWidget(self.scheda_mem, 0, 0, 1, n)
+            riga0 = 1
         for i, gr in enumerate(grafici):
-            self.g.addWidget(gr, i // n, i % n)
-        self.g.addWidget(self.barre, (len(grafici) + n - 1) // n, 0, 1, n)
+            self.g.addWidget(gr, riga0 + i // n, i % n)
+        self.g.addWidget(self.barre, riga0 + (len(grafici) + n - 1) // n, 0, 1, n)
         for c in range(n):
             self.g.setColumnStretch(c, 1)
         self.colonne = n

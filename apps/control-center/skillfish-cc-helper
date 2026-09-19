@@ -842,6 +842,27 @@ def manutenzione(argomenti):
         return {"ok": False, "err": str(e)}
 
 
+def gddr6(azione):
+    """Start or stop the capped GDDR6 reading, through its own helper.
+
+    ⚠️ THE CEILING AND THE COOLDOWN ARE NOT HERE. skillfish-gddr6-helper owns
+    both, because polling those sensors wedges the SMU - the chip the V/F
+    governor depends on - and a second place deciding how long a session may run
+    is a second place to get it wrong. This only forwards the two verbs.
+
+    `stato` is deliberately absent: it needs no privileges and the page reads it
+    on its own, so opening the Monitor never asks for a password.
+    """
+    if azione not in ("avvia", "ferma"):
+        return {"ok": False, "errore": "azione: avvia | ferma"}
+    try:
+        p = subprocess.run(["/usr/local/bin/skillfish-gddr6-helper", azione],
+                           capture_output=True, text=True, timeout=45)
+        return json.loads((p.stdout or "{}").strip().splitlines()[-1])
+    except Exception as errore:
+        return {"ok": False, "errore": str(errore)[:200]}
+
+
 def ventola(azione, dati):
     """The fan helper rebuilds the configuration field by field: we pass it on."""
     if azione not in ("scrivi", "etichette", "prova"):
@@ -1487,6 +1508,8 @@ def handle(req):
         return snapshot(req.get("args", []), int(req.get("attesa", 600)))
     if c == "manutenzione":
         return manutenzione(req.get("args", []))
+    if c == "gddr6":
+        return gddr6(req.get("azione"))
     if c == "ventola":
         return ventola(req.get("azione"), req.get("dati") or {})
     if c == "servizio":
