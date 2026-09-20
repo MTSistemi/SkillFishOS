@@ -18,6 +18,32 @@ hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$
 # carries the fan tacho, so pick by the node we actually need, not by first match.
 hw_with(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && [ -e "$h/$2" ] && { echo "$h"; return; }; done; }
 
+# --- la tabella metriche della SMU -------------------------------------------
+# ⚠️ `power1_average` NON E' LA POTENZA DELLA GPU: e' quella di TUTTO L'APU. Ce
+# lo dicono i numeri, misurati sulla .32 il 20/09/2026: power1_average 29,86 W
+# contro i 29,58 W del campo "socket" della tabella, mentre la GPU vera a riposo
+# sta a 4,06 W. Per anni il Monitor ha scritto "GPU" accanto a un numero sette
+# volte piu' grande.
+#
+# La tabella ha i tre consumi separati, e quali sono lo abbiamo misurato invece
+# di leggerlo in un'intestazione - caricando un core alla volta e guardando quale
+# campo si muoveva:
+#
+#   offset 40  tutto il pacchetto   (= power1_average)
+#   offset 44  i core della CPU     (0,15 W a riposo, 19,7 W con quattro thread,
+#                                    e combacia con la somma dei campi per core)
+#   offset 46  la GPU               (4,06 W, fermo mentre la GPU non fa niente,
+#                                    e uguale a quello che i regolatori danno a
+#                                    chi li sa leggere via PMBus)
+#
+# ⚠️ I valori sono milliwatt, e 65535 vuol dire "non lo dichiaro": il campo
+# average_cpu_power all'offset 42 e' sempre quello, e il core 0 non riporta mai
+# il suo consumo. Un 65535 non va mai stampato come 65 watt.
+MET=/sys/class/drm/card0/device/gpu_metrics
+met(){ [ -e "$MET" ] || return 1
+       v=$(dd if="$MET" bs=1 skip="$1" count=2 2>/dev/null | od -An -tu2 | tr -d ' ')
+       [ -n "$v" ] && [ "$v" != 65535 ] && echo "$v"; }
+
 # --- ripieghi generici -------------------------------------------------------
 # Il primo hwmon che espone il nodo chiesto, qualunque sia il chip. Serve alle
 # macchine che non hanno i chip della BC-250: un portatile Intel ha coretemp, un
@@ -107,9 +133,21 @@ get(){
     gpu_temp) v=$(cat "$GHW/temp1_input" 2>/dev/null)
               [ -z "$v" ] && v=$(primo "$(drm_any temp1_input)")
               [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000}' ;;
-    gpu_power) v=$(cat "$GHW/power1_average" 2>/dev/null)
-               [ -z "$v" ] && v=$(primo "$(drm_any power1_average)")
-               [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}' ;;
+    # La GPU per davvero. Fuori dalla BC-250 non c'e' nessuna tabella metriche e
+    # power1_average e' la potenza della scheda video: li' il ripiego e' giusto.
+    gpu_power) v=$(met 46)
+               if [ -n "$v" ]; then echo "$v" | awk '{printf "%.1f",$1/1000}'
+               else v=$(cat "$GHW/power1_average" 2>/dev/null)
+                    [ -z "$v" ] && v=$(primo "$(drm_any power1_average)")
+                    [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}'
+               fi ;;
+    cpu_power) v=$(met 44)
+               [ -n "$v" ] && echo "$v" | awk '{printf "%.1f",$1/1000}' ;;
+    apu_power) v=$(met 40)
+               if [ -n "$v" ]; then echo "$v" | awk '{printf "%.1f",$1/1000}'
+               else v=$(cat "$GHW/power1_average" 2>/dev/null)
+                    [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}'
+               fi ;;
     gpu_mv) v=$(cat "$GHW/in0_input" 2>/dev/null)
             [ -z "$v" ] && v=$(primo "$(drm_any in0_input)")
             [ -n "$v" ] && echo "$v" ;;
@@ -159,7 +197,7 @@ get(){
 }
 
 if [ "$1" = "all" ]; then
-  for k in cpu_temp gpu_temp cpu_mhz gpu_freq gpu_mv cpu_mv gpu_power fan fan_all fan_gpu vram vram_tot vram_mhz ram_mhz gpu_util cu kernel; do
+  for k in cpu_temp gpu_temp cpu_mhz gpu_freq gpu_mv cpu_mv gpu_power cpu_power apu_power fan fan_all fan_gpu vram vram_tot vram_mhz ram_mhz gpu_util cu kernel; do
     printf '%s %s\n' "$k" "$(get "$k")"
   done
   exit 0

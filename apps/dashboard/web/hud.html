@@ -214,8 +214,11 @@ function anteprima() {
     else if (k === "gpu") out.push(riga("GPU", (d.gpu_freq || "—") + "  " +
         (d.gpu_temp || "—") + "°C  " + (d.gpu_util || "0") + "%"));
     else if (k === "gpubar") out.push('<div class="barre">' + "▬".repeat(10) + "</div>");
+    // ⚠️ apu_power: sull'HUD serve il consumo di tutta la scheda. Da quando i
+    // due sono separati gpu_power e' la sola grafica, quattro watt invece di
+    // trenta.
     else if (k === "volt") out.push(riga("VDD", (d.gpu_mv || "—") + " mV   " +
-        (d.gpu_power || "—") + " W"));
+        (d.apu_power || "—") + " W"));
     else if (k === "vram") out.push(riga("VRAM", (d.vram || "—") + " / " + (d.vram_tot || "—")));
     else if (k === "ram") out.push(riga("RAM", d.ram || "—"));
     else if (k === "fan") out.push(riga("FAN", (d.fan || d.fan_all || "—")));

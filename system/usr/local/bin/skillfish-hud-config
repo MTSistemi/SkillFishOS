@@ -156,7 +156,7 @@ b_gpubar(){
 b_volt(){
   linea=""
   ce gpu_mv    && linea='${color2}VDDGFX ${color1}${execi 2 skillfish-hud-val gpu_mv} mV'
-  ce gpu_power && linea="${linea}"'${color2}   Power ${color1}${execi 2 skillfish-hud-val gpu_power} W'
+  ce apu_power && linea="${linea}"'${color2}   APU ${color1}${execi 2 skillfish-hud-val apu_power} W'
   [ -n "$linea" ] && printf '%s\n' "$linea"
 }
 
@@ -326,6 +326,6 @@ printf ']];\n'
 echo "scritta $OUT"
 echo "  ordine: $ORDINE"
 echo "  thread: $THREAD   righe di barre: $(( (THREAD + PER_RIGA - 1) / PER_RIGA ))"
-for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power vram vram_tot vram_mhz ram_mhz cu fan fan_all fan_gpu; do
+for k in cpu_temp gpu_freq gpu_temp gpu_mv gpu_power apu_power cpu_power vram vram_tot vram_mhz ram_mhz cu fan fan_all fan_gpu; do
   ce "$k" && echo "  presente: $k" || echo "  assente:  $k"
 done

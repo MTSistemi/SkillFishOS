@@ -269,8 +269,11 @@ class Anteprima(QWidget):
                 p = []
                 if d.get("gpu_mv"):
                     p.append(d["gpu_mv"] + " mV")
-                if d.get("gpu_power"):
-                    p.append("Power " + d["gpu_power"] + " W")
+                # ⚠️ apu_power, non gpu_power: sull'HUD serve il consumo di
+                # tutta la scheda, e da quando i due sono separati gpu_power e'
+                # la sola grafica - quattro watt invece di trenta.
+                if d.get("apu_power"):
+                    p.append("APU " + d["apu_power"] + " W")
                 if p:
                     # ⚠️ Con l'etichetta vuota questa riga partiva dalla colonna
                     # dei valori e sembrava rientrata rispetto a tutte le altre.

@@ -110,7 +110,9 @@ const TELEM = [
   { t: "t_temp", u: "°C", s: [{ k: "cpu_temp", l: "CPU", c: "#e8c878" }, { k: "gpu_temp", l: "GPU", c: "#e07b39" }] },
   { t: "t_load", u: "%", s: [{ k: "cpu_load", l: "CPU", c: "#5fd24f" }, { k: "gpu_util", l: "GPU", c: "#49b6e0" }] },
   { t: "t_freq", u: "MHz", s: [{ k: "cpu_mhz", l: "CPU", c: "#9bd24f" }, { k: "gpu_freq", l: "GPU", c: "#49b6e0" }] },
-  { t: "t_pow", u: "W", s: [{ k: "gpu_power", l: "GPU", c: "#e0d24f" }] },
+  { t: "t_pow", u: "W", s: [{ k: "apu_power", l: "APU", c: "#d8a849" },
+                            { k: "cpu_power", l: "CPU", c: "#9bd24f" },
+                            { k: "gpu_power", l: "GPU", c: "#49b6e0" }] },
   { t: "t_volt", u: "mV", s: [{ k: "gpu_mv", l: "GPU", c: "#c98be0" }, { k: "cpu_mv", l: "CPU", c: "#e8a878" }] },
   { t: "t_fan", u: "RPM", s: [{ k: "fan", l: "FAN", c: "#d8a849" }] },
 ];
