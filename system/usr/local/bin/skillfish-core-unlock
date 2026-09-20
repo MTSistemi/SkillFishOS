@@ -13,7 +13,7 @@
 #   - reboots ONLY after confirming the write took, so a failed write can never loop.
 #
 # Credit: register/primitive from github.com/rw-r-r-0644/bc250-core-unlock
-import os, struct, sys, time
+import fcntl, os, struct, sys, time
 
 MASK_REG = 0x5A870
 MSG_WRITE = 0x98
@@ -66,14 +66,27 @@ if ("--adesso" not in sys.argv and "--maschera" not in sys.argv
 fd = os.open(CFG, os.O_RDWR)
 
 
+# ⚠️ An SMN access is TWO writes to PCI config space - the address into 0xB8, the
+# value into 0xBC - and anything else using that window can land between them,
+# so a command meant for one register arrives at another. flock on the config
+# file itself is the lock the other BC-250 tools already use, and the file is
+# open in every one of them, so there is no lock path to agree on first.
 def rd(reg):
-    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-    return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+        return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 def wr(reg, val):
-    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-    os.pwrite(fd, struct.pack("<I", val), 0xBC)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+        os.pwrite(fd, struct.pack("<I", val), 0xBC)
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 def send(msg, arg, budget=5.0):

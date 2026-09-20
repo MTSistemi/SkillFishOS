@@ -11,8 +11,23 @@
 # and every sample is sanity-checked (50..2500 MHz) — a rare collision just keeps the
 # previous value, it never publishes garbage and never blocks the governor.
 #
+# ⚠️ THAT IS TRUE OF THE VALUE WE READ, AND NOT OF THE CARD. An SMN access is TWO
+# writes to PCI config space — the address into 0xB8, the value into 0xBC — and
+# any other program using that window can land between them. Then our address
+# takes somebody else's value, or theirs takes ours, and the SMU is handed a
+# command nobody sent. On 20/09/2026 that turned out to be how the GDDR6 memory
+# collector, which drives the same window, ended up hanging the SMU outright:
+# amdgpu then loses its metrics table, the GPU sensors go away, and only a reboot
+# brings them back.
+#
+# So every pair is taken under flock on the config file itself. The file is the
+# lock: every tool that reaches the SMU has it open already, ours and anybody
+# else's, so there is no lock path to agree on first. bc250_smu_oc upstream has
+# the same flock but takes it around each single config access rather than around
+# the pair, which leaves exactly the gap it was meant to close.
+#
 # Register/primitive from bc250_smu (queue-0 mailbox) + rw-r-r-0644/bc250-core-unlock.
-import os, struct, time, sys
+import fcntl, os, struct, time, sys
 
 CFG = "/sys/bus/pci/devices/0000:00:00.0/config"
 Q0_CMD, Q0_RSP, Q0_ARG = 0x03B10A08, 0x03B10A68, 0x03B10A48
@@ -29,13 +44,21 @@ except FileNotFoundError:
 
 
 def rd(reg):
-    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-    return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+        return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 def wr(reg, val):
-    os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-    os.pwrite(fd, struct.pack("<I", val), 0xBC)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
+        os.pwrite(fd, struct.pack("<I", val), 0xBC)
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 def msg(m, arg=0, budget=0.3):

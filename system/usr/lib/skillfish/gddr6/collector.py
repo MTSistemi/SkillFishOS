@@ -12,6 +12,7 @@ import threading
 import time
 
 from bc250_smu import Bc250Smu, SmuError
+from bc250_smu.errors import SmuRejected
 from patcher import check_platform, ensure_patch, load_payload
 
 RUNTIME_DIR = Path('/run/bc250-memory')
@@ -56,7 +57,28 @@ def unavailable(status, error=None):
 
 def sample(smu):
     started = time.clock_gettime(time.CLOCK_BOOTTIME)
-    raw = [smu.read_chip(chip) for chip in range(8)]
+    raw = []
+    for chip in range(8):
+        try:
+            raw.append(smu.read_chip(chip))
+        except SmuRejected as error:
+            # ⚠️ A REFUSAL IS ONE MISSING READING. IT IS NOT A DEAD QUEUE, AND
+            # TELLING THE TWO APART IS WHY OUR PAYLOAD EXISTS. The handler
+            # answers SMU_RETURN_FAILED when the memory controller does not come
+            # back inside its count, or when the chip index is not one of the
+            # eight; the exchange completed, the mailbox is still in step, and
+            # the next message goes out normally.
+            #
+            # A timeout is a different animal and is still fatal on purpose:
+            # nothing answered, so no later answer can be trusted to belong to
+            # its own question. That exception carries on up and stops the run.
+            #
+            # We give up the whole round rather than publish seven chips out of
+            # eight, because the snapshot format is eight words and the readers
+            # count them. One second later we try again.
+            result = unavailable('read_refused', 'chip %d: %s' % (chip, error))
+            result['sampled_boottime_s'] = started
+            return result
     codes = [value & 0xFF for value in raw]
     if any(value > 80 for value in codes):
         result = unavailable('invalid_reading', 'temperature code outside JEDEC range 0..80')
