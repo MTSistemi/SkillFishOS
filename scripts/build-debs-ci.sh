@@ -2057,8 +2057,12 @@ avvia apps/hud/skillfish-hud-editor
 # ⚠️ Ogni finestra deve dire a KDE qual e' il suo file .desktop, o la barra
 # delle applicazioni scrive «python3» e perde anche l'icona. Sette app su otto
 # lo facevano gia': la ottava se n'e' accorta solo passandoci sopra col mouse.
+# ⚠️ apps/monitor/skillfish-monitor non e' piu' in questo elenco perche' non
+# esiste piu': dal 26.09 il Monitor e' una pagina del Control Center, il .deb
+# installa un lanciatore, e quel sorgente era rimasto indietro a farsi
+# migliorare da chi non sapeva che nessuno lo installa.
 for _app in apps/fan/skillfish-fan apps/hud/skillfish-hud-editor \
-            apps/monitor/skillfish-monitor apps/hub/skillfish-hub \
+            apps/hub/skillfish-hub \
             apps/snapshots/skillfish-snapshots apps/ai-panel/skillfish-ai-panel \
             apps/kernel-manager/skillfish-kernel-manager \
             apps/dashboard/skillfish-remote-manager; do
