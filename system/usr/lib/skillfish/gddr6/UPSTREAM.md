@@ -28,6 +28,20 @@ on first. ⚠️ `bc250_smu_oc` upstream has the same `flock` but takes it aroun
 each single config access instead of around the pair, which leaves open exactly
 the gap it was meant to close.
 
+## What we do not take
+
+`bc250-memory.service`, upstream's always-on unit, is **not** kept here and is
+not installed. Their collector is a service that starts at boot and polls for
+as long as the machine is up; ours is started by a person, from the Monitor,
+the Control Center or a browser, and stopped the same way. Nothing reads the
+SMU on its own.
+
+The file used to sit in this directory as a reference. It went because a
+systemd unit in a tree that mirrors a filesystem path reads as something that
+ships, and the next person to look would have had to find the line in
+`scripts/build-debs-ci.sh` that deliberately leaves it out. Upstream's copy is
+one `git clone` away if anybody wants to read it.
+
 ## The payload is ours now, and this is why
 
 The upstream handler waits for the memory controller with two loops that cannot
