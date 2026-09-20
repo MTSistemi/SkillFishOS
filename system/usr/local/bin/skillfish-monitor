@@ -730,15 +730,14 @@ class GddrPanel(QWidget):
     def _giro(self):
         st = gddr6_helper("stato", con_password=False)
         self._attiva = bool(st.get("attiva"))
-        rimasti = st.get("rimasti")
-        pausa = st.get("pausa") or 0
+        da = st.get("da")
         motivo = st.get("perche_no")
 
         # The glyph stays out of the translated string: the web card shows the
         # same two labels without it, and one key translated once serves both.
         self.btn.setText("■ " + L("Ferma la lettura", "Stop reading") if self._attiva
                          else "◉ " + L("Leggi la memoria", "Read the memory"))
-        self.btn.setEnabled(not motivo and (self._attiva or not pausa))
+        self.btn.setEnabled(not motivo)
         self.btn.setStyleSheet(
             "QPushButton{color:%s;background:rgba(216,168,73,0.12);"
             "border:1px solid rgba(216,168,73,0.35);border-radius:9px;"
@@ -748,19 +747,14 @@ class GddrPanel(QWidget):
 
         if motivo:
             self.nota.setText(str(motivo))
-        elif self._attiva and rimasti is not None:
+        elif self._attiva and da is not None:
             # %s and not %d:%02d: the same key has to serve the web card, where
             # the value arrives already formatted. One string, translated once.
-            self.nota.setText(L("si chiude da sola fra %s — tocca la SMU, non si tiene accesa",
-                                "closes itself in %s — it touches the SMU, do not leave it on")
-                              % ("%d:%02d" % (rimasti // 60, rimasti % 60)))
-        elif pausa:
-            self.nota.setText(L("pausa fra una lettura e l'altra: ancora %s s",
-                                "cooldown between readings: %s s left") % pausa)
+            self.nota.setText(L("in lettura da %s", "reading for %s")
+                              % ("%d:%02d" % (da // 60, da % 60)))
         else:
-            self.nota.setText(L("la lettura si accende quando serve e dura al massimo %s minuti",
-                                "the reading is started when needed and lasts at most %s minutes")
-                              % int(st.get("minuti_max") or 10))
+            self.nota.setText(L("la lettura si accende quando serve",
+                                "the reading is started when needed"))
 
         stato, gradi = leggi_gddr6()
         if self._attiva and stato == "ok" and gradi:

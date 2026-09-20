@@ -150,9 +150,8 @@
     t_percore: "Per core/thread frequency", m_telem: "Telemetry",
     c_off: "off", c_avg: "avg", c_online: "online",
     mem_tit: "GDDR6 memory", mem_go: "Read the memory", mem_stop: "Stop reading",
-    mem_left: "closes itself in %s — it touches the SMU, do not leave it on",
-    mem_wait: "cooldown between readings: %s s left",
-    mem_idle: "the reading is started when needed and lasts at most %s minutes",
+    mem_since: "reading for %s",
+    mem_idle: "the reading is started when needed",
     mem_avg: "average %s °C", mem_hot: "hotspot %s °C (chip %s)",
     sic_tit: "Platform security state", x_fail: "failed",
   };
@@ -219,12 +218,13 @@
     });
 
   // ---- scheda memoria GDDR6 e stato di sicurezza -------------------------
-  // ⚠️ QUESTA PAGINA NON COMANDA NIENTE DA SOLA. Il tetto di dieci minuti e la
-  // pausa fra una lettura e l'altra li tiene skillfish-gddr6-helper, e il demone
-  // e' l'unico che lo chiama: leggere la memoria passa dalla SMU, che si incastra
-  // se interrogata troppo a lungo o troppo spesso, e da li' si esce solo
-  // riavviando. Qui si mostra cio' che il demone pubblica e si chiede a lui di
-  // accendere o spegnere.
+  // ⚠️ QUESTA PAGINA NON COMANDA NIENTE DA SOLA. Chi accende e spegne la lettura
+  // e' skillfish-gddr6-helper, e il demone e' l'unico che lo chiama: da qui si
+  // mostra cio' che il demone pubblica e si chiede a lui di accendere o
+  // spegnere. Il tetto di dieci minuti e la pausa fra una lettura e l'altra che
+  // stavano nell'helper non ci sono piu': servivano a stare alla larga da un
+  // guasto del payload SMU che adesso e' corretto (attese contate, vedi
+  // payload/main.c e UPSTREAM.md).
   const MEMCOL = ["#e8c878","#d8a849","#c98a3a","#e07b39","#e0d24f","#9bd24f","#5fd24f","#49b6e0"];
   const SICRIGHE = [
     ["fused_part",           "Silicon",         "production part, fuses blown",   "pre-production sample"],
@@ -449,19 +449,15 @@
       if (!d) return;
       $("#mem").style.display = "";
       memAttiva = !!d.attiva;
-      const pausa = d.pausa || 0, motivo = d.perche_no;
+      const motivo = d.perche_no;
       const btn = $("#mem-btn");
       btn.textContent = memAttiva ? T("mem_stop", "Stop reading") : T("mem_go", "Read the memory");
-      btn.disabled = !!motivo || (!memAttiva && pausa > 0);
+      btn.disabled = !!motivo;
       if (motivo) $("#mem-nota").textContent = motivo;
-      else if (memAttiva && d.rimasti != null)
-        $("#mem-nota").textContent = T("mem_left", "closes itself in %s — it touches the SMU, do not leave it on")
-          .replace("%s", mmss(d.rimasti));
-      else if (pausa)
-        $("#mem-nota").textContent = T("mem_wait", "cooldown between readings: %s s left").replace("%s", pausa);
+      else if (memAttiva && d.da != null)
+        $("#mem-nota").textContent = T("mem_since", "reading for %s").replace("%s", mmss(d.da));
       else
-        $("#mem-nota").textContent = T("mem_idle", "the reading is started when needed and lasts at most %s minutes")
-          .replace("%s", d.minuti_max);
+        $("#mem-nota").textContent = T("mem_idle", "the reading is started when needed");
 
       const g = d.gradi || [];
       memScheda(memAttiva && g.length === 8 ? g : null);

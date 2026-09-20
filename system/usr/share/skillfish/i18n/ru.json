@@ -1210,9 +1210,6 @@
  "GDDR6 memory": "Память GDDR6",
  "Stop reading": "Остановить чтение",
  "Read the memory": "Прочитать память",
- "closes itself in %s — it touches the SMU, do not leave it on": "закроется само через %s — обращается к SMU, не оставляйте включённым",
- "cooldown between readings: %s s left": "пауза между чтениями: осталось %s с",
- "the reading is started when needed and lasts at most %s minutes": "чтение включается по необходимости и длится не более %s минут",
  "average %s °C": "среднее %s °C",
  "hotspot %s °C (chip %s)": "горячая точка %s °C (чип %s)",
  "Silicon": "Кристалл",
@@ -1243,7 +1240,7 @@
  "Hotspot": "Горячая точка",
  "GDDR6 · Memory": "GDDR6 · Память",
  "reading": "чтение",
- "closes itself in %s": "закроется через %s",
- "started when needed, %s minutes at most": "запускается при необходимости, не более %s минут",
- "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Это измеряют восемь датчиков внутри микросхем памяти, и отвечают они только через SMU. Поэтому это не датчик, который работает постоянно: долгий опрос подвешивает SMU, а это та же микросхема, которая держит частоты и напряжения. Чтение запускается по необходимости, длится не более десяти минут и закрывается само. На рисунке плата показана со стороны памяти, то есть сзади: микросхемы находятся на обратной стороне, а APU на лицевой, поэтому она нарисована пунктиром. Восемь позиций настоящие, взяты из boardview платы. Какой датчик какой микросхеме соответствует, пока не измерено: номер означает порядок, в котором отвечает SMU."
+ "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Это измеряют восемь датчиков внутри микросхем памяти, и отвечают они только через SMU. Поэтому это не датчик, который работает постоянно: долгий опрос подвешивает SMU, а это та же микросхема, которая держит частоты и напряжения. Чтение запускается по необходимости, длится не более десяти минут и закрывается само. На рисунке плата показана со стороны памяти, то есть сзади: микросхемы находятся на обратной стороне, а APU на лицевой, поэтому она нарисована пунктиром. Восемь позиций настоящие, взяты из boardview платы. Какой датчик какой микросхеме соответствует, пока не измерено: номер означает порядок, в котором отвечает SMU.",
+ "reading for %s": "читает уже %s",
+ "the reading is started when needed": "чтение включается, когда нужно"
 }

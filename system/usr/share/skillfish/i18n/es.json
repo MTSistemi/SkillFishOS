@@ -1210,9 +1210,6 @@
  "GDDR6 memory": "Memoria GDDR6",
  "Stop reading": "Detener la lectura",
  "Read the memory": "Leer la memoria",
- "closes itself in %s — it touches the SMU, do not leave it on": "se cierra sola en %s — pasa por la SMU, no la dejes encendida",
- "cooldown between readings: %s s left": "pausa entre lecturas: quedan %s s",
- "the reading is started when needed and lasts at most %s minutes": "la lectura se enciende cuando hace falta y dura como máximo %s minutos",
  "average %s °C": "media %s °C",
  "hotspot %s °C (chip %s)": "punto caliente %s °C (chip %s)",
  "Silicon": "Silicio",
@@ -1243,7 +1240,7 @@
  "Hotspot": "Punto caliente",
  "GDDR6 · Memory": "GDDR6 · Memoria",
  "reading": "leyendo",
- "closes itself in %s": "se cierra sola en %s",
- "started when needed, %s minutes at most": "se inicia cuando hace falta, %s minutos como máximo",
- "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Ocho sensores dentro de los chips de memoria lo miden, y solo responden a través de la SMU. Por eso no es un sensor que esté siempre encendido: consultarla mucho rato la bloquea, y la SMU es la misma que gobierna frecuencias y tensiones. La lectura se enciende cuando hace falta, dura diez minutos como máximo y se cierra sola. El dibujo es la placa vista por el lado de la memoria, es decir por detrás: los chips están en la cara trasera y la APU en la delantera, a trazos porque está en la otra cara. Las ocho posiciones son las reales, sacadas del boardview de la placa. Qué sensor es qué chip todavía no está medido: el número es el orden en que responde la SMU."
+ "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Ocho sensores dentro de los chips de memoria lo miden, y solo responden a través de la SMU. Por eso no es un sensor que esté siempre encendido: consultarla mucho rato la bloquea, y la SMU es la misma que gobierna frecuencias y tensiones. La lectura se enciende cuando hace falta, dura diez minutos como máximo y se cierra sola. El dibujo es la placa vista por el lado de la memoria, es decir por detrás: los chips están en la cara trasera y la APU en la delantera, a trazos porque está en la otra cara. Las ocho posiciones son las reales, sacadas del boardview de la placa. Qué sensor es qué chip todavía no está medido: el número es el orden en que responde la SMU.",
+ "reading for %s": "leyendo desde hace %s",
+ "the reading is started when needed": "la lectura se activa cuando hace falta"
 }

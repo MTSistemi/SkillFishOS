@@ -381,9 +381,8 @@ def gddr6_gradi():
 def gddr6_stato():
     st = gddr6_helper("stato")
     stato, gradi = gddr6_gradi()
-    fuori = {"attiva": bool(st.get("attiva")), "rimasti": st.get("rimasti"),
-             "pausa": st.get("pausa") or 0, "perche_no": st.get("perche_no"),
-             "minuti_max": st.get("minuti_max") or 10, "lettura": stato,
+    fuori = {"attiva": bool(st.get("attiva")), "da": st.get("da"),
+             "perche_no": st.get("perche_no"), "lettura": stato,
              "gradi": gradi}
     if gradi:
         fuori["media"] = round(sum(gradi) / float(len(gradi)), 1)

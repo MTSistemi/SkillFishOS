@@ -752,27 +752,25 @@ class SchedaGddr6(stile.Scheda):
     def aggiorna(self):
         st = gddr6_stato()
         self._attiva = bool(st.get("attiva"))
-        rimasti, pausa = st.get("rimasti"), st.get("pausa") or 0
+        da = st.get("da")
         motivo = st.get("perche_no")
 
         self.b.setText("■ " + L("Ferma la lettura", "Stop reading") if self._attiva
                        else "◉ " + L("Leggi la memoria", "Read the memory"))
-        self.b.setEnabled(not motivo and (self._attiva or not pausa))
+        self.b.setEnabled(not motivo)
         self.badge.setText(L("in lettura", "reading") if self._attiva else L("spenta", "off"))
         self.badge.tono("bene" if self._attiva else "quieto")
 
         if motivo:
             self.nota.setText(str(motivo))
-        elif self._attiva and rimasti is not None:
-            self.nota.setText(L("si chiude da sola fra %s", "closes itself in %s")
-                              % ("%d:%02d" % (rimasti // 60, rimasti % 60)))
-        elif pausa:
-            self.nota.setText(L("pausa fra una lettura e l'altra: ancora %s s",
-                                "cooldown between readings: %s s left") % pausa)
+        elif self._attiva and da is not None:
+            # The same two keys the Monitor window uses: one string, translated
+            # once, whichever of the three faces the person is looking at.
+            self.nota.setText(L("in lettura da %s", "reading for %s")
+                              % ("%d:%02d" % (da // 60, da % 60)))
         else:
-            self.nota.setText(L("si accende quando serve, al massimo %s minuti",
-                                "started when needed, %s minutes at most")
-                              % int(st.get("minuti_max") or 10))
+            self.nota.setText(L("la lettura si accende quando serve",
+                                "the reading is started when needed"))
 
         stato, gradi = gddr6_gradi()
         if not (self._attiva and stato == "ok" and gradi):

@@ -1072,9 +1072,6 @@
  "GDDR6 memory": "Memoria GDDR6",
  "Stop reading": "Ferma la lettura",
  "Read the memory": "Leggi la memoria",
- "closes itself in %s — it touches the SMU, do not leave it on": "si chiude da sola fra %s — tocca la SMU, non si tiene accesa",
- "cooldown between readings: %s s left": "pausa fra una lettura e l'altra: ancora %s s",
- "the reading is started when needed and lasts at most %s minutes": "la lettura si accende quando serve e dura al massimo %s minuti",
  "average %s °C": "media %s °C",
  "hotspot %s °C (chip %s)": "punto caldo %s °C (chip %s)",
  "Silicon": "Silicio",
@@ -1100,5 +1097,7 @@
  "present on the flash": "presente sulla flash",
  "Platform security state": "Stato di sicurezza della piattaforma",
  "What the secure processor says about this board": "Cosa dice il processore sicuro di questa scheda",
- "GDDR6 memory chip temperature, on demand": "Temperatura dei chip di memoria GDDR6, a richiesta"
+ "GDDR6 memory chip temperature, on demand": "Temperatura dei chip di memoria GDDR6, a richiesta",
+ "reading for %s": "in lettura da %s",
+ "the reading is started when needed": "la lettura si accende quando serve"
 }
