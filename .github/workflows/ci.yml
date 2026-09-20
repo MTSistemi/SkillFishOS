@@ -30,7 +30,7 @@ jobs:
           set -e
           for f in apps/tuner/skillfish-tuner-helper \
                    apps/hub/skillfish-hub apps/hub/skillfish-hub-helper \
-                   apps/monitor/skillfish-monitor \
+                   apps/monitor/skillfish-gddr6-helper \
                    apps/kernel-manager/skillfish-kernel-manager \
                    apps/ai-panel/skillfish-ai-panel; do
             case "$(head -1 "$f")" in
@@ -43,7 +43,7 @@ jobs:
         run: |
           pip install -q ruff
           PYAPPS="apps/tuner/skillfish-tuner-helper \
-                  apps/hub/skillfish-hub apps/monitor/skillfish-monitor \
+                  apps/hub/skillfish-hub apps/monitor/skillfish-gddr6-helper \
                   apps/kernel-manager/skillfish-kernel-manager apps/ai-panel/skillfish-ai-panel"
           ruff check --select F,E9 --no-cache $PYAPPS
           ruff check --select B,PLE --no-cache $PYAPPS || true
