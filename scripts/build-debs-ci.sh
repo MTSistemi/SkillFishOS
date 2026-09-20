@@ -354,9 +354,11 @@ put $P 0644 system/usr/share/icons/hicolor/48x48/apps/skillfish-monitor.png usr/
 put $P 0644 system/usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png usr/share/icons/hicolor/128x128/apps/skillfish-monitor.png
 put $P 0644 system/usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png usr/share/icons/hicolor/256x256/apps/skillfish-monitor.png
 ctrl $P "python3, python3-pyqt6, skillfish-control-center" "SkillFishOS Monitor - live sensor charts + .sfmon benchmark analyzer" \
-  "Live charts of temperatures, clocks, voltage, watts, load and fan speed. Press
-record and the session goes to a .sfmon file you can reopen and walk through
-second by second."
+  "Live charts of temperatures, clocks, voltage, load and fan speed, and three
+separate wattages: the whole board, the CPU and the GPU. Every chart keeps an
+honest scale, so a fan that is steady looks steady instead of filling its box
+with a thirty-RPM wobble. Press record and the session goes to a .sfmon file you
+can reopen and walk through second by second."
 # monitor ships a MIME type (.sfmon recordings) → also refresh the shared-mime db
 printf '#!/bin/sh\nset -e\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nupdate-desktop-database -q 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
@@ -753,8 +755,10 @@ echo "    os-release timbrato: $MEDIA"
 ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
-applications read. It also pulls in skillfish-boot, which keeps the kernel command
-line honest: the board's parameters on a board, and off everything else."
+applications read. It is also the one place that asks the SMU how much power the
+board, the CPU and the GPU are drawing, and publishes the three numbers for
+everything else to read. It pulls in skillfish-boot, which keeps the kernel
+command line honest: the board's parameters on a board, and off everything else."
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.

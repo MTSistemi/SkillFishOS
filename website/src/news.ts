@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // watt-separati-2026-09-20
+    data: '2026-09-20',
+    quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },
+    etichetta: { it: "correzione", en: "fix", pl: "poprawka", uk: "виправлення", ru: "исправление", es: "corrección", pt: "correção", de: "Korrektur", fr: "correctif" },
+    titolo: {
+      it: "I watt della GPU erano quelli di tutta la scheda",
+      en: "The GPU's watts were the whole board's",
+      pl: "Waty GPU były watami całej płyty",
+      uk: "Вати GPU були ватами всієї плати",
+      ru: "Ватты GPU были ваттами всей платы",
+      es: "Los vatios de la GPU eran los de toda la placa",
+      pt: "Os watts da GPU eram os da placa inteira",
+      de: "Die Watt der GPU waren die der ganzen Platine",
+      fr: "Les watts du GPU étaient ceux de toute la carte"
+    },
+    testo: {
+      it: "Il Monitor scriveva «GPU» accanto a un numero che era il consumo di tutta la scheda: trenta watt a riposo, mentre la grafica ne tira quattro. Adesso i numeri sono tre e separati, e si leggono nel Monitor, nel Control Center e dal browser: la scheda intera, la CPU e la GPU. Sull'HUD in gioco resta quello che conta lì, il consumo di tutta la scheda, e adesso c'è scritto APU. Già che c'eravamo, i grafici hanno smesso di esagerare: una ventola che gira regolare non riempie più il riquadro come un ottovolante per trenta giri di differenza.",
+      en: "The Monitor wrote «GPU» next to a number that was the whole board's draw: thirty watts at idle, while the graphics were pulling four. There are three separate numbers now, in the Monitor, in the Control Center and from a browser: the whole board, the CPU and the GPU. The in-game HUD keeps the one that matters there, what the whole board draws, and now it says APU. While we were at it the charts stopped exaggerating: a fan running steadily no longer fills its box like a rollercoaster over thirty RPM.",
+      pl: "Monitor pisał „GPU” obok liczby, która była poborem całej płyty: trzydzieści watów na biegu jałowym, podczas gdy grafika brała cztery. Teraz liczby są trzy i osobne, w Monitorze, w Centrum sterowania i z przeglądarki: cała płyta, procesor i grafika. HUD w grze zachowuje tę, która tam się liczy, czyli pobór całej płyty, i teraz pisze APU. Przy okazji wykresy przestały wyolbrzymiać: równo pracujący wentylator nie wypełnia już całego pola jak kolejka górska przez trzydzieści obrotów różnicy.",
+      uk: "Монітор писав «GPU» біля числа, яке було споживанням усієї плати: тридцять ватів у спокої, тоді як графіка брала чотири. Тепер чисел три і вони окремі: уся плата, процесор і відеоядро — у Моніторі, у Центрі керування і з браузера. HUD у грі залишає те, що там важливе, тобто споживання всієї плати, і тепер пише APU. Заодно графіки перестали перебільшувати: рівно працюючий вентилятор більше не заповнює весь квадрат через тридцять обертів різниці.",
+      ru: "Монитор писал «GPU» рядом с числом, которое было потреблением всей платы: тридцать ватт в покое, тогда как графика брала четыре. Теперь чисел три и они разделены: вся плата, процессор и видеоядро — в Мониторе, в Центре управления и из браузера. HUD в игре оставляет то, что там важно, то есть потребление всей платы, и теперь пишет APU. Заодно графики перестали преувеличивать: ровно работающий вентилятор больше не заполняет весь квадрат из-за тридцати оборотов разницы.",
+      es: "El Monitor escribía «GPU» junto a un número que era el consumo de toda la placa: treinta vatios en reposo, mientras la gráfica tiraba cuatro. Ahora los números son tres y separados, en el Monitor, en el Centro de control y desde el navegador: la placa entera, la CPU y la GPU. El HUD en el juego mantiene el que allí importa, el consumo de toda la placa, y ahora pone APU. Ya puestos, las gráficas han dejado de exagerar: un ventilador que gira regular ya no llena el recuadro como una montaña rusa por treinta revoluciones de diferencia.",
+      pt: "O Monitor escrevia «GPU» ao lado de um número que era o consumo da placa inteira: trinta watts em repouso, enquanto a gráfica puxava quatro. Agora os números são três e separados, no Monitor, no Centro de controlo e a partir do navegador: a placa inteira, o CPU e a GPU. O HUD no jogo mantém aquele que ali interessa, o consumo da placa inteira, e agora diz APU. Já agora, os gráficos deixaram de exagerar: uma ventoinha que roda certa já não enche o quadro como uma montanha-russa por trinta rotações de diferença.",
+      de: "Der Monitor schrieb «GPU» neben eine Zahl, die der Verbrauch der ganzen Platine war: dreißig Watt im Leerlauf, während die Grafik vier zog. Jetzt sind es drei getrennte Zahlen, im Monitor, im Kontrollzentrum und im Browser: die ganze Platine, die CPU und die GPU. Das HUD im Spiel behält die, auf die es dort ankommt, den Verbrauch der ganzen Platine, und schreibt nun APU. Bei der Gelegenheit haben die Diagramme aufgehört zu übertreiben: ein gleichmäßig laufender Lüfter füllt sein Feld nicht mehr wie eine Achterbahn wegen dreißig Umdrehungen Unterschied.",
+      fr: "Le Monitor écrivait « GPU » à côté d'un nombre qui était la consommation de toute la carte : trente watts au repos, alors que la partie graphique en tirait quatre. Il y a maintenant trois nombres séparés, dans le Monitor, dans le Centre de contrôle et depuis un navigateur : la carte entière, le processeur et le GPU. Le HUD en jeu garde celui qui compte là, la consommation de toute la carte, et affiche désormais APU. Au passage, les graphiques ont cessé d'exagérer : un ventilateur qui tourne régulier ne remplit plus son cadre comme des montagnes russes pour trente tours d'écart."
+    },
+  },
+  {
     // flatpak-elenco-2026-09-18
     data: '2026-09-18',
     quando: { it: "18 settembre 2026", en: "18 September 2026", pl: "18 września 2026", uk: "18 вересня 2026", ru: "18 сентября 2026", es: "18 de septiembre de 2026", pt: "18 de setembro de 2026", de: "18. September 2026", fr: "18 septembre 2026" },
