@@ -42,8 +42,16 @@ class GraficoUnita(QWidget):
     cursore_mosso = pyqtSignal(object)   # float seconds, or None
     FINESTRA = 300
 
-    def __init__(self, titolo, unita, serie, y_min=None, y_max=None, parent=None):
+    def __init__(self, titolo, unita, serie, y_min=None, y_max=None, parent=None,
+                 minimo=0.0):
         super().__init__(parent)
+        # ⚠️ `minimo` E' LA CAMPATA PIU' PICCOLA CHE L'ASSE PUO' MOSTRARE, ed e'
+        # quello che impedisce a una macchina ferma di sembrare agitata. Senza un
+        # pavimento sotto la campata, meno una cosa si muove piu' sembra
+        # drammatica: due gradi di oscillazione su un asse alto due gradi
+        # riempiono il riquadro come una montagna russa. y_min/y_max fissano i
+        # bordi quando si sanno; questo serve dove non si sanno.
+        self.minimo = float(minimo or 0.0)
         self.titolo, self.unita = titolo, unita
         self.serie = [(k, e, QColor(c)) for k, e, c in serie]
         self.punti = dict((k, []) for k, _e, _c in self.serie)
@@ -129,6 +137,13 @@ class GraficoUnita(QWidget):
             basso = float(self.y_min)
         if alto - basso < 1e-9:
             alto = basso + (abs(basso) * 0.1 or 1.0)
+        if self.minimo > 0 and (alto - basso) < self.minimo:
+            # si allarga attorno alla meta' di quello che i dati fanno, cosi' la
+            # linea resta dov'e' invece di saltare quando l'asse si allarga
+            centro = (alto + basso) / 2.0
+            basso, alto = centro - self.minimo / 2.0, centro + self.minimo / 2.0
+            if self.y_min is not None and basso < float(self.y_min):
+                basso, alto = float(self.y_min), float(self.y_min) + self.minimo
         passo = _passo_bello(alto - basso, 4)
         basso = math.floor(basso / passo) * passo
         alto = (math.floor(alto / passo) + 1) * passo

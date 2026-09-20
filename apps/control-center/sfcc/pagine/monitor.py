@@ -33,18 +33,24 @@ from ..stile import intestazione
 REC_DIR = os.path.expanduser("~/SkillFishOS-benchmarks")
 SFMON_EXT = ".sfmon"
 
-# the charts: (key, title, unit, [(series key, label, colour)], y_min, y_max)
+# the charts: (key, title, unit, [(series key, label, colour)], y_min, y_max, minimo)
+#
+# ⚠️ L'ULTIMO NUMERO E' LA CAMPATA MINIMA DELL'ASSE, e serve dove i bordi non si
+# sanno in anticipo. Con l'asse libero, meno una cosa si muove piu' sembra
+# drammatica: le temperature ferme fra 47 e 53 gradi riempivano il riquadro come
+# se stesse succedendo qualcosa. Carico e ventola non ne hanno bisogno, hanno
+# gia' lo zero sotto.
 GRAFICI = [
     ("temp", ("Temperature", "Temperatures"), "°C", [
         ("cpu_temp", "CPU", "#e8c878"), ("gpu_temp", "GPU", stile.ARANCIO),
         ("vrm_temp", "VRM", "#c78be0"), ("sys_temp", ("Sistema", "System"), "#8fbf6a"),
-        ("nvme_temp", "NVMe", "#7fd4ff")], None, None),
+        ("nvme_temp", "NVMe", "#7fd4ff")], None, None, 20.0),
     ("clock", ("Frequenze", "Clocks"), "MHz", [
         ("cpu_mhz", ("CPU media", "CPU avg"), "#9bd24f"), ("cpu_min", "CPU min", "#5a8f3a"),
         ("cpu_max", "CPU max", "#d4f0a0"), ("gpu_mhz", "GPU", stile.OTTONE),
-        ("tetto", ("Tetto GPU", "GPU ceiling"), "#9a7a3a")], 0, None),
+        ("tetto", ("Tetto GPU", "GPU ceiling"), "#9a7a3a")], 0, None, 0),
     ("load", ("Carico", "Load"), "%", [
-        ("cpu_load", "CPU", "#5fd24f"), ("gpu_load", "GPU", "#49b6e0")], 0, 100),
+        ("cpu_load", "CPU", "#5fd24f"), ("gpu_load", "GPU", "#49b6e0")], 0, 100, 0),
     # ⚠️ TRE LINEE, E QUELLA DI MEZZO PRIMA ERA L'UNICA - CON IL NOME SBAGLIATO.
     # Quella che questo grafico chiamava "GPU" era power1_average, che su questo
     # APU e' il consumo di TUTTO il pacchetto: 29,6 W a riposo contro i 4,1 W che
@@ -53,15 +59,15 @@ GRAFICI = [
     # invece di fidarci di un'intestazione.
     ("power", ("Potenza", "Power"), "W", [
         ("apu_w", "APU", stile.OTTONE), ("cpu_w", "CPU", "#9bd24f"),
-        ("gpu_w", "GPU", stile.COL_VOLT)], 0, None),
+        ("gpu_w", "GPU", stile.COL_VOLT)], 0, None, 0),
     ("volt", ("Tensioni", "Voltages"), "mV", [
-        ("gpu_mv", "GPU", stile.COL_VOLT), ("soc_mv", "SoC", "#e8a878")], None, None),
-    ("fan", ("Ventola", "Fan"), "rpm", [("fan", ("Giri", "Speed"), stile.COL_RPM)], 0, None),
+        ("gpu_mv", "GPU", stile.COL_VOLT), ("soc_mv", "SoC", "#e8a878")], None, None, 300.0),
+    ("fan", ("Ventola", "Fan"), "rpm", [("fan", ("Giri", "Speed"), stile.COL_RPM)], 0, None, 0),
     ("mem", ("Memoria", "Memory"), "MB", [
         ("ram_used", "RAM", "#e0d05a"), ("vram_used", "VRAM", stile.OTTONE),
-        ("gtt_used", "GTT", "#b06a3a")], 0, None),
+        ("gtt_used", "GTT", "#b06a3a")], 0, None, 0),
 ]
-REC_KEYS = [k for _g, _t, _u, serie, _lo, _hi in GRAFICI for k, _e, _c in serie]
+REC_KEYS = [k for _g, _t, _u, serie, _lo, _hi, _m in GRAFICI for k, _e, _c in serie]
 # ⚠️ Le registrazioni vecchie chiamavano "gpu_w" il consumo del pacchetto. Da
 # oggi quel nome vuol dire la GPU e basta, quindi una registrazione di prima
 # riaperta qui mostrerebbe 30 W sulla linea della GPU. Non si puo' indovinare
@@ -1076,9 +1082,9 @@ class Pagina(PaginaBase):
         self.g = QGridLayout(gabbia)
         self.g.setContentsMargins(0, 0, 6, 0)
         self.g.setSpacing(8)
-        for chiave, titolo, unita, serie, lo, hi in GRAFICI:
+        for chiave, titolo, unita, serie, lo, hi, minimo in GRAFICI:
             ser = [(k, (L(*e) if isinstance(e, tuple) else e), c) for k, e, c in serie]
-            gr = GraficoUnita(L(*titolo), unita, ser, lo, hi)
+            gr = GraficoUnita(L(*titolo), unita, ser, lo, hi, minimo=minimo)
             gr.cursore_mosso.connect(self._cursore)
             self.grafici[chiave] = gr
         if gddr6_disponibile():
@@ -1194,7 +1200,7 @@ class Pagina(PaginaBase):
 
     def _nomi(self):
         out = {}
-        for _g, titolo, unita, serie, _lo, _hi in GRAFICI:
+        for _g, titolo, unita, serie, _lo, _hi, _m in GRAFICI:
             for k, e, _c in serie:
                 out[k] = "%s %s (%s)" % (L(*titolo), L(*e) if isinstance(e, tuple) else e, unita)
         return out
