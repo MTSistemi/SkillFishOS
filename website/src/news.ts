@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // gddr6-temperature-2026-09-20
+    data: '2026-09-20',
+    quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },
+    etichetta: { it: "novità", en: "new", pl: "nowość", uk: "новинка", ru: "новинка", es: "novedad", pt: "novidade", de: "Neu", fr: "nouveauté" },
+    titolo: {
+      it: "La temperatura della memoria, che non si poteva leggere",
+      en: "The memory temperature nobody could read",
+      pl: "Temperatura pamięci, której nie dało się odczytać",
+      uk: "Температура пам'яті, яку не можна було прочитати",
+      ru: "Температура памяти, которую нельзя было прочитать",
+      es: "La temperatura de la memoria que no se podía leer",
+      pt: "A temperatura da memória que não se conseguia ler",
+      de: "Die Speichertemperatur, die niemand auslesen konnte",
+      fr: "La température de la mémoire qu'on ne pouvait pas lire"
+    },
+    testo: {
+      it: "Ogni chip di memoria della BC-250 ha dentro un sensore di temperatura, ma non compare fra i sensori del sistema: risponde soltanto alla SMU. Adesso si leggono tutti e otto, dal Monitor, dal Control Center e dal browser, sul disegno della scheda vera con il punto più caldo evidenziato. La lettura si accende quando la chiedi e si ferma quando lo dici tu. A riposo la memoria sta sui 44 gradi, sotto gioco sui 49 con punte di 60.",
+      en: "Every memory chip on the BC-250 has a temperature sensor inside it, but it does not show up among the system's sensors: it answers only to the SMU. All eight can be read now, from the Monitor, from the Control Center and from a browser, on a drawing of the real board with the hottest one called out. The reading starts when you ask for it and stops when you say so. At rest the memory sits around 44 degrees, under a game around 49 with peaks of 60.",
+      pl: "Każdy układ pamięci w BC-250 ma w środku czujnik temperatury, ale nie pojawia się on wśród czujników systemu: odpowiada tylko SMU. Teraz można odczytać wszystkie osiem, z Monitora, z Centrum sterowania i z przeglądarki, na rysunku prawdziwej płyty z wyróżnionym najgorętszym. Odczyt włącza się, gdy o niego poprosisz, i kończy, gdy powiesz. W spoczynku pamięć ma około 44 stopni, w grze około 49 ze szczytami 60.",
+      uk: "Кожна мікросхема пам'яті на BC-250 має всередині датчик температури, але він не з'являється серед системних датчиків: він відповідає лише SMU. Тепер можна читати всі вісім — з Монітора, з Центру керування і з браузера — на рисунку справжньої плати з виділеною найгарячішою. Читання вмикається, коли ви його просите, і зупиняється, коли скажете. У спокої пам'ять тримає близько 44 градусів, у грі близько 49 з піками до 60.",
+      ru: "У каждой микросхемы памяти на BC-250 внутри есть датчик температуры, но он не появляется среди системных датчиков: он отвечает только SMU. Теперь можно прочитать все восемь — из Монитора, из Центра управления и из браузера — на рисунке настоящей платы с выделенной самой горячей. Чтение включается, когда вы его просите, и останавливается, когда скажете. В покое память держит около 44 градусов, в игре около 49 с пиками до 60.",
+      es: "Cada chip de memoria de la BC-250 lleva dentro un sensor de temperatura, pero no aparece entre los sensores del sistema: solo responde a la SMU. Ahora se pueden leer los ocho, desde el Monitor, desde el Centro de control y desde el navegador, sobre un dibujo de la placa real con el más caliente destacado. La lectura se enciende cuando la pides y se para cuando tú lo dices. En reposo la memoria ronda los 44 grados, jugando unos 49 con picos de 60.",
+      pt: "Cada chip de memória da BC-250 tem lá dentro um sensor de temperatura, mas não aparece entre os sensores do sistema: só responde à SMU. Agora podem ler-se os oito, a partir do Monitor, do Centro de controlo e do navegador, sobre um desenho da placa real com o mais quente destacado. A leitura liga-se quando a pede e para quando o disser. Em repouso a memória anda pelos 44 graus, a jogar uns 49 com picos de 60.",
+      de: "Jeder Speicherbaustein der BC-250 hat innen einen Temperatursensor, der aber unter den Sensoren des Systems nicht auftaucht: er antwortet nur der SMU. Jetzt lassen sich alle acht auslesen, im Monitor, im Kontrollzentrum und im Browser, auf einer Zeichnung der echten Platine mit hervorgehobenem heißesten Baustein. Die Messung startet, wenn Sie sie anfordern, und hört auf, wenn Sie es sagen. Im Leerlauf liegt der Speicher bei etwa 44 Grad, im Spiel bei etwa 49 mit Spitzen von 60.",
+      fr: "Chaque puce mémoire de la BC-250 contient un capteur de température, mais il n'apparaît pas parmi les capteurs du système : il ne répond qu'au SMU. Les huit se lisent désormais, depuis le Monitor, depuis le Centre de contrôle et depuis un navigateur, sur un dessin de la carte réelle avec la plus chaude mise en évidence. La lecture démarre quand vous la demandez et s'arrête quand vous le dites. Au repos la mémoire tourne autour de 44 degrés, en jeu autour de 49 avec des pointes à 60."
+    },
+  },
+  {
     // watt-separati-2026-09-20
     data: '2026-09-20',
     quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },
