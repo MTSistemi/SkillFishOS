@@ -193,10 +193,40 @@ def _token():
         return ""
 
 
-tok = _token()
-if not tok:
-    sys.exit("   niente token: non posso pubblicare")
-url = REPO.replace("https://", "https://MTSistemi:%s@" % tok)
+def _url_ssh():
+    """The ssh URL, but only when THIS machine's key is authorised.
+
+    Until now the token was the only way in, which meant a token carrying
+    admin:org and delete_repo had to travel to whatever machine was doing the
+    release, written to a file, every time. With the machine's own key on the
+    account there is nothing to carry: the private half never moves and GitHub
+    recognises who is knocking.
+
+    GitHub is asked rather than guessed at: a machine whose key is not
+    registered gets an empty answer and the caller falls back to the token,
+    because not every machine that publishes has a key.
+    """
+    try:
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes",
+                            "-o", "StrictHostKeyChecking=accept-new",
+                            "-T", "git@github.com"],
+                           capture_output=True, text=True, timeout=25)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    # GitHub greets by name and exits 1: there is no shell, and that is fine
+    if "successfully authenticated" in (r.stdout or "") + (r.stderr or ""):
+        return re.sub(r"^https://github\.com/", "git@github.com:", REPO)
+    return ""
+
+
+url = _url_ssh()
+if url:
+    print("   la chiave ssh di questa macchina e' autorizzata: niente token")
+else:
+    tok = _token()
+    if not tok:
+        sys.exit("   ne' chiave ssh ne' token: non posso pubblicare")
+    url = REPO.replace("https://", "https://MTSistemi:%s@" % tok)
 r = subprocess.run(["git", "clone", "--depth", "1", "--branch", "gh-pages", url, CLONE],
                    capture_output=True, text=True)
 if r.returncode != 0:
