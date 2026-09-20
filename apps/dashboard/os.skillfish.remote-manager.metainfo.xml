@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.38" date="2026-09-20">
+      <description>
+        <p>The telemetry page draws the same BC-250 as the Control Center, with the eight memory chips on the back where they really are, and shows their temperature once you turn the reading on. The power chart is three lines now: the whole chip, the CPU and the GPU.</p>
+        <p xml:lang="it">La pagina della telemetria disegna la stessa BC-250 del Control Center, con gli otto chip di memoria sul retro dove stanno davvero, e ne mostra la temperatura quando accendi la lettura. Il grafico del consumo adesso ha tre linee: tutto il chip, la CPU e la GPU.</p>
+        <p xml:lang="fr">La page de télémétrie dessine la même BC-250 que le Centre de contrôle, avec les huit puces de mémoire au dos, à leur vraie place, et affiche leur température dès que vous activez la lecture. Le graphique de consommation compte maintenant trois courbes : la puce entière, le processeur et le GPU.</p>
+        <p xml:lang="es">La página de telemetría dibuja la misma BC-250 que el Centro de control, con los ocho chips de memoria en la parte de atrás donde están de verdad, y muestra su temperatura cuando enciendes la lectura. La gráfica de consumo ahora tiene tres líneas: el chip entero, la CPU y la GPU.</p>
+        <p xml:lang="pt">A página de telemetria desenha a mesma BC-250 do Centro de Controlo, com os oito chips de memória nas costas, onde estão mesmo, e mostra a temperatura deles quando ligas a leitura. O gráfico do consumo tem agora três linhas: o chip inteiro, o CPU e o GPU.</p>
+        <p xml:lang="de">Die Telemetrieseite zeichnet dieselbe BC-250 wie das Control Center, mit den acht Speicherchips auf der Rückseite, wo sie wirklich sitzen, und zeigt ihre Temperatur, sobald man das Auslesen einschaltet. Das Verbrauchsdiagramm hat jetzt drei Linien: den ganzen Chip, die CPU und die GPU.</p>
+        <p xml:lang="pl">Strona telemetrii rysuje tę samą BC-250 co Centrum sterowania, z ośmioma kośćmi pamięci z tyłu, tam gdzie naprawdę są, i pokazuje ich temperaturę, gdy włączysz odczyt. Wykres poboru mocy ma teraz trzy linie: cały układ, procesor i GPU.</p>
+        <p xml:lang="ru">Страница телеметрии рисует ту же BC-250, что и Центр управления, с восемью микросхемами памяти на обратной стороне, где они и стоят, и показывает их температуру, как только вы включите чтение. На графике потребления теперь три линии: весь кристалл, процессор и GPU.</p>
+        <p xml:lang="uk">Сторінка телеметрії малює ту саму BC-250, що й Центр керування, з вісьмома мікросхемами пам'яті зі зворотного боку, де вони й стоять, і показує їхню температуру, щойно ви увімкнете читання. На графіку споживання тепер три лінії: увесь кристал, процесор і GPU.</p>
+      </description>
+    </release>
     <release version="26.09.33" date="2026-09-18">
       <description>
         <p>The games page follows the driver switch instead of reading one override file of its own. With the system driver on, the Steam and Heroic boxes are ticked and locked: before this they came up empty while the games were in fact running on our driver.</p>
