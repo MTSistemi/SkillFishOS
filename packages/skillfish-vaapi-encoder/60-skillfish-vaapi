@@ -1,0 +1,19 @@
+#!/bin/sh
+# Turn the BC-250 encoder on, but only on a BC-250.
+#
+# systemd runs this when a user session's environment is built, ON THE MACHINE
+# ITSELF, and takes whatever it prints as NAME=VALUE. That is the whole point:
+# a fixed file in /etc/environment.d would follow our images onto ordinary PCs,
+# where radeonsi and iHD provide a working VA-API and this driver - which
+# advertises encoding only - would take hardware decoding away from Firefox,
+# mpv and VLC. Here the question is asked where the answer is true.
+#
+# On the BC-250 nothing is lost: radeonsi_drv_video.so does not initialise
+# there at all, measured with --display drm --device /dev/dri/renderD128.
+[ -x /usr/local/bin/skillfish-is-bc250 ] || exit 0
+/usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1 || exit 0
+
+echo "LIBVA_DRIVER_NAME=bc250"
+# The shaders live where the library was told to look at build time; this is
+# belt and braces for a build whose prefix ever changes.
+echo "BC250_SHADER_PATH=/usr/share/bc250/shaders"

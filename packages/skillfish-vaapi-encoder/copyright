@@ -1,0 +1,30 @@
+Upstream-Name: bc250-encoding-decoding-fix
+Source: https://github.com/simpmix/bc250-encoding-decoding-fix
+
+Files: *
+Copyright: 2026 bc250-encoding-decoding-fix contributors
+License: GPL-3.0-only
+
+Files: debian/*
+Copyright: 2026 Mattia Tadini <info@mtsistemi.it>
+License: GPL-3.0-only
+
+Comment:
+ Packaged for SkillFishOS from our fork, github.com/MTSistemi/bc250-encoding-decoding-fix,
+ which carries nine fixes offered back upstream as pull requests 21 and 22:
+ the 16-bit shader features the shaders declare but nobody enabled, the buffers
+ the motion-estimation path never allocated, the rate control that was built and
+ switched off, a DC intra prediction that no decoder could reproduce, and the
+ work that took HEVC from 31 to 113 frames per second.
+
+License: GPL-3.0-only
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License version 3 as published by the Free
+ Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ .
+ On Debian systems the full text of the GNU General Public License version 3 can
+ be found in /usr/share/common-licenses/GPL-3.
