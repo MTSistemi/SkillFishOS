@@ -997,7 +997,7 @@ if [ ! -f /etc/skillfish/thermal-guard.conf ]; then
   mkdir -p /etc/skillfish
   {
     echo '# Temperatura oltre la quale la CPU viene rallentata di 100 MHz.'
-    echo 'LIMITE=85'
+    echo 'LIMITE=95'
   } > /etc/skillfish/thermal-guard.conf
 fi
 

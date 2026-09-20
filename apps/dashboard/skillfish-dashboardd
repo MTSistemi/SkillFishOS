@@ -513,10 +513,10 @@ def apply_preset(name):
         return {"ok": False, "error": "preset sconosciuto"}
     c, g, fan = pr.get("cpu", {}), pr.get("gpu", {}), pr.get("fan", {})
     cmds = [
-        {"cmd": "apply-cpu", "mhz": c.get("frequency"), "scale": c.get("scale"), "temp": c.get("max_temperature", 85)},
+        {"cmd": "apply-cpu", "mhz": c.get("frequency"), "scale": c.get("scale"), "temp": c.get("max_temperature", 95)},
         {"cmd": "apply-gpu", "minmhz": g.get("min_mhz"), "minmv": g.get("min_mv"),
          "maxmhz": g.get("max_mhz"), "maxmv": g.get("max_mv")},
-        {"cmd": "thermal-guard", "limit": pr.get("thermal_guard", 85)},
+        {"cmd": "thermal-guard", "limit": pr.get("thermal_guard", 95)},
     ]
     # ⚠️ La ventola NON si scrive piu' qui dentro quando c'e' skillfish-fand:
     # il valore fisso del preset durerebbe un secondo e poi verrebbe riscritto
@@ -1447,7 +1447,7 @@ class ProvaCpuWeb:
         try:
             cfg = (tuner_cmd([{"cmd": "get"}]).get("data") or {}).get("cpu") or {}
             tuner_cmd([{"cmd": "apply-cpu", "mhz": int(cfg.get("frequency", 3500)),
-                        "scale": int(cfg.get("scale", 0)), "temp": int(cfg.get("max_temperature", 85))}])
+                        "scale": int(cfg.get("scale", 0)), "temp": int(cfg.get("max_temperature", 95))}])
         except Exception:
             # best-effort restore after the trial: a failure here should not crash the run
             pass

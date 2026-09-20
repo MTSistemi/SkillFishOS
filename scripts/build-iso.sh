@@ -212,7 +212,7 @@ trap restore_build_env EXIT INT TERM
 # aveva trovato, e il 3700/-16 e' rimasto solo dentro gli snapshot btrfs.
 if [ -f "$OCF" ]; then
     [ -f "$OCBAK" ] || cp -f "$OCF" "$OCBAK"
-    printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 85\n' > "$OCF"
+    printf '[overclock]\nfrequency = 3500\nscale = 0\nmax_temperature = 95\n' > "$OCF"
     echo "profilo overclock: messo quello di sicurezza (3500) per la durata della build"
 fi
 

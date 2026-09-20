@@ -129,7 +129,7 @@ class Pagina(PaginaBase):
             scale = re.search(r"scale\s*=\s*(-?\d+)", t)
             temp = re.search(r"max_temperature\s*=\s*(\d+)", t)
             r = self.demone.cmd(cmd="apply-cpu", mhz=int(p["cpu"]), scale=int(scale.group(1)) if scale else 0,
-                                temp=int(temp.group(1)) if temp else 85)
+                                temp=int(temp.group(1)) if temp else 95)
             if not r.get("ok"):
                 errori.append("CPU: " + r.get("err", "?"))
         if p.get("ventola") in PRESET_VENTOLA:

@@ -659,7 +659,7 @@ class Pagina(PaginaBase):
         lim = self._limiti_cpu()
         self.cf = Manopola(lim["freq_min"], lim["freq_max"], cfg.get("frequency", 3500), "MHz")
         self.cs = Manopola(lim["scale_min"], lim["scale_max"], cfg.get("scale", 0), "", mostra=lambda s: ("−%.0f mV" % (-s * MV_PER_SCALINO)) if s else "0 mV")
-        self.ct = Manopola(max(60, lim["temp_min"]), min(95, lim["temp_max"]), cfg.get("max_temperature", 85), "°C")
+        self.ct = Manopola(max(60, lim["temp_min"]), min(95, lim["temp_max"]), cfg.get("max_temperature", 95), "°C")
         for testo, cur, aiuto in (
                 (L("Frequenza", "Clock"), self.cf, L("Il clock sotto carico. Sopra 3500 con otto core comanda il calore.", "The clock under load. Above 3500 with eight cores heat is in charge.")),
                 (L("Undervolt", "Undervolt"), self.cs, L("Scalini di 6,25 mV tolti alla CPU: meno calore, stessa frequenza, fin dove regge.", "Steps of 6.25 mV taken off the CPU: less heat, same clock, as far as it holds.")),
@@ -775,7 +775,7 @@ class Pagina(PaginaBase):
             b.setEnabled(k != "stop")
         # whatever happened, the CPU goes back to the applied values
         cfg = self._cfg().get("cpu", {})
-        self.demone.cmd(cmd="apply-cpu", mhz=cfg.get("frequency", 3500), scale=cfg.get("scale", 0), temp=cfg.get("max_temperature", 85))
+        self.demone.cmd(cmd="apply-cpu", mhz=cfg.get("frequency", 3500), scale=cfg.get("scale", 0), temp=cfg.get("max_temperature", 95))
         if fermata:
             self.et_cpu.setText(L("Fermato. Valori di prima rimessi.", "Stopped. Previous values are back."))
             return

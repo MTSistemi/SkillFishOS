@@ -351,7 +351,7 @@ function cuDaNumero(n){ let coppie=Math.max(0,Math.floor((n-24)/2)); CU_ROWS.for
 $("#cun").onchange=()=>cuDaNumero(Math.max(24,Math.min(40,+$("#cun").value||24)));
 document.querySelectorAll("[data-cun]").forEach(b=> b.onclick=()=>cuDaNumero(+b.dataset.cun));
 function fill(){ const s=STATE; const c=s.cpu||{}, cu=s.cu||{}, vr=s.vram||{};
-  setMhz(c.frequency||3500); setScale(c.scale||0); setTemp(c.max_temperature||85);
+  setMhz(c.frequency||3500); setScale(c.scale||0); setTemp(c.max_temperature||95);
   cuFloor=cu.floor!=null?cu.floor:7; cuMask=Object.assign({"0.0":31,"0.1":31,"1.0":31,"1.1":31},cu.rows||{}); renderCU();
   $("#live").textContent="CU: "+(cu.active!=null?cu.active:"–")+" / "+(cu.max!=null?cu.max:"–");
   $("#vram").value=vr.uma_mb||8192; }

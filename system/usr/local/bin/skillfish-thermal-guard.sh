@@ -26,7 +26,7 @@ APPLY=/opt/bc250_smu_oc/bc250_apply.py
 [ -f "$APPLY" ] || APPLY=/root/bc250_smu_oc/bc250_apply.py
 
 # valori di riserva, se la configurazione non c'e' o e' incompleta
-LIMITE=85          # sopra questa temperatura si scala
+LIMITE=95          # sopra questa temperatura si scala
 PASSO=100          # di quanto si scala o si risale, in MHz
 MINIMO=3500        # sotto non si scende: e' la frequenza di serie
 MARGINE=15         # quanti gradi sotto il limite serve per risalire
