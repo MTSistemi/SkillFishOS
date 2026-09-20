@@ -72,7 +72,9 @@
     font:700 .68rem 'DejaVu Sans Mono',monospace;background:rgba(216,168,73,.12);
     border:1px solid currentColor}
   .tess button.off{color:#6b5a34!important;background:rgba(216,168,73,.03)}
-  .memboard{margin-bottom:10px}
+  /* Il disegno e' piu' alto che largo da quando e' ritagliato sulla memoria:
+     sta in colonna accanto alle tessere, non in una fascia sopra a tutto. */
+  .memboard{flex:0 0 268px;max-width:268px}
   .memboard canvas{width:100%;display:block;border-radius:8px}
   .memchart{flex:1;min-width:280px}
   .memchart canvas{width:100%;height:210px;display:block}
@@ -107,8 +109,8 @@
   </div>
   <div class="card" id="mem" style="display:none">
     <h3 id="mem-tit">Memoria GDDR6</h3>
-    <div class="memboard"><canvas id="mem-board"></canvas></div>
     <div class="memrow">
+      <div class="memboard"><canvas id="mem-board"></canvas></div>
       <div class="tess" id="mem-tess"></div>
       <div class="memchart"><canvas id="mem-cv"></canvas><div class="riass" id="mem-riass"></div></div>
     </div>
@@ -263,8 +265,16 @@
   // ⚠️ QUALE SENSORE SIA QUALE CHIP RESTA IGNOTO. Le otto posizioni sono vere,
   // l'ordine in cui la SMU risponde non lo documenta nessuno. Percio' ogni chip
   // porta il suo numero e il bordo del colore della sua linea nel grafico.
+  // ⚠️ LA SCHEDA INTERA E' QUASI TUTTA VUOTA. Il PCB e' 304,66 x 139,98 mm e
+  // tutti e otto i chip stanno dentro una finestra di circa 95 x 112 mm intorno
+  // all'APU: disegnata da bordo a bordo, meta' del quadro era verde spoglio e
+  // ogni chip veniva venti pixel. Si disegna quella finestra. I bordi alto e
+  // basso della scheda ci sono ancora dentro, quindi resta un pezzo di scheda
+  // vera e non uno schema, e tutto il resto esce dai lati.
+  // ⚠️ Gli stessi quattro numeri stanno in DisegnoScheda nel Control Center.
   const MEMPIANTA = {
     w: 304.66, h: 139.98,
+    vx0: 125.0, vx1: 220.0, vy0: 4.0, vy1: 116.0,
     // x, y, larghezza, altezza, girato di 45 gradi
     mem: [[135.24, 90.33, 8.78, 11.25, 1], [159.89, 105.83, 9.75, 12.75, 0],
           [184.59, 105.83, 9.75, 12.75, 0], [209.24, 90.33, 8.78, 11.25, 1],
@@ -336,7 +346,8 @@
     const P = MEMPIANTA, dpr = window.devicePixelRatio || 1;
     const w = cv.clientWidth;
     if (!(w > 40)) return;
-    const h = Math.min(300, Math.round(w * P.h / P.w));
+    const vw = P.vx1 - P.vx0, vh = P.vy1 - P.vy0;
+    const h = Math.min(320, Math.round(w * vh / vw));
     if (cv.height !== Math.round(h * dpr) || cv.width !== Math.round(w * dpr)) {
       cv.width = Math.round(w * dpr);
       cv.height = Math.round(h * dpr);
@@ -346,11 +357,12 @@
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     x.clearRect(0, 0, w, h);
 
-    const k = Math.min((w - 4) / P.w, (h - 4) / P.h);
-    const x0 = (w - P.w * k) / 2, y0 = (h - P.h * k) / 2;
-    // da millimetri a pixel, specchiando: si guarda la scheda da sotto
-    const cx = mx => x0 + (P.w - mx) * k;
-    const cy = my => y0 + my * k;
+    const k = Math.min((w - 4) / vw, (h - 4) / vh);
+    const x0 = (w - vw * k) / 2, y0 = (h - vh * k) / 2;
+    // da millimetri a pixel, specchiando: si guarda la scheda da sotto, e lo
+    // specchio e' la stessa sottrazione del ritaglio (vx1 - mx)
+    const cx = mx => x0 + (P.vx1 - mx) * k;
+    const cy = my => y0 + (my - P.vy0) * k;
     const px = (mx, mw) => cx(mx) - mw * k / 2;
     const py = (my, mh) => cy(my) - mh * k / 2;
 
@@ -363,26 +375,28 @@
     }
 
     x.lineWidth = 1.4; x.strokeStyle = "#3a5740"; x.fillStyle = "#17241a";
-    box(P.w / 2, P.h / 2, P.w, P.h, 2.5); x.fill(); x.stroke();
+    x.fillRect(x0 - P.w * k, y0 + (0 - P.vy0) * k, P.w * 2 * k, P.h * k);
 
     x.fillStyle = "#1a2a1d";
     box(172, 60, 112, 112, 10); x.fill();
 
-    x.lineWidth = 1; x.strokeStyle = "#3a5740"; x.fillStyle = "#0d140f";
-    P.buchi.forEach(([mx, my, r]) => {
-      x.beginPath(); x.arc(cx(mx), cy(my), r * k, 0, Math.PI * 2); x.fill(); x.stroke();
-    });
-
     // l'altra faccia, solo di contorno: sta dietro la scheda, non sopra
     x.setLineDash([3, 3]); x.strokeStyle = "#4d6e56";
-    [...P.lontani.map(l => [l[0], l[1], l[2], l[3]]), P.apu, P.fch]
+    [...P.lontani.map(l => [l[0], l[1], l[2], l[3]]), P.fch]
       .forEach(([mx, my, mw, mh]) => { box(mx, my, mw, mh, 0.8); x.stroke(); });
+    // L'APU e' cio' intorno a cui stanno tutti e otto - fra 47,6 e 48,0 mm dal
+    // suo centro - e da riquadro vuoto era la cosa piu' pallida del disegno che
+    // spiega. Riempito, ma scuro e tratteggiato: resta sull'altra faccia.
+    x.fillStyle = "#0b140f"; x.strokeStyle = "#6d8f74"; x.lineWidth = 1.2;
+    box(P.apu[0], P.apu[1], P.apu[2], P.apu[3], 0.8); x.fill(); x.stroke();
     x.setLineDash([]);
 
     x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = "700 " + Math.max(8, 4.0 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    x.fillStyle = "#6d8f74";
+    x.fillText("APU", cx(P.apu[0]), cy(P.apu[1]));
     x.font = Math.max(7, 3.2 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
     x.fillStyle = "#4d6e56";
-    x.fillText("APU", cx(P.apu[0]), cy(P.apu[1]));
     P.lontani.forEach(([mx, my, , , et]) => { if (et) x.fillText(et, cx(mx), cy(my)); });
 
     x.fillStyle = "#25352a";
@@ -390,7 +404,9 @@
       x.fillRect(px(mx, mw), py(my, mh), mw * k, mh * k));
 
     // la memoria: il pieno dice quanto scalda, il bordo dice quale chip e'
-    x.font = "700 " + Math.max(7, 3.0 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    x.font = "700 " + Math.max(8, 3.8 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    // il punto caldo e' il numero che la scheda grida in alto: qui si dice QUALE
+    const caldo = gradi && gradi.length ? Math.max(...gradi.filter(v => v != null)) : null;
     P.mem.forEach(([mx, my, mw, mh, girato], i) => {
       const c = (gradi && gradi.length > i) ? gradi[i] : null;
       x.save();
@@ -400,10 +416,18 @@
       if (x.roundRect) x.roundRect(-mw * k / 2, -mh * k / 2, mw * k, mh * k, 0.7 * k);
       else x.rect(-mw * k / 2, -mh * k / 2, mw * k, mh * k);
       x.fillStyle = memTinta(c);
-      x.globalAlpha = c == null ? 0.18 : 0.62;
+      x.globalAlpha = c == null ? 0.18 : 0.78;
       x.fill();
       x.globalAlpha = 1;
       x.lineWidth = 1.6; x.strokeStyle = MEMCOL[i]; x.stroke();
+      if (c != null && c === caldo) {
+        x.globalAlpha = 0.28; x.lineWidth = 5;
+        x.beginPath();
+        if (x.roundRect) x.roundRect(-mw * k / 2 - 3, -mh * k / 2 - 3, mw * k + 6, mh * k + 6, 0.9 * k);
+        else x.rect(-mw * k / 2 - 3, -mh * k / 2 - 3, mw * k + 6, mh * k + 6);
+        x.stroke();
+        x.globalAlpha = 1;
+      }
       x.restore();
       // il numero resta dritto anche dove il chip e' girato
       x.fillStyle = c == null ? "#6b5a34" : "#f0e6d2";

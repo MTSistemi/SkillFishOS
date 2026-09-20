@@ -19,7 +19,7 @@ import subprocess
 import time
 
 from PyQt6.QtCore import Qt, QRectF, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPen
+from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen
 from PyQt6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
                              QMessageBox, QPushButton, QScrollArea, QSlider, QVBoxLayout,
                              QWidget)
@@ -45,7 +45,15 @@ GRAFICI = [
         ("tetto", ("Tetto GPU", "GPU ceiling"), "#9a7a3a")], 0, None),
     ("load", ("Carico", "Load"), "%", [
         ("cpu_load", "CPU", "#5fd24f"), ("gpu_load", "GPU", "#49b6e0")], 0, 100),
-    ("power", ("Potenza", "Power"), "W", [("gpu_w", "GPU", stile.VIOLA)], 0, None),
+    # ⚠️ TRE LINEE, E QUELLA DI MEZZO PRIMA ERA L'UNICA - CON IL NOME SBAGLIATO.
+    # Quella che questo grafico chiamava "GPU" era power1_average, che su questo
+    # APU e' il consumo di TUTTO il pacchetto: 29,6 W a riposo contro i 4,1 W che
+    # la grafica tira davvero. La tabella metriche della SMU li tiene separati, e
+    # quale campo sia quale lo abbiamo misurato caricando un core alla volta
+    # invece di fidarci di un'intestazione.
+    ("power", ("Potenza", "Power"), "W", [
+        ("apu_w", "APU", stile.OTTONE), ("cpu_w", "CPU", "#9bd24f"),
+        ("gpu_w", "GPU", stile.COL_VOLT)], 0, None),
     ("volt", ("Tensioni", "Voltages"), "mV", [
         ("gpu_mv", "GPU", stile.COL_VOLT), ("soc_mv", "SoC", "#e8a878")], None, None),
     ("fan", ("Ventola", "Fan"), "rpm", [("fan", ("Giri", "Speed"), stile.COL_RPM)], 0, None),
@@ -54,9 +62,38 @@ GRAFICI = [
         ("gtt_used", "GTT", "#b06a3a")], 0, None),
 ]
 REC_KEYS = [k for _g, _t, _u, serie, _lo, _hi in GRAFICI for k, _e, _c in serie]
+# ⚠️ Le registrazioni vecchie chiamavano "gpu_w" il consumo del pacchetto. Da
+# oggi quel nome vuol dire la GPU e basta, quindi una registrazione di prima
+# riaperta qui mostrerebbe 30 W sulla linea della GPU. Non si puo' indovinare
+# quale delle due cose sia un file vecchio, e riscrivere la storia e' peggio:
+# resta scritto qui.
 # names the first Monitor used in its .sfmon files
 VECCHI_NOMI = {"gpu_util": "gpu_load", "gpu_freq": "gpu_mhz", "gpu_power": "gpu_w", "vram": "vram_used"}
 _TOPO = {}
+
+
+# La tabella metriche della SMU: i tre consumi, ciascuno al suo posto.
+# Millesimi di watt, e 65535 vuol dire "non lo dichiaro" - mai da stampare come
+# 65 watt. Gli offset sono misurati, non letti in un'intestazione: vedi
+# skillfish-hud-val per come.
+METRICHE = "/sys/class/drm/card0/device/gpu_metrics"
+METRICHE_W = {"apu_w": 40, "cpu_w": 44, "gpu_w": 46}
+
+
+def potenze():
+    """{apu_w, cpu_w, gpu_w} in watt, per quel che la scheda dichiara."""
+    fuori = {}
+    try:
+        with open(METRICHE, "rb") as fh:
+            d = fh.read()
+    except OSError:
+        return fuori
+    for chiave, offset in METRICHE_W.items():
+        if offset + 2 <= len(d):
+            v = int.from_bytes(d[offset:offset + 2], "little")
+            if v != 0xFFFF:
+                fuori[chiave] = v / 1000.0
+    return fuori
 
 
 def _mb(path):
@@ -152,6 +189,10 @@ def leggi_tutto():
                 v["gpu_load"] = float(fh.read().strip())
         except Exception:
             v["gpu_load"] = None
+    # I tre consumi separati vincono su qualunque ripiego: il battito e
+    # power1_average danno tutti e due il pacchetto intero.
+    v.update(potenze())
+    v.setdefault("apu_w", v.get("gpu_w"))
     v["gpu_mv"] = hwmon_valore("amdgpu", "in0_input")
     v["soc_mv"] = hwmon_valore("amdgpu", "in1_input")
     # the one real fan: the first that turns
@@ -314,6 +355,16 @@ class Campionatore(QThread):
 GDDR6_HELPER = "/usr/local/bin/skillfish-gddr6-helper"
 GDDR6_SNAPSHOT = "/run/bc250-memory/telemetry"
 GDDR6_CHIP = 8
+# ⚠️ THE CHART IS NOT EIGHT LINES, AND THAT IS THE POINT. Eight lines need eight
+# identity colours, and this card already spends colour on something else: how
+# hot a chip is. Chip 0 would have been green in the drawing, green in its tile
+# and pale brass in the chart - two colour languages for the same eight things,
+# in a card the size of a postcard. So the chart shows the SPREAD: hottest,
+# average, coldest. Which chip is which is what the drawing and the tiles are
+# for; where they are all heading is what this is for.
+GDDR6_SPREAD = [("max", ("Max", "Max"), "#e8703a"),
+                ("avg", ("Media", "Average"), "#d8a849"),
+                ("min", ("Min", "Min"), "#8a6a2a")]
 
 
 def gddr6_disponibile():
@@ -356,6 +407,19 @@ def gddr6_stato():
         return {}
 
 
+def _microtitolo(testo):
+    """The spaced-out small caps that separate one block from the next.
+
+    Borrowed from the dashboards Mattia pointed at: a line of text at 10 px with
+    letters pushed apart reads as a divider rather than as something to read, and
+    it costs a row instead of a box with a border.
+    """
+    e = QLabel(testo.upper())
+    e.setStyleSheet("color:%s;font-size:10px;font-weight:bold;letter-spacing:2px;"
+                    "border:none;" % stile.TESTO_3)
+    return e
+
+
 def colore_temp(c):
     """Blue when cold, green when normal, yellow when hot, red when too hot.
 
@@ -387,8 +451,54 @@ def colore_temp(c):
     return QColor(fermate[-1][1])
 
 
+class BarraChip(QWidget):
+    """A thin track with a fill: where this chip sits between cool and hot.
+
+    A bar that is simply the chip's colour says the same thing the number above
+    it already says. One that FILLS says something new - how much room is left
+    before it matters - and you read eight of them without reading eight
+    numbers. The ends are the range worth caring about on this board: 25 °C is
+    colder than it ever idles, 85 °C is past anything measured under load.
+    """
+
+    FREDDO, CALDO = 25.0, 85.0
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.frazione = 0.0
+        self.colore = QColor(stile.GRIGLIA)
+        self.setFixedHeight(4)
+
+    def imposta(self, gradi, colore):
+        if gradi is None:
+            self.frazione, self.colore = 0.0, QColor(stile.GRIGLIA)
+        else:
+            campo = self.CALDO - self.FREDDO
+            self.frazione = max(0.0, min(1.0, (gradi - self.FREDDO) / campo))
+            self.colore = QColor(colore)
+        self.update()
+
+    def paintEvent(self, _e):
+        p = QPainter()
+        if not p.begin(self):
+            return
+        try:
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            w, h = self.width(), self.height()
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(stile.GRIGLIA))
+            p.drawRoundedRect(QRectF(0, 0, w, h), h / 2.0, h / 2.0)
+            if self.frazione > 0:
+                p.setBrush(self.colore)
+                p.drawRoundedRect(QRectF(0, 0, max(h, w * self.frazione), h),
+                                  h / 2.0, h / 2.0)
+        finally:
+            if p.isActive():
+                p.end()
+
+
 class TesseraChip(QFrame):
-    """One memory chip: its number, its temperature, a bar in its own colour."""
+    """One memory chip: its number, its temperature, how far along it is."""
 
     def __init__(self, indice, parent=None):
         super().__init__(parent)
@@ -397,9 +507,17 @@ class TesseraChip(QFrame):
         self.caldo = False
         self.setObjectName("tessera")
         self.setMinimumWidth(78)
+        # ⚠️ A CEILING AS WELL AS A FLOOR. Beside the drawing these get half the
+        # card between four of them, and a tile stretched to 300 pixels is a
+        # number in one corner, a number in the other and a lot of nothing in
+        # between.
+        self.setMaximumWidth(210)
+        # And a height: four tiles stretched down the side of a tall drawing are
+        # four numbers with a hand's width of nothing under each.
+        self.setMaximumHeight(46)
         v = QVBoxLayout(self)
-        v.setContentsMargins(8, 4, 8, 5)
-        v.setSpacing(1)
+        v.setContentsMargins(9, 4, 9, 5)
+        v.setSpacing(3)
         r = QHBoxLayout()
         r.setSpacing(5)
         self.nome = QLabel("%d" % indice)
@@ -408,8 +526,7 @@ class TesseraChip(QFrame):
         r.addStretch(1)
         r.addWidget(self.valore)
         v.addLayout(r)
-        self.barra = QFrame()
-        self.barra.setFixedHeight(3)
+        self.barra = BarraChip()
         v.addWidget(self.barra)
         self.aggiorna(None, False)
 
@@ -423,8 +540,7 @@ class TesseraChip(QFrame):
                                   % (col.name() if gradi is not None else stile.TESTO_2))
         # The bar is the whole legend: no colour key anywhere, because the number
         # and its colour sit in the same tile.
-        self.barra.setStyleSheet("background:%s;border:none;border-radius:2px;"
-                                 % (col.name() if gradi is not None else stile.GRIGLIA))
+        self.barra.imposta(gradi, col)
         self.setStyleSheet(
             "QFrame#tessera{border:1px solid %s;border-radius:6px;background:%s;}"
             % (col.name() if caldo else stile.SCHEDA_BORDO,
@@ -537,32 +653,32 @@ class DisegnoScheda(QWidget):
     RAME = "#1a2a1d"
     LONTANO = "#4d6e56"
 
-    # past this the board eats the page: it is 2.18 times wider than it is tall,
-    # so a card 800 wide would otherwise want 370 pixels of height for it alone.
-    ALTEZZA_MAX = 300
+    # ⚠️ THE WHOLE BOARD IS MOSTLY EMPTY, AND DRAWING IT ALL MADE THE CHIPS TINY.
+    # The PCB is 304.66 x 139.98 mm and every memory package sits inside a window
+    # of about 95 x 112 mm around the APU: drawn end to end, more than half the
+    # picture was bare green and each chip came out twenty pixels across. This is
+    # the window we actually draw. The board's own top and bottom edges are still
+    # in it, so it still reads as a piece of a real board rather than a diagram,
+    # and everything outside simply falls off the sides.
+    VISTA_X0, VISTA_X1 = 125.0, 220.0
+    VISTA_Y0, VISTA_Y1 = 4.0, 116.0
+
+    # past this the drawing eats the card
+    # ⚠️ THE SHAPE CHANGED WITH THE CROP, AND SO DID WHO DECIDES IT. The whole
+    # board was wider than tall and sat above the tiles, so the widget took its
+    # height from the width it was handed. The window round the memory is TALLER
+    # than wide and now sits beside the tiles, so it is the height that is fixed
+    # and the width follows from it - the tiles take whatever is left. Leaving
+    # the old heightForWidth in place collapsed the drawing to nothing in a
+    # horizontal layout, which is exactly what it did the first time.
+    ALTEZZA = 320
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.gradi = []
-        self.setMinimumHeight(150)
-
-    def heightForWidth(self, larghezza):
-        return min(self.ALTEZZA_MAX,
-                   int(max(0, larghezza - 8) * self.ALTO / self.LARGO) + 8)
-
-    def resizeEvent(self, e):
-        """Keep the widget the shape of the board it draws.
-
-        ⚠️ A QVBoxLayout only honours heightForWidth for a widget whose size
-        policy declares it, and setting that policy laid the card out at the
-        minimum height anyway: the board came out a third of the width it had
-        room for. Taking the height from the width we were given is one line and
-        always works.
-        """
-        super().resizeEvent(e)
-        voluta = self.heightForWidth(self.width())
-        if voluta > 0 and self.height() != voluta:
-            self.setFixedHeight(voluta)
+        largo = int(round(self.ALTEZZA * (self.VISTA_X1 - self.VISTA_X0)
+                          / (self.VISTA_Y1 - self.VISTA_Y0)))
+        self.setFixedSize(largo + 8, self.ALTEZZA)
 
     def aggiorna(self, gradi):
         self.gradi = gradi or []
@@ -577,17 +693,23 @@ class DisegnoScheda(QWidget):
             return
         try:
             p.setRenderHint(QPainter.RenderHint.Antialiasing)
-            k = min((w - 8) / self.LARGO, (h - 8) / self.ALTO)
-            x0 = (w - self.LARGO * k) / 2.0
-            y0 = (h - self.ALTO * k) / 2.0
+            vw = self.VISTA_X1 - self.VISTA_X0
+            vh = self.VISTA_Y1 - self.VISTA_Y0
+            k = min((w - 8) / vw, (h - 8) / vh)
+            x0 = (w - vw * k) / 2.0
+            y0 = (h - vh * k) / 2.0
 
             def rett(mx, my, mw, mh):
                 """A part's box in pixels, seen from the underside.
 
-                ⚠️ LARGO - mx, because this is the back of the board.
+                ⚠️ MIRRORED, because this is the back of the board. The mirror
+                and the crop are the same subtraction: VISTA_X1 - mx puts the
+                right-hand edge of the window at screen x zero and flips the
+                board in one go. Do it twice, or forget it once, and you get the
+                front with the wrong parts on it - which looks perfectly fine.
                 """
-                cx = self.LARGO - mx
-                return QRectF(x0 + (cx - mw / 2.0) * k, y0 + (my - mh / 2.0) * k,
+                return QRectF(x0 + (self.VISTA_X1 - mx - mw / 2.0) * k,
+                              y0 + (my - self.VISTA_Y0 - mh / 2.0) * k,
                               mw * k, mh * k)
 
             def penna(colore, spessore=1.0, tratteggio=False):
@@ -598,6 +720,7 @@ class DisegnoScheda(QWidget):
                 return q
 
             self._pcb(p, rett, penna, k, x0, y0)
+            self._dissipatore(p, rett, penna, k)
             self._lontani(p, rett, penna, k)
             self._minuteria(p, rett)
             self._memoria(p, rett, penna, k)
@@ -610,33 +733,86 @@ class DisegnoScheda(QWidget):
     # ------------------------------------------------------------------ pieces
 
     def _pcb(self, p, rett, penna, k, x0, y0):
+        # The slab runs off both sides of the window on purpose: what is left is
+        # a piece of board with its real top and bottom edges, not a floating
+        # rectangle. Qt clips the rest.
         p.setPen(penna(self.PCB_BORDO, 1.4))
         p.setBrush(QColor(self.PCB))
-        p.drawRoundedRect(QRectF(x0, y0, self.LARGO * k, self.ALTO * k),
-                          2.5 * k, 2.5 * k)
+        p.drawRect(QRectF(x0 - self.LARGO * k, y0 + (0 - self.VISTA_Y0) * k,
+                          self.LARGO * 2 * k, self.ALTO * k))
 
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(self.RAME))
         p.drawRoundedRect(rett(172.0, 60.0, 112.0, 112.0), 10 * k, 10 * k)
 
-        p.setPen(penna(self.PCB_BORDO, 1.0))
-        p.setBrush(QColor("#0d140f"))
-        for mx, my, r in self.BUCHI:
-            p.drawEllipse(rett(mx, my, r * 2, r * 2))
+    def _dissipatore(self, p, rett, penna, k):
+        """The cooler: a ghost, on the other face, centred on the die.
+
+        ⚠️ IT IS DRAWN FROM THE ONE THING WE KNOW ABOUT IT - that it sits over
+        the APU - and from nothing else. The CAD has 2163 components and not one
+        of them is the heatsink or the fan: they are mechanical parts, bolted on
+        top, and there is no file here that says how big they are. So this is an
+        illustration of something real in a place that is right, drawn dashed
+        and behind everything else like the rest of the far face. It must never
+        become a measurement: the last time this drawing implied geometry it did
+        not have, it showed a board that does not exist.
+        """
+        ax, ay, _aw, _ah = self.APU
+        centro = rett(ax, ay, 0, 0).center()
+        # Wide enough that the die sits inside it: the APU is 42.4 mm square, so
+        # its corners reach 30 mm from the centre and a 31 mm cooler would be
+        # hidden behind the very thing it sits on.
+        raggio = 37.0 * k
+
+        p.setBrush(QColor(20, 33, 24))
+        p.setPen(penna("#5c7f66", 1.3, True))
+        p.drawEllipse(centro, raggio, raggio)
+
+        # the blades: an arc each, swept the way a blower's are
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(penna("#587a61", 1.6))
+        for i in range(9):
+            cammino = QPainterPath()
+            a0 = math.radians(i * 40.0)
+            a1 = a0 + math.radians(30.0)
+            r0, r1 = raggio * 0.34, raggio * 0.95
+            cammino.moveTo(centro.x() + r0 * math.cos(a0), centro.y() + r0 * math.sin(a0))
+            cammino.quadTo(centro.x() + raggio * 0.72 * math.cos(a0),
+                           centro.y() + raggio * 0.72 * math.sin(a0),
+                           centro.x() + r1 * math.cos(a1),
+                           centro.y() + r1 * math.sin(a1))
+            p.drawPath(cammino)
+
+        p.setPen(penna("#5c7f66", 1.3))
+        p.setBrush(QColor(26, 42, 31))
+        p.drawEllipse(centro, raggio * 0.26, raggio * 0.26)
 
     def _lontani(self, p, rett, penna, k):
-        """The far face, in outline only: it is behind the board, not on it."""
+        """The far face: outline only, because it is behind the board.
+
+        The APU is the exception. It is what every one of these chips is arranged
+        around - all eight sit between 47.6 and 48.0 mm from its centre, which is
+        four tenths of a millimetre of difference across the lot - and as an
+        empty dashed box it was the faintest thing in a picture it explains. It
+        gets a fill now, still dashed and still in the far-side colour, so it
+        stays on the other face without disappearing.
+        """
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(penna(self.LONTANO, 1.0, True))
         for mx, my, mw, mh, _et in self.LONTANI:
             p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
-        for mx, my, mw, mh in (self.APU, self.FCH):
-            p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
+        p.drawRoundedRect(rett(*self.FCH), 0.8 * k, 0.8 * k)
+        p.setBrush(QColor(11, 20, 15))
+        p.setPen(penna("#6d8f74", 1.2, True))
+        p.drawRoundedRect(rett(*self.APU), 0.8 * k, 0.8 * k)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(penna(self.LONTANO, 1.0, True))
 
         f = QFont()
-        f.setPointSizeF(max(5.5, 3.2 * k))
+        f.setPointSizeF(max(6.5, 4.0 * k))
+        f.setBold(True)
         p.setFont(f)
-        p.setPen(QColor(self.LONTANO))
+        p.setPen(QColor(self.SERIGRAFIA))
         mx, my, mw, mh = self.APU
         p.drawText(rett(mx, my, mw, mh), Qt.AlignmentFlag.AlignCenter, "APU")
         for mx, my, mw, mh, et in self.LONTANI:
@@ -652,19 +828,30 @@ class DisegnoScheda(QWidget):
 
     def _memoria(self, p, rett, penna, k):
         f = QFont()
-        f.setPointSizeF(max(5.0, 3.0 * k))
+        f.setPointSizeF(max(6.0, 3.8 * k))
         f.setBold(True)
+        # The hotspot is the one number the header shouts; the drawing is where
+        # you look next to find out WHICH one it is, so it says so rather than
+        # leaving you to compare eight fills by eye.
+        validi = [g for g in self.gradi if g is not None]
+        caldo = max(validi) if validi else None
         for i, (mx, my, mw, mh, girato) in enumerate(self.MEMORIA):
             gradi = self.gradi[i] if i < len(self.gradi) else None
             col = colore_temp(gradi)
             riempi = QColor(col)
-            riempi.setAlpha(150 if gradi is not None else 40)
+            riempi.setAlpha(190 if gradi is not None else 40)
             p.save()
             p.translate(rett(mx, my, 0, 0).center())
             if girato:
                 p.rotate(45)
             corpo = QRectF(-mw * k / 2.0, -mh * k / 2.0, mw * k, mh * k)
-            p.setPen(penna(col.name(), 1.4))
+            if gradi is not None and gradi == caldo:
+                alone = QColor(col)
+                alone.setAlpha(70)
+                p.setPen(QPen(alone, 5.0))
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                p.drawRoundedRect(corpo.adjusted(-3, -3, 3, 3), 0.9 * k, 0.9 * k)
+            p.setPen(penna(col.name(), 2.0 if gradi is not None and gradi == caldo else 1.4))
             p.setBrush(riempi)
             p.drawRoundedRect(corpo, 0.7 * k, 0.7 * k)
             p.restore()
@@ -681,19 +868,19 @@ class SchedaGddr6(stile.Scheda):
         super().__init__(L("GDDR6 · Memoria", "GDDR6 · Memory"), L(
             "La temperatura la misurano otto sensori dentro i chip di memoria, e si "
             "leggono passando dalla SMU. Per questo non è un sensore sempre acceso: "
-            "interrogarla a lungo la pianta, e la SMU è la stessa che regge frequenze "
-            "e tensioni. La lettura si accende quando serve, dura al massimo dieci "
-            "minuti e si chiude da sola. Il disegno è la scheda vista dal lato "
+            "la SMU è la stessa che regge frequenze e tensioni, e si interroga solo "
+            "quando serve davvero. La lettura la accendi e la spegni tu, e resta "
+            "accesa finché non la fermi. Il disegno è la scheda vista dal lato "
             "memoria, cioè da dietro: i chip stanno sul retro e l'APU sul davanti, "
             "tratteggiato perché sta sull'altra faccia. Le otto posizioni sono quelle "
             "vere, prese dal boardview della scheda. Quale sensore sia quale chip "
             "invece non è ancora misurato: il numero è l'ordine in cui risponde la "
             "SMU.",
             "Eight sensors inside the memory chips measure this, and they answer only "
-            "through the SMU. That is why it is not a sensor that stays on: polling it "
-            "for long wedges the SMU, which is also the chip that holds clocks and "
-            "voltages. The reading starts when needed, lasts ten minutes at most and "
-            "closes itself. The drawing is the board seen from the memory side, that "
+            "through the SMU. That is why it is not a sensor that stays on: the SMU is "
+            "also the chip that holds clocks and voltages, so it is asked only when "
+            "there is a reason to. You start the reading and you stop it, and it stays "
+            "on until you do. The drawing is the board seen from the memory side, that "
             "is from behind: the chips are on the back and the APU on the front, "
             "dashed because it sits on the other face. The eight positions are the "
             "real ones, taken from the board's own boardview. Which sensor is which "
@@ -713,9 +900,23 @@ class SchedaGddr6(stile.Scheda):
         testa.addWidget(self.badge)
         self.aggiungi(testa)
 
+        # ⚠️ SIDE BY SIDE, NOT STACKED. The board is a tall window now that it is
+        # cropped to the memory, and the eight tiles are a column of small
+        # numbers: one under the other left the card with a wide empty strip
+        # beside each of them. Together they fill the width, and the drawing gets
+        # the height it needs for the chips to be worth looking at.
+        mezzo = QHBoxLayout()
+        mezzo.setSpacing(14)
         self.disegno = DisegnoScheda()
-        self.aggiungi(self.disegno)
+        mezzo.addWidget(self.disegno, 0)
 
+        # Right of the drawing: the eight tiles four across, and under them the
+        # same eight as lines over time. The tiles say where each chip is now,
+        # the chart says where they are going - and the space beside a drawing
+        # this tall was empty without it.
+        destra = QVBoxLayout()
+        destra.setSpacing(8)
+        destra.addWidget(_microtitolo(L("Chip", "Chips")))
         griglia = QGridLayout()
         griglia.setSpacing(6)
         self.tessere = []
@@ -723,7 +924,14 @@ class SchedaGddr6(stile.Scheda):
             t = TesseraChip(i)
             griglia.addWidget(t, i // 4, i % 4)
             self.tessere.append(t)
-        self.aggiungi(griglia)
+        destra.addLayout(griglia)
+        destra.addWidget(_microtitolo(L("Nel tempo", "Over time")))
+        self.grafico = GraficoUnita(
+            "", "°C", [(k, L(*e), c) for k, e, c in GDDR6_SPREAD])
+        self.grafico.setMinimumHeight(150)
+        destra.addWidget(self.grafico, 1)
+        mezzo.addLayout(destra, 1)
+        self.aggiungi(mezzo)
 
         basso = QHBoxLayout()
         self.b = QPushButton("")
@@ -782,6 +990,13 @@ class SchedaGddr6(stile.Scheda):
         for i, t in enumerate(self.tessere):
             v = gradi[i] if i < len(gradi) else None
             t.aggiorna(v, bool(gradi) and v == caldo)
+        # Only feed the chart while the reading is on. Pushing nothing would
+        # draw a flat line through the gap and make a reading that was off look
+        # like a board that stopped changing.
+        if gradi:
+            self.grafico.campiona(time.time(),
+                                  {"max": max(gradi), "min": min(gradi),
+                                   "avg": round(sum(gradi) / float(len(gradi)), 1)})
 
 
 class Pagina(PaginaBase):

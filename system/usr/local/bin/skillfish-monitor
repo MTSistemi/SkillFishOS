@@ -137,19 +137,52 @@ def L(it, en):
     if LANG == "uk": return UK.get(en) or _TR(en)
     return _TR(en)
 
-# Chart spec: (title_it, title_en, unit, [(label, color, key)...]). Drives both
-# the live charts and the recording/viewer columns.
+# ⚠️ ONE COLOUR PER THING, IN EVERY CHART. The CPU used to be pale brass in the
+# temperature chart, green in the load one, yellow-green in the frequency one and
+# salmon in the voltage one, and the GPU changed just as often. Six charts are
+# read together - "the clock dropped, did the power go with it?" - and a line
+# that changes colour from one box to the next makes you re-read the legend every
+# time instead of following it with your eye.
+CPU_COL = "#9bd24f"    # green
+GPU_COL = "#49b6e0"    # blue
+FAN_COL = "#d8a849"    # brass, and the only thing that wears it
+
+# Chart spec: (title, unit, [(label, color, key)...], minimo, da_zero). Drives
+# both the live charts and the recording/viewer columns.
+#
+# ⚠️ `minimo` IS THE SMALLEST SPAN THE Y AXIS MAY SHOW, and it is what keeps a
+# steady machine from looking like a rollercoaster. The fan sat between 1380 and
+# 1410 RPM and filled the whole box with a 30 RPM wobble; load autoscaled 0-4%
+# and made an idle desktop look busy. Without a floor under the span, the less a
+# value moves the more dramatic it looks - which is precisely backwards.
+#
+# `da_zero` pins the bottom of the axis to zero, for the quantities where the
+# distance from nothing is the point: a fan at 1400 out of 2000 says something,
+# a fan at 1400 on a 1380-1410 axis says nothing at all.
 CHARTS = [
-    (L("Temperatura", "Temperature"), "°C", [("CPU", "#e8c878", "cpu_temp"), ("GPU", "#e07b39", "gpu_temp")]),
-    (L("Carico", "Load"), "%", [("CPU", "#5fd24f", "cpu_load"), ("GPU", "#49b6e0", "gpu_util")]),
-    (L("Frequenza", "Frequency"), "MHz", [("CPU", "#9bd24f", "cpu_mhz"), ("GPU", "#49b6e0", "gpu_freq")]),
-    (L("Potenza", "Power"), "W", [("GPU", "#e0d24f", "gpu_power")]),
-    (L("Voltaggio", "Voltage"), "mV", [("GPU", "#c98be0", "gpu_mv"), ("CPU", "#e8a878", "cpu_mv")]),
-    (L("Ventola", "Fan"), "RPM", [("FAN", "#d8a849", "fan")]),
+    (L("Temperatura", "Temperature"), "°C",
+     [("CPU", CPU_COL, "cpu_temp"), ("GPU", GPU_COL, "gpu_temp")], 20.0, False),
+    (L("Carico", "Load"), "%",
+     [("CPU", CPU_COL, "cpu_load"), ("GPU", GPU_COL, "gpu_util")], 100.0, True),
+    (L("Frequenza", "Frequency"), "MHz",
+     [("CPU", CPU_COL, "cpu_mhz"), ("GPU", GPU_COL, "gpu_freq")], 1000.0, True),
+    # ⚠️ THREE LINES, AND THE MIDDLE ONE USED TO BE THE ONLY ONE - WEARING THE
+    # WRONG NAME. What this chart called "GPU" was power1_average, which on this
+    # APU is the whole package: 29.6 W at idle against the 4.1 W the graphics
+    # actually draw. The SMU metrics table has them apart, and which field is
+    # which we measured by loading one core at a time rather than trusting a
+    # header. See skillfish-hud-val.
+    (L("Potenza", "Power"), "W",
+     [("APU", FAN_COL, "apu_power"), ("CPU", CPU_COL, "cpu_power"),
+      ("GPU", GPU_COL, "gpu_power")], 40.0, True),
+    (L("Voltaggio", "Voltage"), "mV",
+     [("GPU", GPU_COL, "gpu_mv"), ("CPU", CPU_COL, "cpu_mv")], 300.0, False),
+    (L("Ventola", "Fan"), "RPM",
+     [("FAN", FAN_COL, "fan")], 800.0, True),
 ]
 # recording column order (besides the leading t_sec)
 REC_KEYS = ["cpu_temp", "gpu_temp", "cpu_load", "gpu_util", "cpu_mhz", "gpu_freq",
-            "gpu_power", "gpu_mv", "cpu_mv", "fan", "vram"]
+            "apu_power", "cpu_power", "gpu_power", "gpu_mv", "cpu_mv", "fan", "vram"]
 
 
 def _num(s):
@@ -169,13 +202,21 @@ def _nice_step(raw):
     return (1 if n <= 1 else 2 if n <= 2 else 2.5 if n <= 2.5 else 5 if n <= 5 else 10) * mag
 
 
-def _nice_scale(lo, hi, ticks=4):
+def _nice_scale(lo, hi, ticks=4, minimo=0.0, da_zero=False):
     """Snap an axis to human numbers (0/1000/2000, not -160/1394/2948).
 
     Two rules beyond plain rounding: zero becomes the floor when the data sits
     near it (a MHz or RPM chart must never show a negative baseline), and the
     step is taken from the *unpadded* range, otherwise the padding inflates the
-    step and a 3992 MHz peak ends up on a 0-6000 axis."""
+    step and a 3992 MHz peak ends up on a 0-6000 axis.
+
+    ⚠️ `minimo` IS THE POINT OF THIS FUNCTION AS MUCH AS THE ROUNDING IS. The
+    dead-flat guard below only catches a line that never moves at all; a fan
+    wandering 30 RPM around 1400 passed it and got the whole box to itself, so
+    the steadiest thing on the board looked like the most agitated. Each chart
+    says how small a span still means "nothing is happening here", and the axis
+    never goes below it.
+    """
     # a dead-flat series must not get a wildly zoomed axis: 800/800 MHz would
     # otherwise be drawn on a 799.8-801.2 scale, amplifying nothing into noise
     if hi - lo < max(1e-9, abs(hi) * 0.005):
@@ -184,6 +225,18 @@ def _nice_scale(lo, hi, ticks=4):
         else:
             band = abs(hi) * 0.05
             lo, hi = hi - band, hi + band
+    if da_zero:
+        # The distance from nothing is the point, so the floor is nothing.
+        lo = 0.0
+        if hi <= minimo:
+            # The floor is doing the work: hand back exactly that, with no
+            # padding on top. A load chart has to read 0 to 100 and not 0 to 125.
+            return 0.0, minimo, _nice_step(minimo / float(max(1, ticks)))
+    elif minimo > 0 and (hi - lo) < minimo:
+        # Grow around the middle of what the data does, so the line keeps its
+        # place instead of jumping about when the axis widens.
+        centro = (hi + lo) / 2.0
+        lo, hi = centro - minimo / 2.0, centro + minimo / 2.0
     nonneg = lo >= 0
     if nonneg and lo < (hi - lo):
         lo = 0.0
@@ -352,9 +405,13 @@ class CoreBars(QWidget):
 
 class Chart(QWidget):
     """Live (rolling) or static (full recording + scrubber) line chart, brass look."""
-    def __init__(self, title, unit, series):
+    def __init__(self, title, unit, series, minimo=0.0, da_zero=False):
         super().__init__()
         self.title = title; self.unit = unit; self.series = series  # [(label,color,key)]
+        # The smallest span the y axis may show, and whether it starts at zero.
+        # See _nice_scale: without a floor under the span, the steadier a value
+        # is the more agitated it looks.
+        self.minimo = minimo; self.da_zero = da_zero
         self.data = [collections.deque(maxlen=240) for _ in series]
         self.static = False           # viewer mode
         self.times = []               # x axis (seconds) in static mode
@@ -427,7 +484,8 @@ class Chart(QWidget):
                     for v in d if v is not None]
             if not allv:
                 return
-            lo, hi, astep = _nice_scale(min(allv), max(allv), 4)   # padding included
+            lo, hi, astep = _nice_scale(min(allv), max(allv), 4,
+                                        self.minimo, self.da_zero)   # padding included
             span = (hi - lo) or 1.0
             fv = QFont("DejaVu Sans Mono"); fv.setPointSize(9); fv.setBold(True)
             # y axis: gridlines with their value, so the scale is readable
@@ -664,7 +722,7 @@ class GddrPanel(QWidget):
         self.setStyleSheet("QWidget{background:#120f09;border:1px solid rgba(216,168,73,.31);"
                            "border-radius:14px;} QLabel{border:none;}")
         serie = [("chip %d" % i, GDDR6_COLORI[i], "chip%d" % i) for i in range(GDDR6_CHIP)]
-        self.chart = Chart(L("Memoria GDDR6", "GDDR6 memory"), "°C", serie)
+        self.chart = Chart(L("Memoria GDDR6", "GDDR6 memory"), "°C", serie, 20.0, False)
         self.chart.legenda_dentro = False          # the tiles are the legend
         self.chart.setMinimumHeight(240)
 
@@ -909,8 +967,8 @@ class Monitor(QMainWindow):
 
         self.charts = []
         grid = QGridLayout(); grid.setSpacing(12)
-        for i, (title, unit, series) in enumerate(CHARTS):
-            c = Chart(title, unit, series)
+        for i, (title, unit, series, minimo, da_zero) in enumerate(CHARTS):
+            c = Chart(title, unit, series, minimo, da_zero)
             self.charts.append(c)
             grid.addWidget(c, i // 2, i % 2)
 
