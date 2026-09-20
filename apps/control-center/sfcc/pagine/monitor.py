@@ -72,27 +72,38 @@ VECCHI_NOMI = {"gpu_util": "gpu_load", "gpu_freq": "gpu_mhz", "gpu_power": "gpu_
 _TOPO = {}
 
 
-# La tabella metriche della SMU: i tre consumi, ciascuno al suo posto.
-# Millesimi di watt, e 65535 vuol dire "non lo dichiaro" - mai da stampare come
-# 65 watt. Gli offset sono misurati, non letti in un'intestazione: vedi
-# skillfish-hud-val per come.
-METRICHE = "/sys/class/drm/card0/device/gpu_metrics"
-METRICHE_W = {"apu_w": 40, "cpu_w": 44, "gpu_w": 46}
+# ⚠️ I TRE CONSUMI NON SI LEGGONO DA QUI, E NON DEVONO TORNARE A FARLO. Stanno
+# nella tabella metriche della SMU, e ogni lettura di quel file e' un messaggio
+# alla SMU. Il 20/09/2026 questa pagina e skillfish-hud-val la leggevano ognuno
+# per conto suo, piu' volte al secondo: traffico verso la SMU raddoppiato, e la
+# scheda si e' riavviata da sola TRE VOLTE in mezz'ora - la SMU smette di
+# rispondere, le letture hwmon si piantano nel kernel, fand sfonda il suo
+# watchdog e il watchdog hardware resetta la macchina.
+#
+# La tabella la legge UNO SOLO, skillfish-gpu-freq-sampler, che alla SMU parla
+# gia' ogni due secondi, e pubblica i tre numeri qui. Leggere questo file non
+# costa niente e non parla con nessuno.
+POTENZE = "/run/skillfish-potenze"
+# se il campionatore non gira, un numero fermo da un'ora e' peggio di nessuno
+POTENZE_SCADENZA = 10.0
 
 
 def potenze():
-    """{apu_w, cpu_w, gpu_w} in watt, per quel che la scheda dichiara."""
-    fuori = {}
+    """{apu_w, cpu_w, gpu_w} in watt, per quel che il campionatore pubblica."""
     try:
-        with open(METRICHE, "rb") as fh:
-            d = fh.read()
-    except OSError:
-        return fuori
-    for chiave, offset in METRICHE_W.items():
-        if offset + 2 <= len(d):
-            v = int.from_bytes(d[offset:offset + 2], "little")
-            if v != 0xFFFF:
-                fuori[chiave] = v / 1000.0
+        if time.time() - os.path.getmtime(POTENZE) > POTENZE_SCADENZA:
+            return {}
+        with open(POTENZE) as fh:
+            pezzi = fh.read().split()
+    except (OSError, ValueError):
+        return {}
+    fuori = {}
+    for chiave, pezzo in zip(("apu_w", "cpu_w", "gpu_w"), pezzi):
+        if pezzo != "-":
+            try:
+                fuori[chiave] = float(pezzo)
+            except ValueError:
+                pass
     return fuori
 
 

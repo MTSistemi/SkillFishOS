@@ -18,31 +18,31 @@ hw(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$
 # carries the fan tacho, so pick by the node we actually need, not by first match.
 hw_with(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = "$1" ] && [ -e "$h/$2" ] && { echo "$h"; return; }; done; }
 
-# --- la tabella metriche della SMU -------------------------------------------
-# ⚠️ `power1_average` NON E' LA POTENZA DELLA GPU: e' quella di TUTTO L'APU. Ce
-# lo dicono i numeri, misurati sulla .32 il 20/09/2026: power1_average 29,86 W
-# contro i 29,58 W del campo "socket" della tabella, mentre la GPU vera a riposo
-# sta a 4,06 W. Per anni il Monitor ha scritto "GPU" accanto a un numero sette
-# volte piu' grande.
+# --- i tre consumi, letti da chi li pubblica ---------------------------------
+# ⚠️ QUESTO FILE NON LEGGE PIU' gpu_metrics, E NON DEVE TORNARE A FARLO. Ogni
+# lettura di quel file e' un messaggio alla SMU. Il 20/09/2026 questa funzione
+# lo leggeva tre volte a ogni chiamata, e a chiamare skillfish-hud-val ci sono
+# conky ogni 2 s, il campionatore della dashboard e il Monitor: traffico verso
+# la SMU raddoppiato, e la scheda si e' riavviata da sola TRE VOLTE in mezz'ora.
+# La SMU smette di rispondere, le letture hwmon si piantano nel kernel, fand
+# sfonda il suo watchdog e il watchdog hardware resetta la macchina.
 #
-# La tabella ha i tre consumi separati, e quali sono lo abbiamo misurato invece
-# di leggerlo in un'intestazione - caricando un core alla volta e guardando quale
-# campo si muoveva:
+# La tabella la legge UNO SOLO: skillfish-gpu-freq-sampler, che alla SMU parla
+# gia' ogni due secondi, e pubblica i tre numeri in /run/skillfish-potenze. Qui
+# si fa un `cut`, che non costa niente e non parla con nessuno.
 #
-#   offset 40  tutto il pacchetto   (= power1_average)
-#   offset 44  i core della CPU     (0,15 W a riposo, 19,7 W con quattro thread,
-#                                    e combacia con la somma dei campi per core)
-#   offset 46  la GPU               (4,06 W, fermo mentre la GPU non fa niente,
-#                                    e uguale a quello che i regolatori danno a
-#                                    chi li sa leggere via PMBus)
-#
-# ⚠️ I valori sono milliwatt, e 65535 vuol dire "non lo dichiaro": il campo
-# average_cpu_power all'offset 42 e' sempre quello, e il core 0 non riporta mai
-# il suo consumo. Un 65535 non va mai stampato come 65 watt.
-MET=/sys/class/drm/card0/device/gpu_metrics
-met(){ [ -e "$MET" ] || return 1
-       v=$(dd if="$MET" bs=1 skip="$1" count=2 2>/dev/null | od -An -tu2 | tr -d ' ')
-       [ -n "$v" ] && [ "$v" != 65535 ] && echo "$v"; }
+# ⚠️ E si guarda quanto e' vecchio il file: se il campionatore non gira, un
+# numero fermo da un'ora e' peggio di nessun numero.
+POTENZE=/run/skillfish-potenze
+# ⚠️ `find -mmin -0.17` NON VA: GNU find vuole un intero, e con 2>/dev/null
+# l'errore spariva e la funzione falliva in silenzio - i tre valori tornavano
+# tutti dal ripiego, cioe' dal pacchetto, cioe' di nuovo l'etichetta sbagliata.
+# Un confronto di secondi con stat non ha sottigliezze.
+pot(){ # $1: 1 = APU, 2 = CPU, 3 = GPU
+       mt=$(stat -c %Y "$POTENZE" 2>/dev/null) || return 1
+       [ $(( $(date +%s) - mt )) -le 10 ] || return 1
+       v=$(cut -d" " -f"$1" "$POTENZE" 2>/dev/null)
+       [ -n "$v" ] && [ "$v" != "-" ] && echo "$v"; }
 
 # --- ripieghi generici -------------------------------------------------------
 # Il primo hwmon che espone il nodo chiesto, qualunque sia il chip. Serve alle
@@ -133,18 +133,23 @@ get(){
     gpu_temp) v=$(cat "$GHW/temp1_input" 2>/dev/null)
               [ -z "$v" ] && v=$(primo "$(drm_any temp1_input)")
               [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000}' ;;
-    # La GPU per davvero. Fuori dalla BC-250 non c'e' nessuna tabella metriche e
+    # La GPU per davvero. Fuori dalla BC-250 non c'e' nessun campionatore e
     # power1_average e' la potenza della scheda video: li' il ripiego e' giusto.
-    gpu_power) v=$(met 46)
-               if [ -n "$v" ]; then echo "$v" | awk '{printf "%.1f",$1/1000}'
-               else v=$(cat "$GHW/power1_average" 2>/dev/null)
+    # ⚠️ IL RIPIEGO VALE SOLO DOVE NON C'E' LA TABELLA. Su una scheda video vera
+    # power1_average E' la potenza della GPU e il ripiego e' giusto; su una
+    # BC-250 e' il pacchetto intero, e darlo per "GPU" sarebbe tornare
+    # all'etichetta sbagliata di prima. Se qui la tabella c'e' ma il
+    # campionatore non pubblica, la risposta onesta e' nessuna risposta.
+    gpu_power) v=$(pot 3)
+               if [ -n "$v" ]; then echo "$v"
+               elif [ ! -e /sys/class/drm/card0/device/gpu_metrics ]; then
+                    v=$(cat "$GHW/power1_average" 2>/dev/null)
                     [ -z "$v" ] && v=$(primo "$(drm_any power1_average)")
                     [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}'
                fi ;;
-    cpu_power) v=$(met 44)
-               [ -n "$v" ] && echo "$v" | awk '{printf "%.1f",$1/1000}' ;;
-    apu_power) v=$(met 40)
-               if [ -n "$v" ]; then echo "$v" | awk '{printf "%.1f",$1/1000}'
+    cpu_power) pot 2 ;;
+    apu_power) v=$(pot 1)
+               if [ -n "$v" ]; then echo "$v"
                else v=$(cat "$GHW/power1_average" 2>/dev/null)
                     [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000000}'
                fi ;;

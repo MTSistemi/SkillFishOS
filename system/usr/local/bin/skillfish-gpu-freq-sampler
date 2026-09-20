@@ -35,6 +35,42 @@ DONE = {0x01, 0xFF, 0xFE, 0xFD, 0xFC}
 OK = 0x01
 OUT = "/run/skillfish-gpu-freq"
 
+# --- i tre consumi, letti UNA VOLTA per tutti --------------------------------
+# ⚠️ OGNI LETTURA DI gpu_metrics E' UN MESSAGGIO ALLA SMU, e la SMU di questa
+# scheda non ne vuole tanti. Il 20/09/2026 skillfish-hud-val leggeva quel file
+# tre volte a ogni chiamata, e a chiamarlo c'erano conky ogni 2 s, il
+# campionatore della dashboard e il Monitor: traffico verso la SMU raddoppiato,
+# e la scheda si e' riavviata da sola TRE VOLTE in mezz'ora - SMU che smette di
+# rispondere, hwmon che si pianta, fand che sfonda il suo watchdog e il watchdog
+# hardware che resetta.
+#
+# Quindi lo legge uno solo: questo, che alla SMU ci parla gia' ogni due secondi.
+# Tutti gli altri leggono il file qui sotto, che costa quanto un `cat`. Dieci
+# lettori, un messaggio ogni due secondi invece di dieci al secondo.
+#
+# Gli offset sono misurati caricando un core alla volta, non letti in
+# un'intestazione: 40 il pacchetto, 44 i core della CPU, 46 la GPU. 65535 vuol
+# dire "non lo dichiaro" e non va mai stampato come 65 watt.
+METRICHE = "/sys/class/drm/card0/device/gpu_metrics"
+POTENZE = "/run/skillfish-potenze"
+OFFSET = (40, 44, 46)                      # apu, cpu, gpu
+
+
+def potenze():
+    """Una riga: `apu cpu gpu` in watt, con `-` per quello che manca."""
+    try:
+        with open(METRICHE, "rb") as f:
+            d = f.read()
+    except OSError:
+        return None
+    fuori = []
+    for o in OFFSET:
+        if o + 2 > len(d):
+            return None
+        v = int.from_bytes(d[o:o + 2], "little")
+        fuori.append("-" if v == 0xFFFF else "%.1f" % (v / 1000.0))
+    return " ".join(fuori)
+
 if os.geteuid() != 0:
     sys.exit("root required")
 try:
@@ -88,6 +124,20 @@ def publish(v):
         pass
 
 
+def pubblica_potenze():
+    riga = potenze()
+    if riga is None:
+        return
+    try:
+        tmp = POTENZE + ".tmp"
+        with open(tmp, "w") as f:
+            f.write(riga + chr(10))
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, POTENZE)
+    except OSError:
+        pass
+
+
 last = 350
 publish(last)
 while True:
@@ -100,4 +150,8 @@ while True:
     except OSError:
         pass
     publish(last)
+    # ⚠️ Dopo i messaggi SMU, non prima: se la tabella non si lascia leggere, la
+    # frequenza e' gia' pubblicata e il file delle potenze resta quello di prima
+    # invece di sparire.
+    pubblica_potenze()
     time.sleep(2)
