@@ -9,7 +9,7 @@ percentages and seconds". Hence this.
 """
 import math
 
-from PyQt6.QtCore import QPointF, QRect, Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, QRect, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
@@ -159,10 +159,27 @@ class GraficoUnita(QWidget):
         a = self._area()
         ottone, scuro, griglia = QColor(stile.OTTONE), QColor(stile.OTTONE_SCURO), QColor(stile.GRIGLIA)
         dec = DECIMALI.get(self.unita, 1)
-        # header: title with the unit, then the legend with the values
+        # ⚠️ LA SCALA SI CALCOLA PRIMA DELL'INTESTAZIONE, non dopo: le barrette
+        # sotto i valori della legenda dicono dove sta quel numero su QUESTO
+        # asse, quindi l'asse deve gia' esistere quando si disegnano.
+        basso, alto = self._scala()
+        campo_scala = (alto - basso) or 1.0
+
+        # header: title in spaced small caps, then the legend with the values
+        #
+        # Le lettere distanziate fanno leggere la riga come un divisorio invece
+        # che come qualcosa da leggere: nomina il riquadro e si toglie di mezzo.
+        # E' lo stesso trattamento delle schede, e sette riquadri sulla stessa
+        # pagina devono avere intestazioni che sembrino la stessa cosa.
         p.setPen(QPen(ottone, 1))
-        p.setFont(QFont(self.font().family(), 10, QFont.Weight.Bold))
-        capo = "%s  (%s)" % (self.titolo, self.unita)
+        f_capo = QFont(self.font().family(), 9, QFont.Weight.Bold)
+        f_capo.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 2.0)
+        p.setFont(f_capo)
+        # ⚠️ Il separatore solo se c'e' qualcosa da separare: la scheda della
+        # memoria costruisce il suo grafico senza titolo, e con il punto messo
+        # sempre l'intestazione diventava «· °C».
+        capo = ("%s · %s" % (self.titolo, self.unita) if self.titolo
+                else self.unita).upper()
         p.drawText(10, 19, capo)
         x = 10 + p.fontMetrics().horizontalAdvance(capo) + 18
         p.setFont(QFont(self.font().family(), 8))
@@ -178,9 +195,24 @@ class GraficoUnita(QWidget):
             p.drawEllipse(QPointF(x + 5, 13), 3.5, 3.5)
             p.setPen(QPen(col, 1))
             p.drawText(x + 12, 17, testo)
+            # Una barretta sotto il numero, riempita fin dove quel numero sta
+            # sull'asse di questo grafico. Il numero dice quanto e', la barretta
+            # dice quanto manca, e sette grafici si leggono senza leggere
+            # quattordici numeri. La scala e' quella che si ha gia' sotto gli
+            # occhi, quindi barretta e linea non possono contraddirsi.
+            if v is not None and self.visibile[k]:
+                frazione = max(0.0, min(1.0, (v - basso) / campo_scala))
+                bx, by, bw, bh = x + 12, 22, larg - 16, 3
+                p.setPen(Qt.PenStyle.NoPen)
+                sfondo = QColor(stile.OTTONE)
+                sfondo.setAlpha(38)
+                p.setBrush(QBrush(sfondo))
+                p.drawRoundedRect(QRectF(bx, by, bw, bh), 1.5, 1.5)
+                if frazione > 0:
+                    p.setBrush(QBrush(QColor(col)))
+                    p.drawRoundedRect(QRectF(bx, by, max(bh, bw * frazione), bh), 1.5, 1.5)
             x += larg + 6
         # grid, Y labels with the true numbers
-        basso, alto = self._scala()
         campo = (alto - basso) or 1.0
         passo = _passo_bello(campo, 4)
         y = basso
