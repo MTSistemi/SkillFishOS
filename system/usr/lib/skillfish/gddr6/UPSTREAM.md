@@ -58,12 +58,45 @@ build an address. A wait that runs out answers `SMU_RETURN_FAILED`; the collecto
 treats that as one missing reading and carries on, because the exchange
 completed and the mailbox is still in step.
 
+## And four chips per message
+
+Reading the eight chips cost eight mailbox round trips, one per chip. Every one
+of them is an opportunity to get in the way of everything else that talks to
+this SMU - our V/F governor several times a second, the clock sampler, amdgpu
+itself - and that traffic is what turns a rare unlucky read into a hang.
+
+A JEDEC temperature code is seven bits, so four of them fit in the single word
+the queue gives back. The argument now says what is being asked for:
+
+    0x00 .. 0x07   one chip, the code in the low byte, as upstream
+    0x40           chips 0 1 2 3, one byte each, chip 0 in the low byte
+    0x41           chips 4 5 6 7
+    anything else  SMU_RETURN_FAILED, and nothing is touched
+
+Eight round trips become two. Measured on the dev board: 2.3 ms against 9.0 ms
+for the same eight readings, and 40 rounds of both side by side agree to within
+0.55 °C on the worst chip, with the per-reading differences centred on zero and
+none beyond ±4 - the jitter of a code that moves while you look at it, not an
+offset.
+
+⚠️ **An argument of `0x40` sent to the UPSTREAM payload does not fail, it
+hangs.** That handler takes whatever number it is given, shifts it into an
+address and waits for a memory controller that is not there. The host may only
+ask for a group once `ensure_patch` has compared the installed SRAM against our
+bundled binary, byte for byte - which is what it does before it returns.
+
+The collector publishes the codes themselves in the snapshot now, rather than
+the full 32-bit reads. Every reader masks with `0xFF` - our Monitor, the Control
+Center, the dashboard and upstream's own C++ daemon - so nothing downstream can
+tell the difference.
+
 | | upstream | ours |
 |---|---|---|
-| binary | 176 bytes, sha256 `b3190846…` | 212 bytes, sha256 `4ba2528c…` |
-| `umc_read_temp_per_chip` | `0x3AAC4` | `0x3AAC8` |
+| binary | 176 bytes, sha256 `b3190846…` | 400 bytes, sha256 `58a41751…` |
+| `umc_read_temp_per_chip` | `0x3AAC4` | `0x3AACC` |
 | index out of 0..7 | builds a wild SMN address | answered `0xFF` in 0 ms |
 | memory controller does not answer | spins for ever | `0xFF` after `UMC_WAIT_MAX` |
+| eight chips | eight messages, 9.0 ms | two messages, 2.3 ms |
 
 `.text` still starts at `0x3AA9C`. ⚠️ The entry point moved because the literal
 pool in front of the function grew by one word: read it from the ELF with

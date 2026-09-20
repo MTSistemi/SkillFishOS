@@ -66,9 +66,20 @@ def sample(smu):
     global REFUSED
     started = time.clock_gettime(time.CLOCK_BOOTTIME)
     raw = []
-    for chip in range(8):
+    # Two messages, not eight: our payload packs four JEDEC codes into the word
+    # the queue hands back. Every message we do not send is one less chance of
+    # getting in the way of the governor, the clock sampler or amdgpu, which all
+    # talk to this same SMU. The published words are the codes themselves rather
+    # than the full 32-bit reads; every reader of the snapshot masks with 0xFF,
+    # so nothing downstream can tell the difference.
+    #
+    # ⚠️ Safe only because ensure_patch has just compared the SRAM against our
+    # bundled payload. Asking the upstream handler for a group hangs the SMU.
+    for group in range(2):
+        chip = group * 4
         try:
-            raw.append(smu.read_chip(chip))
+            word = smu.read_group(group)
+            raw.extend((word >> (8 * i)) & 0xFF for i in range(4))
         except SmuRejected as error:
             # ⚠️ A REFUSAL IS ONE MISSING READING. IT IS NOT A DEAD QUEUE, AND
             # TELLING THE TWO APART IS WHY OUR PAYLOAD EXISTS. The handler
@@ -86,9 +97,10 @@ def sample(smu):
             # count them. One second later we try again.
             REFUSED += 1
             if REFUSED == 1 or REFUSED % 100 == 0:
-                logging.warning('chip %d refused by the firmware (%d since start): %s',
-                                chip, REFUSED, error)
-            result = unavailable('read_refused', 'chip %d: %s' % (chip, error))
+                logging.warning('chips %d-%d refused by the firmware (%d since start): %s',
+                                chip, chip + 3, REFUSED, error)
+            result = unavailable('read_refused',
+                                 'chips %d-%d: %s' % (chip, chip + 3, error))
             result['sampled_boottime_s'] = started
             return result
     codes = [value & 0xFF for value in raw]

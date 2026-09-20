@@ -9,13 +9,14 @@ from unlock import unlock
 PAYLOAD_START = 0x3AA9C
 PAYLOAD_END = 0x3E000
 HANDLER_REG = 0x748C
-# ⚠️ THE ENTRY POINT IS NOT THE START OF THE PAYLOAD, and it moves when the
-# source does: the compiler puts the literal pool in front of the function, so
-# umc_read_temp_per_chip sits 0x28 into the upstream build and 0x2C into ours.
-# Get it from the ELF - `make handler` in payload/ - and never from memory. Point
-# Q3/5 at the wrong address and the SMU jumps into the middle of a constant.
-HANDLER = 0x3AAC8
-PAYLOAD_SHA256 = '4ba2528c0441b6fd72c1e255af6dd14d16fbc0f831f9a75275a63a2e1233f328'
+# ⚠️ THE ENTRY POINT IS NOT THE START OF THE PAYLOAD, and it moves every time
+# the source does: the compiler puts the literal pool in front of the function,
+# and the pool grows with the constants. 0x28 in upstream's build, 0x2C once we
+# bounded the waits, 0x30 now that a message can ask for four chips. Get it from
+# the ELF - `make handler` in payload/ - and never from memory. Point Q3/5 at
+# the wrong address and the SMU jumps into the middle of a constant.
+HANDLER = 0x3AACC
+PAYLOAD_SHA256 = '58a41751e6958d657e3d05f309486948f495d6b719d53072c2bd8d8928c6b08b'
 PAYLOAD_FILE = Path(__file__).resolve().parent / 'payload' / 'SMUPayload.bin'
 
 

@@ -71,3 +71,26 @@ class Bc250Smu(PrimitiveMixin):
         if type(chip) is not int or not 0 <= chip < 8:
             raise ValueError('chip must be in 0..7')
         return self.send_message(3, 5, [chip])[1]
+
+    # Argument values our payload answers to beyond a plain chip number.
+    GROUP_FIRST = 0x40
+    GROUP_SIZE = 4
+
+    def read_group(self, group):
+        """Four chips in one message: the four JEDEC codes packed into the word.
+
+        Chip 4*group is in the low byte. Eight round trips become two, and every
+        round trip is an opportunity to collide with the V/F governor, the clock
+        sampler and amdgpu, all of which talk to the same SMU.
+
+        ⚠️ ONLY WITH OUR PAYLOAD. The upstream handler takes whatever number it
+        is given, shifts it into an address and waits for a memory controller
+        that is not there - so asking IT for group 0x40 does not fail, it hangs
+        the SMU and takes the board down with it. patcher.ensure_patch compares
+        the installed SRAM against our bundled binary byte for byte before it
+        returns, and that comparison is what makes this call safe. Do not reach
+        for it from anywhere that has not done it.
+        """
+        if type(group) is not int or not 0 <= group < 8 // self.GROUP_SIZE:
+            raise ValueError('group must be 0 or 1')
+        return self.send_message(3, 5, [self.GROUP_FIRST + group])[1]
