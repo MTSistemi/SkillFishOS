@@ -1238,5 +1238,12 @@
  "present on the flash": "présent sur la flash",
  "Platform security state": "État de sécurité de la plateforme",
  "What the secure processor says about this board": "Ce que le processeur sécurisé dit de cette carte",
- "GDDR6 memory chip temperature, on demand": "Température des puces de mémoire GDDR6, à la demande"
+ "GDDR6 memory chip temperature, on demand": "Température des puces de mémoire GDDR6, à la demande",
+ "Average": "Moyenne",
+ "Hotspot": "Point chaud",
+ "GDDR6 · Memory": "GDDR6 · Mémoire",
+ "reading": "lecture",
+ "closes itself in %s": "se ferme dans %s",
+ "started when needed, %s minutes at most": "démarrée à la demande, %s minutes au maximum",
+ "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Huit capteurs à l'intérieur des puces mémoire mesurent cette valeur, et ils ne répondent qu'à travers la SMU. C'est pourquoi ce n'est pas un capteur qui reste allumé : l'interroger longtemps bloque la SMU, qui est aussi la puce qui tient les fréquences et les tensions. La lecture démarre quand il le faut, dure dix minutes au maximum et s'arrête d'elle-même. Le dessin montre la carte vue du côté mémoire, donc de derrière : les puces sont à l'arrière et l'APU à l'avant, en pointillés parce qu'elle est sur l'autre face. Les huit positions sont les vraies, tirées du boardview de la carte. Quel capteur correspond à quelle puce n'est pas encore mesuré : le numéro est l'ordre dans lequel la SMU répond."
 }

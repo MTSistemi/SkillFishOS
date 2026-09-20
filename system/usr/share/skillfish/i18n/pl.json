@@ -1236,5 +1236,12 @@
  "present on the flash": "obecny w pamięci flash",
  "Platform security state": "Stan bezpieczeństwa platformy",
  "What the secure processor says about this board": "Co procesor bezpieczeństwa mówi o tej płycie",
- "GDDR6 memory chip temperature, on demand": "Temperatura układów pamięci GDDR6, na żądanie"
+ "GDDR6 memory chip temperature, on demand": "Temperatura układów pamięci GDDR6, na żądanie",
+ "Average": "Średnia",
+ "Hotspot": "Punkt gorący",
+ "GDDR6 · Memory": "GDDR6 · Pamięć",
+ "reading": "odczyt",
+ "closes itself in %s": "zamknie się za %s",
+ "started when needed, %s minutes at most": "uruchamiany na żądanie, maksymalnie %s minut",
+ "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Mierzy to osiem czujników wewnątrz układów pamięci, a odpowiadają tylko przez SMU. Dlatego nie jest to czujnik działający bez przerwy: długie odpytywanie blokuje SMU, a to ten sam układ, który trzyma taktowania i napięcia. Odczyt uruchamia się, gdy jest potrzebny, trwa najwyżej dziesięć minut i sam się kończy. Rysunek pokazuje płytkę od strony pamięci, czyli od tyłu: układy są z tyłu, a APU z przodu, dlatego narysowano ją linią przerywaną. Osiem pozycji to te prawdziwe, wzięte z boardview płytki. Który czujnik odpowiada któremu układowi, nie jest jeszcze zmierzone: numer to kolejność, w jakiej odpowiada SMU."
 }

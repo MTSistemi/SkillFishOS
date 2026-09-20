@@ -237,27 +237,32 @@
     ["rpmc_spirom_available","Rollback counter","present on the flash",           "absent"],
   ];
   // ---------------- il disegno della scheda ----------------
-  // Le posizioni sono misurate, non disegnate a occhio: vengono da
+  // Posizioni misurate, non disegnate a occhio: vengono da
   // ASRock_AMD_BC-250_ISL_X5R_r1.00.cad, il boardview GenCAD 1.4 della scheda
   // vera pubblicato su bc-250.com, 2163 componenti su un PCB di 304,66 x 139,98
   // mm. E' la stessa pianta della classe DisegnoScheda nel Control Center: chi
   // guarda la finestra e chi guarda il browser deve vedere la stessa scheda.
   //
-  // âš ï¸ GenCAD ha l'origine in basso a sinistra con la y che sale, il canvas ha
-  // la y che scende. Ogni y qui sotto e' gia' 139,98 - y. Usare il valore grezzo
-  // disegnerebbe la scheda specchiata: un'immagine pulitissima di un pezzo che
-  // non esiste.
+  // ⚠️ LA MEMORIA STA DIETRO, L'APU DAVANTI. U25 e' LAYER TOP, U27..U43 sono
+  // tutti LAYER BOTTOM. Il lato di un pezzo sta nel blocco $COMPONENTS del CAD;
+  // il campo layer di un PIN dentro $SHAPES dice TOP per quasi tutto e vuol dire
+  // un'altra cosa. Leggendo quello i nove chip finivano sulla stessa faccia, e
+  // il disegno ha mostrato una scheda inesistente finche' Mattia non ha guardato
+  // quella vera.
   //
-  // âš ï¸ U27, U33, U37 e U43 stanno montati a 45 gradi ai quattro angoli
-  // diagonali del die; gli altri quattro dritti sopra e sotto. Nel CAD si vede
-  // dal campo pin, quadrato da 15,9 mm contro 9,8 x 12,7 dei dritti, e
-  // (9,8 + 12,7) / radice(2) fa 15,9 preciso.
+  // ⚠️ Quindi questa e' la faccia di SOTTO e la x va specchiata: x schermo =
+  // LARGO - x. Le coordinate qui sono quelle della scheda, non specchiate, e lo
+  // specchio lo fa px() una volta sola per tutto. Una vista del retro che si
+  // dimentica lo specchio e' il davanti con sopra i pezzi sbagliati, e sembra
+  // perfetta. Le y sono gia' ribaltate (GenCAD ha la y che sale, il canvas no).
   //
-  // âš ï¸ QUALE SENSORE SIA QUALE CHIP RESTA IGNOTO. Le otto posizioni sono vere,
-  // l'ordine in cui la SMU risponde non lo documenta nessuno. Il chip 0 e' il
-  // primo sensore che risponde e niente dimostra che sia il pezzo serigrafato
-  // U27. Percio' ogni chip porta il suo numero e il bordo del colore della sua
-  // linea nel grafico: il disegno dice QUALE chip scalda, non dove sta.
+  // ⚠️ U27, U33, U37 e U43 stanno a 45 gradi ai quattro angoli diagonali del
+  // die. Nel CAD si vede dal campo pin, quadrato da 15,9 mm contro 9,8 x 12,7
+  // dei dritti, e (9,8 + 12,7) / radice(2) fa 15,9 preciso.
+  //
+  // ⚠️ QUALE SENSORE SIA QUALE CHIP RESTA IGNOTO. Le otto posizioni sono vere,
+  // l'ordine in cui la SMU risponde non lo documenta nessuno. Percio' ogni chip
+  // porta il suo numero e il bordo del colore della sua linea nel grafico.
   const MEMPIANTA = {
     w: 304.66, h: 139.98,
     // x, y, larghezza, altezza, girato di 45 gradi
@@ -265,31 +270,36 @@
           [184.59, 105.83, 9.75, 12.75, 0], [209.24, 90.33, 8.78, 11.25, 1],
           [135.24, 29.33, 8.78, 11.25, 1], [159.89, 13.83, 9.75, 12.75, 0],
           [184.59, 13.83, 9.75, 12.75, 0], [209.24, 29.33, 8.78, 11.25, 1]],
-    apu: [172.20, 59.80, 42.4, 42.4],       // U25, 2197 sfere
-    fch: [60.50, 82.20, 23.1, 23.1],        // SU1, 656 sfere
-    sio: [96.50, 104.20, 15.7, 15.7],       // UIO1
+    // sull'altra faccia: si disegnano tratteggiati, per orientarsi
+    apu: [172.20, 59.80, 42.4, 42.4],
+    fch: [60.50, 82.20, 23.1, 23.1],
+    lontani: [[7.8, 56.1, 10.3, 16.5, "DP"], [12.0, 96.1, 13.5, 15.6, "LAN"],
+              [12.0, 75.1, 6.7, 13.1, ""], [11.5, 37.1, 5.7, 13.1, ""],
+              [31.2, 8.1, 20.7, 7.5, "M.2"], [233.8, 130.6, 12.6, 11.5, "12V"],
+              [255.8, 131.0, 9.0, 11.5, ""], [275.8, 131.0, 9.0, 11.5, ""],
+              [96.50, 104.20, 15.7, 15.7, ""]],
     buchi: [[7.5, 11.1, 2.5], [7.5, 111.1, 2.5],
             [298.8, 17.3, 2.9], [298.8, 27.3, 2.9]],
-    // x, y, larghezza, altezza, si affaccia fuori, etichetta
-    conn: [[7.8, 56.1, 10.3, 16.5, 1, "DP"], [12.0, 96.1, 13.5, 15.6, 1, "LAN"],
-           [12.0, 75.1, 6.7, 13.1, 1, ""], [11.5, 37.1, 5.7, 13.1, 1, ""],
-           [9.4, 21.1, 8.1, 8.0, 0, ""], [31.2, 8.1, 20.7, 7.5, 0, "M.2"],
-           [233.8, 130.6, 12.6, 11.5, 1, ""], [255.8, 131.0, 9.0, 11.5, 1, ""],
-           [275.8, 131.0, 9.0, 11.5, 1, ""]],
-    // il VRM che alimenta l'APU: sei stadi in colonna, piu' tre sparsi
-    stadi: [[257, 33.4], [257, 43.1], [257, 52.8], [257, 62.6], [257, 72.4],
-            [257, 82.2], [288.2, 69.5], [273.2, 99.8], [246.6, 13.3]],
-    minuteria: [[11.5, 75.1, 5.7, 13.1], [54.7, 6.2, 11.4, 4.1], [299.1, 128.6, 2.5, 17.8],
-                [61.2, 32.7, 5.8, 5.8], [24.0, 114.8, 16.0, 2.0], [111.1, 106.7, 6.7, 4.6],
-                [50.1, 103.8, 6.7, 4.6], [44.2, 112.1, 8.0, 3.8], [38.3, 51.9, 6.3, 4.6],
-                [36.1, 24.0, 8.7, 3.2], [114.5, 114.0, 7.3, 3.8], [94.8, 86.0, 5.7, 3.8],
-                [299.0, 46.4, 3.8, 5.7], [24.9, 89.7, 3.8, 5.7], [37.1, 41.0, 5.7, 3.8],
-                [36.3, 80.0, 5.7, 3.8], [60.3, 114.1, 7.6, 2.5], [298.6, 83.2, 3.6, 5.1],
-                [71.6, 99.6, 5.7, 3.8], [89.4, 60.3, 5.8, 5.8], [31.6, 101.2, 3.8, 3.8],
-                [105.0, 60.0, 4.2, 4.2], [120.0, 72.0, 3.4, 3.4], [120.0, 98.0, 3.4, 3.4],
-                [228.0, 60.0, 4.6, 3.2], [228.0, 80.0, 4.6, 3.2], [240.0, 95.0, 3.6, 3.6],
-                [150.0, 5.5, 3.0, 3.0], [200.0, 5.5, 3.0, 3.0], [170.0, 134.0, 3.0, 3.0]]
+    // cosa c'e' davvero su questa faccia oltre alla memoria. Il blocco fitto in
+    // mezzo e' il disaccoppiamento dell'APU, sul retro proprio sotto il die.
+    minuteria: [[54.74, 6.18, 11.43, 4.06], [25.06, 91.31, 1.3, 2.38],
+                [23.87, 85.35, 2.38, 1.3], [22.98, 80.32, 1.3, 2.38],
+                [68.19, 3.94, 2.38, 1.3], [112.01, 7.02, 1.57, 0.9],
+                [99.8, 47.32, 6.53, 0.9], [99.8, 57.05, 6.53, 0.9],
+                [99.8, 42.37, 6.53, 0.9], [63.35, 51.92, 6.53, 0.9],
+                [240.3, 108.5, 6.53, 0.9], [240.3, 97.3, 6.53, 0.9],
+                [21.07, 84.08, 0.9, 1.57], [70.6, 87.63, 1.57, 0.9],
+                [150.36, 56.52, 0.9, 1.35], [179.74, 69.46, 0.9, 1.35],
+                [181.69, 69.46, 0.9, 1.35]]
   };
+
+  // il disaccoppiamento: due colonne e sei file, generate invece che elencate
+  for (let i = 0; i < 10; i++) MEMPIANTA.minuteria.push([161.74, 50.33 + i * 2, 1.35, 0.9]);
+  for (let i = 0; i < 7; i++) MEMPIANTA.minuteria.push([180.24, 55.33 + i * 2, 1.35, 0.9]);
+  for (let i = 0; i < 5; i++) MEMPIANTA.minuteria.push([182.69, 55.33 + i * 2, 1.35, 0.9]);
+  for (let i = 0; i < 5; i++) MEMPIANTA.minuteria.push([185.14, 55.33 + i * 2, 1.35, 0.9]);
+  for (const y of [51.83, 54.83, 57.83, 60.83, 63.83, 66.83])
+    for (let i = 0; i < 8; i++) MEMPIANTA.minuteria.push([163.74 + i * 2, y, 0.9, 1.35]);
 
   // Da 25 a 85 gradi e non da 0 a 100: a riposo questi chip stanno sui 44 e
   // sotto carico sui 50, quindi una scala che parte da zero dipingerebbe ogni
@@ -331,9 +341,11 @@
 
     const k = Math.min((w - 4) / P.w, (h - 4) / P.h);
     const x0 = (w - P.w * k) / 2, y0 = (h - P.h * k) / 2;
-    // da millimetri a pixel: un pezzo e' dato per centro e misure
-    const px = (mx, mw) => x0 + (mx - mw / 2) * k;
-    const py = (my, mh) => y0 + (my - mh / 2) * k;
+    // da millimetri a pixel, specchiando: si guarda la scheda da sotto
+    const cx = mx => x0 + (P.w - mx) * k;
+    const cy = my => y0 + my * k;
+    const px = (mx, mw) => cx(mx) - mw * k / 2;
+    const py = (my, mh) => cy(my) - mh * k / 2;
 
     // roundRect non c'e' su tutti i browser: senza di lui si disegna squadrato,
     // che e' brutto ma leggibile, invece di non disegnare niente.
@@ -343,59 +355,39 @@
       else x.rect(px(mx, mw), py(my, mh), mw * k, mh * k);
     }
 
-    // il PCB
     x.lineWidth = 1.4; x.strokeStyle = "#3a5740"; x.fillStyle = "#17241a";
     box(P.w / 2, P.h / 2, P.w, P.h, 2.5); x.fill(); x.stroke();
 
-    // la campitura di massa sotto memoria e APU, appena una sfumatura piu' chiara
     x.fillStyle = "#1a2a1d";
     box(172, 60, 112, 112, 10); x.fill();
 
-    x.fillStyle = "#25352a";
-    P.minuteria.forEach(([mx, my, mw, mh]) => x.fillRect(px(mx, mw), py(my, mh), mw * k, mh * k));
-
     x.lineWidth = 1; x.strokeStyle = "#3a5740"; x.fillStyle = "#0d140f";
     P.buchi.forEach(([mx, my, r]) => {
-      x.beginPath();
-      x.arc(x0 + mx * k, y0 + my * k, r * k, 0, Math.PI * 2);
-      x.fill(); x.stroke();
+      x.beginPath(); x.arc(cx(mx), cy(my), r * k, 0, Math.PI * 2); x.fill(); x.stroke();
     });
 
-    x.strokeStyle = "#4a5158";
-    P.conn.forEach(([mx, my, mw, mh, fuori]) => {
-      x.fillStyle = fuori ? "#0a0d0b" : "#25332a";
-      box(mx, my, mw, mh, 1); x.fill(); x.stroke();
-    });
-    x.strokeStyle = "#3a5740"; x.fillStyle = "#1b2b20";
-    box(53, 8.1, 60, 11, 0.8); x.fill(); x.stroke();      // la scheda M.2 nel suo slot
-
-    x.strokeStyle = "#4a5158"; x.fillStyle = "#232c25";
-    P.stadi.forEach(([mx, my]) => { box(mx, my, 4.7, 4.7, 0.6); x.fill(); x.stroke(); });
-
-    x.strokeStyle = "#586a5d";
-    [[P.apu, "#2c3239"], [P.fch, "#242c26"], [P.sio, "#242c26"]].forEach(([g, tinta]) => {
-      x.fillStyle = tinta; box(g[0], g[1], g[2], g[3], 0.8); x.fill(); x.stroke();
-    });
-    x.strokeStyle = "#6d7883"; x.fillStyle = "#454d57";
-    box(P.apu[0], P.apu[1], P.apu[2] * 0.72, P.apu[3] * 0.72, 0.6); x.fill(); x.stroke();
+    // l'altra faccia, solo di contorno: sta dietro la scheda, non sopra
+    x.setLineDash([3, 3]); x.strokeStyle = "#4d6e56";
+    [...P.lontani.map(l => [l[0], l[1], l[2], l[3]]), P.apu, P.fch]
+      .forEach(([mx, my, mw, mh]) => { box(mx, my, mw, mh, 0.8); x.stroke(); });
+    x.setLineDash([]);
 
     x.textAlign = "center"; x.textBaseline = "middle";
-    x.font = "700 " + Math.max(7, 3.4 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
-    x.fillStyle = "#c8d2c9";
-    x.fillText("APU", x0 + P.apu[0] * k, y0 + P.apu[1] * k);
-    x.font = Math.max(6, 2.6 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
-    x.fillStyle = "#6d8f74";
-    P.conn.forEach(([mx, my, , , , et]) => {
-      if (et) x.fillText(et, x0 + mx * k, y0 + my * k);
-    });
-    x.fillText("BC-250", x0 + 250 * k, y0 + 110 * k);
+    x.font = Math.max(7, 3.2 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
+    x.fillStyle = "#4d6e56";
+    x.fillText("APU", cx(P.apu[0]), cy(P.apu[1]));
+    P.lontani.forEach(([mx, my, , , et]) => { if (et) x.fillText(et, cx(mx), cy(my)); });
+
+    x.fillStyle = "#25352a";
+    P.minuteria.forEach(([mx, my, mw, mh]) =>
+      x.fillRect(px(mx, mw), py(my, mh), mw * k, mh * k));
 
     // la memoria: il pieno dice quanto scalda, il bordo dice quale chip e'
     x.font = "700 " + Math.max(7, 3.0 * k).toFixed(1) + "px 'DejaVu Sans Mono',monospace";
     P.mem.forEach(([mx, my, mw, mh, girato], i) => {
       const c = (gradi && gradi.length > i) ? gradi[i] : null;
       x.save();
-      x.translate(x0 + mx * k, y0 + my * k);
+      x.translate(cx(mx), cy(my));
       if (girato) x.rotate(Math.PI / 4);
       x.beginPath();
       if (x.roundRect) x.roundRect(-mw * k / 2, -mh * k / 2, mw * k, mh * k, 0.7 * k);
@@ -408,7 +400,7 @@
       x.restore();
       // il numero resta dritto anche dove il chip e' girato
       x.fillStyle = c == null ? "#6b5a34" : "#f0e6d2";
-      x.fillText(String(i), x0 + mx * k, y0 + my * k);
+      x.fillText(String(i), cx(mx), cy(my));
     });
   }
 

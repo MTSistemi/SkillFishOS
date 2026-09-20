@@ -423,33 +423,40 @@ class TesseraChip(QFrame):
 
 
 class DisegnoScheda(QWidget):
-    """The BC-250 seen from above, drawn from the board's own CAD.
+    """The BC-250 seen from the memory side, drawn from the board's own CAD.
 
-    Every position below is measured, not sketched. They come from
+    Every position below is measured. They come from
     ASRock_AMD_BC-250_ISL_X5R_r1.00.cad, the GenCAD 1.4 boardview of the real
-    board published on bc-250.com, whose 2163 components are placed on a PCB of
-    304.66 x 139.98 mm. Millimetres here are that file's millimetres.
+    board published on bc-250.com: 2163 components on a PCB of 304.66 x 139.98
+    mm. Millimetres here are that file's millimetres.
 
-    ⚠️ GenCAD puts its origin bottom left with y growing upwards and Qt grows y
-    downwards, so every y below is already 139.98 - y. Using the raw value would
-    draw a mirrored board: the same picture of a part that does not exist.
+    ⚠️ THE MEMORY IS ON THE BACK, THE APU ON THE FRONT. U25 is LAYER TOP and
+    U27..U43 are all LAYER BOTTOM. A part's side lives in the CAD's $COMPONENTS
+    block; the layer field on a PIN inside $SHAPES says TOP for almost everything
+    and means something else. Reading that one put all nine chips on one face,
+    and this drawing showed a board that does not exist until Mattia looked at
+    the real one and said so.
 
-    ⚠️ U27, U33, U37 and U43 sit at 45 degrees. The CAD gives that away by their
-    pin field coming out square at 15.9 mm while the four straight ones measure
-    9.8 x 12.7, and (9.8 + 12.7) / sqrt(2) is 15.9 exactly. They are drawn turned
-    because on this board they are turned.
+    ⚠️ So this is the UNDERSIDE, and x is mirrored: screen x = LARGO - x. The
+    coordinates below are the board's own, unmirrored, and rett() does the
+    mirroring, once, for everything. A view of the back that forgets to mirror is
+    the front with the wrong parts on it, and it looks perfectly fine. The y
+    values ARE already flipped (GenCAD grows y upwards, Qt downwards).
+
+    ⚠️ U27, U33, U37 and U43 sit at 45 degrees, at the die's four diagonal
+    corners. The CAD gives it away by their pin field coming out square at 15.9
+    mm while the four straight ones measure 9.8 x 12.7, and
+    (9.8 + 12.7) / sqrt(2) is 15.9 exactly.
 
     ⚠️ WHICH SENSOR IS WHICH CHIP IS STILL UNKNOWN. The eight positions are real;
-    the order the SMU reports them in is not documented anywhere, here or
-    upstream. The chip numbered 0 in this drawing is the first sensor the SMU
-    answers with, and nothing yet proves it is the part silkscreened U27. Until
-    someone heats one chip and watches which number moves, this says WHICH chip
-    is hot and only guesses where. The help text says so.
+    the order the SMU reports them in is documented nowhere. Chip 0 here is the
+    first sensor the SMU answers with, and nothing proves it is the part
+    silkscreened U27. The help text says so.
     """
 
     LARGO, ALTO = 304.66, 139.98
 
-    # the eight GDDR6, in the order the SMU reports them (see the caveat above)
+    # board coordinates, in the order the SMU reports them: x, y, w, h, at 45 deg
     MEMORIA = [
         (135.24, 90.33, 8.78, 11.25, True),    # U27
         (159.89, 105.83, 9.75, 12.75, False),  # U29
@@ -461,49 +468,65 @@ class DisegnoScheda(QWidget):
         (209.24, 29.33, 8.78, 11.25, True),    # U43
     ]
 
+    # on the far side, drawn as ghosts so the board can be oriented at a glance
     APU = (172.20, 59.80, 42.4, 42.4)          # U25, BGA2197
     FCH = (60.50, 82.20, 23.1, 23.1)           # SU1, 656 balls
-    SIO = (96.50, 104.20, 15.7, 15.7)          # UIO1
+    LONTANI = [
+        (7.8, 56.1, 10.3, 16.5, "DP"), (12.0, 96.1, 13.5, 15.6, "LAN"),
+        (12.0, 75.1, 6.7, 13.1, ""), (11.5, 37.1, 5.7, 13.1, ""),
+        (31.2, 8.1, 20.7, 7.5, "M.2"), (233.8, 130.6, 12.6, 11.5, "12V"),
+        (255.8, 131.0, 9.0, 11.5, ""), (275.8, 131.0, 9.0, 11.5, ""),
+        (96.50, 104.20, 15.7, 15.7, ""),
+    ]
 
     BUCHI = [(7.5, 11.1, 2.5), (7.5, 111.1, 2.5),
              (298.8, 17.3, 2.9), (298.8, 27.3, 2.9)]
 
-    # connectors, with the ones that open onto the outside world marked dark
-    CONNETTORI = [
-        (7.8, 56.1, 10.3, 16.5, True, "DP"),       # J4002, DisplayPort
-        (12.0, 96.1, 13.5, 15.6, True, "LAN"),     # LAN1
-        (12.0, 75.1, 6.7, 13.1, True, ""),         # USB_3_4
-        (11.5, 37.1, 5.7, 13.1, True, ""),         # USB1
-        (9.4, 21.1, 8.1, 8.0, False, ""),          # PANEL1
-        (31.2, 8.1, 20.7, 7.5, False, "M.2"),      # M2_1
-        (233.8, 130.6, 12.6, 11.5, True, ""),      # J1000, 8 pin PCIe
-        (255.8, 131.0, 9.0, 11.5, True, ""),       # J2000, Micro-Fit
-        (275.8, 131.0, 9.0, 11.5, True, ""),       # J2001, Micro-Fit
-    ]
-
-    # the VRM that feeds the APU: six power stages in a column, plus two strays
-    STADI = [(257.0, y) for y in (33.4, 43.1, 52.8, 62.6, 72.4, 82.2)] + \
-            [(288.2, 69.5), (273.2, 99.8), (246.6, 13.3)]
-
-    # small parts, so the board reads as a board and not as a diagram
+    # What is actually on this face besides the memory. The dense block in the
+    # middle is the APU's decoupling, sitting on the back directly under the die.
     MINUTERIA = [
-        (11.5, 75.1, 5.7, 13.1), (54.7, 6.2, 11.4, 4.1), (299.1, 128.6, 2.5, 17.8),
-        (61.2, 32.7, 5.8, 5.8), (24.0, 114.8, 16.0, 2.0), (111.1, 106.7, 6.7, 4.6),
-        (50.1, 103.8, 6.7, 4.6), (44.2, 112.1, 8.0, 3.8), (38.3, 51.9, 6.3, 4.6),
-        (36.1, 24.0, 8.7, 3.2), (114.5, 114.0, 7.3, 3.8), (94.8, 86.0, 5.7, 3.8),
-        (299.0, 46.4, 3.8, 5.7), (24.9, 89.7, 3.8, 5.7), (37.1, 41.0, 5.7, 3.8),
-        (36.3, 80.0, 5.7, 3.8), (60.3, 114.1, 7.6, 2.5), (298.6, 83.2, 3.6, 5.1),
-        (71.6, 99.6, 5.7, 3.8), (89.4, 60.3, 5.8, 5.8), (31.6, 101.2, 3.8, 3.8),
-        (105.0, 60.0, 4.2, 4.2), (120.0, 72.0, 3.4, 3.4), (120.0, 98.0, 3.4, 3.4),
-        (228.0, 60.0, 4.6, 3.2), (228.0, 80.0, 4.6, 3.2), (240.0, 95.0, 3.6, 3.6),
-        (150.0, 5.5, 3.0, 3.0), (200.0, 5.5, 3.0, 3.0), (170.0, 134.0, 3.0, 3.0),
+        (54.74, 6.18, 11.43, 4.06), (25.06, 91.31, 1.30, 2.38), (23.87, 85.35, 2.38, 1.30),
+        (22.98, 80.32, 1.30, 2.38), (68.19, 3.94, 2.38, 1.30), (112.01, 7.02, 1.57, 0.90),
+        (99.80, 47.32, 6.53, 0.90), (99.80, 57.05, 6.53, 0.90), (99.80, 42.37, 6.53, 0.90),
+        (63.35, 51.92, 6.53, 0.90), (240.30, 108.50, 6.53, 0.90), (240.30, 97.30, 6.53, 0.90),
+        (21.07, 84.08, 0.90, 1.57), (70.60, 87.63, 1.57, 0.90),
+        (161.74, 50.33, 1.35, 0.90), (161.74, 52.33, 1.35, 0.90), (161.74, 54.33, 1.35, 0.90),
+        (161.74, 56.33, 1.35, 0.90), (161.74, 58.33, 1.35, 0.90), (161.74, 60.33, 1.35, 0.90),
+        (161.74, 62.33, 1.35, 0.90), (161.74, 64.33, 1.35, 0.90), (161.74, 66.33, 1.35, 0.90),
+        (161.74, 68.33, 1.35, 0.90),
+        (180.24, 55.33, 1.35, 0.90), (180.24, 57.33, 1.35, 0.90), (180.24, 59.33, 1.35, 0.90),
+        (180.24, 61.33, 1.35, 0.90), (180.24, 63.33, 1.35, 0.90), (180.24, 65.33, 1.35, 0.90),
+        (180.24, 67.33, 1.35, 0.90),
+        (182.69, 55.33, 1.35, 0.90), (182.69, 57.33, 1.35, 0.90), (182.69, 59.33, 1.35, 0.90),
+        (182.69, 61.33, 1.35, 0.90), (182.69, 63.33, 1.35, 0.90),
+        (185.14, 55.33, 1.35, 0.90), (185.14, 57.33, 1.35, 0.90), (185.14, 59.33, 1.35, 0.90),
+        (185.14, 61.33, 1.35, 0.90), (185.14, 63.33, 1.35, 0.90),
+        (163.74, 51.83, 0.90, 1.35), (165.74, 51.83, 0.90, 1.35), (167.74, 51.83, 0.90, 1.35),
+        (169.74, 51.83, 0.90, 1.35), (171.74, 51.83, 0.90, 1.35), (173.74, 51.83, 0.90, 1.35),
+        (175.74, 51.83, 0.90, 1.35), (177.74, 50.18, 0.90, 1.35),
+        (163.74, 54.83, 0.90, 1.35), (165.74, 54.83, 0.90, 1.35), (167.74, 54.83, 0.90, 1.35),
+        (169.74, 54.83, 0.90, 1.35), (171.74, 54.83, 0.90, 1.35), (173.74, 54.83, 0.90, 1.35),
+        (175.74, 54.83, 0.90, 1.35), (177.74, 54.83, 0.90, 1.35),
+        (163.74, 57.83, 0.90, 1.35), (165.74, 57.83, 0.90, 1.35), (167.74, 57.83, 0.90, 1.35),
+        (169.74, 57.83, 0.90, 1.35), (171.74, 57.83, 0.90, 1.35), (173.74, 57.83, 0.90, 1.35),
+        (175.74, 57.83, 0.90, 1.35), (177.74, 57.83, 0.90, 1.35),
+        (163.74, 60.83, 0.90, 1.35), (165.74, 60.83, 0.90, 1.35), (167.74, 60.83, 0.90, 1.35),
+        (169.74, 60.83, 0.90, 1.35), (171.74, 60.83, 0.90, 1.35), (173.74, 60.83, 0.90, 1.35),
+        (175.74, 60.83, 0.90, 1.35), (177.74, 60.83, 0.90, 1.35),
+        (163.74, 63.83, 0.90, 1.35), (165.74, 63.83, 0.90, 1.35), (167.74, 63.83, 0.90, 1.35),
+        (169.74, 63.83, 0.90, 1.35), (171.74, 63.83, 0.90, 1.35), (173.74, 63.83, 0.90, 1.35),
+        (175.74, 63.83, 0.90, 1.35), (177.74, 63.83, 0.90, 1.35),
+        (163.74, 66.83, 0.90, 1.35), (165.74, 66.83, 0.90, 1.35), (167.74, 66.83, 0.90, 1.35),
+        (169.74, 66.83, 0.90, 1.35), (171.74, 66.83, 0.90, 1.35), (173.74, 66.83, 0.90, 1.35),
+        (175.74, 66.83, 0.90, 1.35), (177.74, 66.83, 0.90, 1.35),
+        (150.36, 56.52, 0.90, 1.35), (179.74, 69.46, 0.90, 1.35), (181.69, 69.46, 0.90, 1.35),
     ]
 
     PCB = "#17241a"
     PCB_BORDO = "#3a5740"
     SERIGRAFIA = "#6d8f74"
     RAME = "#1a2a1d"
-    METALLO = "#4a5158"
+    LONTANO = "#4d6e56"
 
     # past this the board eats the page: it is 2.18 times wider than it is tall,
     # so a card 800 wide would otherwise want 370 pixels of height for it alone.
@@ -522,10 +545,10 @@ class DisegnoScheda(QWidget):
         """Keep the widget the shape of the board it draws.
 
         ⚠️ A QVBoxLayout only honours heightForWidth for a widget whose size
-        policy declares it, and setting that policy here made the card lay out at
-        the minimum height anyway: the board came out a third of the width it had
-        room for. Taking the height itself, from the width we were actually
-        given, is one line and always works.
+        policy declares it, and setting that policy laid the card out at the
+        minimum height anyway: the board came out a third of the width it had
+        room for. Taking the height from the width we were given is one line and
+        always works.
         """
         super().resizeEvent(e)
         voluta = self.heightForWidth(self.width())
@@ -550,18 +573,24 @@ class DisegnoScheda(QWidget):
             y0 = (h - self.ALTO * k) / 2.0
 
             def rett(mx, my, mw, mh):
-                """A part's box, from its centre in millimetres to pixels."""
-                return QRectF(x0 + (mx - mw / 2.0) * k, y0 + (my - mh / 2.0) * k,
+                """A part's box in pixels, seen from the underside.
+
+                ⚠️ LARGO - mx, because this is the back of the board.
+                """
+                cx = self.LARGO - mx
+                return QRectF(x0 + (cx - mw / 2.0) * k, y0 + (my - mh / 2.0) * k,
                               mw * k, mh * k)
 
-            def penna(colore, spessore=1.0):
+            def penna(colore, spessore=1.0, tratteggio=False):
                 q = QPen(QColor(colore), spessore)
                 q.setCosmetic(True)
+                if tratteggio:
+                    q.setStyle(Qt.PenStyle.DashLine)
                 return q
 
             self._pcb(p, rett, penna, k, x0, y0)
-            self._minuteria(p, rett, penna, k)
-            self._chip_grossi(p, rett, penna, k)
+            self._lontani(p, rett, penna, k)
+            self._minuteria(p, rett)
             self._memoria(p, rett, penna, k)
         except Exception:
             pass
@@ -577,75 +606,40 @@ class DisegnoScheda(QWidget):
         p.drawRoundedRect(QRectF(x0, y0, self.LARGO * k, self.ALTO * k),
                           2.5 * k, 2.5 * k)
 
-        # the ground pour under the memory and the APU, barely a shade lighter
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(self.RAME))
         p.drawRoundedRect(rett(172.0, 60.0, 112.0, 112.0), 10 * k, 10 * k)
-
-        # the silkscreen name, where the board has room for it
-        f = QFont()
-        f.setPointSizeF(max(4.5, 2.8 * k))
-        f.setBold(True)
-        p.setFont(f)
-        p.setPen(QColor(self.SERIGRAFIA))
-        p.drawText(rett(250.0, 110.0, 40.0, 8.0),
-                   Qt.AlignmentFlag.AlignCenter, "BC-250")
 
         p.setPen(penna(self.PCB_BORDO, 1.0))
         p.setBrush(QColor("#0d140f"))
         for mx, my, r in self.BUCHI:
             p.drawEllipse(rett(mx, my, r * 2, r * 2))
 
-        for mx, my, mw, mh, fuori, etichetta in self.CONNETTORI:
-            p.setPen(penna(self.METALLO, 1.0))
-            p.setBrush(QColor("#0a0d0b") if fuori else QColor("#25332a"))
-            p.drawRoundedRect(rett(mx, my, mw, mh), 1.0 * k, 1.0 * k)
+    def _lontani(self, p, rett, penna, k):
+        """The far face, in outline only: it is behind the board, not on it."""
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(penna(self.LONTANO, 1.0, True))
+        for mx, my, mw, mh, _et in self.LONTANI:
+            p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
+        for mx, my, mw, mh in (self.APU, self.FCH):
+            p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
 
-        # the M.2 card itself, lying over its slot towards the board centre
-        p.setPen(penna(self.PCB_BORDO, 1.0))
-        p.setBrush(QColor("#1b2b20"))
-        p.drawRoundedRect(rett(53.0, 8.1, 60.0, 11.0), 0.8 * k, 0.8 * k)
+        f = QFont()
+        f.setPointSizeF(max(5.5, 3.2 * k))
+        p.setFont(f)
+        p.setPen(QColor(self.LONTANO))
+        mx, my, mw, mh = self.APU
+        p.drawText(rett(mx, my, mw, mh), Qt.AlignmentFlag.AlignCenter, "APU")
+        for mx, my, mw, mh, et in self.LONTANI:
+            if et:
+                p.drawText(rett(mx, my, max(mw, 16.0), mh),
+                           Qt.AlignmentFlag.AlignCenter, et)
 
-        # power stages
-        p.setPen(penna(self.METALLO, 1.0))
-        p.setBrush(QColor("#232c25"))
-        for mx, my in self.STADI:
-            p.drawRoundedRect(rett(mx, my, 4.7, 4.7), 0.6 * k, 0.6 * k)
-
-    def _minuteria(self, p, rett, penna, k):
+    def _minuteria(self, p, rett):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor("#25352a"))
         for mx, my, mw, mh in self.MINUTERIA:
             p.drawRect(rett(mx, my, mw, mh))
-
-    def _chip_grossi(self, p, rett, penna, k):
-        for (mx, my, mw, mh), corpo in ((self.APU, "#2c3239"),
-                                        (self.FCH, "#242c26"),
-                                        (self.SIO, "#242c26")):
-            p.setPen(penna("#586a5d", 1.0))
-            p.setBrush(QColor(corpo))
-            p.drawRoundedRect(rett(mx, my, mw, mh), 0.8 * k, 0.8 * k)
-
-        # the APU's metal lid, and its name
-        mx, my, mw, mh = self.APU
-        p.setPen(penna("#6d7883", 1.0))
-        p.setBrush(QColor("#454d57"))
-        p.drawRoundedRect(rett(mx, my, mw * 0.72, mh * 0.72), 0.6 * k, 0.6 * k)
-        f = QFont()
-        f.setPointSizeF(max(5.5, 3.4 * k))
-        f.setBold(True)
-        p.setFont(f)
-        p.setPen(QColor("#c8d2c9"))
-        p.drawText(rett(mx, my, mw, mh), Qt.AlignmentFlag.AlignCenter, "APU")
-
-        f.setPointSizeF(max(4.5, 2.4 * k))
-        f.setBold(False)
-        p.setFont(f)
-        p.setPen(QColor(self.SERIGRAFIA))
-        for mx, my, mw, mh, _fuori, etichetta in self.CONNETTORI:
-            if etichetta:
-                p.drawText(rett(mx, my, max(mw, 16.0), mh),
-                           Qt.AlignmentFlag.AlignCenter, etichetta)
 
     def _memoria(self, p, rett, penna, k):
         f = QFont()
@@ -680,14 +674,21 @@ class SchedaGddr6(stile.Scheda):
             "leggono passando dalla SMU. Per questo non è un sensore sempre acceso: "
             "interrogarla a lungo la pianta, e la SMU è la stessa che regge frequenze "
             "e tensioni. La lettura si accende quando serve, dura al massimo dieci "
-            "minuti e si chiude da sola. Il disegno della scheda è schematico: dice "
-            "QUALE chip è caldo, non dove si trova fisicamente.",
+            "minuti e si chiude da sola. Il disegno è la scheda vista dal lato "
+            "memoria, cioè da dietro: i chip stanno sul retro e l'APU sul davanti, "
+            "tratteggiato perché sta sull'altra faccia. Le otto posizioni sono quelle "
+            "vere, prese dal boardview della scheda. Quale sensore sia quale chip "
+            "invece non è ancora misurato: il numero è l'ordine in cui risponde la "
+            "SMU.",
             "Eight sensors inside the memory chips measure this, and they answer only "
             "through the SMU. That is why it is not a sensor that stays on: polling it "
             "for long wedges the SMU, which is also the chip that holds clocks and "
             "voltages. The reading starts when needed, lasts ten minutes at most and "
-            "closes itself. The board drawing is schematic: it tells you WHICH chip is "
-            "hot, not where it sits."), parent)
+            "closes itself. The drawing is the board seen from the memory side, that "
+            "is from behind: the chips are on the back and the APU on the front, "
+            "dashed because it sits on the other face. The eight positions are the "
+            "real ones, taken from the board's own boardview. Which sensor is which "
+            "chip is not measured yet: the number is the order the SMU answers in."), parent)
         self.demone = demone
         self._attiva = False
         self._in_corso = False

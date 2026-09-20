@@ -1236,5 +1236,12 @@
  "present on the flash": "є у флеш-пам'яті",
  "Platform security state": "Стан безпеки платформи",
  "What the secure processor says about this board": "Що захищений процесор повідомляє про цю плату",
- "GDDR6 memory chip temperature, on demand": "Температура чипів пам'яті GDDR6, на запит"
+ "GDDR6 memory chip temperature, on demand": "Температура чипів пам'яті GDDR6, на запит",
+ "Average": "Середнє",
+ "Hotspot": "Гаряча точка",
+ "GDDR6 · Memory": "GDDR6 · Пам'ять",
+ "reading": "читання",
+ "closes itself in %s": "закриється за %s",
+ "started when needed, %s minutes at most": "запускається за потреби, щонайбільше %s хвилин",
+ "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Це вимірюють вісім датчиків усередині мікросхем пам'яті, і відповідають вони лише через SMU. Тому це не датчик, який працює постійно: довге опитування підвішує SMU, а це та сама мікросхема, що тримає частоти й напруги. Читання запускається за потреби, триває щонайбільше десять хвилин і закривається само. На малюнку плата показана з боку пам'яті, тобто ззаду: мікросхеми розташовані на зворотному боці, а APU на лицьовому, тому її намальовано пунктиром. Вісім позицій справжні, взяті з boardview плати. Який датчик якій мікросхемі відповідає, ще не виміряно: номер означає порядок, у якому відповідає SMU."
 }
