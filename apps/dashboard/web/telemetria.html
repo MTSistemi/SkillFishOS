@@ -301,12 +301,19 @@
   for (const y of [51.83, 54.83, 57.83, 60.83, 63.83, 66.83])
     for (let i = 0; i < 8; i++) MEMPIANTA.minuteria.push([163.74 + i * 2, y, 0.9, 1.35]);
 
-  // Da 25 a 85 gradi e non da 0 a 100: a riposo questi chip stanno sui 44 e
-  // sotto carico sui 50, quindi una scala che parte da zero dipingerebbe ogni
-  // lettura onesta della stessa tinta e il disegno non direbbe niente. Stessi
-  // colori e stesse fermate di colore_temp() nella finestra.
-  const MEMFERMATE = [[25, "#5a8fd8"], [40, "#7fd4ff"], [52, "#8fbf6a"],
-                      [64, "#d8a849"], [75, "#e8703a"], [85, "#d85a5a"]];
+  // Blu se e' freddo, verde se e' normale, giallo se e' caldo, rosso se e'
+  // troppo caldo. Quattro parole, quattro fermate, e i numeri in mezzo vengono
+  // da cosa fanno davvero questi chip: a riposo stanno sui 44, sotto carico sui
+  // 50, il picco misurato e' 60. Percio' il verde copre da 48 a 72 e il riposo
+  // ci cade dentro, il blu vuol dire freddo davvero e il giallo comincia dove
+  // una lettura smette di essere ordinaria. Il rosso e' a 90 perche' e' li' che
+  // la GDDR6 e' data per buona: deve voler dire vai a guardare, o non vuol dire
+  // niente.
+  // ⚠️ Le stesse quattro fermate stanno in colore_temp() nella finestra. Un chip
+  // verde nella finestra e giallo nel browser sono due affermazioni diverse
+  // sulla stessa temperatura.
+  const MEMFERMATE = [[35, "#5a8fd8"], [48, "#8fbf6a"],
+                      [72, "#d8a849"], [90, "#d85a5a"]];
 
   function memTinta(c) {
     if (c == null) return "#3b4a3f";

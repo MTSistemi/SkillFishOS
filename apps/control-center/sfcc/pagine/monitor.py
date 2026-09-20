@@ -357,16 +357,25 @@ def gddr6_stato():
 
 
 def colore_temp(c):
-    """Cool blue to ember, over the range these chips actually live in.
+    """Blue when cold, green when normal, yellow when hot, red when too hot.
 
-    25 to 85 °C and not 0 to 100: idle sits near 44 and a loaded board near 50,
-    so a scale starting at zero would paint every honest reading the same shade
-    and the card would tell nobody anything.
+    Four words, four stops, and the numbers between them come from what these
+    chips actually do: idle sits near 44, a loaded board near 50, the peak we
+    have measured is 60. So green covers 48 to 72 and idle lands in it, blue is
+    genuinely cool rather than merely low, and yellow starts where a reading
+    stops being ordinary.
+
+    Red is 90 because that is near where GDDR6 parts are rated, not at the top of
+    an arbitrary scale: red has to mean go and look, or it means nothing.
+
+    ⚠️ The web page carries the same four stops in MEMFERMATE. A chip painted
+    green in the window and yellow in the browser is two claims about one
+    temperature.
     """
     if c is None:
         return QColor(stile.GRIGLIA)
-    fermate = [(25, "#5a8fd8"), (40, "#7fd4ff"), (52, "#8fbf6a"),
-               (64, stile.OTTONE), (75, stile.ARANCIO), (85, stile.ROSSO)]
+    fermate = [(35, "#5a8fd8"), (48, "#8fbf6a"),
+               (72, stile.OTTONE), (90, stile.ROSSO)]
     if c <= fermate[0][0]:
         return QColor(fermate[0][1])
     for (c0, col0), (c1, col1) in zip(fermate, fermate[1:]):
