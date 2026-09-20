@@ -17,6 +17,13 @@ from patcher import check_platform, ensure_patch, load_payload
 
 RUNTIME_DIR = Path('/run/bc250-memory')
 STOP = threading.Event()
+# How many readings the firmware has refused since this service started. A
+# refusal costs one round and leaves no other trace: without this line nobody
+# would ever learn that the memory controller is not answering, because the
+# snapshot that records it is overwritten a second later. Rate limited so a
+# board that refuses everything writes a journal entry now and then rather than
+# eight a second.
+REFUSED = 0
 
 # Migration of one known earlier validation bug. That exception was raised
 # after completed SRAM reads, strictly before unlock or payload writes. Do not
@@ -56,6 +63,7 @@ def unavailable(status, error=None):
 
 
 def sample(smu):
+    global REFUSED
     started = time.clock_gettime(time.CLOCK_BOOTTIME)
     raw = []
     for chip in range(8):
@@ -76,6 +84,10 @@ def sample(smu):
             # We give up the whole round rather than publish seven chips out of
             # eight, because the snapshot format is eight words and the readers
             # count them. One second later we try again.
+            REFUSED += 1
+            if REFUSED == 1 or REFUSED % 100 == 0:
+                logging.warning('chip %d refused by the firmware (%d since start): %s',
+                                chip, REFUSED, error)
             result = unavailable('read_refused', 'chip %d: %s' % (chip, error))
             result['sampled_boottime_s'] = started
             return result
@@ -138,6 +150,7 @@ def run(runtime=RUNTIME_DIR, interval=3.0):
                 publish_snapshot(output, result)
                 STOP.wait(interval)
             publish_snapshot(output, unavailable('stopped'))
+            logging.info('stopped cleanly; %d readings refused in this run', REFUSED)
             return 0
         except Exception as error:
             logging.exception('memory telemetry stopped')
