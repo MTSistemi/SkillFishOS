@@ -228,7 +228,13 @@ Console and ISO in one window. The Tuner is built around the V/F governor
 curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
 # the daemons and helpers the sections talk to: recommended, not required, so
 # a machine that is not a BC-250 can leave the hardware ones out
-sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013/' "$OUT/$P/DEBIAN/control"
+#
+# skillfish-gddr6 is in here for that reason and one of its own: it writes a
+# payload into the SMU's SRAM, and somebody who would rather not have firmware
+# modified on their board should be able to take it off without losing the
+# window. ONE Recommends field only - a second one is not a longer list, it is
+# an invalid control file, and the evdev sed below only ever touches the first.
+sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6/' "$OUT/$P/DEBIAN/control"
 # the .sfmon mime type moved here from skillfish-monitor: without this dpkg
 # refuses to unpack over the old monitor package ("trying to overwrite")
 sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
@@ -362,6 +368,40 @@ can reopen and walk through second by second."
 # monitor ships a MIME type (.sfmon recordings) → also refresh the shared-mime db
 printf '#!/bin/sh\nset -e\nupdate-mime-database /usr/share/mime >/dev/null 2>&1 || true\nupdate-desktop-database -q 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
+# --------------------------------------------------------------- gddr6 ---
+# Le temperature dei chip di memoria. Un pacchetto a parte perche' scrive un
+# payload nella SRAM della SMU: chi non lo vuole se lo toglie senza perdere
+# altro, e il Control Center lo raccomanda invece di dipenderne.
+#
+# ⚠️ NON si installa bc250-memory.service, l'unita' sempre accesa di monte: da
+# noi la lettura si accende a richiesta, e un file di unita' in una cartella
+# dove systemd non guarda serve solo a farla abilitare a qualcuno un giorno.
+P=skillfish-gddr6
+put $P 0755 system/usr/local/bin/skillfish-gddr6-helper usr/local/bin/skillfish-gddr6-helper
+put $P 0644 system/usr/share/polkit-1/actions/os.skillfish.gddr6.policy usr/share/polkit-1/actions/os.skillfish.gddr6.policy
+for f in collector.py patcher.py unlock.py README.md UPSTREAM.md LICENSE LICENSE.upstream; do
+  put $P 0644 system/usr/lib/skillfish/gddr6/$f usr/lib/skillfish/gddr6/$f
+done
+for f in __init__.py api.py errors.py mailbox.py primitives.py transport.py; do
+  put $P 0644 system/usr/lib/skillfish/gddr6/bc250_smu/$f usr/lib/skillfish/gddr6/bc250_smu/$f
+done
+# Il binario che finisce nella SMU, e il sorgente da cui esce: chi lo riceve
+# deve poter ricompilare quello che gli gira nel firmware.
+for f in SMUPayload.bin SMUPayload.elf main.c Makefile smu3.ld; do
+  put $P 0644 system/usr/lib/skillfish/gddr6/payload/$f usr/lib/skillfish/gddr6/payload/$f
+done
+ctrl $P "python3, polkitd | policykit-1" "SkillFishOS GDDR6 memory temperature - the eight chips, on demand" \
+  "Eight sensors inside the memory chips, one per chip, read through the SMU
+after a payload is written into its SRAM. Reading starts when you ask for it,
+from the Monitor, the Control Center or a browser, and stops when you say so.
+
+Only on a BC-250 with the stock P3.0 BIOS: the payload is pinned to that
+firmware and refuses anything else before touching the hardware.
+
+The collector and the payload are BC250-Telemetry by onlinermm and fansteori,
+MIT, adapted from pan-Rijovich/bc250-memory-temperature. Our payload counts the
+waits the original left unbounded, which is what kept the SMU alive."
 
 P=skillfish-kernel-manager
 put $P 0755 apps/control-center/lanciatori/skillfish-kernel-manager usr/local/bin/skillfish-kernel-manager
@@ -1611,7 +1651,10 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
-for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfishos-archive-keyring; do
+# ⚠️ OGNI PACCHETTO NUOVO VA AGGIUNTO QUI, o si stagiona in $OUT e non
+# diventa mai un .deb. Succede senza un rumore: i file ci sono, il control
+# c'e', e alla fine manca solo l'archivio.
+for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfish-gddr6 skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -1907,6 +1950,10 @@ check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-cpuba
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-config     skillfish-hud-cpubars
 # e che i ripieghi generici dei sensori non vengano persi in una riscrittura
 check skillfish-tuner_${VER}_all.deb         ./usr/local/bin/skillfish-hud-val        cpu_temp_generico
+# Il payload che va nella SMU, e l'indirizzo a cui punta la coda 3: se il
+# binario e patcher.py si separano, la coda salta in mezzo a una costante.
+check skillfish-gddr6_${VER}_all.deb         ./usr/lib/skillfish/gddr6/patcher.py    0x3AACC
+check skillfish-gddr6_${VER}_all.deb         ./usr/local/bin/skillfish-gddr6-helper  systemd-run
 # I sensori della scheda madre: lo script E l'unita' che lo fa partire.
 # Questo file e' rimasto per mesi nel repository senza essere in nessun
 # pacchetto e senza che lo lanciasse nessuno, e non se n'e' accorto nessuno
