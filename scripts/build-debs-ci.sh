@@ -1001,6 +1001,43 @@ if [ ! -f /etc/skillfish/thermal-guard.conf ]; then
   } > /etc/skillfish/thermal-guard.conf
 fi
 
+# Migration to the 95 C thermal limit, for machines already installed.
+#
+# Until now we shipped 85, and that number reaches the silicon:
+# bc250-smu-oc.service applies /etc/bc250-smu-oc.conf at every boot and pushes
+# it into the SMU with messages 0x8b and 0x8c. So our 85 was overwriting the
+# firmware's own value - 95 for the CPU zone, 100 for the GPU zone - on every
+# machine. A fresh install now gets 95 from the block above; one that is
+# already out there keeps its own file, so it gets moved here.
+#
+# Only an untouched 85 is moved, and only once. The stamp is what makes it
+# once: a user who puts 85 back afterwards keeps it. Any other value is a
+# choice somebody made and is left alone.
+#
+# The guard is restarted so its half takes effect immediately. The firmware
+# half waits for the next boot, or for the first time the guard steps in,
+# because it applies through the same bc250_apply.py. Nothing talks to the SMU
+# from inside an apt transaction on purpose: the user may be in a game.
+if [ "$1" = configure ] && [ ! -e /var/lib/skillfish/limite-95-migrato ]; then
+  mosso=0
+  if [ -f /etc/skillfish/thermal-guard.conf ] &&
+     grep -q '^LIMITE=85[[:space:]]*$' /etc/skillfish/thermal-guard.conf; then
+    sed -i 's/^LIMITE=85[[:space:]]*$/LIMITE=95/' /etc/skillfish/thermal-guard.conf
+    mosso=1
+  fi
+  if [ -f /etc/bc250-smu-oc.conf ] &&
+     grep -q '^max_temperature[[:space:]]*=[[:space:]]*85[[:space:]]*$' /etc/bc250-smu-oc.conf; then
+    sed -i 's/^max_temperature[[:space:]]*=[[:space:]]*85[[:space:]]*$/max_temperature = 95/' /etc/bc250-smu-oc.conf
+    mosso=1
+  fi
+  mkdir -p /var/lib/skillfish
+  : > /var/lib/skillfish/limite-95-migrato
+  if [ "$mosso" = 1 ]; then
+    echo "skillfish-base: thermal limit moved from 85 to 95 C, the firmware's own value"
+    systemctl try-restart skillfish-thermal-guard.service >/dev/null 2>&1 || true
+  fi
+fi
+
 # The 8-core unlock done BEFORE the bootloader (Hexxeh's EFI program, MIT):
 # only on a BC-250, only where the user opted into the unlock, only with an
 # ESP. Verified with a cold boot on the dev board (BIOS P3.00): one OS boot
