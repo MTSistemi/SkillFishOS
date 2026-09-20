@@ -121,6 +121,9 @@ def publish(v):
             f.write("%d\n" % v)
         os.replace(tmp, OUT)
     except OSError:
+        # /run pieno o non scrivibile: chi legge tiene il valore di prima, che
+        # e' vecchio di due secondi. Un campionatore che muore perche' non ha
+        # potuto scrivere un file sarebbe peggio.
         pass
 
 
@@ -135,6 +138,8 @@ def pubblica_potenze():
         os.chmod(tmp, 0o644)
         os.replace(tmp, POTENZE)
     except OSError:
+        # Come sopra: il file resta quello del giro precedente, e chi lo legge
+        # guarda comunque quanto e' vecchio prima di fidarsene.
         pass
 
 
@@ -148,6 +153,9 @@ while True:
             if 50 <= v <= 2500:
                 last = v
     except OSError:
+        # La finestra SMN e' occupata o ha risposto male: si pubblica l'ultimo
+        # valore buono e si riprova fra due secondi. Insistere su una SMU che
+        # non ha voglia e' esattamente cio' che non si deve fare.
         pass
     publish(last)
     # ⚠️ Dopo i messaggi SMU, non prima: se la tabella non si lascia leggere, la

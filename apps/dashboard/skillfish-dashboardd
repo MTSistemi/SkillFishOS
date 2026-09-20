@@ -328,9 +328,14 @@ def interfacce_utente():
                     if len(campi) >= 4:
                         ind.append(campi[3])
             except Exception:
+                # Una riga di `ip` che non si lascia leggere: quell'indirizzo
+                # non entra nell'elenco, l'interfaccia si', con quello che si e'
+                # capito.
                 pass
             fuori.append({"nome": nome, "tipo": tipo, "su": su, "indirizzi": ind})
     except OSError:
+        # Nessuna rete da elencare: si risponde con l'elenco vuoto invece di far
+        # cadere la pagina.
         pass
     return fuori
 
@@ -409,6 +414,8 @@ def psp_sicurezza():
                 with open(os.path.join(base, chiave)) as fh:
                     fuori[chiave] = fh.read().strip() == "1"
             except OSError:
+                # Una chiave di sicurezza che questo firmware non espone: manca
+                # dal quadro e le altre si mostrano lo stesso.
                 pass
         if not fuori:
             continue

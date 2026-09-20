@@ -109,6 +109,8 @@ def potenze():
             try:
                 fuori[chiave] = float(pezzo)
             except ValueError:
+                # Una riga storta in /run: si salta quel valore e si tengono gli
+                # altri due. Meglio due consumi su tre che nessuno.
                 pass
     return fuori
 
@@ -742,6 +744,8 @@ class DisegnoScheda(QWidget):
             self._minuteria(p, rett)
             self._memoria(p, rett, penna, k)
         except Exception:
+            # Un disegno che si rompe non deve portarsi via la finestra: la
+            # scheda resta vuota e tutto il resto continua a funzionare.
             pass
         finally:
             if p.isActive():

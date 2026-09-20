@@ -128,6 +128,8 @@ def perche_no():
         if stato and stato != "ready":
             return "lettura precedente interrotta male: serve un riavvio"
     except (OSError, ValueError):
+        # Niente file di guardia, o illeggibile: e' il caso normale prima della
+        # prima lettura dopo un avvio. Non e' una ragione per rifiutare.
         pass
     # ⚠️ THE PAYLOAD IS PINNED TO ONE BIOS. patcher.py refuses anything that is
     # not P3.0/P3.00, and the SMU offsets it writes are only right for that build.
@@ -146,6 +148,9 @@ def perche_no():
             motivo = (p.stderr or p.stdout or "").strip().splitlines()
             return motivo[-1][:200] if motivo else "il collettore rifiuta questa macchina"
     except Exception:
+        # Il preflight del collettore e' un di piu': dice in anticipo cio' che
+        # l'avvio direbbe comunque. Se non si lascia eseguire, si prova lo
+        # stesso invece di bloccare il pulsante per un controllo mancato.
         pass
     return None
 
