@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // limite-termico-95-2026-09-20
+    data: '2026-09-20',
+    quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },
+    etichetta: { it: "novità", en: "new", pl: "nowość", uk: "новинка", ru: "новинка", es: "novedad", pt: "novidade", de: "Neu", fr: "nouveauté" },
+    titolo: {
+      it: "La scheda rallentava dieci gradi troppo presto",
+      en: "The board was slowing down ten degrees too early",
+      pl: "Płyta zwalniała o dziesięć stopni za wcześnie",
+      uk: "Плата сповільнювалася на десять градусів зарано",
+      ru: "Плата замедлялась на десять градусов раньше времени",
+      es: "La placa frenaba diez grados antes de tiempo",
+      pt: "A placa abrandava dez graus cedo demais",
+      de: "Die Platine bremste zehn Grad zu früh",
+      fr: "La carte ralentissait dix degrés trop tôt"
+    },
+    testo: {
+      it: "SkillFishOS teneva il processore a 85 gradi, mentre il firmware della BC-250 ne chiede 95: era la nostra impostazione a scrivere sopra quella della scheda, a ogni avvio. Adesso il limite è 95 nel Tuner, nella pagina del Remote Manager e in tutti i profili pronti. Una macchina già installata ci passa da sola al primo aggiornamento, a meno che quel numero non sia stato cambiato a mano. Sotto carico il processore tiene la frequenza fino a dieci gradi più a lungo prima che la guardia termica intervenga.",
+      en: "SkillFishOS held the processor to 85 degrees while the BC-250's own firmware asks for 95: it was our setting writing over the board's, at every boot. The limit is now 95 in the Tuner, on the Remote Manager page and in every preset. A machine already installed moves over by itself at the first update, unless that number had been changed by hand. Under load the processor keeps its clock for up to ten degrees longer before the thermal guard steps in.",
+      pl: "SkillFishOS trzymał procesor na 85 stopniach, podczas gdy oprogramowanie układowe BC-250 żąda 95: to nasze ustawienie nadpisywało ustawienie płyty przy każdym starcie. Teraz granica to 95 w Tunerze, na stronie Remote Managera i we wszystkich gotowych profilach. Maszyna już zainstalowana przechodzi na nią sama przy pierwszej aktualizacji, chyba że ta liczba została zmieniona ręcznie. Pod obciążeniem procesor utrzymuje zegar nawet o dziesięć stopni dłużej, zanim wkroczy strażnik termiczny.",
+      uk: "SkillFishOS тримав процесор на 85 градусах, тоді як прошивка BC-250 просить 95: це наше налаштування переписувало налаштування плати при кожному завантаженні. Тепер межа становить 95 у Tuner, на сторінці Remote Manager і в усіх готових профілях. Уже встановлена машина переходить сама при першому оновленні, якщо тільки це число не змінювали вручну. Під навантаженням процесор тримає частоту до десяти градусів довше, перш ніж втрутиться теплова охорона.",
+      ru: "SkillFishOS держал процессор на 85 градусах, тогда как прошивка BC-250 просит 95: это наша настройка переписывала настройку платы при каждой загрузке. Теперь предел составляет 95 в Tuner, на странице Remote Manager и во всех готовых профилях. Уже установленная машина переходит сама при первом обновлении, если только это число не меняли вручную. Под нагрузкой процессор держит частоту до десяти градусов дольше, прежде чем вмешается тепловая защита.",
+      es: "SkillFishOS mantenía el procesador a 85 grados, mientras que el firmware de la BC-250 pide 95: era nuestro ajuste el que escribía encima del de la placa, en cada arranque. Ahora el límite es 95 en el Tuner, en la página del Remote Manager y en todos los perfiles preparados. Una máquina ya instalada pasa a él sola en la primera actualización, salvo que ese número se hubiera cambiado a mano. Bajo carga el procesador mantiene la frecuencia hasta diez grados más antes de que intervenga la guardia térmica.",
+      pt: "O SkillFishOS mantinha o processador a 85 graus, enquanto o firmware da BC-250 pede 95: era a nossa definição a escrever por cima da da placa, em cada arranque. Agora o limite é 95 no Tuner, na página do Remote Manager e em todos os perfis prontos. Uma máquina já instalada passa a ele sozinha na primeira atualização, a não ser que esse número tenha sido mudado à mão. Sob carga o processador mantém a frequência até dez graus mais tempo antes de a guarda térmica intervir.",
+      de: "SkillFishOS hielt den Prozessor bei 85 Grad, während die Firmware der BC-250 selbst 95 verlangt: unsere Einstellung überschrieb die der Platine, bei jedem Start. Jetzt liegt die Grenze bei 95 im Tuner, auf der Seite des Remote Manager und in allen Voreinstellungen. Eine bereits installierte Maschine wechselt beim ersten Update von selbst, es sei denn, die Zahl wurde von Hand geändert. Unter Last hält der Prozessor seinen Takt bis zu zehn Grad länger, bevor der Temperaturwächter eingreift.",
+      fr: "SkillFishOS tenait le processeur à 85 degrés alors que le micrologiciel de la BC-250 en demande 95 : c'était notre réglage qui écrasait celui de la carte, à chaque démarrage. La limite est désormais de 95 dans le Tuner, sur la page du Remote Manager et dans tous les préréglages. Une machine déjà installée y passe d'elle-même à la première mise à jour, sauf si ce nombre avait été changé à la main. En charge le processeur garde sa fréquence jusqu'à dix degrés plus longtemps avant que la garde thermique n'intervienne."
+    },
+  },
+  {
     // gddr6-temperature-2026-09-20
     data: '2026-09-20',
     quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },
