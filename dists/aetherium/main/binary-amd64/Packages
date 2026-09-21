@@ -481,34 +481,46 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Part of SkillFishOS.
 
 Package: skillfish-vaapi-encoder
-Version: 26.09.1
+Version: 26.09.2
 Architecture: amd64
 Depends: libva2, libvulkan1, libdrm2, libgomp1
 Recommends: skillfish-base
-Installed-Size: 548
+Installed-Size: 1036
 Maintainer: Mattia Tadini <info@mtsistemi.it>
 Priority: optional
 Section: video
-Filename: pool/main/s/skillfish-vaapi-encoder/skillfish-vaapi-encoder_26.09.1_amd64.deb
-Size: 158356
-SHA256: 90e0ab69f02ccb20941dd871708a90201c22453a21d992d9cfdc5ca186093671
-SHA1: f63217b4b35ed099df323efe635c2f845e9756cf
-MD5sum: d0d69d9b58560cc2b1f473ad539a19e0
-Description: Hardware video encoding for the AMD BC-250
- The BC-250 has no usable video engine, so screen recording and game streaming
- fall back to the CPU. This is a VA-API driver that encodes H.264 and HEVC with
- Vulkan compute shaders on the board's 40 compute units instead.
+Filename: pool/main/s/skillfish-vaapi-encoder/skillfish-vaapi-encoder_26.09.2_amd64.deb
+Size: 387792
+SHA256: 860b3ef3462c0fe45c33f8f14cced89a89f5bf5a2ab1a45d07959a18c4edebfc
+SHA1: 22b6cdcf6306647cdaf59526723f9257c2bedd33
+MD5sum: ca2c355dc8c5a23f0531abd4c094cfbb
+Description: Video encoding and decoding for the AMD BC-250
+ The BC-250 has no usable video engine, so recording, streaming and playback
+ all fall back to the CPU. This is a VA-API driver that does the work itself:
+ encoding with Vulkan compute shaders on the board's 40 compute units, and
+ decoding on the CPU with its own H.264 and H.265 decoders.
  .
- Measured on the board at 1920x1080 at 60 fps: H.264 reaches 129 frames per
- second, HEVC 113. Recording a game costs it 13% with H.264 and 35% with HEVC,
- and both hold a full 60 fps.
+ Encoding, measured on the board at 1920x1080 at 60 fps: H.264 reaches 129
+ frames per second, HEVC 113. Recording a game costs it 13% with H.264 and 35%
+ with HEVC, and both hold a full 60 fps.
  .
- It turns itself on only on a real BC-250. The driver advertises encoding only,
- so enabling it on a machine whose VA-API works would take hardware decoding
- away from browsers and video players; on the BC-250 there is nothing to lose,
- because no VA-API driver initialises there at all.
+ Decoding, measured the same way: H.264 reaches 119 frames per second, H.265
+ 96. Both produce every sample of every picture exactly as the reference
+ decoder does - 67 H.264 and 38 H.265 configurations compared byte for byte -
+ and both hold 1920x1080 at 60 fps with room to spare. H.265 decodes several
+ coding tree block rows at once when the stream allows it; set
+ BC250_HEVC_THREAD to use fewer.
  .
- Built from commit a38b5d1 of simpmix/bc250-encoding-decoding-fix with our
+ Faster than nothing, not faster than everything: ffmpeg's own threaded
+ software decoder reaches 355 frames per second on the same processor. This
+ driver is for an application that asks for VA-API and would otherwise be
+ told there is none.
+ .
+ It turns itself on only on a real BC-250, where no other VA-API driver
+ initialises at all: on a machine whose own driver works, this one would take
+ its place and give back less.
+ .
+ Built from commit 50d09c2 of simpmix/bc250-encoding-decoding-fix with our
  fixes (upstream pull requests 21 and 22).
 
 Package: skillfish-vf-governor
