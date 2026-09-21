@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // vaapi-decodifica-2026-09-22
+    data: '2026-09-22',
+    quando: {"it": "22 settembre 2026", "en": "22 September 2026", "pl": "22 września 2026", "uk": "22 вересня 2026", "ru": "22 сентября 2026", "es": "22 de septiembre de 2026", "pt": "22 de setembro de 2026", "de": "22. September 2026", "fr": "22 septembre 2026"},
+    etichetta: { it: "novità", en: "new", pl: "nowość", uk: "новинка", ru: "новинка", es: "novedad", pt: "novidade", de: "Neu", fr: "nouveauté" },
+    titolo: {
+      it: "H.264 e H.265 attraverso VA-API sulla BC-250",
+      en: "H.264 and H.265 through VA-API on the BC-250",
+      pl: "H.264 i H.265 przez VA-API na BC-250",
+      uk: "H.264 і H.265 через VA-API на BC-250",
+      ru: "H.264 и H.265 через VA-API на BC-250",
+      es: "H.264 y H.265 a través de VA-API en la BC-250",
+      pt: "H.264 e H.265 através de VA-API na BC-250",
+      de: "H.264 und H.265 über VA-API auf der BC-250",
+      fr: "H.264 et H.265 via VA-API sur la BC-250"
+    },
+    testo: {
+      it: "Il driver video di SkillFishOS decodifica H.264 e H.265 attraverso VA-API, così un lettore o uno strumento di streaming che cerca l'accelerazione hardware ne trova una su una scheda dove nessun altro driver VA-API si avvia. Misurato sulla scheda in 1920x1080: 119 fotogrammi al secondo con H.264 e 96 con H.265, e ogni immagine esce campione per campione come la fa il decoder di riferimento. Arriva con l'aggiornamento di oggi, nel pacchetto skillfish-vaapi-encoder.",
+      en: "The SkillFishOS video driver decodes H.264 and H.265 through VA-API, so a player or a streaming tool looking for hardware acceleration finds some on a board where no other VA-API driver starts at all. Measured on the board at 1920x1080: 119 frames per second with H.264 and 96 with H.265, and every picture comes out sample for sample as the reference decoder makes it. It arrives with today's update, in the skillfish-vaapi-encoder package.",
+      pl: "Sterownik wideo SkillFishOS dekoduje H.264 i H.265 przez VA-API, więc odtwarzacz albo narzędzie do transmisji szukające akceleracji sprzętowej znajduje ją na karcie, na której żaden inny sterownik VA-API się nie uruchamia. Zmierzone na karcie w 1920x1080: 119 klatek na sekundę z H.264 i 96 z H.265, a każdy obraz wychodzi próbka po próbce taki, jaki robi go dekoder referencyjny. Przychodzi z dzisiejszą aktualizacją, w pakiecie skillfish-vaapi-encoder.",
+      uk: "Відеодрайвер SkillFishOS декодує H.264 і H.265 через VA-API, тож програвач або засіб трансляції, що шукає апаратне прискорення, знаходить його на платі, де жоден інший драйвер VA-API не запускається. Виміряно на платі в 1920x1080: 119 кадрів на секунду з H.264 і 96 з H.265, і кожне зображення виходить відлік за відліком таким, яким його робить еталонний декодер. Надходить із сьогоднішнім оновленням, у пакунку skillfish-vaapi-encoder.",
+      ru: "Видеодрайвер SkillFishOS декодирует H.264 и H.265 через VA-API, так что проигрыватель или средство трансляции, ищущее аппаратное ускорение, находит его на плате, где ни один другой драйвер VA-API не запускается. Измерено на плате в 1920x1080: 119 кадров в секунду с H.264 и 96 с H.265, и каждое изображение выходит отсчёт за отсчётом таким, каким его делает эталонный декодер. Приходит с сегодняшним обновлением, в пакете skillfish-vaapi-encoder.",
+      es: "El controlador de vídeo de SkillFishOS decodifica H.264 y H.265 a través de VA-API, así un reproductor o una herramienta de emisión que busca aceleración por hardware la encuentra en una placa donde ningún otro controlador VA-API arranca. Medido en la placa a 1920x1080: 119 fotogramas por segundo con H.264 y 96 con H.265, y cada imagen sale muestra a muestra como la hace el decodificador de referencia. Llega con la actualización de hoy, en el paquete skillfish-vaapi-encoder.",
+      pt: "O controlador de vídeo do SkillFishOS descodifica H.264 e H.265 através de VA-API, por isso um reprodutor ou uma ferramenta de transmissão que procura aceleração por hardware encontra-a numa placa onde nenhum outro controlador VA-API arranca. Medido na placa a 1920x1080: 119 imagens por segundo com H.264 e 96 com H.265, e cada imagem sai amostra a amostra como a faz o descodificador de referência. Chega com a atualização de hoje, no pacote skillfish-vaapi-encoder.",
+      de: "Der Videotreiber von SkillFishOS dekodiert H.264 und H.265 über VA-API, damit ein Abspieler oder ein Streaming-Werkzeug, das Hardwarebeschleunigung sucht, auf einer Karte welche findet, auf der sonst gar kein VA-API-Treiber startet. Auf der Karte bei 1920x1080 gemessen: 119 Bilder pro Sekunde mit H.264 und 96 mit H.265, und jedes Bild kommt Abtastwert für Abtastwert so heraus, wie der Referenzdekoder es macht. Kommt mit dem heutigen Update, im Paket skillfish-vaapi-encoder.",
+      fr: "Le pilote vidéo de SkillFishOS décode H.264 et H.265 via VA-API : un lecteur ou un outil de diffusion qui cherche une accélération matérielle en trouve une sur une carte où aucun autre pilote VA-API ne démarre. Mesuré sur la carte en 1920x1080 : 119 images par seconde en H.264 et 96 en H.265, et chaque image sort échantillon par échantillon comme la fait le décodeur de référence. Il arrive avec la mise à jour d'aujourd'hui, dans le paquet skillfish-vaapi-encoder."
+    },
+  },
+  {
     // discover-rimuove-kde-2026-09-21
     data: '2026-09-21',
     quando: {"it": "21 settembre 2026", "en": "21 September 2026", "pl": "21 września 2026", "uk": "21 вересня 2026", "ru": "21 сентября 2026", "es": "21 de septiembre de 2026", "pt": "21 de setembro de 2026", "de": "21. September 2026", "fr": "21 septembre 2026"},

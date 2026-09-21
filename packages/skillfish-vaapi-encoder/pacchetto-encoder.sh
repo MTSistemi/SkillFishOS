@@ -19,6 +19,7 @@
 set -u
 VER="${1:-$(date +%y.%m).1}"
 QUI=$(dirname "$(readlink -f "$0")")
+RADICE=$(cd "$QUI/../.." && pwd)
 LAVORO=~/encoder-bc250
 ALBERO=$LAVORO/costruito
 
@@ -40,10 +41,27 @@ install -d "$P/DEBIAN" \
            "$P/usr/lib/x86_64-linux-gnu/dri" \
            "$P/usr/share/bc250/shaders" \
            "$P/usr/lib/systemd/user-environment-generators" \
+           "$P/usr/share/metainfo" \
+           "$P/usr/share/icons/hicolor/scalable/apps" \
+           "$P/usr/share/icons/hicolor/48x48/apps" \
+           "$P/usr/share/icons/hicolor/128x128/apps" \
+           "$P/usr/share/icons/hicolor/256x256/apps" \
            "$P/usr/share/doc/skillfish-vaapi-encoder"
 
 install -m 0644 "$ALBERO/bc250_drv_video.so" "$P/usr/lib/x86_64-linux-gnu/dri/"
 install -m 0644 "$ALBERO"/*.spv "$P/usr/share/bc250/shaders/"
+
+# ⚠️ La scheda nell'Hub esiste solo se il pacchetto porta un metainfo.
+# Senza, il driver non sta nel catalogo che l'Hub legge e la sua descrizione
+# vive solo in `apt show`, solo in inglese.
+install -m 0644 "$QUI/os.skillfish.vaapi.metainfo.xml" "$P/usr/share/metainfo/"
+ICONE=$RADICE/system/usr/share/icons/hicolor
+install -m 0644 "$ICONE/scalable/apps/skillfish-vaapi-encoder.svg" \
+        "$P/usr/share/icons/hicolor/scalable/apps/"
+for s in 48x48 128x128 256x256; do
+    install -m 0644 "$ICONE/$s/apps/skillfish-vaapi-encoder.png" \
+            "$P/usr/share/icons/hicolor/$s/apps/"
+done
 install -m 0755 "$QUI/60-skillfish-vaapi" \
         "$P/usr/lib/systemd/user-environment-generators/60-skillfish-vaapi"
 install -m 0644 "$QUI/copyright" "$P/usr/share/doc/skillfish-vaapi-encoder/copyright"

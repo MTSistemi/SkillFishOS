@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>os.skillfish.vaapi</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>SkillFishOS video driver</name>
+  <summary>Video encoding and decoding for the BC-250</summary>
+  <summary xml:lang="it">Codifica e decodifica video per la BC-250</summary>
+  <summary xml:lang="fr">Encodage et décodage vidéo pour la BC-250</summary>
+  <summary xml:lang="uk">Кодування та декодування відео для BC-250</summary>
+  <summary xml:lang="ru">Кодирование и декодирование видео для BC-250</summary>
+  <summary xml:lang="es">Codificación y decodificación de vídeo para la BC-250</summary>
+  <summary xml:lang="pt">Codificação e descodificação de vídeo para a BC-250</summary>
+  <summary xml:lang="de">Videokodierung und -dekodierung für die BC-250</summary>
+  <summary xml:lang="pl">Kodowanie i dekodowanie wideo dla BC-250</summary>
+  <description>
+    <p>The BC-250 has no usable video engine, so recording, streaming and playback all fall back to the processor. This driver does the work itself: it encodes H.264 and HEVC with Vulkan compute shaders on the board's 40 compute units, and decodes H.264 and H.265 on the processor. Any application that speaks VA-API finds it, where otherwise it would find nothing at all.</p>
+    <p xml:lang="it">La BC-250 non ha un motore video utilizzabile, quindi registrazione, streaming e riproduzione ricadono tutti sul processore. Questo driver fa il lavoro per conto suo: codifica H.264 e HEVC con shader di calcolo Vulkan sulle 40 unità della scheda, e decodifica H.264 e H.265 sul processore. Qualunque applicazione che parli VA-API lo trova, dove altrimenti non troverebbe niente.</p>
+    <p xml:lang="fr">La BC-250 n'a pas de moteur vidéo utilisable : enregistrement, diffusion et lecture retombent tous sur le processeur. Ce pilote fait le travail lui-même : il encode H.264 et HEVC avec des shaders de calcul Vulkan sur les 40 unités de la carte, et décode H.264 et H.265 sur le processeur. Toute application qui parle VA-API le trouve, là où elle ne trouverait rien du tout.</p>
+    <p xml:lang="uk">BC-250 не має придатного відеорушія, тож запис, трансляція і відтворення лягають на процесор. Цей драйвер робить роботу сам: кодує H.264 і HEVC обчислювальними шейдерами Vulkan на 40 блоках плати, а декодує H.264 і H.265 на процесорі. Будь-який застосунок, що говорить VA-API, знаходить його там, де інакше не знайшов би нічого.</p>
+    <p xml:lang="ru">У BC-250 нет пригодного видеодвижка, поэтому запись, трансляция и воспроизведение ложатся на процессор. Этот драйвер делает работу сам: кодирует H.264 и HEVC вычислительными шейдерами Vulkan на 40 блоках платы, а декодирует H.264 и H.265 на процессоре. Любое приложение, говорящее на VA-API, находит его там, где иначе не нашло бы ничего.</p>
+    <p xml:lang="es">La BC-250 no tiene un motor de vídeo utilizable, así que la grabación, la emisión y la reproducción recaen en el procesador. Este controlador hace el trabajo por su cuenta: codifica H.264 y HEVC con sombreadores de cómputo Vulkan en las 40 unidades de la placa, y decodifica H.264 y H.265 en el procesador. Cualquier aplicación que hable VA-API lo encuentra, donde de otro modo no encontraría nada.</p>
+    <p xml:lang="pt">A BC-250 não tem um motor de vídeo utilizável, por isso a gravação, a transmissão e a reprodução recaem todas no processador. Este controlador faz o trabalho por si: codifica H.264 e HEVC com shaders de cálculo Vulkan nas 40 unidades da placa, e descodifica H.264 e H.265 no processador. Qualquer aplicação que fale VA-API encontra-o, onde de outro modo não encontraria nada.</p>
+    <p xml:lang="de">Die BC-250 hat keine brauchbare Video-Engine, also fallen Aufnahme, Streaming und Wiedergabe alle auf den Prozessor zurück. Dieser Treiber erledigt die Arbeit selbst: er kodiert H.264 und HEVC mit Vulkan-Compute-Shadern auf den 40 Recheneinheiten der Karte und dekodiert H.264 und H.265 auf dem Prozessor. Jede Anwendung, die VA-API spricht, findet ihn dort, wo sie sonst gar nichts fände.</p>
+    <p xml:lang="pl">BC-250 nie ma użytecznego silnika wideo, więc nagrywanie, transmisja i odtwarzanie spadają na procesor. Ten sterownik wykonuje pracę sam: koduje H.264 i HEVC shaderami obliczeniowymi Vulkan na 40 jednostkach karty, a dekoduje H.264 i H.265 na procesorze. Każda aplikacja mówiąca w VA-API znajduje go tam, gdzie inaczej nie znalazłaby nic.</p>
+    <p>Measured on the board at 1920x1080: encoding reaches 129 frames per second with H.264 and 113 with HEVC, decoding 119 with H.264 and 96 with H.265. Every picture comes out sample for sample as the reference decoder makes it.</p>
+    <p xml:lang="it">Misurato sulla scheda in 1920x1080: la codifica arriva a 129 fotogrammi al secondo con H.264 e 113 con HEVC, la decodifica a 119 con H.264 e 96 con H.265. Ogni immagine esce campione per campione come la fa il decoder di riferimento.</p>
+    <p xml:lang="fr">Mesuré sur la carte en 1920x1080 : l'encodage atteint 129 images par seconde en H.264 et 113 en HEVC, le décodage 119 en H.264 et 96 en H.265. Chaque image sort échantillon par échantillon comme la fait le décodeur de référence.</p>
+    <p xml:lang="uk">Виміряно на платі в 1920x1080: кодування сягає 129 кадрів на секунду в H.264 і 113 в HEVC, декодування — 119 в H.264 і 96 в H.265. Кожне зображення виходить відлік за відліком таким, яким його робить еталонний декодер.</p>
+    <p xml:lang="ru">Измерено на плате в 1920x1080: кодирование достигает 129 кадров в секунду в H.264 и 113 в HEVC, декодирование — 119 в H.264 и 96 в H.265. Каждое изображение выходит отсчёт за отсчётом таким, каким его делает эталонный декодер.</p>
+    <p xml:lang="es">Medido en la placa a 1920x1080: la codificación llega a 129 fotogramas por segundo con H.264 y 113 con HEVC, la decodificación a 119 con H.264 y 96 con H.265. Cada imagen sale muestra a muestra como la hace el decodificador de referencia.</p>
+    <p xml:lang="pt">Medido na placa a 1920x1080: a codificação chega a 129 imagens por segundo com H.264 e 113 com HEVC, a descodificação a 119 com H.264 e 96 com H.265. Cada imagem sai amostra a amostra como a faz o descodificador de referência.</p>
+    <p xml:lang="de">Auf der Karte bei 1920x1080 gemessen: die Kodierung erreicht 129 Bilder pro Sekunde mit H.264 und 113 mit HEVC, die Dekodierung 119 mit H.264 und 96 mit H.265. Jedes Bild kommt Abtastwert für Abtastwert so heraus, wie der Referenzdekoder es macht.</p>
+    <p xml:lang="pl">Zmierzone na karcie w 1920x1080: kodowanie osiąga 129 klatek na sekundę w H.264 i 113 w HEVC, dekodowanie 119 w H.264 i 96 w H.265. Każdy obraz wychodzi próbka po próbce taki, jaki robi go dekoder referencyjny.</p>
+  </description>
+  <icon type="stock">skillfish-vaapi-encoder</icon>
+  <url type="homepage">https://skillfishos.com</url>
+  <url type="bugtracker">https://github.com/MTSistemi/SkillFishOS/issues</url>
+  <developer id="com.skillfishos">
+    <name>SkillFishOS</name>
+  </developer>
+  <pkgname>skillfish-vaapi-encoder</pkgname>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="26.09.2" date="2026-09-22">
+      <description>
+        <p>H.265 decoding through the driver reaches 96 frames per second at 1920x1080 on the board. The decoder reads several rows of a picture at the same time when the stream allows it, and its filters run in vector instructions; BC250_HEVC_THREAD sets how many processors it may use.</p>
+        <p xml:lang="it">La decodifica H.265 attraverso il driver arriva a 96 fotogrammi al secondo in 1920x1080 sulla scheda. Il decoder legge più righe della stessa immagine insieme quando il flusso lo consente, e i suoi filtri girano in istruzioni vettoriali; con BC250_HEVC_THREAD si decide quanti processori può usare.</p>
+        <p xml:lang="fr">Le décodage H.265 par le pilote atteint 96 images par seconde en 1920x1080 sur la carte. Le décodeur lit plusieurs rangées d'une même image à la fois quand le flux le permet, et ses filtres tournent en instructions vectorielles ; BC250_HEVC_THREAD fixe combien de processeurs il peut prendre.</p>
+        <p xml:lang="uk">Декодування H.265 через драйвер сягає 96 кадрів на секунду в 1920x1080 на платі. Декодер читає кілька рядів одного зображення водночас, коли потік це дозволяє, а його фільтри виконуються векторними інструкціями; BC250_HEVC_THREAD задає, скільки процесорів він може взяти.</p>
+        <p xml:lang="ru">Декодирование H.265 через драйвер достигает 96 кадров в секунду в 1920x1080 на плате. Декодер читает несколько рядов одного изображения одновременно, когда поток это позволяет, а его фильтры выполняются векторными инструкциями; BC250_HEVC_THREAD задаёт, сколько процессоров он может занять.</p>
+        <p xml:lang="es">La decodificación H.265 a través del controlador llega a 96 fotogramas por segundo a 1920x1080 en la placa. El decodificador lee varias filas de una misma imagen a la vez cuando el flujo lo permite, y sus filtros corren en instrucciones vectoriales; BC250_HEVC_THREAD fija cuántos procesadores puede usar.</p>
+        <p xml:lang="pt">A descodificação H.265 através do controlador chega a 96 imagens por segundo a 1920x1080 na placa. O descodificador lê várias linhas da mesma imagem ao mesmo tempo quando o fluxo o permite, e os seus filtros correm em instruções vetoriais; BC250_HEVC_THREAD define quantos processadores pode usar.</p>
+        <p xml:lang="de">Die H.265-Dekodierung über den Treiber erreicht 96 Bilder pro Sekunde bei 1920x1080 auf der Karte. Der Dekoder liest mehrere Zeilen desselben Bildes gleichzeitig, wenn der Datenstrom es erlaubt, und seine Filter laufen in Vektorbefehlen; BC250_HEVC_THREAD legt fest, wie viele Prozessoren er belegen darf.</p>
+        <p xml:lang="pl">Dekodowanie H.265 przez sterownik osiąga 96 klatek na sekundę w 1920x1080 na karcie. Dekoder czyta kilka wierszy tego samego obrazu naraz, gdy strumień na to pozwala, a jego filtry działają na instrukcjach wektorowych; BC250_HEVC_THREAD ustala, ilu procesorów może użyć.</p>
+      </description>
+    </release>
+  </releases>
+</component>
