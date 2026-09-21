@@ -796,7 +796,10 @@ echo "    os-release timbrato: $MEDIA"
 # nessuna di quelle pubblicate. Al contrario non servirebbe a niente:
 # skillfish-boot non se lo installa nessuno per nome, mentre skillfish-base
 # ce l'hanno tutti.
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+# skillfish-desktop-guard for the same reason as skillfish-boot: base is the
+# one package every installation already has, so this is how the guard reaches
+# machines installed before it existed (issue #87).
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read. It is also the one place that asks the SMU how much power the
@@ -1692,10 +1695,33 @@ ctrl $P "flatpak, curl" "SkillFishOS Emulators - install emulators after the ins
   "Installs console emulators after the system is in place: the whole EmuDeck set
 or one at a time. Upstream installers, nothing repackaged."
 
+P=skillfish-desktop-guard
+# Issue #87, 21/09/2026: during a Qt6/KF6 transition in sid, Discover
+# (PackageKit) offered an "update" that removed 170 packages, Plasma, KWin,
+# Dolphin and Konsole among them, and a user pressed Proceed. apt on the same
+# machine only keeps those packages back; PackageKit's resolver removes them.
+# This package has no files. It depends on the desktop and is Protected: apt
+# refuses to remove it without --allow-remove-essential, and PackageKit stops
+# with "unmet dependencies" instead of offering the removal. Verified on the x64
+# test VM: apt full-upgrade identical with and without it, PackageKit no longer
+# lists a single desktop package for removal.
+# ⚠️ Only packages every install has: the ISO list has kwin-x11 and pulls
+# kwin-wayland through kde-plasma-desktop, hence the alternative.
+ctrl $P "plasma-desktop, plasma-workspace, kwin-wayland | kwin-x11, sddm, systemsettings, konsole, dolphin" "SkillFishOS desktop guard - keeps updates from removing KDE Plasma" \
+  "Holds the KDE Plasma desktop in place. When Debian is in the middle of
+rebuilding Qt and KDE, a graphical updater can offer to remove the whole desktop
+to finish an update. With this package installed that update is refused, and
+the desktop stays until the new packages are all there.
+To remove KDE on purpose, remove this package first with
+apt remove --allow-remove-essential skillfish-desktop-guard."
+sed -i 's/^Priority: optional$/Priority: important\nProtected: yes/' "$OUT/$P/DEBIAN/control"
+# nothing to refresh: no desktop files, icons or metainfo in here
+rm -f "$OUT/$P/DEBIAN/postinst"
+
 # ⚠️ OGNI PACCHETTO NUOVO VA AGGIUNTO QUI, o si stagiona in $OUT e non
 # diventa mai un .deb. Succede senza un rumore: i file ci sono, il control
 # c'e', e alla fine manca solo l'archivio.
-for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfish-gddr6 skillfishos-archive-keyring; do
+for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfish-gddr6 skillfish-desktop-guard skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.

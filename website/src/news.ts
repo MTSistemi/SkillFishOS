@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // discover-rimuove-kde-2026-09-21
+    data: '2026-09-21',
+    quando: {"it": "21 settembre 2026", "en": "21 September 2026", "pl": "21 września 2026", "uk": "21 вересня 2026", "ru": "21 сентября 2026", "es": "21 de septiembre de 2026", "pt": "21 de setembro de 2026", "de": "21. September 2026", "fr": "21 septembre 2026"},
+    etichetta: {"it": "avviso", "en": "warning", "pl": "ostrzeżenie", "uk": "попередження", "ru": "предупреждение", "es": "aviso", "pt": "aviso", "de": "Warnung", "fr": "avertissement"},
+    titolo: {
+      it: "Aggiornate dall'Hub, non da Discover",
+      en: "Update from the Hub, not from Discover",
+      pl: "Aktualizujcie z Huba, nie z Discover",
+      uk: "Оновлюйтеся через Hub, а не Discover",
+      ru: "Обновляйтесь через Hub, а не Discover",
+      es: "Actualizad desde el Hub, no desde Discover",
+      pt: "Atualizem pelo Hub, não pelo Discover",
+      de: "Aktualisiert über den Hub, nicht über Discover",
+      fr: "Mettez à jour depuis le Hub, pas depuis Discover"
+    },
+    testo: {
+      it: "Debian sta ricompilando Qt e KDE, e in questi giorni Discover può proporre un aggiornamento che rimuove l'intero desktop KDE Plasma insieme a circa 170 pacchetti. Se vedete quella lista, premete Annulla. Il pacchetto skillfish-desktop-guard, che arriva con l'aggiornamento di oggi, adesso fa rifiutare quell'operazione; l'Hub non l'ha mai proposta. Discover esce dalla prossima immagine di installazione.",
+      en: "Debian is rebuilding Qt and KDE, and these days Discover can offer an update that removes the whole KDE Plasma desktop along with about 170 packages. If you see that list, press Cancel. The skillfish-desktop-guard package, which arrives with today's update, now makes that operation fail; the Hub never offered it. Discover leaves the next installation image.",
+      pl: "Debian przebudowuje Qt i KDE i w tych dniach Discover może zaproponować aktualizację, która usuwa cały pulpit KDE Plasma razem z około 170 pakietami. Jeśli zobaczycie taką listę, naciśnijcie Anuluj. Pakiet skillfish-desktop-guard, który przychodzi z dzisiejszą aktualizacją, sprawia teraz, że ta operacja zostaje odrzucona; Hub nigdy jej nie proponował. Discover znika z następnego obrazu instalacyjnego.",
+      uk: "Debian перезбирає Qt і KDE, і в ці дні Discover може запропонувати оновлення, що видаляє весь робочий стіл KDE Plasma разом із приблизно 170 пакунками. Якщо побачите такий список, натисніть «Скасувати». Пакунок skillfish-desktop-guard, що приходить із сьогоднішнім оновленням, тепер змушує відхилити цю операцію; Hub її ніколи не пропонував. Discover прибираємо з наступного інсталяційного образу.",
+      ru: "Debian пересобирает Qt и KDE, и в эти дни Discover может предложить обновление, которое удаляет весь рабочий стол KDE Plasma вместе примерно со 170 пакетами. Если увидите такой список, нажмите «Отмена». Пакет skillfish-desktop-guard, который приходит с сегодняшним обновлением, теперь заставляет отклонить эту операцию; Hub её никогда не предлагал. Discover убираем из следующего установочного образа.",
+      es: "Debian está recompilando Qt y KDE, y estos días Discover puede proponer una actualización que elimina todo el escritorio KDE Plasma junto con unos 170 paquetes. Si veis esa lista, pulsad Cancelar. El paquete skillfish-desktop-guard, que llega con la actualización de hoy, hace ahora que esa operación se rechace; el Hub nunca la propuso. Discover sale de la próxima imagen de instalación.",
+      pt: "O Debian está a recompilar o Qt e o KDE, e nestes dias o Discover pode propor uma atualização que remove todo o ambiente KDE Plasma junto com cerca de 170 pacotes. Se virem essa lista, carreguem em Cancelar. O pacote skillfish-desktop-guard, que chega com a atualização de hoje, faz agora com que essa operação seja recusada; o Hub nunca a propôs. O Discover sai da próxima imagem de instalação.",
+      de: "Debian baut gerade Qt und KDE neu, und in diesen Tagen kann Discover ein Update anbieten, das den ganzen KDE-Plasma-Desktop samt rund 170 Paketen entfernt. Wer diese Liste sieht, drückt Abbrechen. Das Paket skillfish-desktop-guard, das mit dem heutigen Update kommt, lässt diesen Vorgang jetzt scheitern; der Hub hat ihn nie angeboten. Discover fehlt im nächsten Installationsabbild.",
+      fr: "Debian reconstruit Qt et KDE, et ces jours-ci Discover peut proposer une mise à jour qui supprime tout le bureau KDE Plasma avec environ 170 paquets. Si vous voyez cette liste, appuyez sur Annuler. Le paquet skillfish-desktop-guard, qui arrive avec la mise à jour d'aujourd'hui, fait désormais échouer cette opération ; le Hub ne l'a jamais proposée. Discover quitte la prochaine image d'installation."
+    },
+  },
+  {
     // codifica-hardware-2026-09-21
     data: '2026-09-21',
     quando: { it: "21 settembre 2026", en: "21 September 2026", pl: "21 września 2026", uk: "21 вересня 2026", ru: "21 сентября 2026", es: "21 de septiembre de 2026", pt: "21 de setembro de 2026", de: "21. September 2026", fr: "21 septembre 2026" },
