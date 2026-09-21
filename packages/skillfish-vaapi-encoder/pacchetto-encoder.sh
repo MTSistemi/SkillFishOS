@@ -58,19 +58,25 @@ Depends: libva2, libvulkan1, libdrm2, libgomp1
 Recommends: skillfish-base
 Installed-Size: $TAGLIA
 Maintainer: Mattia Tadini <info@mtsistemi.it>
-Description: Hardware video encoding for the AMD BC-250
- The BC-250 has no usable video engine, so screen recording and game streaming
- fall back to the CPU. This is a VA-API driver that encodes H.264 and HEVC with
- Vulkan compute shaders on the board's 40 compute units instead.
+Description: Video encoding and decoding for the AMD BC-250
+ The BC-250 has no usable video engine, so recording, streaming and playback
+ all fall back to the CPU. This is a VA-API driver that does the work itself:
+ encoding with Vulkan compute shaders on the board's 40 compute units, and
+ decoding on the CPU with its own H.264 and H.265 decoders.
  .
- Measured on the board at 1920x1080 at 60 fps: H.264 reaches 129 frames per
- second, HEVC 113. Recording a game costs it 13% with H.264 and 35% with HEVC,
- and both hold a full 60 fps.
+ Encoding, measured on the board at 1920x1080 at 60 fps: H.264 reaches 129
+ frames per second, HEVC 113. Recording a game costs it 13% with H.264 and 35%
+ with HEVC, and both hold a full 60 fps.
  .
- It turns itself on only on a real BC-250. The driver advertises encoding only,
- so enabling it on a machine whose VA-API works would take hardware decoding
- away from browsers and video players; on the BC-250 there is nothing to lose,
- because no VA-API driver initialises there at all.
+ Decoding, measured the same way: H.264 reaches 119 frames per second, H.265
+ 36. Both produce every sample of every picture exactly as the reference
+ decoder does - 67 H.264 and 38 H.265 configurations compared byte for byte -
+ but only the H.264 one is fast enough to be worth preferring to a player's
+ own software decoder.
+ .
+ It turns itself on only on a real BC-250, where no other VA-API driver
+ initialises at all: on a machine whose own driver works, this one would take
+ its place and give back less.
  .
  Built from commit $COMMIT of simpmix/bc250-encoding-decoding-fix with our
  fixes (upstream pull requests 21 and 22).

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Turn the BC-250 encoder on, but only on a BC-250.
+# Turn the BC-250 video driver on, but only on a BC-250.
 #
 # systemd runs this when a user session's environment is built, ON THE MACHINE
 # ITSELF, and takes whatever it prints as NAME=VALUE. That is the whole point:
 # a fixed file in /etc/environment.d would follow our images onto ordinary PCs,
-# where radeonsi and iHD provide a working VA-API and this driver - which
-# advertises encoding only - would take hardware decoding away from Firefox,
-# mpv and VLC. Here the question is asked where the answer is true.
+# where radeonsi and iHD provide a working VA-API that a graphics chip actually
+# runs, and this one - which decodes on the CPU - would take its place and give
+# back less. Here the question is asked where the answer is true.
 #
 # On the BC-250 nothing is lost: radeonsi_drv_video.so does not initialise
 # there at all, measured with --display drm --device /dev/dri/renderD128.
