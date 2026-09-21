@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // codifica-hardware-2026-09-21
+    data: '2026-09-21',
+    quando: { it: "21 settembre 2026", en: "21 September 2026", pl: "21 września 2026", uk: "21 вересня 2026", ru: "21 сентября 2026", es: "21 de septiembre de 2026", pt: "21 de setembro de 2026", de: "21. September 2026", fr: "21 septembre 2026" },
+    etichetta: { it: "novità", en: "new", pl: "nowość", uk: "новинка", ru: "новинка", es: "novedad", pt: "novidade", de: "Neu", fr: "nouveauté" },
+    titolo: {
+      it: "Codifica H.264 e HEVC sulla scheda",
+      en: "H.264 and HEVC encoding on the board",
+      pl: "Kodowanie H.264 i HEVC na płycie",
+      uk: "Кодування H.264 і HEVC на платі",
+      ru: "Кодирование H.264 и HEVC на плате",
+      es: "Codificación H.264 y HEVC en la placa",
+      pt: "Codificação H.264 e HEVC na placa",
+      de: "H.264- und HEVC-Kodierung auf der Platine",
+      fr: "Encodage H.264 et HEVC sur la carte"
+    },
+    testo: {
+      it: "La BC-250 non ha un motore video: finora registrare una partita o trasmetterla toccava al processore, e si sentiva. Adesso c'è un driver che comprime in H.264 e in HEVC usando le 40 unità di calcolo della scheda. Con un gioco davvero in corso, registrare gli costa il 13 per cento, e la registrazione tiene i 60 fotogrammi al secondo senza perderne. Arriva con l'aggiornamento e si accende da solo, ma soltanto su una BC-250.",
+      en: "The BC-250 has no video engine: until now, recording a game or streaming it fell to the processor, and you could tell. There is now a driver that compresses in H.264 and in HEVC using the board's 40 compute units. With a game actually running, recording costs it 13 per cent, and the recording holds 60 frames a second without dropping any. It arrives with the update and switches itself on, but only on a BC-250.",
+      pl: "BC-250 nie ma silnika wideo: dotąd nagrywanie gry albo jej transmisja spadały na procesor i było to słychać. Teraz jest sterownik, który kompresuje w H.264 i w HEVC na 40 jednostkach obliczeniowych płyty. Przy naprawdę działającej grze nagrywanie kosztuje ją 13 procent, a nagranie trzyma 60 klatek na sekundę, nie gubiąc żadnej. Przychodzi z aktualizacją i włącza się sam, ale wyłącznie na BC-250.",
+      uk: "У BC-250 немає відеорушія: досі запис гри або її трансляція лягали на процесор, і це було помітно. Тепер є драйвер, який стискає у H.264 і в HEVC на 40 обчислювальних блоках плати. За реально запущеної гри запис коштує їй 13 відсотків, а сам запис тримає 60 кадрів на секунду, не втрачаючи жодного. Він приходить з оновленням і вмикається сам, але лише на BC-250.",
+      ru: "У BC-250 нет видеодвижка: до сих пор запись игры или её трансляция ложились на процессор, и это было заметно. Теперь есть драйвер, который сжимает в H.264 и в HEVC на 40 вычислительных блоках платы. При реально идущей игре запись стоит ей 13 процентов, а сама запись держит 60 кадров в секунду, не теряя ни одного. Он приходит с обновлением и включается сам, но только на BC-250.",
+      es: "La BC-250 no tiene motor de vídeo: hasta ahora grabar una partida o retransmitirla le tocaba al procesador, y se notaba. Ahora hay un controlador que comprime en H.264 y en HEVC usando las 40 unidades de cálculo de la placa. Con un juego funcionando de verdad, grabar le cuesta un 13 por ciento, y la grabación mantiene 60 imágenes por segundo sin perder ninguna. Llega con la actualización y se enciende solo, pero únicamente en una BC-250.",
+      pt: "A BC-250 não tem motor de vídeo: até agora gravar um jogo ou transmiti-lo cabia ao processador, e notava-se. Agora há um controlador que comprime em H.264 e em HEVC usando as 40 unidades de cálculo da placa. Com um jogo a correr a sério, gravar custa-lhe 13 por cento, e a gravação aguenta 60 imagens por segundo sem perder nenhuma. Chega com a atualização e liga-se sozinho, mas só numa BC-250.",
+      de: "Die BC-250 hat keine Video-Engine: bisher blieb das Aufzeichnen eines Spiels oder sein Streamen am Prozessor hängen, und das merkte man. Jetzt gibt es einen Treiber, der in H.264 und in HEVC auf den 40 Recheneinheiten der Platine komprimiert. Während ein Spiel wirklich läuft, kostet ihn das Aufzeichnen 13 Prozent, und die Aufnahme hält 60 Bilder pro Sekunde, ohne eines zu verlieren. Er kommt mit dem Update und schaltet sich selbst ein, aber nur auf einer BC-250.",
+      fr: "La BC-250 n'a pas de moteur vidéo : jusqu'ici, enregistrer une partie ou la diffuser revenait au processeur, et cela se voyait. Il existe maintenant un pilote qui compresse en H.264 et en HEVC sur les 40 unités de calcul de la carte. Avec un jeu réellement en cours, l'enregistrement lui coûte 13 pour cent, et il tient 60 images par seconde sans en perdre une. Il arrive avec la mise à jour et s'active tout seul, mais uniquement sur une BC-250."
+    },
+  },
+  {
     // limite-termico-95-2026-09-20
     data: '2026-09-20',
     quando: { it: "20 settembre 2026", en: "20 September 2026", pl: "20 września 2026", uk: "20 вересня 2026", ru: "20 сентября 2026", es: "20 de septiembre de 2026", pt: "20 de setembro de 2026", de: "20. September 2026", fr: "20 septembre 2026" },

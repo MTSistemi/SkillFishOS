@@ -229,12 +229,16 @@ curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
 # the daemons and helpers the sections talk to: recommended, not required, so
 # a machine that is not a BC-250 can leave the hardware ones out
 #
+# skillfish-vaapi-encoder is here for the same reason: it only does anything on
+# a BC-250, and on anything else it stays installed and switched off (see its
+# systemd environment generator), so recommending it costs a non-BC-250 nothing.
+#
 # skillfish-gddr6 is in here for that reason and one of its own: it writes a
 # payload into the SMU's SRAM, and somebody who would rather not have firmware
 # modified on their board should be able to take it off without losing the
 # window. ONE Recommends field only - a second one is not a longer list, it is
 # an invalid control file, and the evdev sed below only ever touches the first.
-sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6/' "$OUT/$P/DEBIAN/control"
+sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6, skillfish-vaapi-encoder/' "$OUT/$P/DEBIAN/control"
 # the .sfmon mime type moved here from skillfish-monitor: without this dpkg
 # refuses to unpack over the old monitor package ("trying to overwrite")
 sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
