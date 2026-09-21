@@ -317,6 +317,14 @@ fi
 exit 0
 POSTINST
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
+# Conflicts, not only the pin above. The pin keeps Discover from being
+# installed, but it does nothing to a machine that already has it, and every
+# system installed from a 26.06.x ISO does: those images were cloned from a
+# board that had it. That is how issue #87 happened: Discover offered to remove
+# the whole desktop during a Qt6/KF6 transition and the user pressed Proceed.
+# With the conflict, the Hub's full-upgrade removes plasma-discover and its
+# backends (nothing else depends on it) when this package is upgraded.
+sed -i 's/^Depends: .*/&\nConflicts: plasma-discover/' "$OUT/$P/DEBIAN/control"
 
 P=skillfish-fan
 # SkillFishOS Fan Control. Tre programmi, e non e' una complicazione gratuita:
@@ -2241,6 +2249,7 @@ notcheck skillfish-tuner_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfis
 
 
 check skillfish-hub_${VER}_all.deb ./etc/apt/preferences.d/skillfish-no-discover.pref 'Pin-Priority: -1'
+dpkg-deb -f "$OUT/out/skillfish-hub_${VER}_all.deb" Conflicts | grep -qx 'plasma-discover'   && echo "OK  skillfish-hub: Conflicts plasma-discover"   || { echo "FAIL skillfish-hub: the Conflicts on plasma-discover is gone" >&2; exit 1; }
 
 
 # LE DUE PORTE DELL'HUB.
