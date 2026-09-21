@@ -30,6 +30,7 @@ with no copy anywhere. Hence these files.
 | `settings.yaml` | `/etc/penguins-eggs.d/distros/forky/calamares/settings.yaml` |
 | `shellprocess@cryptofix.conf` | `/etc/calamares/modules/` |
 | `shellprocess@cryptofixpost.conf` | `/etc/calamares/modules/` |
+| `shellprocess@wipestale.conf` | `/etc/calamares/modules/` |
 
 After changing the template, regenerate with:
 
@@ -40,7 +41,7 @@ eggs calamares --install
 and check that the sequence really came out as intended:
 
 ```sh
-grep -nE 'cryptofix|mkinitramfs|grubcfg' /etc/calamares/settings.conf
+grep -nE 'wipestale|cryptofix|mkinitramfs|grubcfg' /etc/calamares/settings.conf
 ```
 
 ## Why cryptofix runs twice

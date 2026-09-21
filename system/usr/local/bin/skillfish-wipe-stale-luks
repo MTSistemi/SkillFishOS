@@ -1,0 +1,75 @@
+#!/bin/bash
+# skillfish-wipe-stale-luks - remove a dead LUKS signature from the partitions
+# Calamares has just formatted, before the system is installed on them.
+#
+# WHY (issue #72). Installing over a disk that had held an ENCRYPTED install
+# gave a system that finished installing and then stopped in the initramfs
+# shell on the first boot. mkfs.btrfs writes its superblock at 64 KiB and
+# leaves the old LUKS header at offset 0 alone, so the partition carries two
+# signatures. blkid reports the first one, crypto_LUKS, udev never creates
+# /dev/disk/by-uuid/<the btrfs uuid>, and the initramfs waits for a root that
+# never appears. The kernel command line and fstab are right; only the stale
+# header is in the way.
+#
+# WHAT IT DOES. Calamares runs it right after its mount step (see
+# shellprocess@wipestale.conf), outside the target. For every partition
+# mounted under the installer's target, if it carries crypto_LUKS AND a second
+# signature, it erases only the crypto_LUKS one (wipefs -t crypto_LUKS). The
+# filesystem is not touched: its superblock is elsewhere, which is exactly why
+# both signatures were there.
+#
+# An encrypted install is left alone by construction: the raw partition holds
+# the new LUKS header and nothing else, and the filesystem lives on the
+# /dev/mapper device, which is skipped.
+#
+#     skillfish-wipe-stale-luks [target-mount-point]
+#
+# Without an argument it finds the target itself: Calamares mounts it under
+# /tmp/calamares-root-*. With --dry-run it only reports.
+set -u
+PROG=skillfish-wipe-stale-luks
+DRY=0
+ROOTMNT=""
+for a in "$@"; do
+  case "$a" in
+    --dry-run|-n) DRY=1 ;;
+    -*) echo "$PROG: unknown option $a" >&2; exit 2 ;;
+    *) ROOTMNT="$a" ;;
+  esac
+done
+
+if [ -z "$ROOTMNT" ]; then
+  ROOTMNT=$(findmnt -rn -o TARGET | grep -E '^/tmp/calamares-root-[^/]+$' | head -1)
+fi
+if [ -z "$ROOTMNT" ] || ! mountpoint -q "$ROOTMNT"; then
+  # Nothing mounted means nothing to check. Never fail the installation here.
+  echo "$PROG: no installation target mounted, nothing to do"
+  exit 0
+fi
+
+# every block device mounted at or below the target, once each, without the
+# [/subvolume] suffix findmnt adds for btrfs
+findmnt -rn -R -o SOURCE "$ROOTMNT" | sed 's/\[.*$//' | sort -u | while read -r dev; do
+  [ -b "$dev" ] || continue
+  case "$dev" in /dev/mapper/*|/dev/dm-*) continue ;; esac
+  types=$(wipefs -n -O TYPE --noheadings "$dev" 2>/dev/null | sort -u)
+  echo "$types" | grep -qx crypto_LUKS || continue
+  others=$(echo "$types" | grep -vx crypto_LUKS | grep -v '^$' | tr '\n' ' ')
+  if [ -z "$others" ]; then
+    echo "$PROG: $dev is LUKS only, left alone"
+    continue
+  fi
+  if [ "$DRY" = 1 ]; then
+    echo "$PROG: $dev has a stale crypto_LUKS signature next to: $others(dry run, not erased)"
+    continue
+  fi
+  # -f because the partition is mounted; the bytes erased are the LUKS magic,
+  # which the filesystem on it does not use.
+  if wipefs -f -a -t crypto_LUKS "$dev" >/dev/null 2>&1; then
+    echo "$PROG: $dev: stale crypto_LUKS signature erased, kept: $others"
+  else
+    echo "$PROG: $dev: could not erase the crypto_LUKS signature" >&2
+  fi
+done
+udevadm settle >/dev/null 2>&1 || true
+exit 0
