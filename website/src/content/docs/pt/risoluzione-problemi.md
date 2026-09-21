@@ -51,7 +51,28 @@ Se os travamentos se repetirem, **abaixe o teto da curva** (por exemplo de Perfo
 
 ## Uma atualização quebrou alguma coisa
 
-Reinicie e no menu **GRUB → “SkillFishOS snapshots”** escolha um snapshot anterior que funcionava. Veja [Armazenamento e snapshots](/pt/docs/storage-snapshot). Os snapshots de antes e depois da atualização são automáticos.
+Cada operação com pacotes faz um snapshot antes e outro depois. Os do menu **GRUB → “SkillFishOS snapshots”** arrancam **só de leitura**: servem para ver e copiar ficheiros, não para continuar a trabalhar. Para voltar atrás a sério, num terminal ou numa consola de texto (Ctrl+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` é o snapshot “pre” mesmo antes da atualização má; `sudo skillfish-rollback --annulla` desfaz a reposição. A pasta pessoal não é tocada. Veja [Armazenamento e snapshots](/pt/docs/storage-snapshot).
+
+## Uma atualização removeu o ambiente de trabalho
+
+Em setembro de 2026 o Debian estava a recompilar o Qt e o KDE, e o **Discover** propôs uma atualização que removia todo o ambiente KDE. Desde então o SkillFishOS impede-o, e o Hub substituiu o Discover. Atualizem sempre pelo **SkillFishOS Hub**.
+
+Se vos aconteceu, o snapshot de antes dessa atualização é o caminho mais limpo (ver acima). **Sem snapshots**, numa consola de texto (Ctrl+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+O script descobre o que essa atualização removeu, mostra o plano e pergunta antes de mudar alguma coisa. Não remove nada e não toca na pasta pessoal. Reiniciem quando disser *Done*.
 
 ## A IA não inicia ou devolve coisas estranhas
 

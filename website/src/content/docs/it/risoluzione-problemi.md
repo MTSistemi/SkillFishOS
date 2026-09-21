@@ -51,7 +51,28 @@ Se i freeze si ripetono, **abbassa il tetto della curva** (es. da Performance a 
 
 ## Un aggiornamento ha rotto qualcosa
 
-Riavvia e dal menu **GRUB → "SkillFishOS snapshots"** scegli uno snapshot precedente funzionante. Vedi [Storage e snapshot](/docs/storage-snapshot). Gli snapshot pre/post aggiornamento sono automatici.
+Ogni operazione sui pacchetti fa uno snapshot prima e uno dopo. Gli snapshot del menu **GRUB → "SkillFishOS snapshots"** partono **in sola lettura**: servono per guardare e recuperare file, non per continuare a lavorare. Per tornare indietro davvero, da un terminale o da una console di testo (Ctrl+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` è lo snapshot "pre" subito prima dell'aggiornamento sbagliato; `sudo skillfish-rollback --annulla` annulla il ripristino. La cartella personale non viene toccata. Vedi [Storage e snapshot](/docs/storage-snapshot).
+
+## Un aggiornamento ha tolto il desktop
+
+A settembre 2026 Debian stava ricompilando Qt e KDE, e **Discover** ha proposto un aggiornamento che rimuoveva tutto il desktop KDE. Da allora SkillFishOS lo impedisce, e l'Hub ha preso il posto di Discover. Aggiornate sempre dallo **SkillFishOS Hub**.
+
+Se è successo a voi, lo snapshot di prima di quell'aggiornamento è la strada più pulita (vedi sopra). **Senza snapshot**, da una console di testo (Ctrl+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+Lo script trova cosa ha rimosso quell'aggiornamento, mostra cosa farà e chiede prima di cambiare qualcosa. Non rimuove niente e non tocca la cartella personale. Riavviate quando scrive *Done*.
 
 ## L'AI non parte o dà output strano
 

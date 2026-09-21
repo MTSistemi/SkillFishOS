@@ -51,7 +51,28 @@ Si les blocages reviennent, **baissez le plafond de la courbe** (par exemple de 
 
 ## Une mise à jour a cassé quelque chose
 
-Redémarrez et, depuis le menu **GRUB → « SkillFishOS snapshots »**, choisissez un instantané précédent qui fonctionnait. Voir [Stockage et instantanés](/fr/docs/storage-snapshot). Les instantanés avant et après mise à jour sont automatiques.
+Chaque opération sur les paquets prend un instantané avant et après. Ceux du menu **GRUB → « SkillFishOS snapshots »** démarrent **en lecture seule** : utiles pour regarder et récupérer des fichiers, pas pour continuer à travailler. Pour revenir vraiment en arrière, depuis un terminal ou une console texte (Ctrl+Alt+F3) :
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` est l'instantané « pre » pris juste avant la mauvaise mise à jour ; `sudo skillfish-rollback --annulla` annule le retour. Le dossier personnel n'est pas touché. Voir [Stockage et instantanés](/fr/docs/storage-snapshot).
+
+## Une mise à jour a supprimé le bureau
+
+En septembre 2026, Debian reconstruisait Qt et KDE, et **Discover** a proposé une mise à jour qui supprimait tout le bureau KDE. Depuis, SkillFishOS l'empêche, et le Hub a remplacé Discover. Mettez toujours à jour depuis le **SkillFishOS Hub**.
+
+Si cela vous est arrivé, l'instantané d'avant cette mise à jour est le retour le plus propre (voir plus haut). **Sans instantanés**, depuis une console texte (Ctrl+Alt+F3) :
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+Le script retrouve ce que cette mise à jour a supprimé, montre le plan et demande avant de changer quoi que ce soit. Il ne supprime rien et ne touche pas au dossier personnel. Redémarrez quand il affiche *Done*.
 
 ## L'IA ne démarre pas, ou sort n'importe quoi
 

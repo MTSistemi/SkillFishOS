@@ -51,7 +51,28 @@ If freezes recur, **lower the curve's ceiling** (e.g. from Performance to Balanc
 
 ## An update broke something
 
-Reboot and from the **GRUB → "SkillFishOS snapshots"** menu pick a working previous snapshot. See [Storage and snapshots](/en/docs/storage-snapshot). Pre/post-update snapshots are automatic.
+Every package operation takes a snapshot before and after. The snapshots in the **GRUB → "SkillFishOS snapshots"** menu start **read-only**: good for looking around and copying files out, not for carrying on. To really go back, from a terminal or a text console (Ctrl+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` is the "pre" snapshot from right before the bad update; `sudo skillfish-rollback --annulla` undoes the rollback. Your home folder is not touched. See [Storage and snapshots](/en/docs/storage-snapshot).
+
+## An update removed the desktop
+
+In September 2026 Debian was rebuilding Qt and KDE, and **Discover** offered an update that removed the whole KDE desktop. Since then SkillFishOS prevents it, and the Hub has replaced Discover. Always update from the **SkillFishOS Hub**.
+
+If it happened to you, the snapshot from before that update is the cleanest way back (see above). **Without snapshots**, from a text console (Ctrl+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+The script finds what that update removed, shows the plan and asks before changing anything. It removes nothing and does not touch your home folder. Reboot when it says *Done*.
 
 ## The AI won't start or gives strange output
 

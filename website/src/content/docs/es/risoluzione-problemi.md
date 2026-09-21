@@ -51,7 +51,28 @@ Si los cuelgues se repiten, **baja el tope de la curva** (por ejemplo de Perform
 
 ## Una actualización ha roto algo
 
-Reinicia y en el menú **GRUB → «SkillFishOS snapshots»** elige una instantánea anterior que funcionara. Ver [Almacenamiento e instantáneas](/es/docs/storage-snapshot). Las instantáneas antes y después de actualizar son automáticas.
+Cada operación con paquetes hace una instantánea antes y otra después. Las del menú **GRUB → «SkillFishOS snapshots»** arrancan **en solo lectura**: sirven para mirar y copiar archivos, no para seguir trabajando. Para volver atrás de verdad, desde un terminal o una consola de texto (Ctrl+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` es la instantánea «pre» de justo antes de la actualización mala; `sudo skillfish-rollback --annulla` deshace la vuelta atrás. La carpeta personal no se toca. Ver [Almacenamiento e instantáneas](/es/docs/storage-snapshot).
+
+## Una actualización quitó el escritorio
+
+En septiembre de 2026 Debian estaba recompilando Qt y KDE, y **Discover** propuso una actualización que eliminaba todo el escritorio KDE. Desde entonces SkillFishOS lo impide, y el Hub ha sustituido a Discover. Actualizad siempre desde el **SkillFishOS Hub**.
+
+Si os ha pasado, la instantánea de antes de esa actualización es el camino más limpio (ver arriba). **Sin instantáneas**, desde una consola de texto (Ctrl+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+El script averigua qué quitó esa actualización, muestra el plan y pregunta antes de cambiar nada. No elimina nada y no toca la carpeta personal. Reiniciad cuando diga *Done*.
 
 ## La IA no arranca o devuelve cosas raras
 

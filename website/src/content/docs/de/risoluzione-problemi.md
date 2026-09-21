@@ -51,7 +51,28 @@ Häufen sich die Aussetzer, senk im Tuner **den Deckel der Kurve** (etwa von Per
 
 ## Eine Aktualisierung hat etwas kaputt gemacht
 
-Starte neu und wähle im Menü **GRUB → „SkillFishOS snapshots“** einen früheren Schnappschuss, der lief. Siehe [Speicher und Schnappschüsse](/de/docs/storage-snapshot). Die Schnappschüsse vor und nach einer Aktualisierung entstehen von selbst.
+Jede Paketoperation legt vorher und nachher einen Schnappschuss an. Die Schnappschüsse im Menü **GRUB → „SkillFishOS snapshots“** starten **schreibgeschützt**: gut zum Nachsehen und Herauskopieren von Dateien, nicht zum Weiterarbeiten. Um wirklich zurückzugehen, in einem Terminal oder einer Textkonsole (Strg+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` ist der „pre“-Schnappschuss direkt vor der fehlerhaften Aktualisierung; `sudo skillfish-rollback --annulla` macht die Rückkehr rückgängig. Der persönliche Ordner bleibt unberührt. Siehe [Speicher und Schnappschüsse](/de/docs/storage-snapshot).
+
+## Eine Aktualisierung hat den Desktop entfernt
+
+Im September 2026 baute Debian Qt und KDE neu, und **Discover** bot eine Aktualisierung an, die den ganzen KDE-Desktop entfernte. Seitdem verhindert SkillFishOS das, und der Hub hat Discover ersetzt. Aktualisiert immer über den **SkillFishOS Hub**.
+
+Wenn es euch passiert ist, ist der Schnappschuss von vor dieser Aktualisierung der sauberste Weg zurück (siehe oben). **Ohne Schnappschüsse**, in einer Textkonsole (Strg+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+Das Skript findet, was diese Aktualisierung entfernt hat, zeigt den Plan und fragt, bevor es etwas ändert. Es entfernt nichts und rührt den persönlichen Ordner nicht an. Neu starten, wenn es *Done* schreibt.
 
 ## Die KI startet nicht oder liefert Unsinn
 

@@ -51,7 +51,28 @@ Jeśli zawieszenia się powtarzają, **obniż sufit krzywej** (np. z Performance
 
 ## Aktualizacja coś zepsuła
 
-Uruchom ponownie i z menu **GRUB → „SkillFishOS snapshots”** wybierz działającą wcześniejszą migawkę. Zobacz [Dyski i migawki](/pl/docs/storage-snapshot). Migawki przed aktualizacją i po niej powstają automatycznie.
+Każda operacja na pakietach robi migawkę przed i po. Migawki z menu **GRUB → „SkillFishOS snapshots”** startują **tylko do odczytu**: służą do obejrzenia i skopiowania plików, nie do dalszej pracy. Żeby naprawdę wrócić, w terminalu albo konsoli tekstowej (Ctrl+Alt+F3):
+
+```
+sudo skillfish-rollback --elenco
+sudo skillfish-rollback <number>
+sudo reboot
+```
+
+`<number>` to migawka „pre” sprzed złej aktualizacji; `sudo skillfish-rollback --annulla` cofa powrót. Folder domowy nie jest ruszany. Zobacz [Dyski i migawki](/pl/docs/storage-snapshot).
+
+## Aktualizacja usunęła pulpit
+
+We wrześniu 2026 Debian przebudowywał Qt i KDE, a **Discover** zaproponował aktualizację, która usuwała cały pulpit KDE. Od tamtej pory SkillFishOS do tego nie dopuszcza, a Hub zastąpił Discover. Aktualizujcie zawsze przez **SkillFishOS Hub**.
+
+Jeśli wam się to przydarzyło, migawka sprzed tej aktualizacji jest najczystszą drogą (patrz wyżej). **Bez migawek**, w konsoli tekstowej (Ctrl+Alt+F3):
+
+```
+curl -fsSLo repair.sh https://skillfishos.com/repair.sh
+sudo bash repair.sh
+```
+
+Skrypt ustala, co usunęła ta aktualizacja, pokazuje plan i pyta, zanim cokolwiek zmieni. Niczego nie usuwa i nie rusza folderu domowego. Uruchomcie ponownie, gdy napisze *Done*.
 
 ## AI nie startuje albo wypisuje dziwne rzeczy
 
