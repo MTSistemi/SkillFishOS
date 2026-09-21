@@ -192,7 +192,11 @@ def controlla():
 
     kern = pub.get("skillfishos-kernel", "")
     kern_corto = kern.split("-")[0]                       # 7.2.0-2 -> 7.2.0
-    app = sorted((v for k, v in pub.items() if k.startswith("skillfish-")),
+    # Only versions in our own YY.MM.N scheme count. Packages that carry an
+    # upstream version (skillfish-vkpeak 20260816-1, skillfish-mesa-gfx1013)
+    # would otherwise "win" the comparison and make SECURITY.md look stale.
+    app = sorted((v for k, v in pub.items()
+                  if k.startswith("skillfish-") and re.fullmatch(r"\d{2}\.\d{2}\.\d+", v)),
                  key=lambda s: [int(x) for x in re.findall(r"\d+", s)] or [0])
     app_ultima = app[-1] if app else ""
 
