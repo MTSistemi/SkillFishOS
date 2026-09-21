@@ -4,13 +4,14 @@
 #     pacchetto-encoder.sh [versione]
 #         esempio: pacchetto-encoder.sh 26.09.1
 #
-# ⚠️ SI ACCENDE SOLO SU UNA BC-250, e non e' pignoleria. Il driver dichiara
-# SOLO la codifica, quindi dire a tutto il sistema LIBVA_DRIVER_NAME=bc250
-# significa togliere la decodifica hardware a Firefox, mpv e VLC. Sulla BC-250
-# non si perde niente perche' li' un VA-API non c'e': radeonsi_drv_video.so
-# fallisce l'init anche forzando --display drm --device /dev/dri/renderD128,
-# misurato. Su un PC normale, dove radeonsi o iHD funzionano benissimo, la
-# stessa riga sarebbe un danno - e le nostre immagini finiscono anche sui PC.
+# ⚠️ SI ACCENDE SOLO SU UNA BC-250, e non e' pignoleria. Questo driver
+# decodifica sul processore, quindi dire a tutto il sistema
+# LIBVA_DRIVER_NAME=bc250 significa mettere lui al posto di uno che decodifica
+# sulla scheda grafica, e Firefox, mpv e VLC ci rimettono. Sulla BC-250 non si
+# perde niente perche' li' un VA-API non c'e': radeonsi_drv_video.so fallisce
+# l'init anche forzando --display drm --device /dev/dri/renderD128, misurato.
+# Su un PC normale, dove radeonsi o iHD funzionano benissimo, la stessa riga
+# sarebbe un danno - e le nostre immagini finiscono anche sui PC.
 #
 # Quindi la variabile non sta in un file fisso: la scrive un generatore di
 # ambiente di systemd, che gira all'apertura della sessione SULLA MACCHINA VERA
@@ -69,10 +70,16 @@ Description: Video encoding and decoding for the AMD BC-250
  with HEVC, and both hold a full 60 fps.
  .
  Decoding, measured the same way: H.264 reaches 119 frames per second, H.265
- 36. Both produce every sample of every picture exactly as the reference
+ 90. Both produce every sample of every picture exactly as the reference
  decoder does - 67 H.264 and 38 H.265 configurations compared byte for byte -
- but only the H.264 one is fast enough to be worth preferring to a player's
- own software decoder.
+ and both hold 1920x1080 at 60 fps with room to spare. H.265 decodes several
+ coding tree block rows at once when the stream allows it; set
+ BC250_HEVC_THREAD to use fewer.
+ .
+ Faster than nothing, not faster than everything: ffmpeg's own threaded
+ software decoder reaches 355 frames per second on the same processor. This
+ driver is for an application that asks for VA-API and would otherwise be
+ told there is none.
  .
  It turns itself on only on a real BC-250, where no other VA-API driver
  initialises at all: on a machine whose own driver works, this one would take
