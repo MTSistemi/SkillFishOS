@@ -23,10 +23,25 @@ mkdir -p "$TMPDIR"
 DIST="$TMPDIR/skillfishos-website-dist"
 
 cd "$SRC/website" || exit 1
-if [ ! -d node_modules ]; then
-    echo ">>> npm ci"
-    npm ci --no-audit --no-fund || npm install --no-audit --no-fund || exit 1
+# ⚠️ node_modules BEING THERE DOES NOT MEAN IT IS THE RIGHT ONE. This used to
+# run npm ci only when the folder was missing, so on the VM, where it always
+# exists, a Dependabot bump merged into package-lock.json never reached the
+# build: on 21/09/2026, after PR #88 (astro 7.3.2 -> 7.3.3), the site was built
+# and published with astro 7.3.1. The build said "Complete!" all the same.
+#
+# So the checksum of the lockfile that node_modules was installed from is kept
+# inside node_modules, and npm ci runs again whenever it differs.
+#
+# No fallback to npm install: npm ci fails only when package-lock.json does not
+# match package.json, and npm install would then quietly rewrite the lockfile
+# and build something the repository does not describe.
+LOCKSUM=$(sha256sum package-lock.json | cut -d' ' -f1)
+if [ "$(cat node_modules/.skillfish-lock.sha256 2>/dev/null)" != "$LOCKSUM" ]; then
+    echo ">>> npm ci (node_modules missing or installed from another package-lock.json)"
+    npm ci --no-audit --no-fund || exit 1
+    echo "$LOCKSUM" > node_modules/.skillfish-lock.sha256
 fi
+echo ">>> astro $(node -p 'require("astro/package.json").version')"
 
 rm -rf "$DIST"
 echo ">>> astro build (TMPDIR=$TMPDIR)"
