@@ -295,7 +295,7 @@ ctrl $P "python3, python3-pyqt6, python3-apt, gir1.2-appstream-1.0, appstream, c
   "One place for apt, Flatpak, Snap and device firmware: search, categories, app
 pages, sources. Updates keep running if the window closes, because the work is
 handed to systemd. Opens .deb and .flatpakref files, and tells you when
-updates are waiting."
+updates are waiting. It takes the place of Discover, which it removes."
 # ⚠️ Dopo ctrl, che scrive un postinst suo e lo sovrascriverebbe.
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 #!/bin/sh
