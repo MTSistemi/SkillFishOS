@@ -43,7 +43,20 @@ GOV_STOCK_UNIT = "cyan-skillfish-governor.service"
 GOV_BATTITO = "/run/skillfish-vf-governor.battito"
 MEMCFG = next((p for p in ("/usr/local/bin/skillfish-memcfg", "/opt/bc250_memcfg/bc250memcfg")
                if os.path.exists(p)), "/usr/local/bin/skillfish-memcfg")
-VKPEAK = (glob.glob("/opt/bench/vkpeak*/vkpeak") or glob.glob("/root/bench/vkpeak*/vkpeak") or [None])[0]
+def find_vkpeak():
+    """Where vkpeak is, looked up on every call.
+
+    skillfish-vkpeak installs it in /usr/lib/skillfish/vkpeak (issue #91). The
+    two bench folders are where the development boards and the images cloned
+    from them had it; no package ever put it there. Looked up each time rather
+    than once at start, so installing the package while this helper is running
+    is enough.
+    """
+    for pattern in ("/usr/lib/skillfish/vkpeak/vkpeak", "/opt/bench/vkpeak*/vkpeak", "/root/bench/vkpeak*/vkpeak"):
+        found = sorted(glob.glob(pattern))
+        if found and os.access(found[0], os.X_OK):
+            return found[0]
+    return None
 SEGNAPOSTO_CORE = "/etc/skillfish/core-unlock.abilitato"
 SCX_PATH_UNIT = "skillfish-scx.path"
 SCX_SERVICE = "skillfish-scx.service"
@@ -644,8 +657,9 @@ def cu_keep_boot(on, rows):
 
 
 def cu_test():
+    VKPEAK = find_vkpeak()
     if not VKPEAK:
-        return {"ok": False, "err": "vkpeak assente"}
+        return {"ok": False, "err": "vkpeak is not installed: sudo apt install skillfish-vkpeak"}
     vdir = os.path.dirname(VKPEAK)
 
     def vk():
@@ -1303,8 +1317,9 @@ def bench_cpu(secs=60):
 
 
 def bench_gpu():
+    VKPEAK = find_vkpeak()
     if not VKPEAK:
-        return {"score": 0, "unit": "GFLOPS", "ok": False, "err": "vkpeak assente"}
+        return {"score": 0, "unit": "GFLOPS", "ok": False, "err": "vkpeak is not installed: sudo apt install skillfish-vkpeak"}
     r = sh("cd %s && ./vkpeak" % os.path.dirname(VKPEAK), t=150)
     m = re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)
     g = float(m.group(1)) if m else 0

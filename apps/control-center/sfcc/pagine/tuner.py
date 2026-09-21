@@ -1121,7 +1121,7 @@ class Pagina(PaginaBase):
     def _cu_testate(self, r):
         self._cu_colora()
         if not r.get("ok"):
-            QMessageBox.warning(self, "Test CU", r.get("err", "?"))
+            QMessageBox.warning(self, "Test CU", self._errore_vk(r))
             return
         righe = [L("40 CU sotto sforzo: %s GFLOPS", "40 CU under load: %s GFLOPS") % r.get("full40", "?"),
                  L("24 CU: %s GFLOPS", "24 CU: %s GFLOPS") % r.get("baseline", "?"), ""]
@@ -1249,10 +1249,18 @@ class Pagina(PaginaBase):
         v.addWidget(self.et_test)
         return w
 
+    def _errore_vk(self, r):
+        # the helper's text is English; this one is translated (issue #91)
+        e = r.get("err", "?")
+        if e == "vkpeak is not installed: sudo apt install skillfish-vkpeak":
+            return L("vkpeak non è installato: sudo apt install skillfish-vkpeak",
+                     "vkpeak is not installed: sudo apt install skillfish-vkpeak")
+        return e
+
     def _bench_gpu(self):
         self.et_test.setText(L("vkpeak in corso…", "vkpeak running…"))
         in_sfondo(lambda: self.demone.cmd(cmd="bench-gpu"),
-                  lambda r: self.et_test.setText(("%s %s · %s °C" % (r.get("score"), r.get("unit"), r.get("temp"))) if r.get("ok") else r.get("err", "?")), self)
+                  lambda r: self.et_test.setText(("%s %s · %s °C" % (r.get("score"), r.get("unit"), r.get("temp"))) if r.get("ok") else self._errore_vk(r)), self)
 
     def _giornale(self):
         rc, out, _ = sh("journalctl -t skillfish-cc-helper -t skillfish-tuner-helper -t skillfish-vf-governor --no-pager -n 60 2>/dev/null", 10)

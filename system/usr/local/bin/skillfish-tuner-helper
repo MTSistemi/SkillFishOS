@@ -40,8 +40,20 @@ GOV_CONF= "/etc/cyan-skillfish-governor/config.toml"
 MEMCFG  = _first_file("/usr/local/bin/skillfish-memcfg",
                       "/opt/bc250_memcfg/bc250memcfg",
                       "/root/bc250_memcfg/bc250memcfg")
-VKPEAK  = glob.glob("/opt/bench/vkpeak*/vkpeak") or glob.glob("/root/bench/vkpeak*/vkpeak")
-VKPEAK  = VKPEAK[0] if VKPEAK else None
+def find_vkpeak():
+    """Where vkpeak is, looked up on every call.
+
+    skillfish-vkpeak installs it in /usr/lib/skillfish/vkpeak (issue #91). The
+    two bench folders are where the development boards and the images cloned
+    from them had it; no package ever put it there. Looked up each time rather
+    than once at start, so installing the package while this helper is running
+    is enough.
+    """
+    for pattern in ("/usr/lib/skillfish/vkpeak/vkpeak", "/opt/bench/vkpeak*/vkpeak", "/root/bench/vkpeak*/vkpeak"):
+        found = sorted(glob.glob(pattern))
+        if found and os.access(found[0], os.X_OK):
+            return found[0]
+    return None
 
 def _rd(path, mode="r"):
     """Read a whole file with a context manager (no leaked fd)."""
@@ -313,7 +325,8 @@ def cu_test():
     vkpeak, and flag GPU faults/hangs or a WGP that adds no performance.
     Restores the previous CU config at the end. ~2-3 min."""
     import time
-    if not VKPEAK: return {"ok":False,"err":"vkpeak assente"}
+    VKPEAK = find_vkpeak()
+    if not VKPEAK: return {"ok":False,"err":"vkpeak is not installed: sudo apt install skillfish-vkpeak"}
     vdir=os.path.dirname(VKPEAK)
     def vk():
         # stdbuf -> line-buffered so the early fp32-scalar line survives the timeout kill
@@ -552,7 +565,8 @@ def bench_cpu(secs=60):
     return {"score":round(eps,1),"unit":"ev/s","min_mhz":minf,"temp":samp["maxt"] or temp("k10temp"),"ok":r.returncode==0 and eps>0}
 
 def bench_gpu():
-    if not VKPEAK: return {"score":0,"unit":"GFLOPS","ok":False,"err":"vkpeak assente"}
+    VKPEAK = find_vkpeak()
+    if not VKPEAK: return {"score":0,"unit":"GFLOPS","ok":False,"err":"vkpeak is not installed: sudo apt install skillfish-vkpeak"}
     r=sh("cd %s && ./vkpeak"%os.path.dirname(VKPEAK), t=150)
     # vkpeak prints lines like 'fp32-scalar  = 11329.xx GFLOPS'
     m=re.search(r'fp32-scalar\s*=\s*([\d.]+)', r.stdout)

@@ -238,7 +238,7 @@ curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
 # modified on their board should be able to take it off without losing the
 # window. ONE Recommends field only - a second one is not a longer list, it is
 # an invalid control file, and the evdev sed below only ever touches the first.
-sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6, skillfish-vaapi-encoder/' "$OUT/$P/DEBIAN/control"
+sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6, skillfish-vaapi-encoder, skillfish-vkpeak/' "$OUT/$P/DEBIAN/control"
 # the .sfmon mime type moved here from skillfish-monitor: without this dpkg
 # refuses to unpack over the old monitor package ("trying to overwrite")
 sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
@@ -675,6 +675,9 @@ put $P 0644 system/etc/initramfs-tools/conf.d/skillfish-keymap.conf etc/initramf
 # installato: serve a chi ha gia una macchina rotta dalla issue #61 e la
 # ripara partendo da una live.
 put $P 0755 system/usr/local/bin/skillfish-crypto-fix usr/local/bin/skillfish-crypto-fix
+# Run by the installer after mount: erases a stale LUKS signature next to a
+# fresh filesystem, which made the first boot stop in the initramfs (#72).
+put $P 0755 system/usr/local/bin/skillfish-wipe-stale-luks usr/local/bin/skillfish-wipe-stale-luks
 # Dizionario condiviso delle traduzioni: un file per lingua, comune a tutte le
 # app. Serve le lingue NUOVE (ru, es, pt...); italiano, polacco e ucraino
 # restano dentro le app, dove hanno le sfumature per contesto.

@@ -1099,5 +1099,6 @@
  "What the secure processor says about this board": "Cosa dice il processore sicuro di questa scheda",
  "GDDR6 memory chip temperature, on demand": "Temperatura dei chip di memoria GDDR6, a richiesta",
  "reading for %s": "in lettura da %s",
- "the reading is started when needed": "la lettura si accende quando serve"
+ "the reading is started when needed": "la lettura si accende quando serve",
+ "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak non è installato: sudo apt install skillfish-vkpeak"
 }
