@@ -654,6 +654,10 @@ put $P 0644 system/etc/apt/apt.conf.d/99-skillfish-snapshots           etc/apt/a
 # Tornare a uno snapshot per davvero: dal menu di avvio ci si entra in sola
 # lettura, e `snapper rollback` non funziona perche' grub.cfg fissa subvol=@.
 put $P 0755 system/usr/local/bin/skillfish-rollback                    usr/local/bin/skillfish-rollback
+# Puts back a KDE desktop that an updater removed (issue #87). It lives in
+# base because base is what survives that removal, and on the website as
+# /repair.sh for the machines that were broken before it shipped.
+put $P 0755 system/usr/local/bin/skillfish-repair-desktop            usr/local/bin/skillfish-repair-desktop
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
 put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
@@ -1809,6 +1813,7 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswa
 # ripristino quello risponde col nome del sistema messo da parte, e
 # --annulla non trova piu' niente da recuperare (visto sulla Generic).
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'sottovol_da_fstab'
+check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-repair-desktop 'zz-skillfish-repair-testing'
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'GRUB_BTRFS_DISABLE'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 # Il rilevatore di blocchi decide guardando un marcatore che scrive LUI stesso

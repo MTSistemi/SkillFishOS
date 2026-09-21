@@ -47,6 +47,12 @@ rm -rf "$DIST"
 echo ">>> astro build (TMPDIR=$TMPDIR)"
 npx astro build || exit 1
 
+# /repair.sh is the same file skillfish-base installs as skillfish-repair-desktop.
+# It is copied, not kept in website/public, so there is one copy to maintain:
+# the machines it is for (issue #87) lost their desktop and cannot install our
+# packages until they are repaired, so the website is how it reaches them.
+install -m 0644 "$SRC/system/usr/local/bin/skillfish-repair-desktop" "$DIST/repair.sh" || exit 1
+
 HTML=$(find "$DIST" -name '*.html' | wc -l)
 CSS=$(find "$DIST" -name '*.css' | wc -l)
 IMG=$(find "$DIST" \( -name '*.png' -o -name '*.jpg' -o -name '*.svg' -o -name '*.webp' \) | wc -l)

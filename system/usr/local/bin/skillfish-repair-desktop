@@ -1,0 +1,229 @@
+#!/bin/bash
+# skillfish-repair-desktop - put back a KDE desktop that an update removed.
+#
+# WHY THIS EXISTS (issue #87, 21/09/2026)
+# Debian sid moved Qt from 6.10 to 6.11 before KDE had been rebuilt for it.
+# apt keeps the new Qt back in that situation. Discover (PackageKit) does not:
+# it offered an update that removed Plasma, KWin, Dolphin, Konsole and about
+# 270 packages in total, and people pressed Proceed.
+#
+# Reinstalling from sid does not work until Debian finishes the rebuild: sid's
+# KDE Frameworks are already built for Qt 6.11, Plasma and the applications
+# still want exactly Qt 6.10 (qt6-base-private-abi (= 6.10.2)). Debian testing
+# still has a complete, consistent set built for Qt 6.10. So this script:
+#
+#   1. reads from /var/log/apt/history.log what PackageKit removed;
+#   2. if sid can install it back as it is, does just that;
+#   3. otherwise adds testing as a temporary source, takes those packages from
+#      testing, and brings back to testing every package that apt reports as
+#      needing the newer Qt (Qt itself, PyQt6, the rebuilt Frameworks...);
+#   4. installs skillfish-desktop-guard, which stops any updater from removing
+#      the desktop again, and removes the temporary source.
+#
+# Nothing in /home is touched. Run it from a text console (Ctrl+Alt+F3):
+#
+#   sudo skillfish-repair-desktop            asks before changing anything
+#   sudo skillfish-repair-desktop --yes      no question
+#   sudo skillfish-repair-desktop --dry-run  only shows what it would do
+set -u
+
+PROG=skillfish-repair-desktop
+SRC=/etc/apt/sources.list.d/zz-skillfish-repair-testing.sources
+PREF=/etc/apt/preferences.d/zz-skillfish-repair-testing.pref
+WORK=$(mktemp -d /tmp/$PROG.XXXXXX)
+YES=0; DRY=0
+for a in "$@"; do
+  case "$a" in
+    --yes|-y) YES=1 ;;
+    --dry-run|-n) DRY=1 ;;
+    -h|--help) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "$PROG: unknown option $a" >&2; exit 2 ;;
+  esac
+done
+
+say()  { printf '\n\033[1m>>> %s\033[0m\n' "$*"; }
+die()  { printf '\n%s: %s\n' "$PROG" "$*" >&2; exit 1; }
+
+# The temporary source must never stay behind: with it, a later full-upgrade
+# could start mixing testing into the system.
+cleanup() {
+  if [ -f "$SRC" ] || [ -f "$PREF" ]; then
+    rm -f "$SRC" "$PREF"
+    apt-get update -qq >/dev/null 2>&1 || true
+  fi
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
+
+[ "$(id -u)" = 0 ] || die "run it with sudo: sudo $PROG"
+command -v apt-get >/dev/null || die "apt-get not found"
+
+# --- 1. what did PackageKit remove? -----------------------------------------
+# history.log keeps one block per transaction; PackageKit's blocks start with
+# "Commandline: packagekit". A block counts if it removed plasma-workspace or
+# kwin, which is the damage we are here to undo; smaller PackageKit removals
+# (someone uninstalling a program from Discover) are left alone.
+say "Looking for the update that removed the desktop"
+{ for f in /var/log/apt/history.log.*.gz; do [ -f "$f" ] && zcat "$f"; done
+  [ -f /var/log/apt/history.log ] && cat /var/log/apt/history.log; } > "$WORK/history"
+awk '
+  /^Start-Date:/ { if (pk && hit) print rem; pk=0; hit=0; rem=""; date=$0 }
+  /^Commandline: packagekit/ { pk=1 }
+  /^Remove: / { sub(/^Remove: /,""); rem=$0
+                if ($0 ~ /(^|, )(plasma-workspace|kwin-common|kwin-wayland|kwin-x11):/) hit=1 }
+  END { if (pk && hit) print rem }
+' "$WORK/history" | sed 's/), /)\n/g' | sed -E 's/^([^ ]+) \(.*$/\1/' \
+  | sed 's/:amd64$//; s/:all$//' | sort -u > "$WORK/removed-all"
+[ -s "$WORK/removed-all" ] || die "no update in /var/log/apt/history.log removed Plasma through PackageKit. Nothing to repair here."
+
+# only what is still missing: a second run, or a package put back by hand, is fine
+: > "$WORK/removed"
+while read -r p; do
+  dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q 'install ok installed' || echo "$p" >> "$WORK/removed"
+done < "$WORK/removed-all"
+echo "removed by that update: $(wc -l < "$WORK/removed-all") packages, still missing: $(wc -l < "$WORK/removed")"
+
+# --- 2. does sid give them back as it is? -----------------------------------
+simulate() { # simulate <args...>: prints apt's output, returns apt's status
+  apt-get -s -o Debug::NoLocking=1 install --allow-downgrades "$@" > "$WORK/sim" 2>&1
+}
+removals() { grep -c '^Remv ' "$WORK/sim"; }
+
+say "Refreshing the package lists"
+apt-get update -qq || die "apt-get update failed: check the network and try again"
+
+# ⚠️ Not everything in that Remove: line was Discover's doing. The same run
+# also applied ordinary upgrades, and some of those legitimately push an old
+# package out: python3-setuptools 82 Breaks python3-pkg-resources (< 82), so
+# pkg-resources went, and putting it back would mean downgrading setuptools.
+# apt does not always say so: asked for pkg-resources alone it just proposes
+# to remove setuptools and meson. So those are found beforehand, from the
+# Breaks/Conflicts of the installed packages that have nothing to do with Qt
+# (the ones built on Qt are about to change anyway, their fields don't count).
+qt_linked() { # qt_linked <pkg>: does its candidate depend on Qt or KDE Frameworks?
+  apt-cache show "$1" 2>/dev/null | awk '/^Depends:|^Pre-Depends:/' \
+    | grep -qE '(libqt6|libkf6|qt6-[a-z]+(-private)?-abi|python3-pyqt6|qml6-module)'
+}
+: > "$WORK/drop"
+dpkg-query -W -f='${db:Status-Abbrev}\t${Package}\t${Depends}\t${Breaks}, ${Conflicts}\n' \
+  | awk -F'\t' '$1 ~ /^ii/ && $3 !~ /(libqt6|libkf6|qt6-[a-z]+(-private)?-abi|python3-pyqt6)/ {print $4}' \
+  | tr ',' '\n' | sed -E 's/^ +//; s/ +$//' | grep -v '^$' \
+  | sed -E 's/^([^ :]+)(:[a-z0-9]+)? *(\(([<>=]+) *([^)]+)\))?.*/\1 \4 \5/' \
+  | while read -r name op ver; do
+      grep -qxF "$name" "$WORK/removed" || continue
+      cand=$(apt-cache policy "$name" 2>/dev/null | awk '/Candidate:/{print $2}')
+      [ -n "$cand" ] && [ "$cand" != "(none)" ] || { echo "$name"; continue; }
+      [ -z "$op" ] && { echo "$name"; continue; }
+      case "$op" in '<<'|'<') o=lt ;; '<=') o=le ;; '=') o=eq ;; '>=') o=ge ;; '>>'|'>') o=gt ;; *) continue ;; esac
+      dpkg --compare-versions "$cand" "$o" "$ver" && echo "$name"
+    done | sort -u > "$WORK/drop"
+[ -s "$WORK/drop" ] && echo "left out, replaced by newer packages: $(tr '\n' ' ' < "$WORK/drop")"
+grep -vxF -f "$WORK/drop" "$WORK/removed" > "$WORK/s" || true
+if [ ! -s "$WORK/s" ] && dpkg-query -W -f='${Status}' skillfish-desktop-guard 2>/dev/null | grep -q 'install ok installed'; then
+  echo "Everything that update removed is installed again, and skillfish-desktop-guard too. Nothing to do."
+  exit 0
+fi
+
+drop_broken() {
+  sed -nE 's/^ ?[^ :]+(:amd64)? : +Breaks: ([^ :]+).*/\2/p; s/^ +Breaks: ([^ :]+).*/\1/p' "$WORK/sim" \
+    | sed 's/:amd64$//' | grep -xF -f "$WORK/removed" >> "$WORK/drop" || true
+  sort -u -o "$WORK/drop" "$WORK/drop"
+}
+
+MODE=sid
+sid_ok=0
+if [ ! -s "$WORK/s" ]; then
+  sid_ok=1   # only the guard is missing
+else
+  for giro in 1 2 3 4 5; do
+    grep -vxF -f "$WORK/drop" "$WORK/removed" > "$WORK/s" || true
+    if simulate $(cat "$WORK/s") skillfish-desktop-guard && [ "$(removals)" = 0 ]; then sid_ok=1; break; fi
+    n=$(wc -l < "$WORK/drop"); drop_broken; [ "$(wc -l < "$WORK/drop")" = "$n" ] && break
+  done
+fi
+if [ "$sid_ok" = 1 ]; then
+  [ -s "$WORK/removed" ] && echo "Debian has finished rebuilding KDE: everything comes back from the normal sources."
+  REQ=$(cat "$WORK/s")
+else
+  MODE=testing
+  say "KDE is not rebuilt for the new Qt yet: taking the previous one from Debian testing"
+  cat > "$SRC" <<EOF
+# Temporary, added by $PROG. It removes this file itself when it ends.
+Types: deb
+URIs: http://deb.debian.org/debian/
+Suites: testing
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+  # low priority: testing only supplies what is asked for by name below
+  printf 'Package: *\nPin: release a=testing\nPin-Priority: 100\n' > "$PREF"
+  apt-get update -qq || die "could not read Debian testing"
+
+  in_testing() { apt-cache madison "$1" 2>/dev/null | grep -q ' testing/'; }
+  : > "$WORK/fromtesting"
+  for p in $(cat "$WORK/removed"); do
+    in_testing "$p" && echo "$p" >> "$WORK/fromtesting"
+  done
+  # Qt itself and whatever is already built on the newer Qt: the installed
+  # packages that pin the private ABI of 6.11, and those from the Qt sources.
+  dpkg-query -W -f='${Package} ${Version} ${source:Package} ${Depends}\n' \
+    | awk '$2 ~ /^6\.11/ || /qt6-[a-z]+-private-abi \(= 6\.11/ || /qt6-base-abi \(= 6\.11/ {print $1}' \
+    | while read -r p; do in_testing "$p" && echo "$p"; done >> "$WORK/fromtesting"
+  sort -u -o "$WORK/fromtesting" "$WORK/fromtesting"
+
+  # Let apt name the rest: every "X : Depends: ... but <old> is to be
+  # installed" is a package that needs the newer Qt and has to come back too.
+  ok=0
+  for giro in $(seq 1 15); do
+    grep -vxF -f "$WORK/drop" "$WORK/fromtesting" > "$WORK/t" || true
+    grep -vxF -f "$WORK/drop" "$WORK/removed" | grep -vxF -f "$WORK/fromtesting" > "$WORK/s" || true
+    REQ="$(sed 's|$|/testing|' "$WORK/t") $(cat "$WORK/s")"
+    if simulate $REQ skillfish-desktop-guard && [ "$(removals)" = 0 ]; then ok=1; break; fi
+    before=$(cat "$WORK/fromtesting" "$WORK/drop" | wc -l)
+    drop_broken
+    # "X : Depends: <newer Qt> but <older> is to be installed": X comes back
+    # to testing too, and so does anything apt would remove
+    grep -E '^ ?[^ ]+ : (Depends|PreDepends)' "$WORK/sim" | sed -E 's/^ ?([^ :]+) :.*/\1/' \
+      | sed 's/:amd64$//' | sort -u > "$WORK/new"
+    grep '^Remv ' "$WORK/sim" | awk '{print $2}' | sed 's/:amd64$//' >> "$WORK/new"
+    for p in $(sort -u "$WORK/new" | grep -vxF -f "$WORK/drop"); do in_testing "$p" && qt_linked "$p" && echo "$p"; done >> "$WORK/fromtesting"
+    sort -u -o "$WORK/fromtesting" "$WORK/fromtesting"
+    [ "$(cat "$WORK/fromtesting" "$WORK/drop" | wc -l)" = "$before" ] && break
+  done
+  if [ "$ok" != 1 ]; then
+    echo; sed -n '/unmet dependencies/,$p' "$WORK/sim" | head -30
+    die "apt cannot find a consistent set. Nothing has been changed. Please attach this output to https://github.com/MTSistemi/SkillFishOS/issues"
+  fi
+fi
+
+# --- 3. say what will happen, then do it ------------------------------------
+REQ="$REQ skillfish-desktop-guard"
+simulate $REQ
+n_inst=$(grep -c '^Inst ' "$WORK/sim")
+say "Plan"
+echo "  packages to install or change: $n_inst"
+[ "$MODE" = testing ] && echo "  of which moved back to the Qt 6.10 versions: $(wc -l < "$WORK/t") (from Debian testing)"
+echo "  packages removed: 0"
+echo "  plus skillfish-desktop-guard, so no update can remove the desktop again"
+if [ "$DRY" = 1 ]; then
+  grep '^Inst ' "$WORK/sim" | awk '{print "   ", $2, $3, $4}' | head -400
+  echo; echo "Dry run: nothing changed."; exit 0
+fi
+if [ "$YES" != 1 ]; then
+  printf '\nGo ahead? [y/N] '; read -r r
+  case "$r" in y|Y|yes|s|S|si) ;; *) echo "Nothing changed."; exit 0 ;; esac
+fi
+
+say "Installing (this downloads several hundred MB)"
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades \
+  -o Dpkg::Options::=--force-confold $REQ || die "the installation failed; the output above says why. Running $PROG again is safe."
+
+# the leftover pieces PackageKit had marked, and a desktop that starts
+apt-get -y -f install >/dev/null 2>&1 || true
+systemctl set-default graphical.target >/dev/null 2>&1 || true
+
+say "Done"
+echo "The desktop is back. Reboot with: sudo reboot"
+echo "Update from the SkillFishOS Hub from now on. Discover is what caused this."
+[ "$MODE" = testing ] && echo "Qt stays on 6.10 until Debian has rebuilt KDE for 6.11; the Hub moves it forward by itself then."
+exit 0
