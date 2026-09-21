@@ -70,7 +70,7 @@ Description: Video encoding and decoding for the AMD BC-250
  with HEVC, and both hold a full 60 fps.
  .
  Decoding, measured the same way: H.264 reaches 119 frames per second, H.265
- 90. Both produce every sample of every picture exactly as the reference
+ 96. Both produce every sample of every picture exactly as the reference
  decoder does - 67 H.264 and 38 H.265 configurations compared byte for byte -
  and both hold 1920x1080 at 60 fps with room to spare. H.265 decodes several
  coding tree block rows at once when the stream allows it; set
