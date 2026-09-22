@@ -20,12 +20,32 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _lines(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read().splitlines()
+
+
+def _json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
 REPORTS = os.path.expanduser("~/release-reports")
 
 
 def kinds():
     out = []
-    for line in open(os.path.join(HERE, "hosts.conf")):
+    for line in _lines(os.path.join(HERE, "hosts.conf")):
         line = line.strip()
         if line and not line.startswith("#"):
             out.append(line.split()[0])
@@ -44,20 +64,20 @@ def main(debs):
         d = os.path.join(REPORTS, ver or "?")
         tested = {}
         try:
-            for line in open(os.path.join(d, "debs.sha256")):
+            for line in _lines(os.path.join(d, "debs.sha256")):
                 h, name = line.split()
                 tested[name] = h
         except OSError:
             # no fingerprint list: this version was never checked
             pass
-        h = hashlib.sha256(open(deb, "rb").read()).hexdigest()
+        h = _sha256(deb)
         if tested.get(os.path.basename(deb)) != h:
             # an upstream-versioned package (vkpeak, Mesa...) is tested inside
             # an app release: look for it in any report directory
             found = False
             for other in os.listdir(REPORTS) if os.path.isdir(REPORTS) else []:
                 try:
-                    lines = open(os.path.join(REPORTS, other, "debs.sha256")).read().split("\n")
+                    lines = _lines(os.path.join(REPORTS, other, "debs.sha256"))
                 except OSError:
                     continue
                 if "%s  %s" % (h, os.path.basename(deb)) in lines:
@@ -68,7 +88,7 @@ def main(debs):
                 continue
         for k in kinds():
             try:
-                r = json.load(open(os.path.join(d, "%s.json" % k)))
+                r = _json(os.path.join(d, "%s.json" % k))
             except (OSError, ValueError):
                 problems.append("%s: no %s report in %s" % (os.path.basename(deb), k, d))
                 continue

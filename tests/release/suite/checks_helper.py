@@ -19,7 +19,7 @@ import subprocess
 import time
 
 import coverage
-from common import Skip, check, preserved, sh
+from common import Skip, check, preserved, read_json, read_text, sh
 
 HELPER = "/usr/local/bin/skillfish-cc-helper"
 
@@ -57,7 +57,7 @@ class Helper:
 
 def _const(name):
     """A path constant from the installed helper, so the tests follow it."""
-    src = open(HELPER, encoding="utf-8").read()
+    src = read_text(HELPER)
     m = re.search(r'^%s\s*=\s*"([^"]+)"' % name, src, re.M)
     return m.group(1) if m else None
 
@@ -74,7 +74,7 @@ def _bc(ctx):
 
 # ---- coverage of the command list --------------------------------------------
 def t_command_coverage(ctx):
-    src = open(HELPER, encoding="utf-8").read()
+    src = read_text(HELPER)
     cmds = sorted(set(re.findall(r'^\s+if c == "([a-z0-9-]+)":', src, re.M)))
     check(cmds, "no commands found in %s" % HELPER)
     missing = [c for c in cmds if c not in coverage.CC_COMMANDS]
@@ -119,17 +119,17 @@ def t_cores(ctx, h):
 def t_smt(ctx, h):
     _bc(ctx)
     p = "/sys/devices/system/cpu/smt/control"
-    if not os.path.exists(p) or open(p).read().strip() != "on":
+    if not os.path.exists(p) or read_text(p).strip() != "on":
         raise Skip("SMT not on or not controllable")
     n0 = _nproc()
     try:
         _ok(h("cpu-smt", on=False), "cpu-smt off")
-        check(open(p).read().strip() == "off", "smt/control is not off")
+        check(read_text(p).strip() == "off", "smt/control is not off")
         n1 = _nproc()
         check(n1 == n0 // 2, "SMT off: %d threads, expected %d" % (n1, n0 // 2))
     finally:
         _ok(h("cpu-smt", on=True), "cpu-smt on")
-    check(open(p).read().strip() == "on", "smt/control did not come back on")
+    check(read_text(p).strip() == "on", "smt/control did not come back on")
     check(_nproc() == n0, "threads after SMT back on: %d, expected %d" % (_nproc(), n0))
     return "SMT off and on: %d, %d, %d threads" % (n0, n1, _nproc())
 
@@ -168,7 +168,7 @@ def t_gov_set(ctx, h):
     g = _gov(ctx, h)
     conf = g["conf"]
     with preserved(_gov_conf_file()):
-        r = _ok(h("gov-set", conf=conf, timeout=90), "gov-set")
+        _ok(h("gov-set", conf=conf, timeout=90), "gov-set")
         g2 = _ok(h("gov-get"), "gov-get")
         check(g2["conf"].get("curva") == conf.get("curva") and g2["conf"].get("freq_max") == conf.get("freq_max"),
               "the curve read back differs from the one written")
@@ -364,8 +364,9 @@ def _govs():
     out = {}
     for p in glob.glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"):
         try:
-            out[p] = open(p).read().strip()
+            out[p] = read_text(p).strip()
         except OSError:
+            # this CPU went offline between the glob and the read: skip it
             pass
     return out
 
@@ -400,7 +401,7 @@ def t_cpu_gov(ctx, h):
                 finally:
                     _ok(h("cpu-cores-set", cores=[{"core": c["core"], "online": True}]), "core on")
                 time.sleep(2)   # the udev rule runs asynchronously
-                back = {open("/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor" % x["cpu"]).read().strip()
+                back = {read_text("/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor" % x["cpu"]).strip()
                         for x in c["cpus"]}
                 check(back == {other}, "core %d came back on %s, not %s: the udev rule did not apply it"
                       % (c["core"], sorted(back), other))
@@ -468,11 +469,11 @@ def t_fan(ctx, h, azione, path):
     helper: accepted, and nothing the user set comes back different."""
     if not os.path.exists(path):
         raise Skip("%s does not exist here" % path)
-    before = json.load(open(path))
+    before = read_json(path)
     fand_on = sh("systemctl is-active skillfish-fand.service", 10)[1].strip() == "active"
     with preserved(path):
         _ok(h("ventola", azione=azione, dati=before, timeout=240), "ventola %s" % azione)
-        after = json.load(open(path))
+        after = read_json(path)
         diff = _same_where_both(before, after)
         check(not diff, "values changed on the way through the helper:\n" + "\n".join(diff[:20]))
     # the daemon read the rewritten file: give it the original bytes back

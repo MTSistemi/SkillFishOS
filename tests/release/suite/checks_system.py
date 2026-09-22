@@ -1,10 +1,9 @@
 """The installed system as a whole: packages, dpkg and apt, systemd units,
 AppStream cards and menu entries."""
-import glob
 import os
 import re
 
-from common import Skip, check, files_of, our_packages, sh
+from common import Skip, check, files_of, our_packages, read_text, sh
 
 # Packages that carry an upstream version rather than ours (YY.MM.N).
 UPSTREAM_VERSIONED = ("skillfish-vkpeak", "skillfish-mesa-gfx1013", "skillfish-vaapi-encoder",
@@ -116,7 +115,7 @@ def t_desktop_entries(ctx):
         for f in files_of(p):
             if f.endswith(".desktop") and os.path.isfile(f):
                 n += 1
-                for line in open(f, encoding="utf-8", errors="replace"):
+                for line in read_text(f).splitlines():
                     if line.startswith(("Exec=", "TryExec=")):
                         prog = line.split("=", 1)[1].strip().split()[0] if line.split("=", 1)[1].strip() else ""
                         prog = prog.strip('"')

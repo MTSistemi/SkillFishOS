@@ -1,5 +1,6 @@
 """Small shared pieces of the release check."""
 import contextlib
+import json
 import os
 import subprocess
 
@@ -27,6 +28,17 @@ def sh(cmd, timeout=60, env=None, input_text=None):
 def check(cond, msg):
     if not cond:
         raise AssertionError(msg)
+
+
+def read_text(path):
+    """A whole file, closed at once (CodeQL py/file-not-closed)."""
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def read_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def our_packages():

@@ -5,7 +5,7 @@ import re
 import stat
 
 import coverage
-from common import Skip, check, files_of, our_packages, sh
+from common import Skip, check, files_of, our_packages, read_text, sh
 
 
 def shipped_executables():
@@ -42,7 +42,7 @@ def static_check(path):
         return "binary, libraries resolve"
     first = head.split(b"\n", 1)[0]
     if b"python" in first:
-        src = open(path, encoding="utf-8", errors="replace").read()
+        src = read_text(path)
         compile(src, path, "exec")
         return "python compiles"
     if first.startswith(b"#!") and (b"sh" in first):
@@ -87,7 +87,6 @@ def probe(ctx, path, entry):
 
 def run(ctx):
     exes = shipped_executables()
-    check_names = set()
     for pkg, path in exes:
         name = "exec %s" % path
         # Shared libraries carry the exec bit by convention; they are not
@@ -99,7 +98,6 @@ def run(ctx):
         if entry is None:
             ctx.add(name, "fail", "shipped by %s but has no entry in coverage.py: say how it is tested" % pkg)
             continue
-        check_names.add(path)
         ctx.run(name + " [static]", static_check, path)
         if entry[0] in ("run", "unit"):
             ctx.run(name, probe, ctx, path, entry)

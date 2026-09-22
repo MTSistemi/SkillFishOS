@@ -145,6 +145,7 @@ def main(argv):
         try:
             os.unlink(CONF)
         except FileNotFoundError:
+            # nothing kept already: clearing is done
             pass
         print(json.dumps(status()))
         return 0
