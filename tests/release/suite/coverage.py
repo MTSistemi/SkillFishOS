@@ -25,6 +25,10 @@ ANY = ("bc250", "x64")
 EXECUTABLES = {
     # --- skillfish-base -------------------------------------------------------
     "/etc/kernel/postinst.d/00-skillfish-nct6687": ("manual", "kernel postinst hook: runs when a kernel is installed; covered by the kernel release check"),
+    # upstream's overclock search stresses every core for minutes: only --help,
+    # which still imports the whole bc250_smu module (the package is complete)
+    "/opt/bc250_smu_oc/bc250_detect.py": ("run", "python3 /opt/bc250_smu_oc/bc250_detect.py --help",
+                                          {"out": r"usage: bc250_detect"}),
     "/usr/local/bin/skillfish-acpi-pstates": ("run", "skillfish-acpi-pstates status", {}),
     "/usr/local/bin/skillfish-ai-console": ("manual", "the tty screen of AI mode; only runs inside AI mode"),
     "/usr/local/bin/skillfish-ai-mode": ("run", "skillfish-ai-mode stato", {"out": r"\{"}),
@@ -150,6 +154,34 @@ EXECUTABLES = {
     "/usr/bin/skillfish-vf-traccia": ("manual", "reads the governor trail; diagnostic"),
     "/usr/bin/skillfish-vf-watchdog": ("unit", "skillfish-vf-watchdog.service"),
     "/usr/lib/skillfish-vf-governor/stock-governor": ("manual", "fallback governor used when ours is off"),
+}
+
+# Paths our programs name that are allowed NOT to be installed by a package,
+# each with the reason. Everything else they name under /opt, /usr/local/bin
+# or /usr/lib/skillfish must exist and belong to a package (checks_exec).
+PATHS_NOT_PACKAGED = {
+    "/opt/bc250_memcfg/bc250memcfg": "legacy fallback: the Control Center uses the packaged skillfish-memcfg first",
+    "/opt/bench/vkpeak": "legacy fallback: skillfish-vkpeak's /usr/lib/skillfish/vkpeak comes first (#91)",
+    "/opt/skillfish-rpc": "created by skillfish-cluster on the boards it adds to the AI cluster",
+    "/opt/skillfish-rpc/ggml-rpc-server": "created by skillfish-cluster on the boards it adds to the AI cluster",
+    "/opt/unsloth/llama.cpp": "one of the places Unsloth may live; Unsloth is installed later by install-unsloth.sh",
+    "/usr/local/bin/scx_lavd": "dead code in the old Tuner helper; skillfish-scx replaced it",
+}
+
+# Units shipped with an [Install] section that the package deliberately does
+# not enable. Anything else must be enabled by its postinst OUTSIDE the
+# /run/systemd/system test, or an ISO ships it off (issue #98).
+UNITS_ON_DEMAND = {
+    "skillfish-dashboard.service": "the Remote Manager: a LAN panel, switched on from the Control Center",
+    "skillfish-scx.path": "the gaming scheduler: switched on from the Tuner",
+    "skillfish-cluster.service": "AI cluster telemetry: set up by skillfish-cluster on the boards it joins",
+    "skillfish-llama.service": "AI mode without Unsloth: chosen on the AI page",
+    "skillfish-unsloth.service": "Unsloth Studio: installed later by the user, switched from the AI page",
+    "bc250-smu-oc.service": "CPU clock at boot: enabled by Save at boot in the Tuner, after it writes the conf",
+    "skillfish-thermal-guard.service": "enabled when the user sets a limit in the Tuner",
+    "skillfish-gaming-mode.service": "switched on from the Control Center",
+    "skillfish-vf-governor.service": "ships disabled on purpose (see its postinst): chosen in the Tuner",
+    "skillfish-vf-watchdog.service": "goes with skillfish-vf-governor, enabled together with it",
 }
 
 # Minimum vkpeak fp32 on a BC-250 with the shipped curve. Measured 10144-10165

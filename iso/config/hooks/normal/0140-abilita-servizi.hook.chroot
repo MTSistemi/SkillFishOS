@@ -45,7 +45,19 @@ skillfish-freeze-check.service
 skillfish-gpu-freq.service
 skillfish-wol.service
 skillfish-firstboot-snapshots.service
+skillfish-cu.service
+skillfish-fand.service
+skillfish-sensori.service
+skillfish-gpu-calibrate-recovery.service
+skillfish-hub-refresh.timer
+skillfish-firstboot-flatpaks.service
+skillfish-cpu-governor.service
+skillfish-mesa.service
 "
+# ⚠️ Issue #98, and the reason the postinst enables did not take: they were
+# written inside `if [ -d /run/systemd/system ]`, which is false in a chroot.
+# skillfish-cu.service was missing from this list too, so no installed system
+# ever switched its 40 CU on at boot.
 
 mancanti=0
 for S in $SERVIZI; do

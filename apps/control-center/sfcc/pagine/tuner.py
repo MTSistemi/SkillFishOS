@@ -786,6 +786,9 @@ class Pagina(PaginaBase):
         }.get(f.get("campo"))
         if frase:
             return frase % (f.get("min", 0), f.get("max", 0))
+        if r.get("err") == "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc":
+            return L("bc250_smu_oc non è installato: sudo apt install skillfish-smu-oc",
+                     "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc")
         return r.get("err") or L("non applicata", "not applied")
 
     def _applica_cpu(self):

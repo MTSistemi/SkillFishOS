@@ -1250,5 +1250,6 @@
  "This machine exposes no CPU governor.": "Эта машина не предоставляет регулятор частоты процессора.",
  "Governor %s, at the next boot too.": "Регулятор %s, и при следующей загрузке.",
  "Install the CPU P-state tables? They take effect after a restart.": "Установить таблицы P-состояний процессора? Они заработают после перезагрузки.",
- "P-states turned on: restart to use them.": "P-состояния включены: перезагрузитесь, чтобы их использовать."
+ "P-states turned on: restart to use them.": "P-состояния включены: перезагрузитесь, чтобы их использовать.",
+ "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc": "bc250_smu_oc не установлен: sudo apt install skillfish-smu-oc"
 }

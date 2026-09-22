@@ -435,6 +435,9 @@ def apply_cpu_esito(mhz, scale, tmp):
     fuori = _cpu_fuori(mhz, scale, tmp)
     if fuori:
         return False, fuori
+    if not os.path.exists("%s/bc250_apply.py" % OC_DIR):
+        # issue #96: the backend was never installed on normal systems
+        return False, "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc"
     _log("CPU: %d MHz, scale %d, limite %d C" % (mhz, scale, tmp))
     prima = _cpu_conf()
     _write_cpu_conf(mhz, scale, tmp)
@@ -462,8 +465,10 @@ def _esito_cpu(ok, perche):
 
 
 def persist_cpu():
-    sh("python3 %s/bc250_apply.py --install %s" % (OC_DIR, OC_CONF))
-    sh("systemctl enable bc250-smu-oc.service")
+    # The unit comes with skillfish-smu-oc, guarded by skillfish-is-bc250.
+    # `bc250_apply.py --install` would overwrite it with upstream's, which has
+    # no guard: only the conf (written by apply_cpu_esito) and the enable here.
+    sh("systemctl daemon-reload; systemctl enable bc250-smu-oc.service")
 
 
 # An offline CPU has no topology/ in sysfs, so its core can't be read back.
@@ -725,6 +730,11 @@ def cu_keep_boot(on, rows):
     Only a mapping that is actually on the card can be kept: saving something
     that was never applied would arm the next boot with a routing nobody has
     seen work. The idea, and the check, are from tom lima's PR #80."""
+    # The unit is what reads the saved mapping at boot. Issue #98: on systems
+    # installed from an ISO it was never enabled, so a saved mapping, and the
+    # plain 40 CU, were never applied. Enabled here whatever the choice: with
+    # nothing saved it switches all 40 on.
+    sh("systemctl enable skillfish-cu.service", 30)
     if not on:
         p = sh("/usr/local/bin/skillfish-cu boot-clear", 30)
         return {"ok": p.returncode == 0, **{k: v for k, v in cu_get().items() if k != "ok"}}

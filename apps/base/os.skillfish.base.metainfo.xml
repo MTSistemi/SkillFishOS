@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.46" date="2026-09-22">
+      <description>
+        <p>Services that were meant to start on their own now do so on systems installed from an ISO: the 40 compute units at boot, the fan control, the sensors and the Hub update check. Our Mesa gives the desktop back to Debian's if a library it needs goes missing, instead of leaving it without acceleration.</p>
+        <p xml:lang="it">I servizi che dovevano partire da soli ora partono anche sui sistemi installati da una ISO: le 40 unità di calcolo all'avvio, il controllo della ventola, i sensori e il controllo aggiornamenti dell'Hub. La nostra Mesa restituisce il desktop a quella di Debian se manca una libreria che le serve, invece di lasciarlo senza accelerazione.</p>
+        <p xml:lang="fr">Les services qui devaient démarrer seuls le font désormais aussi sur les systèmes installés depuis une ISO : les 40 unités de calcul au démarrage, le contrôle du ventilateur, les capteurs et la vérification des mises à jour du Hub. Notre Mesa rend le bureau à celle de Debian si une bibliothèque dont elle a besoin disparaît, au lieu de le laisser sans accélération.</p>
+        <p xml:lang="es">Los servicios que debían arrancar solos ahora lo hacen también en los sistemas instalados desde una ISO: las 40 unidades de cómputo al arrancar, el control del ventilador, los sensores y la comprobación de actualizaciones del Hub. Nuestra Mesa devuelve el escritorio a la de Debian si falta una biblioteca que necesita, en lugar de dejarlo sin aceleración.</p>
+        <p xml:lang="pt">Os serviços que deviam arrancar sozinhos passam a fazê-lo também nos sistemas instalados a partir de uma ISO: as 40 unidades de computação no arranque, o controlo da ventoinha, os sensores e a verificação de atualizações do Hub. A nossa Mesa devolve o ambiente de trabalho à do Debian se faltar uma biblioteca de que precisa, em vez de o deixar sem aceleração.</p>
+        <p xml:lang="de">Dienste, die von selbst starten sollten, tun das jetzt auch auf Systemen, die von einer ISO installiert wurden: die 40 Recheneinheiten beim Start, die Lüftersteuerung, die Sensoren und die Update-Prüfung des Hubs. Unser Mesa gibt den Desktop an das von Debian zurück, wenn eine benötigte Bibliothek fehlt, statt ihn ohne Beschleunigung zu lassen.</p>
+        <p xml:lang="pl">Usługi, które miały uruchamiać się same, robią to teraz także w systemach zainstalowanych z obrazu ISO: 40 jednostek obliczeniowych przy starcie, sterowanie wentylatorem, czujniki i sprawdzanie aktualizacji w Hubie. Nasza Mesa oddaje pulpit Mesie z Debiana, jeśli brakuje potrzebnej jej biblioteki, zamiast zostawiać go bez akceleracji.</p>
+        <p xml:lang="ru">Службы, которые должны были запускаться сами, теперь запускаются и в системах, установленных с ISO: 40 вычислительных блоков при загрузке, управление вентилятором, датчики и проверка обновлений в Hub. Наша Mesa возвращает рабочий стол Mesa из Debian, если пропала нужная ей библиотека, вместо того чтобы оставить его без ускорения.</p>
+        <p xml:lang="uk">Служби, які мали запускатися самі, тепер запускаються і в системах, встановлених з ISO: 40 обчислювальних блоків під час завантаження, керування вентилятором, датчики та перевірка оновлень у Hub. Наша Mesa повертає робочий стіл Mesa з Debian, якщо зникла потрібна їй бібліотека, замість того щоб залишити його без прискорення.</p>
+      </description>
+    </release>
     <release version="26.09.45" date="2026-09-22">
       <description>
         <p>skillfish-cpu-governor: the CPU governor chosen in the Tuner or on the Remote Manager is put back at every boot and on every CPU that comes back online.</p>

@@ -170,7 +170,8 @@ def apply_cpu(mhz,scale,tmp):
     return r.returncode==0
 
 def persist_cpu():
-    sh("python3 %s/bc250_apply.py --install %s"%(OC_DIR,OC_CONF)); sh("systemctl enable bc250-smu-oc.service")
+    # the unit comes with skillfish-smu-oc: --install would replace it with upstream's, unguarded
+    sh("systemctl daemon-reload; systemctl enable bc250-smu-oc.service")
 
 def _gpu_curve(minmhz,minmv,maxmhz,maxmv):
     # Build a SMOOTH multi-point voltage curve (gentle clock/voltage transitions).

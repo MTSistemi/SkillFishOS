@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // aggiornamento-26-09-46-2026-09-22
+    data: '2026-09-22',
+    quando: {"it": "22 settembre 2026", "en": "22 September 2026", "pl": "22 września 2026", "uk": "22 вересня 2026", "ru": "22 сентября 2026", "es": "22 de septiembre de 2026", "pt": "22 de setembro de 2026", "de": "22. September 2026", "fr": "22 septembre 2026"},
+    etichetta: {"it": "avviso", "en": "warning", "pl": "ostrzeżenie", "uk": "попередження", "ru": "предупреждение", "es": "aviso", "pt": "aviso", "de": "Warnung", "fr": "avertissement"},
+    titolo: {
+      it: "Giochi che non partono dopo l'aggiornamento: installate la 26.09.46",
+      en: "Games not starting after the update: install 26.09.46",
+      pl: "Gry nie startują po aktualizacji: zainstalujcie 26.09.46",
+      uk: "Ігри не запускаються після оновлення: встановіть 26.09.46",
+      ru: "Игры не запускаются после обновления: установите 26.09.46",
+      es: "Juegos que no arrancan tras la actualización: instalad la 26.09.46",
+      pt: "Jogos que não arrancam depois da atualização: instalem a 26.09.46",
+      de: "Spiele starten nach dem Update nicht: installiert 26.09.46",
+      fr: "Jeux qui ne démarrent plus après la mise à jour : installez la 26.09.46"
+    },
+    testo: {
+      it: "Se dopo gli ultimi aggiornamenti i giochi di Steam si chiudono subito e la sessione Wayland non parte, aggiornate dall'Hub alla <strong>26.09.46</strong> e riavviate. Se l'Hub non si apre, da terminale basta <code>sudo apt install libllvm21</code>. Con la stessa versione le 40 unità di calcolo si accendono a ogni avvio anche sui sistemi installati da una ISO, e Applica nella pagina CPU del Tuner funziona ovunque.",
+      en: "If after the latest updates your Steam games close straight away and the Wayland session does not start, update to <strong>26.09.46</strong> from the Hub and reboot. If the Hub does not open, <code>sudo apt install libllvm21</code> in a terminal is enough. The same version switches the 40 compute units on at every boot on systems installed from an ISO too, and Apply on the Tuner's CPU page works everywhere.",
+      pl: "Jeśli po ostatnich aktualizacjach gry ze Steama od razu się zamykają, a sesja Wayland nie startuje, zaktualizujcie system z Huba do <strong>26.09.46</strong> i uruchomcie go ponownie. Jeśli Hub się nie otwiera, wystarczy w terminalu <code>sudo apt install libllvm21</code>. Ta sama wersja włącza 40 jednostek obliczeniowych przy każdym starcie także w systemach zainstalowanych z ISO, a Zastosuj na stronie CPU w Tunerze działa wszędzie.",
+      uk: "Якщо після останніх оновлень ігри зі Steam одразу закриваються, а сеанс Wayland не запускається, оновіться через Hub до <strong>26.09.46</strong> і перезавантажтеся. Якщо Hub не відкривається, достатньо в терміналі <code>sudo apt install libllvm21</code>. Та сама версія вмикає 40 обчислювальних блоків під час кожного завантаження і в системах, встановлених з ISO, а «Застосувати» на сторінці CPU у Tuner працює скрізь.",
+      ru: "Если после последних обновлений игры из Steam сразу закрываются, а сеанс Wayland не запускается, обновитесь через Hub до <strong>26.09.46</strong> и перезагрузитесь. Если Hub не открывается, достаточно в терминале <code>sudo apt install libllvm21</code>. Та же версия включает 40 вычислительных блоков при каждой загрузке и в системах, установленных с ISO, а «Применить» на странице CPU в Tuner работает везде.",
+      es: "Si tras las últimas actualizaciones los juegos de Steam se cierran enseguida y la sesión Wayland no arranca, actualizad desde el Hub a la <strong>26.09.46</strong> y reiniciad. Si el Hub no se abre, basta con <code>sudo apt install libllvm21</code> en un terminal. La misma versión enciende las 40 unidades de cómputo en cada arranque también en los sistemas instalados desde una ISO, y Aplicar en la página CPU del Tuner funciona en todas partes.",
+      pt: "Se depois das últimas atualizações os jogos do Steam fecham logo e a sessão Wayland não arranca, atualizem a partir do Hub para a <strong>26.09.46</strong> e reiniciem. Se o Hub não abrir, basta <code>sudo apt install libllvm21</code> num terminal. A mesma versão liga as 40 unidades de computação em cada arranque também nos sistemas instalados a partir de uma ISO, e Aplicar na página CPU do Tuner funciona em todo o lado.",
+      de: "Wenn sich eure Steam-Spiele nach den letzten Updates sofort schließen und die Wayland-Sitzung nicht startet, aktualisiert im Hub auf <strong>26.09.46</strong> und startet neu. Öffnet sich der Hub nicht, genügt <code>sudo apt install libllvm21</code> im Terminal. Dieselbe Version schaltet die 40 Recheneinheiten bei jedem Start auch auf Systemen ein, die von einer ISO installiert wurden, und Anwenden auf der CPU-Seite des Tuners funktioniert überall.",
+      fr: "Si après les dernières mises à jour vos jeux Steam se ferment aussitôt et la session Wayland ne démarre pas, mettez à jour vers la <strong>26.09.46</strong> depuis le Hub et redémarrez. Si le Hub ne s'ouvre pas, <code>sudo apt install libllvm21</code> dans un terminal suffit. La même version active les 40 unités de calcul à chaque démarrage aussi sur les systèmes installés depuis une ISO, et Appliquer sur la page CPU du Tuner fonctionne partout."
+    },
+  },
+  {
     // vaapi-decodifica-2026-09-22
     data: '2026-09-22',
     quando: {"it": "22 settembre 2026", "en": "22 September 2026", "pl": "22 września 2026", "uk": "22 вересня 2026", "ru": "22 сентября 2026", "es": "22 de septiembre de 2026", "pt": "22 de setembro de 2026", "de": "22. September 2026", "fr": "22 septembre 2026"},

@@ -5,6 +5,7 @@
     skillfish-mesa off      Debian's driver back, everywhere
     skillfish-mesa stato    what is set right now
     skillfish-mesa avvio    what the boot service calls: apply the gate, quietly
+                            (and the dpkg trigger, after any library change)
     skillfish-mesa json     the same state as JSON, for the Control Center helper
 
 TWO HALVES, because a flatpak cannot see the host's ld.so.conf.
@@ -115,6 +116,33 @@ def installata():
     return os.path.exists(RADV)
 
 
+# Every library the machine loads from our directory once the ld.so.conf line
+# is there. dri_gbm.so is what libgbm opens for the compositor.
+CARICATE = ("libgallium-*.so", "libEGL_mesa.so.0", "libGLX_mesa.so.0", "libgbm.so.1",
+            "libvulkan_radeon.so", "gbm/dri_gbm.so")
+
+
+def librerie_mancanti():
+    """System libraries ours link against that cannot be found, or [].
+
+    ⚠️ Issue #97. Our Mesa is linked against libLLVM.so.21.1. On 21/09 Debian
+    moved its own Mesa to LLVM 22, which left libllvm21 with no reverse
+    dependency on a user's system, and the next `apt autoremove` took it away.
+    With our directory first in the ld.so cache every 64-bit process then
+    failed to load EGL and GBM: Xorg came up without glamor and DRI3, so
+    Vulkan had no queue that could present (games aborted with signal 6), and
+    kwin_wayland could not start at all. The package now depends on what it
+    links, and this check is the second line: if anything is still missing,
+    the machine goes back to Debian's driver instead of losing its desktop.
+    """
+    fuori = []
+    for schema in CARICATE:
+        for so in glob.glob(os.path.join(LIBS, schema)):
+            r = sh("LD_LIBRARY_PATH=%s ldd %s" % (LIBS, so), 30)
+            fuori += [l.split()[0] for l in r.stdout.splitlines() if "not found" in l]
+    return sorted(set(fuori))
+
+
 def perche_no():
     """The reason our driver must not be switched on here, or None."""
     if not installata():
@@ -123,6 +151,10 @@ def perche_no():
         return "questa macchina non e' una BC-250: la nostra Mesa e' compilata per quel chip"
     if not kernel_nostro():
         return "serve il kernel SkillFishOS: su un altro kernel le code compute piantano la GPU"
+    mancano = librerie_mancanti()
+    if mancano:
+        return ("missing system libraries: %s (sudo apt install --reinstall %s)"
+                % (", ".join(mancano), PACCHETTO))
     return None
 
 
@@ -293,9 +325,12 @@ def avvio():
     come up with a driver that opens the compute queues, and the decision cannot
     be taken once at install time because the kernel can change at any boot.
     """
-    if perche_no():
+    motivo = perche_no()
+    if motivo:
         if host_attivo():
             spegni_tutto(zitto=True)
+            # the journal is where anybody will look when the desktop changed driver
+            print("skillfish-mesa: back to Debian's Mesa: %s" % motivo, file=sys.stderr)
         return 0
     accendi_tutto(zitto=True)
     return 0

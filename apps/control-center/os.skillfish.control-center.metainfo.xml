@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.46" date="2026-09-22">
+      <description>
+        <p>Tuner, CPU: Apply works on every installation. The tool it relies on now comes in its own package, skillfish-smu-oc, and Keep at boot for the compute units switches on the service that applies them.</p>
+        <p xml:lang="it">Tuner, CPU: Applica funziona su ogni installazione. Lo strumento su cui si appoggia ora arriva in un pacchetto suo, skillfish-smu-oc, e Mantieni all'avvio per le unità di calcolo accende il servizio che le applica.</p>
+        <p xml:lang="fr">Tuner, CPU : Appliquer fonctionne sur toutes les installations. L'outil sur lequel il s'appuie arrive maintenant dans son propre paquet, skillfish-smu-oc, et Conserver au démarrage pour les unités de calcul active le service qui les applique.</p>
+        <p xml:lang="es">Tuner, CPU: Aplicar funciona en todas las instalaciones. La herramienta en la que se apoya llega ahora en su propio paquete, skillfish-smu-oc, y Mantener al arrancar para las unidades de cómputo activa el servicio que las aplica.</p>
+        <p xml:lang="pt">Tuner, CPU: Aplicar funciona em todas as instalações. A ferramenta em que se apoia passa a vir no seu próprio pacote, skillfish-smu-oc, e Manter no arranque para as unidades de computação ativa o serviço que as aplica.</p>
+        <p xml:lang="de">Tuner, CPU: Anwenden funktioniert auf jeder Installation. Das Werkzeug, auf das es sich stützt, kommt jetzt in einem eigenen Paket, skillfish-smu-oc, und Beim Start behalten für die Recheneinheiten aktiviert den Dienst, der sie anwendet.</p>
+        <p xml:lang="pl">Tuner, CPU: Zastosuj działa w każdej instalacji. Narzędzie, na którym się opiera, jest teraz w osobnym pakiecie, skillfish-smu-oc, a Zachowaj przy starcie dla jednostek obliczeniowych włącza usługę, która je ustawia.</p>
+        <p xml:lang="ru">Tuner, CPU: «Применить» работает на любой установке. Инструмент, на который оно опирается, теперь поставляется отдельным пакетом skillfish-smu-oc, а «Сохранить при загрузке» для вычислительных блоков включает службу, которая их применяет.</p>
+        <p xml:lang="uk">Tuner, CPU: «Застосувати» працює на будь-якій установці. Інструмент, на який воно спирається, тепер постачається окремим пакетом skillfish-smu-oc, а «Зберегти під час завантаження» для обчислювальних блоків вмикає службу, яка їх застосовує.</p>
+      </description>
+    </release>
     <release version="26.09.45" date="2026-09-22">
       <description>
         <p>The Tuner now lets you choose the CPU governor, which decides how the processor picks its clock: performance keeps it high, schedutil lowers it when idle and raises it under load. The choice stays after a restart and on every core switched back on, and the same list is on the Remote Manager page. On a BC-250 without the CPU P-states, the button to turn them on is there instead. Closing the window no longer prints an error from the gamepad reader.</p>

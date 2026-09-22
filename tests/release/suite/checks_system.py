@@ -3,6 +3,7 @@ AppStream cards and menu entries."""
 import os
 import re
 
+import coverage
 from common import Skip, check, files_of, our_packages, read_text, sh
 
 # Packages that carry an upstream version rather than ours (YY.MM.N).
@@ -93,6 +94,69 @@ def t_units(ctx):
     return "%d units, none failed" % len(units)
 
 
+GUARD = re.compile(r"^if \[ -d /run/systemd/system \]")
+ENABLE = re.compile(r"\b(systemctl( --global)?|deb-systemd-helper) (--\S+ )*enable\b")
+
+
+def _enables_outside_guard(script):
+    """Unit names a maintainer script enables where a chroot would too.
+
+    Enabling only writes symlinks and works without a running systemd;
+    `[ -d /run/systemd/system ]` is false in the ISO chroot, so an enable
+    written inside that test never reaches an image (issue #98)."""
+    unit = r"[\w@.-]+\.(?:service|timer|path|socket)"
+    found, stack, loop = set(), [], []
+    for raw in script.replace("\\\n", " ").splitlines():
+        s = raw.strip()
+        if s.startswith("#"):
+            continue
+        one_line = s.startswith("if ") and re.search(r"\bfi\s*$", s)
+        if s.startswith("if ") and not one_line:
+            stack.append(bool(GUARD.match(s)))
+        elif s == "fi" or s.startswith("fi "):
+            if stack:
+                stack.pop()
+        if s.startswith("for "):
+            # `for u in a.service b.service; do systemctl enable "$u"; done`
+            loop = re.findall(unit, s)
+        elif s.startswith("done"):
+            loop = []
+        if ENABLE.search(s) and not any(stack) and not (one_line and GUARD.match(s)):
+            found.update(re.findall(unit, s))
+            if '"$' in s or " $" in s:
+                found.update(loop)
+    return found
+
+
+def t_units_enabled_by_package(ctx):
+    """Every unit we ship with an [Install] section is enabled by its package
+    in a way that also works when the ISO is built, or coverage.py says who
+    turns it on. The live check (systemctl is-enabled) could not catch #98:
+    on both test machines the CU unit had been enabled by hand long ago."""
+    bad, n = [], 0
+    for p in sorted(our_packages()):
+        script = ""
+        for name in (p, p + ":amd64"):
+            f = "/var/lib/dpkg/info/%s.postinst" % name
+            if os.path.exists(f):
+                script = read_text(f)
+        enabled = _enables_outside_guard(script)
+        for f in files_of(p):
+            if not re.search(r"/systemd/system/[^/]+\.(service|timer|path|socket)$", f) or not os.path.isfile(f):
+                continue
+            if not re.search(r"^\[Install\]", read_text(f), re.M):
+                continue
+            u = os.path.basename(f)
+            n += 1
+            if u in coverage.UNITS_ON_DEMAND or u in enabled:
+                continue
+            bad.append("%s (%s)" % (u, p))
+    check(not bad, "shipped with [Install] but not enabled by the package outside "
+                   "`if [ -d /run/systemd/system ]` (an ISO would ship them off), and not "
+                   "listed in coverage.UNITS_ON_DEMAND:\n  " + "\n  ".join(bad))
+    return "%d units: each enabled by its package, or on demand for a stated reason" % n
+
+
 def t_metainfo(ctx):
     if not os.path.exists("/usr/bin/appstreamcli"):
         raise Skip("appstreamcli not installed")
@@ -155,6 +219,7 @@ def run(ctx):
     ctx.run("desktop guard installed and protected", t_guard, ctx)
     ctx.run("packages: files intact (dpkg -V)", t_files_intact, ctx)
     ctx.run("systemd: our units healthy", t_units, ctx)
+    ctx.run("systemd: units enabled by their package, ISO included", t_units_enabled_by_package, ctx)
     ctx.run("AppStream cards valid", t_metainfo, ctx)
     ctx.run("menu entries point at real programs", t_desktop_entries, ctx)
     ctx.run("next update removes nothing of the desktop", t_update_removes_nothing, ctx)

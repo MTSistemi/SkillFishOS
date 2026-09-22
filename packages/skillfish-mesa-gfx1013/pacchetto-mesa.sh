@@ -65,13 +65,34 @@ JSON
 install -m 0755 "$QUI/skillfish-mesa" "$P/usr/bin/skillfish-mesa" || exit 1
 install -m 0644 "$QUI/skillfish-mesa.service" "$P/usr/lib/systemd/system/skillfish-mesa.service" || exit 1
 
+# ⚠️ ISSUE #97: THE REAL DEPENDENCIES. Until 26.09.45 this said "python3" and
+# nothing else, so apt did not know our libraries need libLLVM.so.21.1 and the
+# rest. When Debian moved its Mesa to LLVM 22, libllvm21 became an orphan and
+# autoremove took it: every 64-bit EGL/GBM user broke with it, the desktop
+# included. dpkg-shlibdeps reads what the ELF files actually link against.
+# libdisplay-info is left out: the postinst copies the system one next to ours.
+SHL=$(mktemp -d)
+mkdir -p "$SHL/debian"
+printf 'Source: skillfish-mesa-gfx1013\n\nPackage: skillfish-mesa-gfx1013\nArchitecture: amd64\n' > "$SHL/debian/control"
+ELF=$(find "$P/opt/skillfish-gfx1013/lib" -type f -name '*.so*' ! -name 'libdisplay-info*' \
+      -exec sh -c 'head -c4 "$1" | grep -q ELF && echo "$1"' _ {} \; | sort)
+(cd "$SHL" && dpkg-shlibdeps -O -l"$P/opt/skillfish-gfx1013/lib/x86_64-linux-gnu" $ELF) \
+    > "$SHL/out" 2> "$SHL/err" || { cat "$SHL/err" >&2; exit 1; }
+SHLIBS=$(sed -n 's/^shlibs:Depends=//p' "$SHL/out")
+rm -rf "$SHL"
+case "$SHLIBS" in
+    *libllvm21*) ;;
+    *) echo "dpkg-shlibdeps did not find libllvm21: '$SHLIBS'" >&2; exit 1 ;;
+esac
+echo "Depends: python3, $SHLIBS"
+
 cat > "$P/DEBIAN/control" <<CTRL
 Package: skillfish-mesa-gfx1013
 Version: $VER
 Section: libs
 Priority: optional
 Architecture: amd64
-Depends: python3
+Depends: python3, $SHLIBS
 Recommends: skillfishos-kernel
 Maintainer: SkillFishOS <info@skillfishos.com>
 Description: SkillFishOS - our Mesa for the BC-250, the whole driver
@@ -103,9 +124,19 @@ Description: SkillFishOS - our Mesa for the BC-250, the whole driver
  Part of SkillFishOS.
 CTRL
 
+# A file trigger on the library directory: whenever a package puts files in it
+# or takes them out, the switch checks again that our libraries still load, and
+# gives the machine back to Debian's Mesa if they do not (issue #97). Without it
+# the check would only run at the next boot, with the desktop already broken.
+echo "interest-noawait /usr/lib/x86_64-linux-gnu" > "$P/DEBIAN/triggers"
+
 cat > "$P/DEBIAN/postinst" <<'POST'
 #!/bin/sh
 set -e
+if [ "$1" = "triggered" ]; then
+    /usr/bin/skillfish-mesa avvio || true
+    exit 0
+fi
 # ⚠️ libdisplay-info: la nostra .so e' compilata su sid e la chiede, ma il
 # runtime flatpak dei giochi non ce l'ha. Si copia quella del sistema accanto
 # alla nostra invece di spedirne una copia nostra: cosi' resta allineata agli

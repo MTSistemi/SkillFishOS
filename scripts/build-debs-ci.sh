@@ -113,6 +113,14 @@ shot() { # shot <pkg> <metainfo-path>: install metainfo + its referenced screens
 }
 
 P=skillfish-tuner
+# ⚠️ ISSUE #98: `systemctl enable` GOES OUTSIDE `if [ -d /run/systemd/system ]`.
+# Inside the ISO chroot that directory does not exist, so every enable written
+# inside the guard was skipped and the image shipped the unit off. Enabling only
+# writes symlinks and works without a running systemd; starting does not, and
+# that is the half that stays inside the guard. skillfish-cu.service was not
+# enabled anywhere at all: on every machine installed from an ISO the 40 CU were
+# never switched on at boot, and "keep at boot" in the Tuner saved a file that
+# nothing read. tests/release checks every unit we ship with an [Install].
 # The window is a section of the Control Center since 26.09: this is the launcher.
 put $P 0755 apps/control-center/lanciatori/skillfish-tuner usr/local/bin/skillfish-tuner
 put $P 0755 apps/tuner/skillfish-tuner-helper     usr/local/bin/skillfish-tuner-helper
@@ -193,7 +201,7 @@ a wizard that finds what this chip holds. Also brings the HUD configurator."
 # ⚠️ Dopo ctrl, non prima: ctrl() scrive un postinst predefinito e lo
 # sovrascriverebbe. Qui si aggiunge l'accensione del servizio dei sensori,
 # come si fa gia' per skillfish-unsloth.
-printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-sensori.service 2>/dev/null || true\n  systemctl enable skillfish-gpu-calibrate-recovery.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nsystemctl enable skillfish-cu.service skillfish-sensori.service skillfish-gpu-calibrate-recovery.service 2>/dev/null || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl start skillfish-sensori.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 
 P=skillfish-control-center
@@ -222,7 +230,7 @@ for n in skillfish-control-center skillfish-giochi skillfish-profili; do
   done
 done
 shot $P apps/control-center/os.skillfish.control-center.metainfo.xml
-ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor" "SkillFishOS Control Center - every tool in one window" \
+ctrl $P "python3, python3-pyqt6, polkitd | policykit-1, skillfish-base, skillfish-vf-governor, skillfish-smu-oc" "SkillFishOS Control Center - every tool in one window" \
   "Status, Tuner, Fan, Monitor, Games, Profiles, Kernel, Snapshots, AI, Emulators,
 Console and ISO in one window. The Tuner is built around the V/F governor
 curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
@@ -302,14 +310,14 @@ cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST'
 set -e
 update-desktop-database -q 2>/dev/null || true
 gtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true
+# Enabling only writes symlinks, so it works in the ISO chroot as well: outside
+# the guard, or an image ships these off (see the note on skillfish-cu, #98).
+# --global: the notice is for EVERY user, including the ones created later.
+systemctl enable skillfish-hub-refresh.timer 2>/dev/null || true
+systemctl --global enable skillfish-hub-notify.timer 2>/dev/null || true
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
-  systemctl enable --now skillfish-hub-refresh.timer 2>/dev/null || true
-  # --global: l'avviso vale per TUTTI gli utenti, compresi quelli creati
-  # dopo. Abilitarlo per l'utente corrente non servirebbe a niente:
-  # durante l'installazione l'utente corrente e' root, che il desktop non
-  # ce l'ha.
-  systemctl --global enable skillfish-hub-notify.timer 2>/dev/null || true
+  systemctl start skillfish-hub-refresh.timer 2>/dev/null || true
   # Il primo conteggio subito e in sottofondo, per non far aspettare fino a
   # domani chi ha appena installato.
   systemctl start --no-block skillfish-hub-refresh.service 2>/dev/null || true
@@ -356,7 +364,7 @@ BC-250, to start early. The emergency threshold cannot be switched off."
 # Il servizio si accende all'installazione anche se non e' ancora configurato:
 # con `attivo` a falso non tocca la ventola, ma pubblica le letture, e senza di
 # lui la finestra si aprirebbe vuota con scritto che non gira niente.
-printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl enable --now skillfish-fand.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+printf '#!/bin/sh\nset -e\nupdate-desktop-database -q 2>/dev/null || true\ngtk-update-icon-cache -q -f /usr/share/icons/hicolor 2>/dev/null || true\nappstreamcli refresh-cache --force >/dev/null 2>&1 || true\nsystemctl enable skillfish-fand.service 2>/dev/null || true\nif [ -d /run/systemd/system ]; then\n  systemctl daemon-reload || true\n  systemctl start skillfish-fand.service 2>/dev/null || true\nfi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
 chmod 0755 "$OUT/$P/DEBIAN/postinst"
 # ⚠️ prerm: disinstallando, la ventola deve tornare al firmware. Senza questo
 # resterebbe inchiodata sull'ultimo valore scritto da noi, su una macchina da
@@ -489,13 +497,21 @@ cannot check where a SkillFishOS package came from."
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTINST_KEYRING'
 #!/bin/sh
 set -e
-# Accende il timer che tiene aggiornato l'elenco dei mirror. Con
-# deb-systemd-invoke, che rispetta la scelta di chi i servizi li ha spenti
-# apposta: un pacchetto non riaccende quello che l'amministratore ha disattivato.
+# Switches on the timer that keeps the mirror list current, the way debhelper
+# does it: enabled on the first install, and after that only if it was enabled,
+# so a package never switches back on what an administrator turned off.
+# ⚠️ Issue #98: this used `deb-systemd-invoke enable`, and deb-systemd-invoke
+# only starts and stops: the timer was never enabled on an installed ISO.
+# deb-systemd-helper writes the symlinks without a running systemd, chroot too.
 if [ "$1" = configure ]; then
-  systemctl daemon-reload >/dev/null 2>&1 || true
-  if command -v deb-systemd-invoke >/dev/null 2>&1; then
-    deb-systemd-invoke enable --now skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
+  if deb-systemd-helper --quiet was-enabled skillfish-aggiorna-mirror.timer; then
+    deb-systemd-helper enable skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
+  else
+    deb-systemd-helper update-state skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
+  fi
+  if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    deb-systemd-invoke start skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
   fi
 fi
 exit 0
@@ -839,6 +855,19 @@ set -e
 if [ -f /etc/sudoers.d/99-skillfish-live ] && ! id live >/dev/null 2>&1; then
     rm -f /etc/sudoers.d/99-skillfish-live
 fi
+# ⚠️ Issue #98: enabling only writes symlinks, so it happens here, outside the
+# /run/systemd/system test below, which is false in the ISO chroot. Written
+# inside it, none of these reached an image: the live session had its lock
+# screen and no snapshot permissions, and only hook 0140 saved the rest.
+# One line per unit: a single `systemctl enable a b c` gives up on all of them
+# if one is missing.
+for u in skillfish-sshd-keygen.service skillfish-live-no-lock.service \
+         skillfish-live-polkit.service skillfish-freeze-check.service \
+         skillfish-core-unlock.service skillfish-gpu-freq.service \
+         skillfish-wol.service skillfish-cpu-governor.service \
+         skillfish-firstboot-snapshots.service; do
+  systemctl enable "$u" >/dev/null 2>&1 || true
+done
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
   # senza chiavi host ssh.service fallisce all'infinito su installazione fresca
@@ -1332,9 +1361,10 @@ decided for you: the browser included."
 cat > "$OUT/$P/DEBIAN/postinst" <<'POSTPA'
 #!/bin/sh
 set -e
+# outside the guard: the ISO chroot has no /run/systemd/system (issue #98)
+systemctl enable skillfish-firstboot-flatpaks.service 2>/dev/null || true
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
-  systemctl enable skillfish-firstboot-flatpaks.service 2>/dev/null || true
 fi
 exit 0
 POSTPA
@@ -1742,10 +1772,39 @@ sed -i 's/^Priority: optional$/Priority: important\nProtected: yes/' "$OUT/$P/DE
 # nothing to refresh: no desktop files, icons or metainfo in here
 rm -f "$OUT/$P/DEBIAN/postinst"
 
+P=skillfish-smu-oc
+# The CPU clock/undervolt backend for the BC-250 (bc250-collective/bc250_smu_oc,
+# MIT) in /opt/bc250_smu_oc, where the Control Center, the Remote Manager,
+# bc250-smu-oc.service and the thermal guard all look for it (issue #96). The ISO
+# used to pipx-install it into /opt/pipx, best effort, so on a normal install
+# Tuner > CPU > Apply answered that bc250_apply.py was missing.
+for f in bc250_apply.py bc250_detect.py bc250_limits.py stress_helper.py; do
+  put $P 0644 system/opt/bc250_smu_oc/$f opt/bc250_smu_oc/$f
+done
+chmod 0755 "$OUT/$P/opt/bc250_smu_oc/bc250_detect.py"
+for f in vendor/bc250_smu_oc/bc250_smu/*.py; do
+  put $P 0644 "$f" "opt/bc250_smu_oc/bc250_smu/$(basename "$f")"
+done
+put $P 0644 vendor/bc250_smu_oc/LICENSE opt/bc250_smu_oc/LICENSE
+put $P 0644 vendor/bc250_smu_oc/UPSTREAM.md opt/bc250_smu_oc/UPSTREAM.md
+# ⚠️ The unit is ours, with ExecCondition=skillfish-is-bc250: upstream's
+# `bc250_apply.py --install` writes one without it. It is NOT enabled here:
+# "Save at boot" in the Tuner enables it, after writing /etc/bc250-smu-oc.conf.
+# ⚠️ And that conf file is not shipped: the one in system/etc is a dev board's
+# overclock (3900 MHz, -24). The Control Center writes it with the user's values.
+put $P 0644 system/etc/systemd/system/bc250-smu-oc.service etc/systemd/system/bc250-smu-oc.service
+ctrl $P "python3" "SkillFishOS SMU backend - CPU clock and undervolt for the BC-250" \
+  "bc250_smu_oc by bc250-collective (MIT), the tool that sets the BC-250's CPU
+clock, voltage offset and thermal limit through the SMU. The Tuner's CPU panel,
+the Remote Manager and the thermal guard use it. On any other machine it stays
+installed and does nothing: its boot service checks for a BC-250 first."
+printf '#!/bin/sh\nset -e\nif [ -d /run/systemd/system ]; then systemctl daemon-reload || true; fi\nexit 0\n' > "$OUT/$P/DEBIAN/postinst"
+chmod 0755 "$OUT/$P/DEBIAN/postinst"
+
 # ⚠️ OGNI PACCHETTO NUOVO VA AGGIUNTO QUI, o si stagiona in $OUT e non
 # diventa mai un .deb. Succede senza un rumore: i file ci sono, il control
 # c'e', e alla fine manca solo l'archivio.
-for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfish-gddr6 skillfish-desktop-guard skillfishos-archive-keyring; do
+for P in skillfish-primo-avvio skillfish-boot skillfish-control-center skillfish-audio-dolby skillfish-tuner skillfish-fan skillfish-hub skillfish-monitor skillfish-kernel-manager skillfish-ai-panel skillfish-base skillfish-console skillfish-dashboard skillfish-theme skillfish-emulators skillfish-iso-mount skillfish-snapshots skillfish-menu skillfish-scx skillfish-gddr6 skillfish-desktop-guard skillfish-smu-oc skillfishos-archive-keyring; do
   find "$OUT/$P" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
   # .sources e' l'elenco di lavoro usato per generare il changelog: sta nella
   # radice del pacchetto, quindi finirebbe dentro il .deb come file spurio.
@@ -1826,6 +1885,9 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswa
 # --annulla non trova piu' niente da recuperare (visto sulla Generic).
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'sottovol_da_fstab'
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-repair-desktop 'zz-skillfish-repair-testing'
+check skillfish-smu-oc_${VER}_all.deb ./opt/bc250_smu_oc/bc250_smu/api.py 'class'
+check skillfish-smu-oc_${VER}_all.deb ./etc/systemd/system/bc250-smu-oc.service 'ExecCondition=/usr/local/bin/skillfish-is-bc250'
+notcheck skillfish-smu-oc_${VER}_all.deb ./opt/bc250_smu_oc/bc250_apply.py 'sudo rm'
 check skillfish-base_${VER}_all.deb ./usr/lib/udev/rules.d/60-skillfish-cpu-governor.rules 'skillfish-cpu-governor apply'
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-cpu-governor 'GOVERNOR='
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'GRUB_BTRFS_DISABLE'

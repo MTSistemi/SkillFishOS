@@ -1250,5 +1250,6 @@
  "This machine exposes no CPU governor.": "Esta máquina no ofrece un gobernador de CPU.",
  "Governor %s, at the next boot too.": "Gobernador %s, también en el próximo arranque.",
  "Install the CPU P-state tables? They take effect after a restart.": "¿Instalar las tablas P-state de la CPU? Tienen efecto tras reiniciar.",
- "P-states turned on: restart to use them.": "P-states activados: reinicia para usarlos."
+ "P-states turned on: restart to use them.": "P-states activados: reinicia para usarlos.",
+ "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc": "bc250_smu_oc no está instalado: sudo apt install skillfish-smu-oc"
 }

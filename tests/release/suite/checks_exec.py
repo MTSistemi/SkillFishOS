@@ -85,8 +85,50 @@ def probe(ctx, path, entry):
     return None
 
 
+PATH_LITERAL = re.compile(r'["\'=\s](/opt/[A-Za-z0-9_./+-]+|/usr/local/bin/[A-Za-z0-9_.+-]+'
+                          r'|/usr/lib/skillfish[A-Za-z0-9_./+-]*|/usr/local/share/skillfish/[A-Za-z0-9_./+-]+)')
+
+
+def t_paths_packaged(ctx, exes):
+    """Every file our programs name under /opt, /usr/local/bin or
+    /usr/lib/skillfish exists AND belongs to a package.
+
+    Issues #91 (vkpeak looked for in /opt/bench) and #96 (/opt/bc250_smu_oc)
+    were the same bug: a path that exists on our development boards because
+    somebody put it there by hand, and on no user's machine. On a board it
+    looks fine; dpkg -S is what tells the difference."""
+    missing, unowned, seen = [], [], {}
+    for pkg, path in exes:
+        if re.search(r"\.so(\.\d+)*$", path):
+            continue
+        try:
+            text = read_text(path)
+        except OSError:
+            continue
+        if "\x00" in text[:2000]:
+            continue        # a binary
+        for m in PATH_LITERAL.finditer(text):
+            p = m.group(1).rstrip(".")
+            if p in seen or p in coverage.PATHS_NOT_PACKAGED:
+                continue
+            seen[p] = path
+    for p, user in sorted(seen.items()):
+        if not os.path.exists(p):
+            missing.append("%s (named in %s)" % (p, user))
+            continue
+        target = p
+        rc, _, _ = sh("dpkg -S %s" % target, 20)
+        if rc != 0:
+            unowned.append("%s (named in %s)" % (p, user))
+    check(not missing and not unowned,
+          ("named but missing:\n  " + "\n  ".join(missing) + "\n" if missing else "")
+          + ("present but no package installs it (hand-placed?):\n  " + "\n  ".join(unowned) if unowned else ""))
+    return "%d paths named by our programs, all installed by a package" % len(seen)
+
+
 def run(ctx):
     exes = shipped_executables()
+    ctx.run("paths our programs use are installed by a package", t_paths_packaged, ctx, exes)
     for pkg, path in exes:
         name = "exec %s" % path
         # Shared libraries carry the exec bit by convention; they are not
