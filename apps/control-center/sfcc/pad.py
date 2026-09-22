@@ -48,11 +48,32 @@ class Pad(QObject):
         self._thread = None
         self.nome = ""
         if evdev is not None:
+            app = QApplication.instance()
+            if app is not None:
+                app.aboutToQuit.connect(self.ferma)
             self._thread = threading.Thread(target=self._giro, daemon=True)
             self._thread.start()
 
     def ferma(self):
         self._vivo = False
+
+    def _emetti(self, segnale, *valori):
+        """Emit from the reader thread, unless the window is already gone.
+
+        The thread outlives the Qt object when the window closes: emitting then
+        raised "wrapped C/C++ object of type Pad has been deleted", printed as a
+        traceback on every exit on a machine with a pad-like input device. The
+        release check found it by opening the window offscreen (22/09/2026).
+        """
+        if not self._vivo:
+            return False
+        try:
+            segnale.emit(*valori)
+            return True
+        except RuntimeError:
+            # the C++ side of this object was deleted: stop reading
+            self._vivo = False
+            return False
 
     # ---- reader thread ---------------------------------------------------------
     def _trova(self):
@@ -73,7 +94,7 @@ class Pad(QObject):
                 time.sleep(3)
                 continue
             self.nome = dev.name
-            self.collegato.emit(True)
+            self._emetti(self.collegato, True)
             try:
                 self._leggi(dev)
             except OSError:
@@ -86,7 +107,7 @@ class Pad(QObject):
                     # already gone: nothing left to close
                     pass
             self.nome = ""
-            self.collegato.emit(False)
+            self._emetti(self.collegato, False)
 
     def _leggi(self, dev):
         assi = {}
@@ -99,7 +120,7 @@ class Pad(QObject):
             if giu and not stato.get(nome):
                 stato[nome] = True
                 premuti[nome] = time.monotonic() + PRIMA_RIPETIZIONE
-                self.tasto.emit(nome)
+                self._emetti(self.tasto, nome)
             elif not giu:
                 stato[nome] = False
 
@@ -119,7 +140,7 @@ class Pad(QObject):
                 for nome, held in stato.items():
                     if held and now >= premuti.get(nome, now):
                         premuti[nome] = now + RIPETIZIONE
-                        self.tasto.emit(nome)
+                        self._emetti(self.tasto, nome)
                 time.sleep(0.02)
                 continue
             if ev.type == E.EV_KEY:
@@ -128,15 +149,15 @@ class Pad(QObject):
                     continue
                 code = ev.code
                 if code in (E.BTN_SOUTH,):
-                    giu and self.tasto.emit("ok")
+                    giu and self._emetti(self.tasto, "ok")
                 elif code in (E.BTN_EAST,):
-                    giu and self.tasto.emit("indietro")
+                    giu and self._emetti(self.tasto, "indietro")
                 elif code in (E.BTN_TL,):
-                    giu and self.tasto.emit("sezione-prec")
+                    giu and self._emetti(self.tasto, "sezione-prec")
                 elif code in (E.BTN_TR,):
-                    giu and self.tasto.emit("sezione-succ")
+                    giu and self._emetti(self.tasto, "sezione-succ")
                 elif code in (E.BTN_START,):
-                    giu and self.tasto.emit("stato")
+                    giu and self._emetti(self.tasto, "stato")
                 elif code in (E.BTN_DPAD_UP,):
                     direzione("su", giu)
                 elif code in (E.BTN_DPAD_DOWN,):
