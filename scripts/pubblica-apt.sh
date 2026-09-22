@@ -23,6 +23,13 @@ for f in "$@"; do
     [ -f "$f" ] || { echo "non trovo $f" >&2; exit 1; }
 done
 
+# Nothing goes out that has not passed the release check on a BC-250 and on an
+# x64 install: see tests/release/README.md. --solo-locale only stages inside
+# the container, so it may skip the gate; the real publish never does.
+if [ "$SOLO_LOCALE" = 0 ]; then
+    python3 "$(dirname "$0")/../tests/release/gate.py" "$@" || exit 1
+fi
+
 echo ">>> copio $# pacchetti in /srv/incoming"
 scp -q -o StrictHostKeyChecking=accept-new "$@" "$CONTAINER:/srv/incoming/" || exit 1
 

@@ -57,6 +57,18 @@ With Secure Boot on, a kernel nobody signed is refused by the shim and the
 machine does not boot: that is issue #53. `scripts/publish-kernel.sh` refuses to
 publish unsigned kernels, so this is not a reminder, it is a wall.
 
+## Checking a release
+
+Nothing is published before it has run on the BC-250 test board and on the
+x64 test VM:
+
+    bash tests/release/release-check.sh 26.09.7 [~/DEBS-vkpeak/*.deb ...]
+
+It installs the packages on both machines, exercises everything we ship and
+brings the reports back to `~/release-reports/<version>/`. `pubblica-apt.sh`
+refuses anything that did not pass there, down to the exact bytes. See
+`tests/release/README.md`.
+
 ## Publishing
 
 **apt** (GitHub Pages and the mirror at home):
