@@ -370,6 +370,49 @@ def _govs():
     return out
 
 
+def t_cpu_gov(ctx, h):
+    """The CPU governor (issue #95): switch every thread to another one, check
+    it is kept, check a core that comes back online gets it too (the udev
+    rule), switch back. The kept-choice file goes back byte for byte."""
+    st = _ok(h("cpu-gov"), "cpu-gov")
+    av = st.get("available") or []
+    if not av:
+        raise Skip("no cpufreq here (driver %s)" % st.get("driver"))
+    cur = st.get("current") or []
+    if len(cur) != 1:
+        raise Skip("threads already on different governors: %s" % cur)
+    orig = cur[0]
+    other = next((g for g in ("schedutil", "ondemand", "powersave", "performance") if g in av and g != orig), None)
+    if other is None:
+        raise Skip("only one governor available")
+    detail = ""
+    with preserved("/etc/skillfish/cpu-governor.conf"):
+        try:
+            _ok(h("cpu-gov-set", gov=other, timeout=90), "cpu-gov-set")
+            check(set(_govs().values()) == {other}, "not every thread on %s: %s" % (other, sorted(set(_govs().values()))))
+            check(h("cpu-gov").get("saved") == other, "the choice was not kept")
+            cores = _ok(h("cpu-cores"), "cpu-cores")["cores"]
+            cand = [c for c in cores if c["online"] and all(x["removable"] and x["online"] for x in c["cpus"])]
+            if cand:
+                c = cand[-1]
+                try:
+                    _ok(h("cpu-cores-set", cores=[{"core": c["core"], "online": False}]), "core off")
+                finally:
+                    _ok(h("cpu-cores-set", cores=[{"core": c["core"], "online": True}]), "core on")
+                time.sleep(2)   # the udev rule runs asynchronously
+                back = {open("/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor" % x["cpu"]).read().strip()
+                        for x in c["cpus"]}
+                check(back == {other}, "core %d came back on %s, not %s: the udev rule did not apply it"
+                      % (c["core"], sorted(back), other))
+                detail = "; core %d off and on came back on %s" % (c["core"], other)
+        finally:
+            _ok(h("cpu-gov-set", gov=orig, timeout=90), "cpu-gov-set restore")
+    check(set(_govs().values()) == {orig}, "not back on %s: %s" % (orig, sorted(set(_govs().values()))))
+    bad = h("cpu-gov-set", gov="nonsense")
+    check(bad.get("ok") is False, "an unknown governor was accepted")
+    return "%s -> %s -> %s on every thread%s; unknown name refused" % (orig, other, orig, detail)
+
+
 def t_bench_cpu(ctx, h):
     if not sh("command -v sysbench", 10)[1].strip():
         raise Skip("sysbench not installed")
@@ -488,6 +531,7 @@ WRITE_TESTS = {
     "mesa-sistema-set": t_mesa, "unsloth-conf-set": t_unsloth_conf, "gddr6": t_gddr6,
     "servizio": t_service, "bench-cpu": t_bench_cpu, "bench-gpu": t_bench_gpu,
     "snapshot": t_snapshot,
+    "cpu-gov-set": t_cpu_gov,
     "ventola": lambda ctx, h: "%s; %s" % (t_fan(ctx, h, "scrivi", "/etc/skillfish/ventola.json"),
                                            t_fan(ctx, h, "etichette", "/etc/skillfish/sensori.json")),
 }

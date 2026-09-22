@@ -31,9 +31,19 @@ RIPETIZIONE = 0.12
 
 
 def _e_pad(dev):
+    """A gamepad: pad buttons AND sticks or a hat.
+
+    ydotoold's virtual device declares every button there is, BTN_SOUTH
+    included, and has no axes. It was taken for a pad on every machine that
+    runs ydotool (both test machines do): the window listened to it, and an
+    automation typing through ydotool could have moved the focus."""
+    if "ydotool" in (dev.name or "").lower():
+        return False
     caps = dev.capabilities()
     keys = caps.get(E.EV_KEY, [])
-    return E.BTN_SOUTH in keys or E.BTN_GAMEPAD in keys
+    if E.BTN_SOUTH not in keys and E.BTN_GAMEPAD not in keys:
+        return False
+    return bool(caps.get(E.EV_ABS))
 
 
 class Pad(QObject):

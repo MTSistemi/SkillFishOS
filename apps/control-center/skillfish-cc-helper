@@ -571,6 +571,46 @@ def cpu_smt_set(on):
     return cpu_cores_get()
 
 
+# ---- CPU frequency governor (issue #95) -------------------------------------------
+# The work is in skillfish-cpu-governor (skillfish-base), which the boot service
+# and the udev rule call too: one implementation, three callers.
+CPU_GOV = "/usr/local/bin/skillfish-cpu-governor"
+ACPI_PSTATES = "/usr/local/bin/skillfish-acpi-pstates"
+
+
+def _json_da(cmd, t=60):
+    r = sh(cmd, t)
+    try:
+        return json.loads((r.stdout or "").strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return {"ok": False, "err": (r.stderr or r.stdout or "no answer").strip()[-300:]}
+
+
+def cpu_gov_get():
+    if not os.path.exists(CPU_GOV):
+        return {"ok": False, "err": "manca skillfish-cpu-governor: aggiorna skillfish-base"}
+    return _json_da(CPU_GOV + " status", 30)
+
+
+def cpu_gov_set(gov):
+    if not isinstance(gov, str) or not re.fullmatch(r"[a-z_]{2,20}", gov):
+        return {"ok": False, "err": "governor non valido"}
+    if not os.path.exists(CPU_GOV):
+        return {"ok": False, "err": "manca skillfish-cpu-governor: aggiorna skillfish-base"}
+    _log("governor CPU: %s" % gov)
+    return _json_da("%s set %s" % (CPU_GOV, gov), 60)
+
+
+def cpu_pstates_set(on):
+    """Install or remove the ACPI P-state tables of a BC-250. Takes effect at
+    the next boot: the tables are loaded by GRUB with the kernel."""
+    if not os.path.exists(ACPI_PSTATES):
+        return {"ok": False, "err": "manca skillfish-acpi-pstates"}
+    r = sh("%s %s" % (ACPI_PSTATES, "enable" if on else "disable"), 180)
+    _log("P-state ACPI: %s -> %s" % ("enable" if on else "disable", (r.stdout or "").strip()[-120:]))
+    return {"ok": r.returncode == 0, "reboot": True, "out": (r.stdout or r.stderr or "").strip()[-400:]}
+
+
 def core_unlock_get():
     try:
         n = len(os.sched_getaffinity(0))
@@ -1523,6 +1563,12 @@ def handle(req):
         return cpu_cores_set(req.get("cores", []))
     if c == "cpu-smt":
         return cpu_smt_set(bool(req.get("on", True)))
+    if c == "cpu-gov":
+        return cpu_gov_get()
+    if c == "cpu-gov-set":
+        return cpu_gov_set(req.get("gov", ""))
+    if c == "cpu-pstates-set":
+        return cpu_pstates_set(bool(req.get("on", True)))
     if c == "core-unlock":
         return core_unlock_get()
     if c == "core-unlock-set":

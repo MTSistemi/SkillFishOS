@@ -40,7 +40,7 @@ echo ">>> ${#DEBS[@]} packages, fingerprints in $OUT/debs.sha256"
 
 SSH=(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 fail=0
-while read -r kind target; do
+while read -r kind target <&3; do
   case "$kind" in ''|\#*) continue ;; esac
   [ -n "$ONLY" ] && [ "$ONLY" != "$kind" ] && continue
   echo
@@ -72,7 +72,17 @@ while read -r kind target; do
   scp -q -o BatchMode=yes "$target:/root/release-check/report.json" "$OUT/$kind.json" || fail=1
   python3 -c "import json,sys; r=json.load(open(sys.argv[1])); sys.exit(1 if r['counts'].get('fail') else 0)" \
     "$OUT/$kind.json" || fail=1
-done < "$HERE/hosts.conf"
+done 3< "$HERE/hosts.conf"
+# ⚠️ The machine list is read on fd 3, not stdin: ssh inside the loop reads
+# stdin and swallowed the rest of hosts.conf, so the first run of 26.09.45
+# checked the BC-250 only and then said "passed on every machine".
+
+# Every machine in hosts.conf must have left a report for this version.
+while read -r kind target <&4; do
+  case "$kind" in ''|\#*) continue ;; esac
+  [ -n "$ONLY" ] && [ "$ONLY" != "$kind" ] && continue
+  [ -f "$OUT/$kind.json" ] && [ "$OUT/$kind.json" -nt "$OUT/debs.sha256" ]     || { echo "no fresh report from $kind ($target)" >&2; fail=1; }
+done 4< "$HERE/hosts.conf"
 
 echo
 if [ "$fail" = 0 ]; then

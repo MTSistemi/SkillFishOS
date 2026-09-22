@@ -1243,5 +1243,12 @@
  "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Huit capteurs à l'intérieur des puces mémoire mesurent cette valeur, et ils ne répondent qu'à travers la SMU. C'est pourquoi ce n'est pas un capteur qui reste allumé : l'interroger longtemps bloque la SMU, qui est aussi la puce qui tient les fréquences et les tensions. La lecture démarre quand il le faut, dure dix minutes au maximum et s'arrête d'elle-même. Le dessin montre la carte vue du côté mémoire, donc de derrière : les puces sont à l'arrière et l'APU à l'avant, en pointillés parce qu'elle est sur l'autre face. Les huit positions sont les vraies, tirées du boardview de la carte. Quel capteur correspond à quelle puce n'est pas encore mesuré : le numéro est l'ordre dans lequel la SMU répond.",
  "reading for %s": "lecture depuis %s",
  "the reading is started when needed": "la lecture se lance quand c'est utile",
- "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak n'est pas installé : sudo apt install skillfish-vkpeak"
+ "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak n'est pas installé : sudo apt install skillfish-vkpeak",
+ "How the CPU picks its clock. performance keeps it high; schedutil lowers it when idle and raises it under load. It stays after a restart.": "Comment le processeur choisit sa fréquence. performance la garde haute ; schedutil la baisse au repos et la remonte sous charge. Elle reste après un redémarrage.",
+ "The CPU P-states need turning on first, then a restart.": "Il faut d'abord activer les P-states du processeur, puis redémarrer.",
+ "Turn on P-states": "Activer les P-states",
+ "This machine exposes no CPU governor.": "Cette machine n'expose aucun gouverneur de processeur.",
+ "Governor %s, at the next boot too.": "Gouverneur %s, aussi au prochain démarrage.",
+ "Install the CPU P-state tables? They take effect after a restart.": "Installer les tables P-state du processeur ? Elles prennent effet après un redémarrage.",
+ "P-states turned on: restart to use them.": "P-states activés : redémarrez pour les utiliser."
 }

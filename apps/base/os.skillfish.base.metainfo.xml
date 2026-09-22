@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.45" date="2026-09-22">
+      <description>
+        <p>skillfish-cpu-governor: the CPU governor chosen in the Tuner or on the Remote Manager is put back at every boot and on every CPU that comes back online.</p>
+        <p xml:lang="it">skillfish-cpu-governor: il governor della CPU scelto nel Tuner o nel Remote Manager viene rimesso a ogni avvio e su ogni CPU che torna accesa.</p>
+        <p xml:lang="fr">skillfish-cpu-governor : le gouverneur du processeur choisi dans le Tuner ou sur le Remote Manager est remis à chaque démarrage et sur chaque processeur qui revient en ligne.</p>
+        <p xml:lang="es">skillfish-cpu-governor: el gobernador de la CPU elegido en el Tuner o en el Remote Manager se vuelve a aplicar en cada arranque y en cada CPU que se vuelve a encender.</p>
+        <p xml:lang="pt">skillfish-cpu-governor: o governador da CPU escolhido no Tuner ou no Remote Manager é reposto em cada arranque e em cada CPU que volta a ligar-se.</p>
+        <p xml:lang="de">skillfish-cpu-governor: der im Tuner oder im Remote Manager gewählte CPU-Governor wird bei jedem Start und auf jeder wieder eingeschalteten CPU erneut gesetzt.</p>
+        <p xml:lang="pl">skillfish-cpu-governor: governor procesora wybrany w Tunerze lub w Remote Managerze jest przywracany przy każdym uruchomieniu i na każdym ponownie włączonym procesorze.</p>
+        <p xml:lang="ru">skillfish-cpu-governor: регулятор частоты, выбранный в Tuner или в Remote Manager, восстанавливается при каждой загрузке и на каждом снова включённом процессоре.</p>
+        <p xml:lang="uk">skillfish-cpu-governor: регулятор частоти, обраний у Tuner або в Remote Manager, відновлюється під час кожного завантаження і на кожному знову ввімкненому процесорі.</p>
+      </description>
+    </release>
     <release version="26.09.43" date="2026-09-21">
       <description>
         <p>Two tools for when an installation goes wrong. skillfish-repair-desktop puts back a KDE desktop that an update removed, as Discover did in September while Debian was rebuilding Qt: it reinstalls what that update took away and asks before changing anything. And the installer now clears the leftover of an earlier encrypted installation on the same disk, which made the new system stop at the first boot.</p>

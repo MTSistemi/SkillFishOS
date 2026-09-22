@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""skillfish-cpu-governor - choose the CPU frequency governor and keep it.
+
+    skillfish-cpu-governor status        what the machine offers and uses, as JSON
+    skillfish-cpu-governor set GOVERNOR  apply it to every online CPU and keep it
+    skillfish-cpu-governor apply         put the kept one back (boot, CPU hotplug)
+    skillfish-cpu-governor clear         forget it: the kernel's default from the next boot
+
+Issue #95 asked for this in the Tuner. It writes /sys directly: linux-cpupower
+is not needed for this, and the Control Center helper already writes /sys.
+
+WHY THREE PLACES APPLY IT. The kernel starts every CPU on its own default
+governor (performance, in our kernel). So the choice is put back:
+  - at boot, by skillfish-cpu-governor.service;
+  - on every CPU that comes back online, by a udev rule: cores and SMT switched
+    off and on from the Tuner, and the two cores the 8-core unlock adds, would
+    otherwise return on the default;
+  - right away, by `set`.
+
+ON A BC-250 there is no cpufreq at all unless the ACPI P-state tables are
+installed (skillfish-acpi-pstates enable, then a reboot): the firmware has no
+_PSS. `status` says so, and the Tuner offers that instead of a governor list.
+Even then the peak clock is the SMU's (bc250_apply): the governor decides how
+far the CPU drops when idle, not how fast it runs under load.
+"""
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+CONF = "/etc/skillfish/cpu-governor.conf"
+CPU = "/sys/devices/system/cpu"
+
+
+def _rd(p):
+    try:
+        with open(p) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def online_cpus():
+    out = []
+    for d in sorted(glob.glob(CPU + "/cpu[0-9]*"), key=lambda p: int(p.rsplit("cpu", 1)[1])):
+        on = _rd(d + "/online")
+        if on is None or on == "1":        # cpu0 has no online file: always on
+            out.append(d)
+    return out
+
+
+def available():
+    for d in online_cpus():
+        a = _rd(d + "/cpufreq/scaling_available_governors")
+        if a:
+            return a.split()
+    return []
+
+
+def saved():
+    txt = _rd(CONF) or ""
+    m = re.search(r"^GOVERNOR=(\S+)", txt, re.M)
+    return m.group(1) if m else None
+
+
+def is_bc250():
+    return subprocess.run(["/usr/local/bin/skillfish-is-bc250"], capture_output=True).returncode == 0 \
+        if os.path.exists("/usr/local/bin/skillfish-is-bc250") else False
+
+
+def pstates():
+    """on/off on a BC-250 (the ACPI tables we inject), None elsewhere."""
+    if not is_bc250():
+        return None
+    return "on" if os.path.exists("/boot/SkillFishOS-acpi.cpio") else "off"
+
+
+def status():
+    cpus = online_cpus()
+    cur = sorted({g for g in (_rd(d + "/cpufreq/scaling_governor") for d in cpus) if g})
+    return {"ok": True, "driver": _rd(CPU + "/cpu0/cpufreq/scaling_driver"),
+            "available": available(), "current": cur, "saved": saved(),
+            "bc250": is_bc250(), "pstates": pstates(), "cpus": len(cpus)}
+
+
+def write_all(gov):
+    bad = []
+    for d in online_cpus():
+        p = d + "/cpufreq/scaling_governor"
+        if not os.path.exists(p):
+            continue
+        try:
+            # /sys takes the value in place: no temporary file there (issue #93)
+            with open(p, "w") as f:
+                f.write(gov)
+        except OSError as e:
+            bad.append("%s: %s" % (os.path.basename(d), e.strerror))
+    return bad
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else "status"
+    if cmd == "status":
+        print(json.dumps(status()))
+        return 0
+    if os.geteuid() != 0:
+        print(json.dumps({"ok": False, "err": "needs root"}))
+        return 1
+    if cmd == "set":
+        gov = argv[2] if len(argv) > 2 else ""
+        av = available()
+        if not av:
+            print(json.dumps({**status(), "ok": False, "err": "no-cpufreq"}))
+            return 1
+        if gov not in av:
+            print(json.dumps({"ok": False, "err": "unknown governor %r (available: %s)" % (gov, " ".join(av))}))
+            return 1
+        bad = write_all(gov)
+        os.makedirs(os.path.dirname(CONF), exist_ok=True)
+        tmp = CONF + ".tmp"
+        with open(tmp, "w") as f:
+            f.write("# Written by SkillFishOS (Control Center / Remote Manager).\n"
+                    "# The CPU frequency governor, put back at boot and on every CPU\n"
+                    "# that comes back online. Remove this file for the kernel default.\n"
+                    "GOVERNOR=%s\n" % gov)
+        os.replace(tmp, CONF)
+        out = status()
+        out["ok"] = not bad
+        if bad:
+            out["err"] = "; ".join(bad)
+        print(json.dumps(out))
+        return 0 if not bad else 1
+    if cmd == "apply":
+        gov = saved()
+        if not gov:
+            return 0
+        if gov not in available():
+            # a governor that went away (another kernel): leave the default
+            return 0
+        write_all(gov)
+        return 0
+    if cmd == "clear":
+        try:
+            os.unlink(CONF)
+        except FileNotFoundError:
+            pass
+        print(json.dumps(status()))
+        return 0
+    print("usage: skillfish-cpu-governor status | set GOVERNOR | apply | clear", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

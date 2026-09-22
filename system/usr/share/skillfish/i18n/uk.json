@@ -1241,5 +1241,12 @@
  "Eight sensors inside the memory chips measure this, and they answer only through the SMU. That is why it is not a sensor that stays on: polling it for long wedges the SMU, which is also the chip that holds clocks and voltages. The reading starts when needed, lasts ten minutes at most and closes itself. The drawing is the board seen from the memory side, that is from behind: the chips are on the back and the APU on the front, dashed because it sits on the other face. The eight positions are the real ones, taken from the board's own boardview. Which sensor is which chip is not measured yet: the number is the order the SMU answers in.": "Це вимірюють вісім датчиків усередині мікросхем пам'яті, і відповідають вони лише через SMU. Тому це не датчик, який працює постійно: довге опитування підвішує SMU, а це та сама мікросхема, що тримає частоти й напруги. Читання запускається за потреби, триває щонайбільше десять хвилин і закривається само. На малюнку плата показана з боку пам'яті, тобто ззаду: мікросхеми розташовані на зворотному боці, а APU на лицьовому, тому її намальовано пунктиром. Вісім позицій справжні, взяті з boardview плати. Який датчик якій мікросхемі відповідає, ще не виміряно: номер означає порядок, у якому відповідає SMU.",
  "reading for %s": "читає вже %s",
  "the reading is started when needed": "читання вмикається, коли потрібно",
- "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak не встановлено: sudo apt install skillfish-vkpeak"
+ "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak не встановлено: sudo apt install skillfish-vkpeak",
+ "How the CPU picks its clock. performance keeps it high; schedutil lowers it when idle and raises it under load. It stays after a restart.": "Як процесор обирає частоту. performance тримає її високою; schedutil знижує в простої й піднімає під навантаженням. Зберігається після перезавантаження.",
+ "The CPU P-states need turning on first, then a restart.": "Спочатку треба увімкнути P-стани процесора, потім перезавантаження.",
+ "Turn on P-states": "Увімкнути P-стани",
+ "This machine exposes no CPU governor.": "Ця машина не надає регулятора частоти процесора.",
+ "Governor %s, at the next boot too.": "Регулятор %s, і під час наступного завантаження.",
+ "Install the CPU P-state tables? They take effect after a restart.": "Встановити таблиці P-станів процесора? Вони запрацюють після перезавантаження.",
+ "P-states turned on: restart to use them.": "P-стани увімкнено: перезавантажтеся, щоб ними користуватися."
 }

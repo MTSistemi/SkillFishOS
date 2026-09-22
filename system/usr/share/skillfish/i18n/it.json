@@ -1100,5 +1100,12 @@
  "GDDR6 memory chip temperature, on demand": "Temperatura dei chip di memoria GDDR6, a richiesta",
  "reading for %s": "in lettura da %s",
  "the reading is started when needed": "la lettura si accende quando serve",
- "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak non è installato: sudo apt install skillfish-vkpeak"
+ "vkpeak is not installed: sudo apt install skillfish-vkpeak": "vkpeak non è installato: sudo apt install skillfish-vkpeak",
+ "How the CPU picks its clock. performance keeps it high; schedutil lowers it when idle and raises it under load. It stays after a restart.": "Come la CPU sceglie la frequenza. performance la tiene alta; schedutil la abbassa a riposo e la rialza col carico. Resta anche dopo il riavvio.",
+ "The CPU P-states need turning on first, then a restart.": "Prima vanno attivati i P-state della CPU, poi un riavvio.",
+ "Turn on P-states": "Attiva i P-state",
+ "This machine exposes no CPU governor.": "Questa macchina non espone un governor della CPU.",
+ "Governor %s, at the next boot too.": "Governor %s, anche al prossimo avvio.",
+ "Install the CPU P-state tables? They take effect after a restart.": "Installo le tabelle P-state della CPU? Valgono dal prossimo riavvio.",
+ "P-states turned on: restart to use them.": "P-state attivati: riavvia per usarli."
 }

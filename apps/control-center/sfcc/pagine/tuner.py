@@ -20,7 +20,7 @@ import subprocess
 import time
 
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QDialog, QGridLayout,
+from PyQt6.QtWidgets import (QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QDialog, QGridLayout,
                              QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPushButton,
                              QRadioButton, QSlider, QSpinBox, QTableWidget, QTableWidgetItem,
                              QVBoxLayout, QWidget)
@@ -671,6 +671,7 @@ class Pagina(PaginaBase):
             r.addWidget(Aiuto(aiuto, testo))
             r.addWidget(cur, 1)
             v.addLayout(r)
+        self._riga_governor(v)
         r = QHBoxLayout()
         self.b_cpu = {}
         for chiave, testo, slot, primario in (
@@ -698,6 +699,61 @@ class Pagina(PaginaBase):
         self.et_conto.hide()
         v.addWidget(self.et_conto)
         return w
+
+    def _riga_governor(self, v):
+        """The CPU frequency governor (issue #95): a list where the machine has
+        cpufreq, the P-state switch on a BC-250 that has none yet."""
+        st = self.demone.cmd(cmd="cpu-gov") or {}
+        self.c_gov = None
+        r = QHBoxLayout()
+        e = QLabel("Governor")
+        e.setMinimumWidth(100)
+        r.addWidget(e)
+        r.addWidget(Aiuto(L("Come la CPU sceglie la frequenza. performance la tiene alta; schedutil la abbassa a riposo e la rialza col carico. Resta anche dopo il riavvio.",
+                            "How the CPU picks its clock. performance keeps it high; schedutil lowers it when idle and raises it under load. It stays after a restart."),
+                          "Governor"))
+        disponibili = st.get("available") or []
+        if disponibili:
+            self.c_gov = QComboBox()
+            self.c_gov.addItems(disponibili)
+            scelto = st.get("saved") or (st.get("current") or [""])[0]
+            i = self.c_gov.findText(scelto)
+            if i >= 0:
+                self.c_gov.setCurrentIndex(i)
+            r.addWidget(self.c_gov, 1)
+            b = QPushButton(L("Applica", "Apply"))
+            b.clicked.connect(self._applica_governor)
+            r.addWidget(b)
+        elif st.get("bc250") and st.get("pstates") != "on":
+            n = QLabel(L("Prima vanno attivati i P-state della CPU, poi un riavvio.",
+                         "The CPU P-states need turning on first, then a restart."))
+            n.setObjectName("quieto")
+            n.setWordWrap(True)
+            r.addWidget(n, 1)
+            b = QPushButton(L("Attiva i P-state", "Turn on P-states"))
+            b.clicked.connect(self._attiva_pstates)
+            r.addWidget(b)
+        else:
+            n = QLabel(L("Questa macchina non espone un governor della CPU.",
+                         "This machine exposes no CPU governor."))
+            n.setObjectName("quieto")
+            r.addWidget(n, 1)
+        v.addLayout(r)
+
+    def _applica_governor(self):
+        g = self.c_gov.currentText() if self.c_gov else ""
+        r = self.demone.cmd(cmd="cpu-gov-set", gov=g)
+        self.et_cpu.setText((L("Governor %s, anche al prossimo avvio.", "Governor %s, at the next boot too.") % g)
+                            if r.get("ok") else (r.get("err") or "?"))
+
+    def _attiva_pstates(self):
+        if QMessageBox.question(self, "P-state", L(
+                "Installo le tabelle P-state della CPU? Valgono dal prossimo riavvio.",
+                "Install the CPU P-state tables? They take effect after a restart.")) != QMessageBox.StandardButton.Yes:
+            return
+        r = self.demone.cmd(cmd="cpu-pstates-set", on=True)
+        self.et_cpu.setText(L("P-state attivati: riavvia per usarli.", "P-states turned on: restart to use them.")
+                            if r.get("ok") else (r.get("err") or r.get("out") or "?"))
 
     def _valori_cpu(self):
         return self.cf.value(), self.cs.value(), self.ct.value()

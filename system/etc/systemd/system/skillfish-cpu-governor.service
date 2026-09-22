@@ -1,0 +1,14 @@
+[Unit]
+Description=SkillFishOS - put back the CPU governor chosen in the Tuner
+Documentation=https://skillfishos.com
+# Nothing to do until someone has chosen one: the kernel default stays.
+ConditionPathExists=/etc/skillfish/cpu-governor.conf
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/skillfish-cpu-governor apply
+
+[Install]
+WantedBy=multi-user.target

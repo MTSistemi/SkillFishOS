@@ -3461,6 +3461,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "scx"}]))
+        if path == "/api/tuner/cpu-gov":
+            # the CPU frequency governor (issue #95), same helper as the window
+            if not self._guard("tuner"):
+                return
+            return self._json(200, tuner_cmd([{"cmd": "cpu-gov"}]))
         if path == "/api/tuner/cpu-prova":
             if not self._guard("tuner"):
                 return
@@ -3668,6 +3673,13 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("tuner"):
                 return
             return self._json(200, tuner_cmd([{"cmd": "scx-set", "on": bool(data.get("on"))}]))
+        if path == "/api/tuner/cpu-gov":
+            if not self._guard("tuner"):
+                return
+            if data.get("pstates"):
+                # update-grub runs inside: give it time
+                return self._json(200, tuner_cmd([{"cmd": "cpu-pstates-set", "on": True}], timeout=240))
+            return self._json(200, tuner_cmd([{"cmd": "cpu-gov-set", "gov": str(data.get("gov", ""))}], timeout=90))
         if path == "/api/hud/conf":
             if not self._guard("hud"):
                 return

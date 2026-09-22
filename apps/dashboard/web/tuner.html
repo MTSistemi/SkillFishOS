@@ -115,6 +115,13 @@
     <button class="btn danger" id="cpustop" disabled>Stop</button>
     <span class="sp"></span>
     <button class="btn" id="cpuapply" data-i18n="apply">Apply</button><button class="btn sec" id="cpupersist" data-i18n-c="Save at boot">Save at boot</button></div>
+  <div class="brow" id="govrow">
+    <span class="pill">Governor</span>
+    <select id="cpugov" style="display:none"></select>
+    <button class="btn sec" id="cpugovapply" style="display:none" data-i18n="apply">Apply</button>
+    <span class="stub" id="govnote"></span>
+    <button class="btn sec" id="pstateson" style="display:none" data-i18n-c="Turn on P-states">Turn on P-states</button>
+  </div>
   <div class="num" id="cpuconto" style="display:none"></div>
   <div class="stub" id="cpuesito"></div>
   <div class="stub" data-i18n-c="The clock under load. Above 3500 with eight cores heat is in charge.">…</div>
@@ -379,8 +386,17 @@ async function loadCoremap(){ const r=await api("/api/tuner/coremap"); const el=
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 $("#openventola").onclick=()=>{ location.href="/static/ventola.html"; };
 async function loadSCX(){ const cb=$("#scxcb"); const r=await api("/api/tuner/scx"); if(!r) return; cb.checked=!!r.abilitato; cb.disabled=!r.supportato; }
+// the CPU frequency governor (issue #95)
+async function loadCpuGov(){ const r=await api("/api/tuner/cpu-gov"); if(!r) return; const av=r.available||[];
+  const sel=$("#cpugov"), ap=$("#cpugovapply"), ps=$("#pstateson"), note=$("#govnote");
+  sel.style.display=ap.style.display=ps.style.display="none"; note.textContent="";
+  if(av.length){ sel.innerHTML=av.map(g=>'<option>'+esc(g)+'</option>').join(""); sel.value=r.saved||(r.current||[""])[0]; sel.style.display=ap.style.display=""; }
+  else if(r.bc250 && r.pstates!=="on"){ note.textContent=C("The CPU P-states need turning on first, then a restart."); ps.style.display=""; }
+  else note.textContent=C("This machine exposes no CPU governor."); }
+$("#cpugovapply").onclick=async()=>{ const g=$("#cpugov").value; const x=await api("/api/tuner/cpu-gov",{gov:g}); toast(x&&x.ok?C("Governor %s, at the next boot too.").replace("%s",g):("Errore: "+((x&&x.err)||""))); loadCpuGov(); };
+$("#pstateson").onclick=async()=>{ if(!confirm(C("Install the CPU P-state tables? They take effect after a restart."))) return; const x=await api("/api/tuner/cpu-gov",{pstates:true}); toast(x&&x.ok?C("P-states turned on: restart to use them."):("Errore: "+((x&&(x.err||x.out))||""))); };
 $("#scxcb").onchange=async e=>{ const x=await api("/api/tuner/scx",{on:e.target.checked}); if(!(x&&x.ok)) toast("Errore: "+((x&&x.err)||"")); setTimeout(loadSCX,800); };
 
-(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); load(); caricaGov(); loadProfiles(); loadCoremap(); loadCPUCores(); loadCore8(); loadSCX(); setInterval(caricaGov,4000); });
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); load(); caricaGov(); loadProfiles(); loadCoremap(); loadCPUCores(); loadCore8(); loadSCX(); loadCpuGov(); setInterval(caricaGov,4000); });
 </script>
 </body></html>

@@ -1,0 +1,4 @@
+# A CPU that comes back online starts on the kernel's default governor: cores
+# and SMT switched off and on from the Tuner, and the two cores the 8-core
+# unlock adds. Put the one chosen in the Tuner back on it (issue #95).
+ACTION=="online", SUBSYSTEM=="cpu", RUN+="/usr/local/bin/skillfish-cpu-governor apply"

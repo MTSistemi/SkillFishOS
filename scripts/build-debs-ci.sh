@@ -675,6 +675,12 @@ put $P 0644 system/etc/initramfs-tools/conf.d/skillfish-keymap.conf etc/initramf
 # installato: serve a chi ha gia una macchina rotta dalla issue #61 e la
 # ripara partendo da una live.
 put $P 0755 system/usr/local/bin/skillfish-crypto-fix usr/local/bin/skillfish-crypto-fix
+# The CPU governor chosen in the Tuner (issue #95): the tool, the boot service
+# that puts it back, and the udev rule that puts it back on a CPU that comes
+# online again (cores and SMT switched from the Tuner start on the default).
+put $P 0755 system/usr/local/bin/skillfish-cpu-governor usr/local/bin/skillfish-cpu-governor
+put $P 0644 system/etc/systemd/system/skillfish-cpu-governor.service etc/systemd/system/skillfish-cpu-governor.service
+put $P 0644 system/usr/lib/udev/rules.d/60-skillfish-cpu-governor.rules usr/lib/udev/rules.d/60-skillfish-cpu-governor.rules
 # Run by the installer after mount: erases a stale LUKS signature next to a
 # fresh filesystem, which made the first boot stop in the initramfs (#72).
 put $P 0755 system/usr/local/bin/skillfish-wipe-stale-luks usr/local/bin/skillfish-wipe-stale-luks
@@ -927,6 +933,9 @@ if [ -d /run/systemd/system ]; then
   # lo stato failed di prima resta appiccicato anche dopo la correzione
   systemctl reset-failed skillfish-wol.service bc250-smu-oc.service 2>/dev/null || true
   systemctl enable --now skillfish-wol.service || true
+  # the CPU governor: enabled always, it does nothing until one is chosen
+  systemctl enable skillfish-cpu-governor.service || true
+  udevadm control --reload 2>/dev/null || true
   # Snapshot Btrfs: abilita il servizio e falli adesso, non al prossimo riavvio.
   # Chi ha installato da una ISO precedente non ha /.snapshots come sottovolume e
   # quindi non ha nemmeno un punto di ripristino: con questo aggiornamento lo
@@ -1817,6 +1826,8 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswa
 # --annulla non trova piu' niente da recuperare (visto sulla Generic).
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'sottovol_da_fstab'
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-repair-desktop 'zz-skillfish-repair-testing'
+check skillfish-base_${VER}_all.deb ./usr/lib/udev/rules.d/60-skillfish-cpu-governor.rules 'skillfish-cpu-governor apply'
+check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-cpu-governor 'GOVERNOR='
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'GRUB_BTRFS_DISABLE'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
 # Il rilevatore di blocchi decide guardando un marcatore che scrive LUI stesso
