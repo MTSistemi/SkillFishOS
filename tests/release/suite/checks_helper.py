@@ -289,16 +289,20 @@ def t_scx_reset(ctx, h):
 
 
 def _graphical_session():
-    """A desktop or game session running on the machine, or ''."""
+    """A user's desktop or game session running on the machine, or ''.
+
+    Class=user only: the login screen is a graphical session of class
+    "greeter" with its own kwin_wayland, and nothing of a user starts there.
+    """
     rc, out, _ = sh("loginctl list-sessions --no-legend", 10)
     for line in out.splitlines():
         sid = line.split()[0] if line.split() else ""
-        rc, st, _ = sh("loginctl show-session %s -p Type -p State -p Name" % sid, 10)
+        rc, st, _ = sh("loginctl show-session %s -p Type -p State -p Name -p Class" % sid, 10)
         d = dict(l.split("=", 1) for l in st.splitlines() if "=" in l)
-        if d.get("Type") in ("x11", "wayland") and d.get("State") in ("active", "online"):
+        if d.get("Type") in ("x11", "wayland") and d.get("Class") == "user" \
+                and d.get("State") in ("active", "online"):
             return "%s (%s)" % (d.get("Name"), d.get("Type"))
-    rc, out, _ = sh("pgrep -x -l 'kwin_x11|kwin_wayland|gnome-shell|gamescope'", 10)
-    return out.split()[1] if out.split() else ""
+    return ""
 
 
 def t_mesa(ctx, h):
