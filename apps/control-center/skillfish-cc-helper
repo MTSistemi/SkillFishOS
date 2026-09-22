@@ -84,6 +84,18 @@ def _rd(path):
 
 
 def _wr(path, data):
+    """Write a whole file.
+
+    Configuration files go through a .tmp and a rename, so a crash never leaves
+    half a file. Kernel attributes in /sys and /proc are written in place: no
+    file can be created there, and the .tmp route failed with EACCES on every
+    one of them (issue #93: cpuN/online, and with it smt/control and the CPU
+    governor the benchmark sets).
+    """
+    if path.startswith(("/sys/", "/proc/")):
+        with open(path, "w") as f:
+            f.write(data)
+        return
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         f.write(data)
@@ -454,8 +466,36 @@ def persist_cpu():
     sh("systemctl enable bc250-smu-oc.service")
 
 
+# An offline CPU has no topology/ in sysfs, so its core can't be read back.
+# Every core_id seen while a CPU is online is kept here, and an offline CPU is
+# placed with what was recorded. Without it the guess was n // 2: right on the
+# BC-250, which pairs threads as (2k, 2k+1), wrong on a PC numbered otherwise,
+# where "switch core 1 back on" then found no core 1 to switch on.
+CPU_TOPO = "/var/lib/skillfish/cpu-topology.json"
+
+
+def _topo_load():
+    try:
+        with open(CPU_TOPO) as f:
+            return {int(k): int(v) for k, v in json.load(f).items()}
+    except (OSError, ValueError, AttributeError):
+        # first run, or a file we can't read: start from what is online now
+        return {}
+
+
+def _topo_save(topo):
+    try:
+        os.makedirs(os.path.dirname(CPU_TOPO), exist_ok=True)
+        _wr(CPU_TOPO, json.dumps({str(k): v for k, v in sorted(topo.items())}) + NL)
+    except OSError:
+        # read-only or full disk: the guess below still works on the BC-250
+        pass
+
+
 def cpu_cores_get():
     cores = {}
+    topo = _topo_load()
+    seen = dict(topo)
     for p in sorted(glob.glob("/sys/devices/system/cpu/cpu[0-9]*")):
         n = os.path.basename(p)[3:]
         if not n.isdigit():
@@ -465,6 +505,7 @@ def cpu_cores_get():
             core = int(_rd("%s/topology/core_id" % p).strip())
         except Exception:
             continue
+        seen[n] = core
         online = True if not os.path.exists(p + "/online") else _rd(p + "/online").strip() == "1"
         cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
         cores[core]["cpus"].append({"cpu": n, "online": online, "removable": os.path.exists(p + "/online")})
@@ -479,9 +520,11 @@ def cpu_cores_get():
         n = int(n)
         if any(c["cpu"] == n for e in cores.values() for c in e["cpus"]):
             continue
-        core = n // 2
+        core = seen.get(n, n // 2)
         cores.setdefault(core, {"core": core, "cpus": [], "online": False, "removable": True})
         cores[core]["cpus"].append({"cpu": n, "online": False, "removable": True})
+    if seen != topo:
+        _topo_save(seen)
     smt = None
     try:
         smt = _rd("/sys/devices/system/cpu/smt/control").strip()
