@@ -288,8 +288,28 @@ def t_scx_reset(ctx, h):
     return "counter reset (and put back)"
 
 
+def _graphical_session():
+    """A desktop or game session running on the machine, or ''."""
+    rc, out, _ = sh("loginctl list-sessions --no-legend", 10)
+    for line in out.splitlines():
+        sid = line.split()[0] if line.split() else ""
+        rc, st, _ = sh("loginctl show-session %s -p Type -p State -p Name" % sid, 10)
+        d = dict(l.split("=", 1) for l in st.splitlines() if "=" in l)
+        if d.get("Type") in ("x11", "wayland") and d.get("State") in ("active", "online"):
+            return "%s (%s)" % (d.get("Name"), d.get("Type"))
+    rc, out, _ = sh("pgrep -x -l 'kwin_x11|kwin_wayland|gnome-shell|gamescope'", 10)
+    return out.split()[1] if out.split() else ""
+
+
 def t_mesa(ctx, h):
     _bc(ctx)
+    # While the switch is off, anything that STARTS gets Debian's Mesa, which
+    # is the driver gfx1013 must not run on. A live Plasma starts things by
+    # itself (portals, notifications, Dolphin previews), and the failure would
+    # show up half an hour later in an app nobody links to this test.
+    live = _graphical_session()
+    if live:
+        raise Skip("graphical session of %s is live: switch the system Mesa with the screen off" % live)
     m = _ok(h("mesa-sistema", timeout=60), "mesa-sistema")
     if not m.get("installata"):
         raise Skip("our Mesa not installed")
