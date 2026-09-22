@@ -221,7 +221,13 @@ def controlla():
     if os.path.isfile(p) and app_ultima:
         t = io.open(p, encoding="utf-8").read()
         m = re.search(r"\| Apps \| `skillfish-\*` `([0-9.]+)`", t)
-        if m and m.group(1) != app_ultima:
+        # Only OLDER is stale. The release commit moves SECURITY.md forward
+        # before the packages reach the mirrors, and the push runs this check
+        # in that gap: a newer version there is a release in progress, and
+        # flagging it opened a false issue on three releases (#90, #92, #94).
+        def _v(x):
+            return [int(n) for n in re.findall(r"\d+", x)]
+        if m and _v(m.group(1)) < _v(app_ultima):
             guai.append("**SECURITY.md** claims apps `%s` are supported, "
                         "but the latest published is `%s`." % (m.group(1), app_ultima))
 
