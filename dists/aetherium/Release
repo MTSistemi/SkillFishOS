@@ -3,13 +3,13 @@ Label: SkillFishOS
 Suite: aetherium
 Codename: aetherium
 Version: 26.06
-Date: Thu, 24 Sep 2026 21:36:26 UTC
+Date: Thu, 24 Sep 2026 22:54:19 UTC
 Architectures: amd64 i386
 Components: main
 Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)
 MD5Sum:
- d3b200676769817e22e517404a0b9bbd 28878 main/binary-amd64/Packages
- 134c6a0839492196acbdc33a18ededbd 10522 main/binary-amd64/Packages.gz
+ 3734cf61c90d976c764e6ea267e19aeb 28878 main/binary-amd64/Packages
+ e5be596860cec59a458380f16ac38d67 10527 main/binary-amd64/Packages.gz
  740eb052c2564f892119e2e400f417bc 197 main/binary-amd64/Release
  7998ea128bfc6747d9098b99547852ae 22415 main/binary-i386/Packages
  8acbad60a5f824071f5602f3548e326e 7967 main/binary-i386/Packages.gz
@@ -18,8 +18,8 @@ MD5Sum:
  7029066c27ac6f5ef18d660d5741979a 20 main/source/Sources.gz
  e315bceffc180850e3f7028e2875cb20 198 main/source/Release
 SHA1:
- cb7fec056b249b2305695edce765c797ca6daff1 28878 main/binary-amd64/Packages
- dab1ca7b76dd80a025bea3f035adb9575014ce75 10522 main/binary-amd64/Packages.gz
+ 4e7ec4fe68ee28d2f26ff94b416d6adce2368812 28878 main/binary-amd64/Packages
+ 2024fc7a08a32f14c64e46c4480aa761bb5a4924 10527 main/binary-amd64/Packages.gz
  6339eeeb288e039c50df9dc7e2f2a8aeef88761a 197 main/binary-amd64/Release
  4215f6c4bdd6c967179033daad92336c033d015d 22415 main/binary-i386/Packages
  db2f2ac2ff4df59508cf606001465f2a23873e3e 7967 main/binary-i386/Packages.gz
@@ -28,8 +28,8 @@ SHA1:
  46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/source/Sources.gz
  7c8139b19f1a6b8b305960a978f57520f47b0715 198 main/source/Release
 SHA256:
- 8e627ed2e2219951c6f00f2e12e6cd12974abbcc4cbd89d5c8f91a5ce77f8fdb 28878 main/binary-amd64/Packages
- 20e4fd02ca10175461337dbed274914f4e92761b314a3c53bda92299e8618571 10522 main/binary-amd64/Packages.gz
+ 2f44fa4ddc1b61a99148d2f3b2e1b3a6533f2249fc7f5dfad8b570b85ff11776 28878 main/binary-amd64/Packages
+ d23885d4a2e490417d5f010c20929e30898886ea7abcc20e585234e12aaff2f6 10527 main/binary-amd64/Packages.gz
  0f10e06632ff5383d4a8b021720ff02d1cacc0bad500d3849087add7f4e5b222 197 main/binary-amd64/Release
  b1211e9d489f6e74983b6a5e8986dcc72cd259ca5b135b5d35dba113c9dd9f12 22415 main/binary-i386/Packages
  096695e4401e75cfc1bfc68200f409af720bc2485fd2955b69cfada35778161b 7967 main/binary-i386/Packages.gz

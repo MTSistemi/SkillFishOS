@@ -628,17 +628,17 @@ Description: SkillFishOS archive keyring and APT source
  Part of SkillFishOS.
 
 Package: skillfishos-kernel
-Version: 7.2.6-1
+Version: 7.2.6-2
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
 Depends: curl | wget, initramfs-tools, skillfish-base (>= 26.08.27)
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.6-1_amd64.deb
-Size: 63456
-SHA256: 6639e6362c0c3caa3ea12e7f109b1491dfb6c6ccd15caa98210493b699c6fbd5
-SHA1: 1d23322235fc228066d6c123be9715fae23acd87
-MD5sum: 08125fa159cd080983b96164408eb608
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.6-2_amd64.deb
+Size: 64604
+SHA256: ba38928889f60b5a655618b4316e81d0a0e40a0175c9fd55654f7890dc0c84c1
+SHA1: ece39373bf17c38c58fcfcf9de2b7768f0ec4d02
+MD5sum: c220ded56319841aa6ca963ac714d3fc
 Description: SkillFishOS kernel (linux-tkg 7.2.6-skillfishos / 7.2.6-skillfishos-x64)
  Meta-package that downloads and installs the prebuilt linux-tkg kernel (image
  + headers) from the SkillFishOS GitHub release. It picks the right build for the
