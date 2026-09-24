@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.49" date="2026-09-24">
+      <description>
+        <p>New kernels reach systems installed from an ISO: the package that brings them, skillfishos-kernel, was missing there, so the Hub never offered kernel 7.2.6. It is now installed with the next update.</p>
+        <p xml:lang="it">I kernel nuovi arrivano anche sui sistemi installati da una ISO: lì mancava il pacchetto che li porta, skillfishos-kernel, e l'Hub non proponeva il kernel 7.2.6. Ora arriva con il prossimo aggiornamento.</p>
+        <p xml:lang="fr">Les nouveaux noyaux arrivent aussi sur les systèmes installés depuis une ISO : le paquet qui les apporte, skillfishos-kernel, y manquait, et le Hub ne proposait jamais le noyau 7.2.6. Il s'installe maintenant avec la prochaine mise à jour.</p>
+        <p xml:lang="es">Los kernels nuevos llegan también a los sistemas instalados desde una ISO: allí faltaba el paquete que los trae, skillfishos-kernel, y el Hub nunca ofrecía el kernel 7.2.6. Ahora se instala con la próxima actualización.</p>
+        <p xml:lang="pt">Os kernels novos chegam também aos sistemas instalados a partir de uma ISO: lá faltava o pacote que os traz, o skillfishos-kernel, e o Hub nunca propunha o kernel 7.2.6. Agora é instalado com a próxima atualização.</p>
+        <p xml:lang="de">Neue Kernel erreichen jetzt auch Systeme, die von einer ISO installiert wurden: Dort fehlte das Paket, das sie bringt, skillfishos-kernel, und der Hub bot den Kernel 7.2.6 nie an. Es wird mit dem nächsten Update installiert.</p>
+        <p xml:lang="pl">Nowe jądra docierają także do systemów zainstalowanych z ISO: brakowało tam pakietu, który je dostarcza, skillfishos-kernel, więc Hub nigdy nie proponował jądra 7.2.6. Teraz instaluje się on z następną aktualizacją.</p>
+        <p xml:lang="ru">Новые ядра теперь доходят и до систем, установленных с ISO: там не было пакета, который их приносит, skillfishos-kernel, и Hub не предлагал ядро 7.2.6. Теперь он ставится со следующим обновлением.</p>
+        <p xml:lang="uk">Нові ядра тепер доходять і до систем, встановлених з ISO: там бракувало пакета, який їх приносить, skillfishos-kernel, і Hub не пропонував ядро 7.2.6. Тепер він встановлюється з наступним оновленням.</p>
+      </description>
+    </release>
     <release version="26.09.48" date="2026-09-24">
       <description>
         <p>A BC-250 left idle no longer freezes and restarts: the desktop put it to sleep after 15 minutes, and the board never wakes up from sleep. Sleep is now switched off on the BC-250; other computers keep it.</p>

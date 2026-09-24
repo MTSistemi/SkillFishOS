@@ -846,6 +846,14 @@ applications read. It is also the one place that asks the SMU how much power the
 board, the CPU and the GPU are drawing, and publishes the three numbers for
 everything else to read. It pulls in skillfish-boot, which keeps the kernel
 command line honest: the board's parameters on a board, and off everything else."
+# Issue #103: the images carry a kernel but not skillfishos-kernel, the package
+# that apt upgrades and that fetches every newer kernel. Without it the Hub never
+# offers one: installs from 26.06.5 sat on 7.2.5 while 7.2.6 was out.
+# Recommends, not Depends: skillfishos-kernel depends on skillfish-base, and a
+# cycle would let dpkg configure the kernel before the base it needs. apt
+# installs a Recommends that is new in the upgraded version, so the next update
+# brings it in, and it does not put it back on a machine where it was removed.
+sed -i 's/^Depends: .*/&\nRecommends: skillfishos-kernel/' "$OUT/$P/DEBIAN/control"
 # base needs its own postinst: enable the watchdog and the freeze check.
 # NOTE: core-unlock is only *enabled* (never --now): it warm-reboots the machine when
 # it flips the mask, which must not happen during apt. It fires on the next boot.

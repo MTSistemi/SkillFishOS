@@ -226,6 +226,17 @@ def t_no_sleep_on_bc250(ctx):
     return "not a BC-250, sleep left alone (CanSuspend=%s)" % answer
 
 
+def t_kernel_package(ctx):
+    """skillfishos-kernel is what apt upgrades to bring a newer kernel; a system
+    with a kernel and without it never gets one (issue #103)."""
+    rc, out, _ = sh("dpkg-query -W -f='${Status} ${Version}' skillfishos-kernel", 15)
+    check(rc == 0 and out.startswith("install ok installed"),
+          "skillfishos-kernel is not installed: the Hub will never offer a newer kernel")
+    rc, rec, _ = sh("dpkg-query -W -f='${Recommends}' skillfish-base", 15)
+    check("skillfishos-kernel" in rec, "skillfish-base no longer recommends skillfishos-kernel")
+    return "skillfishos-kernel %s, recommended by skillfish-base" % out.split()[-1]
+
+
 def run(ctx):
     ctx.run("CPUs: all online before the check", t_all_cpus_online, ctx)
     ctx.run("packages: all at the release version", t_versions, ctx)
@@ -236,6 +247,7 @@ def run(ctx):
     ctx.run("systemd: our units healthy", t_units, ctx)
     ctx.run("systemd: units enabled by their package, ISO included", t_units_enabled_by_package, ctx)
     ctx.run("sleep: off on the BC-250, untouched elsewhere", t_no_sleep_on_bc250, ctx)
+    ctx.run("kernel: the package that brings new kernels is installed", t_kernel_package, ctx)
     ctx.run("AppStream cards valid", t_metainfo, ctx)
     ctx.run("menu entries point at real programs", t_desktop_entries, ctx)
     ctx.run("next update removes nothing of the desktop", t_update_removes_nothing, ctx)

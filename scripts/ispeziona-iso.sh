@@ -238,13 +238,19 @@ for p in fastfetch alacritty; do
     && ok "$p installed" || ko "$p MISSING (SkillFishOS Info needs it)"
 done
 
+# Issue #103: the image had a kernel but not skillfishos-kernel, so apt had
+# nothing to upgrade and no installation ever got a newer kernel.
+chroot "$S" dpkg-query -W -f='${Status}' skillfishos-kernel 2>/dev/null | grep -q "install ok installed" \
+  && ok "skillfishos-kernel installed" || ko "skillfishos-kernel MISSING: no newer kernel will ever reach this install"
+
 # Issue #98: a unit with an [Install] section that nobody enabled is a feature
 # switched off in every installation made from this image. The 40 compute units
 # were off for everybody this way.
 for u in skillfish-cu.service skillfish-fand.service skillfish-sensori.service \
          skillfish-hub-refresh.timer skillfish-firstboot-flatpaks.service \
          skillfish-cpu-governor.service skillfish-core-unlock.service \
-         skillfish-sshd-keygen.service skillfish-wol.service; do
+         skillfish-sshd-keygen.service skillfish-wol.service \
+         skillfish-no-sleep.service; do
   if ! find "$S/etc/systemd/system" "$S/usr/lib/systemd/system" -maxdepth 1 -name "$u" -type f 2>/dev/null | grep -q .; then
     continue          # a unit from a package this image does not carry
   fi
