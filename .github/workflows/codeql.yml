@@ -41,6 +41,16 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           # Extended suite: security findings PLUS code-quality/maintainability.
           queries: security-and-quality
+          # ⚠️ vendor/ holds third-party sources we redistribute unchanged
+          # (bc250_smu_oc, MIT). Two reasons it stays out: we do not fix code
+          # there, patches go upstream; and it carries a second module named
+          # bc250_smu, the same name as the copy under system/usr/lib/skillfish.
+          # CodeQL matched calls in one against the class of the other and
+          # reported four "wrong number of arguments" on code that runs fine on
+          # the board every day. Our own copies are still analysed.
+          config: |
+            paths-ignore:
+              - vendor/**
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

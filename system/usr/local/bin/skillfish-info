@@ -30,7 +30,14 @@ case "$LANG_CODE" in
     *)  MSG="Press Enter to close" ;;
 esac
 
-fastfetch
+# ⚠️ Issue #101: skillfish-base now depends on fastfetch, but a machine that
+# was installed before this still has the menu entry and not the program,
+# and `fastfetch: not found` on a black window explains nothing.
+if command -v fastfetch >/dev/null 2>&1; then
+    fastfetch
+else
+    echo "fastfetch is not installed: sudo apt install fastfetch"
+fi
 echo
 printf '%s\n' "$MSG"
 read -r _

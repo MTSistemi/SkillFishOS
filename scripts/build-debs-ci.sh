@@ -836,7 +836,7 @@ echo "    os-release timbrato: $MEDIA"
 # skillfish-desktop-guard for the same reason as skillfish-boot: base is the
 # one package every installation already has, so this is how the guard reaches
 # machines installed before it existed (issue #87).
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard, fastfetch" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read. It is also the one place that asks the SMU how much power the

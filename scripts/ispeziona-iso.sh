@@ -216,6 +216,46 @@ grep -q 'grep -oP' "$S/etc/systemd/system/skillfish-wol.service" 2>/dev/null \
   || ok "niente regex dentro la unit"
 
 echo
+echo "=== what must not be in the image ==="
+# Issue #102: the NVIDIA driver stack reached users because the image is a
+# clone of a board where somebody had installed it once. Nothing in our package
+# lists asks for it, so nothing but a check on the finished image finds it.
+INTRUSI=$(chroot "$S" dpkg-query -W -f='${Package} ${Status}\n' \
+          'nvidia-*' 'glx-alternative-nvidia' 'glx-diversions' 'firmware-nvidia-graphics' 2>/dev/null \
+          | awk '/install ok installed/{printf "%s ", $1}')
+if [ -n "$INTRUSI" ]; then
+  ko "NVIDIA driver stack in a BC-250 image: $INTRUSI"
+else
+  ok "no NVIDIA driver stack"
+fi
+
+echo
+echo "=== the programs and services the image must have ==="
+# Issue #101: the menu entry SkillFishOS Info runs fastfetch, which was not in
+# the image. The entry opened a terminal saying "fastfetch: not found".
+for p in fastfetch alacritty; do
+  chroot "$S" dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" \
+    && ok "$p installed" || ko "$p MISSING (SkillFishOS Info needs it)"
+done
+
+# Issue #98: a unit with an [Install] section that nobody enabled is a feature
+# switched off in every installation made from this image. The 40 compute units
+# were off for everybody this way.
+for u in skillfish-cu.service skillfish-fand.service skillfish-sensori.service \
+         skillfish-hub-refresh.timer skillfish-firstboot-flatpaks.service \
+         skillfish-cpu-governor.service skillfish-core-unlock.service \
+         skillfish-sshd-keygen.service skillfish-wol.service; do
+  if ! find "$S/etc/systemd/system" "$S/usr/lib/systemd/system" -maxdepth 1 -name "$u" -type f 2>/dev/null | grep -q .; then
+    continue          # a unit from a package this image does not carry
+  fi
+  if find "$S/etc/systemd/system" -name "$u" -type l 2>/dev/null | grep -q .; then
+    ok "$u enabled"
+  else
+    ko "$u installed but NOT enabled: it will never start"
+  fi
+done
+
+echo
 echo "=== versioni dei nostri pacchetti nell'immagine ==="
 chroot "$S" dpkg -l 'skillfish-*' 2>/dev/null | awk '/^ii/{printf "  %-26s %s\n", $2, $3}'
 

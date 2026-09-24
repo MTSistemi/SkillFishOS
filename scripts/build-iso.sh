@@ -456,6 +456,17 @@ fi
 #
 # ⚠️ Se un giorno la ISO diventa troppo grossa, questo e' il primo posto dove
 # guardare, ma si tolga sapendo cosa si perde, non a caso.
+# ⚠️ ISSUE #102: THE NVIDIA DRIVER STACK HAS NO BUSINESS ON A BC-250.
+# The 26.06.5 image carried nvidia-tesla-470-kernel-support and what it drags
+# in (nvidia-kernel-common, nvidia-modprobe, nvidia-installer-cleanup,
+# glx-alternative-nvidia, glx-diversions). None of it comes from our package
+# lists: it was installed by hand on the board this image is cloned from, and
+# the clone handed it to every user. On a board with an AMD APU and no slot for
+# a card it does nothing except move libGL behind the alternatives system and
+# make Steam look for libnvidia-ml.so.1, which it then reports as a failed
+# assertion in the log of every game.
+# Kept on the Generic edition: there a laptop really can have an NVIDIA chip.
+NVIDIA_INUTILE="nvidia-tesla-470-kernel-support nvidia-tesla-470-alternative nvidia-kernel-common nvidia-modprobe nvidia-installer-cleanup glx-alternative-nvidia glx-alternative-mesa glx-diversions"
 FW_PORTATILI="firmware-iwlwifi firmware-atheros firmware-brcm80211 firmware-mediatek firmware-ti-connectivity firmware-libertas firmware-misc-nonfree firmware-intel-misc firmware-intel-sound firmware-sof-signed firmware-intel-graphics firmware-nvidia-graphics"
 if [ "$EDIZIONE" = "generic" ]; then
     echo "firmware: installo quelli dei portatili (Wi-Fi, Bluetooth, audio, grafica Intel)"
@@ -471,7 +482,7 @@ if [ "$EDIZIONE" = "generic" ]; then
 else
     echo "firmware: edizione BC-250, tolgo quelli dei portatili se ci sono"
     DA_TOGLIERE=""
-    for f in $FW_PORTATILI; do
+    for f in $FW_PORTATILI $NVIDIA_INUTILE; do
         if dpkg-query -W -f='${Status}' "$f" 2>/dev/null | grep -q "^install ok installed$"; then
             DA_TOGLIERE="$DA_TOGLIERE $f"
         fi

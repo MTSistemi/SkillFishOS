@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.47" date="2026-09-24">
+      <description>
+        <p>SkillFishOS Info opens again: the program it uses, fastfetch, was missing from installations made from an ISO and is now installed with the system.</p>
+        <p xml:lang="it">SkillFishOS Info si apre di nuovo: il programma che usa, fastfetch, mancava nelle installazioni fatte da una ISO e ora arriva insieme al sistema.</p>
+        <p xml:lang="fr">SkillFishOS Info s'ouvre de nouveau : le programme qu'il utilise, fastfetch, manquait dans les installations faites depuis une ISO et arrive maintenant avec le système.</p>
+        <p xml:lang="es">SkillFishOS Info vuelve a abrirse: el programa que usa, fastfetch, faltaba en las instalaciones hechas desde una ISO y ahora llega con el sistema.</p>
+        <p xml:lang="pt">O SkillFishOS Info volta a abrir: o programa que usa, o fastfetch, faltava nas instalações feitas a partir de uma ISO e agora vem com o sistema.</p>
+        <p xml:lang="de">SkillFishOS Info öffnet sich wieder: das benötigte Programm fastfetch fehlte in Installationen von einer ISO und wird jetzt mit dem System installiert.</p>
+        <p xml:lang="pl">SkillFishOS Info znów się otwiera: program, z którego korzysta, fastfetch, brakował w instalacjach z obrazu ISO, a teraz instaluje się razem z systemem.</p>
+        <p xml:lang="ru">SkillFishOS Info снова открывается: программа fastfetch, которую он запускает, отсутствовала в установках с ISO, а теперь ставится вместе с системой.</p>
+        <p xml:lang="uk">SkillFishOS Info знову відкривається: програма fastfetch, яку він запускає, була відсутня у встановленнях з ISO, а тепер встановлюється разом із системою.</p>
+      </description>
+    </release>
     <release version="26.09.46" date="2026-09-22">
       <description>
         <p>Services that were meant to start on their own now do so on systems installed from an ISO: the 40 compute units at boot, the fan control, the sensors and the Hub update check. Our Mesa gives the desktop back to Debian's if a library it needs goes missing, instead of leaving it without acceleration.</p>
