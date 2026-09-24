@@ -63,6 +63,7 @@ EXECUTABLES = {
     "/usr/local/bin/skillfish-thermal-guard.sh": ("unit", "skillfish-thermal-guard.service"),
     "/usr/local/bin/skillfish-wipe-stale-luks": ("run", "skillfish-wipe-stale-luks --dry-run", {"out": r"nothing to do"}),
     "/usr/local/bin/skillfish-wol-arm": ("unit", "skillfish-wol.service"),
+    "/usr/local/bin/skillfish-no-sleep": ("unit", "skillfish-no-sleep.service"),
     # --- skillfish-boot -------------------------------------------------------
     "/usr/local/bin/skillfish-clean-cmdline": ("manual", "rewrites /etc/default/grub on non-BC-250 machines; runs from its package"),
     "/usr/local/bin/skillfish-sessione-x11": ("manual", "login session wrapper"),

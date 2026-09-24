@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // aggiornamento-26-09-48-2026-09-24
+    data: '2026-09-24',
+    quando: {"it": "24 settembre 2026", "en": "24 September 2026", "pl": "24 września 2026", "uk": "24 вересня 2026", "ru": "24 сентября 2026", "es": "24 de septiembre de 2026", "pt": "24 de setembro de 2026", "de": "24. September 2026", "fr": "24 septembre 2026"},
+    etichetta: {"it": "avviso", "en": "warning", "pl": "ostrzeżenie", "uk": "попередження", "ru": "предупреждение", "es": "aviso", "pt": "aviso", "de": "Warnung", "fr": "avertissement"},
+    titolo: {
+      it: "La BC-250 che si blocca da ferma: installate la 26.09.48",
+      en: "A BC-250 that freezes when idle: install 26.09.48",
+      pl: "BC-250 zawiesza się bezczynnie: zainstalujcie 26.09.48",
+      uk: "BC-250 зависає без діла: встановіть 26.09.48",
+      ru: "BC-250 зависает без дела: установите 26.09.48",
+      es: "La BC-250 que se bloquea en reposo: instalad la 26.09.48",
+      pt: "A BC-250 que bloqueia parada: instalem a 26.09.48",
+      de: "Die BC-250 friert im Leerlauf ein: installiert 26.09.48",
+      fr: "La BC-250 qui se fige au repos : installez la 26.09.48"
+    },
+    testo: {
+      it: "Lasciata inattiva per un quarto d'ora, la scheda si bloccava e ripartiva solo togliendo corrente. Era il desktop che la mandava in sospensione, e la BC-250 dalla sospensione non si risveglia. Con la <strong>26.09.48</strong> sulla BC-250 la sospensione è spenta; gli altri computer la mantengono. Aggiornate dall'Hub.",
+      en: "Left idle for a quarter of an hour, the board froze and came back only after cutting the power. The desktop was putting it to sleep, and the BC-250 does not wake up from sleep. With <strong>26.09.48</strong> sleep is switched off on the BC-250; other computers keep it. Update from the Hub.",
+      pl: "Pozostawiona bezczynnie na kwadrans płyta zawieszała się i wracała dopiero po odłączeniu zasilania. To pulpit ją usypiał, a BC-250 nie budzi się z uśpienia. W <strong>26.09.48</strong> usypianie na BC-250 jest wyłączone; inne komputery je zachowują. Zaktualizujcie system z Huba.",
+      uk: "Залишена без діла на чверть години, плата зависала й оживала лише після вимкнення живлення. Це робочий стіл переводив її в сон, а BC-250 зі сну не прокидається. У <strong>26.09.48</strong> сон на BC-250 вимкнено; інші комп'ютери його зберігають. Оновіться через Hub.",
+      ru: "Оставленная без дела на четверть часа, плата зависала и оживала только после отключения питания. Это рабочий стол отправлял её в сон, а BC-250 из сна не просыпается. В <strong>26.09.48</strong> сон на BC-250 отключён; другие компьютеры его сохраняют. Обновитесь через Hub.",
+      es: "Inactiva durante un cuarto de hora, la placa se bloqueaba y solo volvía quitándole la corriente. Era el escritorio el que la suspendía, y la BC-250 no despierta de la suspensión. Con la <strong>26.09.48</strong> la suspensión está desactivada en la BC-250; los demás ordenadores la conservan. Actualizad desde el Hub.",
+      pt: "Deixada ociosa durante um quarto de hora, a placa bloqueava e só voltava cortando a corrente. Era o ambiente de trabalho que a suspendia, e a BC-250 não acorda da suspensão. Com a <strong>26.09.48</strong> a suspensão está desligada na BC-250; os outros computadores mantêm-na. Atualizem a partir do Hub.",
+      de: "Eine Viertelstunde untätig, fror die Platine ein und kam erst nach Trennen vom Strom zurück. Der Desktop schickte sie in den Ruhezustand, und aus dem wacht die BC-250 nicht auf. Mit <strong>26.09.48</strong> ist der Ruhezustand auf der BC-250 abgeschaltet; andere Computer behalten ihn. Aktualisiert im Hub.",
+      fr: "Laissée inactive un quart d'heure, la carte se figeait et ne repartait qu'en coupant le courant. C'était le bureau qui la mettait en veille, et la BC-250 ne sort pas de la veille. Avec la <strong>26.09.48</strong> la veille est désactivée sur la BC-250 ; les autres ordinateurs la conservent. Mettez à jour depuis le Hub."
+    },
+  },
+  {
     // aggiornamento-26-09-46-2026-09-22
     data: '2026-09-22',
     quando: {"it": "22 settembre 2026", "en": "22 September 2026", "pl": "22 września 2026", "uk": "22 вересня 2026", "ru": "22 сентября 2026", "es": "22 de septiembre de 2026", "pt": "22 de setembro de 2026", "de": "22. September 2026", "fr": "22 septembre 2026"},

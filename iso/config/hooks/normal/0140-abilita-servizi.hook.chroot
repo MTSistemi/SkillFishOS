@@ -53,6 +53,7 @@ skillfish-hub-refresh.timer
 skillfish-firstboot-flatpaks.service
 skillfish-cpu-governor.service
 skillfish-mesa.service
+skillfish-no-sleep.service
 "
 # ⚠️ Issue #98, and the reason the postinst enables did not take: they were
 # written inside `if [ -d /run/systemd/system ]`, which is false in a chroot.

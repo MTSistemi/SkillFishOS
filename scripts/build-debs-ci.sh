@@ -654,6 +654,9 @@ put $P 0644 system/etc/systemd/system.conf.d/10-skillfish-watchdog.conf etc/syst
 put $P 0644 system/etc/modules-load.d/skillfish-nct6686.conf          etc/modules-load.d/skillfish-nct6686.conf
 put $P 0644 system/etc/systemd/system/skillfish-wol.service          etc/systemd/system/skillfish-wol.service
 put $P 0755 system/usr/local/bin/skillfish-wol-arm                    usr/local/bin/skillfish-wol-arm
+# The BC-250 never wakes up from sleep: turn sleep off there (discussion #100).
+put $P 0644 system/etc/systemd/system/skillfish-no-sleep.service     etc/systemd/system/skillfish-no-sleep.service
+put $P 0755 system/usr/local/bin/skillfish-no-sleep                  usr/local/bin/skillfish-no-sleep
 # Snapshot Btrfs del primo avvio. Questi due file non appartenevano a NESSUN
 # pacchetto: arrivavano solo dentro la ISO, quindi non potevamo correggerli con
 # un aggiornamento. E c'era da correggere: il marcatore
@@ -865,7 +868,7 @@ for u in skillfish-sshd-keygen.service skillfish-live-no-lock.service \
          skillfish-live-polkit.service skillfish-freeze-check.service \
          skillfish-core-unlock.service skillfish-gpu-freq.service \
          skillfish-wol.service skillfish-cpu-governor.service \
-         skillfish-firstboot-snapshots.service; do
+         skillfish-firstboot-snapshots.service skillfish-no-sleep.service; do
   systemctl enable "$u" >/dev/null 2>&1 || true
 done
 if [ -d /run/systemd/system ]; then
@@ -885,6 +888,9 @@ if [ -d /run/systemd/system ]; then
   systemctl enable skillfish-live-polkit.service || true
   [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A || true
   systemctl enable --now skillfish-freeze-check.service || true
+  # Now, not at the next boot: the board that is updating may be the one that
+  # goes to sleep in fifteen minutes and never comes back.
+  /usr/local/bin/skillfish-no-sleep || true
   # enable --now avvia solo se e' ferma: se era gia' attiva con la vecchia
   # definizione, la nuova (RemainAfterExit + ExecStop) non entrerebbe in vigore
   # fino al riavvio. Il try-restart e' innocuo: scrive il marcatore e lo
@@ -1892,6 +1898,8 @@ check skillfish-base_${VER}_all.deb ./usr/lib/udev/rules.d/60-skillfish-cpu-gove
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-cpu-governor 'GOVERNOR='
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-snapshot-menu 'GRUB_BTRFS_DISABLE'
 check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-freeze-check.sh unclean-shutdown
+check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-no-sleep 'AllowSuspend=no'
+check skillfish-base_${VER}_all.deb          ./etc/systemd/system/skillfish-no-sleep.service 'WantedBy=sysinit.target'
 # Il rilevatore di blocchi decide guardando un marcatore che scrive LUI stesso
 # allo spegnimento. Le due righe qui sotto sono quelle che lo rendono possibile:
 # senza RemainAfterExit systemd non esegue mai ExecStop, il marcatore non viene

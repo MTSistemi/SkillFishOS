@@ -1,0 +1,42 @@
+#!/bin/sh
+# Switch system sleep off on an AMD BC-250 (discussion #100, issue #102).
+#
+# The board offers only s2idle, and it does not wake up from it. Measured on
+# the dev board on 24/09/2026: a 45-second `rtcwake -m freeze` never returned,
+# and the board stayed dead until its power was cut.
+#
+# Plasma puts an idle desktop to sleep after 15 minutes on AC (powerdevil's
+# default whenever logind says CanSuspend=yes), and our images did nothing to
+# stop it. So a board left alone for a quarter of an hour went down, came back
+# only through a power cycle, and our freeze detector logged an unclean
+# shutdown with nothing in the journal, because nothing was left running to
+# write it. Our own boards never showed it: their sleep targets had been masked
+# by hand, which no package did.
+#
+# The drop-in is written to /run at every boot, and only on the board: the same
+# packages run on ordinary PCs, where sleep works and people want it. logind
+# reads sleep.conf at every request, so CanSuspend answers "na", Plasma hides
+# Sleep and stops scheduling it, and a Suspend call that still arrives (from a
+# session started before this ran, or from Steam's Game Mode) is refused.
+set -u
+
+D=/run/systemd/sleep.conf.d
+F=$D/10-skillfish-bc250-no-sleep.conf
+
+if ! /usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1; then
+    rm -f "$F"
+    exit 0
+fi
+
+mkdir -p "$D"
+cat > "$F.tmp" <<'CONF'
+# Written at boot by /usr/local/bin/skillfish-no-sleep: an AMD BC-250 does not
+# wake up from sleep, so sleep is switched off on this machine.
+[Sleep]
+AllowSuspend=no
+AllowHibernation=no
+AllowHybridSleep=no
+AllowSuspendThenHibernate=no
+CONF
+mv -f "$F.tmp" "$F"
+exit 0

@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.09.48" date="2026-09-24">
+      <description>
+        <p>A BC-250 left idle no longer freezes and restarts: the desktop put it to sleep after 15 minutes, and the board never wakes up from sleep. Sleep is now switched off on the BC-250; other computers keep it.</p>
+        <p xml:lang="it">Una BC-250 lasciata inattiva non si blocca e non si riavvia più: dopo 15 minuti il desktop la mandava in sospensione, e la scheda dalla sospensione non si risveglia. Sulla BC-250 ora la sospensione è spenta; gli altri computer la mantengono.</p>
+        <p xml:lang="fr">Une BC-250 laissée inactive ne se bloque plus et ne redémarre plus : le bureau la mettait en veille après 15 minutes, et la carte ne sort jamais de la veille. La veille est désormais désactivée sur la BC-250 ; les autres ordinateurs la conservent.</p>
+        <p xml:lang="es">Una BC-250 inactiva ya no se bloquea ni se reinicia: el escritorio la suspendía a los 15 minutos, y la placa nunca despierta de la suspensión. Ahora la suspensión está desactivada en la BC-250; los demás ordenadores la conservan.</p>
+        <p xml:lang="pt">Uma BC-250 deixada ociosa já não bloqueia nem reinicia: o ambiente de trabalho suspendia-a após 15 minutos, e a placa nunca acorda da suspensão. A suspensão está agora desligada na BC-250; os outros computadores mantêm-na.</p>
+        <p xml:lang="de">Eine untätige BC-250 friert nicht mehr ein und startet nicht mehr neu: Der Desktop schickte sie nach 15 Minuten in den Ruhezustand, und aus dem wacht die Platine nie wieder auf. Auf der BC-250 ist der Ruhezustand jetzt abgeschaltet; andere Computer behalten ihn.</p>
+        <p xml:lang="pl">BC-250 pozostawiona bezczynnie nie zawiesza się już i nie restartuje: pulpit usypiał ją po 15 minutach, a płyta nigdy nie budzi się z uśpienia. Na BC-250 usypianie jest teraz wyłączone; inne komputery je zachowują.</p>
+        <p xml:lang="ru">BC-250, оставленная без дела, больше не зависает и не перезагружается: рабочий стол отправлял её в сон через 15 минут, а из сна плата не просыпается. Теперь на BC-250 сон отключён; на других компьютерах он остаётся.</p>
+        <p xml:lang="uk">BC-250, залишена без діла, більше не зависає й не перезавантажується: робочий стіл через 15 хвилин переводив її в сон, а зі сну плата не прокидається. Тепер на BC-250 сон вимкнено; на інших комп'ютерах він лишається.</p>
+      </description>
+    </release>
     <release version="26.09.47" date="2026-09-24">
       <description>
         <p>SkillFishOS Info opens again: the program it uses, fastfetch, was missing from installations made from an ISO and is now installed with the system.</p>

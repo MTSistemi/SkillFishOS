@@ -211,6 +211,21 @@ def t_all_cpus_online(ctx):
     return "%s of %s CPUs online" % (on.strip(), total.strip())
 
 
+def t_no_sleep_on_bc250(ctx):
+    """An AMD BC-250 does not wake up from s2idle, and Plasma suspends an idle
+    desktop after 15 minutes: logind must say no on the board (discussion #100).
+    On any other machine sleep stays as Debian ships it."""
+    rc, out, _ = sh("busctl call org.freedesktop.login1 /org/freedesktop/login1 "
+                    "org.freedesktop.login1.Manager CanSuspend", 15)
+    answer = out.split()[-1].strip('"') if out.split() else "?"
+    if ctx.kind == "bc250":
+        check(answer in ("na", "no"), "logind CanSuspend=%s on a BC-250" % answer)
+        return "CanSuspend=%s" % answer
+    check(not os.path.exists("/run/systemd/sleep.conf.d/10-skillfish-bc250-no-sleep.conf"),
+          "sleep switched off on a machine that is not a BC-250")
+    return "not a BC-250, sleep left alone (CanSuspend=%s)" % answer
+
+
 def run(ctx):
     ctx.run("CPUs: all online before the check", t_all_cpus_online, ctx)
     ctx.run("packages: all at the release version", t_versions, ctx)
@@ -220,6 +235,7 @@ def run(ctx):
     ctx.run("packages: files intact (dpkg -V)", t_files_intact, ctx)
     ctx.run("systemd: our units healthy", t_units, ctx)
     ctx.run("systemd: units enabled by their package, ISO included", t_units_enabled_by_package, ctx)
+    ctx.run("sleep: off on the BC-250, untouched elsewhere", t_no_sleep_on_bc250, ctx)
     ctx.run("AppStream cards valid", t_metainfo, ctx)
     ctx.run("menu entries point at real programs", t_desktop_entries, ctx)
     ctx.run("next update removes nothing of the desktop", t_update_removes_nothing, ctx)

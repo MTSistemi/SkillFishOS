@@ -1,0 +1,17 @@
+[Unit]
+Description=SkillFishOS - switch system sleep off on the AMD BC-250
+Documentation=https://github.com/MTSistemi/SkillFishOS/discussions/100
+# Early, before logind and the desktop ask whether the machine can sleep.
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target systemd-logind.service display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The script checks the hardware itself and exits 0 everywhere, so an
+# ordinary PC runs it too and simply gets nothing.
+ExecStart=/usr/local/bin/skillfish-no-sleep
+
+[Install]
+WantedBy=sysinit.target
