@@ -1,11 +1,12 @@
 # --- Kernel ---
-# Qui non si elenca nessun kernel apposta: auto/config ha
-# "--linux-packages none" e il nostro linux-tkg (BORE + znver2 + patch BC-250)
-# arriva come .deb dalla release GitHub MTSistemi/SkillFishOS, installato
-# dall'hook 0005-install-tkg-kernel.hook.chroot.
-# La versione la decide quell'hook (oggi il tag kernel-7.2.5-skillfishos,
-# variante -x64): non va scritta qui, o le due indicazioni divergono come
-# e' gia' successo quando questo commento diceva ancora 7.0.10.
+# No kernel is listed here on purpose: auto/config has "--linux-packages none"
+# and our linux-tkg (BORE + znver2 + BC-250 patches) comes as a .deb from the
+# GitHub release MTSistemi/SkillFishOS, installed by
+# hook 0005-install-tkg-kernel.hook.chroot.
+# Which one is decided by skillfishos-kernel (70-skillfish.list.chroot): the
+# hook reads /usr/share/skillfishos-kernel/kernel.conf. Not written here, or
+# the two drift apart, as they did when this comment still said 7.0.10 and
+# again when the hook fetched 7.2.5 with 7.2.6 published.
 
 # --- Firmware ---
 firmware-linux-free

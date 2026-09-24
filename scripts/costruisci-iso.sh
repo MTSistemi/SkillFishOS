@@ -87,8 +87,12 @@ else
     echo "   ERRORE: manca la lista KDE, l'albero e' ancora quello vecchio"; exit 1
 fi
 [ -f config/package-lists/10-desktop-hyprland.list.chroot ] && { echo "   ERRORE: c'e' ancora la lista Hyprland"; exit 1; }
-grep -q 'kernel-7.2.0' config/hooks/normal/0005-install-tkg-kernel.hook.chroot \
-    && echo "   kernel: 7.2.0" || { echo "   ERRORE: tag del kernel non aggiornato"; exit 1; }
+# The kernel is the one skillfishos-kernel names (#103): the hook must read it
+# from the package, and the package must be in the list.
+grep -q 'skillfishos-kernel/kernel.conf' config/hooks/normal/0005-install-tkg-kernel.hook.chroot \
+    && grep -qx 'skillfishos-kernel' config/package-lists/70-skillfish.list.chroot \
+    && echo "   kernel: the one skillfishos-kernel names" \
+    || { echo "   ERROR: hook 0005 or the package list does not take the kernel from skillfishos-kernel"; exit 1; }
 [ -x config/includes.chroot/usr/local/bin/skillfish-fix-boot-extents ] \
     && echo "   script di correzione: eseguibili" \
     || { echo "   ERRORE: skillfish-fix-boot-extents non e' eseguibile"; exit 1; }

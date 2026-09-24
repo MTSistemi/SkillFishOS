@@ -1,22 +1,47 @@
 #!/bin/bash
 set -e
-# Install the custom linux-tkg 7.2.5 (BORE/znver2/BC-250) kernel named
-# 7.2.5-skillfishos, from the GitHub release on MTSistemi/SkillFishOS.
-# Il tag va tenuto allineato al kernel che pubblichiamo: con quello vecchio
-# la build NON fallisce, sforna in silenzio una ISO col kernel di giugno
-# senza le patch BC-250 della serie 7.1 e senza i P-state ACPI.
-KERNEL_TAG="${SKILLFISH_KERNEL_TAG:-kernel-7.2.5-skillfishos}"
-# La release ha quattro .deb (default, -x64): senza filtro se ne
-# installerebbero due kernel insieme. VARIANTE sceglie quale prendere.
-# ⚠️ Il file lo scrive build.sh, perche' l'ambiente non attraversa il chroot.
-# La variabile resta per chi lancia l'hook a mano.
+# Install the SkillFishOS linux-tkg kernel into the image: the one that the
+# skillfishos-kernel package brings (issue #103).
+#
+# WHY THE KERNEL COMES FROM THE PACKAGE
+# This hook used to carry its own release tag, and it drifted: it still fetched
+# 7.2.5 when iso/build.sh already told live-build to boot 7.2.6. The image also
+# lacked skillfishos-kernel itself, the package apt upgrades to bring newer
+# kernels, so an installed system never got one. Now the package is in
+# 70-skillfish.list.chroot (installed before the hooks run), its postinst
+# downloads nothing here because there is no running systemd, and this hook
+# reads /usr/share/skillfishos-kernel/kernel.conf to install exactly the kernel
+# the package knows about. SKILLFISH_KERNEL_TAG still overrides it by hand.
+CONF=/usr/share/skillfishos-kernel/kernel.conf
+log(){ echo "[tkg-kernel] $*"; }
+
+if [ -n "${SKILLFISH_KERNEL_TAG:-}" ]; then
+    KERNEL_TAG="$SKILLFISH_KERNEL_TAG"
+    KVER="" ; KVER_X64=""
+elif [ -r "$CONF" ]; then
+    # shellcheck disable=SC1090
+    . "$CONF"
+    KERNEL_TAG="$RELTAG"
+else
+    log "ERROR: $CONF is missing. skillfishos-kernel (7.2.6-2 or newer) must be"
+    log "       in config/package-lists/70-skillfish.list.chroot."
+    exit 1
+fi
+
+# The release has two builds (BC-250 and -x64): without a filter both kernels
+# would land in the image. build.sh writes the variant to a file, because the
+# environment does not cross into the chroot.
 if [ -z "${SKILLFISH_KERNEL_VARIANT:-}" ] && [ -r /etc/skillfish-kernel-variant ]; then
     SKILLFISH_KERNEL_VARIANT=$(cat /etc/skillfish-kernel-variant)
 fi
 VARIANTE="${SKILLFISH_KERNEL_VARIANT:-x64}"
+case "$VARIANTE" in
+    x64)      FILTRO='-x64_'; ATTESO="$KVER_X64" ;;
+    bc250|*)  FILTRO='';      ATTESO="$KVER" ;;     # the BC-250 build has no suffix
+esac
+
 REPO="MTSistemi/SkillFishOS"
-log(){ echo "[tkg-kernel] $*"; }
-log "Fetching kernel .deb assets for tag ${KERNEL_TAG}"
+log "Fetching kernel .deb assets for tag ${KERNEL_TAG} (variant ${VARIANTE})"
 WORK=$(mktemp -d); cd "$WORK"
 API="https://api.github.com/repos/${REPO}/releases/tags/${KERNEL_TAG}"
 ASSETS=$(curl -fsSL "$API" 2>/dev/null | grep -oP '"browser_download_url":\s*"\K[^"]+\.deb' || true)
@@ -24,31 +49,34 @@ if [ -z "$ASSETS" ]; then
     log "ERROR: no .deb assets at release ${KERNEL_TAG}. Publish the kernel first."
     cd /; rm -rf "$WORK"; exit 1
 fi
-# Si prende SOLO la variante scelta. La release ne pubblica due (la predefinita
-# per la BC-250, -x64 per i PC normali) e installarle tutte insieme
-# significherebbe due kernel nella stessa immagine: due initrd da rigenerare,
-# GRUB con voci doppie e un'immagine piu' pesante per niente.
-case "$VARIANTE" in
-    x64)      FILTRO='-x64_' ;;
-    bc250|*)  FILTRO='' ;;        # la variante predefinita non ha suffisso
-esac
 
 for url in $ASSETS; do
     nome=$(basename "$url")
     case "$nome" in
-        *-x64_*) variante_del_file="si" ;;
-        *)       variante_del_file="no" ;;
+        *-x64_*) del_x64="si" ;;
+        *)       del_x64="no" ;;
     esac
     if [ -n "$FILTRO" ]; then
-        case "$nome" in *"$FILTRO"*) ;; *) log "salto $nome (altra variante)"; continue ;; esac
-    elif [ "$variante_del_file" = "si" ]; then
-        log "salto $nome (altra variante)"; continue
+        case "$nome" in *"$FILTRO"*) ;; *) log "skip $nome (other variant)"; continue ;; esac
+    elif [ "$del_x64" = "si" ]; then
+        log "skip $nome (other variant)"; continue
     fi
     log "Downloading $nome"; curl -fsSL "$url" -O
 done
 
-log "Installing kernel packages (variante ${VARIANTE})..."
-ls linux-image-*.deb >/dev/null 2>&1 || { log "ERROR: nessun .deb per la variante ${VARIANTE}"; cd /; rm -rf "$WORK"; exit 1; }
+log "Installing kernel packages (variant ${VARIANTE})..."
+ls linux-image-*.deb >/dev/null 2>&1 || { log "ERROR: no .deb for variant ${VARIANTE}"; cd /; rm -rf "$WORK"; exit 1; }
 dpkg -i linux-image-*.deb linux-headers-*.deb || apt-get -f install -y
 cd /; rm -rf "$WORK"
+
+# The image must boot the kernel the package names, or an installed system
+# would wait for the next kernel release to get this one.
+if [ -n "$ATTESO" ]; then
+    if dpkg-query -W -f='${Status}' "linux-image-${ATTESO}" 2>/dev/null | grep -q " ok installed$"; then
+        log "linux-image-${ATTESO} installed, as skillfishos-kernel expects"
+    else
+        log "ERROR: linux-image-${ATTESO} is not installed, but skillfishos-kernel names it"
+        exit 1
+    fi
+fi
 dpkg -l 'linux-image-*' 'linux-headers-*' | grep '^ii' || true

@@ -45,6 +45,19 @@
   <pkgname>skillfishos-kernel</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="7.2.6-2" date="2026-09-25">
+      <description>
+          <p>The kernel stays 7.2.6. This package now goes into the ISO images too, so a system installed from an ISO receives the next kernels through the Hub like any other.</p>
+          <p xml:lang="it">Il kernel resta il 7.2.6. Questo pacchetto adesso entra anche nelle immagini ISO, così un sistema installato da una ISO riceve i prossimi kernel dall'Hub come tutti gli altri.</p>
+          <p xml:lang="fr">Le noyau reste la 7.2.6. Ce paquet entre maintenant aussi dans les images ISO, si bien qu'un système installé depuis une ISO reçoit les prochains noyaux par le Hub comme n'importe quel autre.</p>
+          <p xml:lang="es">El núcleo sigue siendo la 7.2.6. Este paquete entra ahora también en las imágenes ISO, así que un sistema instalado desde una ISO recibe los próximos núcleos desde el Hub como cualquier otro.</p>
+          <p xml:lang="pt">O núcleo continua a ser a 7.2.6. Este pacote passa a entrar também nas imagens ISO, por isso um sistema instalado a partir de uma ISO recebe os próximos núcleos pelo Hub como qualquer outro.</p>
+          <p xml:lang="de">Der Kernel bleibt 7.2.6. Dieses Paket kommt jetzt auch in die ISO-Abbilder, damit ein von einer ISO installiertes System die nächsten Kernel wie jedes andere über den Hub bekommt.</p>
+          <p xml:lang="pl">Jądro pozostaje w wersji 7.2.6. Ten pakiet trafia teraz także do obrazów ISO, więc system zainstalowany z ISO dostaje kolejne jądra przez Hub jak każdy inny.</p>
+          <p xml:lang="ru">Ядро остаётся 7.2.6. Этот пакет теперь входит и в образы ISO, так что система, установленная с ISO, получает следующие ядра через Hub, как любая другая.</p>
+          <p xml:lang="uk">Ядро лишається 7.2.6. Цей пакунок тепер входить і до образів ISO, тож система, встановлена з ISO, отримує наступні ядра через Hub, як будь-яка інша.</p>
+      </description>
+    </release>
     <release version="7.2.6-1" date="2026-09-17">
       <description>
           <p>The kernel moves up to 7.2.6, the current stable release. It brings 1816 fixes from upstream over 7.2.5, seventeen of them in the AMD graphics driver, and none of the forty-three patches we carry for this board has changed. There is nothing new to try here. It is maintenance, and it is the reason a board left alone keeps getting the same security fixes as everybody else. Two builds as always: the one for the BC-250 and the one for any other x86-64 PC, and the package picks the right one by itself.</p>

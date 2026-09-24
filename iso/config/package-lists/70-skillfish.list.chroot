@@ -53,13 +53,13 @@ skillfish-emulators
 # 0030-bc250-governor.hook.chroot, rimosso).
 skillfish-vf-governor
 
-# --- NOTA: skillfishos-kernel NON va qui ---
-# E' un metapacchetto il cui postinst scarica da GitHub e installa
-# linux-image-7.2.5-skillfishos (la variante BC-250, senza suffisso). Il
-# kernel dell'immagine lo mette gia' l'hook 0005, che sceglie la variante
-# -x64 dichiarata in auto/config (--linux-flavours
-# "7.2.5-skillfishos-x64"). Metterlo in elenco vorrebbe dire due kernel
-# diversi nella stessa ISO e un apt-mark hold su quello sbagliato.
+# --- skillfishos-kernel: the package that brings newer kernels (#103) ---
+# Without it an installed system never gets a newer kernel: apt has nothing
+# to upgrade. Its postinst downloads nothing here (no running systemd), and
+# hook 0005 installs the kernel it names in
+# /usr/share/skillfishos-kernel/kernel.conf. Needs 7.2.6-2 or newer: older
+# versions downloaded the kernel of the BUILD machine inside the chroot.
+skillfishos-kernel
 
 # --- Dipendenze consigliate che apt qui NON tira dentro da solo ---
 # auto/config imposta --apt-recommends false, quindi i Recommends dei nostri

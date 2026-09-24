@@ -96,8 +96,23 @@ HDR="linux-headers-${KVER}_${DEBVER}_amd64.deb"
 # del postinst, perche' a installarli sara' un lavoro che parte dopo.
 CACHE=/var/cache/skillfishos-kernel
 dl(){ if command -v curl >/dev/null 2>&1; then curl -fSL "$1" -o "$2"; else wget -O "$2" "$1"; fi; }
-if dpkg-query -W -f='${Status}' "linux-image-${KVER}" 2>/dev/null | grep -q "install ok installed"; then
+# " ok installed", not "install ok installed": this package holds the kernel,
+# and a held one reads "hold ok installed". Until 7.2.6-2 that made every
+# update of this package that kept the same kernel download it again and
+# reinstall it over itself (seen on the dev board, 150 MB for nothing).
+if dpkg-query -W -f='${Status}' "linux-image-${KVER}" 2>/dev/null | grep -q " ok installed$"; then
   echo "skillfishos-kernel: ${KVER} already installed, skipping download."
+elif [ ! -d /run/systemd/system ]; then
+  # WITHOUT A RUNNING SYSTEMD NOTHING IS DOWNLOADED (issue #103).
+  # The kernel is installed by a job that systemd starts once dpkg lets go of
+  # its lock, so without systemd the download only left 150 MB in /var/cache.
+  # That is the chroot where live-build makes an image, and there it was worse:
+  # skillfish-is-bc250 looks at the build machine, not at the one the image is
+  # for. The image build installs the kernel itself (hook 0005), reading which
+  # one from /usr/share/skillfishos-kernel/kernel.conf, so the kernel inside an
+  # ISO is always the one this package knows about.
+  echo "skillfishos-kernel: no running systemd (image build or container), nothing downloaded."
+  echo "  on a running system finish with:  sudo dpkg-reconfigure skillfishos-kernel"
 else
   echo "skillfishos-kernel: fetching ${KVER} image + headers from GitHub release..."
   mkdir -p "$CACHE"
@@ -118,11 +133,6 @@ else
       /bin/sh -c "dpkg -i '$CACHE/$IMG' '$CACHE/$HDR' && apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null 2>&1; command -v update-grub >/dev/null 2>&1 && update-grub; rm -f '$CACHE/$IMG' '$CACHE/$HDR'" >/dev/null 2>&1 || true
     echo "skillfishos-kernel: ${KVER} will be installed in the background in a few seconds."
     echo "  follow it with:  systemctl status skillfishos-kernel-install"
-  else
-    # Niente systemd: si dice all'utente la riga esatta invece di lasciarlo
-    # con due file scaricati e nessuna spiegazione.
-    echo "skillfishos-kernel: no systemd here, finish by hand with:"
-    echo "  sudo dpkg -i $CACHE/$IMG $CACHE/$HDR"
   fi
 fi
 # ⚠️ IL BLOCCO, e perche' prima non c'era mai.
@@ -164,6 +174,22 @@ if grep -q '@[A-Z_]*@' "$OUT/DEBIAN/postinst"; then
   exit 1
 fi
 chmod 0755 "$OUT/DEBIAN/postinst"
+
+# Which kernel this package brings, for the image builds: hook 0005 of the
+# live-build tree installs exactly this one, and scripts/build-iso.sh refuses
+# to clone a board whose kernel is a different one. Without it the two drifted:
+# the live-build hook still fetched 7.2.5 while everything else said 7.2.6, and
+# an image that carries an older kernel than the package waits for the next
+# kernel release to catch up.
+install -d "$OUT/usr/share/skillfishos-kernel"
+cat > "$OUT/usr/share/skillfishos-kernel/kernel.conf" <<CONF
+# Written by kernel-build/scripts/build-kernel-wrapper.sh: the kernel that
+# skillfishos-kernel ${WRAPVER} installs. Shell syntax, read with ".".
+RELTAG=${RELTAG}
+DEBVER=${DEBVER}
+KVER=${KVER}
+KVER_X64=${KVER_X64}
+CONF
 # Un postinst che non e' sh valido rompe l'installazione a casa dell'utente, non
 # qui: si controlla adesso.
 sh -n "$OUT/DEBIAN/postinst" || { echo "ERRORE: il postinst non e' sh valido" >&2; exit 1; }

@@ -222,7 +222,7 @@ echo "=== what must not be in the image ==="
 # lists asks for it, so nothing but a check on the finished image finds it.
 INTRUSI=$(chroot "$S" dpkg-query -W -f='${Package} ${Status}\n' \
           'nvidia-*' 'glx-alternative-nvidia' 'glx-diversions' 'firmware-nvidia-graphics' 2>/dev/null \
-          | awk '/install ok installed/{printf "%s ", $1}')
+          | awk '/ ok installed$/{printf "%s ", $1}')
 if [ -n "$INTRUSI" ]; then
   ko "NVIDIA driver stack in a BC-250 image: $INTRUSI"
 else
@@ -234,14 +234,21 @@ echo "=== the programs and services the image must have ==="
 # Issue #101: the menu entry SkillFishOS Info runs fastfetch, which was not in
 # the image. The entry opened a terminal saying "fastfetch: not found".
 for p in fastfetch alacritty; do
-  chroot "$S" dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" \
+  chroot "$S" dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q " ok installed$" \
     && ok "$p installed" || ko "$p MISSING (SkillFishOS Info needs it)"
 done
 
 # Issue #103: the image had a kernel but not skillfishos-kernel, so apt had
 # nothing to upgrade and no installation ever got a newer kernel.
-chroot "$S" dpkg-query -W -f='${Status}' skillfishos-kernel 2>/dev/null | grep -q "install ok installed" \
+chroot "$S" dpkg-query -W -f='${Status}' skillfishos-kernel 2>/dev/null | grep -q " ok installed$" \
   && ok "skillfishos-kernel installed" || ko "skillfishos-kernel MISSING: no newer kernel will ever reach this install"
+if [ -r "$S/usr/share/skillfishos-kernel/kernel.conf" ]; then
+  KNOMI=$( . "$S/usr/share/skillfishos-kernel/kernel.conf"; echo "$KVER $KVER_X64" )
+  KTROVATO=""
+  for k in $KNOMI; do [ -e "$S/boot/vmlinuz-$k" ] && KTROVATO="$k"; done
+  [ -n "$KTROVATO" ] && ok "kernel $KTROVATO, the one skillfishos-kernel names" \
+    || ko "the image boots none of the kernels skillfishos-kernel names ($KNOMI)"
+fi
 
 # Issue #98: a unit with an [Install] section that nobody enabled is a feature
 # switched off in every installation made from this image. The 40 compute units

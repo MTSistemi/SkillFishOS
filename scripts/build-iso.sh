@@ -50,6 +50,29 @@ if [ ! -f "/boot/vmlinuz-$KVER" ]; then
     echo "FAIL-NOKERNEL" > "$ST"; exit 1
 fi
 
+# --- the package that brings newer kernels (#103) -----------------------------
+# eggs clones this board, packages included. 26.06.5 came from a board without
+# skillfishos-kernel, so no install made from it ever got a newer kernel. On a
+# running board its postinst only downloads a kernel that is missing.
+if ! dpkg-query -W -f='${Status}' skillfishos-kernel 2>/dev/null | grep -q " ok installed$"; then
+    echo "skillfishos-kernel is not installed on this board: installing it"
+    apt-get install -y skillfishos-kernel || { echo "FAIL-NOKERNELPKG" > "$ST"; exit 1; }
+fi
+# And the kernel in the image must be the one it names: an older one would sit
+# there until the next kernel release.
+KCONF=/usr/share/skillfishos-kernel/kernel.conf
+if [ -r "$KCONF" ]; then
+    KPKG=$( . "$KCONF"; echo "$KVER" )
+    if [ "${KVER%%-*}" != "${KPKG%%-*}" ]; then
+        echo "FATAL: the image would carry $KVER, skillfishos-kernel brings $KPKG"
+        echo "FAIL-KERNELMISMATCH" > "$ST"; exit 1
+    fi
+    echo "kernel $KVER, the one skillfishos-kernel brings"
+else
+    echo "FATAL: skillfishos-kernel older than 7.2.6-2, it does not say which kernel it brings"
+    echo "FAIL-KERNELPKGOLD" > "$ST"; exit 1
+fi
+
 # --- profilo di overclock di sicurezza, per la durata della build ----------
 # L'immagine si costruisce dal sistema vivo, quindi /etc/bc250-smu-oc.conf ci
 # finisce COM'E'. Sulla scheda di sviluppo c'e' il profilo di Mattia, che e'
@@ -483,7 +506,7 @@ else
     echo "firmware: edizione BC-250, tolgo quelli dei portatili se ci sono"
     DA_TOGLIERE=""
     for f in $FW_PORTATILI $NVIDIA_INUTILE; do
-        if dpkg-query -W -f='${Status}' "$f" 2>/dev/null | grep -q "^install ok installed$"; then
+        if dpkg-query -W -f='${Status}' "$f" 2>/dev/null | grep -q " ok installed$"; then
             DA_TOGLIERE="$DA_TOGLIERE $f"
         fi
     done

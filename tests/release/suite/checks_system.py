@@ -230,7 +230,7 @@ def t_kernel_package(ctx):
     """skillfishos-kernel is what apt upgrades to bring a newer kernel; a system
     with a kernel and without it never gets one (issue #103)."""
     rc, out, _ = sh("dpkg-query -W -f='${Status} ${Version}' skillfishos-kernel", 15)
-    check(rc == 0 and out.startswith("install ok installed"),
+    check(rc == 0 and " ok installed" in out,
           "skillfishos-kernel is not installed: the Hub will never offer a newer kernel")
     rc, rec, _ = sh("dpkg-query -W -f='${Recommends}' skillfish-base", 15)
     check("skillfishos-kernel" in rec, "skillfish-base no longer recommends skillfishos-kernel")

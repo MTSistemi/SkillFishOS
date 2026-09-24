@@ -141,7 +141,7 @@ if command -v curl >/dev/null 2>&1; then
     }
     # L'ultimo pacchetto della lista e' quello che si e' pubblicato per ultimo:
     # se c'e' quello, ci sono anche gli altri.
-    for ATTESO in skillfish-boot skillfish-theme skillfish-base; do
+    for ATTESO in skillfish-boot skillfish-theme skillfish-base skillfishos-kernel; do
         FILE=$(printf '%s' "$PKGS" | awk -v p="Package: $ATTESO" \
                '$0 == p { f = 1 } f && /^Filename:/ { print $2; exit }')
         if [ -z "$FILE" ]; then
@@ -157,6 +157,17 @@ if command -v curl >/dev/null 2>&1; then
         fi
     done
     echo "    archivio a posto"
+    # Issue #103: hook 0005 installs the kernel skillfishos-kernel names, while
+    # live-build boots $SAPORE. If the two differ the image has no bootable
+    # kernel, so they are compared here, before hours of chroot.
+    KPKG=$(printf '%s' "$PKGS" | awk '$0 == "Package: skillfishos-kernel" { f = 1 }
+                                      f && /^Version:/ { print $2; exit }')
+    if [ "${KPKG%%-*}" != "${SAPORE%%-*}" ]; then
+        echo "FERMO: skillfishos-kernel $KPKG brings kernel ${KPKG%%-*}, but this" >&2
+        echo "       build boots $SAPORE. Align SAPORE above with the published kernel." >&2
+        exit 3
+    fi
+    echo "    kernel: $SAPORE, the one skillfishos-kernel $KPKG brings"
 fi
 
 echo ">>> Running auto/config ..."
