@@ -27,6 +27,7 @@ import glob
 import json
 import os
 import pwd
+import re
 import socket
 import sys
 
@@ -81,27 +82,77 @@ def binario(u):
     return ""
 
 
-def modelli(u=""):
-    """I .gguf sul disco, dal piu' grande al piu' piccolo.
+# Where .gguf files end up. The first four are where people copy them by hand;
+# the last is the Hugging Face cache, which is where Unsloth Studio downloads
+# every model from its Hub (issue #105: with only the first four, a board whose
+# models all came through Studio showed an empty list, and the engine had
+# nothing to start).
+CARTELLE = ("modelli", "models", ".unsloth/models", ".cache/unsloth/models")
+CACHE_HF = ".cache/huggingface/hub"
+# 00001-of-00003: a model split in parts. llama-server opens the first and finds
+# the others by itself, so only the first is listed, with the size of them all.
+PARTE = re.compile(r"^(?P<testa>.+)-(?P<n>\d{5})-of-(?P<tot>\d{5})$")
 
-    ⚠️ Si guarda il disco e non l'Hub di Studio: /api/hub/cached-gguf conosce
-    solo i modelli scaricati da li', e chi si copia un file a mano - il caso
-    normale su una scheda - non comparirebbe mai.
+
+def _gguf_hf(casa):
+    """The .gguf files of the Hugging Face cache.
+
+    ⚠️ The cache keeps the data in blobs/ under a hash and exposes it as a
+    symlink in snapshots/<revision>/, maybe inside a folder of the repository
+    (UD-Q4_K_XL/...). The symlink is what has the name, so that is what we list;
+    two revisions of the same file point at the same blob and count once.
+    """
+    trovati = {}
+    for schema in ("models--*/snapshots/*/*.gguf", "models--*/snapshots/*/*/*.gguf"):
+        for p in glob.glob(os.path.join(casa, CACHE_HF, schema)):
+            vero = os.path.realpath(p)
+            if not os.path.isfile(vero):
+                continue          # a download still in progress, or a broken link
+            if vero not in trovati or p > trovati[vero]:
+                trovati[vero] = p  # the most recent revision name sorts last
+    return list(trovati.values())
+
+
+def modelli(u=""):
+    """The .gguf files on the disk, largest first.
+
+    ⚠️ The disk, not Studio's Hub: /api/hub/cached-gguf knows only what was
+    downloaded from there, and a file copied by hand - the usual case on a
+    board - would never show. The disk includes the Hugging Face cache, where
+    Studio's own downloads land.
+
+    Left out: mmproj-*.gguf (the image encoder of a vision model, not a model
+    llama-server can serve on its own) and every part of a split model but the
+    first.
     """
     u = u or utente()
     if not u:
         return []
     casa = pwd.getpwnam(u).pw_dir
-    visti = {}
-    for base in ("modelli", "models", ".unsloth/models", ".cache/unsloth/models"):
+    file = []
+    for base in CARTELLE:
         radice = os.path.join(casa, base)
-        if not os.path.isdir(radice):
+        if os.path.isdir(radice):
+            file += glob.glob(os.path.join(radice, "**", "*.gguf"), recursive=True)
+    file += _gguf_hf(casa)
+
+    visti = {}
+    for p in file:
+        nome = os.path.basename(p)[:-5]
+        if nome.lower().startswith("mmproj"):
             continue
-        for p in glob.glob(os.path.join(radice, "**", "*.gguf"), recursive=True):
-            try:
-                visti[p] = os.path.getsize(p)
-            except OSError:
+        try:
+            n = os.path.getsize(p)
+        except OSError:
+            continue
+        m = PARTE.match(nome)
+        if m:
+            if m.group("n") != "00001":
                 continue
+            parti = glob.glob(os.path.join(os.path.dirname(p), "%s-*-of-%s.gguf"
+                                           % (glob.escape(m.group("testa")), m.group("tot"))))
+            n = sum(os.path.getsize(q) for q in parti if os.path.exists(q))
+        visti[p] = n
     return [{"file": p, "nome": os.path.basename(p)[:-5], "byte": n}
             for p, n in sorted(visti.items(), key=lambda kv: -kv[1])]
 

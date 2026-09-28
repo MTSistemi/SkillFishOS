@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.09.50" date="2026-09-28">
+      <description>
+        <p>The AI page finds the models downloaded through Unsloth Studio too: with the engine-only levels the Model list was empty and the engine had nothing to load. If there is no model on the disk, the list now says so.</p>
+        <p xml:lang="it">La pagina AI trova anche i modelli scaricati con Unsloth Studio: nei livelli «solo il motore» l'elenco Modello restava vuoto e il motore non aveva niente da caricare. Se sul disco non c'è nessun modello, adesso l'elenco lo dice.</p>
+        <p xml:lang="fr">La page IA trouve aussi les modèles téléchargés avec Unsloth Studio : aux niveaux « moteur seul », la liste Modèle restait vide et le moteur n'avait rien à charger. S'il n'y a aucun modèle sur le disque, la liste le dit maintenant.</p>
+        <p xml:lang="es">La página de IA encuentra también los modelos descargados con Unsloth Studio: en los niveles «solo el motor» la lista Modelo quedaba vacía y el motor no tenía nada que cargar. Si no hay ningún modelo en el disco, ahora la lista lo dice.</p>
+        <p xml:lang="pt">A página de IA encontra também os modelos descarregados com o Unsloth Studio: nos níveis «só o motor» a lista Modelo ficava vazia e o motor não tinha nada para carregar. Se não houver nenhum modelo no disco, a lista agora di-lo.</p>
+        <p xml:lang="de">Die KI-Seite findet jetzt auch die über Unsloth Studio heruntergeladenen Modelle: In den Stufen „nur der Motor“ blieb die Modellliste leer und der Motor hatte nichts zu laden. Liegt kein Modell auf der Platte, sagt die Liste das jetzt.</p>
+        <p xml:lang="pl">Strona AI znajduje teraz także modele pobrane przez Unsloth Studio: na poziomach „tylko silnik” lista Model była pusta, a silnik nie miał czego załadować. Jeśli na dysku nie ma żadnego modelu, lista teraz o tym mówi.</p>
+        <p xml:lang="ru">Страница ИИ теперь находит и модели, скачанные через Unsloth Studio: на уровнях «только движок» список «Модель» был пуст, и движку нечего было загружать. Если на диске нет ни одной модели, список теперь об этом говорит.</p>
+        <p xml:lang="uk">Сторінка ШІ тепер знаходить і моделі, завантажені через Unsloth Studio: на рівнях «лише рушій» список «Модель» був порожній, і рушію не було чого завантажувати. Якщо на диску немає жодної моделі, список тепер про це каже.</p>
+      </description>
+    </release>
     <release version="26.09.46" date="2026-09-22">
       <description>
         <p>Tuner, CPU: Apply works on every installation. The tool it relies on now comes in its own package, skillfish-smu-oc, and Keep at boot for the compute units switches on the service that applies them.</p>

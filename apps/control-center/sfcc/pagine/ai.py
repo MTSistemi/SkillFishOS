@@ -207,6 +207,16 @@ def _gguf_sul_disco(rinfresca=False):
                 except OSError:
                     # sparito fra la lettura e lo stat: non e' un guasto
                     pass
+    # Issue #105: Studio downloads into the Hugging Face cache, three levels
+    # deeper than the walk above goes (models--x/snapshots/<rev>/file.gguf,
+    # sometimes inside one more folder). The name lives on the symlink there.
+    for schema in ("models--*/snapshots/*/*.gguf", "models--*/snapshots/*/*/*.gguf"):
+        for f in glob.glob(os.path.join(CASA, ".cache/huggingface/hub", schema)):
+            try:
+                _GGUF[os.path.basename(f)[:-5]] = os.path.getsize(f)
+            except OSError:
+                # a broken link: the download never finished
+                pass
     return _GGUF
 
 
@@ -959,11 +969,19 @@ class Pagina(PaginaBase):
         self.livello.blockSignals(False)
 
         self.modello_motore.blockSignals(True)
-        if [self.modello_motore.itemData(i) for i in range(self.modello_motore.count())] != \
-                [m["file"] for m in elenco]:
+        # With no model the list holds one line saying so, whose data is "":
+        # compared against a bare [] it would never be written in the first place.
+        attesi = [m["file"] for m in elenco] or [""]
+        if [self.modello_motore.itemData(i) for i in range(self.modello_motore.count())] != attesi:
             self.modello_motore.clear()
             for m in elenco:
                 self.modello_motore.addItem("%s  (%s)" % (m["nome"], dim(m["byte"])), m["file"])
+            if not elenco:
+                # Issue #105: an empty drop-down looked like the page had not
+                # loaded, and the engine then had nothing to start.
+                self.modello_motore.addItem(L(
+                    "Nessun modello sul disco: scaricane uno da Studio o copia un .gguf in ~/modelli",
+                    "No model on the disk: download one from Studio or copy a .gguf into ~/modelli"), "")
         scelto = c.get("modello") or ""
         i = self.modello_motore.findData(scelto)
         if i >= 0:

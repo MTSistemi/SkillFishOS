@@ -515,5 +515,6 @@
  "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "Наша Mesa открывает вычислительные очереди: +4 % в Cyberpunk, +12 % с FSR 4. На BC-250 с нашим ядром это драйвер всей машины, включая рабочий стол.",
  "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "С этого момента ВСЁ, что рисует, идёт через нашу Mesa, включая рабочий стол: Vulkan и OpenGL. 32-битное остаётся на штатном драйвере. Продолжить?",
  "With the system driver on, the launchers take it from there.": "Когда системный драйвер включён, лаунчеры берут его оттуда.",
- "System graphics driver": "Системный графический драйвер"
+ "System graphics driver": "Системный графический драйвер",
+ "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "На диске нет модели: скачайте её через Studio или скопируйте .gguf в ~/modelli"
 }

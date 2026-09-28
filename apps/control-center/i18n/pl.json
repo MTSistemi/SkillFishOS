@@ -516,5 +516,6 @@
  "Our Mesa opens the compute queues: +4% in Cyberpunk, +12% with FSR 4. On a BC-250 running our kernel it is the driver of the whole machine, desktop included.": "Nasza Mesa otwiera kolejki obliczeniowe: +4 % w Cyberpunk, +12 % z FSR 4. Na BC-250 z naszym jądrem jest sterownikiem całej maszyny, łącznie z pulpitem.",
  "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "Od teraz WSZYSTKO, co rysuje, przechodzi przez naszą Mesę, łącznie z pulpitem: Vulkan i OpenGL. 32-bit zostaje na fabrycznym sterowniku. Kontynuować?",
  "With the system driver on, the launchers take it from there.": "Gdy sterownik systemowy jest włączony, programy uruchamiające biorą go stamtąd.",
- "System graphics driver": "Systemowy sterownik graficzny"
+ "System graphics driver": "Systemowy sterownik graficzny",
+ "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "Brak modelu na dysku: pobierz go przez Studio albo skopiuj plik .gguf do ~/modelli"
 }
