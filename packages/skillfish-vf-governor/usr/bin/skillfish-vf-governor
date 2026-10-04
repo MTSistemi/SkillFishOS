@@ -364,7 +364,39 @@ TOLLERANZA_AGGANCIO = 5
 # interval -- long enough not to fire on a single dropped read, short enough to
 # stop moving before the next ceiling step. See giro().
 LETTURE_MUTE_MAX = 3
-ATTESE = {"freq_ok": 0, "freq_scaduta": 0, "volt_ok": 0, "volt_scaduta": 0}
+ATTESE = {"freq_ok": 0, "freq_scaduta": 0, "volt_ok": 0, "volt_scaduta": 0,
+          "freq_assurda": 0}
+
+# ⚠️ AFTER THE CLOCK HAS ARRIVED, WAIT 2 ms MORE BEFORE THE RAIL GOES DOWN.
+# Measured by another BC-250 owner under FurMark, stepping down with a fixed pause
+# between the frequency and the voltage message (m2jgh8tg7r-bot/bc250-cyan-
+# skillfish-governor, release of 18/09/2026, MIT): 0 ms, 0.4 ms and 0.6 ms hung
+# the board, from about 0.65 ms on it held, and they ship 2 ms. Our descent waits
+# for the readback instead, which arrives after ~0.7 ms (measured 04/09/2026) --
+# right at their edge, and a readback says what the firmware has been asked, not
+# that the rail can already go. 2 ms per step down costs nothing: a descent is
+# not a moment anyone is waiting for.
+ASSESTAMENTO_DISCESA = 0.002
+
+# ⚠️ AN IMPOSSIBLE READBACK IS NOT AN ANSWER. The same owner saw MSG_GET_FREQ
+# return 6 MHz once. Taken at face value, 6 is "at or below" any target, so the
+# descent wait would have said "arrived" on the spot and dropped the rail under a
+# clock still high -- the exact pair that hangs this board -- and the first call
+# of applica() would have read the board as sitting at 6 MHz and treated a real
+# descent as a climb, rail first. The driver accepts SCLK 350-2230 (OD_RANGE) and
+# the firmware refuses anything above 2200, so a reading outside 300-2300 is
+# noise, and it is treated as no reading at all.
+FREQ_LETTA_MIN, FREQ_LETTA_MAX = 300, 2300
+
+
+def freq_plausibile(f):
+    """The readback, or None when it is missing or cannot be a real clock."""
+    if f is None:
+        return None
+    if not FREQ_LETTA_MIN <= f <= FREQ_LETTA_MAX:
+        ATTESE["freq_assurda"] += 1
+        return None
+    return f
 
 # How long we are willing to wait for the clock to come down when parking. Two
 # orders of magnitude more than ATTESA_AGGANCIO, and deliberately so: parking
@@ -419,9 +451,12 @@ def aspetta_frequenza(mhz, scendendo=True):
     """
     fine = time.perf_counter() + ATTESA_AGGANCIO
     while time.perf_counter() < fine:
-        f = smu(MSG_GET_FREQ)
-        if f is None:
+        grezza = smu(MSG_GET_FREQ)
+        if grezza is None:
             break
+        f = freq_plausibile(grezza)
+        if f is None:
+            continue          # noise: ask again, never "arrived" on it
         if (f <= mhz + TOLLERANZA_AGGANCIO if scendendo
                 else f >= mhz - TOLLERANZA_AGGANCIO):
             ATTESE["freq_ok"] += 1
@@ -978,7 +1013,7 @@ class Governor:
         # moves the frequency first and leaves the rail high until it has arrived.
         # A rail too high costs watts, a rail too low costs the board.
         if self.applicata is None:
-            corrente = smu(MSG_GET_FREQ)
+            corrente = freq_plausibile(smu(MSG_GET_FREQ))
             partenza = corrente if corrente else self.c["freq_max"]
         else:
             partenza = self.applicata
@@ -1053,6 +1088,7 @@ class Governor:
                 self.traccia.fine()
                 return
             self.traccia.passo("+attesa")
+            time.sleep(ASSESTAMENTO_DISCESA)
             smu(MSG_FORCE_VID, vid_da_mv(mv))
             self.traccia.passo("+V")
         self.traccia.fine()
@@ -1094,9 +1130,12 @@ class Governor:
         arrivato = False
         fine = time.perf_counter() + ATTESA_PARCHEGGIO
         while time.perf_counter() < fine:
-            f = smu(MSG_GET_FREQ)
-            if f is None:
+            grezza = smu(MSG_GET_FREQ)
+            if grezza is None:
                 break
+            f = freq_plausibile(grezza)
+            if f is None:
+                continue
             # Descending, so at or below. Harmless here in practice -- parking
             # comes down to 350 from far above and no old reading is within 30 of
             # it -- but the distance test is the one that made the descent wait a
@@ -1107,6 +1146,7 @@ class Governor:
                 break
 
         if arrivato:
+            time.sleep(ASSESTAMENTO_DISCESA)
             smu(MSG_FORCE_VID, vid_da_mv(mv))
             print(f"  parcheggiato a {riposo} MHz, {mv} mV", flush=True)
             self.traccia.riga(f"parcheggiato a {riposo} MHz {mv} mV")

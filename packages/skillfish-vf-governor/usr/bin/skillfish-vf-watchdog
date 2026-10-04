@@ -237,6 +237,13 @@ def gradi():
     return 0
 
 
+# The same two rules as the governor, duplicated on purpose: the watchdog runs
+# when the governor is dead and cannot import anything from it. See
+# ASSESTAMENTO_DISCESA and FREQ_LETTA_MIN there for the measurements.
+ASSESTAMENTO_DISCESA = 0.002
+FREQ_LETTA_MIN, FREQ_LETTA_MAX = 300, 2300
+
+
 def parcheggia():
     """Bring the clock to 350 MHz and HOLD it there. Not a release.
 
@@ -263,6 +270,8 @@ def parcheggia():
         f = smu_leggi(MSG_GET_FREQ)
         if f is None:
             break
+        if not FREQ_LETTA_MIN <= f <= FREQ_LETTA_MAX:
+            continue          # an impossible readback: ask again
         # ⚠️ At or below, not "within 30 of". A distance test is satisfied by the
         # OLD reading whenever the step is smaller than the slack, and that is
         # how the same line in the governor turned its descent wait into a no-op
@@ -271,6 +280,7 @@ def parcheggia():
         # nobody watching, and it is not the place to keep a shape we know is
         # broken elsewhere.
         if f <= FREQ_RIPOSO + 5:
+            time.sleep(ASSESTAMENTO_DISCESA)
             smu(MSG_FORCE_VID, VID_RIPOSO)
             print(f"  parcheggiato a {FREQ_RIPOSO} MHz, {MV_RIPOSO} mV", flush=True)
             nota(f"parcheggiato a {FREQ_RIPOSO} MHz {MV_RIPOSO} mV")
