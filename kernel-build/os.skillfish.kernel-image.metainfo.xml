@@ -45,6 +45,19 @@
   <pkgname>skillfishos-kernel</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="7.2.9-1" date="2026-10-04">
+      <description>
+          <p>The kernel moves up to 7.2.9: 1633 fixes from upstream over 7.2.6, 33 of them in the AMD graphics driver. On the BC-250 the boot log is cleaner: the display driver no longer touches connector interrupts the board does not have, and the platform security processor is recognised.</p>
+          <p xml:lang="it">Il kernel passa alla 7.2.9: 1633 correzioni da monte rispetto alla 7.2.6, 33 delle quali nel driver grafico AMD. Sulla BC-250 il registro di avvio è più pulito: il driver dello schermo non tocca più gli interrupt di connettori che la scheda non ha, e il processore di sicurezza della piattaforma viene riconosciuto.</p>
+          <p xml:lang="fr">Le noyau passe à la 7.2.9 : 1633 corrections venues de l'amont par rapport à la 7.2.6, dont 33 dans le pilote graphique AMD. Sur la BC-250, le journal de démarrage est plus propre : le pilote d'affichage ne touche plus les interruptions de connecteurs que la carte n'a pas, et le processeur de sécurité de la plateforme est reconnu.</p>
+          <p xml:lang="es">El núcleo pasa a la 7.2.9: 1633 correcciones de aguas arriba respecto a la 7.2.6, 33 de ellas en el controlador gráfico de AMD. En la BC-250 el registro de arranque está más limpio: el controlador de pantalla ya no toca las interrupciones de conectores que la placa no tiene, y se reconoce el procesador de seguridad de la plataforma.</p>
+          <p xml:lang="pt">O núcleo passa para a 7.2.9: 1633 correções de montante em relação à 7.2.6, 33 delas no controlador gráfico da AMD. Na BC-250 o registo de arranque fica mais limpo: o controlador de ecrã já não toca nas interrupções de conectores que a placa não tem, e o processador de segurança da plataforma é reconhecido.</p>
+          <p xml:lang="de">Der Kernel geht auf 7.2.9: 1633 Korrekturen von oben gegenüber 7.2.6, 33 davon im AMD-Grafiktreiber. Auf der BC-250 ist das Startprotokoll sauberer: Der Anzeigetreiber fasst keine Interrupts von Anschlüssen mehr an, die die Platine nicht hat, und der Sicherheitsprozessor der Plattform wird erkannt.</p>
+          <p xml:lang="pl">Jądro przechodzi na 7.2.9: 1633 poprawki z góry względem 7.2.6, 33 z nich w sterowniku graficznym AMD. Na BC-250 dziennik startu jest czystszy: sterownik ekranu nie dotyka już przerwań złączy, których płyta nie ma, a procesor bezpieczeństwa platformy jest rozpoznawany.</p>
+          <p xml:lang="ru">Ядро переходит на 7.2.9: 1633 исправления сверху по сравнению с 7.2.6, 33 из них в графическом драйвере AMD. На BC-250 журнал загрузки чище: драйвер дисплея больше не трогает прерывания разъёмов, которых у платы нет, а процессор безопасности платформы распознаётся.</p>
+          <p xml:lang="uk">Ядро переходить на 7.2.9: 1633 виправлення згори порівняно з 7.2.6, 33 з них у графічному драйвері AMD. На BC-250 журнал завантаження чистіший: драйвер дисплея більше не чіпає переривання роз'ємів, яких плата не має, а процесор безпеки платформи розпізнається.</p>
+      </description>
+    </release>
     <release version="7.2.6-2" date="2026-09-25">
       <description>
           <p>The kernel stays 7.2.6. This package now goes into the ISO images too, so a system installed from an ISO receives the next kernels through the Hub like any other.</p>

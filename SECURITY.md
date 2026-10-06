@@ -13,7 +13,7 @@ report those to their respective projects.
 | SkillFishOS release | **26.06.5 "Aetherium"** | security fixes |
 | SkillFishOS release | 26.06 / 26.06.1 / 26.06.2 / 26.06.3 / 26.06.4 | superseded — upgrade to 26.06.5 |
 | SkillFishOS release | < 26.06 (pre-release) | no |
-| Kernel | `7.2.6-skillfishos` (+ `-x64`) | yes |
+| Kernel | `7.2.9-skillfishos` (+ `-x64`) | yes |
 | Kernel | `7.2.0-skillfishos`, `7.1.7-skillfishos` | previous series, best effort |
 | Kernel | `7.0.11-skillfishos` and older | no |
 | Apps | `skillfish-*` `26.09.50` or newer | yes |

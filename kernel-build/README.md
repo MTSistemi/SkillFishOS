@@ -33,7 +33,7 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
 kernel that boots and is not the one we ship. What each directory is:
 
 - **`userpatches-350/` — the current recipe.** 43 patches; this is what builds
-  `7.2.6-skillfishos`, the published kernel and the one installed on both
+  `7.2.9-skillfishos`, the published kernel and the one installed on both
   boards. (It built `7.2.3`, `7.2.4` and `7.2.5` before; only the upstream version changed.) Four series, and
   the numbering says where each one comes from:
   - `0100-0118` — Project Ariel (cachenetics): SMU/PMFW message enums, forced
