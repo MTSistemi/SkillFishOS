@@ -462,17 +462,17 @@ Description: SkillFishOS Tuner - BC-250 hardware control GUI
  Part of SkillFishOS.
 
 Package: skillfish-vf-governor
-Version: 26.09.13
+Version: 26.10.1
 Architecture: all
 Depends: systemd, python3
 Maintainer: SkillFishOS <info@skillfishos.com>
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.09.13_all.deb
-Size: 36588
-SHA256: 35e5fd073dde1dfa3dfb7ac69e26da33b76034f730154714c12a070e39a8463c
-SHA1: 3c2c0ccfeef5197d36281c943ec3b27ce14d8fc4
-MD5sum: b37bbfef58da4710a6b50687c9809b60
+Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.10.1_all.deb
+Size: 56676
+SHA256: 2278f60ef763ad66b28840867408c9e702ce997cae5ffda77c6bc13e5d434fb4
+SHA1: 3de0e2aa831208aa30538303e8a889f12e1bd92c
+MD5sum: 857e81729b0bdd7d7c114f48fc5406d7
 Description: SkillFishOS V/F Governor - voltage and frequency control for the BC-250
  Drives the GPU clock and rail directly through the SMU instead of leaving them
  to the stock governor, holding a frequency ceiling that heat and package power

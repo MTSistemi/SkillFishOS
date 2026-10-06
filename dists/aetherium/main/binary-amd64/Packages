@@ -546,17 +546,17 @@ Description: Video encoding and decoding for the AMD BC-250
  fixes (upstream pull requests 21 and 22).
 
 Package: skillfish-vf-governor
-Version: 26.09.13
+Version: 26.10.1
 Architecture: all
 Depends: systemd, python3
 Maintainer: SkillFishOS <info@skillfishos.com>
 Priority: optional
 Section: utils
-Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.09.13_all.deb
-Size: 36588
-SHA256: 35e5fd073dde1dfa3dfb7ac69e26da33b76034f730154714c12a070e39a8463c
-SHA1: 3c2c0ccfeef5197d36281c943ec3b27ce14d8fc4
-MD5sum: b37bbfef58da4710a6b50687c9809b60
+Filename: pool/main/s/skillfish-vf-governor/skillfish-vf-governor_26.10.1_all.deb
+Size: 56676
+SHA256: 2278f60ef763ad66b28840867408c9e702ce997cae5ffda77c6bc13e5d434fb4
+SHA1: 3de0e2aa831208aa30538303e8a889f12e1bd92c
+MD5sum: 857e81729b0bdd7d7c114f48fc5406d7
 Description: SkillFishOS V/F Governor - voltage and frequency control for the BC-250
  Drives the GPU clock and rail directly through the SMU instead of leaving them
  to the stock governor, holding a frequency ceiling that heat and package power
@@ -628,21 +628,21 @@ Description: SkillFishOS archive keyring and APT source
  Part of SkillFishOS.
 
 Package: skillfishos-kernel
-Version: 7.2.6-2
+Version: 7.2.9-1
 Architecture: amd64
 Maintainer: SkillFishOS <apt@skillfishos.com>
 Depends: curl | wget, initramfs-tools, skillfish-base (>= 26.08.27)
 Priority: optional
 Section: kernel
-Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.6-2_amd64.deb
-Size: 64604
-SHA256: ba38928889f60b5a655618b4316e81d0a0e40a0175c9fd55654f7890dc0c84c1
-SHA1: ece39373bf17c38c58fcfcf9de2b7768f0ec4d02
-MD5sum: c220ded56319841aa6ca963ac714d3fc
-Description: SkillFishOS kernel (linux-tkg 7.2.6-skillfishos / 7.2.6-skillfishos-x64)
+Filename: pool/main/s/skillfishos-kernel/skillfishos-kernel_7.2.9-1_amd64.deb
+Size: 65444
+SHA256: cf6964b56a3275b801fd9a6509688657d43b0c9dbe603c1942e718e00e28ac8f
+SHA1: 4e72a6d1c8d7165628d23f0933c44c23e39015b8
+MD5sum: 2957531e7bcea5b439a6853f3719f0a5
+Description: SkillFishOS kernel (linux-tkg 7.2.9-skillfishos / 7.2.9-skillfishos-x64)
  Meta-package that downloads and installs the prebuilt linux-tkg kernel (image
  + headers) from the SkillFishOS GitHub release. It picks the right build for the
- machine it is installed on: 7.2.6-skillfishos on an AMD BC-250, 7.2.6-skillfishos-x64 on
+ machine it is installed on: 7.2.9-skillfishos on an AMD BC-250, 7.2.9-skillfishos-x64 on
  any other x86-64 PC. The ~150 MB kernel image is hosted as a release asset
  because GitHub's 100 MB/file limit prevents shipping it in the APT pool.
 
