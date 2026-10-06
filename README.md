@@ -70,7 +70,7 @@ The BC-250 is fantastic value but a difficult target: non-standard clock control
 
 ## Performance
 
-> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.1.7-skillfishos, Mesa 26.0.8 — 7.0.11 and 7.1.7 measure within ±2% of each other; we ship 7.2.6 today and have not re-measured these frame rates against it). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
+> All measured on **our own BC-250** with SkillFishOS at **1080p** (40 CUs unlocked, kernel 7.1.7-skillfishos, Mesa 26.0.8 — 7.0.11 and 7.1.7 measure within ±2% of each other; we ship 7.2.9 today and have not re-measured these frame rates against it). Full per-benchmark detail — every setting, clock, voltage, temperature and power reading — is on the **[Performance & benchmarks page →](https://skillfishos.com/docs/prestazioni/)**
 
 ### Real benchmarks
 
@@ -125,10 +125,10 @@ Each live ISO (~4.6 GB) is captured from the real system with [penguins-eggs](ht
 
 | Edition | Kernel | For |
 |---|---|---|
-| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download) | `7.2.6-skillfishos` (znver2) | the AMD BC-250 board |
-| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download) | `7.2.6-skillfishos-x64` | any x86-64 PC / VM |
+| [**BC-250**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-BC250-amd64.iso/download) | `7.2.9-skillfishos` (znver2) | the AMD BC-250 board |
+| [**Generic**](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/SkillFishOS-26.06.5-Aetherium-Generic-amd64.iso/download) | `7.2.9-skillfishos-x64` | any x86-64 PC / VM |
 
-The **Slim** edition of 26.06 is not part of this release: no Slim image has been rebuilt since, and the slim kernel flavour itself was dropped after `7.2.0` — the current kernel (`7.2.6-skillfishos`) ships only the **main** and **x64** flavours.
+The **Slim** edition of 26.06 is not part of this release: no Slim image has been rebuilt since, and the slim kernel flavour itself was dropped after `7.2.0` — the current kernel (`7.2.9-skillfishos`) ships only the **main** and **x64** flavours.
 
 Downloads are hosted on **SourceForge**: [sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium](https://sourceforge.net/projects/skillfishos/files/26.06.5-Aetherium/) (the project also hosts the code mirror, blog, forum and wiki). The publishing flow (SourceForge Files, the **`aetherium`** APT update repository, and the DistroWatch submission) is documented under [`distribution/`](distribution/).
 

@@ -69,6 +69,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.10.2" date="2026-10-06">
+      <description>
+        <p>On the AI page, the engine switch and the start-at-boot switch ask for the password again after a cancelled prompt, instead of failing with "authentication cancelled" until the window was reopened.</p>
+        <p xml:lang="it">Nella pagina AI l'interruttore del motore e quello dell'avvio automatico chiedono di nuovo la password dopo un annullamento, invece di rispondere «autenticazione annullata» finché non si riapriva la finestra.</p>
+        <p xml:lang="fr">Sur la page IA, l'interrupteur du moteur et celui du démarrage automatique redemandent le mot de passe après une annulation, au lieu d'échouer avec « authentification annulée » jusqu'à la réouverture de la fenêtre.</p>
+        <p xml:lang="es">En la página de IA, el interruptor del motor y el del arranque automático vuelven a pedir la contraseña tras una cancelación, en lugar de fallar con «autenticación cancelada» hasta reabrir la ventana.</p>
+        <p xml:lang="pt">Na página de IA, o interruptor do motor e o do arranque automático voltam a pedir a palavra-passe depois de um cancelamento, em vez de falharem com «autenticação cancelada» até reabrir a janela.</p>
+        <p xml:lang="de">Auf der KI-Seite fragen der Motorschalter und der Autostart-Schalter nach einem Abbruch wieder nach dem Passwort, statt bis zum erneuten Öffnen des Fensters mit „Authentifizierung abgebrochen“ zu scheitern.</p>
+        <p xml:lang="pl">Na stronie AI przełącznik silnika i przełącznik autostartu po anulowaniu znów pytają o hasło, zamiast zwracać „uwierzytelnianie anulowane” aż do ponownego otwarcia okna.</p>
+        <p xml:lang="ru">На странице ИИ переключатель движка и переключатель автозапуска после отмены снова спрашивают пароль, а не отвечают «аутентификация отменена» до повторного открытия окна.</p>
+        <p xml:lang="uk">На сторінці ШІ перемикач рушія і перемикач автозапуску після скасування знову питають пароль, а не відповідають «автентифікацію скасовано» до повторного відкриття вікна.</p>
+      </description>
+    </release>
     <release version="26.09.50" date="2026-09-28">
       <description>
         <p>The AI page finds the models downloaded through Unsloth Studio too: with the engine-only levels the Model list was empty and the engine had nothing to load. If there is no model on the disk, the list now says so.</p>

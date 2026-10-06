@@ -861,14 +861,17 @@ class Pagina(PaginaBase):
     # ---- engine
     def _accendi(self, on):
         self.occupato = True
-        r = self.demone.cmd(cmd="servizio", azione="start" if on else "stop", unit=UNSLOTH_SVC)
+        # insisti: a click, so a prompt cancelled earlier must not answer for it (#109)
+        r = self.demone.cmd(cmd="servizio", insisti=True,
+                            azione="start" if on else "stop", unit=UNSLOTH_SVC)
         self.occupato = False
         if not r.get("ok"):
             self.toast(r.get("err") or L("non riuscito", "failed"))
         self.aggiorna()
 
     def _autostart(self, on):
-        r = self.demone.cmd(cmd="servizio", azione="enable" if on else "disable", unit=UNSLOTH_SVC)
+        r = self.demone.cmd(cmd="servizio", insisti=True,
+                            azione="enable" if on else "disable", unit=UNSLOTH_SVC)
         if not r.get("ok"):
             self.toast(r.get("err") or L("non riuscito", "failed"))
         self.aggiorna()

@@ -1054,11 +1054,66 @@ def cpu_coremap():
     return {"ok": True, "cpus": out, "n": len(out)}
 
 
+_DESKTOP_USER = {"t": 0.0, "u": ""}
+
+
+def desktop_user():
+    """The account the desktop actions run as (issue #110).
+
+    ⚠️ /etc/skillfish/dashboard.json ships "user": "skillfish", and nothing
+    replaces it with the account created at install time. On a board where that
+    account does not exist, every `sudo -u skillfish` failed at once: the KVM
+    page showed "Failed to connect", the launcher did nothing.
+
+    So: the configured user if it exists; else the owner of the graphical
+    session on a seat (the SDDM greeter has class "greeter" and is skipped);
+    else the first real account. Cached for 30 s, since this is asked on every
+    launch and loginctl is a process each time.
+    """
+    import pwd
+    now = time.monotonic()
+    if _DESKTOP_USER["u"] and now - _DESKTOP_USER["t"] < 30:
+        return _DESKTOP_USER["u"]
+    scelto = ""
+    u = CONFIG.get("user") or ""
+    try:
+        pwd.getpwnam(u)
+        scelto = u
+    except KeyError:
+        pass
+    if not scelto:
+        try:
+            ids = subprocess.run(["loginctl", "list-sessions", "--no-legend"],
+                                 capture_output=True, text=True, timeout=5).stdout
+            for ln in ids.splitlines():
+                f = ln.split()
+                if not f:
+                    continue
+                p = dict(kv.split("=", 1) for kv in subprocess.run(
+                    ["loginctl", "show-session", f[0], "-p", "Name", "-p", "Class",
+                     "-p", "Type", "-p", "Seat"],
+                    capture_output=True, text=True, timeout=5).stdout.splitlines() if "=" in kv)
+                if (p.get("Class") == "user" and p.get("Seat")
+                        and p.get("Type") in ("x11", "wayland")
+                        and p.get("Name") not in ("", "root")):
+                    scelto = p["Name"]
+                    break
+        except (OSError, subprocess.SubprocessError, ValueError):
+            # no logind to ask: fall through to the first real account
+            pass
+    if not scelto:
+        reali = [p.pw_name for p in pwd.getpwall()
+                 if 1000 <= p.pw_uid < 65534 and os.path.isdir(p.pw_dir)]
+        scelto = reali[0] if reali else u or "skillfish"
+    _DESKTOP_USER.update(t=now, u=scelto)
+    return scelto
+
+
 def user_home():
     global REC_DIR_USER
     if REC_DIR_USER:
         return REC_DIR_USER
-    u = CONFIG.get("user", "skillfish")
+    u = desktop_user()
     try:
         import pwd
         REC_DIR_USER = pwd.getpwnam(u).pw_dir
@@ -1096,7 +1151,7 @@ CC_PRESET_VENTOLA = {
 
 def _cc_utente():
     import pwd
-    u = CONFIG.get("user", "skillfish")
+    u = desktop_user()
     try:
         p = pwd.getpwnam(u)
         return p.pw_uid, p.pw_gid, p.pw_dir
@@ -1607,7 +1662,7 @@ def cc_profilo_applica(chiave):
 
 
 def launch_app(cmd):
-    u = CONFIG.get("user", "skillfish")
+    u = desktop_user()
     try:
         subprocess.Popen(["sudo", "-u", u, "env"] + ["%s=%s" % (k, v) for k, v in user_env().items()]
                          + ["setsid", "nohup"] + cmd,
@@ -1952,7 +2007,7 @@ def _spawn(name, argv, as_user=False, kill_pat=None):
         subprocess.run(["pkill", "-f", kill_pat], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.3)
     if as_user:
-        u = CONFIG.get("user", "skillfish")
+        u = desktop_user()
         argv = ["sudo", "-u", u, "env"] + ["%s=%s" % (k, v) for k, v in user_env().items()] + argv
     SVC_PROC[name] = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -1981,7 +2036,7 @@ def kvm_stop():
 
 
 def terminal_start():
-    u = CONFIG.get("user", "skillfish")
+    u = desktop_user()
     # ttyd on loopback only, base-path /terminal, NO auth/TLS of its own — the dashboard
     # reverse-proxies it under /terminal (its TLS + login session = single sign-on).
     # Command after `--` so ttyd's getopt can't eat the shell's flags.
@@ -2102,7 +2157,7 @@ def _unsloth_home():
     """The home of the user Unsloth is installed for: the dashboard user, else
     the owner of the graphical session, else the first real user with ~/.unsloth."""
     import pwd
-    candidati = [CONFIG.get("user") or ""]
+    candidati = [desktop_user()]
     try:
         out = subprocess.run(["loginctl", "list-sessions", "--no-legend"], capture_output=True,
                              text=True, timeout=5).stdout
@@ -3386,7 +3441,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/kvm" or path.startswith("/kvm/"):
             if not self._guard("kvm"):
                 return
-            if not _alive("websockify"):
+            # Either half may be gone (issue #111): x11vnc exits when it starts
+            # before the desktop session exists, while websockify stays up with
+            # nothing behind it. _spawn() skips the half that is still alive.
+            if not (_alive("x11vnc") and _alive("websockify")):
                 kvm_start()
             return self._proxy(KVM_PORT, "/kvm")
         if path == "/unsloth" or path.startswith("/unsloth/"):
@@ -3998,7 +4056,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self._body() or b"{}")
         except Exception:
             data = {}
-        user = (data.get("user") or CONFIG.get("user") or "").strip()
+        user = (data.get("user") or desktop_user() or "").strip()
         pw = data.get("pass") or ""
         if user and pw and pam_check(user, pw):
             _login_fails.pop(ip, None)

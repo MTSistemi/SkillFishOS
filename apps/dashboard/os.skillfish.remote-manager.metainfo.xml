@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.10.2" date="2026-10-06">
+      <description>
+        <p>The remote desktop and the launcher work on any installation: they used the account name "skillfish" from the settings file, which an installation usually does not have, and now use the account that owns the desktop. The remote desktop also comes back on its own if it starts before the desktop session is up.</p>
+        <p xml:lang="it">Il desktop remoto e il lanciatore funzionano su qualunque installazione: usavano il nome utente «skillfish» del file di configurazione, che di solito un'installazione non ha, e ora usano l'account a cui appartiene il desktop. Il desktop remoto torna anche da solo se parte prima che la sessione del desktop sia pronta.</p>
+        <p xml:lang="fr">Le bureau à distance et le lanceur fonctionnent sur toute installation : ils utilisaient le nom d'utilisateur « skillfish » du fichier de configuration, qu'une installation n'a généralement pas, et utilisent maintenant le compte propriétaire du bureau. Le bureau à distance revient aussi tout seul s'il démarre avant la session du bureau.</p>
+        <p xml:lang="es">El escritorio remoto y el lanzador funcionan en cualquier instalación: usaban el nombre de usuario «skillfish» del archivo de configuración, que una instalación normalmente no tiene, y ahora usan la cuenta dueña del escritorio. El escritorio remoto también vuelve solo si arranca antes de que la sesión del escritorio esté lista.</p>
+        <p xml:lang="pt">O ambiente de trabalho remoto e o lançador funcionam em qualquer instalação: usavam o nome de utilizador «skillfish» do ficheiro de configuração, que uma instalação normalmente não tem, e agora usam a conta dona do ambiente de trabalho. O ambiente remoto também volta sozinho se arrancar antes de a sessão estar pronta.</p>
+        <p xml:lang="de">Der entfernte Desktop und der Starter funktionieren auf jeder Installation: Sie nutzten den Benutzernamen „skillfish“ aus der Konfigurationsdatei, den eine Installation meist nicht hat, und nehmen jetzt das Konto, dem der Desktop gehört. Der entfernte Desktop kommt außerdem von selbst zurück, wenn er vor der Desktop-Sitzung startet.</p>
+        <p xml:lang="pl">Zdalny pulpit i launcher działają na każdej instalacji: używały nazwy użytkownika „skillfish” z pliku konfiguracyjnego, której instalacja zwykle nie ma, a teraz używają konta, do którego należy pulpit. Zdalny pulpit wraca też sam, jeśli wystartuje przed sesją pulpitu.</p>
+        <p xml:lang="ru">Удалённый рабочий стол и панель запуска работают на любой установке: они брали имя пользователя «skillfish» из файла настроек, которого в установленной системе обычно нет, а теперь используют учётную запись владельца рабочего стола. Удалённый рабочий стол также сам возвращается, если запустился раньше сеанса рабочего стола.</p>
+        <p xml:lang="uk">Віддалена стільниця й панель запуску працюють на будь-якому встановленні: вони брали ім'я користувача «skillfish» з файлу налаштувань, якого у встановленій системі зазвичай немає, а тепер використовують обліковий запис власника стільниці. Віддалена стільниця також сама повертається, якщо запустилася раніше за сеанс стільниці.</p>
+      </description>
+    </release>
     <release version="26.09.40" date="2026-09-21">
       <description>
         <p>The board can now compress video in hardware. The BC-250 has no video engine, so recording a game or streaming it used to fall to the processor; a new driver does it on the 40 compute units instead, in H.264 and in HEVC. Measured with a game actually running: recording costs the game 13 per cent with H.264, and both codecs hold a full 60 frames a second without dropping any. It arrives with the update and switches itself on only on a BC-250. The degree limit in the Tuner and on the Remote Manager page now goes up to 100, which is as far as the board's own firmware accepts.</p>
