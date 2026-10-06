@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.10.1" date="2026-10-06">
+      <description>
+        <p>Dolby Digital 5.1 works with WirePlumber 0.5.18. Until now the Dolby package held WirePlumber back at 0.5.17, and on a new system it could not be installed at all, because Debian no longer carries 0.5.17.</p>
+        <p xml:lang="it">Il Dolby Digital 5.1 funziona con WirePlumber 0.5.18. Finora il pacchetto Dolby teneva WirePlumber fermo alla 0.5.17, e su un sistema nuovo non si installava proprio, perché Debian la 0.5.17 non la distribuisce più.</p>
+        <p xml:lang="fr">Le Dolby Digital 5.1 fonctionne avec WirePlumber 0.5.18. Jusqu'ici le paquet Dolby bloquait WirePlumber en 0.5.17, et sur un système neuf il ne s'installait pas du tout, car Debian ne distribue plus la 0.5.17.</p>
+        <p xml:lang="es">Dolby Digital 5.1 funciona con WirePlumber 0.5.18. Hasta ahora el paquete Dolby mantenía WirePlumber en la 0.5.17, y en un sistema nuevo no se podía instalar, porque Debian ya no distribuye la 0.5.17.</p>
+        <p xml:lang="pt">O Dolby Digital 5.1 funciona com o WirePlumber 0.5.18. Até agora o pacote Dolby mantinha o WirePlumber na 0.5.17, e num sistema novo nem se instalava, porque o Debian já não distribui a 0.5.17.</p>
+        <p xml:lang="de">Dolby Digital 5.1 funktioniert mit WirePlumber 0.5.18. Bisher hielt das Dolby-Paket WirePlumber auf 0.5.17 fest, und auf einem neuen System ließ es sich gar nicht installieren, weil Debian 0.5.17 nicht mehr anbietet.</p>
+        <p xml:lang="pl">Dolby Digital 5.1 działa z WirePlumber 0.5.18. Dotąd pakiet Dolby trzymał WirePlumber na wersji 0.5.17, a na nowym systemie w ogóle się nie instalował, bo Debian nie udostępnia już 0.5.17.</p>
+        <p xml:lang="ru">Dolby Digital 5.1 работает с WirePlumber 0.5.18. До сих пор пакет Dolby держал WirePlumber на 0.5.17, а на новой системе вообще не устанавливался, потому что Debian больше не распространяет 0.5.17.</p>
+        <p xml:lang="uk">Dolby Digital 5.1 працює з WirePlumber 0.5.18. Досі пакунок Dolby тримав WirePlumber на 0.5.17, а на новій системі взагалі не встановлювався, бо Debian більше не поширює 0.5.17.</p>
+      </description>
+    </release>
     <release version="26.09.50" date="2026-09-28">
       <description>
         <p>The AI page finds the models downloaded through Unsloth Studio too: with the engine-only levels the Model list was empty and the engine had nothing to load. If there is no model on the disk, the list now says so.</p>

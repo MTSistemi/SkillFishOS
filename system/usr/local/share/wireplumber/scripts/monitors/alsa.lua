@@ -6,7 +6,8 @@
 -- SPDX-License-Identifier: MIT
 
 -- BC-250 downstream monitor guard v0.13
--- Rebased on the stock WirePlumber 0.5.17 monitors/alsa.lua.
+-- Rebased on the stock WirePlumber 0.5.18 monitors/alsa.lua (SkillFishOS, 06/10/2026;
+-- the 0.5.17 base merged three ways, see CHANGES.SkillFishOS).
 -- The original file remains installed under /usr/share; this override adds only
 -- BC-250 HDMI teardown/activation serialization and the encoded-audio hardware lock.
 
@@ -27,6 +28,13 @@ node_names_table = nil
 
 -- SPA ids to node names: name = id_name_table[device_id][node_id]
 id_name_table = nil
+
+-- node error recovery state: recovery = device_recovery_table[device_name]
+RECOVERY_MAX_ATTEMPTS = 3
+RECOVERY_DELAY_MSEC = 1000
+-- recovery attempts are reset if the device runs this long without errors
+RECOVERY_RESET_USEC = 60 * 1000000
+device_recovery_table = {}
 
 -- Optional delayed activation for ALSA playback nodes.
 --
@@ -167,12 +175,70 @@ function applyDefaultDeviceProperties (properties)
   properties["api.alsa.split-enable"] = true
 end
 
-function shouldShowHdmiAlsaName (profile, properties, dev_props)
-  return profile:find("^hdmi%-") and
-      nonempty(properties["alsa.name"]) and
-      not properties["alsa.name"]:find("HDMI") and
-      properties["alsa.name"] ~= nonempty(dev_props["device.description"]) and
-      properties["alsa.name"] ~= properties["device.profile.description"]
+function isHdmiProfile (profile)
+  return profile:find("^hdmi%-") or profile:find("HDMI%d?: ")
+end
+
+function hdmiProductName (profile, properties, dev_props)
+  local name = nonempty(properties["hdmi.product.name"]) or
+      nonempty(properties["alsa.name"])
+  if isHdmiProfile(profile) and name and
+      not name:find("HDMI") and
+      name ~= nonempty(dev_props["device.description"]) and
+      name ~= properties["device.profile.description"] then
+    return name
+  end
+end
+
+function hdmiUCMChannelSuffix (profile, properties)
+  -- This makes sure channels are only added when using UCM as ACP already has them
+  if not profile:find("HDMI%d?: ") then
+    return ""
+  end
+
+  local channels = tonumber(properties["audio.channels"])
+  if not channels then
+    return ""
+  end
+
+  if channels == 1 then
+    return " (Mono)"
+  elseif channels == 2 then
+    return " (Stereo)"
+  end
+
+  -- There can be more than one subwoofer, accounting for that
+  local lfe_count = 0
+  for _ in (properties["audio.position"] or ""):gmatch("LFE") do
+    lfe_count = lfe_count + 1
+  end
+  return " (" .. (channels - lfe_count) .. "." .. lfe_count .. " Surround)"
+end
+
+function buildNodeDescription (dev_props, properties, dev, subdev,
+    profile, profile_desc)
+  local desc = nonempty(dev_props["device.description"]) or "unknown"
+  local name = nonempty(properties["api.alsa.pcm.name"]) or
+               nonempty(properties["api.alsa.pcm.id"]) or dev
+
+  if profile_desc then
+    desc = desc .. " " .. profile_desc
+
+    -- Include the product name in description if HDMI node for better UX
+    local product = hdmiProductName(profile, properties, dev_props)
+    if product then
+      desc = desc .. " [" .. product .. "]"
+    end
+    -- When using UCM, number of channels is not included, so add it
+    desc = desc .. hdmiUCMChannelSuffix(profile, properties)
+  elseif subdev ~= "0" then
+    desc = desc .. " (" .. name .. " " .. subdev .. ")"
+  elseif dev ~= "0" then
+    desc = desc .. " (" .. name .. ")"
+  end
+
+  -- also sanitize description, replace ':' with ' '
+  return (desc:gsub("(:)", " "))
 end
 
 function createSplitPCMHWNode(dev_props, properties)
@@ -326,6 +392,17 @@ function monitorNodeError (node)
 
       log:info ("Error received on ALSA node " .. node_name)
 
+      -- BC-250 (SkillFishOS): while the encoded backend owns hw:Generic,3 an
+      -- error on the native HDMI node is the expected EBUSY, not a fault.
+      -- WirePlumber 0.5.18's recovery would switch the card profile off and on
+      -- under the audio-mode policy that is arbitrating that very PCM, so here
+      -- it is left to the policy. Everywhere else the recovery runs as shipped.
+      if bc250Ac3HardwareLocked ({ ["node.name"] = node_name }) then
+        log:info ("BC-250 native HDMI error while the encoded backend owns the" ..
+            " hardware; leaving it to the audio-mode policy")
+        return
+      end
+
       -- Find the device for this node
       local device = devices_om:lookup {
           Constraint { "bound-id", "=", dev_id, type = "gobject" }
@@ -348,21 +425,68 @@ function monitorNodeError (node)
         return
       end
 
+      local recovery = device_recovery_table[dev_name]
+      if recovery == nil then
+        recovery = { attempts = 0, pending = false, last_usec = 0 }
+        device_recovery_table[dev_name] = recovery
+      end
+
+      -- Closing the device re-opens all its nodes, so make sure errors from the
+      -- other nodes of the same device are ignored if a recovery is pending.
+      if recovery.pending then
+        log:info ("Recovery already in progress on ALSA device " .. dev_name)
+        return
+      end
+
+      -- Only count errors that happen shortly after the last recovery, so that
+      -- sporadic errors on long-running devices are always recovered.
+      local now = GLib.get_monotonic_time ()
+      if recovery.attempts > 0 and
+          now - recovery.last_usec > RECOVERY_RESET_USEC then
+        log:info ("ALSA device " .. dev_name ..
+            " ran without errors since the last recovery, resetting attempts")
+        recovery.attempts = 0
+      end
+
+      if recovery.attempts >= RECOVERY_MAX_ATTEMPTS then
+        recovery.last_usec = now
+        log:warning ("ALSA device " .. dev_name .. " still failing after " ..
+            tostring (recovery.attempts) .. " recovery attempts, giving up")
+        return
+      end
+
+      recovery.attempts = recovery.attempts + 1
+      recovery.pending = true
+      recovery.last_usec = now
+
       -- Close the ALSA device by setting the profile to Off
       local param_off = Pod.Object {
         "Spa:Pod:Object:Param:Profile", "Profile",
         index = 0,
       }
       device:set_param ("Profile", param_off)
-      log:info ("Profile set to Off on ALSA device " .. dev_name)
+      log:info ("Profile set to Off on ALSA device " .. dev_name ..
+          " (recovery attempt " .. tostring (recovery.attempts) .. ")")
 
-      -- Re-open the ALSA device by restoring the profile after one second
-      Core.timeout_add (1000, function ()
+      -- Re-open the ALSA device by restoring the profile after a delay
+      Core.timeout_add (RECOVERY_DELAY_MSEC, function ()
+        recovery.pending = false
+
+        -- The device may have been removed or re-created in the meantime
+        local d = devices_om:lookup {
+            Constraint { "bound-id", "=", dev_id, type = "gobject" }
+        }
+        if d == nil or d:get_property ("device.name") ~= dev_name then
+          log:info ("ALSA device " .. dev_name ..
+              " is gone, not restoring its profile")
+          return
+        end
+
         local param_curr = Pod.Object {
           "Spa:Pod:Object:Param:Profile", "Profile",
           index = curr_profile_index,
         }
-        device:set_param ("Profile", param_curr)
+        d:set_param ("Profile", param_curr)
         log:info ("Restored profile on ALSA device " .. dev_name)
       end)
 
@@ -461,6 +585,7 @@ function createNode(parent, id, obj_type, factory, properties)
 
   -- and a nick
   local nick = nonempty(properties["node.nick"])
+      or nonempty(properties["hdmi.product.name"])
       or nonempty(properties["api.alsa.pcm.name"])
       or nonempty(properties["alsa.name"])
       or nonempty(profile_desc)
@@ -472,26 +597,11 @@ function createNode(parent, id, obj_type, factory, properties)
   properties["node.nick"] = nick:gsub("(:)", " ")
 
   -- ensure the node has a description
+  local own_description
   if not properties["node.description"] then
-    local desc = nonempty(dev_props["device.description"]) or "unknown"
-    local name = nonempty(properties["api.alsa.pcm.name"]) or
-                 nonempty(properties["api.alsa.pcm.id"]) or dev
-
-    if profile_desc then
-      desc = desc .. " " .. profile_desc
-
-      -- Include "alsa.name" in description if HDMI node for better UX
-      if shouldShowHdmiAlsaName(profile, properties, dev_props) then
-        desc = desc .. " [" .. properties["alsa.name"] .. "]"
-      end
-    elseif subdev ~= "0" then
-      desc = desc .. " (" .. name .. " " .. subdev .. ")"
-    elseif dev ~= "0" then
-      desc = desc .. " (" .. name .. ")"
-    end
-
-    -- also sanitize description, replace ':' with ' '
-    properties["node.description"] = desc:gsub("(:)", " ")
+    own_description = buildNodeDescription (dev_props, properties,
+        dev, subdev, profile, profile_desc)
+    properties["node.description"] = own_description
   end
 
   -- add api.alsa.card.* and alsa.* properties for rule matching purposes
@@ -519,6 +629,12 @@ function createNode(parent, id, obj_type, factory, properties)
     orig_properties[k] = v
   end
   properties = JsonUtils.match_rules_update_properties (config.rules, properties)
+
+  -- rules may have changed the description or what it is built from
+  if properties["node.description"] == own_description then
+    properties["node.description"] = buildNodeDescription (dev_props,
+        properties, dev, subdev, profile, profile_desc)
+  end
 
   if cutils.parseBool (properties ["node.disabled"]) then
     log:notice ("ALSA node " .. properties["node.name"] .. " disabled")
@@ -984,13 +1100,16 @@ function createMonitor ()
         rd_plugin:call("destroy-reservation", rd_name)
       end
     end
-    device_names_table[device.properties["device.name"]] = nil
+    local device_name = device.properties["device.name"]
+    device_names_table[device_name] = nil
+    device_recovery_table[device_name] = nil
   end)
 
   -- reset the name tables to make sure names are recycled
   device_names_table = {}
   node_names_table = {}
   id_name_table = {}
+  device_recovery_table = {}
 
   -- activate monitor
   log:info("Activating ALSA monitor")

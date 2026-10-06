@@ -15,3 +15,14 @@ Proven on the dev board with the AC-3 path pointed at null: native wins on a
 fresh state, removing the native sink logs "automatic fallback landed on
 bc250_ac3; ignored" and creates no backend, the native sink is taken back as
 soon as it returns.
+
+2026-10-06: monitors/alsa.lua moved to WirePlumber 0.5.18. Debian sid no longer
+carries 0.5.17, so with the exact pin the package could not be installed on any
+system that did not have it already. The override was merged three ways (stock
+0.5.17 as base, ours, stock 0.5.18): one conflict, two blocks added at the same
+place, both kept. 0.5.18 brings node error recovery, which sets the card
+profile off and back on when a node errors. One addition of ours on top: on the
+BC-250 native HDMI node, while the encoded backend holds hw:Generic,3, an error
+is the expected EBUSY and the recovery is skipped, so it does not switch the
+card under the audio-mode policy that is arbitrating that PCM.
+

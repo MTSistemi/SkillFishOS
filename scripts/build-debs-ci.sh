@@ -526,8 +526,12 @@ chmod 0755 "$OUT/$P/DEBIAN/postinst"
 P=skillfish-audio-dolby
 # Real-time Dolby Digital 5.1 over HDMI/DisplayPort (MastaG/bc250-dual-audio):
 # a second sink that encodes AC-3 live for receivers that only take Dolby.
-# The ALSA monitor override is rebased on WirePlumber 0.5.17 EXACTLY, hence
-# the pinned dependency. License asked to the author (issue #1, 2026-09-11).
+# The ALSA monitor override is rebased on WirePlumber 0.5.18 EXACTLY, hence
+# the pinned dependency: it replaces the stock monitors/alsa.lua, so a WirePlumber
+# that changes that file needs the override rebased first. Moved from 0.5.17 on
+# 2026-10-06, when sid dropped 0.5.17 and the package could no longer be
+# installed anywhere it was not already. License asked to the author (issue #1,
+# 2026-09-11).
 put $P 0644 system/etc/alsa/conf.d/61-bc250-a52.conf                          etc/alsa/conf.d/61-bc250-a52.conf
 put $P 0644 system/etc/pipewire/pipewire.conf.d/60-bc250-ac3-output.conf      etc/pipewire/pipewire.conf.d/60-bc250-ac3-output.conf
 put $P 0644 system/etc/wireplumber/wireplumber.conf.d/50-bc250-audio.conf     etc/wireplumber/wireplumber.conf.d/50-bc250-audio.conf
@@ -536,7 +540,7 @@ put $P 0644 system/usr/local/share/wireplumber/scripts/monitors/alsa.lua      us
 put $P 0644 system/usr/share/doc/skillfish-audio-dolby/README.upstream.md     usr/share/doc/skillfish-audio-dolby/README.upstream.md
 put $P 0644 system/usr/share/doc/skillfish-audio-dolby/UPSTREAM-COMMIT        usr/share/doc/skillfish-audio-dolby/UPSTREAM-COMMIT
 put $P 0644 system/usr/share/doc/skillfish-audio-dolby/CHANGES.SkillFishOS   usr/share/doc/skillfish-audio-dolby/CHANGES.SkillFishOS
-ctrl $P "wireplumber (>= 0.5.17), wireplumber (<< 0.5.18), pipewire-audio, libasound2-plugins" "SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/DisplayPort" \
+ctrl $P "wireplumber (>= 0.5.18), wireplumber (<< 0.5.19), pipewire-audio, libasound2-plugins" "SkillFishOS Dolby Digital 5.1 - live AC-3 encoding over HDMI/DisplayPort" \
   "Adds a second audio output, Dolby Digital 5.1 (AC3), that encodes the six
 channels live at 640 kbps for AV receivers, soundbars and TVs that do not take
 multichannel PCM. The normal HDMI/DisplayPort output stays as it is. Pick the
