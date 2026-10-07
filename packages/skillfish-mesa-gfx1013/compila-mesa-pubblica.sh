@@ -25,7 +25,7 @@
 # 32-bit process looking for libvulkan_radeon.so skips ours and keeps finding
 # Debian's i386 one. That is what lets 32-bit Proton games keep working.
 set -u
-VER="${1:-26.2.3}"
+VER="${1:-26.2.4}"
 CORTO=$(echo "$VER" | tr -d .)
 REPO=~/bc250-fsr4
 SORG=~/mesa-fsr4-src

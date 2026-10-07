@@ -76,6 +76,7 @@ DEBVER="@DEBVER@"
 # aggiornato — si ricade sul kernel della BC-250, che e' il comportamento di
 # prima: non peggioriamo la situazione di nessuno.
 KVER="@KVER@"
+INSTALL_JOB=""
 if [ -n "@KVER_X64@" ]; then
   if [ -x /usr/local/bin/skillfish-is-bc250 ]; then
     if /usr/local/bin/skillfish-is-bc250 >/dev/null 2>&1; then
@@ -128,10 +129,19 @@ else
   # Prima ci provava lo stesso: usciva 100, il pacchetto restava in iF e da quel
   # momento ogni comando apt della macchina falliva, «apt -f install» compreso.
   # Riprodotto in un container pulito il 23/08/2026.
+  #
+  # ⚠️ WAIT FOR APT, NOT FOR A CLOCK. Until 7.2.9-1 the job ran `dpkg -i` 20 s
+  # later. In a long upgrade (742 packages on the home board, 07/10/2026) apt
+  # was still running and holding the dpkg lock, so dpkg -i failed, the rm at
+  # the end deleted the two .deb anyway, and the machine stayed on its old
+  # kernel with this package saying 7.2.9. Nobody was told.
+  # apt-get with DPkg::Lock::Timeout waits for the lock instead, and the files
+  # are removed only once the kernel is in.
   if command -v systemd-run >/dev/null 2>&1; then
     systemd-run --quiet --on-active=20 --unit=skillfishos-kernel-install \
-      /bin/sh -c "dpkg -i '$CACHE/$IMG' '$CACHE/$HDR' && apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null 2>&1; command -v update-grub >/dev/null 2>&1 && update-grub; rm -f '$CACHE/$IMG' '$CACHE/$HDR'" >/dev/null 2>&1 || true
-    echo "skillfishos-kernel: ${KVER} will be installed in the background in a few seconds."
+      --setenv=DEBIAN_FRONTEND=noninteractive \
+      /bin/sh -c "apt-get -y -o DPkg::Lock::Timeout=3600 install '$CACHE/$IMG' '$CACHE/$HDR' && { apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null; command -v update-grub >/dev/null 2>&1 && update-grub; rm -f '$CACHE/$IMG' '$CACHE/$HDR'; }" >/dev/null 2>&1 && INSTALL_JOB=1
+    echo "skillfishos-kernel: ${KVER} will be installed in the background once apt has finished."
     echo "  follow it with:  systemctl status skillfishos-kernel-install"
   fi
 fi
@@ -143,12 +153,14 @@ fi
 # frontend, che dentro un postinst ce l'ha dpkg stesso. Esce 100 e non fa
 # niente. Con `2>/dev/null || true` davanti non se ne accorgeva nessuno, e la
 # riga «il kernel e' trattenuto» nella documentazione era falsa da mesi.
-# Si prova subito (fuori da una transazione funziona), e se non passa si
-# riprova quando dpkg ha mollato il lock.
-if ! apt-mark hold "linux-image-${KVER}" "linux-headers-${KVER}" >/dev/null 2>&1; then
+# It is tried at once (outside a transaction it works); if that fails, a job
+# retries every 10 s for up to an hour, until apt lets go of the lock. A single
+# retry after 15 s, as until 7.2.9-1, lost the race to any long upgrade.
+# When the install job above was scheduled it holds the kernel itself.
+if [ -z "$INSTALL_JOB" ] && ! apt-mark hold "linux-image-${KVER}" "linux-headers-${KVER}" >/dev/null 2>&1; then
   if command -v systemd-run >/dev/null 2>&1; then
     systemd-run --quiet --on-active=15 --unit=skillfishos-kernel-hold \
-      /usr/bin/apt-mark hold "linux-image-${KVER}" "linux-headers-${KVER}" >/dev/null 2>&1 || true
+      /bin/sh -c "for i in \$(seq 1 360); do apt-mark hold linux-image-${KVER} linux-headers-${KVER} >/dev/null 2>&1 && exit 0; sleep 10; done; exit 1" >/dev/null 2>&1 || true
   fi
 fi
 # update-grub lo fa il lavoro programmato, dopo aver messo il kernel: farlo qui

@@ -14,7 +14,7 @@
 # pacchetto, la seconda la Mesa che ci mettiamo dentro.
 set -u
 VER="${1:-$(date +%y.%m).4}"
-MESA="${2:-26.2.3}"
+MESA="${2:-26.2.4}"
 CORTO=$(echo "$MESA" | tr -d .)
 ALBERO=~/mesa-completa-$CORTO/opt/skillfish-gfx1013
 QUI=$(dirname "$0")

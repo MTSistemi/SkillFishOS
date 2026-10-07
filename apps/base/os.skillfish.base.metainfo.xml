@@ -33,6 +33,19 @@
   <pkgname>skillfish-base</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.10.3" date="2026-10-07">
+      <description>
+        <p>Our Mesa for the BC-250 moves up to 26.2.4, the version Debian carries now, with the same two changes on top: the compute queues and FSR 4. Measured on a board: GPU throughput unchanged.</p>
+        <p xml:lang="it">La nostra Mesa per la BC-250 passa alla 26.2.4, la versione che ora ha anche Debian, con le stesse due modifiche sopra: le code compute e FSR 4. Misurato su una scheda: prestazioni della GPU invariate.</p>
+        <p xml:lang="fr">Notre Mesa pour la BC-250 passe à la 26.2.4, la version que Debian distribue désormais, avec les deux mêmes modifications : les files de calcul et FSR 4. Mesuré sur une carte : débit du GPU inchangé.</p>
+        <p xml:lang="es">Nuestra Mesa para la BC-250 pasa a la 26.2.4, la versión que ahora trae Debian, con los mismos dos cambios encima: las colas de cómputo y FSR 4. Medido en una placa: rendimiento de la GPU sin cambios.</p>
+        <p xml:lang="pt">A nossa Mesa para a BC-250 passa para a 26.2.4, a versão que o Debian traz agora, com as mesmas duas alterações por cima: as filas de computação e o FSR 4. Medido numa placa: desempenho da GPU inalterado.</p>
+        <p xml:lang="de">Unser Mesa für die BC-250 geht auf 26.2.4, die Version, die Debian jetzt mitbringt, mit denselben zwei Änderungen obendrauf: die Compute-Queues und FSR 4. Auf einer Platine gemessen: GPU-Leistung unverändert.</p>
+        <p xml:lang="pl">Nasza Mesa dla BC-250 przechodzi na 26.2.4, wersję, którą ma teraz Debian, z tymi samymi dwiema zmianami: kolejkami obliczeniowymi i FSR 4. Zmierzone na płycie: wydajność GPU bez zmian.</p>
+        <p xml:lang="ru">Наша Mesa для BC-250 переходит на 26.2.4, версию, которая теперь есть в Debian, с теми же двумя изменениями: вычислительными очередями и FSR 4. Измерено на плате: производительность GPU не изменилась.</p>
+        <p xml:lang="uk">Наша Mesa для BC-250 переходить на 26.2.4, версію, яка тепер є в Debian, з тими самими двома змінами: обчислювальними чергами та FSR 4. Виміряно на платі: продуктивність GPU без змін.</p>
+      </description>
+    </release>
     <release version="26.10.1" date="2026-10-06">
       <description>
         <p>Dolby Digital 5.1 works with WirePlumber 0.5.18. Until now the Dolby package held WirePlumber back at 0.5.17, and on a new system it could not be installed at all, because Debian no longer carries 0.5.17.</p>
