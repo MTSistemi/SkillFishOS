@@ -1074,14 +1074,15 @@ def desktop_user():
     now = time.monotonic()
     if _DESKTOP_USER["u"] and now - _DESKTOP_USER["t"] < 30:
         return _DESKTOP_USER["u"]
-    scelto = ""
+    chosen = ""
     u = CONFIG.get("user") or ""
     try:
         pwd.getpwnam(u)
-        scelto = u
+        chosen = u
     except KeyError:
+        # the configured account does not exist on this board: look further below
         pass
-    if not scelto:
+    if not chosen:
         try:
             ids = subprocess.run(["loginctl", "list-sessions", "--no-legend"],
                                  capture_output=True, text=True, timeout=5).stdout
@@ -1096,17 +1097,17 @@ def desktop_user():
                 if (p.get("Class") == "user" and p.get("Seat")
                         and p.get("Type") in ("x11", "wayland")
                         and p.get("Name") not in ("", "root")):
-                    scelto = p["Name"]
+                    chosen = p["Name"]
                     break
         except (OSError, subprocess.SubprocessError, ValueError):
             # no logind to ask: fall through to the first real account
             pass
-    if not scelto:
-        reali = [p.pw_name for p in pwd.getpwall()
-                 if 1000 <= p.pw_uid < 65534 and os.path.isdir(p.pw_dir)]
-        scelto = reali[0] if reali else u or "skillfish"
-    _DESKTOP_USER.update(t=now, u=scelto)
-    return scelto
+    if not chosen:
+        real = [p.pw_name for p in pwd.getpwall()
+                if 1000 <= p.pw_uid < 65534 and os.path.isdir(p.pw_dir)]
+        chosen = real[0] if real else u or "skillfish"
+    _DESKTOP_USER.update(t=now, u=chosen)
+    return chosen
 
 
 def user_home():
