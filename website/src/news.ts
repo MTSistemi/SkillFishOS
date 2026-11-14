@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // aggiornamento-26-11-1-2026-11-14
+    data: '2026-11-14',
+    quando: {"it": "14 novembre 2026", "en": "14 November 2026", "pl": "14 listopada 2026", "uk": "14 листопада 2026", "ru": "14 ноября 2026", "es": "14 de noviembre de 2026", "pt": "14 de novembro de 2026", "de": "14. November 2026", "fr": "14 novembre 2026"},
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "Kernel 7.3, e una nostra correzione nel kernel di Linux",
+      en: "Kernel 7.3, and a fix of ours in the Linux kernel",
+      pl: "Jądro 7.3 i nasza poprawka w jądrze Linuksa",
+      uk: "Ядро 7.3 і наше виправлення в ядрі Linux",
+      ru: "Ядро 7.3 и наше исправление в ядре Linux",
+      es: "Núcleo 7.3, y una corrección nuestra en el núcleo de Linux",
+      pt: "Núcleo 7.3, e uma correção nossa no núcleo do Linux",
+      de: "Kernel 7.3 und eine Korrektur von uns im Linux-Kernel",
+      fr: "Noyau 7.3, et une correction à nous dans le noyau Linux"
+    },
+    testo: {
+      it: "SkillFishOS passa al kernel <strong>7.3.4</strong>: la serie 7.2 non riceve più correzioni. Restano tutte le nostre modifiche per la BC-250, e la nostra Mesa passa alla 26.2.7. Intanto una nostra correzione per il display della BC-250 è entrata nel kernel ufficiale di Linux, e arriverà a tutti con la 7.4. Aggiornate dall'Hub.",
+      en: "SkillFishOS moves to kernel <strong>7.3.4</strong>: the 7.2 series gets no more fixes. All our BC-250 changes come along, and our Mesa moves up to 26.2.7. Meanwhile a display fix of ours for the BC-250 has been accepted into the official Linux kernel, and will reach everyone with 7.4. Update from the Hub.",
+      pl: "SkillFishOS przechodzi na jądro <strong>7.3.4</strong>: seria 7.2 nie dostaje już poprawek. Wszystkie nasze zmiany dla BC-250 zostają, a nasza Mesa przechodzi na 26.2.7. Tymczasem nasza poprawka wyświetlania dla BC-250 trafiła do oficjalnego jądra Linuksa i dotrze do wszystkich z wersją 7.4. Zaktualizujcie system z Huba.",
+      uk: "SkillFishOS переходить на ядро <strong>7.3.4</strong>: серія 7.2 більше не отримує виправлень. Усі наші зміни для BC-250 залишаються, а наша Mesa переходить на 26.2.7. Тим часом наше виправлення дисплея для BC-250 прийняли до офіційного ядра Linux, і воно дійде до всіх із версією 7.4. Оновіться через Hub.",
+      ru: "SkillFishOS переходит на ядро <strong>7.3.4</strong>: серия 7.2 больше не получает исправлений. Все наши изменения для BC-250 остаются, а наша Mesa переходит на 26.2.7. Тем временем наше исправление дисплея для BC-250 принято в официальное ядро Linux и дойдёт до всех с версией 7.4. Обновитесь через Hub.",
+      es: "SkillFishOS pasa al núcleo <strong>7.3.4</strong>: la serie 7.2 ya no recibe correcciones. Se quedan todos nuestros cambios para la BC-250, y nuestra Mesa pasa a la 26.2.7. Mientras tanto, una corrección nuestra de pantalla para la BC-250 ha entrado en el núcleo oficial de Linux y llegará a todos con la 7.4. Actualizad desde el Hub.",
+      pt: "O SkillFishOS passa para o núcleo <strong>7.3.4</strong>: a série 7.2 já não recebe correções. Ficam todas as nossas alterações para a BC-250, e a nossa Mesa passa para a 26.2.7. Entretanto, uma correção nossa de ecrã para a BC-250 entrou no núcleo oficial do Linux e chegará a todos com a 7.4. Atualizem a partir do Hub.",
+      de: "SkillFishOS wechselt auf Kernel <strong>7.3.4</strong>: Die Serie 7.2 bekommt keine Korrekturen mehr. Alle unsere Änderungen für die BC-250 bleiben, und unser Mesa geht auf 26.2.7. Inzwischen ist eine Display-Korrektur von uns für die BC-250 in den offiziellen Linux-Kernel aufgenommen worden und kommt mit 7.4 bei allen an. Aktualisiert im Hub.",
+      fr: "SkillFishOS passe au noyau <strong>7.3.4</strong> : la série 7.2 ne reçoit plus de corrections. Toutes nos modifications pour la BC-250 restent, et notre Mesa passe à la 26.2.7. Entre-temps, une correction d'affichage à nous pour la BC-250 est entrée dans le noyau Linux officiel et arrivera chez tout le monde avec la 7.4. Mettez à jour depuis le Hub."
+    },
+  },
+  {
     // aggiornamento-26-09-48-2026-09-24
     data: '2026-09-24',
     quando: {"it": "24 settembre 2026", "en": "24 September 2026", "pl": "24 września 2026", "uk": "24 вересня 2026", "ru": "24 сентября 2026", "es": "24 de septiembre de 2026", "pt": "24 de setembro de 2026", "de": "24. September 2026", "fr": "24 septembre 2026"},
