@@ -9,8 +9,9 @@ class Bc250PciTransport:
     ⚠️ AN SMN ACCESS IS TWO SEPARATE WRITES: the address goes into config 0xB8,
     the value into 0xBC. Anything else driving the same window can land between
     them, and then our address takes somebody else's value - the SMU is handed a
-    command nobody sent. On this distribution skillfish-gpu-freq-sampler reads
-    the GPU clock through that very window every two seconds, and a malformed
+    command nobody sent. On this distribution the core unlock drives the same
+    window at boot (and skillfish-gpu-freq-sampler did, every two seconds, until
+    26.11.2), and a malformed
     Q3/5 with a chip index out of range is enough to leave the SMU's handler
     spinning for ever: amdgpu stops getting its metrics table, the GPU sensors
     disappear, and only a reboot brings them back.
