@@ -49,11 +49,20 @@ if [ -f ~/.config/frogminer/linux-tkg.cfg ]; then
 fi
 
 # The recipe: the full patch set, straight from the repository.
-if ! diff -rq "$REPO/userpatches-350/" ~/linux-tkg/linux72-tkg-userpatches/ >/dev/null; then
-    echo "!!! le patch nell'albero non sono la ricetta userpatches-350" >&2
+# linux-tkg reads user patches from linux<VERSION><PATCHLEVEL>-tkg-userpatches,
+# no dot: 7.3.4 -> linux73-tkg-userpatches. The directory follows the version
+# given on the command line, so a new series does not need an edit here. On the
+# first build of a series it does not exist yet and is filled from the recipe.
+UP=~/linux-tkg/linux$(echo "$V" | cut -d. -f1,2 | tr -d .)-tkg-userpatches
+if [ ! -d "$UP" ]; then
+    mkdir -p "$UP" && cp -a "$REPO/userpatches-350/." "$UP/"
+    echo "new series: $UP filled from userpatches-350"
+fi
+if ! diff -rq "$REPO/userpatches-350/" "$UP/" >/dev/null; then
+    echo "!!! le patch in $UP non sono la ricetta userpatches-350" >&2
     exit 1
 fi
-echo "patch: $(ls ~/linux-tkg/linux72-tkg-userpatches/ | wc -l) (ricetta 350, verificata)"
+echo "patch: $(ls "$UP" | wc -l) in ${UP##*/} (ricetta 350, verificata)"
 
 cp -n "$C" "$C.prima-del-$V"
 mkdir -p ~/DEBS-$V/bc250 ~/DEBS-$V/x64 ~/frammenti-skillfish
