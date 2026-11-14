@@ -1,0 +1,50 @@
+From f439868b95d656e4d94bdd8582b69a757a39e216 Mon Sep 17 00:00:00 2001
+From: Mattia Tadini <info@mtsistemi.it>
+Date: Sat, 14 Nov 2026 16:07:04 +0100
+Subject: [PATCH] sched_ext: keep scx_bpf_error_bstr() in BTF when built with
+ gcc -O3 -march=znver2
+
+Built with gcc -O3 -march=znver2 (the SkillFishOS BC-250 kernel), vmlinux
+BTF lacks scx_bpf_error_bstr() and sched_ext fails to initialize:
+
+  sched_ext: Failed to register kfunc sets (-22)
+
+resolve_btfids warns "no BTF func for kfunc scx_bpf_error_bstr in
+scx_kfunc_ids_any". gcc describes @data__sz only as DW_OP_reg6 (RBP), the
+callee-saved register the prologue moves it to, not as RDX, the register it
+arrives in, and pahole (1.31 and 1.32 alike) drops the function as having
+an unexpected parameter register. The same source built for generic x86-64,
+or at -O2, is not affected.
+
+Keep @data__sz in memory with barrier_data(), the same workaround as
+upstream commit f2f095c87603 ("sched_ext: Work around pahole 1.32 dropping
+scx_bpf_task_set_lazy_resched() from BTF"). Checked on build_policy.o with
+gcc 16, -O3 -march=znver2: all four parameters now start in their argument
+registers, and pahole emits the function.
+
+Signed-off-by: Mattia Tadini <info@mtsistemi.it>
+---
+ kernel/sched/ext/ext.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/kernel/sched/ext/ext.c b/kernel/sched/ext/ext.c
+index 84774147a..3e953836b 100644
+--- a/kernel/sched/ext/ext.c
++++ b/kernel/sched/ext/ext.c
+@@ -10241,6 +10241,13 @@ __bpf_kfunc void scx_bpf_error_bstr(char *fmt, unsigned long long *data,
+ {
+ 	struct scx_sched *sch;
+ 
++	/*
++	 * gcc -O3 -march=znver2 describes @data__sz only in the callee-saved
++	 * register the prologue moves it to, so pahole drops this kfunc from
++	 * BTF and sched_ext fails to register its kfunc sets (-EINVAL). Keep
++	 * @data__sz in memory so its location names no register.
++	 */
++	barrier_data(&data__sz);
+ 	guard(rcu)();
+ 
+ 	sch = scx_prog_sched(aux);
+-- 
+2.55.0
+
