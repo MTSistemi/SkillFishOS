@@ -57,8 +57,13 @@ while read -r kind target <&3; do
   echo ">>> installing"
   # A machine that is not a BC-250 still gets every package: they are meant
   # to install anywhere and switch themselves off where they don't apply.
+  # --reinstall: without it apt skips a package whose version is already
+  # installed, and the check then runs on whatever bytes were there. It
+  # happened with 26.11.2 (14/11/2026): test builds carrying the release
+  # version stayed on both machines, and three packages were checked from the
+  # test build instead of the release one. The gate promises exact bytes.
   if ! "${SSH[@]}" "$target" "cd /root/release-check/debs && DEBIAN_FRONTEND=noninteractive \
-        apt-get install -y -q --allow-downgrades -o Dpkg::Options::=--force-confold ./*.deb" \
+        apt-get install -y -q --reinstall --allow-downgrades -o Dpkg::Options::=--force-confold ./*.deb" \
         > "$OUT/$kind-install.log" 2>&1; then
     tail -20 "$OUT/$kind-install.log"
     printf '{"version":"%s","kind":"%s","counts":{"fail":1},"results":[{"name":"install the packages","status":"fail","detail":"see %s-install.log"}]}\n' \
