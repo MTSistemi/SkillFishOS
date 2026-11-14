@@ -513,6 +513,19 @@ if [ "$1" = configure ]; then
     systemctl daemon-reload >/dev/null 2>&1 || true
     deb-systemd-invoke start skillfish-aggiorna-mirror.timer >/dev/null 2>&1 || true
   fi
+  # The 26.06 ISOs also carried our archive the live-build way:
+  # sources.list.d/aetherium.list, a one-line copy of skillfishos.sources with no
+  # Signed-By, and trusted.gpg.d/aetherium.key.binary.asc, which makes apt trust
+  # our key for EVERY source. Both are moved away, together, only when the list
+  # holds nothing but our own line and skillfishos.sources is there to replace it.
+  L=/etc/apt/sources.list.d/aetherium.list
+  if [ -f "$L" ] && [ -f /etc/apt/sources.list.d/skillfishos.sources ] \
+     && [ "$(grep -vE '^[[:space:]]*(#|$)' "$L")" = "deb https://mtsistemi.github.io/SkillFishOS/ aetherium main" ]; then
+    mkdir -p /var/backups/skillfish
+    mv "$L" /var/backups/skillfish/aetherium.list
+    K=/etc/apt/trusted.gpg.d/aetherium.key.binary.asc
+    [ -f "$K" ] && mv "$K" /var/backups/skillfish/aetherium.key.binary.asc
+  fi
 fi
 exit 0
 POSTINST_KEYRING
@@ -681,6 +694,13 @@ put $P 0755 system/usr/local/bin/skillfish-rollback                    usr/local
 # base because base is what survives that removal, and on the website as
 # /repair.sh for the machines that were broken before it shipped.
 put $P 0755 system/usr/local/bin/skillfish-repair-desktop            usr/local/bin/skillfish-repair-desktop
+# Two leftovers of the 26.06 ISOs, found through a review (SYSFORM, 27/10/2026).
+# The image carries no apt indices, so `apt install` failed until apt-daily ran
+# at some random hour: skillfish-apt-lists fetches them on the first boot with a
+# network. And Debian's conky.desktop stayed in the menu, where it starts a
+# second conky on top of the HUD: an override in /usr/local/share hides it.
+put $P 0644 system/etc/systemd/system/skillfish-apt-lists.service     etc/systemd/system/skillfish-apt-lists.service
+put $P 0644 system/usr/local/share/applications/conky.desktop        usr/local/share/applications/conky.desktop
 put $P 0644 system/etc/modprobe.d/skillfish-nct6686.conf              etc/modprobe.d/skillfish-nct6686.conf
 put $P 0644 system/etc/modules-load.d/skillfish-ntsync.conf           etc/modules-load.d/skillfish-ntsync.conf
 put $P 0755 system/usr/local/bin/skillfish-core-unlock                usr/local/bin/skillfish-core-unlock
@@ -843,7 +863,14 @@ echo "    os-release timbrato: $MEDIA"
 # skillfish-desktop-guard for the same reason as skillfish-boot: base is the
 # one package every installation already has, so this is how the guard reaches
 # machines installed before it existed (issue #87).
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard, fastfetch" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+# Sound, scanning and printing, from the same review of 26.06.5: the ISO is
+# built without Recommends, so alsa-ucm-conf (a Recommends of libasound2) never
+# arrived, and without its UCM profiles the SOF audio of modern mini PCs stays
+# on "Dummy output". sane-airscan and skanlite give the scanner drivers that
+# were there something to scan with; print-manager is the Printers page of the
+# KDE settings. Depends, not Recommends: installs from 26.06.5 have Recommends
+# switched off until this very version moves 00recommends away.
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard, fastfetch, alsa-ucm-conf, alsa-topology-conf, sane-airscan, skanlite, print-manager" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read. It is also the one place that asks the SMU how much power the
@@ -880,9 +907,22 @@ for u in skillfish-sshd-keygen.service skillfish-live-no-lock.service \
          skillfish-live-polkit.service skillfish-freeze-check.service \
          skillfish-core-unlock.service skillfish-gpu-freq.service \
          skillfish-wol.service skillfish-cpu-governor.service \
-         skillfish-firstboot-snapshots.service skillfish-no-sleep.service; do
+         skillfish-firstboot-snapshots.service skillfish-no-sleep.service \
+         skillfish-apt-lists.service; do
   systemctl enable "$u" >/dev/null 2>&1 || true
 done
+# The 26.06 ISOs left live-build's "no Recommends" in the installed system
+# (/etc/apt/apt.conf.d/00recommends): every apt install made there skipped the
+# Recommends, which is how alsa-ucm-conf went missing. Moved away only when it is
+# exactly live-build's two lines, and never inside a chroot, where it is the ISO
+# build that needs it.
+F=/etc/apt/apt.conf.d/00recommends
+if [ -f "$F" ] && ! systemd-detect-virt --chroot --quiet 2>/dev/null \
+   && [ "$(grep -v '^[[:space:]]*$' "$F" | tr -s ' \t' ' ')" = 'APT::Install-Recommends "false";
+Aptitude::Recommends-Important "false";' ]; then
+  mkdir -p /var/backups/skillfish
+  mv "$F" /var/backups/skillfish/00recommends.live-build
+fi
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
   # senza chiavi host ssh.service fallisce all'infinito su installazione fresca
@@ -1914,6 +1954,21 @@ check skillfish-base_${VER}_all.deb          ./usr/local/bin/skillfish-dp-hotswa
 # --annulla non trova piu' niente da recuperare (visto sulla Generic).
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-rollback 'sottovol_da_fstab'
 check skillfish-base_${VER}_all.deb ./usr/local/bin/skillfish-repair-desktop 'zz-skillfish-repair-testing'
+# The leftovers of the 26.06 ISOs found by the SYSFORM review (27/10/2026):
+# empty apt indices, Debian's conky launcher in the menu, no Recommends.
+check skillfish-base_${VER}_all.deb ./etc/systemd/system/skillfish-apt-lists.service 'ConditionPathExistsGlob=!/var/lib/apt/lists/\*_Packages'
+check skillfish-base_${VER}_all.deb ./usr/local/share/applications/conky.desktop '^NoDisplay=true$'
+grep -q '^Depends:.*alsa-ucm-conf' "$OUT/skillfish-base/DEBIAN/control" \
+  && echo "OK  skillfish-base: depends on alsa-ucm-conf" \
+  || { echo "FAIL skillfish-base: alsa-ucm-conf missing from Depends" >&2; exit 1; }
+while read -r leftover_pkg leftover_file; do
+  grep -q "$leftover_file" "$OUT/$leftover_pkg/DEBIAN/postinst" \
+    && echo "OK  $leftover_pkg: postinst moves the 26.06 leftover $leftover_file" \
+    || { echo "FAIL $leftover_pkg: postinst does not handle $leftover_file" >&2; exit 1; }
+done <<'LEFTOVERS'
+skillfish-base 00recommends.live-build
+skillfishos-archive-keyring aetherium.key.binary.asc
+LEFTOVERS
 check skillfish-smu-oc_${VER}_all.deb ./opt/bc250_smu_oc/bc250_smu/api.py 'class'
 check skillfish-smu-oc_${VER}_all.deb ./etc/systemd/system/bc250-smu-oc.service 'ExecCondition=/usr/local/bin/skillfish-is-bc250'
 notcheck skillfish-smu-oc_${VER}_all.deb ./opt/bc250_smu_oc/bc250_apply.py 'sudo rm'

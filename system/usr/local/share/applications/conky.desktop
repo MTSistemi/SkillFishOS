@@ -1,0 +1,10 @@
+[Desktop Entry]
+# Hides Debian's own conky launcher (/usr/share/applications/conky.desktop).
+# Started from the menu it runs a second conky with the default config on top
+# of our HUD, which is how a reviewer ended up with two of them on screen
+# (SYSFORM, 27/10/2026). The HUD has its own menu entry, SkillFishOS HUD.
+# /usr/local/share comes before /usr/share in XDG_DATA_DIRS, so this file wins.
+Type=Application
+Name=conky
+Exec=conky --daemonize --pause=1
+NoDisplay=true

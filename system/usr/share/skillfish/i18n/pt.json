@@ -1251,5 +1251,6 @@
  "Governor %s, at the next boot too.": "Governador %s, também no próximo arranque.",
  "Install the CPU P-state tables? They take effect after a restart.": "Instalar as tabelas P-state da CPU? Têm efeito depois de reiniciar.",
  "P-states turned on: restart to use them.": "P-states ativados: reinicie para os usar.",
- "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc": "O bc250_smu_oc não está instalado: sudo apt install skillfish-smu-oc"
+ "bc250_smu_oc is not installed: sudo apt install skillfish-smu-oc": "O bc250_smu_oc não está instalado: sudo apt install skillfish-smu-oc",
+ "Set in %s: edit that file to change it.": "Definida em %s: para a alterar, edite esse ficheiro."
 }
