@@ -45,6 +45,19 @@
   <pkgname>skillfishos-kernel</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="7.3.4-1" date="2026-11-14">
+      <description>
+          <p>The kernel moves to the 7.3 series, version 7.3.4: the 7.2 series has reached its end and gets no more fixes. All our BC-250 changes come along, and the game-mode scheduler keeps working. Tested on a BC-250 and on an x64 PC: clean start, 40 of 40 compute units, GPU throughput unchanged.</p>
+          <p xml:lang="it">Il kernel passa alla serie 7.3, versione 7.3.4: la serie 7.2 è arrivata a fine vita e non riceve più correzioni. Tutte le nostre modifiche per la BC-250 vengono con lui, e lo scheduler della modalità gioco continua a funzionare. Provato su una BC-250 e su un PC x64: avvio pulito, 40 Compute Unit su 40, prestazioni della GPU invariate.</p>
+          <p xml:lang="fr">Le noyau passe à la série 7.3, version 7.3.4 : la série 7.2 est arrivée en fin de vie et ne reçoit plus de corrections. Toutes nos modifications pour la BC-250 suivent, et l'ordonnanceur du mode jeu continue de fonctionner. Testé sur une BC-250 et sur un PC x64 : démarrage propre, 40 unités de calcul sur 40, débit du GPU inchangé.</p>
+          <p xml:lang="es">El núcleo pasa a la serie 7.3, versión 7.3.4: la serie 7.2 ha llegado al final de su vida y ya no recibe correcciones. Todos nuestros cambios para la BC-250 vienen con él, y el planificador del modo juego sigue funcionando. Probado en una BC-250 y en un PC x64: arranque limpio, 40 unidades de cómputo de 40, rendimiento de la GPU sin cambios.</p>
+          <p xml:lang="pt">O núcleo passa para a série 7.3, versão 7.3.4: a série 7.2 chegou ao fim de vida e já não recebe correções. Todas as nossas alterações para a BC-250 vêm com ele, e o escalonador do modo de jogo continua a funcionar. Testado numa BC-250 e num PC x64: arranque limpo, 40 unidades de computação em 40, desempenho da GPU inalterado.</p>
+          <p xml:lang="de">Der Kernel wechselt auf die Serie 7.3, Version 7.3.4: Die Serie 7.2 hat ihr Lebensende erreicht und bekommt keine Korrekturen mehr. Alle unsere Änderungen für die BC-250 kommen mit, und der Scheduler des Spielmodus funktioniert weiter. Getestet auf einer BC-250 und einem x64-PC: sauberer Start, 40 von 40 Compute Units, GPU-Leistung unverändert.</p>
+          <p xml:lang="pl">Jądro przechodzi na serię 7.3, wersję 7.3.4: seria 7.2 dobiegła końca i nie dostaje już poprawek. Wszystkie nasze zmiany dla BC-250 przechodzą razem z nim, a planista trybu gry działa dalej. Przetestowane na BC-250 i na komputerze x64: czysty start, 40 z 40 jednostek obliczeniowych, wydajność GPU bez zmian.</p>
+          <p xml:lang="ru">Ядро переходит на серию 7.3, версию 7.3.4: серия 7.2 подошла к концу и больше не получает исправлений. Все наши изменения для BC-250 переходят вместе с ним, а планировщик игрового режима продолжает работать. Проверено на BC-250 и на ПК x64: чистый запуск, 40 из 40 вычислительных блоков, производительность GPU не изменилась.</p>
+          <p xml:lang="uk">Ядро переходить на серію 7.3, версію 7.3.4: серія 7.2 дійшла до кінця і більше не отримує виправлень. Усі наші зміни для BC-250 переходять разом із ним, а планувальник ігрового режиму працює далі. Перевірено на BC-250 і на ПК x64: чистий запуск, 40 з 40 обчислювальних блоків, продуктивність GPU без змін.</p>
+      </description>
+    </release>
     <release version="7.2.9-2" date="2026-10-07">
       <description>
           <p>The new kernel is installed even when it arrives in a long update. Until now the installation started twenty seconds after the download, and if the update was still running at that point it failed without a word: the downloaded kernel was thrown away and the machine stayed on the old one. Now it waits for the update to finish, and the kernel is also held reliably.</p>
