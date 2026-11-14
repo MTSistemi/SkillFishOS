@@ -2738,7 +2738,10 @@ class Hub(QMainWindow):
                     parts = re.sub(r"\[[^\]]*\]", " ", ls).split()  # drop [arch=… signed-by=…]
                     if len(parts) < 3: continue
                     uri, suite = parts[1], parts[2]
-                    name = "debian" if "debian.org" in uri else os.path.basename(path).rsplit(".", 1)[0]
+                    # Named after the host, not after a substring of the URI.
+                    host = (urllib.parse.urlsplit(uri).hostname or "").lower()
+                    debian = host == "debian.org" or host.endswith(".debian.org")
+                    name = "debian" if debian else os.path.basename(path).rsplit(".", 1)[0]
                     rows.append((name, "%s  ·  %s" % (uri, suite), True, path))
         except Exception:
             pass  # best-effort: a missing or unreadable file shows nothing
