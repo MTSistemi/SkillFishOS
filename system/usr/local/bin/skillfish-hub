@@ -2656,12 +2656,20 @@ class Hub(QMainWindow):
         addb = QPushButton(L("+ Aggiungi repository", "+ Add repository")); addb.clicked.connect(self.add_repo_dialog)
         addb.setStyleSheet("QPushButton{background:rgba(216,168,73,0.18);color:#f1e3c6;border-radius:9px;padding:6px 14px;}"); h.addWidget(addb)
         hw = QWidget(); hw.setLayout(h); self.p_lay.addWidget(hw)
-        for name, info, enabled in self._list_apt_repos():
+        for name, info, enabled, path in self._list_apt_repos():
             row = QFrame(); rl = QHBoxLayout(row); rl.setContentsMargins(12, 8, 12, 8); row.setStyleSheet("QFrame{background:rgba(255,255,255,0.03);border:1px solid rgba(216,168,73,0.14);border-radius:10px;}")
-            cb = QCheckBox(); cb.setChecked(enabled); cb.toggled.connect(lambda en, n=name: self.repo_enable(n, en)); rl.addWidget(cb)
+            cb = QCheckBox(); cb.setChecked(enabled)
+            if path:
+                # A one-line source: shown so the user sees it, but repo-enable
+                # only knows how to edit .sources files, so it stays read-only.
+                cb.setEnabled(False)
+                row.setToolTip(L("Impostata in %s: per cambiarla si modifica quel file.", "Set in %s: edit that file to change it.") % path)
+            else:
+                cb.toggled.connect(lambda en, n=name: self.repo_enable(n, en))
+            rl.addWidget(cb)
             col = QVBoxLayout(); col.setSpacing(0); nl = QLabel(name); nl.setStyleSheet("color:#f1e3c6;font-weight:700;")
             il = QLabel(info); il.setStyleSheet("color:#b9a07a;font-size:12px;"); il.setWordWrap(True); col.addWidget(nl); col.addWidget(il); rl.addLayout(col, 1)
-            if name not in ("debian", "skillfishos"):
+            if not path and name not in ("debian", "skillfishos"):
                 rb = QPushButton("🗑"); rb.setFixedWidth(36); rb.clicked.connect(lambda _c, n=name: self.repo_remove(n)); rb.setStyleSheet("QPushButton{background:transparent;color:#cf8a6a;border:none;font-size:16px;}"); rl.addWidget(rb)
             self.p_lay.addWidget(row)
         # flatpak remotes
@@ -2682,24 +2690,59 @@ class Hub(QMainWindow):
         self.statusBar().showMessage(L("Backend aggiornato. Ricarico…", "Backend updated. Reloading…")); self.reload_catalog()
 
     def _list_apt_repos(self):
+        """Every APT source the system uses, as (name, info, enabled, path).
+
+        path is None for the .sources files this Hub can switch on and off
+        (repo-enable edits their Enabled: field). The one-line sources in
+        /etc/apt/sources.list and in *.list files are listed too, read-only:
+        the 26.06 ISOs put Debian there, and listing .sources alone made the
+        Hub show our archive by itself, as if Debian were missing (SYSFORM
+        review of 27/10/2026).
+        """
         out = []; d = "/etc/apt/sources.list.d"
         try:
-            for fn in sorted(os.listdir(d)):
-                if not fn.endswith(".sources"): continue
-                name = fn[:-8]; enabled = True; uris = suites = ""
-                try:
-                    with open(os.path.join(d, fn)) as f:
-                        for line in f:
-                            ls = line.strip()
-                            if ls.lower().startswith("uris:"): uris = ls.split(":", 1)[1].strip()
-                            elif ls.lower().startswith("suites:"): suites = ls.split(":", 1)[1].strip()
-                            elif ls.lower().startswith("enabled:"): enabled = "no" not in ls.lower()
-                except Exception:
-                    pass  # best-effort
-                out.append((name, "%s  ·  %s" % (uris, suites), enabled))
+            names = sorted(os.listdir(d))
         except Exception:
-            pass  # best-effort
+            names = []  # best-effort
+        for fn in names:
+            if not fn.endswith(".sources"): continue
+            name = fn[:-8]; enabled = True; uris = suites = ""
+            try:
+                with open(os.path.join(d, fn)) as f:
+                    for line in f:
+                        ls = line.strip()
+                        if ls.lower().startswith("uris:"): uris = ls.split(":", 1)[1].strip()
+                        elif ls.lower().startswith("suites:"): suites = ls.split(":", 1)[1].strip()
+                        elif ls.lower().startswith("enabled:"): enabled = "no" not in ls.lower()
+            except Exception:
+                pass  # best-effort
+            out.append((name, "%s  ·  %s" % (uris, suites), enabled, None))
+        for path in ["/etc/apt/sources.list"] + [os.path.join(d, fn) for fn in names if fn.endswith(".list")]:
+            out.extend(self._one_line_sources(path))
         return out
+
+    @staticmethod
+    def _one_line_sources(path):
+        """One row per active 'deb' line of a one-line sources file.
+
+        deb-src lines and commented lines are left out: Debian's own
+        sources.list carries commented examples (a cdrom: line among them)
+        that would only add noise.
+        """
+        rows = []
+        try:
+            with open(path) as f:
+                for line in f:
+                    ls = line.strip()
+                    if not ls.startswith("deb "): continue
+                    parts = re.sub(r"\[[^\]]*\]", " ", ls).split()  # drop [arch=… signed-by=…]
+                    if len(parts) < 3: continue
+                    uri, suite = parts[1], parts[2]
+                    name = "debian" if "debian.org" in uri else os.path.basename(path).rsplit(".", 1)[0]
+                    rows.append((name, "%s  ·  %s" % (uri, suite), True, path))
+        except Exception:
+            pass  # best-effort: a missing or unreadable file shows nothing
+        return rows
     def _list_flatpak_remotes(self):
         out = []; seen = set()
         if have("flatpak"):

@@ -1,0 +1,24 @@
+[Unit]
+Description=SkillFishOS - fetch the APT package lists when there are none
+Documentation=https://skillfishos.com
+# The ISOs are built with --apt-indices false, so an installed system starts
+# with an empty /var/lib/apt/lists: until apt-daily ran, at some random hour,
+# `apt install fastfetch` (or vlc, or anything) answered "unable to locate
+# package", Debian's archive included. Found through a review of 26.06.5
+# (SYSFORM, 27/10/2026). This runs on the first boot that has a network and,
+# once there is an index, never again: the condition below skips it.
+ConditionPathExistsGlob=!/var/lib/apt/lists/*_Packages
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/apt-get -q update
+# No network at boot: apt-get exits 100. That is not a fault of the system, so
+# it does not leave a failed unit behind; the next boot tries again, and so
+# does apt-daily.
+SuccessExitStatus=100
+TimeoutStartSec=10min
+
+[Install]
+WantedBy=multi-user.target
