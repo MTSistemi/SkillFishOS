@@ -66,6 +66,19 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="26.11.2" date="2026-11-14">
+      <description>
+        <p>The Software sources page shows every APT source, Debian included. Sources written the classic way, in sources.list or in .list files, used to be missing, so on some systems it looked as if Debian were not configured. They are listed now, read-only, and the page says which file to edit to change them.</p>
+        <p xml:lang="it">La pagina Sorgenti software mostra tutte le sorgenti APT, Debian compreso. Quelle scritte nel modo classico, in sources.list o nei file .list, prima mancavano, e su alcuni sistemi sembrava che Debian non fosse configurato. Ora compaiono, in sola lettura, e la pagina dice quale file modificare per cambiarle.</p>
+        <p xml:lang="fr">La page Sources de logiciels affiche toutes les sources APT, Debian compris. Celles écrites à l'ancienne, dans sources.list ou dans des fichiers .list, manquaient, et sur certains systèmes on aurait dit que Debian n'était pas configuré. Elles apparaissent maintenant, en lecture seule, et la page indique quel fichier modifier pour les changer.</p>
+        <p xml:lang="es">La página Fuentes de software muestra todas las fuentes APT, Debian incluido. Las escritas a la manera clásica, en sources.list o en archivos .list, faltaban, y en algunos sistemas parecía que Debian no estaba configurado. Ahora aparecen, en solo lectura, y la página dice qué archivo editar para cambiarlas.</p>
+        <p xml:lang="pt">A página Fontes de software mostra todas as fontes APT, Debian incluído. As escritas da forma clássica, em sources.list ou em ficheiros .list, faltavam, e em alguns sistemas parecia que o Debian não estava configurado. Agora aparecem, só de leitura, e a página indica que ficheiro editar para as alterar.</p>
+        <p xml:lang="de">Die Seite Softwarequellen zeigt jede APT-Quelle, Debian eingeschlossen. Quellen, die klassisch in sources.list oder in .list-Dateien stehen, fehlten bisher, sodass es auf manchen Systemen aussah, als sei Debian nicht eingerichtet. Sie erscheinen jetzt schreibgeschützt, und die Seite nennt die Datei, die man zum Ändern bearbeitet.</p>
+        <p xml:lang="pl">Strona Źródła oprogramowania pokazuje każde źródło APT, łącznie z Debianem. Źródła zapisane po staremu, w sources.list lub w plikach .list, wcześniej się nie pojawiały, więc na niektórych systemach wyglądało, jakby Debian nie był skonfigurowany. Teraz są widoczne, tylko do odczytu, a strona podaje, który plik edytować, aby je zmienić.</p>
+        <p xml:lang="ru">Страница «Источники ПО» показывает все источники APT, включая Debian. Источники, записанные по-старому, в sources.list или в файлах .list, раньше не отображались, и на некоторых системах казалось, что Debian не настроен. Теперь они видны, только для чтения, и страница подсказывает, какой файл изменить.</p>
+        <p xml:lang="uk">Сторінка «Джерела програм» показує всі джерела APT, включно з Debian. Джерела, записані по-старому, у sources.list або у файлах .list, раніше не відображалися, і на деяких системах здавалося, що Debian не налаштовано. Тепер вони видні, лише для читання, а сторінка підказує, який файл змінити.</p>
+      </description>
+    </release>
     <release version="26.09.42" date="2026-09-21">
       <description>
         <p>Discover is removed with this update. It was a second updater that did not know about this one, and during Debian's rebuild of Qt and KDE it offered to remove the whole desktop to finish an update. The Hub does everything it did: apt, Flatpak and firmware updates, installing and removing software. If you want Discover back, you can reinstall it, but updates belong here.</p>

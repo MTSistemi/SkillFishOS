@@ -16,7 +16,7 @@ report those to their respective projects.
 | Kernel | `7.3.4-skillfishos` (+ `-x64`) | yes |
 | Kernel | `7.2.9-skillfishos` | previous series, end of life upstream, best effort |
 | Kernel | `7.2.6-skillfishos` and older | no |
-| Apps | `skillfish-*` `26.11.1` or newer | yes |
+| Apps | `skillfish-*` `26.11.2` or newer | yes |
 
 Fixes are delivered through the signed APT repository — `sudo apt update && sudo apt upgrade`.
 The installed system does not point at a single address: it carries a mirror list

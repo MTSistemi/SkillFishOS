@@ -33,6 +33,19 @@
   <pkgname>skillfishos-archive-keyring</pkgname>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.11.2" date="2026-11-14">
+      <description>
+        <p>Removes a leftover of the 26.06 images: a second, unsigned copy of our archive in the APT sources, with our key trusted for every source instead of ours alone. The signed source stays and nothing changes in the updates you receive. The two old files are kept in /var/backups/skillfish.</p>
+        <p xml:lang="it">Toglie un residuo delle immagini 26.06: una seconda copia, non firmata, del nostro archivio nelle sorgenti APT, con la nostra chiave considerata valida per qualunque sorgente invece che solo per la nostra. La sorgente firmata resta e negli aggiornamenti che ricevi non cambia niente. I due file vecchi sono conservati in /var/backups/skillfish.</p>
+        <p xml:lang="fr">Retire un reste des images 26.06 : une seconde copie, non signée, de notre dépôt dans les sources APT, avec notre clé reconnue pour n'importe quelle source au lieu de la nôtre seule. La source signée reste et rien ne change dans les mises à jour reçues. Les deux anciens fichiers sont conservés dans /var/backups/skillfish.</p>
+        <p xml:lang="es">Quita un resto de las imágenes 26.06: una segunda copia, sin firmar, de nuestro archivo en las fuentes APT, con nuestra clave considerada válida para cualquier fuente en lugar de solo para la nuestra. La fuente firmada se queda y nada cambia en las actualizaciones que recibes. Los dos archivos antiguos se guardan en /var/backups/skillfish.</p>
+        <p xml:lang="pt">Retira um resto das imagens 26.06: uma segunda cópia, não assinada, do nosso arquivo nas fontes APT, com a nossa chave aceite para qualquer fonte em vez de só para a nossa. A fonte assinada fica e nada muda nas atualizações que recebe. Os dois ficheiros antigos ficam guardados em /var/backups/skillfish.</p>
+        <p xml:lang="de">Entfernt einen Rest der Abbilder 26.06: eine zweite, unsignierte Kopie unseres Archivs in den APT-Quellen, bei der unser Schlüssel für jede Quelle galt statt nur für unsere. Die signierte Quelle bleibt, und an den Updates ändert sich nichts. Die beiden alten Dateien liegen in /var/backups/skillfish.</p>
+        <p xml:lang="pl">Usuwa pozostałość obrazów 26.06: drugą, niepodpisaną kopię naszego archiwum w źródłach APT, przy której nasz klucz był uznawany dla każdego źródła, a nie tylko dla naszego. Podpisane źródło zostaje i w otrzymywanych aktualizacjach nic się nie zmienia. Dwa stare pliki są zachowane w /var/backups/skillfish.</p>
+        <p xml:lang="ru">Убирает остаток образов 26.06: вторую, неподписанную копию нашего архива в источниках APT, при которой наш ключ считался действительным для любого источника, а не только для нашего. Подписанный источник остаётся, и в получаемых обновлениях ничего не меняется. Два старых файла сохранены в /var/backups/skillfish.</p>
+        <p xml:lang="uk">Прибирає залишок образів 26.06: другу, непідписану копію нашого архіву в джерелах APT, за якої наш ключ вважався дійсним для будь-якого джерела, а не лише для нашого. Підписане джерело лишається, і в оновленнях, які ви отримуєте, нічого не змінюється. Два старі файли збережено в /var/backups/skillfish.</p>
+      </description>
+    </release>
     <release version="26.09.14" date="2026-09-13">
       <description>
         <p>Two mirrors instead of three: packages come from GitHub Pages and from deb.skillfishos.com. Nothing changes for anyone running SkillFishOS — the mirror list is signed and refreshes itself weekly.</p>
