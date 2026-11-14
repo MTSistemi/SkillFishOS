@@ -1,10 +1,14 @@
-From 126fbb2ff4ede43132064b96d39292684bc47fcf Mon Sep 17 00:00:00 2001
+From c0c1c612265be6bf827daec046bc23413b9e4ff3 Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
 Date: Wed, 17 Nov 2021 00:26:20 -0800
 Subject: [PATCH] x86: save/restore TSC counter value during sleep/wake
 
 Signed-off-by: Steven Noonan <steven@uplinklabs.net>
 Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+
+[SkillFishOS: rebased on 7.3.4. 7.3 rewrote the MISC_ENABLE save around
+ "struct msr val"; the TSC block now follows it. With fuzz the old hunk
+ landed inside "#ifndef CONFIG_64BIT" and never ran on a 64-bit kernel.]
 ---
  arch/x86/kernel/acpi/sleep.c      |  5 +++++
  arch/x86/realmode/rm/wakeup.h     |  3 +++
@@ -12,13 +16,13 @@ Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
  3 files changed, 20 insertions(+)
 
 diff --git a/arch/x86/kernel/acpi/sleep.c b/arch/x86/kernel/acpi/sleep.c
-index 91fa262f0e3056..31761a44ce59bf 100644
+index 8dfe98784..84c4db46d 100644
 --- a/arch/x86/kernel/acpi/sleep.c
 +++ b/arch/x86/kernel/acpi/sleep.c
-@@ -104,6 +104,11 @@ int x86_acpi_suspend_lowlevel(void)
- 			header->pmode_misc_en_high))
- 		header->pmode_behavior |=
+@@ -100,6 +100,11 @@ int x86_acpi_suspend_lowlevel(void)
  			(1 << WAKEUP_BEHAVIOR_RESTORE_MISC_ENABLE);
+ 	header->pmode_misc_en_low = val.l;
+ 	header->pmode_misc_en_high = val.h;
 +	if (!rdmsr_safe(MSR_IA32_TSC,
 +	                &header->pmode_tsc_low,
 +	                &header->pmode_tsc_high))
@@ -28,7 +32,7 @@ index 91fa262f0e3056..31761a44ce59bf 100644
  	header->real_magic = 0x12345678;
  
 diff --git a/arch/x86/realmode/rm/wakeup.h b/arch/x86/realmode/rm/wakeup.h
-index 3b6d8fa82d3e10..e52c5046c55364 100644
+index 3b6d8fa82..e52c5046c 100644
 --- a/arch/x86/realmode/rm/wakeup.h
 +++ b/arch/x86/realmode/rm/wakeup.h
 @@ -23,6 +23,8 @@ struct wakeup_header {
@@ -48,7 +52,7 @@ index 3b6d8fa82d3e10..e52c5046c55364 100644
  
  #endif /* ARCH_X86_KERNEL_ACPI_RM_WAKEUP_H */
 diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
-index 02d0ba16ae3369..0154ef895960e9 100644
+index 02d0ba16a..0154ef895 100644
 --- a/arch/x86/realmode/rm/wakeup_asm.S
 +++ b/arch/x86/realmode/rm/wakeup_asm.S
 @@ -27,6 +27,7 @@ SYM_DATA_START(wakeup_header)
@@ -77,3 +81,6 @@ index 02d0ba16ae3369..0154ef895960e9 100644
  	/* Do any other stuff... */
  
  #ifndef CONFIG_64BIT
+-- 
+2.55.0
+

@@ -1,5 +1,31 @@
---- a/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c	2026-05-22 18:33:38.993477706 +0000
-+++ b/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c	2026-05-22 18:27:53.604521078 +0000
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+index 9e70a0f3a..fccd89f33 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c
+@@ -50,6 +50,9 @@
+ #include "smu_v15_0_0_ppt.h"
+ #include "smu_v15_0_8_ppt.h"
+ #include "amd_pcie.h"
++void smu_cmn_create_send_raw_debugfs(struct amdgpu_device *adev);
++void cyan_skillfish_create_cac_debugfs(struct amdgpu_device *adev);
++
+ 
+ /*
+  * DO NOT use these for err/warn/info/debug messages.
+@@ -4214,6 +4217,9 @@ void amdgpu_smu_stb_debug_fs_init(struct amdgpu_device *adev)
+ 
+ 	struct smu_context *smu = adev->powerplay.pp_handle;
+ 
++	smu_cmn_create_send_raw_debugfs(adev);
++	cyan_skillfish_create_cac_debugfs(adev);
++
+ 	if (!smu || (!smu->stb_context.stb_buf_size))
+ 		return;
+ 
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c b/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c
+index 56298c7a3..0f728b337 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/smu11/cyan_skillfish_ppt.c
 @@ -33,6 +33,11 @@
  #include "smu_cmn.h"
  #include "soc15_common.h"
@@ -12,7 +38,7 @@
  /*
   * DO NOT use these for err/warn/info/debug messages.
   * Use dev_err, dev_warn, dev_info and dev_dbg instead.
-@@ -189,9 +194,8 @@
+@@ -189,9 +194,8 @@ static int cyan_skillfish_read_cac_weight(struct smu_context *smu,
  					   uint16_t msg, uint8_t idx,
  					   uint32_t *value)
  {
@@ -24,8 +50,8 @@
  }
  
  static void cyan_skillfish_log_cac_baseline(struct smu_context *smu)
-@@ -802,3 +806,138 @@
- 	smu->is_apu = true;
+@@ -801,3 +805,138 @@ void cyan_skillfish_set_ppt_funcs(struct smu_context *smu)
+ 	smu->smc_driver_if_version = MP1_DRIVER_IF_VERSION;
  	smu_v11_0_init_msg_ctl(smu, cyan_skillfish_message_map);
  }
 +
@@ -163,9 +189,11 @@
 +#else  /* !CONFIG_DEBUG_FS */
 +void cyan_skillfish_create_cac_debugfs(struct amdgpu_device *adev) { (void)adev; }
 +#endif
---- a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h	2026-04-27 15:50:41.000000000 +0000
-+++ b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h	2026-05-22 18:14:55.764286472 +0000
-@@ -119,6 +119,17 @@
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h
+index ae6742f52..f60a7a509 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h
++++ b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.h
+@@ -154,6 +154,17 @@ int smu_cmn_send_smc_msg(struct smu_context *smu,
  			 enum smu_message_type msg,
  			 uint32_t *read_arg);
  
@@ -182,26 +210,4 @@
 +
  int smu_cmn_send_debug_smc_msg(struct smu_context *smu,
  			 uint32_t msg);
- 
---- a/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c	2026-04-27 15:50:41.000000000 +0000
-+++ b/drivers/gpu/drm/amd/pm/swsmu/amdgpu_smu.c	2026-05-22 18:15:55.044149311 +0000
-@@ -48,6 +48,9 @@
- #include "smu_v14_0_2_ppt.h"
- #include "smu_v15_0_0_ppt.h"
- #include "amd_pcie.h"
-+void smu_cmn_create_send_raw_debugfs(struct amdgpu_device *adev);
-+void cyan_skillfish_create_cac_debugfs(struct amdgpu_device *adev);
-+
- 
- /*
-  * DO NOT use these for err/warn/info/debug messages.
-@@ -4091,6 +4094,9 @@
- 
- 	struct smu_context *smu = adev->powerplay.pp_handle;
- 
-+	smu_cmn_create_send_raw_debugfs(adev);
-+	cyan_skillfish_create_cac_debugfs(adev);
-+
- 	if (!smu || (!smu->stb_context.stb_buf_size))
- 		return;
  
