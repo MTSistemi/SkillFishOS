@@ -205,7 +205,6 @@ def test_the_warning_says_it_is_unsigned():
     whoever gave it to them. That sentence is the whole difference between
     installing from the Hub and installing something found lying around.
     """
-    import pathlib
     hubsrc = (pathlib.Path(__file__).resolve().parents[1]
               / "apps" / "hub" / "skillfish-hub").read_text(encoding="utf-8")
     assert "def avviso_bersaglio" in hubsrc
