@@ -1,16 +1,24 @@
 [Unit]
 Description=AMD BC-250 CPU Overclock
 Documentation=https://skillfishos.com
+# At most 5 attempts in 2 minutes, see Restart= below.
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
-# Senza guardia questo servizio parte anche su un PC normale o in una macchina
-# virtuale: bc250_apply.py cerca l'SMU, non lo trova e muore con un traceback
-# ("unexpected test response 1, expected 124"), lasciando una riga rossa in
-# `systemctl --failed` su ogni avvio dell'edizione Generic.
-# ExecCondition diverso da zero fa SALTARE l'unita', non fallire.
+# Without a guard this service also starts on an ordinary PC or in a virtual
+# machine: bc250_apply.py looks for the SMU, does not find it and dies with a
+# traceback ("unexpected test response 1, expected 124"), leaving a red line in
+# `systemctl --failed` at every boot of the Generic edition.
+# A non-zero ExecCondition SKIPS the unit instead of failing it.
 ExecCondition=/usr/local/bin/skillfish-is-bc250
 ExecStart=/usr/bin/python3 /opt/bc250_smu_oc/bc250_apply.py --apply /etc/bc250-smu-oc.conf
-Restart=no
+# Early in boot the SMU can still be busy and answer 0x00 (no response yet):
+# seen on the .32 on 2026-11-14, nine seconds after boot, on message 0x8B (CPU
+# temperature limit). With Restart=no the overclock was then simply missing
+# for the whole session. A second try a few seconds later goes through.
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
