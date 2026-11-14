@@ -1462,6 +1462,17 @@ put $P 0644 system/usr/share/icons/hicolor/scalable/apps/skillfish-installer.svg
 # owned it), so a fix could not reach installed systems through apt. It ships
 # as a package now — same paths, so it simply takes ownership of the files.
 putdir $P theme/icons/SkillFishSteampunk              usr/share/icons/SkillFishSteampunk
+# Nine emulator icons are looked up under two names that differ only in case
+# (Cemu and cemu, Xenia and xenia, ...): the launchers EmuDeck and ES-DE write
+# at runtime use the capitalised one. The repository keeps only the lowercase
+# file, because two paths that differ only in case break a checkout on Windows
+# and macOS. The capitalised copy is made here, so the package is unchanged.
+EMU_ICON_ALIASES="Cemu DuckStation ES-DE Model2 PCSX2 RPCS3 shadPS4 Vita3K Xenia"
+for n in $EMU_ICON_ALIASES; do
+  lc=$(printf '%s' "$n" | tr '[:upper:]' '[:lower:]')
+  put $P 0644 "theme/icons/SkillFishSteampunk/scalable/apps/$lc.svg" \
+      "usr/share/icons/SkillFishSteampunk/scalable/apps/$n.svg"
+done
 # ⚠️ La riparazione del pulsante del menu, per chi AGGIORNA.
 # La configurazione del pannello sta nella home dell'utente e un pacchetto
 # non tocca le home: /etc/skel vale solo per chi arriva nuovo. Senza questo,
@@ -2210,6 +2221,14 @@ check skillfish-theme_${VER}_all.deb         ./etc/skel/.config/plasma-org.kde.p
 # taglia dopo il trattino, trova "skillfish" nel tema e disegna il pesce
 # stilizzato al posto di quello di ottone, senza dire niente a nessuno.
 deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/256x256/apps/skillfish-tuner.png" "skillfish-theme: l icona del Tuner e dentro al tema"
+# Both spellings of every emulator icon must be in the package: the repository
+# only carries the lowercase one, the capitalised one is made at build time.
+for n in $EMU_ICON_ALIASES; do
+  lc=$(printf '%s' "$n" | tr '[:upper:]' '[:lower:]')
+  for f in "$n" "$lc"; do
+    deve_esserci "$OUT/skillfish-theme/usr/share/icons/SkillFishSteampunk/scalable/apps/$f.svg" "skillfish-theme: emulator icon $f.svg"
+  done
+done
 # La schermata di accesso non deve piu' dire "Accedi" a un polacco: si controlla
 # che il testo passi dalla funzione di traduzione e non sia piu' una costante.
 check skillfish-theme_${VER}_all.deb         ./usr/share/sddm/themes/skillfish-brass/Main.qml "root.tr(root.txtLogin)"
