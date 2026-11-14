@@ -98,7 +98,16 @@ costruisci x64
 
 echo "=== finito $(date +%H:%M:%S) ==="
 ls -la ~/DEBS-$V/bc250/ ~/DEBS-$V/x64/ 2>/dev/null | grep -E 'linux-image|linux-headers'
-echo
-echo "poi si firma, e solo dopo si pubblica:"
-echo "  sudo bash kernel-build/scripts/firma-kernel.sh ~/DEBS-$V/*/linux-image-*.deb"
-date > ~/build-$V.fatto
+# The .fatto marker means "both flavours built". It used to be written even
+# when both builds failed, so anything waiting on it read a failure as done.
+# A stale marker from an earlier attempt is removed for the same reason.
+rm -f ~/build-$V.fatto
+if ls ~/DEBS-$V/bc250/linux-image-*.deb ~/DEBS-$V/x64/linux-image-*.deb >/dev/null 2>&1; then
+    echo
+    echo "poi si firma, e solo dopo si pubblica:"
+    echo "  sudo bash kernel-build/scripts/firma-kernel.sh ~/DEBS-$V/*/linux-image-*.deb"
+    date > ~/build-$V.fatto
+else
+    echo "!!! manca il linux-image di almeno un sapore: niente ~/build-$V.fatto" >&2
+    exit 1
+fi
