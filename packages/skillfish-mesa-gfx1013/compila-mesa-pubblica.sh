@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the Mesa we ship: the WHOLE driver with our patches, not only RADV.
 #
-#     compila-mesa-pubblica.sh [versione]     esempio: 26.2.3
+#     compila-mesa-pubblica.sh [versione] [versione-llvm]     esempio: 26.2.7 22
 #
 # Why: until now we shipped one file, libvulkan_radeon.so, and the rest of the
 # machine kept Debian's Mesa. Two drivers on one board, and the desktop never
@@ -14,7 +14,7 @@
 # tree after the build breaks OpenGL in a way that looks like a driver bug.
 #
 # ⚠️ -Damd-use-llvm=false IS NOT OPTIONAL. Turning LLVM on for radeonsi also
-# links RADV against libLLVM.so.21.1, which does not exist inside the flatpak
+# links RADV against libLLVM.so.<n>, which does not exist inside the flatpak
 # sandbox the games run in: the Vulkan loader then drops our ICD IN SILENCE and
 # the game starts on the runtime's driver. Same trap as libdisplay-info, and it
 # only shows up in a measurement. RADV compiles shaders with ACO; LLVM there is
@@ -25,7 +25,15 @@
 # 32-bit process looking for libvulkan_radeon.so skips ours and keeps finding
 # Debian's i386 one. That is what lets 32-bit Proton games keep working.
 set -u
-VER="${1:-26.2.4}"
+VER="${1:-26.2.7}"
+# ⚠️ THE LLVM IS CHOSEN, NOT FOUND. meson takes whatever `llvm-config` answers,
+# and on the build VM that was LLVM 21 while Debian had moved its own Mesa to
+# 22 (21/09/2026). Our libraries then pinned libllvm21 on every board, an
+# orphan waiting for autoremove (issue #97). The version is passed to meson
+# through a native file, so a second LLVM installed for something else cannot
+# change what we ship.
+LLVM="${2:-22}"
+command -v "llvm-config-$LLVM" >/dev/null || { echo "llvm-config-$LLVM missing: apt install llvm-$LLVM-dev"; exit 1; }
 CORTO=$(echo "$VER" | tr -d .)
 REPO=~/bc250-fsr4
 SORG=~/mesa-fsr4-src
@@ -79,9 +87,12 @@ open(f, "w").write(t)
 PY
 [ $? -eq 0 ] || exit 1
 
-echo "=== $(date +%H:%M:%S) meson setup"
+echo "=== $(date +%H:%M:%S) meson setup, LLVM $("llvm-config-$LLVM" --version)"
 rm -rf "$BUILD" "$STAGE"
+NATIVE=$(mktemp --suffix=.ini)
+printf "[binaries]\nllvm-config = '%s'\n" "$(command -v "llvm-config-$LLVM")" > "$NATIVE"
 meson setup "$BUILD" "$SORG" \
+    --native-file "$NATIVE" \
     -Dprefix=$PREFISSO \
     -Dlibdir=lib/x86_64-linux-gnu \
     -Dbuildtype=release \
