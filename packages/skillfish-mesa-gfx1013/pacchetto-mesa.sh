@@ -1,8 +1,8 @@
 #!/bin/bash
 # Package our Mesa: the whole driver, not only the Vulkan half.
 #
-#     pacchetto-mesa.sh [versione-pacchetto] [versione-mesa]
-#         esempio: pacchetto-mesa.sh 26.09.4 26.2.3
+#     pacchetto-mesa.sh [versione-pacchetto] [versione-mesa] [versione-llvm]
+#         esempio: pacchetto-mesa.sh 26.11.1 26.2.7 22
 #
 # ⚠️ FROM 26.09.4 THIS SHIPS THE WHOLE STACK. Until 26.09.3 the package held one
 # file, libvulkan_radeon.so, and the machine kept Debian's Mesa for everything
@@ -14,7 +14,8 @@
 # pacchetto, la seconda la Mesa che ci mettiamo dentro.
 set -u
 VER="${1:-$(date +%y.%m).4}"
-MESA="${2:-26.2.4}"
+MESA="${2:-26.2.7}"
+LLVM="${3:-22}"
 CORTO=$(echo "$MESA" | tr -d .)
 ALBERO=~/mesa-completa-$CORTO/opt/skillfish-gfx1013
 QUI=$(dirname "$0")
@@ -31,14 +32,21 @@ for f in libvulkan_radeon.so libgallium-$MESA.so; do
 done
 
 # ⚠️ E CHE RADV NON SI SIA PORTATO DIETRO LLVM. Con -Dllvm=enabled per radeonsi,
-# anche libvulkan_radeon.so finisce legata a libLLVM.so.21.1, che dentro il
+# anche libvulkan_radeon.so finisce legata a libLLVM.so.<n>, che dentro il
 # sandbox flatpak dei giochi non esiste: il caricatore Vulkan scarta il nostro
 # ICD in silenzio e il gioco parte con il driver del runtime. Si vede solo
 # misurando, quindi si controlla qui.
 if objdump -p "$ALBERO/lib/x86_64-linux-gnu/libvulkan_radeon.so" | grep -q LLVM; then
     echo "RADV e' legata a libLLVM: ricompila con -Damd-use-llvm=false" >&2; exit 1
 fi
-echo "pacchetto $VER, Mesa $MESA (verificata dentro le librerie, RADV senza LLVM)"
+# The LLVM the libraries link against must be the one asked for: it decides
+# which libllvm the package depends on, and so which one apt keeps installed.
+if ! objdump -p "$ALBERO/lib/x86_64-linux-gnu/libgallium-$MESA.so" | grep -q "NEEDED *libLLVM.so.$LLVM\."; then
+    echo "libgallium-$MESA.so is not linked against LLVM $LLVM:" >&2
+    objdump -p "$ALBERO/lib/x86_64-linux-gnu/libgallium-$MESA.so" | grep -i "NEEDED.*llvm" >&2
+    exit 1
+fi
+echo "pacchetto $VER, Mesa $MESA su LLVM $LLVM (verificata dentro le librerie, RADV senza LLVM)"
 
 P=~/pkg-mesa
 rm -rf "$P"
@@ -81,8 +89,8 @@ ELF=$(find "$P/opt/skillfish-gfx1013/lib" -type f -name '*.so*' ! -name 'libdisp
 SHLIBS=$(sed -n 's/^shlibs:Depends=//p' "$SHL/out")
 rm -rf "$SHL"
 case "$SHLIBS" in
-    *libllvm21*) ;;
-    *) echo "dpkg-shlibdeps did not find libllvm21: '$SHLIBS'" >&2; exit 1 ;;
+    *"libllvm$LLVM "*) ;;
+    *) echo "dpkg-shlibdeps did not find libllvm$LLVM: '$SHLIBS'" >&2; exit 1 ;;
 esac
 echo "Depends: python3, $SHLIBS"
 
