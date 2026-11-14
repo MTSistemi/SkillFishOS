@@ -1,4 +1,4 @@
-From f851975b9a3605d43e6acd89f57fc5837243bfb3 Mon Sep 17 00:00:00 2001
+From 79d3e8a32358f96b40c3937809d3cd11ac81c517 Mon Sep 17 00:00:00 2001
 From: Steven Noonan <steven@uplinklabs.net>
 Date: Wed, 17 Nov 2021 11:58:46 -0800
 Subject: [PATCH] x86: only restore TSC if we have IA32_TSC_ADJUST or
@@ -9,18 +9,22 @@ necessitate a TSC adjustment on other CPUs.
 
 Signed-off-by: Steven Noonan <steven@uplinklabs.net>
 Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+
+[SkillFishOS: rebased on 7.3.4. 7.3 rewrote the MISC_ENABLE save around
+ "struct msr val"; the TSC block now follows it. With fuzz the old hunk
+ landed inside "#ifndef CONFIG_64BIT" and never ran on a 64-bit kernel.]
 ---
  arch/x86/kernel/acpi/sleep.c | 6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/arch/x86/kernel/acpi/sleep.c b/arch/x86/kernel/acpi/sleep.c
-index 31761a44ce59bf..c8c8415fb65c3e 100644
+index 84c4db46d..6a4f697c5 100644
 --- a/arch/x86/kernel/acpi/sleep.c
 +++ b/arch/x86/kernel/acpi/sleep.c
-@@ -104,11 +104,15 @@ int x86_acpi_suspend_lowlevel(void)
- 			header->pmode_misc_en_high))
- 		header->pmode_behavior |=
+@@ -100,11 +100,15 @@ int x86_acpi_suspend_lowlevel(void)
  			(1 << WAKEUP_BEHAVIOR_RESTORE_MISC_ENABLE);
+ 	header->pmode_misc_en_low = val.l;
+ 	header->pmode_misc_en_high = val.h;
 -	if (!rdmsr_safe(MSR_IA32_TSC,
 +
 +	if ((boot_cpu_has(X86_FEATURE_TSC_ADJUST) ||
@@ -34,3 +38,6 @@ index 31761a44ce59bf..c8c8415fb65c3e 100644
  	header->realmode_flags = acpi_realmode_flags;
  	header->real_magic = 0x12345678;
  
+-- 
+2.55.0
+

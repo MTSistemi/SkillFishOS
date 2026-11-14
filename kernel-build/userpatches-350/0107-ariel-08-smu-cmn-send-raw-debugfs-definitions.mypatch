@@ -1,14 +1,10 @@
-Add the smu_cmn.c definitions for the send-raw debugfs interface that 0008
-(cac-weight-and-sendraw-debugfs) declares + calls but does not define. Without
-this the P01-P18 series fails to link (smu_cmn_create_send_raw_debugfs undefined).
-Extracted from the board's vendored amdgpu/0001-add-debugfs-smu-send-raw.patch,
-smu_cmn.c hunk only (the .h decl + amdgpu_smu.c call are already in 0008).
----
---- a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c	2026-04-27 11:50:41.000000000 -0400
-+++ b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c	2026-04-30 21:02:45.510871049 -0400
-@@ -1444,3 +1444,158 @@
- 
- 	return ret;
+diff --git a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c
+index 2bd3ea17e..d0adff7d5 100644
+--- a/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c
++++ b/drivers/gpu/drm/amd/pm/swsmu/smu_cmn.c
+@@ -1684,3 +1684,158 @@ int smu_cmn_get_pptable_from_firmware(struct smu_context *smu, void **table,
+ 		return -EINVAL;
+ 	}
  }
 +
 +/**
