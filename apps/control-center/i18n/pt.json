@@ -516,5 +516,7 @@
  "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "A partir de agora TUDO o que desenha passa pela nossa Mesa, ambiente de trabalho incluído: Vulkan e OpenGL. Os 32 bits ficam com o driver de série. Continuar?",
  "With the system driver on, the launchers take it from there.": "Com o driver do sistema ligado, os lançadores usam-no a partir daí.",
  "System graphics driver": "Driver gráfico do sistema",
- "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "Nenhum modelo no disco: descarregue um pelo Studio ou copie um .gguf para ~/modelli"
+ "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "Nenhum modelo no disco: descarregue um pelo Studio ou copie um .gguf para ~/modelli",
+ "checking the checksum": "a verificar a soma de verificação",
+ "wrong sha512 checksum: the download is corrupt": "soma sha512 errada: a transferência está corrompida"
 }
