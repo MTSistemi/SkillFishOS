@@ -32,19 +32,23 @@ Build host: AMD BC-250 (Debian). Tool: https://github.com/Frogging-Family/linux-
 `userpatches/` is not the only set in here, and picking the wrong one gives a
 kernel that boots and is not the one we ship. What each directory is:
 
-- **`userpatches-350/` — the current recipe.** 43 patches; this is what builds
-  `7.2.9-skillfishos`, the published kernel and the one installed on both
-  boards. (It built `7.2.3`, `7.2.4` and `7.2.5` before; only the upstream version changed.) Four series, and
-  the numbering says where each one comes from:
-  - `0100-0118` — Project Ariel (cachenetics): SMU/PMFW message enums, forced
+- **`userpatches-350/` — the current recipe.** 49 patches; this is what builds
+  `7.3.4-skillfishos`, the published kernel. (It built the 7.2 series before;
+  7.3.4 needed 0207/0208 rewritten and 0212 added.) The numbering says where
+  each patch comes from:
+  - `0100-0126` — Project Ariel (cachenetics): SMU/PMFW message enums, forced
     GFX clock and DPM levels, PMFW telemetry, the race-free GFXCLK query, the
-    CU unlock that does *not* touch RLC_PG, and the gfx1013 GFXOFF disable.
+    CU unlock that does *not* touch RLC_PG, the gfx1013 GFXOFF disable, the
+    8-core telemetry.
   - `0130-0131` — DryhoppedIPA, the compute-queue pair. Measured on a BC-250:
     the Mesa half is worth +4.2% on Cyberpunk, the kernel half about +0.6% on
     Wukong. The +20.8% claimed upstream did not reproduce.
-  - `0200-0211` and `0299` — our own series, renumbered from `0001-0016` so it
+  - `0132` — the per-shader-array WGP mask, see below.
+  - `0200-0212` and `0299` — our own series, renumbered from `0001-0016` so it
     applies after Ariel's.
   - `0300` — gpu_busy_percent for gfx1013, see below.
+  - `0310-0313` — our ccp/PSP fixes and the display HPD fix (0313 is upstream
+    from 7.4: drop it there).
 - **`userpatches/`** — the legacy 16-patch set that built the published 7.2.0
   and 7.2.2 kernels. Kept because it documents what users currently get from
   the APT archive.
@@ -55,6 +59,25 @@ kernel that boots and is not the one we ship. What each directory is:
 - **`userpatches-sospese/`** — the VCN patch. It registers the block, the PSP
   refuses to load firmware for it, and both donor firmwares wedge the board.
   Not built into anything.
+
+### 0132: the compute units ROCm can see
+
+`skillfish-cu` unlocks the harvested WGPs at boot through UMR, after amdgpu has
+bound. Vulkan uses them (vkpeak scales to 40 CU), but KFD counts CUs once, in
+`gfx_v10_0_get_cu_info()`, and keeps the fused 24: ROCm never sees the rest.
+
+`amdgpu.bc250_cc_wgp_mask=SE0.SH0,SE0.SH1,SE1.SH0,SE1.SH1` (four 5-bit WGP
+enable masks, e.g. `0x1f,0x1f,0x1f,0x1f`) writes, per shader array and before
+that count, the disabled WGPs into `CC_GC_SHADER_ARRAY_CONFIG` bits 31:16 and
+the mask into `SPI_PG_ENABLE_STATIC_WGP_MASK`. Unset, nothing changes.
+
+From MastaG/linux-cachyos-bc250 0029 (ForceConstant, issue #14), ported onto
+0114 instead of their 0011, and **without** their `RLC_PG_ALWAYS_ON_WGP_MASK`
+write, for the reason 0114 gives (RLC deadlock on the first KFD queue).
+Measured on bc250-dev, 7.3.4 test build: unset, KFD `simd_count` 48 and no
+change from the released kernel; with `0x1f` x4, `simd_count` 80 (40 CU), the
+registers read back as expected and vkpeak 10172 GFLOPS. A KFD queue in use
+was not tested: the board has no ROCm stack.
 
 ### 0300: a real gpu_busy_percent on gfx1013
 
@@ -82,7 +105,7 @@ stops itself two seconds after the last read.
 
 ### The x64 twin
 
-The same 43 patches build `-skillfishos-x64` for machines that are not a
+The same 49 patches build `-skillfishos-x64` for machines that are not a
 BC-250: the BC-250 patches are inert elsewhere because they hook that device.
 What changes is `_processor_opt="x86-64"`, the localversion, and
 `config-fragments/skillfish-generic-cpu.myfrag`, which **must** be in place or
