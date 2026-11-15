@@ -8,6 +8,7 @@ GitHub and installed into Steam and Heroic, the way ProtonUp-Qt would if it
 started on this board.
 """
 import configparser
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
@@ -131,6 +132,21 @@ def nome_interno(cartella, n):
     return n
 
 
+def cartella_di(n, cartelle):
+    """The installed folder of GE-Proton release n among `cartelle`, or None.
+
+    ⚠️ The folder is not always the release name. Up to GE-Proton11-11 the
+    tarball unpacks into GE-Proton11-11; from GE-Proton11-12 it unpacks into
+    GE-Proton11-12-x86_64. Comparing names only, the page listed the release
+    as "not installed" next to a second row for the folder, and "Install"
+    downloaded the same 500 MB again.
+    """
+    for d in (n, n + "-x86_64"):
+        if d in cartelle:
+            return d
+    return None
+
+
 def proton_installati():
     out = {}
     for nome, cartella in (("steam", STEAM_TOOLS), ("heroic", HEROIC_TOOLS)):
@@ -175,9 +191,26 @@ class Scarica(QThread):
     avanzamento = pyqtSignal(int, str)
     finito = pyqtSignal(bool, str)
 
-    def __init__(self, url, nome, cartelle, parent=None):
+    def __init__(self, url, nome, cartelle, sha=None, parent=None):
         super().__init__(parent)
-        self.url, self.nome, self.cartelle = url, nome, cartelle
+        self.url, self.nome, self.cartelle, self.sha = url, nome, cartelle, sha
+
+    def _verifica(self, percorso):
+        """Check the tarball against the .sha512sum GloriousEggroll publishes
+        next to it. A release without one is installed as before; a mismatch
+        is never unpacked."""
+        if not self.sha:
+            return
+        req = urllib.request.Request(self.sha, headers={"User-Agent": "SkillFishOS-Control-Center"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            atteso = r.read().decode("ascii", "replace").split()[0].lower()
+        h = hashlib.sha512()
+        with open(percorso, "rb") as f:
+            for blocco in iter(lambda: f.read(1 << 20), b""):
+                h.update(blocco)
+        if h.hexdigest() != atteso:
+            raise ValueError(L("checksum sha512 sbagliato: lo scaricamento è corrotto",
+                               "wrong sha512 checksum: the download is corrupt"))
 
     def run(self):
         tmp = None
@@ -195,6 +228,8 @@ class Scarica(QThread):
                     letti += len(b)
                     self.avanzamento.emit(int(letti * 100 / tot) if tot else 0, "%d MB" % (letti >> 20))
             tmp.close()
+            self.avanzamento.emit(100, L("controllo il checksum", "checking the checksum"))
+            self._verifica(tmp.name)
             for cartella in self.cartelle:
                 os.makedirs(cartella, exist_ok=True)
                 self.avanzamento.emit(100, L("estraggo in %s", "unpacking into %s") % cartella)
@@ -473,9 +508,12 @@ class Pagina(PaginaBase):
             out = []
             for rel in dati:
                 nome = rel.get("tag_name", "")
-                asset = next((a for a in rel.get("assets", []) if a["name"].endswith(".tar.gz") and "aarch64" not in a["name"]), None)
+                assets = rel.get("assets", [])
+                asset = next((a for a in assets if a["name"].endswith(".tar.gz") and "aarch64" not in a["name"]), None)
+                somma = next((a for a in assets if a["name"].endswith(".sha512sum") and "aarch64" not in a["name"]), None)
                 if asset and nome:
                     out.append({"nome": nome, "url": asset["browser_download_url"], "mb": asset["size"] >> 20,
+                                "sha": somma["browser_download_url"] if somma else None,
                                 "data": (rel.get("published_at") or "")[:10]})
             return {"ok": True, "versioni": out}
         except Exception as e:
@@ -497,14 +535,16 @@ class Pagina(PaginaBase):
         for v in self.versioni:
             nomi.append(v["nome"])
         for n in inst["steam"] + inst["heroic"]:
-            if n not in nomi:
+            # a folder that belongs to a listed release is shown on its row
+            if n not in nomi and not any(cartella_di(r, [n]) for r in nomi):
                 nomi.append(n)
         for n in nomi:
             dove = []
-            if n in inst["steam"]:
-                dove.append("Steam" + (" ★" if ds in (n, nome_interno(STEAM_TOOLS, n)) else ""))
-            if n in inst["heroic"]:
-                dove.append("Heroic" + (" ★" if n == dh else ""))
+            cs, ch = cartella_di(n, inst["steam"]), cartella_di(n, inst["heroic"])
+            if cs:
+                dove.append("Steam" + (" ★" if ds in (cs, nome_interno(STEAM_TOOLS, cs)) else ""))
+            if ch:
+                dove.append("Heroic" + (" ★" if ch == dh else ""))
             v = next((x for x in self.versioni if x["nome"] == n), None)
             testo = n
             if v:
@@ -549,7 +589,7 @@ class Pagina(PaginaBase):
         self.barra.setValue(0)
         self.barra.show()
         self.e_proton.setText(L("Scarico %s (%d MB)…", "Downloading %s (%d MB)…") % (n, v["mb"]))
-        self._scarica = Scarica(v["url"], n, cartelle, self)
+        self._scarica = Scarica(v["url"], n, cartelle, v.get("sha"), self)
         self._scarica.avanzamento.connect(self._avanza)
         self._scarica.finito.connect(self._scaricato)
         self._scarica.start()
@@ -570,14 +610,16 @@ class Pagina(PaginaBase):
         if not n:
             return
         inst = proton_installati()
-        dove = [(STEAM_TOOLS, "Steam") for _ in [0] if n in inst["steam"]] + [(HEROIC_TOOLS, "Heroic") for _ in [0] if n in inst["heroic"]]
+        dove = [(STEAM_TOOLS, "Steam", cartella_di(n, inst["steam"])),
+                (HEROIC_TOOLS, "Heroic", cartella_di(n, inst["heroic"]))]
+        dove = [x for x in dove if x[2]]
         if not dove:
             self.toast(L("Non e' installata.", "It is not installed."))
             return
-        if QMessageBox.question(self, L("Rimuovere?", "Remove?"), L("Tolgo %s da %s?", "Remove %s from %s?") % (n, ", ".join(d for _, d in dove))) != QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, L("Rimuovere?", "Remove?"), L("Tolgo %s da %s?", "Remove %s from %s?") % (n, ", ".join(d for _, d, _ in dove))) != QMessageBox.StandardButton.Yes:
             return
-        for cartella, _ in dove:
-            shutil.rmtree(os.path.join(cartella, n), ignore_errors=True)
+        for cartella, _, sotto in dove:
+            shutil.rmtree(os.path.join(cartella, sotto), ignore_errors=True)
         self._proton_elenca()
 
     def _default(self, dove):
@@ -585,9 +627,11 @@ class Pagina(PaginaBase):
         if not n:
             return
         inst = proton_installati()
-        if n not in inst[dove]:
+        c = cartella_di(n, inst[dove])
+        if not c:
             self.toast(L("Prima installala in %s.", "Install it in %s first.") % dove.capitalize())
             return
+        n = c                       # the folder is what Heroic and Steam know
         if dove == "heroic":
             try:
                 with open(HEROIC_CONFIG) as f:

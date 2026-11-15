@@ -516,5 +516,7 @@
  "From now on EVERYTHING that draws goes through our Mesa, desktop included: Vulkan and OpenGL. 32-bit stays on the stock driver. Proceed?": "С этого момента ВСЁ, что рисует, идёт через нашу Mesa, включая рабочий стол: Vulkan и OpenGL. 32-битное остаётся на штатном драйвере. Продолжить?",
  "With the system driver on, the launchers take it from there.": "Когда системный драйвер включён, лаунчеры берут его оттуда.",
  "System graphics driver": "Системный графический драйвер",
- "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "На диске нет модели: скачайте её через Studio или скопируйте .gguf в ~/modelli"
+ "No model on the disk: download one from Studio or copy a .gguf into ~/modelli": "На диске нет модели: скачайте её через Studio или скопируйте .gguf в ~/modelli",
+ "checking the checksum": "проверяю контрольную сумму",
+ "wrong sha512 checksum: the download is corrupt": "неверная контрольная сумма sha512: загрузка повреждена"
 }
