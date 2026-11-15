@@ -91,3 +91,43 @@ def test_verdict_short():
     assert m.verdict_short("Automatic (no recipe): detected DLSS → OptiFG input") == "Automatic (no recipe)"
     assert m.verdict_short("Not supported: This game has no upscaler") == "Not supported"
     assert m.verdict_short("Verified on BC-250: Cyberpunk 2077 (2.5 benchmark)") == "Verified on BC-250"
+
+
+def _archive(root, name, record):
+    d = root / name
+    d.mkdir()
+    (d / "state.json").write_text(json.dumps(record))
+    (d / "backup.bin").write_text("x")
+    return d
+
+
+def test_prune_deletes_only_archives_that_hold_nothing_more(tmp_path):
+    m = _m()
+    exe = tmp_path / "Game.exe"
+    exe.write_text("")
+    cur = tmp_path / ".bc250-xefg-experimental"
+    cur.mkdir()
+    (cur / "state.json").write_text(json.dumps({"status": "restored"}))
+    done = _archive(tmp_path, ".bc250-xefg-experimental-restored-0123456789ab",
+                    {"status": "restored", "game_settings": [{"status": "restored"}]})
+    left = _archive(tmp_path, ".bc250-xefg-experimental-restored-aaaaaaaaaaaa",
+                    {"status": "restored", "game_settings": [{"status": "left", "left": {"k": "kept"}}]})
+    damaged = _archive(tmp_path, ".bc250-xefg-experimental-restored-bbbbbbbbbbbb",
+                       {"status": "restored", "left_installed": [{"path": "a.dll", "sha256": "0"}]})
+    unreadable = tmp_path / ".bc250-xefg-experimental-restored-cccccccccccc"
+    unreadable.mkdir()
+    other = _archive(tmp_path, ".bc250-xefg-experimental-restored-mine", {"status": "restored"})
+    deleted, kept = m.prune_archives(exe)
+    assert deleted == [done.name] and not done.exists()
+    assert kept == [left.name, damaged.name, unreadable.name]
+    assert left.exists() and damaged.exists() and unreadable.exists()
+    assert other.exists() and cur.exists()          # not an archive name / the live record
+
+
+def test_archive_done_with():
+    m = _m()
+    assert m.archive_done_with({"status": "restored"})
+    assert not m.archive_done_with({"status": "installed"})
+    assert not m.archive_done_with({"status": "restored", "kept_changed": ["a.ini"]})
+    assert not m.archive_done_with({"status": "restored", "game_settings": [{"status": "pending"}]})
+    assert not m.archive_done_with(None)
