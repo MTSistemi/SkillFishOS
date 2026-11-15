@@ -27,6 +27,7 @@ values found there are saved and put back on removal.
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -42,7 +43,8 @@ BASE = HOME / ".local/share/skillfish/freefg"
 DIR = BASE / ("freefg-" + VERSION)
 ORIGINALS = BASE / "entries.json"
 GE_VARS = ("PROTON_USE_OPTISCALER", "PROTON_FSR4_UPGRADE")
-STATE = ".bc250-xefg-experimental/state.json"
+STATE_DIR = ".bc250-xefg-experimental"
+STATE = STATE_DIR + "/state.json"
 HEROIC = HOME / ".var/app/com.heroicgameslauncher.hgl/config/heroic"
 # What we ask FreeFG for: its BC-250 FSR 4 build (HelixSR's upscalers crash at
 # load on our Proton, see helixsr-prova-14-11), the automatic input, and never
@@ -309,11 +311,60 @@ def install(exe):
     return out
 
 
+# The copies of FreeFG's state folder a reinstall sets aside (install.py renames the
+# previous restored record to STATE_DIR-restored-<12 hex>).
+ARCHIVE = re.compile(r"^" + re.escape(STATE_DIR) + r"-restored-[0-9a-f]{12}$")
+
+
+def archive_done_with(record):
+    """An archived record that holds nothing a later install could need: its Restore
+    put everything back. A record that left files installed, kept files the user
+    changed, or left game settings in place still holds the true originals (FreeFG's
+    previous_settings() and left_installed() read them), so it stays."""
+    if not isinstance(record, dict) or record.get("status") != "restored":
+        return False
+    if record.get("left_installed") or record.get("kept_changed"):
+        return False
+    return all(isinstance(i, dict) and i.get("status") == "restored"
+               for i in record.get("game_settings") or [])
+
+
+def prune_archives(exe):
+    """Delete the records earlier reinstalls set aside in the game folder, when they
+    are done with. The current STATE_DIR folder is never touched: it holds this
+    installation's backups and the settings a reinstall carries over.
+    Returns (deleted, kept) folder names."""
+    root = Path(exe).parent.resolve()
+    deleted, kept = [], []
+    for d in sorted(root.iterdir()):
+        if not ARCHIVE.match(d.name) or d.is_symlink() or not d.is_dir():
+            continue
+        try:
+            with open(d / "state.json", encoding="utf-8") as f:
+                record = json.load(f)
+        except (OSError, ValueError):
+            record = None
+        if archive_done_with(record):
+            shutil.rmtree(d)
+            deleted.append(d.name)
+        else:
+            kept.append(d.name)
+    return deleted, kept
+
+
 def remove(exe):
     rc, out = _install_py("restore", exe)
     if rc != 0:
         raise RuntimeError(out or "restore failed")
     restore_entries(exe)
+    try:
+        deleted, kept = prune_archives(exe)
+    except OSError as e:  # the game is out already; a leftover folder is not a failure
+        return out + "\nEarlier records not cleaned: %s" % e
+    if deleted:
+        out += "\nDeleted %d earlier record(s) set aside by reinstalls." % len(deleted)
+    if kept:
+        out += "\nKept, they still hold originals: " + ", ".join(kept)
     return out
 
 
