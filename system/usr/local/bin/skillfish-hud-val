@@ -27,9 +27,9 @@ hw_with(){ for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)"
 # La SMU smette di rispondere, le letture hwmon si piantano nel kernel, fand
 # sfonda il suo watchdog e il watchdog hardware resetta la macchina.
 #
-# La tabella la legge UNO SOLO: skillfish-gpu-freq-sampler, che alla SMU parla
-# gia' ogni due secondi, e pubblica i tre numeri in /run/skillfish-potenze. Qui
-# si fa un `cut`, che non costa niente e non parla con nessuno.
+# Exactly one program reads the table, skillfish-gpu-freq-sampler, every two
+# seconds, and publishes the three numbers in /run/skillfish-potenze. Here we
+# just `cut`, which costs nothing and talks to nobody.
 #
 # ⚠️ E si guarda quanto e' vecchio il file: se il campionatore non gira, un
 # numero fermo da un'ora e' peggio di nessun numero.
@@ -102,7 +102,7 @@ get(){
     cpu_temp) v=$(cat "$(hw k10temp)/temp1_input" 2>/dev/null)
               [ -z "$v" ] && v=$(cpu_temp_generico)
               [ -n "$v" ] && echo "$v" | awk '{printf "%.0f",$1/1000}' ;;
-    gpu_freq) f=$(cat /run/skillfish-gpu-freq 2>/dev/null)   # SMU sample (correct after 8-core unlock)
+    gpu_freq) f=$(cat /run/skillfish-gpu-freq 2>/dev/null)   # current_gfxclk, published by the sampler
               if [ -n "$f" ]; then echo "${f}Mhz"
               else
                 # AMD: il livello attivo e' quello segnato con l'asterisco

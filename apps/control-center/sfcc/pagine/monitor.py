@@ -86,9 +86,9 @@ _TOPO = {}
 # rispondere, le letture hwmon si piantano nel kernel, fand sfonda il suo
 # watchdog e il watchdog hardware resetta la macchina.
 #
-# La tabella la legge UNO SOLO, skillfish-gpu-freq-sampler, che alla SMU parla
-# gia' ogni due secondi, e pubblica i tre numeri qui. Leggere questo file non
-# costa niente e non parla con nessuno.
+# Exactly one program reads the table, skillfish-gpu-freq-sampler, every two
+# seconds, and publishes the three numbers here. Reading this file costs nothing
+# and talks to nobody.
 POTENZE = "/run/skillfish-potenze"
 # se il campionatore non gira, un numero fermo da un'ora e' peggio di nessuno
 POTENZE_SCADENZA = 10.0

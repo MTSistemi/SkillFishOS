@@ -1,165 +1,106 @@
 #!/usr/bin/env python3
-# SkillFishOS — GPU gfxclk sampler.
+# SkillFishOS — GPU gfxclk and power sampler.
 #
-# After the BC-250 8-core unlock, amdgpu's derived GPU frequency (pp_dpm_sclk and
-# gpu_metrics current_gfxclk) reads bogus (~100 MHz at idle instead of ~350). The
-# SMU's own gfxclk getter stays correct, so this samples it directly (queue 0:
-# msg 0x0E "request refresh" + 0x0F "read", result in the arg register) every 2 s
-# and publishes MHz to /run/skillfish-gpu-freq. The HUD/Monitor read that file.
+# Reads gpu_metrics ONCE every 2 s and publishes two small files that every other
+# tool reads instead of the SMU:
+#   /run/skillfish-gpu-freq   current gfxclk in MHz
+#   /run/skillfish-potenze    "apu cpu gpu" in watts, "-" where the SMU says nothing
 #
-# Concurrency: the GPU governor also touches the SMU. Reads are short and low-rate,
-# and every sample is sanity-checked (50..2500 MHz) — a rare collision just keeps the
-# previous value, it never publishes garbage and never blocks the governor.
+# ⚠️ THIS PROGRAM MUST NOT TALK TO THE SMU MAILBOX ITSELF. Until 26.11.2 it sent
+# 0x0E/0x0F on "queue 0" through the SMN window (PCI config 0xB8/0xBC of 00:00.0),
+# at 0x03B10A08/48/68. Those are C2PMSG_66/82/90: THE SAME MAILBOX amdgpu uses,
+# through MMIO and under its own mutex, which knows nothing about our flock. Every
+# 2 s we cleared the response register and wrote our command; when amdgpu was in
+# the middle of exporting the metrics table it found its answer gone and logged
+#   amdgpu: SMU: No response msg_reg: 6 resp_reg: 0
+#   amdgpu: Failed to export SMU metrics table!
+# On the .32 that happened on almost every boot from October on (up to 66 times),
+# and the community guide reports the same signature freezing the display about
+# one boot in three (15/11/2026).
 #
-# ⚠️ THAT IS TRUE OF THE VALUE WE READ, AND NOT OF THE CARD. An SMN access is TWO
-# writes to PCI config space — the address into 0xB8, the value into 0xBC — and
-# any other program using that window can land between them. Then our address
-# takes somebody else's value, or theirs takes ours, and the SMU is handed a
-# command nobody sent. On 20/09/2026 that turned out to be how the GDDR6 memory
-# collector, which drives the same window, ended up hanging the SMU outright:
-# amdgpu then loses its metrics table, the GPU sensors go away, and only a reboot
-# brings them back.
+# It is not needed any more either: our kernel (patch 0125) answers current_gfxclk
+# with QueryGfxclk, sent by the driver under its lock, so gpu_metrics, hwmon
+# freq1_input and pp_dpm_sclk all carry the real clock (checked on 7.3.4: all
+# 1850 MHz, same as the old mailbox read).
 #
-# So every pair is taken under flock on the config file itself. The file is the
-# lock: every tool that reaches the SMU has it open already, ours and anybody
-# else's, so there is no lock path to agree on first. bc250_smu_oc upstream has
-# the same flock but takes it around each single config access rather than around
-# the pair, which leaves exactly the gap it was meant to close.
+# ⚠️ EVERY READ OF gpu_metrics IS A MESSAGE TO THE SMU, and this board's SMU does
+# not want many. On 20/09/2026 skillfish-hud-val read that file three times per
+# call while conky, the dashboard sampler and the Monitor all called it: SMU
+# traffic doubled and the board rebooted on its own three times in half an hour
+# (SMU stops answering, hwmon hangs, fand misses its watchdog, the hardware
+# watchdog resets). So exactly one program reads it, this one, and the others
+# read the files above, which cost as much as a `cat`.
 #
-# Register/primitive from bc250_smu (queue-0 mailbox) + rw-r-r-0644/bc250-core-unlock.
-import fcntl, os, struct, time, sys
+# Offsets are measured, not taken from a header: the 8-core unlock moves the
+# per-core arrays (that is what patch 0006 is about). 40 the whole package, 44 the
+# CPU cores, 46 the GPU, 76 current_gfxclk (gpu_metrics v2.x). 0xFFFF means "not
+# reported" and must never be shown as 65 W.
+import os, struct, sys, time
 
-CFG = "/sys/bus/pci/devices/0000:00:00.0/config"
-Q0_CMD, Q0_RSP, Q0_ARG = 0x03B10A08, 0x03B10A68, 0x03B10A48
-DONE = {0x01, 0xFF, 0xFE, 0xFD, 0xFC}
-OK = 0x01
-OUT = "/run/skillfish-gpu-freq"
-
-# --- i tre consumi, letti UNA VOLTA per tutti --------------------------------
-# ⚠️ OGNI LETTURA DI gpu_metrics E' UN MESSAGGIO ALLA SMU, e la SMU di questa
-# scheda non ne vuole tanti. Il 20/09/2026 skillfish-hud-val leggeva quel file
-# tre volte a ogni chiamata, e a chiamarlo c'erano conky ogni 2 s, il
-# campionatore della dashboard e il Monitor: traffico verso la SMU raddoppiato,
-# e la scheda si e' riavviata da sola TRE VOLTE in mezz'ora - SMU che smette di
-# rispondere, hwmon che si pianta, fand che sfonda il suo watchdog e il watchdog
-# hardware che resetta.
-#
-# Quindi lo legge uno solo: questo, che alla SMU ci parla gia' ogni due secondi.
-# Tutti gli altri leggono il file qui sotto, che costa quanto un `cat`. Dieci
-# lettori, un messaggio ogni due secondi invece di dieci al secondo.
-#
-# Gli offset sono misurati caricando un core alla volta, non letti in
-# un'intestazione: 40 il pacchetto, 44 i core della CPU, 46 la GPU. 65535 vuol
-# dire "non lo dichiaro" e non va mai stampato come 65 watt.
-METRICHE = "/sys/class/drm/card0/device/gpu_metrics"
-POTENZE = "/run/skillfish-potenze"
-OFFSET = (40, 44, 46)                      # apu, cpu, gpu
+METRICS = "/sys/class/drm/card0/device/gpu_metrics"
+OUT_FREQ = "/run/skillfish-gpu-freq"
+OUT_POWER = "/run/skillfish-potenze"
+POWER_OFFSETS = (40, 44, 46)               # apu, cpu, gpu
+GFXCLK_OFFSET = 76
+GFXCLK_RANGE = (50, 2500)
+INTERVAL = 2.0
 
 
-def potenze():
-    """Una riga: `apu cpu gpu` in watt, con `-` per quello che manca."""
+def read_metrics():
     try:
-        with open(METRICHE, "rb") as f:
+        with open(METRICS, "rb") as f:
             d = f.read()
     except OSError:
         return None
-    fuori = []
-    for o in OFFSET:
-        if o + 2 > len(d):
-            return None
-        v = int.from_bytes(d[o:o + 2], "little")
-        fuori.append("-" if v == 0xFFFF else "%.1f" % (v / 1000.0))
-    return " ".join(fuori)
-
-if os.geteuid() != 0:
-    sys.exit("root required")
-try:
-    fd = os.open(CFG, os.O_RDWR)
-except FileNotFoundError:
-    sys.exit(0)  # not a BC-250
+    # format_revision 2 is the APU layout the offsets above were measured on.
+    if len(d) < GFXCLK_OFFSET + 2 or d[2] != 2:
+        return None
+    return d
 
 
-def rd(reg):
-    fcntl.flock(fd, fcntl.LOCK_EX)
+def u16(d, off):
+    return struct.unpack_from("<H", d, off)[0]
+
+
+def power_line(d):
+    out = []
+    for o in POWER_OFFSETS:
+        v = u16(d, o)
+        out.append("-" if v == 0xFFFF else "%.1f" % (v / 1000.0))
+    return " ".join(out)
+
+
+def publish(path, text):
+    # Atomic replace, readable by the desktop user. If /run is full or read-only
+    # the readers keep the previous file, which is two seconds old: better than
+    # a sampler that dies because it could not write.
     try:
-        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-        return struct.unpack("<I", os.pread(fd, 4, 0xBC))[0]
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-
-
-def wr(reg, val):
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    try:
-        os.pwrite(fd, struct.pack("<I", reg), 0xB8)
-        os.pwrite(fd, struct.pack("<I", val), 0xBC)
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-
-
-def msg(m, arg=0, budget=0.3):
-    end = time.monotonic() + budget
-    while rd(Q0_RSP) not in DONE and time.monotonic() < end:
-        time.sleep(0.001)
-    wr(Q0_RSP, 0)
-    wr(Q0_ARG, arg)
-    wr(Q0_ARG + 4, 0)
-    wr(Q0_CMD, m)
-    end = time.monotonic() + budget
-    while time.monotonic() < end:
-        st = rd(Q0_RSP)
-        if st in DONE:
-            return st
-        time.sleep(0.001)
-    return None
-
-
-def publish(v):
-    try:
-        tmp = OUT + ".tmp"
+        tmp = path + ".tmp"
         with open(tmp, "w") as f:
-            f.write("%d\n" % v)
-        os.replace(tmp, OUT)
-    except OSError:
-        # /run pieno o non scrivibile: chi legge tiene il valore di prima, che
-        # e' vecchio di due secondi. Un campionatore che muore perche' non ha
-        # potuto scrivere un file sarebbe peggio.
-        pass
-
-
-def pubblica_potenze():
-    riga = potenze()
-    if riga is None:
-        return
-    try:
-        tmp = POTENZE + ".tmp"
-        with open(tmp, "w") as f:
-            f.write(riga + chr(10))
+            f.write(text + "\n")
         os.chmod(tmp, 0o644)
-        os.replace(tmp, POTENZE)
+        os.replace(tmp, path)
     except OSError:
-        # Come sopra: il file resta quello del giro precedente, e chi lo legge
-        # guarda comunque quanto e' vecchio prima di fidarsene.
         pass
 
 
-last = 350
-publish(last)
-while True:
-    try:
-        msg(0x0E)               # request a fresh gfxclk sample
-        if msg(0x0F) == OK:     # query it
-            v = rd(Q0_ARG)
-            if 50 <= v <= 2500:
+def main():
+    if not os.path.exists(METRICS):
+        sys.exit(0)                         # no amdgpu metrics: nothing to sample
+    last = 350
+    publish(OUT_FREQ, str(last))
+    while True:
+        d = read_metrics()
+        if d is not None:
+            v = u16(d, GFXCLK_OFFSET)
+            if GFXCLK_RANGE[0] <= v <= GFXCLK_RANGE[1]:
                 last = v
-    except OSError:
-        # La finestra SMN e' occupata o ha risposto male: si pubblica l'ultimo
-        # valore buono e si riprova fra due secondi. Insistere su una SMU che
-        # non ha voglia e' esattamente cio' che non si deve fare.
-        pass
-    publish(last)
-    # ⚠️ Dopo i messaggi SMU, non prima: se la tabella non si lascia leggere, la
-    # frequenza e' gia' pubblicata e il file delle potenze resta quello di prima
-    # invece di sparire.
-    pubblica_potenze()
-    time.sleep(2)
+            publish(OUT_POWER, power_line(d))
+        # The clock is published even when the table could not be read: the last
+        # good value, never garbage, and the power file stays the previous one.
+        publish(OUT_FREQ, str(last))
+        time.sleep(INTERVAL)
+
+
+if __name__ == "__main__":
+    main()

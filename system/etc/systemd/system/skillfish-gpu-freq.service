@@ -1,7 +1,7 @@
 [Unit]
-Description=SkillFishOS — GPU gfxclk sampler (SMU) for the HUD after the 8-core unlock
+Description=SkillFishOS — GPU gfxclk and power sampler (one gpu_metrics reader for the HUD and Monitor)
 After=cyan-skillfish-governor.service
-ConditionPathExists=/sys/bus/pci/devices/0000:00:00.0/config
+ConditionPathExists=/sys/class/drm/card0/device/gpu_metrics
 
 [Service]
 Type=simple
