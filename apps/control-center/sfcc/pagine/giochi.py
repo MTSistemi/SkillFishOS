@@ -15,6 +15,8 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.request
@@ -40,6 +42,18 @@ HEROIC_CONFIG = os.path.join(CASA, ".var/app/%s/config/heroic/config.json" % HER
 OVERRIDES = os.path.join(CASA, ".local/share/flatpak/overrides")
 GE_API = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases?per_page=15"
 FSR4_ENV = ("PROTON_USE_OPTISCALER", "PROTON_FSR4_UPGRADE")
+# FreeFG runs in its own process: sfcc/freefg.py is a script as well as a module.
+FREEFG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "freefg.py")
+
+
+def freefg(*args, timeout=1800):
+    """Run sfcc/freefg.py; its last stdout line is JSON."""
+    try:
+        r = subprocess.run([sys.executable, FREEFG, *args], capture_output=True, text=True, timeout=timeout)
+        righe = [x for x in r.stdout.splitlines() if x.strip()]
+        return json.loads(righe[-1]) if righe else {"ok": False, "errore": r.stderr.strip()[-400:]}
+    except Exception as e:
+        return {"ok": False, "errore": str(e)}
 
 
 def _mesa_modulo():
@@ -350,9 +364,156 @@ class Pagina(PaginaBase):
             (L("Predefinita in Steam", "Default in Steam"), lambda: self._default("steam"), False),
             (L("Predefinita in Heroic", "Default in Heroic"), lambda: self._default("heroic"), False))
         v.addWidget(self.c_proton)
+
+        # --- frame generation (FreeFG)
+        self.c_ffg = Scheda(L("Frame generation", "Frame generation"), L(
+            "FreeFG (daniel-h-0, licenza MIT) aggiunge al gioco la frame generation XeSS di Intel, con shader "
+            "piu' veloci scritti per la BC-250, e FSR 4. In Cyberpunk a 1080p: circa 130 fps mostrati contro 90. "
+            "Sono fotogrammi generati: il gioco resta sui suoi ~65 fps reali e la latenza sale un po'. Si installa "
+            "gioco per gioco, con il lanciatore chiuso; in quel gioco l'FSR 4 di GE-Proton si spegne, perche' "
+            "FreeFG porta il suo. Nel gioco si sceglie DLSS, FSR o XeSS e si lascia spenta la sua frame generation.",
+            "FreeFG (daniel-h-0, MIT licence) adds Intel's XeSS frame generation to a game, with faster shaders "
+            "written for the BC-250, and FSR 4. In Cyberpunk at 1080p: about 130 fps shown against 90. They are "
+            "generated frames: the game stays at its ~65 real fps and latency goes up a little. It is installed "
+            "game by game, with the launcher closed; in that game GE-Proton's FSR 4 is turned off, because "
+            "FreeFG brings its own. In the game, pick DLSS, FSR or XeSS and leave its own frame generation off."))
+        self.b_ffg = Stato("", "quieto")
+        self.c_ffg.testa.insertWidget(self.c_ffg.testa.count() - 1, self.b_ffg)
+        self.ffg_lista = QListWidget()
+        self.ffg_lista.setMinimumHeight(160)
+        self.c_ffg.aggiungi(self.ffg_lista, 1)
+        self.e_ffg = QLabel("")
+        self.e_ffg.setObjectName("quieto")
+        self.e_ffg.setWordWrap(True)
+        self.c_ffg.aggiungi(self.e_ffg)
+        self.b_ffg_scarica, self.b_ffg_installa, self.b_ffg_togli, self.b_ffg_elenco = self.c_ffg.bottoni(
+            (L("Scarica FreeFG", "Download FreeFG"), self._ffg_scarica, False),
+            (L("Installa nel gioco", "Install in the game"), self._ffg_installa, True),
+            (L("Togli dal gioco", "Remove from the game"), self._ffg_togli, False),
+            (L("Aggiorna elenco", "Refresh list"), self._ffg_elenca, False))
+        self._ffg_occupato = False
+        self._ffg_scaricato = False
+        v.addWidget(self.c_ffg)
         v.addStretch(1)
         self._proton_elenca()
         in_sfondo(self._scarica_elenco, self._elenco_pronto, self)
+        self._ffg_stato()
+
+    # ---- FreeFG ------------------------------------------------------------------
+    def _ffg_bottoni(self):
+        for b in (self.b_ffg_installa, self.b_ffg_togli, self.b_ffg_elenco):
+            b.setEnabled(self._ffg_scaricato and not self._ffg_occupato)
+        self.b_ffg_scarica.setEnabled(not self._ffg_scaricato and not self._ffg_occupato)
+
+    def _ffg_stato(self):
+        st = freefg("stato", timeout=20)
+        self._ffg_scaricato = bool(st.get("scaricato"))
+        self.b_ffg.setText(("FreeFG " + st.get("versione", "?")) if self._ffg_scaricato else L("non scaricato", "not downloaded"))
+        self.b_ffg.tono("bene" if self._ffg_scaricato else "quieto")
+        self._ffg_bottoni()
+        if self._ffg_scaricato:
+            self._ffg_elenca()
+        else:
+            self.ffg_lista.clear()
+            self.e_ffg.setText(L("Scarica FreeFG %s (11 MB) per vedere quali giochi lo accettano.",
+                                 "Download FreeFG %s (11 MB) to see which games take it.") % st.get("versione", "?"))
+
+    def _ffg_lavora(self, testo, fn, poi):
+        self._ffg_occupato = True
+        self._ffg_bottoni()
+        self.e_ffg.setText(testo)
+
+        def fine(r):
+            self._ffg_occupato = False
+            poi(r)
+            self._ffg_bottoni()
+        in_sfondo(fn, fine, self)
+
+    def _ffg_scarica(self):
+        def poi(r):
+            if r.get("ok"):
+                self._ffg_stato()
+            else:
+                self.e_ffg.setText(L("Non riuscito: %s", "Failed: %s") % r.get("errore", "?"))
+        self._ffg_lavora(L("Scarico FreeFG e controllo lo sha256…", "Downloading FreeFG and checking its sha256…"),
+                         lambda: freefg("scarica", timeout=600), poi)
+
+    def _ffg_elenca(self):
+        self._ffg_lavora(L("Cerco i giochi di Steam e Heroic…", "Looking for Steam and Heroic games…"),
+                         lambda: freefg("giochi", timeout=300), self._ffg_elenco_pronto)
+
+    def _ffg_elenco_pronto(self, r):
+        self.ffg_lista.clear()
+        if not r.get("ok"):
+            self.e_ffg.setText(L("Non riuscito: %s", "Failed: %s") % r.get("errore", "?"))
+            return
+        colore = __import__("PyQt6.QtGui", fromlist=["QColor"]).QColor
+        giochi = r.get("giochi") or []
+        for g in giochi:
+            if g.get("dentro"):
+                stato = L("attivo", "active")
+            elif g.get("blocca"):
+                stato = L("non adatto", "not suitable")
+            else:
+                stato = L("adatto", "suitable")
+            it = QListWidgetItem("%s   ·   %s   ·   %s   ·   %s" % (g.get("nome") or "?", (g.get("store") or "").capitalize(),
+                                                               stato, g.get("breve") or ""))
+            it.setData(32, g)
+            it.setToolTip(g.get("verdetto") or "")
+            if g.get("dentro"):
+                it.setForeground(colore(stile.VERDE))
+            elif g.get("blocca"):
+                it.setForeground(colore(stile.TESTO_2))
+            self.ffg_lista.addItem(it)
+        if not giochi:
+            self.ffg_lista.addItem(L("nessun gioco trovato", "no game found"))
+        self.e_ffg.setText(L("%d giochi, %d con FreeFG.", "%d games, %d with FreeFG.") % (
+            len(giochi), sum(1 for g in giochi if g.get("dentro"))))
+
+    def _ffg_scelto(self):
+        it = self.ffg_lista.currentItem()
+        g = it.data(32) if it else None
+        if not isinstance(g, dict) or not g.get("exe"):
+            self.toast(L("Scegli un gioco dell'elenco.", "Pick a game from the list."))
+            return None
+        return g
+
+    def _ffg_installa(self):
+        g = self._ffg_scelto()
+        if not g:
+            return
+        if g.get("dentro"):
+            self.toast(L("FreeFG e' gia' in questo gioco.", "FreeFG is already in this game."))
+            return
+        if g.get("blocca"):
+            QMessageBox.information(self, "FreeFG", g.get("verdetto") or "")
+            return
+        if QMessageBox.question(self, L("Installare FreeFG?", "Install FreeFG?"), L(
+                "FreeFG entra in %s: frame generation XeSS e FSR 4. La prima volta scarica il runtime di Intel e "
+                "l'FSR 4 per la BC-250 (circa 60 MB). In questo gioco l'FSR 4 di GE-Proton si spegne. Steam e "
+                "Heroic devono essere chiusi. Procedere?",
+                "FreeFG goes into %s: XeSS frame generation and FSR 4. The first time it downloads Intel's runtime "
+                "and the BC-250 FSR 4 (about 60 MB). In this game GE-Proton's FSR 4 is turned off. Steam and "
+                "Heroic must be closed. Go ahead?") % g.get("nome")) != QMessageBox.StandardButton.Yes:
+            return
+        self._ffg_lavora(L("Installo FreeFG in %s…", "Installing FreeFG in %s…") % g.get("nome"),
+                         lambda: freefg("installa", g["exe"]), self._ffg_fatto)
+
+    def _ffg_togli(self):
+        g = self._ffg_scelto()
+        if not g:
+            return
+        if not g.get("dentro"):
+            self.toast(L("FreeFG non e' in questo gioco.", "FreeFG is not in this game."))
+            return
+        self._ffg_lavora(L("Tolgo FreeFG da %s…", "Removing FreeFG from %s…") % g.get("nome"),
+                         lambda: freefg("togli", g["exe"]), self._ffg_fatto)
+
+    def _ffg_fatto(self, r):
+        if r.get("ok"):
+            self._ffg_elenca()
+        else:
+            self.e_ffg.setText(L("Non riuscito: %s", "Failed: %s") % (r.get("errore") or "?")[-500:])
 
     # ---- Mesa ---------------------------------------------------------------------
     def aggiorna(self):

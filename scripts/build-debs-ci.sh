@@ -211,6 +211,7 @@ put $P 0755 apps/control-center/skillfish-control-center usr/local/bin/skillfish
 # ⚠️ ONE privileged helper for the whole window, superset of the old tuner
 # helper (same JSON-per-line protocol, so the Remote Manager keeps working).
 put $P 0755 apps/control-center/skillfish-cc-helper usr/local/bin/skillfish-cc-helper
+put $P 0755 apps/control-center/skillfish-freefg usr/local/bin/skillfish-freefg
 put $P 0644 apps/control-center/os.skillfish.control-center.policy usr/share/polkit-1/actions/os.skillfish.control-center.policy
 # the program itself: a Python package under /usr/share/skillfish/control-center
 while IFS= read -r f; do
@@ -246,7 +247,7 @@ curve, with a trial countdown; Games switches our Mesa and installs GE-Proton."
 # modified on their board should be able to take it off without losing the
 # window. ONE Recommends field only - a second one is not a longer list, it is
 # an invalid control file, and the evdev sed below only ever touches the first.
-sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6, skillfish-vaapi-encoder, skillfish-vkpeak/' "$OUT/$P/DEBIAN/control"
+sed -i 's/^Depends: .*/&\nRecommends: skillfish-tuner, skillfish-fan, skillfish-monitor, skillfish-kernel-manager, skillfish-snapshots, skillfish-ai-panel, skillfish-emulators, skillfish-console, skillfish-iso-mount, skillfish-scx, skillfish-mesa-gfx1013, skillfish-gddr6, skillfish-vaapi-encoder, skillfish-vkpeak, libarchive-tools/' "$OUT/$P/DEBIAN/control"
 # the .sfmon mime type moved here from skillfish-monitor: without this dpkg
 # refuses to unpack over the old monitor package ("trying to overwrite")
 sed -i 's/^Depends: .*/&\nReplaces: skillfish-monitor (<< 26.09)\nBreaks: skillfish-monitor (<< 26.09)/' "$OUT/$P/DEBIAN/control"
@@ -2446,6 +2447,9 @@ check skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.sk
 check skillfish-audio-dolby_${VER}_all.deb ./usr/local/share/wireplumber/scripts/monitors/alsa.lua 'bc250'
 notcheck skillfish-control-center_${VER}_all.deb ./usr/share/polkit-1/actions/os.skillfish.control-center.policy '<allow_any>yes</allow_any>'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'gov-prova'
+# FreeFG: the pinned release with its hash, and the command the page and the terminal use
+check skillfish-control-center_${VER}_all.deb ./usr/share/skillfish/control-center/sfcc/freefg.py 'SHA256 = "6fa3a44d'
+check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-freefg 'freefg.main'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper 'reset-failed'
 check skillfish-control-center_${VER}_all.deb ./usr/local/bin/skillfish-cc-helper '/usr/bin/skillfish-mesa'
 check skillfish-control-center_${VER}_all.deb ./usr/share/skillfish/control-center/sfcc/pagine/tuner.py 'ProvaCurva'
