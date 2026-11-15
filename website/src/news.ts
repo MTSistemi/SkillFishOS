@@ -399,6 +399,34 @@ export interface Post {
 
 export const news: Post[] = [
   {
+    // aggiornamento-26-11-3-2026-11-15
+    data: '2026-11-15',
+    quando: {"it": "15 novembre 2026", "en": "15 November 2026", "pl": "15 listopada 2026", "uk": "15 листопада 2026", "ru": "15 ноября 2026", "es": "15 de noviembre de 2026", "pt": "15 de novembro de 2026", "de": "15. November 2026", "fr": "15 novembre 2026"},
+    etichetta: { it: "aggiornamento", en: "update", pl: "aktualizacja", uk: "оновлення", ru: "обновление", es: "actualización", pt: "atualização", de: "Aktualisierung", fr: "mise à jour" },
+    titolo: {
+      it: "Frame generation per la BC-250, gioco per gioco",
+      en: "Frame generation for the BC-250, game by game",
+      pl: "Generowanie klatek dla BC-250, gra po grze",
+      uk: "Генерація кадрів для BC-250, гра за грою",
+      ru: "Генерация кадров для BC-250, игра за игрой",
+      es: "Generación de fotogramas para la BC-250, juego a juego",
+      pt: "Geração de fotogramas para a BC-250, jogo a jogo",
+      de: "Frame Generation für die BC-250, Spiel für Spiel",
+      fr: "Génération d'images pour la BC-250, jeu par jeu"
+    },
+    testo: {
+      it: "Nella pagina Giochi del Control Center, e in quella del Remote Manager, c'è <strong>FreeFG</strong> di daniel-h-0: la frame generation XeSS di Intel con shader scritti per la BC-250, insieme a FSR 4. In Cyberpunk a 1080p mostra circa <strong>130 fps contro 90</strong>; sono fotogrammi generati, il gioco in sé resta sui 65. Si installa e si toglie un gioco alla volta. E un campionatore nostro che disturbava il driver grafico non lo fa più.",
+      en: "The Games page of the Control Center, and of the Remote Manager, now has <strong>FreeFG</strong> by daniel-h-0: Intel's XeSS frame generation with shaders written for the BC-250, together with FSR 4. In Cyberpunk at 1080p it shows about <strong>130 fps against 90</strong>; they are generated frames, the game itself stays at about 65. It goes in and out one game at a time. And a sampler of ours that got in the graphics driver's way no longer does.",
+      pl: "Strona Gry w Control Center i w Remote Managerze ma teraz <strong>FreeFG</strong> autorstwa daniel-h-0: generowanie klatek XeSS firmy Intel z shaderami napisanymi dla BC-250, razem z FSR 4. W Cyberpunku w 1080p pokazuje około <strong>130 fps zamiast 90</strong>; to klatki generowane, sama gra zostaje przy około 65. Instaluje się i usuwa gra po grze. A nasz próbnik, który przeszkadzał sterownikowi grafiki, już tego nie robi.",
+      uk: "Сторінка «Ігри» в Control Center і в Remote Manager тепер має <strong>FreeFG</strong> від daniel-h-0: генерацію кадрів XeSS від Intel із шейдерами, написаними для BC-250, разом із FSR 4. У Cyberpunk при 1080p показує близько <strong>130 fps замість 90</strong>; це згенеровані кадри, сама гра лишається приблизно на 65. Встановлюється й прибирається для кожної гри окремо. А наш семплер, що заважав графічному драйверу, більше цього не робить.",
+      ru: "На странице «Игры» в Control Center и в Remote Manager теперь есть <strong>FreeFG</strong> от daniel-h-0: генерация кадров XeSS от Intel с шейдерами, написанными для BC-250, вместе с FSR 4. В Cyberpunk при 1080p показывает около <strong>130 fps вместо 90</strong>; это сгенерированные кадры, сама игра остаётся примерно на 65. Устанавливается и убирается для каждой игры отдельно. А наш сэмплер, мешавший графическому драйверу, больше этого не делает.",
+      es: "La página Juegos del Control Center, y la del Remote Manager, tiene ahora <strong>FreeFG</strong> de daniel-h-0: la generación de fotogramas XeSS de Intel con shaders escritos para la BC-250, junto con FSR 4. En Cyberpunk a 1080p muestra unos <strong>130 fps frente a 90</strong>; son fotogramas generados, el juego en sí sigue en unos 65. Se instala y se quita juego a juego. Y un muestreador nuestro que estorbaba al controlador gráfico ya no lo hace.",
+      pt: "A página Jogos do Control Center, e a do Remote Manager, tem agora o <strong>FreeFG</strong> de daniel-h-0: a geração de fotogramas XeSS da Intel com shaders escritos para a BC-250, juntamente com o FSR 4. No Cyberpunk a 1080p mostra cerca de <strong>130 fps contra 90</strong>; são fotogramas gerados, o jogo em si fica nos 65. Instala-se e remove-se jogo a jogo. E um amostrador nosso que atrapalhava o controlador gráfico já não o faz.",
+      de: "Die Seite Spiele im Control Center und im Remote Manager hat jetzt <strong>FreeFG</strong> von daniel-h-0: Intels XeSS-Frame-Generation mit für die BC-250 geschriebenen Shadern, zusammen mit FSR 4. In Cyberpunk bei 1080p zeigt es etwa <strong>130 fps statt 90</strong>; es sind erzeugte Bilder, das Spiel selbst bleibt bei etwa 65. Es wird Spiel für Spiel installiert und entfernt. Und ein Sampler von uns, der dem Grafiktreiber in die Quere kam, tut das nicht mehr.",
+      fr: "La page Jeux du Control Center, et celle du Remote Manager, accueille <strong>FreeFG</strong> de daniel-h-0 : la génération d'images XeSS d'Intel avec des shaders écrits pour la BC-250, avec FSR 4. Dans Cyberpunk en 1080p, il affiche environ <strong>130 fps contre 90</strong> ; ce sont des images générées, le jeu lui-même reste vers 65. Il s'installe et se retire jeu par jeu. Et un échantillonneur à nous qui gênait le pilote graphique ne le fait plus."
+    },
+  },
+  {
     // aggiornamento-26-11-1-2026-11-14
     data: '2026-11-14',
     quando: {"it": "14 novembre 2026", "en": "14 November 2026", "pl": "14 listopada 2026", "uk": "14 листопада 2026", "ru": "14 ноября 2026", "es": "14 de noviembre de 2026", "pt": "14 de novembro de 2026", "de": "14. November 2026", "fr": "14 novembre 2026"},
