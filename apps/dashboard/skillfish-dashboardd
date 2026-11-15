@@ -1386,6 +1386,61 @@ def cc_proton_default(dove, nome):
     return {"ok": True}
 
 
+# ---- FreeFG: the same sfcc/freefg.py as the Control Center --------------------------
+# It runs as the desktop user, never as root: FreeFG writes into the user's
+# home, the game folders and the launchers' files, all of them the user's.
+CC_FREEFG = "/usr/share/skillfish/control-center/sfcc/freefg.py"
+
+
+def _cc_freefg(*args, timeout=120):
+    import pwd
+    if not os.path.isfile(CC_FREEFG):
+        return {"ok": False, "err": "skillfish-control-center non installato"}
+    uid, _gid, casa = _cc_utente()
+    if uid is None:
+        return {"ok": False, "err": "utente del desktop non trovato"}
+    utente = pwd.getpwuid(uid).pw_name
+    try:
+        r = subprocess.run(["runuser", "-u", utente, "--", "env", "HOME=" + casa, "python3", CC_FREEFG, *args],
+                           capture_output=True, text=True, timeout=timeout, cwd=casa)
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+    righe = [x for x in r.stdout.splitlines() if x.strip()]
+    try:
+        d = json.loads(righe[-1]) if righe else {}
+    except ValueError:
+        d = {}
+    if not d:
+        return {"ok": False, "err": (r.stderr or r.stdout).strip()[-400:] or "nessuna risposta"}
+    if "errore" in d and "err" not in d:
+        d["err"] = d["errore"]
+    return d
+
+
+def cc_freefg():
+    """The pinned version, whether it is downloaded and, if it is, the games."""
+    st = _cc_freefg("stato", timeout=30)
+    if not st.get("scaricato"):
+        return {"ok": True, "stato": st, "giochi": []}
+    g = _cc_freefg("giochi", timeout=300)
+    return {"ok": bool(g.get("ok")), "stato": st, "giochi": g.get("giochi") or [], "err": g.get("err")}
+
+
+def cc_freefg_post(data):
+    azione = (data or {}).get("azione")
+    if azione == "scarica":
+        return _cc_freefg("scarica", timeout=600)
+    if azione not in ("installa", "togli"):
+        return {"ok": False, "err": "azione sconosciuta"}
+    # The path comes from the network: it is accepted only if it is one of the
+    # games FreeFG itself lists on this machine, never as a free path.
+    exe = (data or {}).get("exe") or ""
+    giochi = _cc_freefg("giochi", timeout=300).get("giochi") or []
+    if exe not in {g.get("exe") for g in giochi if g.get("exe")}:
+        return {"ok": False, "err": "gioco non in elenco"}
+    return _cc_freefg(azione, exe, timeout=1800)
+
+
 def cc_giochi():
     return {"ok": True,
             "mesa": {a: cc_mesa_stato(a) for a in CC_APP},
@@ -3541,6 +3596,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("giochi"):
                 return
             return self._json(200, cc_giochi())
+        if path == "/api/giochi/freefg":
+            if not self._guard("giochi"):
+                return
+            return self._json(200, cc_freefg())
         if path == "/api/profili":
             if not self._guard("profili"):
                 return
@@ -3880,6 +3939,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._guard("giochi"):
                 return
             return self._json(200, cc_proton_default(data.get("dove"), data.get("nome")))
+        if path == "/api/giochi/freefg":
+            if not self._guard("giochi"):
+                return
+            return self._json(200, cc_freefg_post(data))
         if path == "/api/profili":
             if not self._guard("profili"):
                 return

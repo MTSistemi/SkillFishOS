@@ -60,6 +60,14 @@ IT NEEDS OUR KERNEL. On a kernel without the two compute-queue patches those que
   <div class="row"><span class="k" data-i18n-c="Default in Heroic">Default in Heroic</span><select id="def_heroic"></select><button class="btn sec" data-def="heroic" data-i18n-c="Apply">Apply</button></div>
   <div class="stub" data-i18n-c="The GE-Proton versions installed in Steam and Heroic. Installing new ones is done from the Control Center on the machine; here you pick the default. For Steam, Steam must be closed: it rewrites its configuration on exit.">…</div>
 </div>
+
+<div class="panel"><h3><span data-i18n-c="Frame generation">Frame generation</span> <span class="badge b-q" id="ffgbadge">…</span></h3>
+  <table id="ffg"><tr><td class="stub">…</td></tr></table>
+  <div class="brow"><button class="btn sec" id="ffgscarica" data-i18n-c="Download FreeFG">Download FreeFG</button>
+    <button class="btn sec" id="ffgelenco" data-i18n-c="Refresh list">Refresh list</button></div>
+  <div class="stub" id="ffgnota"></div>
+  <div class="stub" data-i18n-c="FreeFG (daniel-h-0, MIT licence) adds Intel's XeSS frame generation to a game, with faster shaders written for the BC-250, and FSR 4. In Cyberpunk at 1080p: about 130 fps shown against 90. They are generated frames: the game stays at its ~65 real fps and latency goes up a little. It is installed game by game, with the launcher closed; in that game GE-Proton's FSR 4 is turned off, because FreeFG brings its own. In the game, pick DLSS, FSR or XeSS and leave its own frame generation off.">…</div>
+</div>
 </div>
 <div id="toast"></div>
 <script src="/static/i18n.js"></script>
@@ -98,7 +106,34 @@ $("#scxcb").onchange=async e=>{ const x=await api("/api/tuner/scx",{on:e.target.
 $("#scxazzera").onclick=async()=>{ const x=await api("/api/giochi/scx-azzera",{}); toast(x.ok?C("counter reset"):(x.err||"?")); carica(); };
 $("#f_steam").onchange=$("#f_heroic").onchange=async e=>{ const x=await api("/api/giochi/fsr4",{app:e.target.id==="f_steam"?"steam":"heroic",on:e.target.checked}); toast(x.ok?C("Takes effect the next time the launcher starts. In the game pick DLSS."):(x.err||"?")); };
 document.querySelectorAll("[data-def]").forEach(b=> b.onclick=async()=>{ const d=b.dataset.def, n=$("#def_"+d).value; if(!n) return; const x=await api("/api/giochi/proton-default",{dove:d,nome:n}); toast(x.ok?C(d==="steam"?"%s is Steam's default.":"%s is Heroic's default.").replace("%s",n):(x.err||"?")); carica(); });
+function esc(t){ return String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+let FFG=[];
+async function caricaFfg(){
+  $("#ffgnota").textContent=C("Looking for Steam and Heroic games…");
+  const r=await api("/api/giochi/freefg"); const st=(r&&r.stato)||{};
+  const b=$("#ffgbadge"); b.className="badge "+(st.scaricato?"b-ok":"b-q"); b.textContent=st.scaricato?("FreeFG "+(st.versione||"?")):C("not downloaded");
+  $("#ffgscarica").disabled=!!st.scaricato; $("#ffgelenco").disabled=!st.scaricato;
+  if(!r||!r.ok){ $("#ffgnota").textContent=C("Failed: %s").replace("%s",(r&&r.err)||"?"); return; }
+  if(!st.scaricato){ $("#ffg").innerHTML=""; $("#ffgnota").textContent=C("Download FreeFG %s (11 MB) to see which games take it.").replace("%s",st.versione||"?"); return; }
+  FFG=r.giochi||[];
+  $("#ffg").innerHTML=FFG.length?FFG.map((g,i)=>{
+    const stato=g.dentro?C("active"):(g.blocca?C("not suitable"):C("suitable"));
+    const az=g.dentro?'<button class="btn sec" data-ffg="togli" data-i="'+i+'">'+esc(C("Remove from the game"))+'</button>'
+      :(g.blocca?'':'<button class="btn sec" data-ffg="installa" data-i="'+i+'">'+esc(C("Install in the game"))+'</button>');
+    return '<tr><td title="'+esc(g.verdetto)+'">'+esc(g.nome)+'</td><td>'+esc((g.store||"").replace(/^./,c=>c.toUpperCase()))+'</td><td class="'+(g.dentro?'ok':'')+'">'+esc(stato)+'</td><td class="stub">'+esc(g.breve)+'</td><td>'+az+'</td></tr>';
+  }).join(""):'<tr><td class="stub">'+esc(C("no game found"))+'</td></tr>';
+  $("#ffgnota").textContent=C("%d games, %d with FreeFG.").replace("%d",FFG.length).replace("%d",FFG.filter(g=>g.dentro).length);
+  document.querySelectorAll("[data-ffg]").forEach(bt=> bt.onclick=async()=>{
+    const g=FFG[+bt.dataset.i], az=bt.dataset.ffg; if(!g) return;
+    if(az==="installa"&&!confirm(C("FreeFG goes into %s: XeSS frame generation and FSR 4. The first time it downloads Intel's runtime and the BC-250 FSR 4 (about 60 MB). In this game GE-Proton's FSR 4 is turned off. Steam and Heroic must be closed. Go ahead?").replace("%s",g.nome))) return;
+    document.querySelectorAll("[data-ffg]").forEach(x=>x.disabled=true);
+    $("#ffgnota").textContent=(az==="installa"?C("Installing FreeFG in %s…"):C("Removing FreeFG from %s…")).replace("%s",g.nome);
+    const x=await api("/api/giochi/freefg",{azione:az,exe:g.exe}); if(!x.ok) toast(x.err||"?"); caricaFfg(); });
+}
+$("#ffgscarica").onclick=async()=>{ $("#ffgscarica").disabled=true; $("#ffgnota").textContent=C("Downloading FreeFG and checking its sha256…");
+  const x=await api("/api/giochi/freefg",{azione:"scarica"}); if(!x.ok) toast(x.err||"?"); caricaFfg(); };
+$("#ffgelenco").onclick=caricaFfg;
 $("#reload").onclick=carica;
-(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); carica(); });
+(typeof sfCarica==="function"?sfCarica():Promise.resolve()).then(()=>{ applicaC(); carica(); caricaFfg(); });
 </script>
 </body></html>

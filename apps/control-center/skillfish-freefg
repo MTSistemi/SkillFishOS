@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+# SkillFishOS - FreeFG frame generation per game, as the desktop user.
+#
+#   skillfish-freefg stato            JSON: pinned version, downloaded or not
+#   skillfish-freefg scarica          download and check the pinned release
+#   skillfish-freefg giochi           JSON: Steam and Heroic games, FreeFG's verdict, installed or not
+#   skillfish-freefg installa EXE     GE-Proton's OptiScaler off for that game, then FreeFG in
+#   skillfish-freefg togli EXE        FreeFG out, the game's launcher entry as it was
+#
+# The Control Center's Games page runs this in a separate process, so FreeFG's
+# own code never runs inside the window. The logic is in sfcc/freefg.py.
+import sys
+
+sys.path.insert(0, "/usr/share/skillfish/control-center")
+
+from sfcc import freefg  # noqa: E402
+
+sys.exit(freefg.main(sys.argv))

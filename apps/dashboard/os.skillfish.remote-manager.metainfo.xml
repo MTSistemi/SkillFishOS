@@ -72,6 +72,19 @@
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="26.11.3" date="2026-11-15">
+      <description>
+        <p>The Games page has the same frame generation panel as the Control Center: download FreeFG, see which Steam and Heroic games take it, and install or remove it one game at a time, from any browser on the network.</p>
+        <p xml:lang="it">La pagina Giochi ha lo stesso pannello di frame generation del Control Center: si scarica FreeFG, si vede quali giochi di Steam e Heroic lo accettano e lo si installa o toglie un gioco alla volta, da qualsiasi browser della rete.</p>
+        <p xml:lang="fr">La page Jeux a le même panneau de génération d'images que le Control Center : télécharger FreeFG, voir quels jeux Steam et Heroic l'acceptent, et l'installer ou le retirer jeu par jeu, depuis n'importe quel navigateur du réseau.</p>
+        <p xml:lang="es">La página Juegos tiene el mismo panel de generación de fotogramas que el Control Center: descargar FreeFG, ver qué juegos de Steam y Heroic lo admiten e instalarlo o quitarlo juego a juego, desde cualquier navegador de la red.</p>
+        <p xml:lang="pt">A página Jogos tem o mesmo painel de geração de fotogramas do Control Center: transferir o FreeFG, ver que jogos do Steam e do Heroic o aceitam e instalá-lo ou removê-lo jogo a jogo, a partir de qualquer navegador da rede.</p>
+        <p xml:lang="de">Die Seite Spiele hat dasselbe Frame-Generation-Feld wie das Control Center: FreeFG herunterladen, sehen, welche Steam- und Heroic-Spiele es annehmen, und es Spiel für Spiel installieren oder entfernen, aus jedem Browser im Netzwerk.</p>
+        <p xml:lang="pl">Strona Gry ma ten sam panel generowania klatek co Control Center: pobranie FreeFG, podgląd, które gry ze Steama i Heroica go obsługują, oraz instalacja lub usunięcie gra po grze, z dowolnej przeglądarki w sieci.</p>
+        <p xml:lang="ru">На странице «Игры» есть та же панель генерации кадров, что и в Control Center: скачать FreeFG, увидеть, какие игры Steam и Heroic его принимают, и установить или убрать его для каждой игры отдельно, из любого браузера в сети.</p>
+        <p xml:lang="uk">Сторінка «Ігри» має ту саму панель генерації кадрів, що й Control Center: завантажити FreeFG, побачити, які ігри Steam і Heroic його приймають, і встановити чи прибрати його для кожної гри окремо, з будь-якого браузера в мережі.</p>
+      </description>
+    </release>
     <release version="26.10.2" date="2026-10-06">
       <description>
         <p>The remote desktop and the launcher work on any installation: they used the account name "skillfish" from the settings file, which an installation usually does not have, and now use the account that owns the desktop. The remote desktop also comes back on its own if it starts before the desktop session is up.</p>

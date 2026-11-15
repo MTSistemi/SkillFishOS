@@ -74,6 +74,9 @@ EXECUTABLES = {
     # --- skillfish-control-center ---------------------------------------------
     "/usr/local/bin/skillfish-cc-helper": ("helper", "cc-helper"),
     "/usr/local/bin/skillfish-control-center": ("gui", "skillfish-control-center"),
+    # reads only: the pinned version and whether it is downloaded (no network,
+    # no launcher touched); installing into a game is tried by hand on the board
+    "/usr/local/bin/skillfish-freefg": ("run", "skillfish-freefg stato", {"out": r'"versione": "1\.4\.0"'}),
     # --- skillfish-dashboard --------------------------------------------------
     "/usr/local/bin/skillfish-dashboardd": ("unit", "skillfish-dashboard.service"),
     "/usr/local/bin/skillfish-dashboard-stop": ("manual", "stops the Remote Manager"),
