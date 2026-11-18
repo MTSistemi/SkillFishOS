@@ -79,8 +79,21 @@ if [ -f "$APPIMG" ]; then
     info "  Lo sovrascrivo con l'ultima versione."
 fi
 
+# 3) dalla 2.7 ci sono DUE AppImage, EmuDeck-<versione>-arm64.AppImage e
+#    EmuDeck-<versione>-x86_64.AppImage, e l'API le elenca in ordine
+#    alfabetico: prendere la prima scaricava quella ARM, che qui non parte.
+#    Quindi si sceglie quella dell'architettura della macchina; le release
+#    vecchie, con un solo AppImage senza suffisso, restano come ripiego.
+case "$(uname -m)" in
+    x86_64)        ARCH=x86_64; ALTRE='arm64|aarch64' ;;
+    aarch64|arm64) ARCH=arm64;  ALTRE='x86_64|amd64'  ;;
+    *) ko "architettura $(uname -m) non supportata da EmuDeck."; exit 1 ;;
+esac
+
 info "Cerco l'ultima versione su GitHub..."
-URL=$(curl -fsSL "$API" | grep -o 'https://[^"]*EmuDeck[^"]*\.AppImage' | head -1)
+TUTTE=$(curl -fsSL "$API" | grep -o 'https://[^"]*EmuDeck[^"]*\.AppImage' | sort -u)
+URL=$(printf '%s\n' "$TUTTE" | grep -E -- "[-_.]${ARCH}\.AppImage\$" | head -1)
+[ -n "$URL" ] || URL=$(printf '%s\n' "$TUTTE" | grep -Ev -- "($ALTRE)" | head -1)
 if [ -z "$URL" ]; then
     ko "non riesco a trovare l'AppImage nelle release."
     info "  Puo' essere GitHub che limita le richieste, o un cambio di nome del file."
