@@ -3,36 +3,36 @@ Label: SkillFishOS
 Suite: aetherium
 Codename: aetherium
 Version: 26.06
-Date: Sun, 15 Nov 2026 11:03:15 UTC
+Date: Sat, 21 Nov 2026 14:51:37 UTC
 Architectures: amd64 i386
 Components: main
 Description: SkillFishOS APT repository - BC-250 release "Aetherium" (Debian sid based)
 MD5Sum:
- 6da862ec04785eab43c4335da32265da 28920 main/binary-amd64/Packages
- 8377985f5dbd5427710eddc882e470d2 10589 main/binary-amd64/Packages.gz
+ 2aa18307e8e88fbe54650f9f3285118c 28957 main/binary-amd64/Packages
+ 7234fc5735a16a764da7710834a56468 10605 main/binary-amd64/Packages.gz
  740eb052c2564f892119e2e400f417bc 197 main/binary-amd64/Release
- 0f7f0aa158cb3b34ce10f11c58ae74c2 22459 main/binary-i386/Packages
- 8b09872998971ce301a3806434674713 8028 main/binary-i386/Packages.gz
+ 13cd9bd43f6eb703151f8b3d0a107c68 22496 main/binary-i386/Packages
+ b54fb830bb6ef62cdcb2636c032676a0 8037 main/binary-i386/Packages.gz
  3a63174ed4e59b1213cd3300fe6705d2 196 main/binary-i386/Release
  d41d8cd98f00b204e9800998ecf8427e 0 main/source/Sources
  7029066c27ac6f5ef18d660d5741979a 20 main/source/Sources.gz
  e315bceffc180850e3f7028e2875cb20 198 main/source/Release
 SHA1:
- 7b11610d09ec56bf2533d3b3dd0fd70e85d24026 28920 main/binary-amd64/Packages
- 41885bcac1a2bee72843b3aa919c13eea63ac7f3 10589 main/binary-amd64/Packages.gz
+ 6ee8961e2d4a1c7dc197830e1457aa491d80a429 28957 main/binary-amd64/Packages
+ 8a3acdb4d228a8b64efc9b978f98817e6877c394 10605 main/binary-amd64/Packages.gz
  6339eeeb288e039c50df9dc7e2f2a8aeef88761a 197 main/binary-amd64/Release
- b6c1a8b6626cbbb92161fbe33bd233ef17801568 22459 main/binary-i386/Packages
- 45698647b941e63b69d489e32e07a3b83d46026c 8028 main/binary-i386/Packages.gz
+ d2e9f26099513f98f43b1d23230a68df4d1aff45 22496 main/binary-i386/Packages
+ c4edbb918a8d0fcbe02e918f7f6700d1f0a22a45 8037 main/binary-i386/Packages.gz
  f85b4a9bfbcdc831ea39e52aaf0341b6ef5ad0f9 196 main/binary-i386/Release
  da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/source/Sources
  46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/source/Sources.gz
  7c8139b19f1a6b8b305960a978f57520f47b0715 198 main/source/Release
 SHA256:
- b4fb5459bb2a55155dd41ddbc11e7e7c15e14eb2b5510e22e922c6ada9da1ad9 28920 main/binary-amd64/Packages
- a2e948baed367b3b86b3a4e742a0e84d9c48130334c7bf38789328b8389775df 10589 main/binary-amd64/Packages.gz
+ d74435c506df31f9589db2fad161443c47f2d7495401bdf60c8ca518b0e61a94 28957 main/binary-amd64/Packages
+ e1398b63f361e5f6de3852ad28af175b631e0032beba49fcfa8ea3188cb288d5 10605 main/binary-amd64/Packages.gz
  0f10e06632ff5383d4a8b021720ff02d1cacc0bad500d3849087add7f4e5b222 197 main/binary-amd64/Release
- 1420b7a66f764ee45c2b105dfc812205691d78326987d8506c168479df541e4a 22459 main/binary-i386/Packages
- 38aefcdf032de027fe97f9a1920bc1e5cbaa024314aa869c3d95d24dde62253d 8028 main/binary-i386/Packages.gz
+ a660fb0bdd4685199ce140b9b670aee0582b65464961ba3c523578e610e25be1 22496 main/binary-i386/Packages
+ 2c7358b4b1c958b0c4e8a9bfa943d79ae98f2d5182c0cb7bdfd9e3ea088026c6 8037 main/binary-i386/Packages.gz
  4d03faff90f2fb9f265f7374814bafe6af541bca9db23075e7a3c62cb49447d5 196 main/binary-i386/Release
  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/source/Sources
  59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/source/Sources.gz
