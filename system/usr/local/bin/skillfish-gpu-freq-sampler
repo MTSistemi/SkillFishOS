@@ -71,9 +71,8 @@ def power_line(d):
 
 
 def publish(path, text):
-    # Atomic replace, readable by the desktop user. If /run is full or read-only
-    # the readers keep the previous file, which is two seconds old: better than
-    # a sampler that dies because it could not write.
+    # Atomic replace. World-readable on purpose: the HUD and the apps that read
+    # the clock run as the desktop user, and the file holds only a number.
     try:
         tmp = path + ".tmp"
         with open(tmp, "w") as f:
@@ -81,6 +80,9 @@ def publish(path, text):
         os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     except OSError:
+        # /run full or read-only: the readers keep the previous file, which is
+        # two seconds old. Better than a sampler that dies because it could
+        # not write.
         pass
 
 

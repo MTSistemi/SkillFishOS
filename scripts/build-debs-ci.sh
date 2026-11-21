@@ -871,7 +871,11 @@ echo "    os-release timbrato: $MEDIA"
 # were there something to scan with; print-manager is the Printers page of the
 # KDE settings. Depends, not Recommends: installs from 26.06.5 have Recommends
 # switched off until this very version moves 00recommends away.
-ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard, fastfetch, alsa-ucm-conf, alsa-topology-conf, sane-airscan, skanlite, print-manager" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
+# usb-modeswitch: common USB Wi-Fi/Bluetooth combo adapters (Realtek RTL8851BU
+# and the like) start in CD-ROM installer mode, and only usb-modeswitch with its
+# data package flips them to the real device. docs/OPTIMIZATIONS.md promised it,
+# but nothing installed it (issue #136).
+ctrl $P "systemd, libnotify-bin, python3, cpio, locales, mokutil, systemd-zram-generator, sshpass, openssh-client, skillfish-boot, skillfish-desktop-guard, fastfetch, alsa-ucm-conf, alsa-topology-conf, sane-airscan, skanlite, print-manager, usb-modeswitch, usb-modeswitch-data" "SkillFishOS base - hardware watchdog + freeze detector + 8-core unlock" \
   "The watchdog that reboots the board if it stops answering, the freeze detector,
 the 8-core unlock, the shared translation dictionary and the sensor tables the
 applications read. It is also the one place that asks the SMU how much power the
@@ -923,6 +927,31 @@ if [ -f "$F" ] && ! systemd-detect-virt --chroot --quiet 2>/dev/null \
 Aptitude::Recommends-Important "false";' ]; then
   mkdir -p /var/backups/skillfish
   mv "$F" /var/backups/skillfish/00recommends.live-build
+fi
+# Issue #137: the Recommends on skillfishos-kernel (#103) never reached the
+# installs it was written for. It arrived while 00recommends was still switched
+# on, so apt skipped it, and apt only installs a Recommends that is new in the
+# upgraded version: once skipped, never again. Changing the version constraint
+# does not make it new (tried with apt 3.3.7), and an image installed today
+# jumps to this version in one upgrade, with 00recommends still read by the apt
+# that runs it. So the wrapper is installed here, after that apt lets go of the
+# lock, the same way skillfishos-kernel installs its kernel. Only where the
+# backup above proves the system came from an image without Recommends, only if
+# dpkg has never had the wrapper selected and apt never removed it, and only
+# until it worked once: someone who removed it keeps it removed.
+KC_DONE=/var/lib/skillfish/kernel-catchup.done
+if [ -d /run/systemd/system ] && [ -f /var/backups/skillfish/00recommends.live-build ] \
+   && [ ! -e "$KC_DONE" ] && command -v systemd-run >/dev/null 2>&1 \
+   && ! systemd-detect-virt --chroot --quiet 2>/dev/null; then
+  KC_WANT=$(dpkg-query -W -f='${db:Status-Abbrev}' skillfishos-kernel 2>/dev/null | cut -c1)
+  if [ "$KC_WANT" != i ] && [ "$KC_WANT" != h ] \
+     && ! zgrep -qE '^(Remove|Purge): .*skillfishos-kernel:' /var/log/apt/history.log* 2>/dev/null; then
+    mkdir -p /var/lib/skillfish
+    systemd-run --quiet --on-active=30 --unit=skillfish-kernel-catchup \
+      --setenv=DEBIAN_FRONTEND=noninteractive \
+      /bin/sh -c "apt-get -y -q -o DPkg::Lock::Timeout=3600 install skillfishos-kernel && touch $KC_DONE" \
+      >/dev/null 2>&1 || true
+  fi
 fi
 if [ -d /run/systemd/system ]; then
   systemctl daemon-reload || true
@@ -1962,6 +1991,12 @@ check skillfish-base_${VER}_all.deb ./usr/local/share/applications/conky.desktop
 grep -q '^Depends:.*alsa-ucm-conf' "$OUT/skillfish-base/DEBIAN/control" \
   && echo "OK  skillfish-base: depends on alsa-ucm-conf" \
   || { echo "FAIL skillfish-base: alsa-ucm-conf missing from Depends" >&2; exit 1; }
+grep -q '^Depends:.*usb-modeswitch-data' "$OUT/skillfish-base/DEBIAN/control" \
+  && echo "OK  skillfish-base: depends on usb-modeswitch-data (#136)" \
+  || { echo "FAIL skillfish-base: usb-modeswitch-data missing from Depends" >&2; exit 1; }
+grep -q 'unit=skillfish-kernel-catchup' "$OUT/skillfish-base/DEBIAN/postinst" \
+  && echo "OK  skillfish-base: postinst catches up skillfishos-kernel (#137)" \
+  || { echo "FAIL skillfish-base: kernel catch-up missing from postinst" >&2; exit 1; }
 while read -r leftover_pkg leftover_file; do
   grep -q "$leftover_file" "$OUT/$leftover_pkg/DEBIAN/postinst" \
     && echo "OK  $leftover_pkg: postinst moves the 26.06 leftover $leftover_file" \

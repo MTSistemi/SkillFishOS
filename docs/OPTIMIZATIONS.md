@@ -106,7 +106,7 @@ The full **PipeWire** stack (pipewire‑pulse, WirePlumber, ALSA/BT) with user s
 
 ## 8. Wi‑Fi & Bluetooth
 
-Common combo adapters (e.g. Realtek **RTL8851BU**, Wi‑Fi 6 + BT) ship in **CD‑ROM installer mode**. `usb-modeswitch` + `usb-modeswitch-data` flip them to the real device, persistently via udev — without them there is **no Wi‑Fi and no Bluetooth** on these adapters.
+Common combo adapters (e.g. Realtek **RTL8851BU**, Wi‑Fi 6 + BT) ship in **CD‑ROM installer mode**. `usb-modeswitch` + `usb-modeswitch-data` flip them to the real device, persistently via udev — without them there is **no Wi‑Fi and no Bluetooth** on these adapters. Both come with `skillfish-base` since 26.11.4; on an older install, `sudo apt install usb-modeswitch usb-modeswitch-data`.
 
 ---
 
