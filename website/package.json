@@ -9,7 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "^7.4.11"
+    "astro": "^7.4.13"
   },
   "overrides": {
     "esbuild": "^0.28.1",
